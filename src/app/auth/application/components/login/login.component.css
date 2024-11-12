@@ -28,6 +28,7 @@
     display: none !important;
 }
 
+
 @media (max-width: 420px) {
     .login {
         height: 100% !important;
@@ -54,10 +55,10 @@
     }
     .login__logo--mobile img {
         opacity: 0.5;
-        filter: none !important;
         display: block !important;
         margin: auto !important;
     }
+  
 }
 
 .login__form {
@@ -85,7 +86,7 @@
 
 .login__logo img {
     height: 60px;
-    filter: brightness(0) invert(1);
+    /* filter: brightness(0) invert(1); */
 }
 
 .login__object {

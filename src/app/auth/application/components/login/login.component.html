@@ -15,12 +15,16 @@
       <div class="login__form">
         <div class="login__form-base">
           <div class="login__logo">
-            <img src="logo/LOGO.png" alt="">
+            <img src="logo/LOGO.png" style="filter: brightness(0) invert(1)!important" alt="">
           </div>
           <form action="" ngNativeValidate class="login__object">
-            <div class="login__logo login__logo--mobile">
-              <img src="logo/LOGO.png" alt="">
+            <div  class="login__logo login__logo--mobile">
+             
+              <img *ngIf="theme == 'dark'" style="filter: brightness(0) invert(1)!important" src="logo/LOGO.png" alt="">
+              <img *ngIf="theme == 'light'" style="filter: none!important"  src="logo/LOGO.png" alt="">
             </div>
+
+          
             <div class="login__title">
               <div class="login__deco"></div>
               <h1>{{ 'login.formTitle' | translate }}</h1>

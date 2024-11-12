@@ -22,7 +22,7 @@ export class LoginComponent {
 
     this.themes.setTheme('light');
     this.languages = this._lang.getLangs()
-    
+
    }
 
    ngOnInit() {
@@ -32,6 +32,7 @@ export class LoginComponent {
     toggleTheme() {
       this.theme = this.themes.getCurrentTheme();
       this.themes.setTheme(this.theme === 'light' ? 'dark' : 'light');
+      this.theme = this.themes.getCurrentTheme();
     }
 
     changeLang() {
