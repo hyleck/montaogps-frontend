@@ -1,9 +1,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import "primeicons/primeicons.css";
+
 
 body , html{
+  height: 100%;
   font-family: 'Roboto', sans-serif;
 }
 *{
     padding: 0;
     margin: 0;
+    transition: all 0.2s;
 }
+/* Para navegadores basados en WebKit (Chrome, Safari, Edge moderno) */
+::-webkit-scrollbar {
+  width: 12px;               /* Ancho de la barra de scroll */
+}
+
+::-webkit-scrollbar-track {
+  background: #252525;       /* Fondo de la pista del scroll (negro) */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #bd3535;       /* Color de la barra de scroll (rojo) */
+  border-radius: 6px;        /* Bordes redondeados */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bd3535;       /* Color al pasar el cursor (rojo más oscuro) */
+}
+
+/* Estilo para Firefox */
+* {
+  scrollbar-width: thin;             /* Ancho de la barra */
+  scrollbar-color: #bd3535 #232323;  /* Color del pulgar y de la pista */
+}
+

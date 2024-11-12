@@ -1,0 +1,33 @@
+{
+    "login": {
+      "formTitle": "Connexion",
+      "formSubtitle": "Bienvenue sur Montao GPS",
+      "emailLabel": "Email",
+      "passwordLabel": "Mot de passe",
+      "emailPlaceholderExample": "Exemple : manuel@montao.net",
+      "rememberPassword": "Se souvenir du mot de passe",
+      "forgotPassword": "Mot de passe oublié ?",
+      "submitButton": "Connexion",
+      "footerText": "Montao GPS ©",
+      "footerVersion": "Version 1.0",
+      "subFooterContact": "info@montao.net",
+      "infoTitle": "Assistance 24/7",
+      "infoSubtitle": "Sécurité en tout temps.",
+      "infoDescription": "Notre plateforme GPS offre une surveillance de véhicules en temps réel avec des itinéraires optimisés, des alertes automatiques et une gestion efficace des actifs.",
+      "contactInstallation": "Installations",
+      "contactRenewal": "Renouvellement et vérification",
+      "contactAccounting": "Comptabilité",
+      "contactEmergency": "Urgence"
+    },
+    "theme": {
+      "toggleLight": "Activer le thème clair",
+      "toggleDark": "Activer le thème sombre"
+    },
+    "language": {
+      "selectLanguage": "Choisir la langue",
+      "en": "Anglais",
+      "es": "Espagnol",
+      "fr": "Français"
+    }
+  }
+  

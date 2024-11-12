@@ -1,0 +1,33 @@
+{
+    "login": {
+      "formTitle": "Iniciar sesión",
+      "formSubtitle": "Bienvenidos a Montao GPS",
+      "emailLabel": "Correo",
+      "passwordLabel": "Contraseña",
+      "emailPlaceholderExample": "Ejemplo: manuel@montao.net",
+      "rememberPassword": "Recordar contraseña",
+      "forgotPassword": "¿Olvidaste tu contraseña?",
+      "submitButton": "Iniciar sesión",
+      "footerText": "Montao GPS ©",
+      "footerVersion": "Versión 1.0",
+      "subFooterContact": "info@montao.net",
+      "infoTitle": "Asistencia 24/7",
+      "infoSubtitle": "Seguridad en todo momento.",
+      "infoDescription": "Nuestra plataforma de GPS ofrece monitoreo vehicular en tiempo real con rutas optimizadas, alertas automáticas y gestión eficiente de activos.",
+      "contactInstallation": "Instalaciones",
+      "contactRenewal": "Renovación y chequeo",
+      "contactAccounting": "Contabilidad",
+      "contactEmergency": "Emergencias"
+    },
+    "theme": {
+      "toggleLight": "Activar tema claro",
+      "toggleDark": "Activar tema oscuro"
+    },
+    "language": {
+      "selectLanguage": "Seleccionar idioma",
+      "en": "Inglés",
+      "es": "Español",
+      "fr": "Francés"
+    }
+  }
+  

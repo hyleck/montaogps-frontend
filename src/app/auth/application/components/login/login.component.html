@@ -1,1 +1,112 @@
-<p>login works!</p>
+<div class="main">
+
+    <div class="set-theme" (click)="toggleTheme()">
+      <i *ngIf="theme == 'light'" class="pi pi-sun"></i>
+      <i *ngIf="theme == 'dark'" class="pi pi-moon"></i>
+    </div>
+  
+    <div class="set-lang">
+      <select (change)="changeLang()" [(ngModel)]="selectedLang" name="" id="">
+        <option [value]="lang.code" *ngFor="let lang of languages">{{ 'language.'+ lang.code | translate }}</option>
+      </select>
+    </div>
+  
+    <div class="login">
+      <div class="login__form">
+        <div class="login__form-base">
+          <div class="login__logo">
+            <img src="logo/LOGO.png" alt="">
+          </div>
+          <form action="" ngNativeValidate class="login__object">
+            <div class="login__logo login__logo--mobile">
+              <img src="logo/LOGO.png" alt="">
+            </div>
+            <div class="login__title">
+              <div class="login__deco"></div>
+              <h1>{{ 'login.formTitle' | translate }}</h1>
+              <p>{{ 'login.formSubtitle' | translate }}</p>
+            </div>
+            <div class="login__fields">
+              <table>
+                <tr>
+                  <td><label for="email">{{ 'login.emailLabel' | translate }}:</label></td>
+                </tr>
+                <tr>
+                  <td><input required type="email" placeholder="{{ 'login.emailPlaceholderExample' | translate }}" id="email"></td>
+                </tr>
+                <tr>
+                  <td><label for="password">{{ 'login.passwordLabel' | translate }}:</label></td>
+                </tr>
+                <tr>
+                  <td><input required type="password" placeholder="..." id="password"></td>
+                </tr>
+              </table>
+            </div>
+            <div class="login__options">
+              <div class="login__remember">
+                <input type="checkbox" id="rememberMe" name="rememberMe">
+                <label for="rememberMe">
+                  <span>{{ 'login.rememberPassword' | translate }}</span>
+                </label>
+              </div>
+              <div class="login__forgot">
+                <a>{{ 'login.forgotPassword' | translate }}</a>
+              </div>
+            </div>
+            <div class="login__submit">
+              <table>
+                <tr>
+                  <td><button>{{ 'login.submitButton' | translate }}</button></td>
+                </tr>
+              </table>
+            </div>
+            <div class="login__footer">
+              <span>{{ 'login.footerText' | translate }} <br> <span>{{ 'login.footerVersion' | translate }}</span></span>
+            </div>
+          </form>
+          <span class="login__sub-footer">{{ 'login.subFooterContact' | translate }}</span>
+        </div>
+      </div>
+      <div class="login__info">
+        <div class="login__info-base">
+          <h1>{{ 'login.infoTitle' | translate }} <br> <span style="font-size: 25px;">{{ 'login.infoSubtitle' | translate }}</span></h1>
+          <p>{{ 'login.infoDescription' | translate }}</p>
+          <div class="login__info-img">
+            <img src="login.jpg" alt="">
+          </div>
+          <div class="login__info-contacts">
+            <div class="login__info-contact animated flip infinite">
+              <strong>{{ 'login.contactInstallation' | translate }}</strong>
+              <a href="https://wa.me/18295379776" target="_blank">
+                <i class="pi pi-whatsapp"></i>
+                <span>(829) 537-9776</span>
+              </a>
+            </div>
+            <div class="login__info-contact">
+              <strong>{{ 'login.contactRenewal' | translate }}</strong>
+              <a href="https://wa.me/18498899924" target="_blank">
+                <i class="pi pi-whatsapp"></i>
+                <span>(849) 889-9924</span>
+              </a>
+            </div>
+            <div class="login__info-contact">
+              <strong>{{ 'login.contactAccounting' | translate }}</strong>
+              <a href="https://wa.me/18296697013" target="_blank">
+                <i class="pi pi-whatsapp"></i>
+                <span>(829) 669-7013</span>
+              </a>
+            </div>
+            <div class="login__info-contact">
+              <strong>{{ 'login.contactEmergency' | translate }}</strong>
+              <a href="https://wa.me/18095761000" target="_blank">
+                <i class="pi pi-whatsapp"></i>
+                <span>(809) 576-1000</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+  </div>
+  

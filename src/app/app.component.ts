@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { ThemesService } from './shareds/services/themes.service';
 
 @Component({
   selector: 'app-root',
@@ -6,5 +7,7 @@ import { Component } from '@angular/core';
   styleUrl: './app.component.css'
 })
 export class AppComponent {
-  title = 'montaogps-frontend';
+  constructor(public themes: ThemesService) {
+    this.themes.setTheme('light');
+   }
 }
