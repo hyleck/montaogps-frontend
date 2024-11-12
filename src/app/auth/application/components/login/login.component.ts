@@ -11,32 +11,39 @@ import { LangService } from '../../../../shareds/services/langi18/lang.service';
   styleUrl: './login.component.css'
 })
 export class LoginComponent {
+
+  // UI/UX
   translate: TranslateService = inject(TranslateService);
   lang: string = 'es';
   theme: string = 'light';
 
   languages: Lang[] | undefined;
 
-  selectedLang: string = 'es';
-  constructor(public themes: ThemesService, private _lang: LangService) {
+  constructor(public themes: ThemesService, public langService: LangService) {
 
-    this.themes.setTheme('light');
-    this.languages = this._lang.getLangs()
-
+    // console.log('languages', this.theme);
    }
 
-   ngOnInit() {
+   // init que se ejecute antes de que cargue la vista:
+    
    
+
+   ngOnInit() {  
+    this.theme = this.themes.getCurrentTheme();
+    this.languages = this.langService.getLangs()
+    this.translate.use(this.langService.selectedLang || 'es');
 }
 
     toggleTheme() {
-      this.theme = this.themes.getCurrentTheme();
+      
       this.themes.setTheme(this.theme === 'light' ? 'dark' : 'light');
       this.theme = this.themes.getCurrentTheme();
+      localStorage.setItem('theme', this.theme);
     }
 
     changeLang() {
-      this.translate.use(this.selectedLang || 'es');
-      console.log('lang', this.selectedLang);
+      this.translate.use(this.langService.selectedLang || 'es');
+      localStorage.setItem('lang', this.langService.selectedLang);
+      // console.log('lang', this.selectedLang);
     }
 }

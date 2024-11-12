@@ -8,6 +8,6 @@ import { ThemesService } from './shareds/services/themes.service';
 })
 export class AppComponent {
   constructor(public themes: ThemesService) {
-    this.themes.setTheme('light');
+    // this.themes.setTheme('light');
    }
 }

@@ -12,8 +12,10 @@ export class LangService {
     { name: 'English', code: 'en' },
     { name: 'Frances', code: 'fr' }
 ];
+   selectedLang: string = localStorage.getItem('lang') || 'es';;
 
-  constructor() { }
+  constructor() { 
+  }
 
   getLangs(): Lang[] {
     return this.cities;

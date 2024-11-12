@@ -6,7 +6,7 @@
     </div>
   
     <div class="set-lang">
-      <select (change)="changeLang()" [(ngModel)]="selectedLang" name="" id="">
+      <select (change)="changeLang()" [(ngModel)]="langService.selectedLang" name="" id="">
         <option [value]="lang.code" *ngFor="let lang of languages">{{ 'language.'+ lang.code | translate }}</option>
       </select>
     </div>

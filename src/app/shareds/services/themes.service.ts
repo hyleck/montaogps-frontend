@@ -79,19 +79,21 @@ export class ThemesService {
   private currentTheme: string;
 
   constructor() {
-    this.currentTheme = 'light';
+    this.currentTheme = localStorage.getItem('theme') || 'light';
+    console.log('constructor', this.currentTheme);
     this.setTheme(this.currentTheme);
   }
 
   setTheme(theme: string) {
     this.currentTheme = theme;
-
+    console.log('setTheme', this.currentTheme);
     Object.keys(this.themes[theme]).forEach((key: string) => {
       document.documentElement.style.setProperty("--" + key, this.themes[theme][key]);
     });
   }
 
   getCurrentTheme(): string {
+    // console.log('currentTheme', this.currentTheme);
     return this.currentTheme;
   }
 }
