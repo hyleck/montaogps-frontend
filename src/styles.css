@@ -5,11 +5,14 @@
 body , html{
   height: 100%;
   font-family: 'Roboto', sans-serif;
+  padding: 0;
+ 
+  transition: all 0.2s;
 }
+
 *{
-    padding: 0;
-    margin: 0;
-    transition: all 0.2s;
+  margin: 0;
+   
 }
 /* Para navegadores basados en WebKit (Chrome, Safari, Edge moderno) */
 ::-webkit-scrollbar {
@@ -17,21 +20,80 @@ body , html{
 }
 
 ::-webkit-scrollbar-track {
-  background: #252525;       /* Fondo de la pista del scroll (negro) */
+  background: var(--colorSelectOption);      
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #bd3535;       /* Color de la barra de scroll (rojo) */
-  border-radius: 6px;        /* Bordes redondeados */
+  background: var(--colorButtonBackground);      
+  border-radius: 6px;        
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #bd3535;       /* Color al pasar el cursor (rojo más oscuro) */
+  background: var(--colorButtonBackground);     
 }
 
-/* Estilo para Firefox */
+
 * {
-  scrollbar-width: thin;             /* Ancho de la barra */
-  scrollbar-color: #bd3535 #232323;  /* Color del pulgar y de la pista */
+  scrollbar-width: thin;  /* Ancho de la barra */
+  scrollbar-color: var(--colorButtonBackground) var(--colorSelectOption);  /* Color del pulgar y de la pista */
 }
 
+
+/* PRIMENG */
+.p-breadcrumb{
+  border: none!important;
+  overflow: hidden;
+}
+.p-breadcrumb .p-menuitem-text {
+  font-size: 12px;
+}
+
+.p-icon{
+margin-left: 10px;
+margin-right: 10px;
+  transform: scale(0.6);
+  opacity: 0.7;
+}
+
+
+/* BUTTONS */
+.button{
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.button i{
+  font-size: 12px;
+  opacity: 0.5;
+}
+
+.button--flat{
+  background: var(--colorNone);
+  color: var(--colorSelectOption);
+}
+
+.button--primary-flat{
+  background: var(--colorNone);
+  color: var(--colorButtonBackground);
+}
+
+.button--dark{
+  background: var(--colorSelectOption);
+  color: var(--colorTextStrong);
+
+}
+.button--primary-flat-negative{
+  background: var(--colorNone);
+  color: var(--colorTextStrong);
+
+}
+
+.button--flat-negative{
+  background: var(--colorNone);
+  color: var(--colorTextStrong);
+}
+.button--disabled{
+  opacity: 0.5;
+  cursor: default;
+}

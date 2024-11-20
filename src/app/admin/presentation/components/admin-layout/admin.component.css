@@ -1,0 +1,24 @@
+.main{
+    height: 100%;
+    background: var(--colorBackgroundWhite);
+}
+
+.admin{
+    height: 100%;
+    display: grid;
+    grid-template-columns: auto 1fr;
+}
+
+
+.admin__content{
+    height: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 50px calc(100% - 50px);
+
+}
+
+.admin__body{
+    height: 100%;
+  
+}

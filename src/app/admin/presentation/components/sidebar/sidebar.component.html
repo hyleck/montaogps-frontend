@@ -1,0 +1,98 @@
+<div class="main">
+    <div *ngIf="sidebarDisplayed" class="sidebar">
+        <div class="sidebar__logo">
+           <div class="sidebar__logo-img">
+            <img src="logo/LOGO.png" alt="">
+           </div>
+           <div (click)="toggleSidebar()" class="sidebar__hide-button">
+            <i class="pi pi-window-minimize"></i>
+           </div>
+        </div>
+        <div class="sidebar__options">
+            <div class="sidebar__favorites">
+                <div *ngIf="sidaberOptions.favoriteItems" class="sidebar__title">
+                    <span>{{sidaberOptions.favoriteTitle}}</span>
+                </div>
+                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active"  *ngFor="let item of sidaberOptions.favoriteItems" class="sidebar__option ">
+                    <div class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
+                    <div class="sidebar__option-text"> <span>{{ item.label }}</span></div>
+                    <div *ngIf="item.badge > 0" class="sidebar__option-badge"><p-badge severity="info" [value]="item.badge" /></div>
+                </div>
+
+
+            </div>
+            <div class="sidebar__menu">
+                <div *ngIf="sidaberOptions.principalItems" class="sidebar__title">
+                    <span>{{sidaberOptions.principalTitle}}</span>
+                </div>
+                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active"  *ngFor="let item of sidaberOptions.principalItems" class="sidebar__option ">
+                    <div class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
+                    <div class="sidebar__option-text"> <span>{{ item.label }}</span></div>
+                    <div *ngIf="item.badge > 0" class="sidebar__option-badge"><p-badge severity="info" [value]="item.badge" /></div>
+                </div>
+
+             
+
+            </div>
+            <div class="sidebar__profile">
+                <div *ngIf="sidaberOptions.profileItems"  class="sidebar__title">
+                    <span>{{sidaberOptions.profileTitle}}</span>
+                </div>
+                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active" *ngFor="let item of sidaberOptions.profileItems"  class="sidebar__option">
+                    <div class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
+                    <div class="sidebar__option-text"> <span>{{ item.label }}</span></div>
+                    <div *ngIf="item.badge > 0" class="sidebar__option-badge"><p-badge severity="info" [value]="item.badge" /></div>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+
+
+
+    <div *ngIf="!sidebarDisplayed" class="sidebar sidebar--mobile">
+        <div class="sidebar__logo">
+ 
+           <div  (click)="toggleSidebar()" class="sidebar__hide-button">
+            <i class="pi pi-window-maximize"></i>
+           </div>
+        </div>
+        <div class="sidebar__options">
+            <div class="sidebar__favorites">
+                <div  *ngIf="sidaberOptions.favoriteItems"  class="sidebar__title">
+                    <span>{{sidaberOptions.favoriteTitle}}</span>
+                </div>
+                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active"  *ngFor="let item of sidaberOptions.favoriteItems" class="sidebar__option ">
+                    <div *ngIf="item.badge > 0"  class="sidebar__option-icon"> <i class="{{ item.icon }}" pBadge severity="info"></i></div>
+                    <div *ngIf="item.badge == 0"  class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
+                </div>
+
+
+            </div>
+            <div class="sidebar__menu">
+                <div  *ngIf="sidaberOptions.principalItems"  class="sidebar__title">
+                    <span>{{sidaberOptions.principalTitle}}</span>
+                </div>
+                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active" *ngFor="let item of sidaberOptions.principalItems" class="sidebar__option ">
+                    <div *ngIf="item.badge > 0"  class="sidebar__option-icon"> <i class="{{ item.icon }}" pBadge severity="info"></i></div>
+                    <div *ngIf="item.badge == 0"  class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
+                </div>
+
+             
+             
+
+            </div>
+            <div class="sidebar__profile">
+                <div *ngIf="sidaberOptions.profileItems"  class="sidebar__title">
+                    <span>{{sidaberOptions.profileTitle}}</span>
+                </div>
+                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active" *ngFor="let item of sidaberOptions.profileItems" class="sidebar__option">
+                    <div *ngIf="item.badge > 0"  class="sidebar__option-icon"> <i class="{{ item.icon }}" pBadge severity="info"></i></div>
+                    <div *ngIf="item.badge == 0"  class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
+                  
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>

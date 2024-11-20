@@ -1,0 +1,311 @@
+.main {
+    height: 100%;
+  }
+  
+  .management {
+    height: 100%;
+    display: grid;
+    grid-template-areas: "header header" "user content";
+    grid-template-columns: 200px 1fr;
+    grid-template-rows: 38px calc(100% - 55px);
+    gap: 10px;
+    padding-left: 10px;
+  }
+  
+  .management__route {
+    grid-area: header;
+    opacity: 0.5;
+    padding-left: 7px;
+  }
+  
+  .management__user {
+    padding-top: 30px;
+    grid-area: user;
+    border-right: 1px solid var(--colorBorderLight);
+    padding-right: 10px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+    border: 1px solid var(--colorBorderLight);
+    border-radius: 5px;
+    padding: 10px;
+  }
+  
+  .management__user-controls {
+    padding-top: 30px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+  
+  .management__user-options {
+    padding-top: 10px;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-auto-rows: 30px;
+    gap: 10px;
+  }
+  
+  .management__user-back-button {
+    background: var(--colorBorderDark);
+    display: grid;
+    grid-template-columns: 1fr;
+    border-radius: 10px;
+  }
+  
+  .management__card-user {
+    width: 100%;
+  }
+
+  .management__user-title {
+    height: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .management__user-title strong {
+    font-size: 15px;
+    color: var(--colorAccent);
+  }
+  
+  .management__user-subtitle {
+    height: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .management__user-subtitle span {
+    font-size: 13px;
+    opacity: 0.6;
+    color: var(--colorPrimaryDarkStart);
+  }
+  
+  .management__user-footer {
+    height: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .management__user-footer span {
+    font-size: 12px;
+    opacity: 0.6;
+    color: var(--colorPrimaryDarkStart);
+  }
+  
+  .management__card-user > div {
+    margin-bottom: 10px;
+  }
+  
+  .management__card-user-img {
+    height: 60px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .management__card-user-img i {
+    font-size: 30px;
+    color: var(--colorHighlight);
+  }
+  
+  .management__card-user-title {
+    height: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .management__card-user-title strong {
+    font-size: 15px;
+    color: var(--colorAccent);
+  }
+  
+  .management__card-user-subtitle {
+    height: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .management__card-user-subtitle span {
+    font-size: 13px;
+    opacity: 0.6;
+    color: var(--colorAccent);
+  }
+  
+  .management__card-user-footer {
+    height: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .management__card-user-footer span {
+    font-size: 12px;
+    opacity: 0.6;
+    color: var(--colorAccent);
+  }
+  
+  .management__content {
+    height: 100%;
+    grid-area: content;
+    position: relative;
+    background: var(--colorBackgroundWhite);
+    border-left: 1px solid var(--colorBorderDark);
+    border-top: 1px solid var(--colorBorderLight);
+    border: 1px solid var(--colorBorderLight);
+    margin-right: 10px;
+    border-radius: 5px;
+  }
+  
+  .management__content-body {
+    position: relative;
+    height: calc(100% - 60px);
+    overflow: auto;
+  }
+  
+  .management__content-cards {
+    padding: 10px;
+    width: 100%;
+    top: 0;
+    position: absolute;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    grid-auto-rows: 200px;
+    overflow-y: auto;
+    gap: 20px;
+  }
+  
+  @media (max-width: 1300px) {
+    .management__content-cards {
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+    }
+  }
+  
+  @media (max-width: 1150px) {
+    .management__content-cards {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+  }
+  
+  @media (max-width: 950px) {
+    .management__content-cards {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  
+  .management__user-card {
+    overflow: hidden;
+    border: 1px solid var(--colorCardBorderLight);
+    /* background: var(--colorCardBackground); */
+    border-radius: 5px;
+    display: grid;
+    grid-template-rows: 60px auto auto auto auto;
+  }
+  
+  .management__user-card:hover {
+    border: 1px solid var(--colorCardBorderHover);
+  }
+  
+  .management__user-card-icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .management__user-card-icon i {
+    font-size: 25px;
+    color: var(--colorIconMuted);
+  }
+  
+  .management__user-card-title {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--colorTextMuted);
+    font-size: 14px;
+  }
+  
+  .management__user-card-subtitle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--colorTextMuted);
+    font-size: 13px;
+  }
+  
+  .management__user-card-footer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--colorTextMuted);
+    font-size: 13px;
+    padding-bottom: 20px;
+  }
+  
+  .management__user-card-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    background: var(--colorCardBackground);
+  }
+  
+  .management__user-card-controls button:hover i {
+    opacity: 1 !important;
+    transform: scale(1.3);
+  }
+  
+  .management__input-search {
+    position: relative;
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid var(--colorBorderLight);
+    border-bottom: 2px solid var(--colorInputBorderAccent);
+  }
+  
+  .management__search {
+    height: 60px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: 40px;
+    gap: 10px;
+    padding: 10px;
+  }
+  
+  .management__input-search button {
+    margin-top: 30px;
+  }
+  
+  .management__input-search input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    color: var(--colorTextDark);
+    background: var(--colorBackgroundWhite);
+    padding-left: 50px;
+    outline: none;
+  }
+  
+  .management__input-search label {
+    cursor: pointer;
+  }
+  
+  .management__input-search i {
+    position: absolute;
+    font-weight: bold;
+    left: 15px;
+    top: calc(50% - 8px);
+    opacity: 0.5;
+    color: var(--colorAccent);
+  }
+  

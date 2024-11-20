@@ -1,0 +1,49 @@
+.main{
+    height: 100%;
+    background: radial-gradient(circle, var(--colorMainBackgroundStart2), var(--colorMainBackgroundEnd) );
+    padding-left: 10px;
+}
+
+.navbar{
+    height: 100%;
+    display: grid;
+    grid-template-columns: 2fr auto ;
+
+}
+
+.navbar__search{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.navbar__controls{
+    /* width: 100px; */
+    display: flex;
+    justify-content: start;
+    align-items: center;
+}
+
+.navbar__controls-base{
+    height: 30px;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: auto auto auto auto auto auto;
+}
+
+
+
+.navbar__info{
+    /* width: 100px; */
+    display: flex;
+    justify-content: end;
+    padding-right: 25px;
+    align-items: center;
+}
+
+.navbar__info i{
+    font-size: 16px;
+    color: var(--colorTextSubFooter);
+    cursor: pointer;
+}
+

@@ -1,0 +1,72 @@
+<div class="main">
+        <div class="management">
+            <div class="management__route">
+
+                <p-breadcrumb 
+                
+                [model]="items" 
+                [home]="home" />
+            </div>
+            <div class="management__user">
+
+               <div class="management__card-user">
+                <div class="management__card-user-img">
+                    <i class="pi pi-user"></i>
+                </div>
+                <div class="management__user-title">
+                    <strong>Frankely Garcia</strong>
+                </div>
+                <div class="management__user-subtitle">
+                    <span>Administrador</span>
+                </div>
+                <div class="management__user-subtitle">
+                    <span>frankely&#64;gmail.com</span>
+                </div>
+                <div class="management__user-footer">
+                    <span>(809) 442-0272</span>
+                </div>
+               </div>
+
+               <div class="management__user-controls">
+                <div class="management__user-options">
+                    <button class="button button--primary-flat"> <i class="pi pi-users"></i> Usuarios ( 45 )</button>
+                    <button class="button button--flat"> <i class="pi pi-map-marker"></i> Objetivos ( 2 )</button>
+                </div>
+                <div class="management__user-back-button">
+                    <button class="button button--flat"> <i class="pi pi-arrow-left"></i> Volver</button>
+                </div>
+               </div>
+
+            </div>
+            <div class="management__content">
+
+                    <div class="management__search">
+                        <div class="management__input-search">
+                            <label for="management-search"><i class="pi pi-search"></i></label>
+                            <input id="management-search" type="text" placeholder="Buscar usuarios">
+                            
+                        </div>
+                        <button class="button button--primary-flat"> <i class="pi pi-user-plus"></i> Nuevo usuario</button>
+           
+                    </div>
+
+
+                <div class="management__content-body">
+                    <div class="management__content-cards">
+                    <div *ngFor="let user of [1,2,4,5,4,5,6,4,4,3,4,5,6,4]" class="management__user-card">
+                        <div class="management__user-card-icon"> <i class="pi pi-user"></i> </div>
+                        <div class="management__user-card-title"> <strong>Frankely Garcia</strong> </div>
+                        <div class="management__user-card-subtitle"> <span>frxnkely&#64;gmail.com</span> </div>
+                        <div class="management__user-card-footer">(809) 986-3243</div>
+                        <div class="management__user-card-controls">
+                            <button class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
+                            <button class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
+                            <button class="button button--primary-flat" title="Eliminar usuario"> <i class="pi pi-trash" ></i> </button>
+                        </div>
+                    </div>
+                       
+                    </div>
+                </div>
+            </div>
+        </div>
+</div>

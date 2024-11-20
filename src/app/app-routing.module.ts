@@ -5,8 +5,14 @@ import { RouterModule, Routes } from '@angular/router';
 const routes: Routes = [
   {
     path: 'login',
-    loadChildren: () => import('./auth/application/auth.module').then(m => m.AuthModule)
+    loadChildren: () => import('./auth/presentation/auth.module').then(m => m.AuthModule)
   },
+
+  {
+    path: 'admin',
+    loadChildren: () => import('./admin/presentation/admin.module').then(m => m.AdminModule)
+  },
+
   // otras rutas de la aplicación
 ];
 
