@@ -12,30 +12,33 @@ body , html{
 
 *{
   margin: 0;
-   
+  transition: color 0.5s, background 0.2s;
 }
+
+
+
 /* Para navegadores basados en WebKit (Chrome, Safari, Edge moderno) */
 ::-webkit-scrollbar {
   width: 12px;               /* Ancho de la barra de scroll */
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--colorSelectOption);      
+  background: var(--globalColorSelectOption);      
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--colorButtonBackground);      
+  background: var(--globalColorButtonBackground);      
   border-radius: 6px;        
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--colorButtonBackground);     
+  background: var(--globalColorButtonBackground);     
 }
 
 
 * {
   scrollbar-width: thin;  /* Ancho de la barra */
-  scrollbar-color: var(--colorButtonBackground) var(--colorSelectOption);  /* Color del pulgar y de la pista */
+  scrollbar-color: var(--globalColorButtonBackground) var(--globalColorSelectOption);  /* Color del pulgar y de la pista */
 }
 
 
@@ -43,9 +46,12 @@ body , html{
 .p-breadcrumb{
   border: none!important;
   overflow: hidden;
+  background: var(--globalColorNone);
+
 }
 .p-breadcrumb .p-menuitem-text {
   font-size: 12px;
+  color: var(--globalColorTextLight);
 }
 
 .p-icon{
@@ -69,29 +75,34 @@ margin-right: 10px;
 }
 
 .button--flat{
-  background: var(--colorNone);
-  color: var(--colorSelectOption);
+  background: var(--globalColorNone);
+  color: var(--globalColorSelectOption);
+ 
 }
 
 .button--primary-flat{
-  background: var(--colorNone);
-  color: var(--colorButtonBackground);
+  background: var(--globalColorNone);
+  color: var(--globalColorButtonBackground);
+  
 }
 
 .button--dark{
-  background: var(--colorSelectOption);
-  color: var(--colorTextStrong);
+  background: var(--globalColorSelectOption);
+  color: var(--globalColorTextStrong);
+ 
 
 }
 .button--primary-flat-negative{
-  background: var(--colorNone);
-  color: var(--colorTextStrong);
+  background: var(--globalColorNone);
+  color: var(--globalColorTextStrong);
+ 
 
 }
 
 .button--flat-negative{
-  background: var(--colorNone);
-  color: var(--colorTextStrong);
+  background: var(--globalColorNone);
+  color: var(--globalColorTextStrong);
+  
 }
 .button--disabled{
   opacity: 0.5;

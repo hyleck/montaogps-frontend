@@ -1,5 +1,7 @@
+
 .main {
     height: 100%;
+    background: var(--globalColorBackgroundDark);
   }
   
   .management {
@@ -16,19 +18,21 @@
     grid-area: header;
     opacity: 0.5;
     padding-left: 7px;
+    
   }
   
   .management__user {
     padding-top: 30px;
     grid-area: user;
-    border-right: 1px solid var(--colorBorderLight);
+    border-right: 1px solid var(--globalColorBorderLight);
     padding-right: 10px;
     display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
-    border: 1px solid var(--colorBorderLight);
+    border: 1px solid var(--globalColorBorderLight);
     border-radius: 5px;
     padding: 10px;
+    background: var(--managementColorBackgroundUser);
   }
   
   .management__user-controls {
@@ -47,7 +51,7 @@
   }
   
   .management__user-back-button {
-    background: var(--colorBorderDark);
+    background: var(--globalColorBorderDark);
     display: grid;
     grid-template-columns: 1fr;
     border-radius: 10px;
@@ -67,7 +71,7 @@
   
   .management__user-title strong {
     font-size: 15px;
-    color: var(--colorAccent);
+    color: var(--managementColorTitleUser);
   }
   
   .management__user-subtitle {
@@ -81,7 +85,7 @@
   .management__user-subtitle span {
     font-size: 13px;
     opacity: 0.6;
-    color: var(--colorPrimaryDarkStart);
+    color: var(--managementColorTextUser);
   }
   
   .management__user-footer {
@@ -95,7 +99,7 @@
   .management__user-footer span {
     font-size: 12px;
     opacity: 0.6;
-    color: var(--colorPrimaryDarkStart);
+    color: var(--managementColorTextUser);
   }
   
   .management__card-user > div {
@@ -112,7 +116,7 @@
   
   .management__card-user-img i {
     font-size: 30px;
-    color: var(--colorHighlight);
+    color: var(--managementColorIconUser);
   }
   
   .management__card-user-title {
@@ -125,7 +129,7 @@
   
   .management__card-user-title strong {
     font-size: 15px;
-    color: var(--colorAccent);
+    color: var(--globalColorAccent);
   }
   
   .management__card-user-subtitle {
@@ -139,7 +143,7 @@
   .management__card-user-subtitle span {
     font-size: 13px;
     opacity: 0.6;
-    color: var(--colorAccent);
+    color: var(--globalColorAccent);
   }
   
   .management__card-user-footer {
@@ -153,17 +157,17 @@
   .management__card-user-footer span {
     font-size: 12px;
     opacity: 0.6;
-    color: var(--colorAccent);
+    color: var(--globalColorAccent);
   }
   
   .management__content {
     height: 100%;
     grid-area: content;
     position: relative;
-    background: var(--colorBackgroundWhite);
-    border-left: 1px solid var(--colorBorderDark);
-    border-top: 1px solid var(--colorBorderLight);
-    border: 1px solid var(--colorBorderLight);
+    background: var(--globalColorBackground);
+    border-left: 1px solid var(--globalColorBorderDark);
+    border-top: 1px solid var(--globalColorBorderLight);
+    border: 1px solid var(--globalColorBorderLight);
     margin-right: 10px;
     border-radius: 5px;
   }
@@ -206,15 +210,15 @@
   
   .management__user-card {
     overflow: hidden;
-    border: 1px solid var(--colorCardBorderLight);
-    /* background: var(--colorCardBackground); */
+    border: 1px solid var(--globalColorCardBorderLight);
+    /* background: var(--globalColorCardBackground); */
     border-radius: 5px;
     display: grid;
     grid-template-rows: 60px auto auto auto auto;
   }
   
   .management__user-card:hover {
-    border: 1px solid var(--colorCardBorderHover);
+    border: 1px solid var(--globalColorCardBorderHover);
   }
   
   .management__user-card-icon {
@@ -225,14 +229,14 @@
   
   .management__user-card-icon i {
     font-size: 25px;
-    color: var(--colorIconMuted);
+    color: var(--globalColorIconMuted);
   }
   
   .management__user-card-title {
     display: flex;
     justify-content: center;
     align-items: center;
-    color: var(--colorTextMuted);
+    color: var(--globalColorTextMuted);
     font-size: 14px;
   }
   
@@ -240,7 +244,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    color: var(--colorTextMuted);
+    color: var(--globalColorTextMuted);
     font-size: 13px;
   }
   
@@ -248,7 +252,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    color: var(--colorTextMuted);
+    color: var(--globalColorTextMuted);
     font-size: 13px;
     padding-bottom: 20px;
   }
@@ -257,7 +261,7 @@
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: 20px;
-    background: var(--colorCardBackground);
+    background: var(--managementColorCardBackground);
   }
   
   .management__user-card-controls button:hover i {
@@ -269,8 +273,8 @@
     position: relative;
     border-radius: 7px;
     overflow: hidden;
-    border: 1px solid var(--colorBorderLight);
-    border-bottom: 2px solid var(--colorInputBorderAccent);
+    border: 1px solid var(--globalColorBorderLight);
+    border-bottom: 2px solid var(--managementColorBorderInput);
   }
   
   .management__search {
@@ -290,8 +294,8 @@
     width: 100%;
     height: 100%;
     border: none;
-    color: var(--colorTextDark);
-    background: var(--colorBackgroundWhite);
+    color: var(--globalColorTextDark);
+    background: var(--managementColorInputSearch);
     padding-left: 50px;
     outline: none;
   }
@@ -306,6 +310,6 @@
     left: 15px;
     top: calc(50% - 8px);
     opacity: 0.5;
-    color: var(--colorAccent);
+    color: var(--managementColorBorderInput);
   }
   

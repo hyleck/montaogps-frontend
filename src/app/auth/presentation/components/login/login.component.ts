@@ -38,7 +38,7 @@ export class LoginComponent {
       
       this.themes.setTheme(this.theme === 'light' ? 'dark' : 'light');
       this.theme = this.themes.getCurrentTheme();
-      localStorage.setItem('theme', this.theme);
+    
     }
 
     changeLang() {

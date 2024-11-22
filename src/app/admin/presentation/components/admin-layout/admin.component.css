@@ -1,6 +1,6 @@
 .main{
     height: 100%;
-    background: var(--colorBackgroundWhite);
+    background: var(--globalColorBackground);
 }
 
 .admin{

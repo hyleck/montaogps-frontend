@@ -11,7 +11,12 @@
          
         </div>
         <div class="navbar__info">
-            <i class="pi pi-question-circle"></i>
+            <!-- <i class="pi pi-question-circle"></i> -->
+
+            <div class="set-theme" (click)="toggleTheme()">
+                <i *ngIf="currentTheme == 'light'" class="pi pi-moon"></i>
+                <i *ngIf="currentTheme == 'dark'" class="pi pi-sun"></i>
+              </div>
         </div>
     </div>
 </div>

@@ -7,7 +7,7 @@ import { Lang } from './lang.interface';
   providedIn: 'root'
 })
 export class LangService {
-  cities: Lang[] = [
+  langList: Lang[] = [
     { name: 'Español', code: 'es' },
     { name: 'English', code: 'en' },
     { name: 'Frances', code: 'fr' }
@@ -18,6 +18,6 @@ export class LangService {
   }
 
   getLangs(): Lang[] {
-    return this.cities;
+    return this.langList;
   }
 }

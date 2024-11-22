@@ -2,7 +2,7 @@
 
 .main {
     height: 100%;
-    background: radial-gradient(circle, var(--colorMainBackgroundStart), var(--colorMainBackgroundEnd));
+    background: radial-gradient(circle, var(--loginColorMainBackgroundStart), var(--loginColorMainBackgroundEnd));
     overflow: auto;
 }
 
@@ -94,13 +94,13 @@
     width: calc(100% - 80px);
     padding-bottom: 50px;
     border-radius: 15px;
-    border-top: 20px solid var(--colorBorderTop);
-    background: var(--colorBackgroundWhite);
-    box-shadow: 0px 5px 5px 0px var(--colorShadow);
+    border-top: 20px solid var(--loginColorBorderTop);
+    background: var(--loginColorBackgroundWhite);
+    box-shadow: 0px 5px 5px 0px var(--loginColorShadow);
 }
 
 .login__deco {
-    background: var(--colorIcon);
+    background: var(--loginColorIcon);
     height: 5px;
     width: 5px;
     position: absolute;
@@ -111,15 +111,15 @@
 
 .login__fields table {
     width: calc(100% - 40px);
-    background: var(--colorBackgroundWhite);
+    background: var(--loginColorBackgroundWhite);
     margin: auto;
 }
 
 .login__fields input {
     padding: 10px;
-    border: 1px solid var(--colorBorderInput);
-    background: var(--colorInputBackground);
-    color: var(--colorTextInput);
+    border: 1px solid var(--loginColorBorderInput);
+    background: var(--loginColorInputBackground);
+    color: var(--loginColorTextInput);
     border-radius: 5px;
     margin-bottom: 10px;
     width: 100%;
@@ -128,7 +128,7 @@
 
 .login__fields label {
     font-size: 12px;
-    color: var(--colorTextDark);
+    color: var(--loginColorTextDark);
     font-weight: bold;
 }
 
@@ -139,7 +139,7 @@
 }
 
 .login__title p {
-    color: var(--colorTextMuted);
+    color: var(--loginColorTextMuted);
     text-align: center;
     font-size: 15px;
 }
@@ -147,7 +147,7 @@
 .login__title h1 {
     font-size: 25px;
     text-align: center;
-    color: var(--colorTitle);
+    color: var(--loginColorTitle);
 }
 
 .login__options {
@@ -160,7 +160,7 @@
 }
 
 .login__remember {
-    color: var(--colorTextMuted);
+    color: var(--loginColorTextMuted);
     font-size: 12px;
 }
 
@@ -169,7 +169,7 @@
 }
 
 .login__forgot a {
-    color: var(--colorTextLink);
+    color: var(--loginColorTextLink);
     text-decoration: none;
     font-size: 12px;
     display: block;
@@ -189,8 +189,8 @@
     width: 100%;
     border: none;
     height: 35px;
-    background: var(--colorButtonBackground);
-    color: var(--colorTextLight);
+    background: var(--loginColorButtonBackground);
+    color: var(--loginColorTextLight);
     border-radius: 5px;
     cursor: pointer;
 }
@@ -202,7 +202,7 @@
 }
 
 .login__footer span {
-    color: var(--colorTextMuted);
+    color: var(--loginColorTextMuted);
     display: block;
     text-align: center;
     font-size: 13px;
@@ -217,7 +217,7 @@
     justify-content: center;
     align-items: center;
     font-size: 13px;
-    color: var(--colorTextSubFooter);
+    color: var(--loginColorTextSubFooter);
 }
 
 .login__info {
@@ -232,7 +232,7 @@
 }
 
 .login__info-base h1 {
-    color: var(--colorTextLight);
+    color: var(--loginColorTextLight);
     text-align: center;
     width: calc(100% - 40px);
     margin: auto;
@@ -243,12 +243,12 @@
 }
 
 .login__info-base span {
-    color: var(--colorBackgroundLight);
+    color: var(--loginColorBackgroundLight);
 }
 
 .login__info-base p {
     width: calc(100% - 40px);
-    color: var(--colorTextLight);
+    color: var(--loginColorTextLight);
     text-align: center;
     font-size: 15px;
     padding-top: 20px;
@@ -266,7 +266,7 @@
 }
 
 .login__info-contact {
-    background: var(--colorInfoContactBackground);
+    background: var(--loginColorInfoContactBackground);
     padding: 10px;
     border-radius: 5px;
 }
@@ -279,7 +279,7 @@
 }
 
 .login__info-contact strong {
-    color: var(--colorTextStrong);
+    color: var(--loginColorTextStrong);
     font-size: 14px;
     text-align: center;
     padding-top: 5px;
@@ -288,13 +288,13 @@
 }
 
 .login__info-contact i {
-    color: var(--colorIcon);
+    color: var(--loginColorIcon);
     font-size: 12px;
     padding-right: 5px;
 }
 
 .login__info-contact a {
-    color: var(--colorTextLink);
+    color: var(--loginColorTextLink);
     text-decoration: none;
     font-size: 12px;
     display: block;
@@ -309,7 +309,7 @@
 }
 
 .login__info-contact span {
-    color: var(--colorIcon);
+    color: var(--loginColorIcon);
 }
 
 .login__info-img {
@@ -362,7 +362,7 @@
 
 .set-lang select{
     cursor: pointer;
-    background: var(--colorTransparent);
+    background: var(--loginColorTransparent);
     color: rgb(224, 224, 224);
     border: none;
     border-radius: 5px;
@@ -372,8 +372,8 @@
 
 .set-lang option{
     cursor: pointer;
-    background: var(--colorSelectOption);
-    color: var(--colorTextLight);
+    background: var(--loginColorSelectOption);
+    color: var(--loginColorTextLight);
     border: none;
     border-radius: 5px;
     padding: 5px;

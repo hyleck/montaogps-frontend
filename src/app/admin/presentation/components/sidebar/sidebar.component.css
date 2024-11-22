@@ -1,3 +1,4 @@
+
 .main{
     height: 100%;
     width: auto;
@@ -11,7 +12,7 @@
     grid-template-rows: 50px 1fr;
     padding-left: 10px;
     padding-right: 10px;
-    background: radial-gradient(circle, var(--colorPrimaryDarkStart), var(--colorPrimaryDarkEnd));
+    background: radial-gradient(circle, var(--globalColorPrimaryDarkStart), var(--globalColorPrimaryDarkEnd));
 }
 
 .sidebar__logo{
@@ -29,7 +30,7 @@
 
 .sidebar__hide-button i{
     font-size: 17px;
-    color: var(--colorTextSubFooter);
+    color: var(--globalColorTextSubFooter);
 }
 
 .sidebar__logo-img{
@@ -54,7 +55,7 @@
     top: 10px;
     font-size: 11px;
     left: 15px;
-    color: var(--colorTextMuted);
+    color: var(--globalColorTextMuted);
 }
 
 .sidebar__options > div{
@@ -71,12 +72,12 @@
 }
 
 .sidebar__menu{
-    border-top: 1px solid var(--colorBorderTransparent);
+    border-top: 1px solid var(--globalColorBorderTransparent);
     padding-top: 10px;
 }
 
 .sidebar__profile{
-    border-top: 1px solid var(--colorBorderTransparent);
+    border-top: 1px solid var(--globalColorBorderTransparent);
     padding-top: 10px;
     padding-bottom: 20px;
 }
@@ -91,14 +92,14 @@
     grid-template-columns: 50px 1fr auto;
     border-radius: 7px;
     cursor: pointer;
-    color: var(--colorTextSubFooter);
+    color: var(--globalColorTextSubFooter);
 }
 
 .sidebar__option--active{
 
-    background: radial-gradient(circle, var(--colorMainBackgroundStart2), var(--colorMainBackgroundEnd) );
+    background: radial-gradient(circle, var(--globalColorMainBackgroundStart2), var(--globalColorMainBackgroundEnd) );
     
-    color: var(--colorBackgroundWhite);
+    color: var(--sidebarColorTextActive);
     
 }
 
@@ -157,7 +158,7 @@
 
 .sidebar--mobile .sidebar__hide-button i{
     font-size: 17px;
-    color: var(--colorTextLight);
+    color: var(--sidebarColorTextActive);
 }
 
 
