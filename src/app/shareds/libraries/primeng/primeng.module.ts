@@ -3,18 +3,21 @@ import { CommonModule } from '@angular/common';
 import { BadgeModule } from 'primeng/badge';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { TooltipModule } from 'primeng/tooltip';
+import { TableModule } from 'primeng/table';
 
 @NgModule({
   declarations: [],
   imports: [
     CommonModule,
     BadgeModule,
-    TooltipModule
+    TooltipModule,
+    TableModule
   ],
   exports: [
     BadgeModule,
     BreadcrumbModule,
-    TooltipModule
+    TooltipModule,
+    TableModule
   ]
 })
 export class PrimengModule { }

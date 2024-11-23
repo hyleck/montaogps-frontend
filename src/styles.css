@@ -105,6 +105,15 @@ margin-right: 10px;
   color: var(--globalColorPrimaryInmutable);
 }
 
+.button--primary-flat-icon{
+  background: var(--globalColorNone);
+  color: var(--globalColorPrimaryInmutable);
+}
+
+.button--primary-flat-icon i{
+  color: var(--globalColorPrimaryInmutable)!important;
+}
+
 .button--flat-negative{
   background: var(--globalColorNone);
   color: var(--globalColorTextStrong);
@@ -113,4 +122,48 @@ margin-right: 10px;
 .button--disabled{
   opacity: 0.5;
   cursor: default;
+}
+
+
+/* tables primeng */
+
+.p-datatable-thead th{
+  background: var(--globalColorNone);
+  color: var(--globalColorAccent);
+  border-bottom: 1px solid var(--globalColorBorderDark);
+  transition: all 0.2s;
+  font-size: 14px!important;
+}
+.p-datatable-thead .p-checkbox-box{
+  background: var(--globalColorBorderDark);
+  border-color: var(--globalColorMainBackgroundStart2)!important;
+  
+}
+.management__content-table-tr {
+  background: var(--globalColorNone);
+  color: var(--globalColorTextMuted);
+}
+
+.management__content-table-tr td{
+  font-size: 14px!important;
+  transition: all 0.2s;
+  border-bottom: 1px solid var(--globalColorBorderDark);
+}
+
+.management__content-table-tr .p-checkbox-box{
+  background: var(--globalColorBorderDark);
+}
+
+.management__content-table-tr .p-checkbox-box{
+  background: var(--globalColorBorderDark);
+  border-color: var(--globalColorNone)!important;
+}
+
+.p-checkbox .p-checkbox-box.p-highlight {
+  background: var(--globalColorMainBackgroundStart2)!important;
+  border-color: var(--globalColorMainBackgroundStart2)!important;
+}
+
+.p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box.p-highlight:hover{
+ 
 }

@@ -77,6 +77,48 @@
                     </div>
                        
                     </div>
+
+                    <div  *ngIf="op == 't'" class="management__content-table">
+                      
+
+
+                        <div class="card">
+                            <p-table 
+                                [value]="customers" 
+                                [(selection)]="customersSelected" 
+                                dataKey="id" 
+                                [tableStyle]="{'min-width': '50rem'}">
+                                    <ng-template pTemplate="header" >
+                                        <tr >
+                                            <th  style="width: 4rem"><p-tableHeaderCheckbox /></th>
+                                            <th>Nombre</th>
+                                            <th>Estado</th>
+                                            <th>IMEI</th>
+                                            <th>SIM</th>
+                                            <th></th>
+                                        </tr>
+                                    </ng-template>
+                                    <ng-template pTemplate="body" let-customer>
+                                        <tr class="management__content-table-tr">
+                                            <td>
+                                                <p-tableCheckbox [value]="customer" />
+                                            </td>
+                                            <td>{{customer.name}}</td>
+                                            <td> <p-badge [value]="customer.status" [severity]="customer.status == 'En linea'?'success':'secondary'" /></td>
+                                            <td>{{customer.imei}}</td>
+                                            <td>{{customer.sim}}</td>
+                                            <td>
+                                                <div class="management__user-table-controls">
+                                                    <button class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                    <button class="button button--primary-flat-icon" title="Eliminar usuario"> <i class="pi pi-times-circle" ></i> </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </ng-template>
+                            </p-table>
+                        </div>
+                          
+                    </div>
                 </div>
             </div>
         </div>
