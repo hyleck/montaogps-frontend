@@ -5,6 +5,7 @@ import { managementPalette } from '../../admin/modules/management/presentation/c
 import { sidebarPalette } from '../../admin/presentation/components/sidebar/sidebar.palette';
 import { adminPalette } from '../../admin/presentation/components/admin-layout/admin.palette';
 import { navbarPalette } from '../../admin/presentation/components/navbar/navbar.palette';
+import { StatusService } from './status.service';
 
 @Injectable({
   providedIn: 'root'
@@ -34,19 +35,18 @@ export class ThemesService {
 
   private currentTheme: string;
 
-  constructor() {
-    this.currentTheme = localStorage.getItem('theme') || 'light';
-    console.log('constructor', this.currentTheme);
+  constructor(private status: StatusService, private statusService: StatusService) {
+    this.currentTheme = this.statusService.getState<string>('theme') || 'light';
     this.setTheme(this.currentTheme);
   }
 
   setTheme(theme: string) {
     this.currentTheme = theme;
-    console.log('setTheme', this.currentTheme);
     Object.keys(this.themes[theme]).forEach((key: string) => {
       document.documentElement.style.setProperty("--" + key, this.themes[theme][key]);
     });
-    localStorage.setItem('theme', theme);
+
+    this.status.setState('theme', theme);
   }
 
   getCurrentTheme(): string {

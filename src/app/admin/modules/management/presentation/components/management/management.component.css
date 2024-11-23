@@ -29,7 +29,7 @@
     display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr;
-    border: 1px solid var(--globalColorBorderLight);
+    border: 1px solid var(--globalColorInputBorderAccent);
     border-radius: 5px;
     padding: 10px;
     background: var(--managementColorBackgroundUser);
@@ -51,7 +51,7 @@
   }
   
   .management__user-back-button {
-    background: var(--globalColorBorderDark);
+    background: var(--globalColorCardBackground);
     display: grid;
     grid-template-columns: 1fr;
     border-radius: 10px;

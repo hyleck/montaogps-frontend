@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { StatusService } from '../../../../shareds/services/status.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -17,7 +18,7 @@ export class SidebarComponent {
     ],
     principalTitle: 'Menú Principal',
     principalItems: [
-      { label: 'Gestion', path: '/admin/management' , icon:'pi pi-book', badge: 0},
+      { label: 'Gestion', path: '/admin/management/' , icon:'pi pi-book', badge: 0},
       { label: 'Procesos', path: '/admin/follow-up', icon:'pi pi-calendar-clock',badge: 0 },
       { label: 'Reportes', path: '/admin/reports', icon:'pi pi-sliders-h',badge: 0 }
     ],
@@ -29,8 +30,17 @@ export class SidebarComponent {
     ]
   }
 
+  constructor(private status: StatusService) {
+    this.sidebarDisplayed = status.getState('sidebar') as boolean;
+  }
+
+ 
+
+  
+
   toggleSidebar() {
     this.sidebarDisplayed = !this.sidebarDisplayed;
+    this.status.setState('sidebar', this.sidebarDisplayed);
   }
 
 }

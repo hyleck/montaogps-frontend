@@ -16,7 +16,7 @@ export const globalPalette = {
         globalColorBackgroundLight: "#fff0db",
         globalColorInfoContactBackground: "#6124248a",
         globalColorInputBackground: "#ffffff",
-        globalColorSelectOption: "rgb(49, 49, 49)",
+        globalColorSelectOption: "rgb(134, 134, 134)",
         globalColorTransparent: "rgba(0, 0, 0, 0)",
         globalColorPrimaryDarkEnd: "#222222",
         globalColorPrimaryDarkStart: "#2d2d2d",

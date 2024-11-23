@@ -3,7 +3,9 @@ import { RouterModule, Routes } from '@angular/router';
 import { ManagementComponent } from './components/management/management.component';
 
 const routes: Routes = [
-  { path: '', component: ManagementComponent } // Ruta predeterminada para mostrar el login
+  { path: '', component: ManagementComponent }, // Ruta básica
+  { path: ':op', component: ManagementComponent }, // Solo con `op`
+  { path: ':op/:user', component: ManagementComponent } // Con ambos
 ];
 
 @NgModule({

@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { ManagementRoutingModule } from './management-routing.module';
 import { ManagementComponent } from './components/management/management.component';
 import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
+import { FormsModule } from '@angular/forms';
 
 
 @NgModule({
@@ -12,6 +13,7 @@ import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.mod
   ],
   imports: [
     CommonModule,
+    FormsModule,
     ManagementRoutingModule,
     PrimengModule
   ]

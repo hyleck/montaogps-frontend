@@ -19,20 +19,14 @@ export class LoginComponent {
 
   languages: Lang[] | undefined;
 
-  constructor(public themes: ThemesService, public langService: LangService) {
+  constructor(public themes: ThemesService, public langService: LangService ) {}
 
-    // console.log('languages', this.theme);
-   }
-
-   // init que se ejecute antes de que cargue la vista:
-    
-   
-
+  
    ngOnInit() {  
     this.theme = this.themes.getCurrentTheme();
-    this.languages = this.langService.getLangs()
+    this.languages = this.langService.getLanguages()
     this.translate.use(this.langService.selectedLang || 'es');
-}
+   }
 
     toggleTheme() {
       
@@ -43,7 +37,7 @@ export class LoginComponent {
 
     changeLang() {
       this.translate.use(this.langService.selectedLang || 'es');
-      localStorage.setItem('lang', this.langService.selectedLang);
-      // console.log('lang', this.selectedLang);
+      this.langService.setLanguage(this.langService.selectedLang);
     }
+    
 }

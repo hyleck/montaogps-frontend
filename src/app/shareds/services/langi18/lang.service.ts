@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Lang } from './lang.interface';
+import { StatusService } from '../status.service';
 
 
 
@@ -14,10 +15,17 @@ export class LangService {
 ];
    selectedLang: string = localStorage.getItem('lang') || 'es';;
 
-  constructor() { 
+  constructor(private status: StatusService) {
+    this.selectedLang = this.status.getState<string>('lang') || 'es';
+    this.setLanguage(this.selectedLang);
   }
 
-  getLangs(): Lang[] {
+  getLanguages(): Lang[] {
     return this.langList;
+  }
+
+  setLanguage(lang: string) {
+    this.selectedLang = lang;
+    this.status.setState('lang', lang);
   }
 }
