@@ -23,22 +23,22 @@ body , html{
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--globalColorSelectOption);      
+  background: var(--globalColorScrollThumb);      
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--globalColorButtonBackground);      
+  background: var(--globalColorScrollThumb);      
   border-radius: 6px;        
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--globalColorButtonBackground);     
+  background: var(--globalColorScrollThumb);     
 }
 
 
 * {
   scrollbar-width: thin;  /* Ancho de la barra */
-  scrollbar-color: var(--globalColorButtonBackground) var(--globalColorSelectOption);  /* Color del pulgar y de la pista */
+  scrollbar-color: var(--globalColorScrollThumb) var(--globalColorNone);  /* Color del pulgar y de la pista */
 }
 
 
@@ -97,6 +97,11 @@ margin-right: 10px;
   color: var(--globalColorTextStrong);
  
 
+}
+
+.button--primary-flat-red{
+  background: var(--globalColorNone);
+  color: var(--globalColorPrimaryInmutable);
 }
 
 .button--flat-negative{

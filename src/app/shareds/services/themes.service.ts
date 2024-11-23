@@ -4,6 +4,7 @@ import { globalPalette } from '../../global.palette';
 import { managementPalette } from '../../admin/modules/management/presentation/components/management/managemente.palette';
 import { sidebarPalette } from '../../admin/presentation/components/sidebar/sidebar.palette';
 import { adminPalette } from '../../admin/presentation/components/admin-layout/admin.palette';
+import { navbarPalette } from '../../admin/presentation/components/navbar/navbar.palette';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +17,8 @@ export class ThemesService {
       ...loginPalette.light,
       ...managementPalette.light,
       ...sidebarPalette.light,
-      ...adminPalette.light
+      ...adminPalette.light,
+      ...navbarPalette.light
     },
     
 
@@ -25,7 +27,8 @@ export class ThemesService {
       ...loginPalette.dark,
       ...managementPalette.dark,
       ...sidebarPalette.dark,
-      ...adminPalette.dark
+      ...adminPalette.dark,
+      ...navbarPalette.dark
     }
   };
 

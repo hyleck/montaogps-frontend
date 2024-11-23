@@ -3,6 +3,7 @@ export const globalPalette = {
     light: {
 
         // globalColores primarios
+        globalColorPrimaryInmutable: "#bd3535",
         globalColorMainBackgroundStart: "#c86161",
         globalColorMainBackgroundStart2: "#c64444",
         globalColorMainBackgroundEnd: "#bd3535",
@@ -53,11 +54,14 @@ export const globalPalette = {
         globalColorShadow: "rgba(0, 0, 0, 0.206)",
         globalColorShadowInfoContact: "rgba(0, 0, 0, 0.552)",
         globalColorBackgroundDark: "#ffffff",
+
+        globalColorScrollThumb: "#ff7070",
       },
       
       dark: {
         
      /* globalColores primarios */
+        globalColorPrimaryInmutable: "#ff7070",
         globalColorMainBackgroundStart: "#2b2b2b",
         globalColorMainBackgroundStart2: "#dd4747",
         globalColorMainBackgroundEnd: "#c33232",
@@ -107,7 +111,11 @@ export const globalPalette = {
         /* Otros */
         globalColorShadow: "rgba(0, 0, 0, 0.1)",
         globalColorShadowInfoContact: "rgba(255, 255, 255, 0.15)",
-        globalColorBackgroundDark: "#141414",
+        globalColorBackgroundDark: "#131313",
+
+        globalColorScrollThumb: "#ff5050",
+
+        
       }
 };
 

@@ -19,7 +19,7 @@ export const managementPalette = {
          managementColorTitleUser:'#ec4343',
          managementColorInputSearch:'#1f1f1f',
          managementColorCardBackground: '#1f1f1f',
-         managementColorBorderInput: '#969696'
+         managementColorBorderInput: '#ff6d6dc4'
       }
 }
 

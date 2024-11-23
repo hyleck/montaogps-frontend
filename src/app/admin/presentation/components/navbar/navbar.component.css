@@ -1,8 +1,13 @@
 
+/* :host{
+    --navbarColorBackgroundStart: #212121;
+    --navbarColorBackgroundEnd: #212121;
+    --navbarColorIcon: #fa4c4c;
+} */
 
 .main{
     height: 100%;
-    background: radial-gradient(circle, var(--globalColorMainBackgroundStart2), var(--globalColorMainBackgroundEnd) );
+    background: radial-gradient(circle, var(--navbarColorBackgroundStart), var(--navbarColorBackgroundEnd) );
     padding-left: 10px;
 }
 
@@ -10,7 +15,6 @@
     height: 100%;
     display: grid;
     grid-template-columns: 2fr auto ;
-
 }
 
 .navbar__search{
@@ -45,7 +49,7 @@
 
 .navbar__info i{
     font-size: 16px;
-    color: var(--globalColorTextSubFooter);
+    color: var(--navbarColorIcon);
     cursor: pointer;
 }
 
