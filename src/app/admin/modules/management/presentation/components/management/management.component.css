@@ -7,12 +7,14 @@
   .management {
     height: 100%;
     display: grid;
-    grid-template-areas: "header header" "user content";
-    grid-template-columns: 200px 1fr;
+    grid-template-areas: "header header controls" "user content content";
+    grid-template-columns: 200px 1fr 70px;
     grid-template-rows: 38px calc(100% - 55px);
     gap: 10px;
     padding-left: 10px;
   }
+
+
   
   .management__route {
     grid-area: header;
@@ -20,8 +22,31 @@
     padding-left: 7px;
     
   }
+
+ 
+
+  .management__controls{
+    grid-area: controls;
+    display: flex;
+    padding-top: 10px;
+    justify-content: center;
+    align-items: center;
+    color: rgb(255, 122, 28);
+  }
+
+
+
+  .management__controls i{
+    font-size: 16px;
+    color: var(--managementColorIconControls);
+    cursor: pointer;
+  }
+  .management__controls i:hover{
+    transform: scale(1.1);
+  }
   
   .management__user {
+    position: relative;
     padding-top: 30px;
     grid-area: user;
     border-right: 1px solid var(--globalColorBorderLight);
@@ -207,6 +232,10 @@
       grid-template-columns: 1fr 1fr;
     }
   }
+  .management__content-cards--maps{
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+  }
   
   .management__user-card {
     overflow: hidden;
@@ -215,6 +244,12 @@
     border-radius: 5px;
     display: grid;
     grid-template-rows: 60px auto auto auto auto;
+  }
+  .management__user-card--maps{
+    grid-template-rows: 30px auto auto ;
+    padding-top: 10px;
+    gap: 15px;
+  
   }
   
   .management__user-card:hover {
@@ -312,16 +347,14 @@
     transition: all 0.2s;
     border-bottom: 1px solid var(--globalColorBorderDark);
   }
-  
-  .management__content-table-tr .p-checkbox-box{
-    background: var(--globalColorBorderDark);
+
+  .management__user-table-controls--maps{
+    display: grid;
+    grid-template-columns: 1fr ;
+    
   }
   
-  .management__content-table-tr .p-checkbox-box{
-    background: var(--globalColorBorderDark);
-    border-color: var(--globalColorNone)!important;
-  }
- 
+
   
   .management__input-search {
     position: relative;
@@ -367,3 +400,170 @@
     color: var(--managementColorBorderInput);
   }
   
+
+
+/* MAPA */
+.management__maps {
+  height: 100%;
+  display: grid;
+  grid-template-areas: "header header controls" "user content content";
+  grid-template-columns: 300px 1fr 70px;
+  grid-template-rows: 38px calc(100% - 55px);
+  gap: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+
+
+.management__user-control {
+  grid-area: user;
+  background: var(--managementColorCardBackground);
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+  grid-template-areas: "user_header user_header" "user_content user_content";
+  position: relative;
+}
+
+
+
+.management__user-control-display-button {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--managementColorIconUser);
+  cursor: pointer;
+  right: 5px;
+  top: 5px;
+}
+.management__user-control-back-button{
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--globalColorIconMuted);
+  cursor: pointer;
+  right: 5px;
+  top: 32px;
+  
+}
+.management__user-control-back-button i{
+  font-size: 13px;
+}
+.management__content-maps {
+  grid-area: content;
+  background: var(--managementColorContentBackground, rgb(56, 56, 56));
+  border-radius: 5px;
+}
+
+
+@media (max-width: 760px) {
+  .management__maps{
+    grid-template-areas: "user";
+  grid-template-columns: calc(100% - 10px);
+  grid-template-rows: 100%;
+  padding-top: 10px;
+  padding-right: 0;
+  }
+  .management__content-maps{
+    display: none;
+  }
+
+  .management__route {
+    display: none;
+  }
+
+  .management__user-control-display-button {
+    display: none;
+  }
+}
+
+.management__user-control-header {
+  grid-area: user_header;
+  display: grid;
+  border: 1px solid var(--managementColorBorderInput);
+  background: var(--managementColorBackgroundUser);
+  padding: 10px;
+  border-radius: 5px;
+  gap: 10px;
+  grid-template-columns: 50px 1fr;
+  grid-auto-rows: auto;
+  grid-template-areas: 
+    "user_control_icon user_control_title"
+    "user_control_icon user_control_subtitle"
+    "user_control_controls user_control_controls";
+}
+
+.management__user-control-icon {
+  grid-area: user_control_icon;
+  background: var(--managementColorIconBackground, rgb(222, 57, 57));
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.management__user-control-icon i {
+  font-size: 20px;
+  color: var(--managementColorTextIcon, rgb(255, 255, 255));
+}
+
+.management__user-control-title {
+  grid-area: user_control_title;
+}
+
+.management__user-control-title strong {
+  font-size: 15px;
+  color: var(--managementColorTitleUser);
+}
+
+.management__user-control-subtitle {
+  font-size: 13px;
+  grid-area: user_control_subtitle;
+  color: var(--managementColorTextUser);
+}
+
+.management__user-control-footer {
+  font-size: 13px;
+  grid-area: user_control_footer;
+  color: var(--managementColorTextUser);
+}
+
+.management__user-control-controls {
+  grid-area: user_control_controls;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--managementColorBorderInput);
+}
+
+.management__user-control-content {
+  grid-area: user_content;
+}
+
+.management__content-table-link {
+  color: var(--globalColorAccent);
+  padding-bottom: 5px;
+  display: block;
+  cursor: pointer;
+}
+
+.management__content-table-link:hover {
+  text-decoration: underline;
+}
+
+.management__content-table-link i {
+  font-size: 13px;
+  opacity: 0.5;
+  transform: scale(0.8); /* escalar */
+}
+
+.management__content--maps {
+  width: 100%;
+}

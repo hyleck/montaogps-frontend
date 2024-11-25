@@ -35,7 +35,13 @@ export class SidebarComponent {
   }
 
  
-
+  ngOnInit() {
+    this.status.statusChanges$.subscribe((newStatus) => {
+      if (newStatus && typeof newStatus.sidebar !== 'undefined') {
+      this.sidebarDisplayed = newStatus.sidebar as boolean;
+      }
+    });
+  }
   
 
   toggleSidebar() {

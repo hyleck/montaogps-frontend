@@ -34,9 +34,27 @@
     height: 30px;
     display: grid;
     gap: 10px;
-    grid-template-columns: auto auto auto auto auto auto;
+    grid-template-columns: auto auto auto auto ;
 }
 
+
+.navbar__drupdown{
+    color: rgba(255, 255, 255, 0.806);
+   display: none;
+   /* background: red; */
+}
+
+.navbar__drupdown p-button i{
+    color: rgba(255, 255, 255, 0.745)!important;
+}
+@media (max-width: 760px){
+    .navbar__drupdown{
+        display: block;
+    }
+    .navbar__controls-base{
+        display: none;
+    }
+}
 
 
 .navbar__info{

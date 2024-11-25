@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { ThemesService } from '../../../../../../shareds/services/themes.service';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -23,7 +23,7 @@ op: string | undefined;
 searchUsersTerm: string = '';
 searchTargetsTerm: string = '';
 currentUserId: string | undefined;
-
+showMaps: boolean = false;
 
 customers = [
   {
@@ -108,39 +108,34 @@ customers = [
 ];
 
 customersSelected = [];
-
+isScreenSmall: boolean = false;
 constructor(
-  public theme: ThemesService,
   public _router: Router,
   public route: ActivatedRoute,
   private status: StatusService
-) {
-  this.currentTheme = theme.getCurrentTheme();
+) {}
 
-  this.route.params.subscribe((params: any) => {
-    this.op = params['op'];
-    this.currentUserId = params['user'];
-    const managementState: any = status.getState('management');
+ // Escucha cambios en el tamaño de la ventana
+ @HostListener('window:resize', ['$event'])
+ onResize(): void {
+   this.checkScreenSize();
+ }
 
-    if (managementState.url_route && !params['op']) {
-      this._router.navigate(
-        managementState.url_route,
-        { queryParams: managementState.url_query_params }
-      );
-    } else if (!managementState.url_route && !params['op']) {
-      this._router.navigate(
-        ['admin/management', 't', '4541321asd3sad1sad'],
-        { queryParams: { search: this.searchUsersTerm } }
-      );
-    }
+ // Método para verificar si la pantalla es menor a 700px
+ private checkScreenSize(): void {
+   if(window.innerWidth < 500){
+    this.status.setState('sidebar', false);
+   }
 
-    this.setURLStatus();
-  });
-}
+   if(window.innerWidth < 700){
+    this.status.setState('management_show_maps', { showMaps: true });
+   }
+  
+ }
 
-
-
-
+  showMapsToggle() {
+    this.status.setState('management_show_maps', { showMaps: !this.showMaps });
+  }
 
    searchUser() {
     this._router.navigate(
@@ -187,10 +182,53 @@ constructor(
       });
   }
 
+  verifyURLStatus(params: any) {
+    this.op = params['op'];
+    this.currentUserId = params['user'];
+    const managementState: any = this.status.getState('management');
 
+    if (managementState.url_route[1] && !params['op'] && !params['user']) {
+      this._router.navigate(
+        managementState.url_route,
+        { queryParams: managementState.url_query_params }
+      );
+    } else if (!managementState.url_route[1] && !params['op'] && !params['user']) {
+      this.goDefaultRoute();
+    }
+
+    this.setURLStatus();
+  }
+
+  goDefaultRoute() {
+    this._router.navigate(
+      ['/admin/management', 't', '4541321asd3sad1sad'],
+      { queryParams: { search: this.searchUsersTerm } }
+      );
+  }
 
   ngOnInit() {
 
+    const params = this.route.snapshot.params;
+    if(!params['op'] && !params['user']){
+      this.goDefaultRoute();
+    }
+    
+
+    this.route.params.subscribe((params: any) => {
+      this.verifyURLStatus(params);
+    });
+
+    this.status.statusChanges$.subscribe((newStatus) => {
+      if (newStatus.management_show_maps) {
+      this.showMaps = newStatus.management_show_maps.showMaps as boolean;
+      }
+      if (newStatus.theme) {
+      this.currentTheme = newStatus.theme as string;
+      }
+    });
+
+
+    this.checkScreenSize();
     this.route.queryParams.subscribe(queryParams => {
 
       if(this.op == 'u'){

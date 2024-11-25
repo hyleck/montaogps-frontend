@@ -56,6 +56,7 @@ export const globalPalette = {
         globalColorBackgroundDark: "#ffffff",
 
         globalColorScrollThumb: "#ff7070",
+        backgroundCheckBox: "#dd4747",
       },
       
       dark: {
@@ -114,6 +115,8 @@ export const globalPalette = {
         globalColorBackgroundDark: "#131313",
 
         globalColorScrollThumb: "#ff5050",
+
+        backgroundCheckBox: "#2f2f2f",
 
         
       }

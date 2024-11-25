@@ -1,11 +1,15 @@
 import { Injectable } from '@angular/core';
+import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class StatusService {
   private statusKey = 'appStatus'; // Clave para el localStorage
   private status: any = {}; // Estado en memoria
+  private statusChangeSubject = new BehaviorSubject<any>(null); // Subject para emitir cambios
+
+  statusChanges$ = this.statusChangeSubject.asObservable(); // Observable para que otros se suscriban
 
   constructor() {
     this.loadFromLocalStorage();
@@ -15,6 +19,7 @@ export class StatusService {
   setState(key: string, value: any): void {
     this.status[key] = value;
     this.saveToLocalStorage();
+    this.emitStatusChange(); // Emitir cambios
   }
 
   // Obtener un estado
@@ -26,12 +31,14 @@ export class StatusService {
   removeState(key: string): void {
     delete this.status[key];
     this.saveToLocalStorage();
+    this.emitStatusChange(); // Emitir cambios
   }
 
   // Limpiar todos los estados
   clearState(): void {
     this.status = {};
     localStorage.removeItem(this.statusKey);
+    this.emitStatusChange(); // Emitir cambios
   }
 
   // Guardar el estado actual en localStorage
@@ -45,5 +52,11 @@ export class StatusService {
     if (storedStatus) {
       this.status = JSON.parse(storedStatus);
     }
+    this.emitStatusChange(); // Emitir cambios al cargar
+  }
+
+  // Emitir el evento de cambio de estado
+  private emitStatusChange(): void {
+    this.statusChangeSubject.next(this.status);
   }
 }

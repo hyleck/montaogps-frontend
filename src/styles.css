@@ -1,169 +1,150 @@
+/* Importaciones */
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
 @import "primeicons/primeicons.css";
 
-
-body , html{
+/* Globales */
+body, html {
   height: 100%;
   font-family: 'Roboto', sans-serif;
   padding: 0;
- 
+  margin: 0;
   transition: all 0.2s;
 }
 
-*{
-  margin: 0;
+* {
+ 
   transition: color 0.5s, background 0.2s;
+  scrollbar-width: thin; /* Ancho de la barra */
+  scrollbar-color: var(--globalColorScrollThumb) var(--globalColorNone); /* Colores de scroll */
 }
 
-
-
-/* Para navegadores basados en WebKit (Chrome, Safari, Edge moderno) */
+/* Scroll personalizado */
 ::-webkit-scrollbar {
-  width: 12px;               /* Ancho de la barra de scroll */
+  width: 12px; /* Ancho de la barra de scroll */
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--globalColorScrollThumb);      
+  background: var(--globalColorScrollThumb);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--globalColorScrollThumb);      
-  border-radius: 6px;        
+  background: var(--globalColorScrollThumb);
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--globalColorScrollThumb);     
+  background: var(--globalColorScrollThumb);
 }
 
-
-* {
-  scrollbar-width: thin;  /* Ancho de la barra */
-  scrollbar-color: var(--globalColorScrollThumb) var(--globalColorNone);  /* Color del pulgar y de la pista */
-}
-
-
-/* PRIMENG */
-.p-breadcrumb{
-  border: none!important;
+/* PrimeNG: Breadcrumb */
+.p-breadcrumb {
+  border: none !important;
   overflow: hidden;
   background: var(--globalColorNone);
-
 }
+
 .p-breadcrumb .p-menuitem-text {
   font-size: 12px;
   color: var(--globalColorTextLight);
 }
 
-.p-icon{
-margin-left: 10px;
-margin-right: 10px;
+/* PrimeNG: Iconos */
+.p-icon {
+  margin: 0 10px;
   transform: scale(0.6);
   opacity: 0.7;
 }
 
-
-/* BUTTONS */
-.button{
+/* Botones */
+.button {
   border: none;
   padding: 10px;
   border-radius: 5px;
   cursor: pointer;
 }
-.button i{
+
+.button i {
   font-size: 12px;
   opacity: 0.5;
 }
 
-.button--flat{
+.button--flat {
   background: var(--globalColorNone);
   color: var(--globalColorSelectOption);
- 
 }
 
-.button--primary-flat{
+.button--primary-flat {
   background: var(--globalColorNone);
   color: var(--globalColorButtonBackground);
   font-weight: bold;
-  
 }
 
-.button--dark{
+.button--dark {
   background: var(--globalColorSelectOption);
   color: var(--globalColorTextStrong);
- 
-
 }
-.button--primary-flat-negative{
+
+.button--primary-flat-negative,
+.button--flat-negative {
   background: var(--globalColorNone);
   color: var(--globalColorTextStrong);
- 
-
 }
 
-.button--primary-flat-red{
+.button--primary-flat-red {
   background: var(--globalColorNone);
   color: var(--globalColorPrimaryInmutable);
 }
 
-.button--primary-flat-icon{
+.button--primary-flat-icon {
   background: var(--globalColorNone);
   color: var(--globalColorPrimaryInmutable);
 }
 
-.button--primary-flat-icon i{
-  color: var(--globalColorPrimaryInmutable)!important;
+.button--primary-flat-icon i {
+  color: var(--globalColorPrimaryInmutable) !important;
 }
 
-.button--flat-negative{
-  background: var(--globalColorNone);
-  color: var(--globalColorTextStrong);
-  
-}
-.button--disabled{
+.button--disabled {
   opacity: 0.5;
   cursor: default;
 }
 
-
-/* tables primeng */
-
-.p-datatable-thead th{
+/* PrimeNG: Tablas */
+.p-datatable-thead th {
   background: var(--globalColorNone);
   color: var(--globalColorAccent);
   border-bottom: 1px solid var(--globalColorBorderDark);
   transition: all 0.2s;
-  font-size: 14px!important;
-}
-.p-datatable-thead .p-checkbox-box{
-  background: var(--globalColorBorderDark);
-  border-color: var(--globalColorMainBackgroundStart2)!important;
-  
-}
-.management__content-table-tr {
-  background: var(--globalColorNone);
-  color: var(--globalColorTextMuted);
+  font-size: 14px !important;
 }
 
-.management__content-table-tr td{
-  font-size: 14px!important;
-  transition: all 0.2s;
-  border-bottom: 1px solid var(--globalColorBorderDark);
-}
 
-.management__content-table-tr .p-checkbox-box{
+.p-datatable-thead .p-checkbox-box,
+.p-checkbox-box {
   background: var(--globalColorBorderDark);
-}
-
-.management__content-table-tr .p-checkbox-box{
-  background: var(--globalColorBorderDark);
-  border-color: var(--globalColorNone)!important;
+  border-color: var(--globalColorNone) !important;
 }
 
 .p-checkbox .p-checkbox-box.p-highlight {
-  background: var(--globalColorMainBackgroundStart2)!important;
-  border-color: var(--globalColorMainBackgroundStart2)!important;
+  background: var(--backgroundCheckBox) !important;
+  border-color: var(--globalColorMainBackgroundStart2) !important;
 }
 
-.p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box.p-highlight:hover{
- 
+.p-menu {
+  background: var(--globalColorPrimaryDarkStart);
+  color: var(--globalColorTextStrong);
+  border: 1px solid var(--globalColorBorderDark);
+}
+
+.p-menu .p-element {
+  color: var(--globalColorTextStrong);
+  background: var(--globalColorPrimaryDarkEnd);
+}
+
+.p-menu .p-menuitem-link {
+  color: var(--globalColorTextStrong)!important;
+}
+
+.p-menu .p-menuitem-text, .p-menu .p-menuitem-icon {
+  color: var(--globalColorTextStrong);
 }

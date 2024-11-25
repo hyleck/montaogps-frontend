@@ -4,6 +4,8 @@ import { BadgeModule } from 'primeng/badge';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { TooltipModule } from 'primeng/tooltip';
 import { TableModule } from 'primeng/table';
+import { MenuModule } from 'primeng/menu';
+import { ButtonModule } from 'primeng/button';
 
 @NgModule({
   declarations: [],
@@ -11,13 +13,17 @@ import { TableModule } from 'primeng/table';
     CommonModule,
     BadgeModule,
     TooltipModule,
-    TableModule
+    TableModule,
+    MenuModule,
+    ButtonModule
   ],
   exports: [
     BadgeModule,
     BreadcrumbModule,
     TooltipModule,
-    TableModule
+    TableModule,
+    MenuModule,
+    ButtonModule
   ]
 })
 export class PrimengModule { }

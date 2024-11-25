@@ -80,7 +80,7 @@ export const loginPalette = {
         loginColorTextDark: "#d1d1d1",
         loginColorTextMuted: "#a1a1a1",
         loginColorTextLight: "#ffffff",
-        loginColorTextLink: "#4a90e2",
+        loginColorTextLink: "#d1d1d1",
         loginColorTextStrong: "#ffffff",
         loginColorTextSubFooter: "#ffffff9e",
         loginColorTextInput: "#ffffff",

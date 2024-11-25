@@ -173,3 +173,11 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+
+@media (max-width: 700px) {
+    .sidebar__logo{
+        display: none!important;
+    }
+  
+  }
