@@ -12,7 +12,7 @@ body, html {
 }
 
 * {
- 
+  
   transition: color 0.5s, background 0.2s;
   scrollbar-width: thin; /* Ancho de la barra */
   scrollbar-color: var(--globalColorScrollThumb) var(--globalColorNone); /* Colores de scroll */

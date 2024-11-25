@@ -461,6 +461,8 @@
   grid-area: content;
   background: var(--managementColorContentBackground, rgb(56, 56, 56));
   border-radius: 5px;
+  overflow: hidden;
+
 }
 
 

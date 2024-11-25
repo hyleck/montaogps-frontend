@@ -1,0 +1,16 @@
+.main{
+    height: 100%;
+    width: auto;
+    background: rgb(236, 111, 111);
+}
+.maps{
+    height: 100%;
+    width: 100%;
+
+    background: radial-gradient(circle, var(--globalColorPrimaryDarkStart), var(--globalColorPrimaryDarkEnd));
+}
+
+.maps__map{
+    height: 100%;
+    width: 100%;
+}
