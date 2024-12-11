@@ -14,16 +14,12 @@
     padding-left: 10px;
   }
 
-
-  
   .management__route {
     grid-area: header;
     opacity: 0.5;
     padding-left: 7px;
     
   }
-
- 
 
   .management__controls{
     grid-area: controls;
@@ -33,8 +29,6 @@
     align-items: center;
     color: rgb(255, 122, 28);
   }
-
-
 
   .management__controls i{
     font-size: 16px;
@@ -354,8 +348,6 @@
     
   }
   
-
-  
   .management__input-search {
     position: relative;
     border-radius: 7px;
@@ -400,8 +392,6 @@
     color: var(--managementColorBorderInput);
   }
   
-
-
 /* MAPA */
 .management__maps {
   height: 100%;
@@ -414,8 +404,6 @@
   padding-right: 10px;
 }
 
-
-
 .management__user-control {
   grid-area: user;
   background: var(--managementColorCardBackground);
@@ -426,8 +414,6 @@
   grid-template-areas: "user_header user_header" "user_content user_content";
   position: relative;
 }
-
-
 
 .management__user-control-display-button {
   position: absolute;
@@ -465,7 +451,6 @@
   border: 3px solid var(--globalColorInputBorderAccent);
 
 }
-
 
 @media (max-width: 760px) {
   .management__maps{

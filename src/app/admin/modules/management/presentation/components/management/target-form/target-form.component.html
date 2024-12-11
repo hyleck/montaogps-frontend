@@ -1,0 +1,274 @@
+<div class="main">
+    <div class="target-form">
+      
+        <div class="target-form__tools">
+            <div class="card">
+                <p-tabView>
+                    <p-tabPanel header="Vehículo">
+                        <div class="target-form__base">
+                            <form class="target-form__form">
+                                <div class="target-form__field">
+                                    <label for="brand">Marca</label>
+                                    <select name="brand" id="brand" title="Seleccione la marca del vehículo">
+                                        <option value="">Option 1</option>
+                                        <option value="">Option 2</option>
+                                        <option value="">Option 3</option>
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="model">Modelo</label>
+                                    <select name="model" id="model" title="Seleccione el modelo del vehículo">
+                                        <option value="">Option 1</option>
+                                        <option value="">Option 2</option>
+                                        <option value="">Option 3</option>
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="year">Año</label>
+                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
+                                        <option value="">Option 1</option>
+                                        <option value="">Option 2</option>
+                                        <option value="">Option 3</option>
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="chassis">Chasis</label>
+                                    <input 
+                                        placeholder="Ej: 1HGCM82633A123456" 
+                                        type="text" 
+                                        id="chassis" 
+                                        title="Ingrese el número de chasis (VIN) del vehículo"
+                                    >
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="plate">Placa</label>
+                                    <input 
+                                        placeholder="Ej: G123456" 
+                                        type="text" 
+                                        id="plate" 
+                                        title="Ingrese el número de placa o matrícula del vehículo"
+                                    >
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="name">Nombre / Ficha</label>
+                                    <input 
+                                        placeholder="Ej: Ford 2018" 
+                                        type="text" 
+                                        id="name" 
+                                        title="Ingrese un nombre o descripción breve para identificar el vehículo"
+                                    >
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="color">Color</label>
+                                    <input 
+                                        placeholder="Ej: rojo" 
+                                        type="text" 
+                                        id="color" 
+                                        title="Ingrese el color del vehículo"
+                                    >
+                                </div>
+                
+                                <div class="target-form__field">
+                                    <label for="color">...</label>
+                                  <div class="target-form__field-colors">
+                                    <div *ngFor="let color of [1,2,3,4,5,6,5,6,4,5,2]" class="target-form__field-color"></div>
+                                  </div>
+                                </div>
+                
+                                <div class="target-form__field">
+                                  <button class="button button--primary-flat"> <i class="pi pi-save"></i> Guardar</button>
+                                </div>
+                            </form>
+                            
+                        </div>
+                    </p-tabPanel>
+                    <p-tabPanel header="Instalación">
+                        <div class="target-form__base">
+                            <form class="target-form__form">
+                                <div class="target-form__field">
+                                    <label for="chassis">GPS ID</label>
+                                    <input 
+                                        placeholder="Ej: 541351324534515" 
+                                        type="text" 
+                                        id="chassis" 
+                                        title="Ingrese el número de chasis (VIN) del vehículo"
+                                    >
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="chassis">No. Tarjeta SIM</label>
+                                    <input 
+                                        placeholder="Ej: 541351324534515" 
+                                        type="text" 
+                                        id="chassis" 
+                                        title="Ingrese el número de chasis (VIN) del vehículo"
+                                    >
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="chassis">Fecha de Instalación</label>
+                                    <input 
+                                        placeholder="Ej: 541351324534515" 
+                                        type="date" 
+                                        id="chassis" 
+                                        title="Ingrese el número de chasis (VIN) del vehículo"
+                                    >
+                                </div>
+                            
+                                
+                            
+                                <div class="target-form__field">
+                                    <label for="chassis">Fecha de expiración</label>
+                                    <input 
+                                        placeholder="Ej: 541351324534515" 
+                                        type="date" 
+                                        id="chassis" 
+                                        title="Ingrese el número de chasis (VIN) del vehículo"
+                                    >
+                                </div>
+
+                                <div class="target-form__field">
+                                    <label for="year">Modelo de GPS</label>
+                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
+                                        <option value="">Option 1</option>
+                                        <option value="">Option 2</option>
+                                        <option value="">Option 3</option>
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="year">Lugar de instalación</label>
+                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
+                                        <option value="">Option 1</option>
+                                        <option value="">Option 2</option>
+                                        <option value="">Option 3</option>
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="year">Sensor de encendido</label>
+                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
+                                        <option value="">Option 1</option>
+                                        <option value="">Option 2</option>
+                                        <option value="">Option 3</option>
+                                    </select>
+                                </div>
+
+                                <div class="target-form__field">
+                                    <label for="year">Control de apagado</label>
+                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
+                                        <option value="">Option 1</option>
+                                        <option value="">Option 2</option>
+                                        <option value="">Option 3</option>
+                                    </select>
+                                </div>
+                
+                
+                                <div class="target-form__field">
+                                  <button class="button button--primary-flat"> <i class="pi pi-save"></i> Guardar</button>
+                                </div>
+                            </form>
+                            
+                        </div>
+                    </p-tabPanel>
+                    <p-tabPanel header="Procesos">
+                      <div class="process">
+                        <div class="process__form">
+                            <form class="process__form-main">
+                                <div class="target-form__field">
+                                    <label for="year">Tipo de proceso</label>
+                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
+                                        <option value="">Option 1</option>
+                                        <option value="">Option 2</option>
+                                        <option value="">Option 3</option>
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="year">Fecha</label>
+                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
+                                        <option value="">Option 1</option>
+                                        <option value="">Option 2</option>
+                                        <option value="">Option 3</option>
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
+                                    <label for="year">Técnico</label>
+                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
+                                        <option value="">Option 1</option>
+                                        <option value="">Option 2</option>
+                                        <option value="">Option 3</option>
+                                    </select>
+                                </div>
+
+                                <div class="target-form__field">
+                                    <label for="year">Control de apagado</label>
+                                    <input 
+                                        placeholder="Ej: 541351324534515" 
+                                        type="text" 
+                                        id="chassis" 
+                                        title="Ingrese el número de chasis (VIN) del vehículo"
+                                    >
+                                </div>
+                            </form>
+                        </div>
+                        <div class="process__logs">
+                            <p-accordion >
+                                <p-accordionTab header="Instalación - 02/05/24">
+                                    <p>
+                                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                                        consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                                    </p>
+                                </p-accordionTab>
+                                <p-accordionTab header="Cambio de GPS - 02/05/24">
+                                    <p>
+                                        Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim
+                                        ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Consectetur, adipisci velit, sed quia non numquam eius modi.
+                                    </p>
+                                </p-accordionTab>
+                                <p-accordionTab header="Chequeo - 02/05/24">
+                                    <p>
+                                        At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa
+                                        qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus.
+                                    </p>
+                                </p-accordionTab>
+                            </p-accordion>
+                        </div>
+                      </div>
+                    </p-tabPanel>
+
+               
+
+                    <p-tabPanel header="Nube | Admin">
+                        <p>
+                            At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa
+                            qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus.
+                        </p>
+                    </p-tabPanel>
+
+                    <p-tabPanel header="Nube | Cliente">
+                        <p>
+                            At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa
+                            qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus.
+                        </p>
+                    </p-tabPanel>
+
+                
+                    <p-tabPanel header="SMS">
+                        <p>
+                            At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa
+                            qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus.
+                        </p>
+                    </p-tabPanel>
+                </p-tabView>
+            </div>
+        </div>
+    </div>
+</div>

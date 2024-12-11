@@ -112,7 +112,7 @@ body, html {
 /* PrimeNG: Tablas */
 .p-datatable-thead th {
   background: var(--globalColorNone);
-  color: var(--globalColorAccent);
+  color: var(--globalColorPrimaryInmutable);
   border-bottom: 1px solid var(--globalColorBorderDark);
   transition: all 0.2s;
   font-size: 14px !important;
@@ -147,4 +147,19 @@ body, html {
 
 .p-menu .p-menuitem-text, .p-menu .p-menuitem-icon {
   color: var(--globalColorTextStrong);
+}
+
+
+.p-tabview-title{
+  color: var(--globalColorSelectOption);
+  font-size: 13px;
+}
+
+.p-tabview-nav-link{
+  color: var(--globalColorSelectOption)!important;
+  
+}
+
+.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link{
+  border-bottom: 3px solid var(--globalColorPrimaryInmutable);
 }

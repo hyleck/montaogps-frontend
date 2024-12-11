@@ -10,7 +10,8 @@ import { StatusService } from '../../../../../../shareds/services/status.service
   styleUrl: './management.component.css'
 })
 export class ManagementComponent {
-
+  
+  visible: boolean = true;
 // Propiedades relacionadas con el menú y la navegación
 items: MenuItem[] | undefined;
 home: MenuItem | undefined;
@@ -246,6 +247,13 @@ constructor(
       ];
 
       this.home = { icon: 'pi pi-home', routerLink: '/' };
+  }
+
+
+ 
+
+  showDialog() {
+      this.visible = true;
   }
 
 

@@ -85,7 +85,7 @@
                                         <ng-template pTemplate="body" let-customer>
                                             <tr class="management__content-table-tr">
                                             
-                                                <td style="font-size: 13px!important;"> <span class="management__content-table-link"><i class="pi pi-map-marker" ></i> {{customer.name}}  </span>   
+                                                <td style="font-size: 13px!important;"> <span (click)="showMapsToggle()" class="management__content-table-link"><i class="pi pi-map-marker" ></i> {{customer.name}}  </span>   
                                                     <span style="margin-bottom: 10px; display: block;">IMEI:6516516542184</span><p-tableCheckbox [value]="customer" />
                                                    <p-badge [style]="{transform: 'scale(0.8)'}" [value]="customer.status" [severity]="customer.status == 'En linea'?'success':'secondary'" />  
                                                 </td>
@@ -93,7 +93,7 @@
                                             
                                                 <td style="width: 1rem">
                                                     <div style="transform: scale(0.8)" class="management__user-table-controls management__user-table-controls--maps">
-                                                        <button class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                        <button (click)="showDialog()" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pen-to-square" ></i> </button>
                                                         <button class="button button--primary-flat-icon" title="Eliminar usuario"> <i class="pi pi-times-circle" ></i> </button>
                                                     </div>
                                                 </td>
@@ -223,13 +223,13 @@
                                             <td>
                                                 <p-tableCheckbox [value]="customer" />
                                             </td>
-                                            <td><span class="management__content-table-link"><i class="pi pi-map-marker" ></i> {{customer.name}}</span> </td>
+                                            <td><span (click)="showMapsToggle()" class="management__content-table-link"><i class="pi pi-map-marker" ></i> {{customer.name}}</span> </td>
                                             <td> <p-badge [value]="customer.status" [severity]="customer.status == 'En linea'?'success':'secondary'" /></td>
                                             <td>{{customer.imei}}</td>
                                             <td>{{customer.sim}}</td>
                                             <td>
                                                 <div class="management__user-table-controls">
-                                                    <button class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                    <button class="button button--primary-flat" (click)="showDialog()" title="Editar usuario"> <i class="pi pi-pen-to-square" ></i> </button>
                                                     <button class="button button--primary-flat-icon" title="Eliminar usuario"> <i class="pi pi-times-circle" ></i> </button>
                                                 </div>
                                             </td>
@@ -242,4 +242,13 @@
                 </div>
             </div>
         </div>
+</div>
+
+
+
+<div class="card flex justify-content-center">
+   
+    <p-dialog header="Configuración de objetivo" [modal]="true" [(visible)]="visible" >
+        <app-target-form></app-target-form>
+    </p-dialog>
 </div>
