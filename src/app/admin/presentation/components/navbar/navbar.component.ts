@@ -4,9 +4,10 @@ import { MenuItem } from 'primeng/api';
 import { StatusService } from '../../../../shareds/services/status.service';
 
 @Component({
-  selector: 'app-navbar',
-  templateUrl: './navbar.component.html',
-  styleUrl: './navbar.component.css'
+    selector: 'app-navbar',
+    templateUrl: './navbar.component.html',
+    styleUrl: './navbar.component.css',
+    standalone: false
 })
 export class NavbarComponent {
   items: MenuItem[] | undefined;

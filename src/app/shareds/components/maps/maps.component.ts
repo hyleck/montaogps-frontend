@@ -3,9 +3,10 @@ import { ThemesService } from '../../services/themes.service';
 import { StatusService } from '../../services/status.service';
 
 @Component({
-  selector: 'app-maps',
-  templateUrl: './maps.component.html',
-  styleUrls: ['./maps.component.css']
+    selector: 'app-maps',
+    templateUrl: './maps.component.html',
+    styleUrls: ['./maps.component.css'],
+    standalone: false
 })
 export class MapsComponent implements OnInit {
   map!: google.maps.Map;

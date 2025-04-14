@@ -5,9 +5,10 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { StatusService } from '../../../../../../shareds/services/status.service';
 
 @Component({
-  selector: 'app-management',
-  templateUrl: './management.component.html',
-  styleUrl: './management.component.css'
+    selector: 'app-management',
+    templateUrl: './management.component.html',
+    styleUrl: './management.component.css',
+    standalone: false
 })
 export class ManagementComponent {
   
