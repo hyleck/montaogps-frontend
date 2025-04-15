@@ -536,7 +536,7 @@
 }
 
 .management__content-table-link {
-  color: var(--globalColorAccent);
+  color: var(--managementOnlineStatus);
   padding-bottom: 5px;
   display: block;
   cursor: pointer;

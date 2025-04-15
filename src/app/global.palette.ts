@@ -55,7 +55,8 @@ export const globalPalette = {
         globalColorShadowInfoContact: "rgba(0, 0, 0, 0.552)",
         globalColorBackgroundDark: "#ffffff",
         globalColorScrollThumb: "#ff7070",
-        backgroundCheckBox: "#dd4747"
+        backgroundCheckBox: "#dd4747",
+        globalGreen: "#1a9c1a"
       },
       
       dark: {
@@ -113,7 +114,8 @@ export const globalPalette = {
         globalColorShadowInfoContact: "rgba(255, 255, 255, 0.15)",
         globalColorBackgroundDark: "#131313",
         globalColorScrollThumb: "#ff5050",
-        backgroundCheckBox: "#2f2f2f"
+        backgroundCheckBox: "#2f2f2f",
+        globalGreen: "#15f915"
       }
 };
 
