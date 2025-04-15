@@ -121,7 +121,7 @@ body, html {
 
 .p-datatable-thead .p-checkbox-box,
 .p-checkbox-box {
-  background: var(--globalColorBorderDark);
+  background: var(--globalColorBorderDark)!important;
   border-color: var(--globalColorNone) !important;
 }
 

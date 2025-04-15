@@ -11,7 +11,8 @@ import { StatusService } from './status.service';
   providedIn: 'root'
 })
 export class ThemesService {
-
+  private readonly darkModeClass = 'app-dark'; // 👈 clase que activa dark mode en PrimeNG
+  
   themes: any = {
     light: {
       ...globalPalette.light,
@@ -45,6 +46,16 @@ export class ThemesService {
     Object.keys(this.themes[theme]).forEach((key: string) => {
       document.documentElement.style.setProperty("--" + key, this.themes[theme][key]);
     });
+
+
+      // ✅ Controla el modo oscuro de PrimeNG agregando o quitando la clase
+      const html = document.documentElement;
+      html.classList.remove(this.darkModeClass); // limpia primero
+      if (theme === 'dark') {
+        html.classList.add(this.darkModeClass);
+      }
+
+
 
     this.status.setState('theme', theme);
   }

@@ -3,15 +3,11 @@ import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { HttpClient } from '@angular/common/http';
-import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-// import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
-// import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
-// export function HttpLoaderFactory(http: HttpClient) {
-//   return new TranslateHttpLoader(http, './i18n/', '.json');
-// }
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { providePrimeNG } from 'primeng/config';
+import Aura from '@primeng/themes/aura';
 
 @NgModule({
   declarations: [
@@ -20,19 +16,19 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
   imports: [
     BrowserModule,
     AppRoutingModule,
-    BrowserAnimationsModule,
-    // TranslateModule.forRoot({
-    //   loader: {
-    //       provide: TranslateLoader,
-    //       useFactory: HttpLoaderFactory,
-    //       deps: [HttpClient]
-    //   },
-    //   defaultLanguage: 'es'
-    // })
+    BrowserAnimationsModule
   ],
-  // providers: [
-  //   provideHttpClient(withInterceptorsFromDi())
-  // ],
+  providers: [
+    provideAnimationsAsync(),
+    providePrimeNG({
+      theme: {
+        preset: Aura,
+        options: {
+          darkModeSelector: '.app-dark'
+      }
+      }
+    })
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
