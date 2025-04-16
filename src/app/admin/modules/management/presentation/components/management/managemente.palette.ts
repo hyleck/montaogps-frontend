@@ -9,7 +9,8 @@ export const managementPalette = {
         managementColorInputSearch:'#ffffff',
         managementColorCardBackground: '#fff7f7', 
         managementColorBorderInput: '#ffc2c2',
-        managementOnlineStatus: '#1a9c1a'
+        managementOnlineStatus: '#1a9c1a',
+         managementFieldsBorder: '#d1d1d1'
        
       },
       
@@ -21,7 +22,8 @@ export const managementPalette = {
          managementColorInputSearch:'#1f1f1f',
          managementColorCardBackground: '#1f1f1f',
          managementColorBorderInput: '#ff6d6dc4',
-         managementOnlineStatus: '#15f915'
+         managementOnlineStatus: '#15f915',
+         managementFieldsBorder: '#1f1f1f'
       }
 }
 

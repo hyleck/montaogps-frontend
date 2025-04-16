@@ -6,13 +6,14 @@ import { sidebarPalette } from '../../admin/presentation/components/sidebar/side
 import { adminPalette } from '../../admin/presentation/components/admin-layout/admin.palette';
 import { navbarPalette } from '../../admin/presentation/components/navbar/navbar.palette';
 import { StatusService } from './status.service';
+import { applyThemeTransition } from '../../shareds/helpers/theme-transition.helper';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ThemesService {
-  private readonly darkModeClass = 'app-dark'; // 👈 clase que activa dark mode en PrimeNG
-  
+  private readonly darkModeClass = 'app-dark';
+
   themes: any = {
     light: {
       ...globalPalette.light,
@@ -22,8 +23,6 @@ export class ThemesService {
       ...adminPalette.light,
       ...navbarPalette.light
     },
-    
-
     dark: {
       ...globalPalette.dark,
       ...loginPalette.dark,
@@ -41,27 +40,49 @@ export class ThemesService {
     this.setTheme(this.currentTheme);
   }
 
-  setTheme(theme: string) {
-    this.currentTheme = theme;
-    Object.keys(this.themes[theme]).forEach((key: string) => {
-      document.documentElement.style.setProperty("--" + key, this.themes[theme][key]);
+  private applyPalette(theme: string) {
+    
+  
+      this.currentTheme = theme;
+      Object.keys(this.themes[theme]).forEach((key: string) => {
+        document.documentElement.style.setProperty("--" + key, this.themes[theme][key]);
+      });
+  
+    
+        const html = document.documentElement;
+        html.classList.remove(this.darkModeClass);
+        if (theme === 'dark') {
+          html.classList.add(this.darkModeClass);
+        }
+    
+    
+  
+      this.status.setState('theme', theme);
+    
+   
+
+    // this.setThemeWithTransition(theme);
+  }
+
+  // ⚡ Método público con transición
+  async setThemeWithTransition(theme: string) {
+    await applyThemeTransition(() => {
+      this.applyPalette(theme);
     });
+  }
 
-
-      // ✅ Controla el modo oscuro de PrimeNG agregando o quitando la clase
-      const html = document.documentElement;
-      html.classList.remove(this.darkModeClass); // limpia primero
-      if (theme === 'dark') {
-        html.classList.add(this.darkModeClass);
-      }
-
-
-
-    this.status.setState('theme', theme);
+  // ☑ Método normal (sin transición)
+  setTheme(theme: string, transition: boolean = false) {
+    if(transition){
+      this.setThemeWithTransition(theme)
+    }else{
+      this.applyPalette(theme);
+    }
+  
+    
   }
 
   getCurrentTheme(): string {
-    // console.log('currentTheme', this.currentTheme);
     return this.currentTheme;
   }
 }

@@ -39,7 +39,7 @@
 }
 
 .target-form__field input{
-    border: 1px solid #d1d1d1;
+    border: 1px solid var(--managementFieldsBorder);
     padding: 10px;
     border-radius: 5px;
     outline: none;
@@ -47,7 +47,7 @@
 }
 
 .target-form__field select{
-    border: 1px solid #d1d1d1;
+    border: 1px solid var(--managementFieldsBorder);
     padding: 10px;
     border-radius: 5px;
     outline: none;

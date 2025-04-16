@@ -9,8 +9,8 @@ import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TabViewModule } from 'primeng/tabview';
 import { AccordionModule } from 'primeng/accordion';
-
-
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { ProgressBarModule } from 'primeng/progressbar';
 @NgModule({
   declarations: [],
   imports: [
@@ -22,7 +22,9 @@ import { AccordionModule } from 'primeng/accordion';
     ButtonModule,
     DialogModule,
     TabViewModule,
-    AccordionModule
+    AccordionModule,
+    ProgressSpinnerModule,
+    ProgressBarModule
   ],
   exports: [
     BadgeModule,
@@ -33,7 +35,9 @@ import { AccordionModule } from 'primeng/accordion';
     ButtonModule,
     DialogModule,
     TabViewModule,
-    AccordionModule
+    AccordionModule,
+    ProgressSpinnerModule,
+    ProgressBarModule
   ]
 })
 export class PrimengModule { }

@@ -65,9 +65,14 @@ export class NavbarComponent {
     
   }
 
+  loadingTheme = false;
   toggleTheme() {
+    this.loadingTheme = true;
     this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light';
-    this.themes.setTheme(this.currentTheme);
+    this.themes.setTheme(this.currentTheme,true);
     this.status.setState('theme', this.currentTheme);
+    setTimeout(()=>{
+      this.loadingTheme = false
+    },3000)
   }
 }
