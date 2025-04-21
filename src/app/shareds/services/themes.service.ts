@@ -6,7 +6,7 @@ import { sidebarPalette } from '../../admin/presentation/components/sidebar/side
 import { adminPalette } from '../../admin/presentation/components/admin-layout/admin.palette';
 import { navbarPalette } from '../../admin/presentation/components/navbar/navbar.palette';
 import { StatusService } from './status.service';
-import { applyThemeTransition } from '../../shareds/helpers/theme-transition.helper';
+// import { applyThemeTransition } from '../../shareds/helpers/theme-transition.helper';
 
 @Injectable({
   providedIn: 'root'
@@ -65,19 +65,17 @@ export class ThemesService {
   }
 
   // ⚡ Método público con transición
-  async setThemeWithTransition(theme: string) {
-    await applyThemeTransition(() => {
-      this.applyPalette(theme);
-    });
-  }
+  // async setThemeWithTransition(theme: string) {
+  //   await applyThemeTransition(() => {
+  //     this.applyPalette(theme);
+  //   });
+  // }
 
   // ☑ Método normal (sin transición)
-  setTheme(theme: string, transition: boolean = false) {
-    if(transition){
-      this.setThemeWithTransition(theme)
-    }else{
+  setTheme(theme: string) {
+  
       this.applyPalette(theme);
-    }
+ 
   
     
   }

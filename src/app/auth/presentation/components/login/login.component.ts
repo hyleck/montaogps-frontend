@@ -5,6 +5,7 @@ import { Lang } from '../../../../shareds/services/langi18/lang.interface';
 import { LangService } from '../../../../shareds/services/langi18/lang.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 
 @Component({
     selector: 'app-login',
@@ -27,7 +28,8 @@ export class LoginComponent {
     public themes: ThemesService, 
     public langService: LangService, 
     private authService: AuthService,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private router: Router
   ) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
@@ -58,7 +60,10 @@ export class LoginComponent {
     this.authService.login(email, password).subscribe({
       next: (response) => {
         this.isLoading = false;
-        // Aquí puedes manejar la redirección después del login exitoso
+        // Guardar el token
+        localStorage.setItem('token', response.token);
+        // Redirigir a admin
+        this.router.navigate(['/admin']);
       },
       error: (error) => {
         if (error.error?.message === 'Invalid credentials') {

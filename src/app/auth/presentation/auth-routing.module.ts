@@ -5,7 +5,7 @@ import { LoginComponent } from './components/login/login.component';
 
 
 const routes: Routes = [
-  { path: '', component: LoginComponent } // Ruta predeterminada para mostrar el login
+  { path: 'login', component: LoginComponent } // Ruta predeterminada para mostrar el login
 ];
 
 @NgModule({

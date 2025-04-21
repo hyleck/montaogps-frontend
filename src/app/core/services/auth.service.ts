@@ -15,38 +15,36 @@ interface TokenPayload {
   providedIn: 'root'
 })
 export class AuthService {
-
   private LOGIN_URL = environment.backend_url + '/auth/login';
-  private token = 'authtoken';
+  private readonly TOKEN_KEY = 'authtoken';
 
   constructor(private _httpClient: HttpClient, private _router: Router) { }
 
   login(email: string, password: string): Observable<any> {
-    return this._httpClient.post<any>(this.LOGIN_URL,{email, password}).pipe(
-      tap( response => {
-        if(response.access_token){
-          console.log(response.access_token)
-
+    return this._httpClient.post<any>(this.LOGIN_URL, { email, password }).pipe(
+      tap(response => {
+        if (response.access_token) {
+          this.saveToken(response.access_token);
         }
       })
-    )
+    );
   }
 
   private getToken(): string {
-    return localStorage.getItem(this.token) || '';
+    return localStorage.getItem(this.TOKEN_KEY) || '';
   }
 
   private saveToken(token: string): void {
-    localStorage.setItem(this.token, token);
+    localStorage.setItem(this.TOKEN_KEY, token);
   }
 
   private removeToken(): void {
-    localStorage.removeItem(this.token);
+    localStorage.removeItem(this.TOKEN_KEY);
   }
 
   private getUser(): string | null {
     const token = this.getToken();
-    if(token){
+    if (token) {
       const decodedToken = jwtDecode<TokenPayload>(token);
       return decodedToken.user;
     }
@@ -64,5 +62,12 @@ export class AuthService {
     return decodedToken['exp'];
   }
 
- 
+  isAuthenticated(): boolean {
+    const token = this.getToken();
+    return !!token && !this.isTokenExpired(token);
+  }
+
+  logout(): void {
+    this.removeToken();
+  }
 }

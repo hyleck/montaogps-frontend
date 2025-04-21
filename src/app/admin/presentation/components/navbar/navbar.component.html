@@ -1,4 +1,4 @@
-<p-progressbar color="#fa4c4c" *ngIf="loadingTheme" mode="indeterminate" [style]="{ height: '6px' }" />
+<!-- <p-progressbar color="#fa4c4c" *ngIf="loadingTheme" mode="indeterminate" [style]="{ height: '6px' }" /> -->
 <div class="main">
     <div class="navbar">
    
@@ -22,12 +22,19 @@
         <div class="navbar__info">
             <!-- <i class="pi pi-question-circle"></i> -->
 
-            <div class="set-theme" (click)="toggleTheme()">
+            <!-- <div class="set-theme" (click)="toggleTheme()">
                 <i *ngIf="currentTheme == 'light' && !loadingTheme" class="pi pi-moon"></i>
                 <i *ngIf="currentTheme == 'dark' && !loadingTheme" class="pi pi-sun"></i>
                 
 
-              </div>
+              </div> -->
+
+            <div class="user-menu">
+                <p-menu #userMenu [model]="userMenuItems" [popup]="true" />
+                <button class="button button--flat-negative" (click)="userMenu.toggle($event)">
+                    <i class="pi pi-user"></i>
+                </button>
+            </div>
         </div>
     </div>
 </div>
