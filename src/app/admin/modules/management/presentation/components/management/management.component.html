@@ -64,7 +64,7 @@
                             <div class="management__user-card-subtitle"><span>frxnkely&#64;gmail.com</span></div>
                             <div class="management__user-card-controls">
                                 <button class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
-                                <button class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
+                                <button (click)="showUserForm()" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
                                 <button class="button button--primary-flat" title="Eliminar usuario"> <i class="pi pi-trash" ></i> </button>
                             </div>
                         </div>
@@ -93,7 +93,7 @@
                                             
                                                 <td style="width: 1rem">
                                                     <div style="transform: scale(0.8)" class="management__user-table-controls management__user-table-controls--maps">
-                                                        <button (click)="showDialog()" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                        <button (click)="showTargetForm()" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pen-to-square" ></i> </button>
                                                         <button class="button button--primary-flat-icon" title="Eliminar usuario"> <i class="pi pi-times-circle" ></i> </button>
                                                     </div>
                                                 </td>
@@ -191,7 +191,7 @@
                         <div class="management__user-card-footer">(809) 986-3243</div>
                         <div class="management__user-card-controls">
                             <button class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
-                            <button class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
+                            <button (click)="showUserForm()" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
                             <button class="button button--primary-flat" title="Eliminar usuario"> <i class="pi pi-trash" ></i> </button>
                         </div>
                     </div>
@@ -229,7 +229,7 @@
                                             <td>{{customer.sim}}</td>
                                             <td>
                                                 <div class="management__user-table-controls">
-                                                    <button class="button button--primary-flat" (click)="showDialog()" title="Editar usuario"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                    <button class="button button--primary-flat" (click)="showTargetForm()" title="Editar usuario"> <i class="pi pi-pen-to-square" ></i> </button>
                                                     <button class="button button--primary-flat-icon" title="Eliminar usuario"> <i class="pi pi-times-circle" ></i> </button>
                                                 </div>
                                             </td>
@@ -248,7 +248,11 @@
 
 <div class="card flex justify-content-center">
    
-    <p-dialog header="Configuración de objetivo" [modal]="true" [(visible)]="visible" >
+    <p-dialog header="Configuración de objetivo" [modal]="true" [(visible)]="targetFormDisplay" >
         <app-target-form></app-target-form>
+    </p-dialog>
+
+    <p-dialog header="Fomrulario de usuario" [modal]="true" [(visible)]="userFormDisplay" >
+        <app-user-form></app-user-form>
     </p-dialog>
 </div>

@@ -324,7 +324,7 @@
     font-size: 18px;
     color: var(--managementColorTextUser);
     opacity: 0.5;
-    transition: all 0.3s;
+    /* transition: all 0.3s; */
   }
 
   .management__user-table-controls i:hover{
@@ -338,7 +338,7 @@
   
   .management__content-table-tr td{
     font-size: 14px!important;
-    transition: all 0.2s;
+    transition: none!important;
     border-bottom: 1px solid var(--globalColorBorderDark);
   }
 

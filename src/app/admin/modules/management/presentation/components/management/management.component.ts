@@ -12,7 +12,9 @@ import { StatusService } from '../../../../../../shareds/services/status.service
 })
 export class ManagementComponent {
   
-  visible: boolean = true;
+  userFormDisplay: boolean = false;
+  targetFormDisplay: boolean = false;
+
 // Propiedades relacionadas con el menú y la navegación
 items: MenuItem[] | undefined;
 home: MenuItem | undefined;
@@ -253,8 +255,16 @@ constructor(
 
  
 
-  showDialog() {
-      this.visible = true;
+  // showDialog() {
+  //     this.visible = true;
+  // }
+
+  showUserForm() {
+    this.userFormDisplay = true;
+  }
+
+  showTargetForm() {
+    this.targetFormDisplay = true;
   }
 
 

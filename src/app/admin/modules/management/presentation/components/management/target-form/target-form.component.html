@@ -256,10 +256,51 @@
 
                 
                     <p-tabPanel header="SMS">
-                        <p>
-                            At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa
-                            qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus.
-                        </p>
+                        <div class="chat-container">
+                          <div class="chat-messages">
+                            <div class="message system">
+                              <div class="message-content">
+                                <p>Conexión a internet establecida correctamente.</p>
+                                <span class="message-time">16/04/2023 20:00</span>
+                              </div>
+                            </div>
+
+                            <div class="message response">
+                              <div class="message-content">
+                                <p>Configuración de red iniciada. Por favor, espere mientras se completa el proceso.</p>
+                                <span class="message-time">16/04/2023 20:01</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="chat-footer">
+                            <p class="messages-left">Puedes enviar 40 mensajes.</p>
+                            <div class="action-buttons">
+                              <button class="action-button">
+                                <i class="pi pi-wifi"></i>
+                                Conectar a internet
+                              </button>
+                              <button class="action-button">
+                                <i class="pi pi-cog"></i>
+                                Configurar Red
+                              </button>
+                              <button class="action-button">
+                                <i class="pi pi-refresh"></i>
+                                Reiniciar Dispositivo
+                              </button>
+                              <button class="action-button">
+                                <i class="pi pi-map"></i>
+                                Google Maps
+                              </button>
+                            </div>
+                            <div class="message-input">
+                              <input type="text" placeholder="Enviar mensaje personalizado...">
+                              <button>
+                                <i class="pi pi-send"></i>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                     </p-tabPanel>
                 </p-tabView>
             </div>

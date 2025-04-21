@@ -1,1 +1,99 @@
-<p>follow-up works!</p>
+<div class="follow-up">
+    <div class="follow-up__header">
+        <h2 class="follow-up__title">Lista de Procesos (12)</h2>
+        
+        <div class="follow-up__filters">
+            <div class="follow-up__filter-group">
+                <label>Desde:</label>
+                <input type="date" value="2024-04-14">
+            </div>
+
+            <div class="follow-up__filter-group">
+                <label>Hasta:</label>
+                <input type="date" value="2024-04-21">
+            </div>
+
+            <div class="follow-up__filter-group">
+                <label>Cliente:</label>
+                <div class="follow-up__select">
+                    <input type="text" placeholder="Filtrar por cliente">
+                    <i class="pi pi-chevron-down"></i>
+                </div>
+            </div>
+
+            <div class="follow-up__filter-group">
+                <label>Empleado:</label>
+                <div class="follow-up__select">
+                    <input type="text" placeholder="Filtrar por empleados">
+                    <i class="pi pi-chevron-down"></i>
+                </div>
+            </div>
+
+            <div class="follow-up__filter-group">
+                <label>Tipo de Proceso:</label>
+                <div class="follow-up__select">
+                    <input type="text" placeholder="Filtrar procesos">
+                    <i class="pi pi-chevron-down"></i>
+                </div>
+            </div>
+
+            <div class="follow-up__filter-group">
+                <label>Status de proceso:</label>
+                <div class="follow-up__select">
+                    <input type="text" placeholder="Filtrar status">
+                    <i class="pi pi-chevron-down"></i>
+                </div>
+            </div>
+
+            <button class="follow-up__export">
+                <i class="pi pi-file-excel"></i>
+                Excel
+            </button>
+        </div>
+    </div>
+
+    <div class="follow-up__table">
+        <table>
+            <thead>
+                <tr>
+                    <th>STATUS</th>
+                    <th>TIPO</th>
+                    <th>FECHA</th>
+                    <th>EMPLEADO</th>
+                    <th>UBICACIÓN</th>
+                    <th>SUBCLIENTE</th>
+                    <th>ACCIONES</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>
+                        <span class="follow-up__status follow-up__status--pending">Pendiente</span>
+                    </td>
+                    <td>Cancelación</td>
+                    <td>21/04/2025</td>
+                    <td>ericka tatis</td>
+                    <td>Moreno Parra Srl (2 Años)</td>
+                    <td>eduardo frias marte</td>
+                    <td>
+                        <button class="follow-up__action">Detalles</button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        <span class="follow-up__status follow-up__status--pending">Pendiente</span>
+                    </td>
+                    <td>Cancelación</td>
+                    <td>15/04/2025</td>
+                    <td>ericka tatis</td>
+                    <td>Inversiones & Servicios Vjan Srl</td>
+                    <td>...</td>
+                    <td>
+                        <button class="follow-up__action">Detalles</button>
+                    </td>
+                </tr>
+                <!-- Más filas similares aquí -->
+            </tbody>
+        </table>
+    </div>
+</div>

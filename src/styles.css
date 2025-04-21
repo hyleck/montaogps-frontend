@@ -8,12 +8,12 @@ body, html {
   font-family: 'Roboto', sans-serif;
   padding: 0;
   margin: 0;
-  transition: all 0.2s;
+  /* transition: all 0.2s; */
 }
 
 * {
   
-  transition: color 0.5s, background 0.2s;
+  /* transition: color 0.5s, background 0.2s; */
   scrollbar-width: thin; /* Ancho de la barra */
   scrollbar-color: var(--globalColorScrollThumb) var(--globalColorNone); /* Colores de scroll */
 }
@@ -114,7 +114,7 @@ body, html {
   background: var(--globalColorNone);
   color: var(--globalColorPrimaryInmutable);
   border-bottom: 1px solid var(--globalColorBorderDark);
-  transition: all 0.2s;
+  /* transition: all 0.2s; */
   font-size: 14px !important;
 }
 

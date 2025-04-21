@@ -7,7 +7,7 @@ import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.mod
 import { FormsModule } from '@angular/forms';
 import { MapsModule } from '../../../../shareds/components/maps/maps.module';
 import { TargetFormModule } from './components/management/target-form/target-form.module';
-
+import { UserFormModule } from './components/management/user-form/user-form.module';
 
 @NgModule({
   declarations: [
@@ -19,7 +19,8 @@ import { TargetFormModule } from './components/management/target-form/target-for
     ManagementRoutingModule,
     PrimengModule,
     MapsModule,
-    TargetFormModule
+    TargetFormModule,
+    UserFormModule
   ]
 })
 export class ManagementModule { }

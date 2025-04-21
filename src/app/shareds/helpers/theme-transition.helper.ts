@@ -15,7 +15,7 @@ export async function applyThemeTransition(callback: () => void) {
   overlay.style.backgroundSize = 'cover';
   overlay.style.backgroundPosition = 'center center';
   overlay.style.backgroundAttachment = 'fixed';
-  overlay.style.transition = 'all 1s'; // ⏱ más rápido y fluido
+  // overlay.style.transition = 'all 1s'; // ⏱ más rápido y fluido
   overlay.style.pointerEvents = 'none';
   overlay.style.boxShadow = '0 0px 20px rgb(0, 0, 0)';
 

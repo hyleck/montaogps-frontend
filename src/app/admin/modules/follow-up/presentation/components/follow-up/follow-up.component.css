@@ -1,0 +1,220 @@
+.follow-up {
+    padding: 20px;
+    background-color: var(--managementColorBackgroundUser);
+    min-height: 100vh;
+}
+
+.follow-up__header {
+    background-color: var(--managementColorCardBackground);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid var(--managementFieldsBorder);
+}
+
+.follow-up__title {
+    color: var(--managementColorTitleUser);
+    font-size: 18px;
+    margin: 0 0 20px 0;
+    font-weight: 500;
+}
+
+.follow-up__filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    align-items: end;
+}
+
+.follow-up__filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.follow-up__filter-group label {
+    color: var(--managementColorTextUser);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.follow-up__filter-group input[type="date"],
+.follow-up__select input {
+    border: 2px solid var(--managementFieldsBorder);
+    padding: 8px 12px;
+    border-radius: 5px;
+    outline: none;
+    background-color: var(--managementColorBackgroundUser);
+    color: var(--managementColorTextUser);
+    width: 100%;
+    font-size: 13px;
+    transition: all 0.3s ease;
+}
+
+.follow-up__filter-group input[type="date"]:hover,
+.follow-up__select input:hover {
+    border-color: var(--managementColorBorderInput);
+    background-color: var(--managementColorInputSearch);
+}
+
+.follow-up__filter-group input[type="date"]:focus,
+.follow-up__select input:focus {
+    border-color: var(--managementColorTitleUser);
+    background-color: var(--managementColorInputSearch);
+    box-shadow: 0 0 0 3px rgba(236, 67, 67, 0.1);
+}
+
+.follow-up__select {
+    position: relative;
+}
+
+.follow-up__select i {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--managementColorTitleUser);
+    font-size: 12px;
+    pointer-events: none;
+}
+
+.follow-up__export {
+    background-color: rgb(39, 174, 96);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+    font-size: 13px;
+    transition: opacity 0.3s ease;
+}
+
+.follow-up__export:hover {
+    opacity: 0.9;
+}
+
+.follow-up__export i {
+    font-size: 16px;
+}
+
+.follow-up__table {
+    background-color: var(--managementColorCardBackground);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--managementFieldsBorder);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background-color: var(--managementColorBackgroundUser);
+    color: var(--managementColorTextUser);
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    border-bottom: 1px solid var(--managementFieldsBorder);
+}
+
+td {
+    padding: 12px 16px;
+    color: var(--managementColorTextUser);
+    font-size: 13px;
+    border-bottom: 1px solid var(--managementFieldsBorder);
+}
+
+tr:hover {
+    background-color: var(--managementColorInputSearch);
+}
+
+.follow-up__status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    background-color: rgba(236, 67, 67, 0.1);
+    color: var(--managementColorTitleUser);
+    border: 1px solid var(--managementColorBorderInput);
+}
+
+.follow-up__action {
+    background-color: var(--managementColorBackgroundUser);
+    border: 1px solid var(--managementFieldsBorder);
+    color: var(--managementColorTextUser);
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.follow-up__action:hover {
+    background-color: var(--managementColorInputSearch);
+    border-color: var(--managementColorBorderInput);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .follow-up__filters {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .follow-up {
+        padding: 10px;
+    }
+
+    .follow-up__filters {
+        grid-template-columns: 1fr;
+    }
+
+    .follow-up__table {
+        overflow-x: auto;
+    }
+
+    th, td {
+        padding: 10px;
+    }
+
+    .follow-up__title {
+        font-size: 16px;
+    }
+}
+
+/* Estilos para el scrollbar de la tabla en caso de overflow */
+.follow-up__table::-webkit-scrollbar {
+    height: 6px;
+}
+
+.follow-up__table::-webkit-scrollbar-track {
+    background: var(--managementColorBackgroundUser);
+}
+
+.follow-up__table::-webkit-scrollbar-thumb {
+    background: var(--managementColorBorderInput);
+    border-radius: 3px;
+}
+
+.follow-up__table::-webkit-scrollbar-thumb:hover {
+    background: var(--managementColorIconUser);
+}
+
+/* Placeholder styles */
+.follow-up__filter-group input::placeholder {
+    color: var(--managementColorTextUser);
+    opacity: 0.6;
+}
+
+/* Estilos para el icono de calendario en input date */
+.follow-up__filter-group input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+    cursor: pointer;
+}
