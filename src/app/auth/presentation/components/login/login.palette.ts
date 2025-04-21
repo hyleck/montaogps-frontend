@@ -53,6 +53,8 @@ export const loginPalette = {
         loginColorShadow: "rgba(0, 0, 0, 0.206)",
         loginColorShadowInfoContact: "rgba(0, 0, 0, 0.552)",
         loginColorBackgroundDark: "rgb(45, 45, 45)",
+        loginColorError: '#dc3545',
+        loginColorErrorBackground: '#f8d7da',
       },
       
       dark: {
@@ -108,6 +110,8 @@ export const loginPalette = {
         loginColorShadow: "rgba(0, 0, 0, 0.1)",
         loginColorShadowInfoContact: "rgba(255, 255, 255, 0.15)",
         loginColorBackgroundDark: "#1c1c1c", 
+        loginColorError: '#ff6b6b',
+        loginColorErrorBackground: '#2a1a1a',
       }
 };
 

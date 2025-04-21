@@ -1,27 +1,35 @@
 {
     "login": {
-      "formTitle": "Log in",
+      "formTitle": "Login",
       "formSubtitle": "Welcome to Montao GPS",
       "emailLabel": "Email",
       "passwordLabel": "Password",
+      "emailPlaceholder": "Enter your email address",
+      "passwordPlaceholder": "Enter your password",
       "emailPlaceholderExample": "Example: manuel@montao.net",
-      "rememberPassword": "Remember password",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Email is invalid",
+      "passwordRequired": "Password is required",
+      "rememberPassword": "Remember",
       "forgotPassword": "Forgot your password?",
-      "submitButton": "Log in",
+      "submitButton": "Login",
+      "loading": "Logging in...",
+      "invalidCredentials": "Invalid credentials",
+      "defaultError": "Login error",
       "footerText": "Montao GPS ©",
       "footerVersion": "Version 1.0",
       "subFooterContact": "info@montao.net",
-      "infoTitle": "24/7 Assistance",
+      "infoTitle": "24/7 Support",
       "infoSubtitle": "Security at all times.",
       "infoDescription": "Our GPS platform offers real-time vehicle monitoring with optimized routes, automatic alerts, and efficient asset management.",
       "contactInstallation": "Installations",
       "contactRenewal": "Renewal and check-up",
       "contactAccounting": "Accounting",
-      "contactEmergency": "Emergency"
+      "contactEmergency": "Emergencies"
     },
     "theme": {
-      "toggleLight": "Activate light theme",
-      "toggleDark": "Activate dark theme"
+      "toggleLight": "Enable light theme",
+      "toggleDark": "Enable dark theme"
     },
     "language": {
       "selectLanguage": "Select language",

@@ -20,6 +20,7 @@ export async function applyThemeTransition(callback: () => void) {
   overlay.style.boxShadow = '0 0px 20px rgb(0, 0, 0)';
 
 
+  
 
   // 👇 Forma circular y que encoja desde el centro
 

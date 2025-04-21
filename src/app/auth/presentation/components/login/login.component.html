@@ -17,35 +17,60 @@
           <div class="login__logo">
             <img src="logo/LOGO.png" style="filter: brightness(0) invert(1)!important" alt="">
           </div>
-          <form action="" ngNativeValidate class="login__object">
-            <div  class="login__logo login__logo--mobile">
-             
+          <form #formRef="ngForm" [formGroup]="loginForm" (ngSubmit)="login()" class="login__object" ngNativeValidate>
+            <div class="login__logo login__logo--mobile">
               <img *ngIf="theme == 'dark'" style="filter: brightness(0) invert(1)!important" src="logo/LOGO.png" alt="">
-              <img *ngIf="theme == 'light'" style="filter: none!important"  src="logo/LOGO.png" alt="">
+              <img *ngIf="theme == 'light'" style="filter: none!important" src="logo/LOGO.png" alt="">
             </div>
 
-          
             <div class="login__title">
               <div class="login__deco"></div>
               <h1>{{ 'login.formTitle' | translate }}</h1>
               <p>{{ 'login.formSubtitle' | translate }}</p>
             </div>
+
             <div class="login__fields">
               <table>
                 <tr>
                   <td><label for="email">{{ 'login.emailLabel' | translate }}:</label></td>
                 </tr>
                 <tr>
-                  <td><input required type="email" placeholder="{{ 'login.emailPlaceholderExample' | translate }}" id="email"></td>
+                  <td>
+                    <input 
+                      type="email" 
+                      formControlName="email" 
+                      id="email"
+                      required
+                      [placeholder]="'login.emailPlaceholder' | translate"
+                      [class.is-invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
+                    >
+                    <div class="invalid-feedback" *ngIf="loginForm.get('email')?.invalid && loginForm.get('email')?.touched">
+                      <span *ngIf="loginForm.get('email')?.errors?.['required']">{{ 'login.emailRequired' | translate }}</span>
+                      <span *ngIf="loginForm.get('email')?.errors?.['email']">{{ 'login.emailInvalid' | translate }}</span>
+                    </div>
+                  </td>
                 </tr>
                 <tr>
                   <td><label for="password">{{ 'login.passwordLabel' | translate }}:</label></td>
                 </tr>
                 <tr>
-                  <td><input required type="password" placeholder="..." id="password"></td>
+                  <td>
+                    <input 
+                      type="password" 
+                      formControlName="password" 
+                      id="password"
+                      required
+                      [placeholder]="'login.passwordPlaceholder' | translate"
+                      [class.is-invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+                    >
+                    <div class="invalid-feedback" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+                      <span *ngIf="loginForm.get('password')?.errors?.['required']">{{ 'login.passwordRequired' | translate }}</span>
+                    </div>
+                  </td>
                 </tr>
               </table>
             </div>
+
             <div class="login__options">
               <div class="login__remember">
                 <input type="checkbox" id="rememberMe" name="rememberMe">
@@ -57,13 +82,23 @@
                 <a>{{ 'login.forgotPassword' | translate }}</a>
               </div>
             </div>
+
+            <div class="error-message" *ngIf="error">
+              {{ error }}
+            </div>
+
             <div class="login__submit">
               <table>
                 <tr>
-                  <td><button>{{ 'login.submitButton' | translate }}</button></td>
+                  <td>
+                    <button type="submit" [disabled]="isLoading">
+                      {{ isLoading ? ('login.loading' | translate) : ('login.submitButton' | translate) }}
+                    </button>
+                  </td>
                 </tr>
               </table>
             </div>
+
             <div class="login__footer">
               <span>{{ 'login.footerText' | translate }} <br> <span>{{ 'login.footerVersion' | translate }}</span></span>
             </div>
@@ -111,6 +146,4 @@
         </div>
       </div>
     </div>
-  
-  </div>
-  
+</div>

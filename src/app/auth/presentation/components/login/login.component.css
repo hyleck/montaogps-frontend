@@ -1,5 +1,3 @@
-
-
 .main {
     height: 100%;
     background: radial-gradient(circle, var(--loginColorMainBackgroundStart), var(--loginColorMainBackgroundEnd));
@@ -384,4 +382,43 @@
     border-radius: 5px;
     padding: 5px;
     outline: none;
+}
+
+.login__fields input.is-invalid {
+  border-color: var(--loginColorError);
+  background-color: var(--loginColorErrorBackground);
+}
+
+.invalid-feedback {
+  color: var(--loginColorError);
+  font-size: 12px;
+  margin-top: -8px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.invalid-feedback::before {
+  font-size: 14px;
+}
+
+.error-message {
+  width: calc(100% - 40px);
+  margin: auto;
+  margin-bottom: 10px;
+  padding: 10px;
+  background-color: var(--loginColorErrorBackground);
+  color: var(--loginColorError);
+  border-radius: 5px;
+  text-align: center;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 8px;
+}
+
+.error-message::before {
+  font-size: 16px;
 }
