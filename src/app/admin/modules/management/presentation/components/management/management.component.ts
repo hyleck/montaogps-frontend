@@ -249,7 +249,7 @@ constructor(
           { label: 'Antonio Guzman' }, 
       ];
 
-      this.home = { icon: 'pi pi-home', routerLink: '/' };
+      this.home = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
   }
 
 

@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 
 import { SettingsRoutingModule } from './settings-routing.module';
 import { SettingsComponent } from './components/settings/settings.component';
-
+import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
+ 
 
 @NgModule({
   declarations: [
@@ -11,7 +12,8 @@ import { SettingsComponent } from './components/settings/settings.component';
   ],
   imports: [
     CommonModule,
-    SettingsRoutingModule
+    SettingsRoutingModule,
+    PrimengModule
   ]
 })
 export class SettingsModule { }

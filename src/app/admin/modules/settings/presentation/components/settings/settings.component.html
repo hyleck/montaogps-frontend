@@ -1,1 +1,20 @@
-<p>settings works!</p>
+<div class="management__route">
+
+    <p-breadcrumb 
+    
+    [model]="items" 
+    [home]="home" />
+</div>
+
+<!-- Tarjetas de configuración, listas de las diferentes configuraciones que se pueden hacer -->
+<div class="settings">
+    <div *ngFor="let card of settingsCards" 
+         class="settings__card" 
+         (click)="navigateTo(card.route)">
+        <div class="settings__card-header">
+            <i [class]="card.icon"></i>
+            <h3>{{card.title}}</h3>
+        </div>
+        <p class="settings__card-description">{{card.description}}</p>
+    </div>
+</div>
