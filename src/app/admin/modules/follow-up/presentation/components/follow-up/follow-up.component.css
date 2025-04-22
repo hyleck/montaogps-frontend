@@ -1,7 +1,7 @@
 .follow-up {
     padding: 20px;
     background-color: var(--managementColorBackgroundUser);
-    height: 100%;
+    height: calc(100% - 50px);
 }
 
 .follow-up__header {

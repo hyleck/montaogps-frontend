@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { MenuItem } from 'primeng/api';
 
 @Component({
     selector: 'app-dashboard',
@@ -7,5 +8,8 @@ import { Component } from '@angular/core';
     standalone: false
 })
 export class DashboardComponent {
+
+    items: MenuItem[] = [{ label: 'Dashboard' }];
+    home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
 }

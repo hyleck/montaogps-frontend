@@ -17,7 +17,7 @@
   .management__route {
     grid-area: header;
     opacity: 0.5;
-    padding-left: 7px;
+    margin-left: -10px;
     
   }
 

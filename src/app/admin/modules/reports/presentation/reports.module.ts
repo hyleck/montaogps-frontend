@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { ReportsRoutingModule } from './reports-routing.module';
 import { ReportsComponent } from './components/reports/reports.component';
-
+import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
 
 @NgModule({
   declarations: [
@@ -11,7 +11,8 @@ import { ReportsComponent } from './components/reports/reports.component';
   ],
   imports: [
     CommonModule,
-    ReportsRoutingModule
+    ReportsRoutingModule,
+    PrimengModule
   ]
 })
 export class ReportsModule { }
