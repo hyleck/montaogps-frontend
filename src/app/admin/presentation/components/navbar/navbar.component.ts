@@ -16,6 +16,7 @@ export class NavbarComponent {
   userMenuItems: MenuItem[] = [];
   loadingTheme: boolean = false;
   currentTheme: string = 'light';
+  currentUser: any;
 
   constructor(
     private status: StatusService,
@@ -24,6 +25,7 @@ export class NavbarComponent {
     private router: Router
   ) {
     this.currentTheme = status.getState('theme') as string;
+    this.currentUser = this.authService.getCurrentUser();
   }
 
   ngOnInit() {
@@ -56,6 +58,14 @@ export class NavbarComponent {
 
     this.userMenuItems = [
       {
+        label: this.currentUser ? `${this.currentUser.name} ${this.currentUser.last_name}` : 'Mi Perfil',
+        icon: 'pi pi-user',
+        command: () => this.router.navigate(['/admin/profile'])
+      },
+      {
+        separator: true
+      },
+      {
         label: this.currentTheme === 'light' ? 'Modo oscuro' : 'Modo claro',
         icon: this.currentTheme === 'light' ? 'pi pi-moon' : 'pi pi-sun',
         command: () => this.toggleTheme()
@@ -78,8 +88,8 @@ export class NavbarComponent {
     this.currentTheme = newTheme;
     
     // Actualizar el menú después de cambiar el tema
-    this.userMenuItems[0].label = this.currentTheme === 'light' ? 'Modo oscuro' : 'Modo claro';
-    this.userMenuItems[0].icon = this.currentTheme === 'light' ? 'pi pi-moon' : 'pi pi-sun';
+    this.userMenuItems[1].label = this.currentTheme === 'light' ? 'Modo oscuro' : 'Modo claro';
+    this.userMenuItems[1].icon = this.currentTheme === 'light' ? 'pi pi-moon' : 'pi pi-sun';
   }
 
   logout() {

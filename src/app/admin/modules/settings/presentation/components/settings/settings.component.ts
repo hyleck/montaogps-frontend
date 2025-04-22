@@ -12,12 +12,13 @@ export class SettingsComponent {
 
     items: MenuItem[] = [{ label: 'Configuración' }];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
+    RolesFormDisplay: boolean = false;
 
     settingsCards = [
         {
             title: 'Roles',
             icon: 'pi pi-users',
-            route: '/admin/settings/roles',
+            action: () => this.RolesFormDisplay = true,
             description: 'Gestión de roles y permisos'
         },
         {
@@ -60,7 +61,11 @@ export class SettingsComponent {
 
     constructor(private router: Router) {}
 
-    navigateTo(route: string): void {
-        this.router.navigate([route]);
+    navigateTo(route: string | undefined, action?: () => void): void {
+        if (action) {
+            action();
+        } else if (route) {
+            this.router.navigate([route]);
+        }
     }
 }

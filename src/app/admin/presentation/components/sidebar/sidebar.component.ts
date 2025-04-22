@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { StatusService } from '../../../../shareds/services/status.service';
+import { AuthService } from '../../../../core/services/auth.service';
 
 @Component({
     selector: 'app-sidebar',
@@ -7,9 +8,10 @@ import { StatusService } from '../../../../shareds/services/status.service';
     styleUrl: './sidebar.component.css',
     standalone: false
 })
-export class SidebarComponent {
+export class SidebarComponent implements OnInit {
 
   sidebarDisplayed = true;
+  userName: string = '';
 
   sidaberOptions = {
     favoriteTitle: 'Favoritos',
@@ -26,28 +28,37 @@ export class SidebarComponent {
     profileTitle: 'Sistema',
     profileItems: [
       { label: 'Configuración', path: '/admin/settings', icon:'pi pi-cog',badge: 0 },
-      { label: 'Frankely García', path: '/admin/profile', icon:'pi pi-user',badge: 0 },
-    
+      { label: '', path: '/admin/profile', icon:'pi pi-user',badge: 0 },
     ]
   }
 
-  constructor(private status: StatusService) {
+  constructor(
+    private status: StatusService,
+    private authService: AuthService
+  ) {
     this.sidebarDisplayed = status.getState('sidebar') as boolean;
   }
 
- 
   ngOnInit() {
+    const user = this.authService.getCurrentUser();
+    console.log('Usuario actual:', user);
+    
+    if (user) {
+      this.userName = `${user.name} ${user.last_name}`;
+      this.sidaberOptions.profileItems[1].label = this.userName;
+      console.log('Nombre de usuario establecido:', this.userName);
+      console.log('Opciones actualizadas:', this.sidaberOptions.profileItems);
+    }
+
     this.status.statusChanges$.subscribe((newStatus) => {
       if (newStatus && typeof newStatus.sidebar !== 'undefined') {
-      this.sidebarDisplayed = newStatus.sidebar as boolean;
+        this.sidebarDisplayed = newStatus.sidebar as boolean;
       }
     });
   }
-  
 
   toggleSidebar() {
     this.sidebarDisplayed = !this.sidebarDisplayed;
     this.status.setState('sidebar', this.sidebarDisplayed);
   }
-
 }

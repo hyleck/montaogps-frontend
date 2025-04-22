@@ -10,11 +10,21 @@
 <div class="settings">
     <div *ngFor="let card of settingsCards" 
          class="settings__card" 
-         (click)="navigateTo(card.route)">
+         (click)="navigateTo(card.route, card.action)">
         <div class="settings__card-header">
             <i [class]="card.icon"></i>
             <h3>{{card.title}}</h3>
         </div>
         <p class="settings__card-description">{{card.description}}</p>
     </div>
+</div>
+
+
+<div class="card flex justify-content-center">
+   
+    <p-dialog header="Configuración de roles" [modal]="true" [(visible)]="RolesFormDisplay" >
+        <app-user-roles-settings></app-user-roles-settings>
+    </p-dialog>
+
+  
 </div>

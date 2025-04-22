@@ -1,0 +1,147 @@
+<div class="user-roles-layout">
+    <p-toast></p-toast>
+    <p-confirmDialog [style]="{width: '450px'}"></p-confirmDialog>
+    
+    <!-- Panel lateral izquierdo -->
+    <div class="user-roles-layout__sidebar">
+        <div class="sidebar-content">
+            <h3>{{ isEditing ? 'Editar rol' : 'Nuevo rol' }}</h3>
+            <form (ngSubmit)="onSubmit()">
+                <div class="form-group">
+                    <label for="name">Nombre del rol</label>
+                    <input  id="name" type="text" [(ngModel)]="roleForm.name" name="name" required placeholder="Ingrese el nombre del rol">
+                </div>
+                <div class="form-group">
+                    <label for="description">Descripción</label>
+                    <textarea  id="description" [(ngModel)]="roleForm.description" name="description" rows="3" placeholder="Ingrese una descripción del rol"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="button-secondary" (click)="privilegesDialogVisible = true">
+                        <i class="pi pi-key"></i>
+                        Configurar Privilegios
+                    </button>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="button-primary">
+                        <i class="pi pi-save"></i>
+                        {{ isEditing ? 'Actualizar' : 'Crear' }}
+                    </button>
+                    <button type="button" *ngIf="isEditing" class="button-secondary" (click)="cancelEdit()">
+                        <i class="pi pi-times"></i>
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="user-roles-layout__main">
+        <div class="main-content">
+            <h2>Roles de usuario</h2>
+            <p-table [value]="roles" [tableStyle]="{ 'min-width': '50rem' }">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Estado</th>
+                        <th>Fecha de creación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-role>
+                    <tr>
+                        <td>{{role.name}}</td>
+                        <td>{{role.description}}</td>
+                        <td>{{role.status | titlecase}}</td>
+                        <td>{{role.createdAt | date:'short'}}</td>
+                        <td>
+                            <button type="button" class="button-action button-success" (click)="editRole(role)">
+                                <i class="pi pi-pencil"></i>
+                            </button>
+                            <button type="button" class="button-action button-danger" (click)="deleteRole(role)">
+                                <i class="pi pi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Privilegios -->
+<p-dialog 
+    [(visible)]="privilegesDialogVisible" 
+    [modal]="true" 
+    [style]="{width: '90vw', maxWidth: '900px'}" 
+    [draggable]="false" 
+    [resizable]="false"
+    header="Configuración de Privilegios">
+        <div class="modules-list">
+            <div *ngFor="let privilege of roleForm.privileges; let i = index" class="module-section">
+                <div class="module-header">
+                    <i [class]="moduleIcons[privilege.module]"></i>
+                    <span class="module-name">{{privilege.module | titlecase}}</span>
+                    <button type="button" 
+                            class="button-select-all" 
+                            (click)="toggleAllPrivileges(privilege)"
+                            [class.selected]="isAllSelected(privilege)">
+                        <i class="pi" [class.pi-check-square]="isAllSelected(privilege)" [class.pi-square]="!isAllSelected(privilege)"></i>
+                        <span>Seleccionar todo</span>
+                    </button>
+                </div>
+                <div class="privileges-group">
+                    <div class="privilege-item">
+                        <p-checkbox [binary]="true" 
+                                  [inputId]="'read-' + i" 
+                                  [(ngModel)]="privilege.actions.read" 
+                                  [name]="'read-' + privilege.module">
+                        </p-checkbox>
+                        <label [for]="'read-' + i">Leer</label>
+                    </div>
+                    <div class="privilege-item">
+                        <p-checkbox [binary]="true" 
+                                  [inputId]="'update-' + i" 
+                                  [(ngModel)]="privilege.actions.update" 
+                                  [name]="'update-' + privilege.module">
+                        </p-checkbox>
+                        <label [for]="'update-' + i">Actualizar</label>
+                    </div>
+                    <div class="privilege-item">
+                        <p-checkbox [binary]="true" 
+                                  [inputId]="'create-' + i" 
+                                  [(ngModel)]="privilege.actions.create" 
+                                  [name]="'create-' + privilege.module">
+                        </p-checkbox>
+                        <label [for]="'create-' + i">Crear</label>
+                    </div>
+                    <div class="privilege-item">
+                        <p-checkbox [binary]="true" 
+                                  [inputId]="'delete-' + i" 
+                                  [(ngModel)]="privilege.actions.delete" 
+                                  [name]="'delete-' + privilege.module">
+                        </p-checkbox>
+                        <label [for]="'delete-' + i">Eliminar</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <ng-template pTemplate="footer">
+        <div class="dialog-footer">
+            <button type="button" 
+                    class="button-select-all-modules" 
+                    (click)="toggleAllModulesPrivileges()"
+                    [class.selected]="isAllModulesSelected()">
+                <i class="pi" [class.pi-check-square]="isAllModulesSelected()" [class.pi-square]="!isAllModulesSelected()"></i>
+                <span>Seleccionar todos los módulos</span>
+            </button>
+            <button type="button" class="button-primary" (click)="privilegesDialogVisible = false">
+                <i class="pi pi-check"></i>
+                Aceptar
+            </button>
+        </div>
+    </ng-template>
+</p-dialog>

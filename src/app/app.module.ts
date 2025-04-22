@@ -7,9 +7,10 @@ import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { RedirectComponent } from './core/components/redirect/redirect.component';
+import { authInterceptor } from './core/interceptors/auth.interceptor';
 
 /* 👇  NUEVOS imports */
-import { provideHttpClient } from '@angular/common/http';              // <─ faltaba
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
@@ -37,14 +38,14 @@ export function HttpLoaderFactory(http: HttpClient) {
     })
   ],
   providers: [
-    provideHttpClient(),                               // Http Client v19
-    provideAnimationsAsync(),                          // Animaciones "lazy"
-    providePrimeNG({                                   // Tema Aura + dark‑mode
+    provideHttpClient(withInterceptors([authInterceptor])),
+    provideAnimationsAsync(),
+    providePrimeNG({
       theme: {
         preset: Aura,
         options: { darkModeSelector: '.app-dark' }
       }
-    }),
+    })
   ],
   bootstrap: [AppComponent]
 })

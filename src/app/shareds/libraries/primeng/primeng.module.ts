@@ -11,6 +11,14 @@ import { TabViewModule } from 'primeng/tabview';
 import { AccordionModule } from 'primeng/accordion';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { ProgressBarModule } from 'primeng/progressbar';
+import { CardModule } from 'primeng/card';
+import { InputTextModule } from 'primeng/inputtext';
+import { DropdownModule } from 'primeng/dropdown';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToastModule } from 'primeng/toast';
+import { CheckboxModule } from 'primeng/checkbox';
+import { ConfirmationService, MessageService } from 'primeng/api';
+
 @NgModule({
   declarations: [],
   imports: [
@@ -24,7 +32,13 @@ import { ProgressBarModule } from 'primeng/progressbar';
     TabViewModule,
     AccordionModule,
     ProgressSpinnerModule,
-    ProgressBarModule
+    ProgressBarModule,
+    CardModule,
+    InputTextModule,
+    DropdownModule,
+    ConfirmDialogModule,
+    ToastModule,
+    CheckboxModule
   ],
   exports: [
     BadgeModule,
@@ -37,7 +51,14 @@ import { ProgressBarModule } from 'primeng/progressbar';
     TabViewModule,
     AccordionModule,
     ProgressSpinnerModule,
-    ProgressBarModule
-  ]
+    ProgressBarModule,
+    CardModule,
+    InputTextModule,
+    DropdownModule,
+    ConfirmDialogModule,
+    ToastModule,
+    CheckboxModule
+  ],
+  providers: [ConfirmationService, MessageService]
 })
 export class PrimengModule { }
