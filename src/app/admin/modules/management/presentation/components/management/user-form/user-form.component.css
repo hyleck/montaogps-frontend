@@ -203,9 +203,9 @@ button[type="submit"] .pi {
 .modules-privileges {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    margin: 1.5rem 0;
-    padding: 1.5rem;
+    gap: 0.8rem;
+    margin: 1rem 0;
+    padding: 1rem;
     border: 1px solid var(--managementFieldsBorder);
     border-radius: 8px;
     background-color: var(--managementColorBackgroundUser);
@@ -213,16 +213,16 @@ button[type="submit"] .pi {
 
 .modules-privileges h4 {
     color: var(--managementColorTitleUser);
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
+    margin-bottom: 0.8rem;
+    font-size: 1rem;
     font-weight: 600;
 }
 
 .modules-list {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    padding: 0.5rem;
+    gap: 0.8rem;
+    padding: 0.3rem;
 }
 
 .module-section {
@@ -240,15 +240,15 @@ button[type="submit"] .pi {
 .module-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 1rem;
+    gap: 0.4rem;
+    padding: 0.6rem 0.8rem;
     border-bottom: 1px solid var(--managementFieldsBorder);
     background-color: var(--managementColorBackgroundUser);
     border-radius: 6px 6px 0 0;
 }
 
 .module-header i {
-    font-size: 1.2rem;
+    font-size: 1rem;
     color: var(--managementColorTitleUser);
 }
 
@@ -256,7 +256,7 @@ button[type="submit"] .pi {
     flex: 1;
     font-weight: 500;
     color: var(--managementColorTextUser);
-    font-size: 0.95rem;
+    font-size: 0.85rem;
 }
 
 .button-select-all {
@@ -264,11 +264,11 @@ button[type="submit"] .pi {
     border: none;
     color: var(--managementColorTextUser);
     font-size: 0.75rem;
-    padding: 3px 6px;
+    padding: 2px 4px;
     border-radius: 4px;
     display: flex;
     align-items: center;
-    gap: 0.3rem;
+    gap: 0.2rem;
     margin: 0;
     transition: all 0.3s ease;
     cursor: pointer;
@@ -282,13 +282,13 @@ button[type="submit"] .pi {
     background: transparent;
     border: 1px solid var(--managementFieldsBorder);
     color: var(--managementColorTextUser);
-    font-size: 0.9rem;
-    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    padding: 0.5rem 0.8rem;
     border-radius: 4px;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
+    gap: 0.4rem;
+    margin-bottom: 0.8rem;
     transition: all 0.3s ease;
     cursor: pointer;
     align-self: flex-start;
@@ -300,21 +300,21 @@ button[type="submit"] .pi {
 }
 
 .button-select-all-modules i {
-    font-size: 1rem;
+    font-size: 0.9rem;
 }
 
 .privileges-group {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.8rem;
-    padding: 1rem;
+    gap: 0.5rem;
+    padding: 0.6rem;
 }
 
 .privilege-action {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem;
+    gap: 0.5rem;
+    padding: 0.3rem;
     border-radius: 4px;
     transition: all 0.3s ease;
 }
@@ -328,23 +328,18 @@ button[type="submit"] .pi {
     font-weight: 500;
     color: var(--managementColorTextUser);
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
 }
 
 /* Estilos específicos para los checkboxes de PrimeNG */
 :host ::ng-deep .p-checkbox {
-    width: 1rem;
-    height: 1rem;
+    width: 0.9rem;
+    height: 0.9rem;
 }
 
 :host ::ng-deep .p-checkbox .p-checkbox-box {
-    border-color: var(--managementFieldsBorder);
-    background-color: var(--managementColorBackgroundUser);
-}
-
-:host ::ng-deep .p-checkbox .p-checkbox-box.p-highlight {
-    border-color: var(--managementColorTitleUser);
-    background-color: var(--managementColorTitleUser);
+    width: 0.9rem;
+    height: 0.9rem;
 }
 
 :host ::ng-deep .p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box:hover {
