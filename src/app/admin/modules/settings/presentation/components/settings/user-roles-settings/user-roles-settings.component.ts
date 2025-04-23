@@ -16,36 +16,54 @@ export class UserRolesSettingsComponent implements OnInit {
   isEditing: boolean = false;
   privilegesDialogVisible: boolean = false;
   
+  // Módulos en inglés que se enviarán al backend
   availableModules = [
-    'usuarios',
+    'users',
     'roles',
-    'dispositivos',
-    'reportes',
-    'procesos',
+    'devices',
+    'reports',
+    'processes',
     'sms',
-    'nube',
-    'sectores',
-    'etiquetas',
-    'marcas',
-    'modelos',
-    'colores',
-    'cancelados'
+    'cloud',
+    'sectors',
+    'tags',
+    'brands',
+    'models',
+    'colors',
+    'canceled'
   ];
 
+  // Mapeo de módulos a sus traducciones
+  moduleTranslations: { [key: string]: string } = {
+    'users': 'settings.roles_settings.modules.users',
+    'roles': 'settings.roles_settings.modules.roles',
+    'devices': 'settings.roles_settings.modules.devices',
+    'reports': 'settings.roles_settings.modules.reports',
+    'processes': 'settings.roles_settings.modules.processes',
+    'sms': 'settings.roles_settings.modules.sms',
+    'cloud': 'settings.roles_settings.modules.cloud',
+    'sectors': 'settings.roles_settings.modules.sectors',
+    'tags': 'settings.roles_settings.modules.tags',
+    'brands': 'settings.roles_settings.modules.brands',
+    'models': 'settings.roles_settings.modules.models',
+    'colors': 'settings.roles_settings.modules.colors',
+    'canceled': 'settings.roles_settings.modules.canceled'
+  };
+
   moduleIcons: { [key: string]: string } = {
-    usuarios: 'pi pi-users',
+    users: 'pi pi-users',
     roles: 'pi pi-key',
-    dispositivos: 'pi pi-mobile',
-    reportes: 'pi pi-chart-bar',
-    procesos: 'pi pi-cog',
+    devices: 'pi pi-mobile',
+    reports: 'pi pi-chart-bar',
+    processes: 'pi pi-cog',
     sms: 'pi pi-envelope',
-    nube: 'pi pi-cloud',
-    sectores: 'pi pi-map',
-    etiquetas: 'pi pi-tags',
-    marcas: 'pi pi-bookmark',
-    modelos: 'pi pi-car',
-    colores: 'pi pi-palette',
-    cancelados: 'pi pi-ban'
+    cloud: 'pi pi-cloud',
+    sectors: 'pi pi-map',
+    tags: 'pi pi-tags',
+    brands: 'pi pi-bookmark',
+    models: 'pi pi-car',
+    colors: 'pi pi-palette',
+    canceled: 'pi pi-ban'
   };
 
   roleForm = {
@@ -54,7 +72,7 @@ export class UserRolesSettingsComponent implements OnInit {
     description: '',
     status: 'active',
     privileges: this.availableModules.map(module => ({
-      module: module,
+      module: module, // Aquí se usa el nombre en inglés
       actions: {
         read: false,
         update: false,
@@ -73,6 +91,11 @@ export class UserRolesSettingsComponent implements OnInit {
 
   ngOnInit() {
     this.loadRoles();
+  }
+
+  // Método para obtener la traducción de un módulo
+  getModuleTranslation(moduleKey: string): string {
+    return this.translate.instant(this.moduleTranslations[moduleKey]);
   }
 
   loadRoles() {

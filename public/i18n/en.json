@@ -162,7 +162,22 @@
           "error_delete": "Could not delete role",
           "error_id": "Could not get role ID"
         },
-        "actions": "Actions"
+        "actions": "Actions",
+        "modules": {
+          "users": "Users",
+          "roles": "Roles",
+          "devices": "Devices",
+          "reports": "Reports",
+          "processes": "Processes",
+          "sms": "SMS",
+          "cloud": "Cloud",
+          "sectors": "Sectors",
+          "tags": "Tags",
+          "brands": "Brands",
+          "models": "Models",
+          "colors": "Colors",
+          "canceled": "Canceled"
+        }
       }
     }
   }

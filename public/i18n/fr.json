@@ -162,7 +162,22 @@
           "error_delete": "Impossible de supprimer le rôle",
           "error_id": "Impossible d'obtenir l'ID du rôle"
         },
-        "actions": "Actions"
+        "actions": "Actions",
+        "modules": {
+          "users": "Utilisateurs",
+          "roles": "Rôles",
+          "devices": "Appareils",
+          "reports": "Rapports",
+          "processes": "Processus",
+          "sms": "SMS",
+          "cloud": "Cloud",
+          "sectors": "Secteurs",
+          "tags": "Étiquettes",
+          "brands": "Marques",
+          "models": "Modèles",
+          "colors": "Couleurs",
+          "canceled": "Annulés"
+        }
       }
     }
 }

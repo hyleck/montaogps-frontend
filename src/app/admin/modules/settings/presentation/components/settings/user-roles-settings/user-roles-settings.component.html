@@ -82,7 +82,7 @@
             <div *ngFor="let privilege of roleForm.privileges; let i = index" class="module-section">
                 <div class="module-header">
                     <i [class]="moduleIcons[privilege.module]"></i>
-                    <span class="module-name">{{privilege.module | titlecase}}</span>
+                    <span class="module-name">{{ getModuleTranslation(privilege.module) }}</span>
                     <button type="button" 
                             class="button-select-all" 
                             (click)="toggleAllPrivileges(privilege)"

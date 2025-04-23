@@ -162,7 +162,22 @@
           "error_delete": "No se pudo eliminar el rol",
           "error_id": "No se pudo obtener el ID del rol"
         },
-        "actions": "Acciones"
+        "actions": "Acciones",
+        "modules": {
+          "users": "Usuarios",
+          "roles": "Roles",
+          "devices": "Dispositivos",
+          "reports": "Reportes",
+          "processes": "Procesos",
+          "sms": "SMS",
+          "cloud": "Nube",
+          "sectors": "Sectores",
+          "tags": "Etiquetas",
+          "brands": "Marcas",
+          "models": "Modelos",
+          "colors": "Colores",
+          "canceled": "Cancelados"
+        }
       }
     }
   }
