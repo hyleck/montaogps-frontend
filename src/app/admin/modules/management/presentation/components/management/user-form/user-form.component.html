@@ -6,117 +6,127 @@
                     <p-tabPanel header="Información Personal">
                         <div class="user-form__base">
                             <form class="user-form__form" (ngSubmit)="onSubmit()">
-                                <div class="user-form__field">
-                                    <label for="name">Nombre</label>
-                                    <input 
-                                        [(ngModel)]="user.name"
-                                        name="name"
-                                        placeholder="Ej: Juan" 
-                                        type="text" 
-                                        id="name" 
-                                    >
+                                <div class="user-form__grid">
+                                    <!-- Columna Izquierda -->
+                                    <div class="user-form__column">
+                                        <div class="user-form__field">
+                                            <label for="name">Nombre</label>
+                                            <input 
+                                                [(ngModel)]="user.name"
+                                                name="name"
+                                                placeholder="Ej: Juan" 
+                                                type="text" 
+                                                id="name" 
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="user-form__field">
+                                            <label for="email">Correo Electrónico</label>
+                                            <input 
+                                                [(ngModel)]="user.email"
+                                                name="email"
+                                                placeholder="Ej: juan@ejemplo.com" 
+                                                type="email" 
+                                                id="email" 
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="user-form__field">
+                                            <label for="birth">Fecha de Nacimiento</label>
+                                            <input
+                                                [(ngModel)]="user.birth"
+                                                name="birth"
+                                                type="date"
+                                                id="birth"
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="user-form__field">
+                                            <label for="phone">Teléfono Principal</label>
+                                            <input 
+                                                [(ngModel)]="user.phone"
+                                                name="phone"
+                                                placeholder="Ej: (809) 555-0123" 
+                                                type="tel" 
+                                                id="phone" 
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="user-form__field">
+                                            <label for="status">Estado</label>
+                                            <select
+                                                [(ngModel)]="user.status"
+                                                name="status"
+                                                id="status"
+                                                required
+                                            >
+                                                <option value="active">Activo</option>
+                                                <option value="inactive">Inactivo</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Columna Derecha -->
+                                    <div class="user-form__column">
+                                        <div class="user-form__field">
+                                            <label for="last_name">Apellidos</label>
+                                            <input 
+                                                [(ngModel)]="user.last_name"
+                                                name="last_name"
+                                                placeholder="Ej: Pérez" 
+                                                type="text" 
+                                                id="last_name" 
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="user-form__field">
+                                            <label for="dni">DNI/Cédula</label>
+                                            <input 
+                                                [(ngModel)]="user.dni"
+                                                name="dni"
+                                                placeholder="Ej: 001-0000000-0" 
+                                                type="text" 
+                                                id="dni" 
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="user-form__field">
+                                            <label for="address">Dirección</label>
+                                            <textarea 
+                                                [(ngModel)]="user.address"
+                                                name="address"
+                                                placeholder="Ej: Calle Principal #123" 
+                                                id="address"
+                                                rows="3"
+                                            ></textarea>
+                                        </div>
+
+                                        <div class="user-form__field">
+                                            <label for="phone2">Teléfono Secundario</label>
+                                            <input 
+                                                [(ngModel)]="user.phone2"
+                                                name="phone2"
+                                                placeholder="Ej: (809) 555-0124" 
+                                                type="tel" 
+                                                id="phone2" 
+                                            >
+                                        </div>
+
+
+                                       
+                                    </div>
                                 </div>
 
-                                <div class="user-form__field">
-                                    <label for="last_name">Apellidos</label>
-                                    <input 
-                                        [(ngModel)]="user.last_name"
-                                        name="last_name"
-                                        placeholder="Ej: Pérez" 
-                                        type="text" 
-                                        id="last_name" 
-                                    >
-                                </div>
-
-                                <div class="user-form__field">
-                                    <label for="email">Correo Electrónico</label>
-                                    <input 
-                                        [(ngModel)]="user.email"
-                                        name="email"
-                                        placeholder="Ej: juan@ejemplo.com" 
-                                        type="email" 
-                                        id="email" 
-                                    >
-                                </div>
-
-                                <div class="user-form__field">
-                                    <label for="dni">DNI/Cédula</label>
-                                    <input 
-                                        [(ngModel)]="user.dni"
-                                        name="dni"
-                                        placeholder="Ej: 001-0000000-0" 
-                                        type="text" 
-                                        id="dni" 
-                                    >
-                                </div>
-
-                                <div class="user-form__field">
-                                    <label for="birth">Fecha de Nacimiento</label>
-                                    <input 
-                                        [(ngModel)]="user.birth"
-                                        name="birth"
-                                        type="date" 
-                                        id="birth" 
-                                    >
-                                </div>
-
-                                <div class="user-form__field">
-                                    <label for="address">Dirección</label>
-                                    <input 
-                                        [(ngModel)]="user.address"
-                                        name="address"
-                                        placeholder="Ej: Calle Principal #123" 
-                                        type="text" 
-                                        id="address" 
-                                    >
-                                </div>
-
-                                <div class="user-form__field">
-                                    <label for="phone">Teléfono Principal</label>
-                                    <input 
-                                        [(ngModel)]="user.phone"
-                                        name="phone"
-                                        placeholder="Ej: (809) 555-0123" 
-                                        type="tel" 
-                                        id="phone" 
-                                    >
-                                </div>
-
-                                <div class="user-form__field">
-                                    <label for="phone2">Teléfono Secundario</label>
-                                    <input 
-                                        [(ngModel)]="user.phone2"
-                                        name="phone2"
-                                        placeholder="Ej: (809) 555-0124" 
-                                        type="tel" 
-                                        id="phone2" 
-                                    >
-                                </div>
-
-                                <div class="user-form__field">
-                                    <label for="password">Contraseña</label>
-                                    <input 
-                                        [(ngModel)]="user.password"
-                                        name="password"
-                                        type="password" 
-                                        id="password" 
-                                    >
-                                </div>
-
-                                <div class="user-form__field">
-                                    <label for="photo">Foto</label>
-                                    <input 
-                                        [(ngModel)]="user.photo"
-                                        name="photo"
-                                        type="file" 
-                                        id="photo" 
-                                        accept="image/*"
-                                    >
-                                </div>
-
-                                <div class="user-form__field">
-                                    <button type="submit" class="button button--primary-flat">
-                                        <i class="pi pi-save"></i> Guardar
+                                <div class="user-form__actions">
+                                    <button type="submit">
+                                        <i class="pi pi-save"></i>
+                                        Guardar
                                     </button>
                                 </div>
                             </form>
@@ -125,111 +135,197 @@
 
                     <p-tabPanel header="Privilegios">
                         <div class="user-form__base">
-                            <form class="user-form__form" (ngSubmit)="onSavePrivileges()">
-                                <div class="user-form__field user-form__field--full">
-                                    <label>Módulo</label>
-                                    <select [(ngModel)]="user.privileges[0].module" name="module">
-                                        <option value="">Seleccionar módulo</option>
-                                        <option *ngFor="let module of modules" [value]="module.value">
-                                            {{module.label}}
-                                        </option>
-                                    </select>
-                                </div>
+                            <div class="user-form__field">
+                                <label for="role">Rol del Usuario</label>
+                                <select
+                                    [(ngModel)]="user.role"
+                                    name="role"
+                                    id="role"
+                                    required
+                                    (change)="onRoleChange()"
+                                >
+                                    <option value="">Seleccione un rol</option>
+                                    <option *ngFor="let role of roles" [ngValue]="role">
+                                        {{role.name}}
+                                    </option>
+                                </select>
+                            </div>
 
-                                <div class="user-form__field">
-                                    <label>
-                                        <input 
-                                            type="checkbox" 
-                                            [(ngModel)]="user.privileges[0].actions.create"
-                                            name="create"
-                                        > Crear
-                                    </label>
+                            <div class="modules-privileges">
+                          
+                                
+                                <div class="modules-list">
+                                    <div *ngFor="let module of availableModules" class="module-section">
+                                        <div class="module-header">
+                                            <i [class]="moduleIcons[module.value]"></i>
+                                            <span class="module-name">{{module.label}}</span>
+                                            <button type="button" class="button-select-all" (click)="toggleAllPrivileges(getPrivilegeByModule(user.role?.privileges || [], module.value))">
+                                                <i class="pi" [ngClass]="isAllSelected(getPrivilegeByModule(user.role?.privileges || [], module.value)) ? 'pi-check-square' : 'pi-square'"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="privileges-group">
+                                            <div class="privilege-action">
+                                                <p-checkbox
+                                                    [ngModel]="getPrivilegeActions(module.value).read"
+                                                    (ngModelChange)="setPrivilegeAction(module.value, 'read', $event)"
+                                                    [name]="'read_' + module.value"
+                                                    [binary]="true"
+                                                ></p-checkbox>
+                                                <label>Leer</label>
+                                            </div>
+                                            <div class="privilege-action">
+                                                <p-checkbox
+                                                    [ngModel]="getPrivilegeActions(module.value).create"
+                                                    (ngModelChange)="setPrivilegeAction(module.value, 'create', $event)"
+                                                    [name]="'create_' + module.value"
+                                                    [binary]="true"
+                                                ></p-checkbox>
+                                                <label>Crear</label>
+                                            </div>
+                                            <div class="privilege-action">
+                                                <p-checkbox
+                                                    [ngModel]="getPrivilegeActions(module.value).update"
+                                                    (ngModelChange)="setPrivilegeAction(module.value, 'update', $event)"
+                                                    [name]="'update_' + module.value"
+                                                    [binary]="true"
+                                                ></p-checkbox>
+                                                <label>Actualizar</label>
+                                            </div>
+                                            <div class="privilege-action">
+                                                <p-checkbox
+                                                    [ngModel]="getPrivilegeActions(module.value).delete"
+                                                    (ngModelChange)="setPrivilegeAction(module.value, 'delete', $event)"
+                                                    [name]="'delete_' + module.value"
+                                                    [binary]="true"
+                                                ></p-checkbox>
+                                                <label>Eliminar</label>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-
-                                <div class="user-form__field">
-                                    <label>
-                                        <input 
-                                            type="checkbox" 
-                                            [(ngModel)]="user.privileges[0].actions.read"
-                                            name="read"
-                                        > Leer
-                                    </label>
-                                </div>
-
-                                <div class="user-form__field">
-                                    <label>
-                                        <input 
-                                            type="checkbox" 
-                                            [(ngModel)]="user.privileges[0].actions.update"
-                                            name="update"
-                                        > Actualizar
-                                    </label>
-                                </div>
-
-                                <div class="user-form__field">
-                                    <label>
-                                        <input 
-                                            type="checkbox" 
-                                            [(ngModel)]="user.privileges[0].actions.delete"
-                                            name="delete"
-                                        > Eliminar
-                                    </label>
-                                </div>
-
-                                <div class="user-form__field">
-                                    <button type="submit" class="button button--primary-flat">
-                                        <i class="pi pi-save"></i> Guardar Privilegios
-                                    </button>
-                                </div>
-                            </form>
+                            </div>
                         </div>
                     </p-tabPanel>
 
                     <p-tabPanel header="Configuración">
                         <div class="user-form__base">
-                            <form class="user-form__form" (ngSubmit)="onSaveSettings()">
-                                <div class="user-form__field">
-                                    <label for="theme">Tema</label>
-                                    <select 
-                                        [(ngModel)]="user.settings[0].theme"
-                                        name="theme"
-                                        id="theme"
-                                    >
-                                        <option *ngFor="let theme of themes" [value]="theme.value">
-                                            {{theme.label}}
-                                        </option>
-                                    </select>
-                                </div>
+                            <div class="settings-container">
+                                <div class="settings-section">
+                                
+                                    
+                                    <div class="settings-grid">
+                                        <div class="settings-item">
+                                            <div class="settings-item__header">
+                                                <i class="pi pi-palette"></i>
+                                                <label for="theme">Tema de la Aplicación</label>
+                                            </div>
+                                            <select
+                                                [(ngModel)]="user.settings.theme"
+                                                name="theme"
+                                                id="theme"
+                                                class="settings-dropdown"
+                                            >
+                                                <option *ngFor="let theme of themes" [value]="theme.value">
+                                                    {{theme.label}}
+                                                </option>
+                                            </select>
+                                            <small class="settings-description">Personaliza la apariencia de la aplicación</small>
+                                        </div>
 
-                                <div class="user-form__field">
-                                    <label for="language">Idioma</label>
-                                    <select 
-                                        [(ngModel)]="user.settings[0].language"
-                                        name="language"
-                                        id="language"
-                                    >
-                                        <option *ngFor="let lang of languages" [value]="lang.value">
-                                            {{lang.label}}
-                                        </option>
-                                    </select>
-                                </div>
+                                        <div class="settings-item">
+                                            <div class="settings-item__header">
+                                                <i class="pi pi-globe"></i>
+                                                <label for="language">Idioma del Sistema</label>
+                                            </div>
+                                            <select
+                                                [(ngModel)]="user.settings.language"
+                                                name="language"
+                                                id="language"
+                                                class="settings-dropdown"
+                                            >
+                                                <option *ngFor="let lang of languages" [value]="lang.value">
+                                                    {{lang.label}}
+                                                </option>
+                                            </select>
+                                            <small class="settings-description">Selecciona el idioma de tu preferencia</small>
+                                        </div>
 
-                                <div class="user-form__field">
-                                    <label>
-                                        <input 
-                                            type="checkbox" 
-                                            [(ngModel)]="user.settings[0].notifications"
-                                            name="notifications"
-                                        > Activar notificaciones
-                                    </label>
-                                </div>
+                                        <div class="settings-item">
+                                            <div class="settings-item__header">
+                                                <i class="pi pi-id-card"></i>
+                                                <label for="affiliation">Tipo de Afiliación</label>
+                                            </div>
+                                            <select
+                                                [(ngModel)]="user.settings.affiliation_type"
+                                                name="affiliation"
+                                                id="affiliation"
+                                                class="settings-dropdown"
+                                            >
+                                                <option value="">Seleccione tipo de afiliación</option>
+                                                <option *ngFor="let type of affiliationTypes" [value]="type.value">
+                                                    {{type.label}}
+                                                </option>
+                                            </select>
+                                            <small class="settings-description">Selecciona el tipo de afiliación del usuario</small>
+                                        </div>
 
-                                <div class="user-form__field">
-                                    <button type="submit" class="button button--primary-flat">
-                                        <i class="pi pi-save"></i> Guardar Configuración
-                                    </button>
+                                        <div class="settings-item">
+                                            <div class="settings-item__header">
+                                                <i class="pi pi-user-edit"></i>
+                                                <label for="profile">Tipo de Perfil</label>
+                                            </div>
+                                            <select
+                                                [(ngModel)]="user.settings.profile_type"
+                                                name="profile"
+                                                id="profile"
+                                                class="settings-dropdown"
+                                            >
+                                                <option value="">Seleccione tipo de perfil</option>
+                                                <option *ngFor="let type of profileTypes" [value]="type.value">
+                                                    {{type.label}}
+                                                </option>
+                                            </select>
+                                            <small class="settings-description">Define el nivel de acceso y funcionalidades</small>
+                                        </div>
+
+                                        <div class="settings-item">
+                                            <div class="settings-item__header">
+                                                <i class="pi pi-bell"></i>
+                                                <label>Notificaciones</label>
+                                            </div>
+                                            <div class="settings-toggle">
+                                                <p-checkbox
+                                                    [(ngModel)]="user.settings.notifications"
+                                                    name="notifications"
+                                                    [binary]="true"
+                                                    class="settings-checkbox"
+                                                ></p-checkbox>
+                                                <span>Activar notificaciones del sistema</span>
+                                            </div>
+                                            <small class="settings-description">Recibe alertas y actualizaciones importantes</small>
+                                        </div>
+
+                                        <div class="settings-item">
+                                            <div class="settings-item__header">
+                                                <i class="pi pi-user"></i>
+                                                <label for="photo">Foto de Perfil</label>
+                                            </div>
+                                            <div class="settings-file-upload">
+                                                <input 
+                                                    [(ngModel)]="user.photo"
+                                                    name="photo"
+                                                    type="file" 
+                                                    id="photo" 
+                                                    accept="image/*"
+                                                    class="settings-file-input"
+                                                >
+                                            </div>
+                                            <small class="settings-description">Sube una foto para personalizar tu perfil</small>
+                                        </div>
+                                    </div>
                                 </div>
-                            </form>
+                            </div>
                         </div>
                     </p-tabPanel>
                 </p-tabView>

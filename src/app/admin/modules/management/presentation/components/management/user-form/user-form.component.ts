@@ -1,45 +1,29 @@
-import { Component } from '@angular/core';
-
-interface UserPrivilege {
-    module: string;
-    actions: {
-        create: boolean;
-        read: boolean;
-        update: boolean;
-        delete: boolean;
-    };
-}
+import { Component, OnInit } from '@angular/core';
+import { UserRole, Privilege, PrivilegeAction } from '../../../../../../../core/interfaces/user-role.interface';
+import { User } from '../../../../../../../core/interfaces/user.interface';
+import { UserRolesService } from '../../../../../../../core/services/user-roles.service';
 
 interface UserSettings {
     theme: string;
-    notifications: boolean;
     language: string;
+    notifications: boolean;
+    affiliation_type: string;
+    profile_type: string;
 }
 
-interface User {
-    email: string;
-    password: string;
-    name: string;
-    last_name: string;
+interface ExtendedUser extends User {
+    password?: string;
     dni: string;
-    birth: string;
+    birth: Date;
     address: string;
     photo: string;
     phone: string;
     phone2: string;
     verified_email: boolean;
-    hashdRt: string;
-    parent_id: string;
-    conversation_id: number;
-    creator_id: string;
-    last_login: string;
-    index: string;
-    privileges: UserPrivilege[];
-    settings: UserSettings[];
-    access_level_id: string;
-    profile_type_id: string;
-    affiliation_type_id: string;
-    department_id: string;
+    role: UserRole | null;
+    privileges?: { [key: string]: Privilege };
+    settings: UserSettings;
+    status: 'active' | 'inactive';
 }
 
 @Component({
@@ -48,51 +32,63 @@ interface User {
     styleUrls: ['./user-form.component.css'],
     standalone: false
 })
-export class UserFormComponent {
-    user: User = {
+export class UserFormComponent implements OnInit {
+    user: ExtendedUser = {
+        id: '',
         email: '',
-        password: '',
         name: '',
         last_name: '',
         dni: '',
-        birth: '',
+        birth: new Date(),
         address: '',
         photo: '',
         phone: '',
         phone2: '',
         verified_email: false,
-        hashdRt: '',
-        parent_id: '',
-        conversation_id: 0,
-        creator_id: '',
-        last_login: '',
-        index: '',
-        privileges: [{
-            module: '',
-            actions: {
-                create: false,
-                read: false,
-                update: false,
-                delete: false
-            }
-        }],
-        settings: [{
+        role: null,
+        settings: {
             theme: 'light',
+            language: 'es',
             notifications: true,
-            language: 'es'
-        }],
-        access_level_id: '',
-        profile_type_id: '',
-        affiliation_type_id: '',
-        department_id: ''
+            affiliation_type: '',
+            profile_type: ''
+        },
+        status: 'active'
     };
 
-    modules = [
-        { label: 'Usuarios', value: 'users' },
-        { label: 'Objetivos', value: 'targets' },
-        { label: 'Reportes', value: 'reports' },
-        { label: 'Configuración', value: 'settings' }
+    roles: UserRole[] = [];
+
+    availableModules = [
+        { value: 'users', label: 'Usuarios' },
+        { value: 'roles', label: 'Roles' },
+        { value: 'devices', label: 'Dispositivos' },
+        { value: 'reports', label: 'Reportes' },
+        { value: 'processes', label: 'Procesos' },
+        { value: 'sms', label: 'SMS' },
+        { value: 'cloud', label: 'Nube' },
+        { value: 'sectors', label: 'Sectores' },
+        { value: 'tags', label: 'Etiquetas' },
+        { value: 'brands', label: 'Marcas' },
+        { value: 'models', label: 'Modelos' },
+        { value: 'colors', label: 'Colores' },
+        { value: 'canceled', label: 'Cancelados' }
     ];
+
+    moduleIcons: { [key: string]: string } = {
+        users: 'pi pi-users',
+        roles: 'pi pi-key',
+        devices: 'pi pi-mobile',
+        reports: 'pi pi-chart-bar',
+        processes: 'pi pi-cog',
+        sms: 'pi pi-envelope',
+        cloud: 'pi pi-cloud',
+        sectors: 'pi pi-map',
+        tags: 'pi pi-tags',
+        brands: 'pi pi-bookmark',
+        models: 'pi pi-car',
+        colors: 'pi pi-palette',
+        canceled: 'pi pi-ban'
+    };
 
     themes = [
         { label: 'Claro', value: 'light' },
@@ -104,17 +100,143 @@ export class UserFormComponent {
         { label: 'Inglés', value: 'en' }
     ];
 
-    constructor() {}
+    affiliationTypes = [
+        { label: 'Personal', value: 'personal' },
+        { label: 'Empresarial', value: 'business' },
+        { label: 'Premium', value: 'premium' }
+    ];
 
-    onSubmit() {
-        console.log('Usuario:', this.user);
+    profileTypes = [
+        { label: 'Básico', value: 'basic' },
+        { label: 'Avanzado', value: 'advanced' },
+        { label: 'Experto', value: 'expert' }
+    ];
+
+    constructor(private userRolesService: UserRolesService) {}
+
+    ngOnInit() {
+        this.loadRoles();
     }
 
-    onSavePrivileges() {
-        console.log('Privilegios actualizados:', this.user.privileges);
+    loadRoles() {
+        this.userRolesService.getAllRoles().subscribe({
+            next: (roles) => {
+                this.roles = roles;
+            },
+            error: (error) => {
+                console.error('Error al cargar roles:', error);
+            }
+        });
+    }
+
+    getPrivilegeByModule(privileges: Privilege[] | undefined, module: string): Privilege | undefined {
+        if (!privileges) return undefined;
+        const privilege = privileges.find(p => p.module === module);
+        return privilege ? { ...privilege } : undefined;
+    }
+
+    getPrivilegeActions(module: string): PrivilegeAction {
+        const privilege = this.getPrivilegeByModule(this.user.role?.privileges, module);
+        return privilege?.actions || {
+            read: false,
+            create: false,
+            update: false,
+            delete: false
+        };
+    }
+
+    setPrivilegeAction(module: string, action: keyof PrivilegeAction, value: boolean): void {
+        if (!this.user.role?.privileges) {
+            this.user.role = {
+                _id: '',
+                name: '',
+                description: '',
+                status: 'active',
+                createdAt: new Date(),
+                privileges: []
+            };
+        }
+        
+        let privilege = this.getPrivilegeByModule(this.user.role.privileges, module);
+        if (!privilege) {
+            privilege = {
+                module,
+                actions: {
+                    read: false,
+                    create: false,
+                    update: false,
+                    delete: false
+                }
+            };
+            this.user.role.privileges.push(privilege);
+        }
+        privilege.actions[action] = value;
+    }
+
+    toggleAllPrivileges(privilege: Privilege | undefined): void {
+        if (!privilege) return;
+        
+        const allChecked = Object.values(privilege.actions).every(value => value === true);
+        const newValue = !allChecked;
+        
+        (Object.keys(privilege.actions) as Array<keyof PrivilegeAction>).forEach(action => {
+            privilege.actions[action] = newValue;
+        });
+    }
+
+    isAllSelected(privilege: Privilege | undefined): boolean {
+        if (!privilege) return false;
+        return Object.values(privilege.actions).every(value => value === true);
+    }
+
+    toggleAllModulesPrivileges(): void {
+        if (!this.user.role?.privileges) return;
+        
+        const allChecked = this.isAllModulesSelected();
+        const newValue = !allChecked;
+        
+        this.user.role.privileges.forEach(privilege => {
+            (Object.keys(privilege.actions) as Array<keyof PrivilegeAction>).forEach(action => {
+                privilege.actions[action] = newValue;
+            });
+        });
+    }
+
+    isAllModulesSelected(): boolean {
+        if (!this.user.role?.privileges) return false;
+        return this.user.role.privileges.every(privilege => 
+            Object.values(privilege.actions).every(value => value === true)
+        );
+    }
+
+    onSubmit() {
+        const userToSubmit = {
+            ...this.user,
+            birth: this.user.birth.toISOString(),
+            role: this.user.role ? {
+                ...this.user.role,
+                privileges: this.user.role.privileges
+            } : null
+        };
+        console.log('Usuario a guardar:', userToSubmit);
+        // Aquí iría la llamada al servicio para guardar el usuario
+    }
+
+    onRoleChange() {
+        if (this.user.role?.privileges) {
+            // Actualizar los privilegios basados en el rol seleccionado
+            const newPrivileges: { [key: string]: Privilege } = {};
+            this.user.role.privileges.forEach(privilege => {
+                newPrivileges[privilege.module] = {
+                    ...privilege
+                };
+            });
+            this.user.privileges = newPrivileges;
+        }
     }
 
     onSaveSettings() {
         console.log('Configuración actualizada:', this.user.settings);
     }
 }
+
