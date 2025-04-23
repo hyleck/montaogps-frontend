@@ -5,6 +5,7 @@ import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.mod
 import { SettingsRoutingModule } from './settings-routing.module';
 import { SettingsComponent } from './components/settings/settings.component';
 import { UserRolesSettingsComponent } from './components/settings/user-roles-settings/user-roles-settings.component';
+import { TranslateModule } from '@ngx-translate/core';
 
 @NgModule({
   declarations: [
@@ -15,7 +16,8 @@ import { UserRolesSettingsComponent } from './components/settings/user-roles-set
     CommonModule,
     FormsModule,
     PrimengModule,
-    SettingsRoutingModule
+    SettingsRoutingModule,
+    TranslateModule
   ]
 })
 export class SettingsModule { }

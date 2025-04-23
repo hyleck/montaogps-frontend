@@ -28,14 +28,142 @@
       "contactEmergency": "Emergencies"
     },
     "theme": {
-      "toggleLight": "Enable light theme",
-      "toggleDark": "Enable dark theme"
+      "toggleLight": "Light mode",
+      "toggleDark": "Dark mode"
     },
     "language": {
       "selectLanguage": "Select language",
       "en": "English",
       "es": "Spanish",
       "fr": "French"
+    },
+    "breadcrumb": {
+      "dashboard": {
+        "title": "Dashboard",
+        "subtitle": "System general overview"
+      },
+      "settings": {
+        "title": "Settings",
+        "subtitle": "System general settings",
+        "roles": {
+          "title": "Roles",
+          "subtitle": "Roles and permissions management"
+        }
+      }
+    },
+    "dashboard": {
+      "online": "Online",
+      "active": "Active",
+      "offline": "Offline",
+      "suspended": "Suspended",
+      "expired": "Expired",
+      "canceled": "Canceled",
+      "total": "Total",
+      "monthlyStats": "Monthly Statistics",
+      "installedDevices": "Installed Devices",
+      "canceledDevices": "Canceled Devices",
+      "breadcrumb": {
+        "dashboard": "Dashboard"
+      }
+    },
+    "navbar": {
+        "scheduleProcess": "Schedule process",
+        "canceled": "Canceled",
+        "transfer": "Transfer",
+        "share": "Share",
+        "myProfile": "My Profile",
+        "logout": "Logout"
+    },
+    "sidebar": {
+      "favorites": "Favorites",
+      "mainMenu": "Main Menu",
+      "system": "System",
+      "dashboard": "Dashboard",
+      "management": "Management",
+      "processes": "Follow-up",
+      "reports": "Reports",
+      "settings": "Settings"
+    },
+    "settings": {
+      "roles": {
+        "title": "Roles",
+        "description": "Roles and permissions management"
+      },
+      "sectors": {
+        "title": "Sectors",
+        "description": "Operational sectors configuration"
+      },
+      "tags": {
+        "title": "Tags",
+        "description": "Tags management"
+      },
+      "features": {
+        "title": "Features",
+        "description": "Features management"
+      },
+      "brands": {
+        "title": "Brands",
+        "description": "Brands configuration"
+      },
+      "models": {
+        "title": "Models",
+        "description": "Models management"
+      },
+      "colors": {
+        "title": "Colors",
+        "description": "Colors configuration"
+      },
+      "dialogs": {
+        "roles": "Roles configuration"
+      },
+      "roles_settings": {
+        "edit_role": "Edit role",
+        "new_role": "New role",
+        "role_name": "Role name",
+        "role_name_placeholder": "Enter role name",
+        "description": "Description",
+        "description_placeholder": "Enter role description",
+        "configure_privileges": "Configure Privileges",
+        "update": "Update",
+        "create": "Create",
+        "cancel": "Cancel",
+        "user_roles": "User roles",
+        "table": {
+          "name": "Name",
+          "description": "Description",
+          "status": "Status",
+          "created_at": "Creation date"
+        },
+        "privileges": {
+          "title": "Privileges Configuration",
+          "select_all": "Select all",
+          "select_all_modules": "Select all modules",
+          "actions": {
+            "read": "Read",
+            "update": "Update",
+            "create": "Create",
+            "delete": "Delete"
+          }
+        },
+        "messages": {
+          "confirm_delete": "Are you sure you want to delete the role \"{name}\"?",
+          "confirm_delete_header": "Confirm deletion",
+          "yes_delete": "Yes, delete",
+          "no_cancel": "No, cancel",
+          "role_updated": "Role updated",
+          "role_updated_detail": "The role \"{name}\" has been successfully updated",
+          "role_created": "Role created",
+          "role_created_detail": "The role \"{name}\" has been successfully created",
+          "role_deleted": "Role deleted",
+          "role_deleted_detail": "The role \"{name}\" has been successfully deleted",
+          "error": "Error",
+          "error_update": "Could not update role",
+          "error_create": "Could not create role",
+          "error_delete": "Could not delete role",
+          "error_id": "Could not get role ID"
+        },
+        "actions": "Actions"
+      }
     }
   }
   

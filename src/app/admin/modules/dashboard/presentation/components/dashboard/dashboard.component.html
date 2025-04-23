@@ -1,59 +1,89 @@
-<div class="management__route">
-    <p-breadcrumb [model]="items" [home]="home" />
+<div class="breadcrumb-container">
+    <p-breadcrumb [model]="items" [home]="home"></p-breadcrumb>
 </div>
-
 <div class="dashboard-main">
     <div class="dashboard-container">
-        <div class="stats-grid">
-            <!-- En línea -->
-            <div class="stat-card online">
-                <h3>En línea</h3>
-                <div class="stat-value">{{stats.online | number}}</div>
+  
+
+        <div class="main-content">
+            <div class="stats-container">
+                <div class="stat-card online">
+                    <div class="stat-icon">
+                        <i class="pi pi-wifi"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">{{ stats.online }}</span>
+                        <span class="stat-label">{{ langService.translate('dashboard.online') }}</span>
+                    </div>
+                </div>
+
+                <div class="stat-card active">
+                    <div class="stat-icon">
+                        <i class="pi pi-check-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">{{ stats.active }}</span>
+                        <span class="stat-label">{{ langService.translate('dashboard.active') }}</span>
+                    </div>
+                </div>
+
+                <div class="stat-card offline">
+                    <div class="stat-icon">
+                        <i class="pi pi-power-off"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">{{ stats.offline }}</span>
+                        <span class="stat-label">{{ langService.translate('dashboard.offline') }}</span>
+                    </div>
+                </div>
+
+                <div class="stat-card suspended">
+                    <div class="stat-icon">
+                        <i class="pi pi-pause"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">{{ stats.suspended }}</span>
+                        <span class="stat-label">{{ langService.translate('dashboard.suspended') }}</span>
+                    </div>
+                </div>
+
+                <div class="stat-card expired">
+                    <div class="stat-icon">
+                        <i class="pi pi-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">{{ stats.expired }}</span>
+                        <span class="stat-label">{{ langService.translate('dashboard.expired') }}</span>
+                    </div>
+                </div>
+
+                <div class="stat-card canceled">
+                    <div class="stat-icon">
+                        <i class="pi pi-times-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">{{ stats.canceled }}</span>
+                        <span class="stat-label">{{ langService.translate('dashboard.canceled') }}</span>
+                    </div>
+                </div>
+
+                <div class="stat-card total">
+                    <div class="stat-icon">
+                        <i class="pi pi-list"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value">{{ stats.total }}</span>
+                        <span class="stat-label">{{ langService.translate('dashboard.total') }}</span>
+                    </div>
+                </div>
             </div>
 
-            <!-- Activos -->
-            <div class="stat-card active">
-                <h3>Activos</h3>
-                <div class="stat-value">{{stats.active | number}}</div>
+            <div class="chart-container">
+                <h3>{{ langService.translate('dashboard.monthlyStats') }}</h3>
+                <div class="chart-wrapper">
+                    <p-chart type="bar" [data]="deviceChartData" [options]="deviceChartOptions"></p-chart>
+                </div>
             </div>
-
-            <!-- Fuera de línea -->
-            <div class="stat-card offline">
-                <h3>Fuera de línea</h3>
-                <div class="stat-value">{{stats.offline | number}}</div>
-            </div>
-
-            <!-- Suspendidos -->
-            <div class="stat-card suspended">
-                <h3>Suspendidos</h3>
-                <div class="stat-value">{{stats.suspended | number}}</div>
-            </div>
-
-            <!-- Expirados -->
-            <div class="stat-card expired">
-                <h3>Expirados</h3>
-                <div class="stat-value">{{stats.expired | number}}</div>
-            </div>
-
-            <!-- Cancelados -->
-            <div class="stat-card canceled">
-                <h3>Cancelados</h3>
-                <div class="stat-value">{{stats.canceled | number}}</div>
-            </div>
-
-            <!-- Todos -->
-            <div class="stat-card total">
-                <h3>Todos</h3>
-                <div class="stat-value">{{stats.total | number}}</div>
-            </div>
-        </div>
-
-        <div class="chart-container">
-            <h2>Estadísticas Mensuales</h2>
-            <p-chart type="bar" 
-                    [data]="deviceChartData" 
-                    [options]="deviceChartOptions"
-                    height="400px"></p-chart>
         </div>
     </div>
 </div>

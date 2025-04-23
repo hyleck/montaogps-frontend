@@ -5,32 +5,34 @@
     <!-- Panel lateral izquierdo -->
     <div class="user-roles-layout__sidebar">
         <div class="sidebar-content">
-            <h3>{{ isEditing ? 'Editar rol' : 'Nuevo rol' }}</h3>
+            <h3>{{ (isEditing ? 'settings.roles_settings.edit_role' : 'settings.roles_settings.new_role') | translate }}</h3>
             <form (ngSubmit)="onSubmit()" ngNativeValidate>
                 <div class="form-group">
-                    <label for="name">Nombre del rol</label>
-                    <input  id="name" type="text" [(ngModel)]="roleForm.name" name="name" required placeholder="Ingrese el nombre del rol">
+                    <label for="name">{{ 'settings.roles_settings.role_name' | translate }}</label>
+                    <input id="name" type="text" [(ngModel)]="roleForm.name" name="name" required 
+                           [placeholder]="'settings.roles_settings.role_name_placeholder' | translate">
                 </div>
                 <div class="form-group">
-                    <label for="description">Descripción</label>
-                    <textarea  id="description" [(ngModel)]="roleForm.description" name="description" rows="3" placeholder="Ingrese una descripción del rol"></textarea>
+                    <label for="description">{{ 'settings.roles_settings.description' | translate }}</label>
+                    <textarea id="description" [(ngModel)]="roleForm.description" name="description" rows="3" 
+                            [placeholder]="'settings.roles_settings.description_placeholder' | translate"></textarea>
                 </div>
                 
                 <div class="form-actions">
                     <button type="button" class="button-secondary" (click)="privilegesDialogVisible = true">
                         <i class="pi pi-key"></i>
-                        Configurar Privilegios
+                        {{ 'settings.roles_settings.configure_privileges' | translate }}
                     </button>
                 </div>
 
                 <div class="form-actions">
                     <button type="submit" class="button-primary">
                         <i class="pi pi-save"></i>
-                        {{ isEditing ? 'Actualizar' : 'Crear' }}
+                        {{ (isEditing ? 'settings.roles_settings.update' : 'settings.roles_settings.create') | translate }}
                     </button>
                     <button type="button" *ngIf="isEditing" class="button-secondary" (click)="cancelEdit()">
                         <i class="pi pi-times"></i>
-                        Cancelar
+                        {{ 'settings.roles_settings.cancel' | translate }}
                     </button>
                 </div>
             </form>
@@ -40,23 +42,19 @@
     <!-- Contenido principal -->
     <div class="user-roles-layout__main">
         <div class="main-content">
-            <h2>Roles de usuario</h2>
-            <p-table [value]="roles" [tableStyle]="{ 'min-width': '50rem' }">
+            <h2>{{ 'settings.roles_settings.user_roles' | translate }}</h2>
+            <p-table [value]="roles" [tableStyle]="{ 'min-width': '20rem', 'font-size': '0.875rem' }" styleClass="small-text-table">
                 <ng-template pTemplate="header">
                     <tr>
-                        <th>Nombre</th>
-                        <th>Descripción</th>
-                        <th>Estado</th>
-                        <th>Fecha de creación</th>
-                        <th>Acciones</th>
+                        <th>{{ 'settings.roles_settings.table.name' | translate }}</th>
+                        <th>{{ 'settings.roles_settings.table.description' | translate }}</th>
+                        <th>{{ 'settings.roles_settings.actions' | translate }}</th>
                     </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-role>
                     <tr>
                         <td>{{role.name}}</td>
                         <td>{{role.description}}</td>
-                        <td>{{role.status | titlecase}}</td>
-                        <td>{{role.createdAt | date:'short'}}</td>
                         <td>
                             <button type="button" class="button-action button-success" (click)="editRole(role)">
                                 <i class="pi pi-pencil"></i>
@@ -79,7 +77,7 @@
     [style]="{width: '90vw', maxWidth: '900px'}" 
     [draggable]="false" 
     [resizable]="false"
-    header="Configuración de Privilegios">
+    [header]="'settings.roles_settings.privileges.title' | translate">
         <div class="modules-list">
             <div *ngFor="let privilege of roleForm.privileges; let i = index" class="module-section">
                 <div class="module-header">
@@ -90,7 +88,7 @@
                             (click)="toggleAllPrivileges(privilege)"
                             [class.selected]="isAllSelected(privilege)">
                         <i class="pi" [class.pi-check-square]="isAllSelected(privilege)" [class.pi-square]="!isAllSelected(privilege)"></i>
-                        <span>Seleccionar todo</span>
+                        <span>{{ 'settings.roles_settings.privileges.select_all' | translate }}</span>
                     </button>
                 </div>
                 <div class="privileges-group">
@@ -100,7 +98,7 @@
                                   [(ngModel)]="privilege.actions.read" 
                                   [name]="'read-' + privilege.module">
                         </p-checkbox>
-                        <label [for]="'read-' + i">Leer</label>
+                        <label [for]="'read-' + i">{{ 'settings.roles_settings.privileges.actions.read' | translate }}</label>
                     </div>
                     <div class="privilege-item">
                         <p-checkbox [binary]="true" 
@@ -108,7 +106,7 @@
                                   [(ngModel)]="privilege.actions.update" 
                                   [name]="'update-' + privilege.module">
                         </p-checkbox>
-                        <label [for]="'update-' + i">Actualizar</label>
+                        <label [for]="'update-' + i">{{ 'settings.roles_settings.privileges.actions.update' | translate }}</label>
                     </div>
                     <div class="privilege-item">
                         <p-checkbox [binary]="true" 
@@ -116,7 +114,7 @@
                                   [(ngModel)]="privilege.actions.create" 
                                   [name]="'create-' + privilege.module">
                         </p-checkbox>
-                        <label [for]="'create-' + i">Crear</label>
+                        <label [for]="'create-' + i">{{ 'settings.roles_settings.privileges.actions.create' | translate }}</label>
                     </div>
                     <div class="privilege-item">
                         <p-checkbox [binary]="true" 
@@ -124,7 +122,7 @@
                                   [(ngModel)]="privilege.actions.delete" 
                                   [name]="'delete-' + privilege.module">
                         </p-checkbox>
-                        <label [for]="'delete-' + i">Eliminar</label>
+                        <label [for]="'delete-' + i">{{ 'settings.roles_settings.privileges.actions.delete' | translate }}</label>
                     </div>
                 </div>
             </div>
@@ -136,11 +134,11 @@
                     (click)="toggleAllModulesPrivileges()"
                     [class.selected]="isAllModulesSelected()">
                 <i class="pi" [class.pi-check-square]="isAllModulesSelected()" [class.pi-square]="!isAllModulesSelected()"></i>
-                <span>Seleccionar todos los módulos</span>
+                <span>{{ 'settings.roles_settings.privileges.select_all_modules' | translate }}</span>
             </button>
             <button type="button" class="button-primary" (click)="privilegesDialogVisible = false">
                 <i class="pi pi-check"></i>
-                Aceptar
+                {{ 'settings.roles_settings.update' | translate }}
             </button>
         </div>
     </ng-template>

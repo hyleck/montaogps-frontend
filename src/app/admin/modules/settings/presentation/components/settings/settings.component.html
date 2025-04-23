@@ -13,16 +13,16 @@
          (click)="navigateTo(card.route, card.action)">
         <div class="settings__card-header">
             <i [class]="card.icon"></i>
-            <h3>{{card.title}}</h3>
+            <h3>{{ card.titleKey | translate }}</h3>
         </div>
-        <p class="settings__card-description">{{card.description}}</p>
+        <p class="settings__card-description">{{ card.descriptionKey | translate }}</p>
     </div>
 </div>
 
 
 <div class="card flex justify-content-center">
    
-    <p-dialog header="Configuración de roles" [modal]="true" [(visible)]="RolesFormDisplay" >
+    <p-dialog [header]="'settings.dialogs.roles' | translate" [modal]="true" [(visible)]="RolesFormDisplay" >
         <app-user-roles-settings></app-user-roles-settings>
     </p-dialog>
 

@@ -1,5 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { MenuItem } from 'primeng/api';
+import { LangService } from '../../../../../../shareds/services/langi18/lang.service';
+import { TranslateService } from '@ngx-translate/core';
 
 interface DashboardStats {
     online: number;
@@ -18,7 +20,7 @@ interface DashboardStats {
     standalone: false
 })
 export class DashboardComponent implements OnInit {
-    items: MenuItem[] = [{ label: 'Dashboard' }];
+    items: MenuItem[] = [];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
     stats: DashboardStats = {
@@ -35,9 +37,32 @@ export class DashboardComponent implements OnInit {
     deviceChartData: any;
     deviceChartOptions: any;
 
+    constructor(
+        public langService: LangService,
+        private translate: TranslateService
+    ) {
+        this.initializeBreadcrumb();
+    }
+
     ngOnInit() {
         this.loadDashboardStats();
         this.initializeChart();
+        
+        // Actualizar breadcrumb cuando cambie el idioma
+        this.translate.onLangChange.subscribe(() => {
+            this.initializeBreadcrumb();
+        });
+    }
+
+    private initializeBreadcrumb() {
+        this.items = [{
+            label: this.translate.instant('breadcrumb.dashboard.title'),
+            routerLink: '/admin/dashboard'
+        }];
+        this.home = {
+            icon: 'pi pi-home',
+            routerLink: '/admin/dashboard'
+        };
     }
 
     private loadDashboardStats() {
@@ -51,12 +76,12 @@ export class DashboardComponent implements OnInit {
             labels: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
             datasets: [
                 {
-                    label: 'Dispositivos Instalados',
+                    label: this.translate.instant('dashboard.installedDevices'),
                     backgroundColor: documentStyle.getPropertyValue('--dashboardStatusOnline'),
                     data: [65, 59, 80, 81, 56, 55, 40, 45, 58, 62, 75, 80]
                 },
                 {
-                    label: 'Dispositivos Cancelados',
+                    label: this.translate.instant('dashboard.canceledDevices'),
                     backgroundColor: documentStyle.getPropertyValue('--dashboardStatusExpired'),
                     data: [28, 48, 40, 19, 86, 27, 90, 35, 42, 25, 30, 45]
                 }

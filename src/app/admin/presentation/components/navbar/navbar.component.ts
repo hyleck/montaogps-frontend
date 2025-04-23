@@ -1,9 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ThemesService } from '../../../../shareds/services/themes.service';
 import { MenuItem } from 'primeng/api';
 import { StatusService } from '../../../../shareds/services/status.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { Router } from '@angular/router';
+import { LangService } from '../../../../shareds/services/langi18/lang.service';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
     selector: 'app-navbar',
@@ -11,9 +13,10 @@ import { Router } from '@angular/router';
     styleUrl: './navbar.component.css',
     standalone: false
 })
-export class NavbarComponent {
+export class NavbarComponent implements OnInit {
   items: MenuItem[] = [];
   userMenuItems: MenuItem[] = [];
+  languageItems: MenuItem[] = [];
   loadingTheme: boolean = false;
   currentTheme: string = 'light';
   currentUser: any;
@@ -22,7 +25,9 @@ export class NavbarComponent {
     private status: StatusService,
     private themes: ThemesService,
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private langService: LangService,
+    private translate: TranslateService
   ) {
     this.currentTheme = status.getState('theme') as string;
     this.currentUser = this.authService.getCurrentUser();
@@ -35,30 +40,41 @@ export class NavbarComponent {
       }
     });
 
+    this.initializeMenus();
+
+    // Suscribirse a cambios de idioma para actualizar los menús
+    this.translate.onLangChange.subscribe(() => {
+      this.initializeMenus();
+    });
+  }
+
+  private initializeMenus() {
+    // Menú principal
     this.items = [
       {
-        label: 'Programar proceso',
+        label: this.translate.instant('navbar.scheduleProcess'),
         icon: 'pi pi-calendar-clock'
       },
       {
-        label: 'Cancelados',
+        label: this.translate.instant('navbar.canceled'),
         icon: 'pi pi-trash'
       },
       {
-        label: 'Transferir',
+        label: this.translate.instant('navbar.transfer'),
         icon: 'pi pi-reply',
         disabled: true
       },
       {
-        label: 'Compartir',
+        label: this.translate.instant('navbar.share'),
         icon: 'pi pi-share-alt',
         disabled: true
       }
     ];
 
+    // Menú de usuario
     this.userMenuItems = [
       {
-        label: this.currentUser ? `${this.currentUser.name} ${this.currentUser.last_name}` : 'Mi Perfil',
+        label: this.currentUser ? `${this.currentUser.name} ${this.currentUser.last_name}` : this.translate.instant('navbar.myProfile'),
         icon: 'pi pi-user',
         command: () => this.router.navigate(['/admin/profile'])
       },
@@ -66,7 +82,7 @@ export class NavbarComponent {
         separator: true
       },
       {
-        label: this.currentTheme === 'light' ? 'Modo oscuro' : 'Modo claro',
+        label: this.currentTheme === 'light' ? this.translate.instant('theme.toggleDark') : this.translate.instant('theme.toggleLight'),
         icon: this.currentTheme === 'light' ? 'pi pi-moon' : 'pi pi-sun',
         command: () => this.toggleTheme()
       },
@@ -74,11 +90,22 @@ export class NavbarComponent {
         separator: true
       },
       {
-        label: 'Cerrar sesión',
+        label: this.translate.instant('navbar.logout'),
         icon: 'pi pi-sign-out',
         command: () => this.logout()
       }
     ];
+
+    // Menú de idiomas
+    const languages = this.langService.getLanguages();
+    this.languageItems = languages.map(lang => ({
+      label: this.translate.instant('language.' + lang.code),
+      icon: 'pi pi-flag',
+      command: () => {
+        this.langService.setLanguage(lang.code);
+        this.translate.use(lang.code);
+      }
+    }));
   }
 
   toggleTheme() {
@@ -88,8 +115,7 @@ export class NavbarComponent {
     this.currentTheme = newTheme;
     
     // Actualizar el menú después de cambiar el tema
-    this.userMenuItems[1].label = this.currentTheme === 'light' ? 'Modo oscuro' : 'Modo claro';
-    this.userMenuItems[1].icon = this.currentTheme === 'light' ? 'pi pi-moon' : 'pi pi-sun';
+    this.initializeMenus();
   }
 
   logout() {

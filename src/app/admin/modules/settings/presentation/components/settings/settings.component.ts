@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { Router } from '@angular/router';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
     selector: 'app-settings',
@@ -8,58 +9,80 @@ import { Router } from '@angular/router';
     styleUrl: './settings.component.css',
     standalone: false
 })
-export class SettingsComponent {
-
-    items: MenuItem[] = [{ label: 'Configuración' }];
+export class SettingsComponent implements OnInit {
+    items: MenuItem[] = [];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
     RolesFormDisplay: boolean = false;
 
     settingsCards = [
         {
-            title: 'Roles',
+            titleKey: 'settings.roles.title',
             icon: 'pi pi-users',
             action: () => this.RolesFormDisplay = true,
-            description: 'Gestión de roles y permisos'
+            descriptionKey: 'settings.roles.description'
         },
         {
-            title: 'Sectores',
+            titleKey: 'settings.sectors.title',
             icon: 'pi pi-map',
             route: '/admin/settings/sectors',
-            description: 'Configuración de sectores operativos'
+            descriptionKey: 'settings.sectors.description'
         },
         {
-            title: 'Etiquetas',
+            titleKey: 'settings.tags.title',
             icon: 'pi pi-tags',
             route: '/admin/settings/tags',
-            description: 'Administración de etiquetas'
+            descriptionKey: 'settings.tags.description'
         },
         {
-            title: 'Características',
+            titleKey: 'settings.features.title',
             icon: 'pi pi-list',
             route: '/admin/settings/features',
-            description: 'Gestión de características'
+            descriptionKey: 'settings.features.description'
         },
         {
-            title: 'Marcas',
+            titleKey: 'settings.brands.title',
             icon: 'pi pi-car',
             route: '/admin/settings/brands',
-            description: 'Configuración de marcas'
+            descriptionKey: 'settings.brands.description'
         },
         {
-            title: 'Modelos',
+            titleKey: 'settings.models.title',
             icon: 'pi pi-truck',
             route: '/admin/settings/models',
-            description: 'Gestión de modelos'
+            descriptionKey: 'settings.models.description'
         },
         {
-            title: 'Colores',
+            titleKey: 'settings.colors.title',
             icon: 'pi pi-palette',
             route: '/admin/settings/colors',
-            description: 'Configuración de colores'
+            descriptionKey: 'settings.colors.description'
         }
     ];
 
-    constructor(private router: Router) {}
+    constructor(
+        private router: Router,
+        private translate: TranslateService
+    ) {
+        this.initializeBreadcrumb();
+    }
+
+    ngOnInit() {
+        // Actualizar breadcrumb cuando cambie el idioma
+        this.translate.onLangChange.subscribe(() => {
+            this.initializeBreadcrumb();
+        });
+    }
+
+    private initializeBreadcrumb() {
+        this.items = [{
+            label: this.translate.instant('breadcrumb.settings.title'),
+            routerLink: '/admin/settings'
+        }];
+        this.home = {
+            icon: 'pi pi-home',
+            routerLink: '/admin/dashboard'
+        };
+    }
 
     navigateTo(route: string | undefined, action?: () => void): void {
         if (action) {

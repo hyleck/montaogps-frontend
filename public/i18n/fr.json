@@ -2,16 +2,16 @@
     "login": {
       "formTitle": "Connexion",
       "formSubtitle": "Bienvenue sur Montao GPS",
-      "emailLabel": "Email",
+      "emailLabel": "E-mail",
       "passwordLabel": "Mot de passe",
-      "emailPlaceholder": "Entrez votre adresse email",
+      "emailPlaceholder": "Entrez votre adresse e-mail",
       "passwordPlaceholder": "Entrez votre mot de passe",
       "emailPlaceholderExample": "Exemple: manuel@montao.net",
-      "emailRequired": "L'email est requis",
-      "emailInvalid": "L'email n'est pas valide",
+      "emailRequired": "L'e-mail est requis",
+      "emailInvalid": "L'e-mail n'est pas valide",
       "passwordRequired": "Le mot de passe est requis",
       "rememberPassword": "Se souvenir",
-      "forgotPassword": "Mot de passe oublié?",
+      "forgotPassword": "Mot de passe oublié ?",
       "submitButton": "Se connecter",
       "loading": "Connexion en cours...",
       "invalidCredentials": "Identifiants invalides",
@@ -19,23 +19,151 @@
       "footerText": "Montao GPS ©",
       "footerVersion": "Version 1.0",
       "subFooterContact": "info@montao.net",
-      "infoTitle": "Support 24/7",
+      "infoTitle": "Assistance 24/7",
       "infoSubtitle": "Sécurité à tout moment.",
-      "infoDescription": "Notre plateforme GPS offre un suivi en temps réel des véhicules avec des itinéraires optimisés, des alertes automatiques et une gestion efficace des actifs.",
+      "infoDescription": "Notre plateforme GPS offre une surveillance en temps réel des véhicules avec des itinéraires optimisés, des alertes automatiques et une gestion efficace des actifs.",
       "contactInstallation": "Installations",
       "contactRenewal": "Renouvellement et vérification",
       "contactAccounting": "Comptabilité",
       "contactEmergency": "Urgences"
     },
     "theme": {
-      "toggleLight": "Activer le thème clair",
-      "toggleDark": "Activer le thème sombre"
+      "toggleLight": "Mode clair",
+      "toggleDark": "Mode sombre"
     },
     "language": {
       "selectLanguage": "Sélectionner la langue",
       "en": "Anglais",
       "es": "Espagnol",
       "fr": "Français"
+    },
+    "breadcrumb": {
+      "dashboard": {
+        "title": "Panorama",
+        "subtitle": "Aperçu général du système"
+      },
+      "settings": {
+        "title": "Paramètres",
+        "subtitle": "Paramètres généraux du système",
+        "roles": {
+          "title": "Rôles",
+          "subtitle": "Gestion des rôles et permissions"
+        }
+      }
+    },
+    "dashboard": {
+      "online": "En ligne",
+      "active": "Actifs",
+      "offline": "Hors ligne",
+      "suspended": "Suspendus",
+      "expired": "Expirés",
+      "canceled": "Annulés",
+      "total": "Total",
+      "monthlyStats": "Statistiques Mensuelles",
+      "installedDevices": "Appareils Installés",
+      "canceledDevices": "Appareils Annulés",
+      "breadcrumb": {
+        "dashboard": "Panorama"
+      }
+    },
+    "navbar": {
+      "scheduleProcess": "Planifier le processus",
+      "canceled": "Annulés",
+      "transfer": "Transférer",
+      "share": "Partager",
+      "myProfile": "Mon Profil",
+      "logout": "Déconnexion"
+    },
+    "sidebar": {
+      "favorites": "Favoris",
+      "mainMenu": "Menu Principal",
+      "system": "Système",
+      "dashboard": "Panorama",
+      "management": "Gestion",
+      "processes": "Processus",
+      "reports": "Rapports",
+      "settings": "Paramètres"
+    },
+    "settings": {
+      "roles": {
+        "title": "Rôles",
+        "description": "Gestion des rôles et permissions"
+      },
+      "sectors": {
+        "title": "Secteurs",
+        "description": "Configuration des secteurs opérationnels"
+      },
+      "tags": {
+        "title": "Étiquettes",
+        "description": "Gestion des étiquettes"
+      },
+      "features": {
+        "title": "Fonctionnalités",
+        "description": "Gestion des fonctionnalités"
+      },
+      "brands": {
+        "title": "Marques",
+        "description": "Configuration des marques"
+      },
+      "models": {
+        "title": "Modèles",
+        "description": "Gestion des modèles"
+      },
+      "colors": {
+        "title": "Couleurs",
+        "description": "Configuration des couleurs"
+      },
+      "dialogs": {
+        "roles": "Configuration des rôles"
+      },
+      "roles_settings": {
+        "edit_role": "Modifier le rôle",
+        "new_role": "Nouveau rôle",
+        "role_name": "Nom du rôle",
+        "role_name_placeholder": "Entrez le nom du rôle",
+        "description": "Description",
+        "description_placeholder": "Entrez la description du rôle",
+        "configure_privileges": "Configurer les privilèges",
+        "update": "Mettre à jour",
+        "create": "Créer",
+        "cancel": "Annuler",
+        "user_roles": "Rôles d'utilisateur",
+        "table": {
+          "name": "Nom",
+          "description": "Description",
+          "status": "Statut",
+          "created_at": "Date de création"
+        },
+        "privileges": {
+          "title": "Configuration des privilèges",
+          "select_all": "Tout sélectionner",
+          "select_all_modules": "Sélectionner tous les modules",
+          "actions": {
+            "read": "Lire",
+            "update": "Modifier",
+            "create": "Créer",
+            "delete": "Supprimer"
+          }
+        },
+        "messages": {
+          "confirm_delete": "Êtes-vous sûr de vouloir supprimer le rôle \"{name}\" ?",
+          "confirm_delete_header": "Confirmer la suppression",
+          "yes_delete": "Oui, supprimer",
+          "no_cancel": "Non, annuler",
+          "role_updated": "Rôle mis à jour",
+          "role_updated_detail": "Le rôle \"{name}\" a été mis à jour avec succès",
+          "role_created": "Rôle créé",
+          "role_created_detail": "Le rôle \"{name}\" a été créé avec succès",
+          "role_deleted": "Rôle supprimé",
+          "role_deleted_detail": "Le rôle \"{name}\" a été supprimé avec succès",
+          "error": "Erreur",
+          "error_update": "Impossible de mettre à jour le rôle",
+          "error_create": "Impossible de créer le rôle",
+          "error_delete": "Impossible de supprimer le rôle",
+          "error_id": "Impossible d'obtenir l'ID du rôle"
+        },
+        "actions": "Actions"
+      }
     }
-  }
+}
   

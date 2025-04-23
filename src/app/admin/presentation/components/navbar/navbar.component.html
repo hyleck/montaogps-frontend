@@ -4,18 +4,27 @@
    
         <div class="navbar__controls">
             <div class="navbar__controls-base">
-                <button class="button button--flat-negative"> <i class="pi pi-calendar-clock"></i> Programar proceso</button>
-                <button class="button button--flat-negative"> <i class="pi pi-trash"></i> Cancelados ( 45 )</button>
-                <button class="button button--flat-negative button--disabled"> <i class="pi pi-reply"></i> Transferir</button>
-                <button class="button button--flat-negative  button--disabled"> <i class="pi pi-share-alt"></i> Compartir</button>
-
-             
+                <button class="button button--flat-negative">
+                    <i class="pi pi-calendar-clock"></i>
+                    {{ 'navbar.scheduleProcess' | translate }}
+                </button>
+                <button class="button button--flat-negative">
+                    <i class="pi pi-trash"></i>
+                    {{ 'navbar.canceled' | translate }} ( 45 )
+                </button>
+                <button class="button button--flat-negative button--disabled">
+                    <i class="pi pi-reply"></i>
+                    {{ 'navbar.transfer' | translate }}
+                </button>
+                <button class="button button--flat-negative button--disabled">
+                    <i class="pi pi-share-alt"></i>
+                    {{ 'navbar.share' | translate }}
+                </button>
             </div>
 
             <div class="card flex justify-content-center navbar__drupdown">
                 <p-menu #menu [model]="items" [popup]="true" />
                 <i (click)="menu.toggle($event)" class="pi pi-ellipsis-v"></i>
-                
             </div>
          
         </div>
@@ -28,6 +37,13 @@
                 
 
               </div> -->
+
+            <div class="language-menu">
+                <p-menu #langMenu [model]="languageItems" [popup]="true" />
+                <button class="button button--flat-negative" (click)="langMenu.toggle($event)">
+                    <i class="pi pi-globe"></i>
+                </button>
+            </div>
 
             <div class="user-menu">
                 <p-menu #userMenu [model]="userMenuItems" [popup]="true" />

@@ -6,8 +6,7 @@ import { AdminComponent } from './components/admin-layout/admin.component';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { PrimengModule } from '../../shareds/libraries/primeng/primeng.module';
-
-
+import { TranslateModule } from '@ngx-translate/core';
 
 @NgModule({
   declarations: [
@@ -18,7 +17,8 @@ import { PrimengModule } from '../../shareds/libraries/primeng/primeng.module';
   imports: [
     CommonModule,
     AdminRoutingModule,
-    PrimengModule
+    PrimengModule,
+    TranslateModule
   ]
 })
 export class AdminModule { }

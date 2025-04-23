@@ -28,14 +28,142 @@
       "contactEmergency": "Emergencias"
     },
     "theme": {
-      "toggleLight": "Activar tema claro",
-      "toggleDark": "Activar tema oscuro"
+      "toggleLight": "Modo claro",
+      "toggleDark": "Modo oscuro"
     },
     "language": {
       "selectLanguage": "Seleccionar idioma",
       "en": "Inglés",
       "es": "Español",
       "fr": "Francés"
+    },
+    "breadcrumb": {
+      "dashboard": {
+        "title": "Dashboard",
+        "subtitle": "Resumen general del sistema"
+      },
+      "settings": {
+        "title": "Configuración",
+        "subtitle": "Configuración general del sistema",
+        "roles": {
+          "title": "Roles",
+          "subtitle": "Gestión de roles y permisos"
+        }
+      }
+    },
+    "dashboard": {
+      "online": "En línea",
+      "active": "Activos",
+      "offline": "Fuera de línea",
+      "suspended": "Suspendidos",
+      "expired": "Expirados",
+      "canceled": "Cancelados",
+      "total": "Todos",
+      "monthlyStats": "Estadísticas Mensuales",
+      "installedDevices": "Dispositivos Instalados",
+      "canceledDevices": "Dispositivos Cancelados",
+      "breadcrumb": {
+        "dashboard": "Dashboard"
+      }
+    },
+    "navbar": {
+      "scheduleProcess": "Programar proceso",
+      "canceled": "Cancelados",
+      "transfer": "Transferir",
+      "share": "Compartir",
+      "myProfile": "Mi Perfil",
+      "logout": "Cerrar sesión"
+    },
+    "sidebar": {
+      "favorites": "Favoritos",
+      "mainMenu": "Menú Principal",
+      "system": "Sistema",
+      "dashboard": "Dashboard",
+      "management": "Gestión",
+      "processes": "Procesos",
+      "reports": "Reportes",
+      "settings": "Configuración"
+    },
+    "settings": {
+      "roles": {
+        "title": "Roles",
+        "description": "Gestión de roles y permisos"
+      },
+      "sectors": {
+        "title": "Sectores",
+        "description": "Configuración de sectores operativos"
+      },
+      "tags": {
+        "title": "Etiquetas",
+        "description": "Administración de etiquetas"
+      },
+      "features": {
+        "title": "Características",
+        "description": "Gestión de características"
+      },
+      "brands": {
+        "title": "Marcas",
+        "description": "Configuración de marcas"
+      },
+      "models": {
+        "title": "Modelos",
+        "description": "Gestión de modelos"
+      },
+      "colors": {
+        "title": "Colores",
+        "description": "Configuración de colores"
+      },
+      "dialogs": {
+        "roles": "Configuración de roles"
+      },
+      "roles_settings": {
+        "edit_role": "Editar rol",
+        "new_role": "Nuevo rol",
+        "role_name": "Nombre del rol",
+        "role_name_placeholder": "Ingrese el nombre del rol",
+        "description": "Descripción",
+        "description_placeholder": "Ingrese una descripción del rol",
+        "configure_privileges": "Configurar Privilegios",
+        "update": "Actualizar",
+        "create": "Crear",
+        "cancel": "Cancelar",
+        "user_roles": "Roles de usuario",
+        "table": {
+          "name": "Nombre",
+          "description": "Descripción",
+          "status": "Estado",
+          "created_at": "Fecha de creación"
+        },
+        "privileges": {
+          "title": "Configuración de Privilegios",
+          "select_all": "Seleccionar todo",
+          "select_all_modules": "Seleccionar todos los módulos",
+          "actions": {
+            "read": "Leer",
+            "update": "Actualizar",
+            "create": "Crear",
+            "delete": "Eliminar"
+          }
+        },
+        "messages": {
+          "confirm_delete": "¿Está seguro que desea eliminar el rol \"{name}\"?",
+          "confirm_delete_header": "Confirmar eliminación",
+          "yes_delete": "Sí, eliminar",
+          "no_cancel": "No, cancelar",
+          "role_updated": "Rol actualizado",
+          "role_updated_detail": "El rol \"{name}\" ha sido actualizado correctamente",
+          "role_created": "Rol creado",
+          "role_created_detail": "El rol \"{name}\" ha sido creado correctamente",
+          "role_deleted": "Rol eliminado",
+          "role_deleted_detail": "El rol \"{name}\" ha sido eliminado correctamente",
+          "error": "Error",
+          "error_update": "No se pudo actualizar el rol",
+          "error_create": "No se pudo crear el rol",
+          "error_delete": "No se pudo eliminar el rol",
+          "error_id": "No se pudo obtener el ID del rol"
+        },
+        "actions": "Acciones"
+      }
     }
   }
   

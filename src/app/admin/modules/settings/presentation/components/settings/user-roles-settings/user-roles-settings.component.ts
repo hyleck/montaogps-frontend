@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { UserRole, CreateUserRoleDto, Privilege } from '../../../../../../../core/interfaces/user-role.interface';
 import { UserRolesService } from '../../../../../../../core/services/user-roles.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-user-roles-settings',
@@ -66,7 +67,8 @@ export class UserRolesSettingsComponent implements OnInit {
   constructor(
     private userRolesService: UserRolesService,
     private confirmationService: ConfirmationService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private translate: TranslateService
   ) {}
 
   ngOnInit() {
@@ -81,6 +83,7 @@ export class UserRolesSettingsComponent implements OnInit {
       },
       error: (error: unknown) => {
         console.error('Error loading roles:', error);
+        this.showErrorMessage('error_create');
       }
     });
   }
@@ -101,19 +104,11 @@ export class UserRolesSettingsComponent implements OnInit {
             this.roles[index] = updatedRole;
           }
           this.cancelEdit();
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Rol actualizado',
-            detail: `El rol "${updatedRole.name}" ha sido actualizado correctamente`
-          });
+          this.showSuccessMessage('role_updated', updatedRole.name);
         },
         error: (error: unknown) => {
           console.error('Error updating role:', error);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'No se pudo actualizar el rol'
-          });
+          this.showErrorMessage('error_update');
         }
       });
     } else {
@@ -129,19 +124,11 @@ export class UserRolesSettingsComponent implements OnInit {
           console.log('Rol creado:', createdRole);
           this.roles.push(createdRole);
           this.cancelEdit();
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Rol creado',
-            detail: `El rol "${createdRole.name}" ha sido creado correctamente`
-          });
+          this.showSuccessMessage('role_created', createdRole.name);
         },
         error: (error: unknown) => {
           console.error('Error creating role:', error);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'No se pudo crear el rol'
-          });
+          this.showErrorMessage('error_create');
         }
       });
     }
@@ -164,46 +151,52 @@ export class UserRolesSettingsComponent implements OnInit {
   }
 
   deleteRole(role: UserRole) {
-    this.confirmationService.confirm({
-      message: `¿Está seguro que desea eliminar el rol "${role.name}"?`,
-      header: 'Confirmar eliminación',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Sí, eliminar',
-      rejectLabel: 'No, cancelar',
-      accept: () => {
-        if (!role._id) {
-          console.error('No se pudo obtener el ID del rol');
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'No se pudo obtener el ID del rol'
-          });
-          return;
-        }
-
-        this.userRolesService.deleteRole(role._id).subscribe({
-          next: () => {
-            console.log('Rol eliminado con éxito');
-            const index = this.roles.findIndex(r => r._id === role._id);
-            if (index !== -1) {
-              this.roles.splice(index, 1);
-            }
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Rol eliminado',
-              detail: `El rol "${role.name}" ha sido eliminado correctamente`
-            });
-          },
-          error: (error: unknown) => {
-            console.error('Error deleting role:', error);
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: 'No se pudo eliminar el rol'
-            });
+    this.translate.get('settings.roles_settings.messages.confirm_delete', { name: role.name }).subscribe(message => {
+      this.confirmationService.confirm({
+        message: message,
+        header: this.translate.instant('settings.roles_settings.messages.confirm_delete_header'),
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: this.translate.instant('settings.roles_settings.messages.yes_delete'),
+        rejectLabel: this.translate.instant('settings.roles_settings.messages.no_cancel'),
+        accept: () => {
+          if (!role._id) {
+            console.error('No se pudo obtener el ID del rol');
+            this.showErrorMessage('error_id');
+            return;
           }
-        });
-      }
+
+          this.userRolesService.deleteRole(role._id).subscribe({
+            next: () => {
+              console.log('Rol eliminado con éxito');
+              const index = this.roles.findIndex(r => r._id === role._id);
+              if (index !== -1) {
+                this.roles.splice(index, 1);
+              }
+              this.showSuccessMessage('role_deleted', role.name);
+            },
+            error: (error: unknown) => {
+              console.error('Error deleting role:', error);
+              this.showErrorMessage('error_delete');
+            }
+          });
+        }
+      });
+    });
+  }
+
+  private showSuccessMessage(key: string, name: string) {
+    this.messageService.add({
+      severity: 'success',
+      summary: this.translate.instant(`settings.roles_settings.messages.${key}`),
+      detail: this.translate.instant(`settings.roles_settings.messages.${key}_detail`, { name })
+    });
+  }
+
+  private showErrorMessage(key: string) {
+    this.messageService.add({
+      severity: 'error',
+      summary: this.translate.instant('settings.roles_settings.messages.error'),
+      detail: this.translate.instant(`settings.roles_settings.messages.${key}`)
     });
   }
 
