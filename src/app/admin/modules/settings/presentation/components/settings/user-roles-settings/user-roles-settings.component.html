@@ -6,7 +6,7 @@
     <div class="user-roles-layout__sidebar">
         <div class="sidebar-content">
             <h3>{{ isEditing ? 'Editar rol' : 'Nuevo rol' }}</h3>
-            <form (ngSubmit)="onSubmit()">
+            <form (ngSubmit)="onSubmit()" ngNativeValidate>
                 <div class="form-group">
                     <label for="name">Nombre del rol</label>
                     <input  id="name" type="text" [(ngModel)]="roleForm.name" name="name" required placeholder="Ingrese el nombre del rol">

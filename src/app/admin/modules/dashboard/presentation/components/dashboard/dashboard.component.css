@@ -1,0 +1,141 @@
+.dashboard-main {
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding: 0 16px;
+}
+
+.dashboard-container {
+    padding: 16px 0;
+    max-width: 100%;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(100px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+    min-width: min-content; /* Asegura que las tarjetas no se compriman demasiado */
+    padding: 0 2px;
+}
+
+/* Pantallas grandes */
+@media screen and (max-width: 1400px) {
+    .stats-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Tablets */
+@media screen and (max-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Tablets pequeñas y móviles grandes */
+@media screen and (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .dashboard-main {
+        padding: 0 8px;
+    }
+}
+
+/* Móviles */
+@media screen and (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Ocultar gráfico en pantallas menores a 700px */
+@media screen and (max-width: 700px) {
+    .chart-container {
+        display: none;
+    }
+}
+
+.stat-card {
+    background: var(--dashboardCardBackground);
+    border: 1px solid var(--dashboardCardBorder);
+    border-radius: 4px;
+    padding: 8px 6px;
+    text-align: center;
+    box-shadow: 0 1px 3px var(--dashboardCardShadow);
+    transition: all 0.3s ease;
+    min-width: 100px;
+    min-height: 55px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stat-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px var(--dashboardCardShadow);
+}
+
+.stat-card h3 {
+    margin: 0;
+    font-size: 0.7rem;
+    font-weight: 500;
+    margin-bottom: 2px;
+    color: var(--dashboardTextSecondary);
+    white-space: nowrap; /* Evita que el título se rompa en múltiples líneas */
+}
+
+.stat-value {
+    font-size: 1.1rem;
+    font-weight: bold;
+    transition: color 0.3s ease;
+    line-height: 1;
+}
+
+/* Colores específicos para cada tipo de estado */
+.stat-card.online .stat-value {
+    color: var(--dashboardStatusOnline);
+}
+
+.stat-card.active .stat-value {
+    color: var(--dashboardStatusActive);
+}
+
+.stat-card.offline .stat-value {
+    color: var(--dashboardStatusOffline);
+}
+
+.stat-card.suspended .stat-value {
+    color: var(--dashboardStatusSuspended);
+}
+
+.stat-card.expired .stat-value {
+    color: var(--dashboardStatusExpired);
+}
+
+.stat-card.canceled .stat-value {
+    color: var(--dashboardStatusCanceled);
+}
+
+.stat-card.total .stat-value {
+    color: var(--dashboardStatusTotal);
+}
+
+/* Estilos para el contenedor del gráfico */
+.chart-container {
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--dashboardCardBackground);
+    border: 1px solid var(--dashboardCardBorder);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--dashboardCardShadow);
+    overflow: auto;
+}
+
+.chart-container h2 {
+    margin: 0 0 16px 0;
+    font-size: 1.2rem;
+    color: var(--dashboardTextPrimary);
+    font-weight: 500;
+}

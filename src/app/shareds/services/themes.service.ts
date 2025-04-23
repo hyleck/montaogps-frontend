@@ -6,6 +6,7 @@ import { sidebarPalette } from '../../admin/presentation/components/sidebar/side
 import { adminPalette } from '../../admin/presentation/components/admin-layout/admin.palette';
 import { navbarPalette } from '../../admin/presentation/components/navbar/navbar.palette';
 import { userRolesPalette } from '../../admin/modules/settings/presentation/components/settings/user-roles-settings/user-roles.palette';
+import { dashboardPalette } from '../../admin/modules/dashboard/presentation/components/dashboard/dashboard.palette';
 import { StatusService } from './status.service';
 // import { applyThemeTransition } from '../../shareds/helpers/theme-transition.helper';
 
@@ -23,7 +24,8 @@ export class ThemesService {
       ...sidebarPalette.light,
       ...adminPalette.light,
       ...navbarPalette.light,
-      ...userRolesPalette.light
+      ...userRolesPalette.light,
+      ...dashboardPalette.light
     },
     dark: {
       ...globalPalette.dark,
@@ -32,7 +34,8 @@ export class ThemesService {
       ...sidebarPalette.dark,
       ...adminPalette.dark,
       ...navbarPalette.dark,
-      ...userRolesPalette.dark
+      ...userRolesPalette.dark,
+      ...dashboardPalette.dark
     }
   };
 

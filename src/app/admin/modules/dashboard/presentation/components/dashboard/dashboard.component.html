@@ -1,7 +1,59 @@
 <div class="management__route">
+    <p-breadcrumb [model]="items" [home]="home" />
+</div>
 
-    <p-breadcrumb 
-    
-    [model]="items" 
-    [home]="home" />
+<div class="dashboard-main">
+    <div class="dashboard-container">
+        <div class="stats-grid">
+            <!-- En línea -->
+            <div class="stat-card online">
+                <h3>En línea</h3>
+                <div class="stat-value">{{stats.online | number}}</div>
+            </div>
+
+            <!-- Activos -->
+            <div class="stat-card active">
+                <h3>Activos</h3>
+                <div class="stat-value">{{stats.active | number}}</div>
+            </div>
+
+            <!-- Fuera de línea -->
+            <div class="stat-card offline">
+                <h3>Fuera de línea</h3>
+                <div class="stat-value">{{stats.offline | number}}</div>
+            </div>
+
+            <!-- Suspendidos -->
+            <div class="stat-card suspended">
+                <h3>Suspendidos</h3>
+                <div class="stat-value">{{stats.suspended | number}}</div>
+            </div>
+
+            <!-- Expirados -->
+            <div class="stat-card expired">
+                <h3>Expirados</h3>
+                <div class="stat-value">{{stats.expired | number}}</div>
+            </div>
+
+            <!-- Cancelados -->
+            <div class="stat-card canceled">
+                <h3>Cancelados</h3>
+                <div class="stat-value">{{stats.canceled | number}}</div>
+            </div>
+
+            <!-- Todos -->
+            <div class="stat-card total">
+                <h3>Todos</h3>
+                <div class="stat-value">{{stats.total | number}}</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2>Estadísticas Mensuales</h2>
+            <p-chart type="bar" 
+                    [data]="deviceChartData" 
+                    [options]="deviceChartOptions"
+                    height="400px"></p-chart>
+        </div>
+    </div>
 </div>

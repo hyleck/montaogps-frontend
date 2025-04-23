@@ -226,8 +226,8 @@ button {
 }
 
 .button-primary {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: var(--userRolesButtonPrimary);
+    color: var(--userRolesButtonText);
     border: none;
     padding: 8px 16px;
     border-radius: 4px;
@@ -235,6 +235,11 @@ button {
     display: flex;
     align-items: center;
     gap: 8px;
+    transition: all 0.2s;
+}
+
+.button-primary:hover {
+    background-color: var(--userRolesButtonPrimaryHover);
 }
 
 .button-secondary {

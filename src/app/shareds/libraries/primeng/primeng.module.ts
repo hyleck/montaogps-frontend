@@ -17,6 +17,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { CheckboxModule } from 'primeng/checkbox';
+import { ChartModule } from 'primeng/chart';
 import { ConfirmationService, MessageService } from 'primeng/api';
 
 @NgModule({
@@ -38,7 +39,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     DropdownModule,
     ConfirmDialogModule,
     ToastModule,
-    CheckboxModule
+    CheckboxModule,
+    ChartModule
   ],
   exports: [
     BadgeModule,
@@ -57,7 +59,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     DropdownModule,
     ConfirmDialogModule,
     ToastModule,
-    CheckboxModule
+    CheckboxModule,
+    ChartModule
   ],
   providers: [ConfirmationService, MessageService]
 })
