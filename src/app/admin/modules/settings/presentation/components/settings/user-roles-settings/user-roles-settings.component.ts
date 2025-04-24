@@ -183,44 +183,46 @@ export class UserRolesSettingsComponent implements OnInit {
   }
 
   deleteRole(role: UserRole) {
-    this.translate.get('settings.roles_settings.messages.confirm_delete', { name: role.name }).subscribe(message => {
-      this.confirmationService.confirm({
-        message: message,
-        header: this.translate.instant('settings.roles_settings.messages.confirm_delete_header'),
-        icon: 'pi pi-exclamation-triangle',
-        acceptLabel: this.translate.instant('settings.roles_settings.messages.yes_delete'),
-        rejectLabel: this.translate.instant('settings.roles_settings.messages.no_cancel'),
-        accept: () => {
-          if (!role._id) {
-            console.error('No se pudo obtener el ID del rol');
-            this.showErrorMessage('error_id');
-            return;
-          }
-
-          this.userRolesService.deleteRole(role._id).subscribe({
-            next: () => {
-              console.log('Rol eliminado con éxito');
-              const index = this.roles.findIndex(r => r._id === role._id);
-              if (index !== -1) {
-                this.roles.splice(index, 1);
-              }
-              this.showSuccessMessage('role_deleted', role.name);
-            },
-            error: (error: unknown) => {
-              console.error('Error deleting role:', error);
-              this.showErrorMessage('error_delete');
-            }
-          });
+    const message = this.translate.instant('settings.roles_settings.messages.confirm_delete').replace('{name}', role.name);
+    this.confirmationService.confirm({
+      message: message,
+      header: this.translate.instant('settings.roles_settings.messages.confirm_delete_header'),
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: this.translate.instant('settings.roles_settings.messages.yes_delete'),
+      rejectLabel: this.translate.instant('settings.roles_settings.messages.no_cancel'),
+      accept: () => {
+        if (!role._id) {
+          console.error('No se pudo obtener el ID del rol');
+          this.showErrorMessage('error_id');
+          return;
         }
-      });
+
+        this.userRolesService.deleteRole(role._id).subscribe({
+          next: () => {
+            console.log('Rol eliminado con éxito');
+            const index = this.roles.findIndex(r => r._id === role._id);
+            if (index !== -1) {
+              this.roles.splice(index, 1);
+            }
+            this.showSuccessMessage('role_deleted', role.name);
+          },
+          error: (error: unknown) => {
+            console.error('Error deleting role:', error);
+            this.showErrorMessage('error_delete');
+          }
+        });
+      }
     });
   }
 
   private showSuccessMessage(key: string, name: string) {
+    const summary = this.translate.instant(`settings.roles_settings.messages.${key}`);
+    const detail = this.translate.instant(`settings.roles_settings.messages.${key}_detail`).replace('{name}', name);
+    
     this.messageService.add({
       severity: 'success',
-      summary: this.translate.instant(`settings.roles_settings.messages.${key}`),
-      detail: this.translate.instant(`settings.roles_settings.messages.${key}_detail`, { name })
+      summary: summary,
+      detail: detail
     });
   }
 

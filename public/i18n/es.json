@@ -28,8 +28,8 @@
       "contactEmergency": "Emergencias"
     },
     "theme": {
-      "toggleLight": "Modo claro",
-      "toggleDark": "Modo oscuro"
+      "toggleLight": "Claro",
+      "toggleDark": "Oscuro"
     },
     "language": {
       "selectLanguage": "Seleccionar idioma",
@@ -245,7 +245,9 @@
                 "confirm": "Confirma tu nueva contraseña",
                 "update": "Actualizar Contraseña"
             }
-        }
+        },
+        "title": "Perfil",
+        "loading": "Cargando datos del perfil..."
     }
   }
   

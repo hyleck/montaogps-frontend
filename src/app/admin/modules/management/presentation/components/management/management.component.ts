@@ -200,15 +200,14 @@ constructor(
     
     this.userService.getById(userId).subscribe({
       next: (user) => {
+        console.log(user);
         this.selectedUser = user;
         // Actualizar el breadcrumb con el nombre del usuario
         this.items = [
           { label: `${user.name} ${user.last_name}` }
         ];
         if (isInitialLoad) {
-          setTimeout(() => {
             this.loading = false;
-          }, 1000);
         }
       },
       error: (error) => {

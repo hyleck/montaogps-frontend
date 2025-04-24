@@ -10,6 +10,9 @@ import { StatusService } from '../../../../../../shareds/services/status.service
 import { TranslateService } from '@ngx-translate/core';
 import { LangService } from '../../../../../../shareds/services/langi18/lang.service';
 import { TranslateModule } from '@ngx-translate/core';
+import { AuthService } from '../../../../../../core/services/auth.service';
+import { UserService } from '../../../../../../core/services/user.service';
+import { User as BackendUser } from '../../../../../../core/interfaces/user.interface';
 
 interface UserSettings {
     theme: string;
@@ -22,15 +25,12 @@ interface UserRole {
     name: string;
 }
 
-interface User {
-    _id: string;
-    name: string;
-    last_name: string;
-    email: string;
-    phone: string;
+// Interfaz extendida para el perfil del usuario
+interface ProfileUser extends BackendUser {
+    phone?: string;
     phone2?: string;
-    birth: string;
-    dni: string;
+    birth?: string;
+    dni?: string;
     address?: string;
     role?: UserRole;
     photo?: string;
@@ -54,9 +54,10 @@ interface User {
 export class ProfileComponent implements OnInit {
     items: MenuItem[] = [{ label: 'Perfil' }];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
+    loading: boolean = true;
 
-    user: User = {
-        _id: '',
+    user: ProfileUser = {
+        id: '',
         name: '',
         last_name: '',
         email: '',
@@ -91,19 +92,23 @@ export class ProfileComponent implements OnInit {
         private status: StatusService,
         private themesService: ThemesService,
         private translate: TranslateService,
-        private langService: LangService
+        private langService: LangService,
+        private authService: AuthService,
+        private userService: UserService
     ) {
         this.selectedTheme = this.themesService.getCurrentTheme();
-        // Inicializar el idioma del usuario con el idioma actual del sistema
         this.user.settings.language = this.translate.currentLang || this.translate.getDefaultLang();
     }
 
     ngOnInit() {
         // Inicialización de breadcrumbs
         this.items = [
-            { label: 'Perfil' }
+            { label: this.translate.instant('profile.title') }
         ];
         this.home = { icon: 'pi pi-home', routerLink: '/admin' };
+
+        // Cargar datos del usuario
+        this.loadUserProfile();
 
         // Suscripción a cambios de estado
         this.status.statusChanges$.subscribe((newStatus) => {
@@ -120,7 +125,6 @@ export class ProfileComponent implements OnInit {
         this.translate.onLangChange.subscribe(() => {
             this.updateThemeLabels();
             this.updateLanguageLabels();
-            // Actualizar el idioma seleccionado cuando cambie
             this.user.settings.language = this.translate.currentLang;
         });
     }
@@ -141,7 +145,71 @@ export class ProfileComponent implements OnInit {
     }
 
     loadUserProfile() {
-        // Aquí se implementará la carga de datos del usuario desde el servicio
+        this.loading = true;
+        const currentUser = this.authService.getCurrentUser();
+        
+        if (currentUser && currentUser.id) {
+            this.userService.getById(currentUser.id).subscribe({
+                next: (userData: any) => {
+                    console.log('Datos del usuario cargados:', userData);
+                    
+                    // Obtener la configuración del array settings
+                    const userSettingsArray = userData.settings || [];
+                    const userSettingsData = userSettingsArray.length > 0 ? userSettingsArray[0] : {};
+                    
+                    // Configurar el tema basado en los settings del usuario
+                    if (userSettingsData.theme) {
+                        this.selectedTheme = userSettingsData.theme;
+                        this.themesService.setTheme(userSettingsData.theme);
+                    }
+
+                    // Configurar el idioma basado en los settings del usuario
+                    if (userSettingsData.language) {
+                        this.translate.use(userSettingsData.language);
+                        this.langService.setLanguage(userSettingsData.language);
+                    }
+
+                    const userSettings = {
+                        theme: userSettingsData.theme || this.selectedTheme,
+                        language: userSettingsData.language || this.translate.currentLang || 'es',
+                        notifications: userSettingsData.notifications !== undefined ? userSettingsData.notifications : true
+                    };
+
+                    // Actualizar la foto si existe
+                    if (userData.photo) {
+                        this.userPhotoUrl = userData.photo;
+                    }
+
+                    this.user = {
+                        id: userData.id,
+                        name: userData.name,
+                        last_name: userData.last_name,
+                        email: userData.email,
+                        isActive: userData.isActive,
+                        createdAt: userData.createdAt,
+                        updatedAt: userData.updatedAt,
+                        access_level_id: userData.access_level_id,
+                        // Campos extendidos
+                        phone: userData.phone || '',
+                        phone2: userData.phone2 || '',
+                        birth: userData.birth || '',
+                        dni: userData.dni || '',
+                        address: userData.address || '',
+                        photo: userData.photo || '',
+                        settings: userSettings
+                    };
+
+                    this.loading = false;
+                },
+                error: (error) => {
+                    console.error('Error al cargar los datos del usuario:', error);
+                    this.loading = false;
+                }
+            });
+        } else {
+            console.error('No se encontró el ID del usuario actual');
+            this.loading = false;
+        }
     }
 
     onSubmit() {

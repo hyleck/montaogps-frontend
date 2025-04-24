@@ -1,6 +1,5 @@
 .profile-container {
-    padding: 1.5rem;
-    background-color: var(--managementColorBackgroundUser);
+   background-color: var(--managementColorBackgroundUser);
     height: calc(100vh - 110px);
     overflow: auto;
 }
@@ -11,7 +10,6 @@
     margin-bottom: 2rem;
     padding: 1.5rem;
     background-color: var(--managementColorCardBackground);
-    border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -26,14 +24,12 @@
     background-color: var(--managementColorIconUser);
     color: white;
     padding: 0.3rem 0.8rem;
-    border-radius: 15px;
     font-size: 0.85rem;
     display: inline-block;
 }
 
 .profile-content {
     background-color: var(--managementColorCardBackground);
-    border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     overflow: hidden;
 }

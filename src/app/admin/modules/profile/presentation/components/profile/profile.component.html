@@ -9,7 +9,10 @@
         <p-tabView>
             <!-- Pestaña de Información Personal -->
             <p-tabPanel [header]="'profile.personal_info.title' | translate">
-                <form class="profile-form" (ngSubmit)="onSubmit()">
+                <div *ngIf="loading" class="loading-indicator">
+                    <span>{{ 'profile.loading' | translate }}</span>
+                </div>
+                <form *ngIf="!loading" class="profile-form" (ngSubmit)="onSubmit()">
                     <div class="form-grid">
                         <div class="form-column">
                             <div class="form-group">
@@ -82,7 +85,7 @@
                         </div>
                         <div class="profile-photo-container">
                             <div class="profile-photo" [class.no-photo]="!userPhotoUrl">
-                                <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="'profile.settings.photo.alt' | translate">
+                                <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="'profile.settings.photo.alt' | translate" style="width: 100%; height: 100%; object-fit: cover;">
                                 <i *ngIf="!userPhotoUrl" class="pi pi-user"></i>
                             </div>
                             <div class="photo-actions">
