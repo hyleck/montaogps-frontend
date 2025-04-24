@@ -16,11 +16,18 @@ export class SettingsComponent implements OnInit {
 
     settingsCards = [
         {
+            titleKey: 'settings.system.title',
+            icon: 'pi pi-cog',
+            route: '/admin/settings/system',
+            descriptionKey: 'settings.system.description'
+        },
+        {
             titleKey: 'settings.roles.title',
             icon: 'pi pi-users',
             action: () => this.RolesFormDisplay = true,
             descriptionKey: 'settings.roles.description'
         },
+   
         {
             titleKey: 'settings.sectors.title',
             icon: 'pi pi-map',
@@ -32,12 +39,6 @@ export class SettingsComponent implements OnInit {
             icon: 'pi pi-tags',
             route: '/admin/settings/tags',
             descriptionKey: 'settings.tags.description'
-        },
-        {
-            titleKey: 'settings.features.title',
-            icon: 'pi pi-list',
-            route: '/admin/settings/features',
-            descriptionKey: 'settings.features.description'
         },
         {
             titleKey: 'settings.brands.title',

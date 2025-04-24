@@ -71,7 +71,10 @@ export class UserFormComponent implements OnInit {
         { value: 'brands', label: 'Marcas' },
         { value: 'models', label: 'Modelos' },
         { value: 'colors', label: 'Colores' },
-        { value: 'canceled', label: 'Cancelados' }
+        { value: 'canceled', label: 'Cancelados' },
+        { value: 'system', label: 'Sistema' },
+        { value: 'plans', label: 'Planes' },
+        { value: 'servers', label: 'Servidores' }
     ];
 
     moduleIcons: { [key: string]: string } = {
@@ -87,7 +90,10 @@ export class UserFormComponent implements OnInit {
         brands: 'pi pi-bookmark',
         models: 'pi pi-car',
         colors: 'pi pi-palette',
-        canceled: 'pi pi-ban'
+        canceled: 'pi pi-ban',
+        system: 'pi pi-server',
+        plans: 'pi pi-dollar',
+        servers: 'pi pi-database'
     };
 
     themes = [

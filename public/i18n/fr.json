@@ -176,9 +176,76 @@
           "brands": "Marques",
           "models": "Modèles",
           "colors": "Couleurs",
-          "canceled": "Annulés"
+          "canceled": "Annulés",
+          "system": "Système",
+          "plans": "Plans",
+          "servers": "Serveurs"
         }
+      },
+      "cards": {
+        "servers": {
+          "title": "Serveurs",
+          "description": "Gérer la configuration des serveurs du système"
+        },
+        "plans": {
+          "title": "Plans",
+          "description": "Gérer les plans et abonnements disponibles"
+        }
+      },
+      "system": {
+        "title": "Système",
+        "description": "Configuration générale du système"
       }
+    },
+    "profile": {
+        "personal_info": {
+            "title": "Informations Personnelles",
+            "name": "Prénom",
+            "name_placeholder": "Ex: Jean",
+            "email": "E-mail",
+            "email_placeholder": "Ex: jean@entreprise.com",
+            "birth_date": "Date de Naissance",
+            "phone": "Téléphone Principal",
+            "phone_placeholder": "Ex: (809) 555-0123",
+            "last_name": "Nom de Famille",
+            "last_name_placeholder": "Ex: Dupont Martin",
+            "dni": "Numéro d'Identification",
+            "dni_placeholder": "Ex: 001-0000000-0",
+            "address": "Adresse",
+            "address_placeholder": "Ex: Rue Principale #123, Quartier, Ville",
+            "phone2": "Téléphone Secondaire",
+            "phone2_placeholder": "Ex: (809) 555-0124",
+            "save_changes": "Enregistrer les Modifications"
+        },
+        "settings": {
+            "title": "Paramètres",
+            "photo": {
+                "title": "Photo de Profil",
+                "alt": "Photo de profil",
+                "change": "Changer la photo",
+                "remove": "Supprimer la photo",
+                "description": "Téléchargez une photo pour personnaliser votre profil"
+            },
+            "theme": {
+                "title": "Thème de l'Application",
+                "description": "Personnalisez l'apparence de l'application"
+            },
+            "language": {
+                "description": "Sélectionnez votre langue préférée"
+            },
+            "notifications": {
+                "title": "Notifications",
+                "enable": "Activer les notifications du système",
+                "description": "Recevez des alertes et des mises à jour importantes"
+            },
+            "password": {
+                "title": "Changer le Mot de Passe",
+                "current": "Entrez votre mot de passe actuel",
+                "new": "Entrez votre nouveau mot de passe",
+                "confirm": "Confirmez votre nouveau mot de passe",
+                "update": "Mettre à Jour le Mot de Passe"
+            }
+        }
     }
 }
   

@@ -78,14 +78,14 @@ export class NavbarComponent implements OnInit {
         icon: 'pi pi-user',
         command: () => this.router.navigate(['/admin/profile'])
       },
-      {
-        separator: true
-      },
-      {
-        label: this.currentTheme === 'light' ? this.translate.instant('theme.toggleDark') : this.translate.instant('theme.toggleLight'),
-        icon: this.currentTheme === 'light' ? 'pi pi-moon' : 'pi pi-sun',
-        command: () => this.toggleTheme()
-      },
+      // {
+      //   separator: true
+      // },
+      // {
+      //   label: this.currentTheme === 'light' ? this.translate.instant('theme.toggleDark') : this.translate.instant('theme.toggleLight'),
+      //   icon: this.currentTheme === 'light' ? 'pi pi-moon' : 'pi pi-sun',
+      //   command: () => this.toggleTheme()
+      // },
       {
         separator: true
       },

@@ -176,7 +176,10 @@
           "brands": "Marcas",
           "models": "Modelos",
           "colors": "Colores",
-          "canceled": "Cancelados"
+          "canceled": "Cancelados",
+          "system": "Sistema",
+          "plans": "Planes",
+          "servers": "Servidores"
         }
       },
       "cards": {
@@ -188,7 +191,61 @@
           "title": "Planes",
           "description": "Administra los planes y suscripciones disponibles"
         }
+      },
+      "system": {
+        "title": "Sistema",
+        "description": "Configuración general del sistema"
       }
+    },
+    "profile": {
+        "personal_info": {
+            "title": "Información Personal",
+            "name": "Nombre",
+            "name_placeholder": "Ej: Juan",
+            "email": "Correo Electrónico",
+            "email_placeholder": "Ej: juan@empresa.com",
+            "birth_date": "Fecha de Nacimiento",
+            "phone": "Teléfono Principal",
+            "phone_placeholder": "Ej: (809) 555-0123",
+            "last_name": "Apellidos",
+            "last_name_placeholder": "Ej: Pérez Gómez",
+            "dni": "DNI/Cédula",
+            "dni_placeholder": "Ej: 001-0000000-0",
+            "address": "Dirección",
+            "address_placeholder": "Ej: Calle Principal #123, Sector, Ciudad",
+            "phone2": "Teléfono Secundario",
+            "phone2_placeholder": "Ej: (809) 555-0124",
+            "save_changes": "Guardar Cambios"
+        },
+        "settings": {
+            "title": "Configuración",
+            "photo": {
+                "title": "Foto de Perfil",
+                "alt": "Foto de perfil",
+                "change": "Cambiar foto",
+                "remove": "Eliminar foto",
+                "description": "Sube una foto para personalizar tu perfil"
+            },
+            "theme": {
+                "title": "Tema de la Aplicación",
+                "description": "Personaliza la apariencia de la aplicación"
+            },
+            "language": {
+                "description": "Selecciona el idioma de tu preferencia"
+            },
+            "notifications": {
+                "title": "Notificaciones",
+                "enable": "Activar notificaciones del sistema",
+                "description": "Recibe alertas y actualizaciones importantes"
+            },
+            "password": {
+                "title": "Cambiar Contraseña",
+                "current": "Ingresa tu contraseña actual",
+                "new": "Ingresa tu nueva contraseña",
+                "confirm": "Confirma tu nueva contraseña",
+                "update": "Actualizar Contraseña"
+            }
+        }
     }
   }
   

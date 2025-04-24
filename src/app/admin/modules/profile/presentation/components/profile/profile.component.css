@@ -1,0 +1,518 @@
+.profile-container {
+    padding: 1.5rem;
+    background-color: var(--managementColorBackgroundUser);
+    height: calc(100vh - 110px);
+    overflow: auto;
+}
+
+.profile-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: var(--managementColorCardBackground);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.profile-info h2 {
+    color: var(--managementColorTextUser);
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.role-badge {
+    background-color: var(--managementColorIconUser);
+    color: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    display: inline-block;
+}
+
+.profile-content {
+    background-color: var(--managementColorCardBackground);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+/* Estilos para la sección de foto de perfil */
+.profile-photo-section {
+    text-align: center;
+}
+
+.profile-photo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.profile-photo {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 3px solid var(--managementColorIconUser);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--managementColorInputSearch);
+    transition: all 0.3s ease;
+}
+
+.profile-photo.no-photo {
+    background-color: var(--managementColorCardBackground);
+}
+
+.profile-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-photo i {
+    font-size: 4rem;
+    color: var(--managementColorIconUser);
+    opacity: 0.8;
+}
+
+.photo-actions {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+}
+
+.change-photo-btn,
+.remove-photo-btn {
+    background-color: var(--managementColorTitleUser);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.change-photo-btn:hover {
+    background-color: var(--managementColorIconUser);
+    transform: translateY(-2px);
+}
+
+.remove-photo-btn {
+    background-color: #ef4444;
+}
+
+.remove-photo-btn:hover {
+    background-color: #dc2626;
+    transform: translateY(-2px);
+}
+
+/* Estilos para las pestañas */
+:host ::ng-deep .p-tabview .p-tabview-nav {
+    background-color: var(--managementColorCardBackground);
+    border-bottom: 1px solid var(--managementFieldsBorder);
+    padding: 0 1rem;
+}
+
+:host ::ng-deep .p-tabview .p-tabview-nav li .p-tabview-nav-link {
+    color: var(--managementColorTextUser);
+    padding: 1rem 1.5rem;
+}
+
+:host ::ng-deep .p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+    color: var(--managementColorTitleUser);
+    border-color: var(--managementColorTitleUser);
+}
+
+/* Estilos del formulario */
+.profile-form {
+    padding: 1.5rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.2rem;
+}
+
+.form-group label {
+    display: block;
+    color: var(--managementColorTextUser);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 4px;
+    background-color: var(--managementColorInputSearch);
+    color: var(--managementColorTextUser);
+    transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: var(--managementColorTitleUser);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(236, 67, 67, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-actions {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 1rem;
+}
+
+.save-button {
+    background-color: var(--managementColorTitleUser);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.8rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.save-button:hover {
+    background-color: var(--managementColorIconUser);
+    transform: translateY(-1px);
+}
+
+/* Estilos de la pestaña de configuración */
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    padding: 1.5rem;
+}
+
+.settings-item {
+    background-color: var(--managementColorBackgroundUser);
+    border-radius: 8px;
+    padding: 1.2rem;
+    border: 1px solid var(--managementFieldsBorder);
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.settings-header i {
+    color: var(--managementColorIconUser);
+    font-size: 1.2rem;
+}
+
+.settings-header h3 {
+    color: var(--managementColorTextUser);
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.settings-item select {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 4px;
+    background-color: var(--managementColorInputSearch);
+    color: var(--managementColorTextUser);
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.8rem center;
+    padding-right: 2.5rem;
+}
+
+.settings-item select:focus {
+    border-color: var(--managementColorTitleUser);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(236, 67, 67, 0.1);
+}
+
+.settings-item select:hover {
+    border-color: var(--managementColorIconUser);
+}
+
+.settings-item select option {
+    background-color: var(--managementColorInputSearch);
+    color: var(--managementColorTextUser);
+    padding: 0.8rem;
+}
+
+.settings-toggle {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.settings-toggle span {
+    color: var(--managementColorTextUser);
+}
+
+.settings-item small {
+    color: var(--managementColorTextUser);
+    opacity: 0.7;
+    font-size: 0.85rem;
+    display: block;
+    margin-top: 0.5rem;
+}
+
+.password-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.password-fields input {
+    padding: 0.6rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 4px;
+    background-color: var(--managementColorInputSearch);
+    color: var(--managementColorTextUser);
+    transition: all 0.2s;
+}
+
+.password-fields input:focus {
+    border-color: var(--managementColorTitleUser);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(236, 67, 67, 0.1);
+}
+
+.change-password-btn {
+    background-color: var(--managementColorTitleUser);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+.change-password-btn:hover {
+    background-color: var(--managementColorIconUser);
+    transform: translateY(-1px);
+}
+
+/* Estilos para el checkbox de PrimeNG */
+:host ::ng-deep .p-checkbox {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+:host ::ng-deep .p-checkbox .p-checkbox-box {
+    border-color: var(--managementFieldsBorder);
+}
+
+:host ::ng-deep .p-checkbox .p-checkbox-box.p-highlight {
+    background-color: var(--managementColorTitleUser);
+    border-color: var(--managementColorTitleUser);
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .profile-header {
+        text-align: center;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .photo-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .change-photo-btn,
+    .remove-photo-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Estilos para la previsualización de temas */
+.theme-preview {
+    display: flex;
+    gap: 1rem;
+    margin: 1rem 0;
+    justify-content: center;
+}
+
+.theme-box {
+    width: 140px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    border: 2px solid var(--managementFieldsBorder);
+}
+
+.theme-box.active {
+    border-color: var(--managementColorTitleUser);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.theme-box.light {
+    background-color: #ffffff;
+}
+
+.theme-box.dark {
+    background-color: #1f1f1f;
+}
+
+.theme-header {
+    height: 20px;
+    background-color: #f0f0f0;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+}
+
+.theme-box.dark .theme-header {
+    background-color: #2d2d2d;
+}
+
+.theme-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.theme-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #ccc;
+}
+
+.theme-box.dark .theme-dots span {
+    background-color: #666;
+}
+
+.theme-content {
+    display: flex;
+    height: calc(100% - 20px);
+}
+
+.theme-sidebar {
+    width: 30%;
+    background-color: #f8f8f8;
+    border-right: 1px solid #eee;
+}
+
+.theme-box.dark .theme-sidebar {
+    background-color: #2a2a2a;
+    border-right-color: #333;
+}
+
+.theme-main {
+    flex: 1;
+    padding: 8px;
+}
+
+.theme-line {
+    height: 6px;
+    background-color: #eee;
+    margin-bottom: 6px;
+    border-radius: 3px;
+}
+
+.theme-line.short {
+    width: 60%;
+}
+
+.theme-box.dark .theme-line {
+    background-color: #333;
+}
+
+.theme-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    padding: 4px;
+    background-color: rgba(0, 0, 0, 0.05);
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.theme-box.dark .theme-label {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.theme-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.theme-box.light .theme-sidebar {
+    background-color: #2d2d2d;
+    border-right-color: #333;
+}
+
+.theme-box.light .theme-main {
+    background-color: #ffffff;
+}
+
+.theme-box.light .theme-line {
+    background-color: #eee;
+}
+
+.theme-box.light .theme-header {
+    background-color: #bd3535;
+}
+
+.theme-box.light .theme-dots span {
+    background-color: rgba(255, 255, 255, 0.5);
+}

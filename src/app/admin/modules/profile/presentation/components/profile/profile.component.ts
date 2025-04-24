@@ -7,6 +7,9 @@ import { TabViewModule } from 'primeng/tabview';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ThemesService } from '../../../../../../shareds/services/themes.service';
 import { StatusService } from '../../../../../../shareds/services/status.service';
+import { TranslateService } from '@ngx-translate/core';
+import { LangService } from '../../../../../../shareds/services/langi18/lang.service';
+import { TranslateModule } from '@ngx-translate/core';
 
 interface UserSettings {
     theme: string;
@@ -44,7 +47,8 @@ interface User {
         FormsModule,
         BreadcrumbModule,
         TabViewModule,
-        CheckboxModule
+        CheckboxModule,
+        TranslateModule
     ]
 })
 export class ProfileComponent implements OnInit {
@@ -79,14 +83,19 @@ export class ProfileComponent implements OnInit {
 
     languages = [
         { label: 'Español', value: 'es' },
-        { label: 'English', value: 'en' }
+        { label: 'English', value: 'en' },
+        { label: 'Français', value: 'fr' }
     ];
 
     constructor(
         private status: StatusService,
-        private themesService: ThemesService
+        private themesService: ThemesService,
+        private translate: TranslateService,
+        private langService: LangService
     ) {
         this.selectedTheme = this.themesService.getCurrentTheme();
+        // Inicializar el idioma del usuario con el idioma actual del sistema
+        this.user.settings.language = this.translate.currentLang || this.translate.getDefaultLang();
     }
 
     ngOnInit() {
@@ -102,6 +111,33 @@ export class ProfileComponent implements OnInit {
                 this.selectedTheme = newStatus.theme as string;
             }
         });
+
+        // Actualizar las etiquetas de los temas según el idioma actual
+        this.updateThemeLabels();
+        this.updateLanguageLabels();
+
+        // Suscribirse a cambios de idioma
+        this.translate.onLangChange.subscribe(() => {
+            this.updateThemeLabels();
+            this.updateLanguageLabels();
+            // Actualizar el idioma seleccionado cuando cambie
+            this.user.settings.language = this.translate.currentLang;
+        });
+    }
+
+    private updateThemeLabels() {
+        this.themes = [
+            { label: this.translate.instant('theme.toggleLight'), value: 'light' },
+            { label: this.translate.instant('theme.toggleDark'), value: 'dark' }
+        ];
+    }
+
+    private updateLanguageLabels() {
+        this.languages = [
+            { label: this.translate.instant('language.es'), value: 'es' },
+            { label: this.translate.instant('language.en'), value: 'en' },
+            { label: this.translate.instant('language.fr'), value: 'fr' }
+        ];
     }
 
     loadUserProfile() {
@@ -124,5 +160,12 @@ export class ProfileComponent implements OnInit {
 
     onThemeChange() {
         this.themesService.setTheme(this.selectedTheme);
+    }
+
+    onLanguageChange(language: string) {
+        this.langService.setLanguage(language);
+        this.translate.use(language);
+        // Actualizar el idioma en las configuraciones del usuario
+        this.user.settings.language = language;
     }
 }

@@ -30,7 +30,10 @@ export class UserRolesSettingsComponent implements OnInit {
     'brands',
     'models',
     'colors',
-    'canceled'
+    'canceled',
+    'system',
+    'plans',
+    'servers'
   ];
 
   // Mapeo de módulos a sus traducciones
@@ -47,7 +50,10 @@ export class UserRolesSettingsComponent implements OnInit {
     'brands': 'settings.roles_settings.modules.brands',
     'models': 'settings.roles_settings.modules.models',
     'colors': 'settings.roles_settings.modules.colors',
-    'canceled': 'settings.roles_settings.modules.canceled'
+    'canceled': 'settings.roles_settings.modules.canceled',
+    'system': 'settings.roles_settings.modules.system',
+    'plans': 'settings.roles_settings.modules.plans',
+    'servers': 'settings.roles_settings.modules.servers'
   };
 
   moduleIcons: { [key: string]: string } = {
@@ -63,7 +69,10 @@ export class UserRolesSettingsComponent implements OnInit {
     brands: 'pi pi-bookmark',
     models: 'pi pi-car',
     colors: 'pi pi-palette',
-    canceled: 'pi pi-ban'
+    canceled: 'pi pi-ban',
+    system: 'pi pi-cog',
+    plans: 'pi pi-list',
+    servers: 'pi pi-server'
   };
 
   roleForm = {

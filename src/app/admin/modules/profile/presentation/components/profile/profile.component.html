@@ -1,8 +1,199 @@
-
 <div class="management__route">
+    <p-breadcrumb [model]="items" [home]="home" />
+</div>
 
-    <p-breadcrumb 
-    
-    [model]="items" 
-    [home]="home" />
+<div class="profile-container">
+  
+
+    <div class="profile-content">
+        <p-tabView>
+            <!-- Pestaña de Información Personal -->
+            <p-tabPanel [header]="'profile.personal_info.title' | translate">
+                <form class="profile-form" (ngSubmit)="onSubmit()">
+                    <div class="form-grid">
+                        <div class="form-column">
+                            <div class="form-group">
+                                <label for="name">{{ 'profile.personal_info.name' | translate }}</label>
+                                <input [(ngModel)]="user.name" name="name" type="text" id="name" 
+                                    [placeholder]="'profile.personal_info.name_placeholder' | translate" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email">{{ 'profile.personal_info.email' | translate }}</label>
+                                <input [(ngModel)]="user.email" name="email" type="email" id="email" 
+                                    [placeholder]="'profile.personal_info.email_placeholder' | translate" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="birth">{{ 'profile.personal_info.birth_date' | translate }}</label>
+                                <input [(ngModel)]="user.birth" name="birth" type="date" id="birth" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="phone">{{ 'profile.personal_info.phone' | translate }}</label>
+                                <input [(ngModel)]="user.phone" name="phone" type="tel" id="phone" 
+                                    [placeholder]="'profile.personal_info.phone_placeholder' | translate" required>
+                            </div>
+                        </div>
+
+                        <div class="form-column">
+                            <div class="form-group">
+                                <label for="last_name">{{ 'profile.personal_info.last_name' | translate }}</label>
+                                <input [(ngModel)]="user.last_name" name="last_name" type="text" id="last_name" 
+                                    [placeholder]="'profile.personal_info.last_name_placeholder' | translate" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="dni">{{ 'profile.personal_info.dni' | translate }}</label>
+                                <input [(ngModel)]="user.dni" name="dni" type="text" id="dni" 
+                                    [placeholder]="'profile.personal_info.dni_placeholder' | translate" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="address">{{ 'profile.personal_info.address' | translate }}</label>
+                                <textarea [(ngModel)]="user.address" name="address" id="address" rows="3" 
+                                    [placeholder]="'profile.personal_info.address_placeholder' | translate"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="phone2">{{ 'profile.personal_info.phone2' | translate }}</label>
+                                <input [(ngModel)]="user.phone2" name="phone2" type="tel" id="phone2" 
+                                    [placeholder]="'profile.personal_info.phone2_placeholder' | translate">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="save-button">
+                            <i class="pi pi-save"></i>
+                            {{ 'profile.personal_info.save_changes' | translate }}
+                        </button>
+                    </div>
+                </form>
+            </p-tabPanel>
+
+            <!-- Pestaña de Configuración -->
+            <p-tabPanel [header]="'profile.settings.title' | translate">
+                <div class="settings-grid">
+                    <div class="settings-item profile-photo-section">
+                        <div class="settings-header">
+                            <i class="pi pi-user"></i>
+                            <h3>{{ 'profile.settings.photo.title' | translate }}</h3>
+                        </div>
+                        <div class="profile-photo-container">
+                            <div class="profile-photo" [class.no-photo]="!userPhotoUrl">
+                                <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="'profile.settings.photo.alt' | translate">
+                                <i *ngIf="!userPhotoUrl" class="pi pi-user"></i>
+                            </div>
+                            <div class="photo-actions">
+                                <button class="change-photo-btn">
+                                    <i class="pi pi-camera"></i>
+                                    <span>{{ 'profile.settings.photo.change' | translate }}</span>
+                                </button>
+                                <button class="remove-photo-btn" *ngIf="userPhotoUrl">
+                                    <i class="pi pi-trash"></i>
+                                    <span>{{ 'profile.settings.photo.remove' | translate }}</span>
+                                </button>
+                            </div>
+                        </div>
+                        <small>{{ 'profile.settings.photo.description' | translate }}</small>
+                    </div>
+
+                    <div class="settings-item">
+                        <div class="settings-header">
+                            <i class="pi pi-palette"></i>
+                            <h3>{{ 'profile.settings.theme.title' | translate }}</h3>
+                        </div>
+                        <select [(ngModel)]="selectedTheme" (change)="onThemeChange()">
+                            <option *ngFor="let theme of themes" [value]="theme.value">{{ theme.label }}</option>
+                        </select>
+                        <div class="theme-preview">
+                            <div class="theme-box light" [class.active]="selectedTheme === 'light'" (click)="selectedTheme = 'light'; onThemeChange()">
+                                <div class="theme-header">
+                                    <div class="theme-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
+                                <div class="theme-content">
+                                    <div class="theme-sidebar">
+                                        <div class="theme-line"></div>
+                                        <div class="theme-line short"></div>
+                                    </div>
+                                    <div class="theme-main">
+                                        <div class="theme-line"></div>
+                                        <div class="theme-line short"></div>
+                                    </div>
+                                </div>
+                                <div class="theme-label">{{ 'theme.toggleLight' | translate }}</div>
+                            </div>
+                            <div class="theme-box dark" [class.active]="selectedTheme === 'dark'" (click)="selectedTheme = 'dark'; onThemeChange()">
+                                <div class="theme-header">
+                                    <div class="theme-dots">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
+                                    </div>
+                                </div>
+                                <div class="theme-content">
+                                    <div class="theme-sidebar">
+                                        <div class="theme-line"></div>
+                                        <div class="theme-line short"></div>
+                                    </div>
+                                    <div class="theme-main">
+                                        <div class="theme-line"></div>
+                                        <div class="theme-line short"></div>
+                                    </div>
+                                </div>
+                                <div class="theme-label">{{ 'theme.toggleDark' | translate }}</div>
+                            </div>
+                        </div>
+                        <small>{{ 'profile.settings.theme.description' | translate }}</small>
+                    </div>
+
+                    <div class="settings-item">
+                        <div class="settings-header">
+                            <i class="pi pi-globe"></i>
+                            <h3>{{ 'language.selectLanguage' | translate }}</h3>
+                        </div>
+                        <select [(ngModel)]="user.settings.language" (change)="onLanguageChange(user.settings.language)" name="language" class="settings-select">
+                            <option *ngFor="let lang of languages" [value]="lang.value">
+                                {{lang.label}}
+                            </option>
+                        </select>
+                        <small>{{ 'profile.settings.language.description' | translate }}</small>
+                    </div>
+
+                    <div class="settings-item">
+                        <div class="settings-header">
+                            <i class="pi pi-bell"></i>
+                            <h3>{{ 'profile.settings.notifications.title' | translate }}</h3>
+                        </div>
+                        <div class="settings-toggle">
+                            <p-checkbox [(ngModel)]="user.settings.notifications" [binary]="true"></p-checkbox>
+                            <span>{{ 'profile.settings.notifications.enable' | translate }}</span>
+                        </div>
+                        <small>{{ 'profile.settings.notifications.description' | translate }}</small>
+                    </div>
+
+                    <div class="settings-item">
+                        <div class="settings-header">
+                            <i class="pi pi-lock"></i>
+                            <h3>{{ 'profile.settings.password.title' | translate }}</h3>
+                        </div>
+                        <div class="password-fields">
+                            <input type="password" [placeholder]="'profile.settings.password.current' | translate" [(ngModel)]="currentPassword">
+                            <input type="password" [placeholder]="'profile.settings.password.new' | translate" [(ngModel)]="newPassword">
+                            <input type="password" [placeholder]="'profile.settings.password.confirm' | translate" [(ngModel)]="confirmPassword">
+                            <button class="change-password-btn" (click)="onChangePassword()">
+                                <i class="pi pi-check"></i>
+                                {{ 'profile.settings.password.update' | translate }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </p-tabPanel>
+        </p-tabView>
+    </div>
 </div>

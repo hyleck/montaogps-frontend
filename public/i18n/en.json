@@ -176,9 +176,76 @@
           "brands": "Brands",
           "models": "Models",
           "colors": "Colors",
-          "canceled": "Canceled"
+          "canceled": "Canceled",
+          "system": "System",
+          "plans": "Plans",
+          "servers": "Servers"
         }
+      },
+      "cards": {
+        "servers": {
+          "title": "Servers",
+          "description": "Manage system server configuration"
+        },
+        "plans": {
+          "title": "Plans",
+          "description": "Manage available plans and subscriptions"
+        }
+      },
+      "system": {
+        "title": "System",
+        "description": "General system configuration"
       }
+    },
+    "profile": {
+        "personal_info": {
+            "title": "Personal Information",
+            "name": "Name",
+            "name_placeholder": "Ex: John",
+            "email": "Email",
+            "email_placeholder": "Ex: john@company.com",
+            "birth_date": "Birth Date",
+            "phone": "Primary Phone",
+            "phone_placeholder": "Ex: (809) 555-0123",
+            "last_name": "Last Name",
+            "last_name_placeholder": "Ex: Smith Johnson",
+            "dni": "ID Number",
+            "dni_placeholder": "Ex: 001-0000000-0",
+            "address": "Address",
+            "address_placeholder": "Ex: Main Street #123, District, City",
+            "phone2": "Secondary Phone",
+            "phone2_placeholder": "Ex: (809) 555-0124",
+            "save_changes": "Save Changes"
+        },
+        "settings": {
+            "title": "Settings",
+            "photo": {
+                "title": "Profile Photo",
+                "alt": "Profile photo",
+                "change": "Change photo",
+                "remove": "Remove photo",
+                "description": "Upload a photo to personalize your profile"
+            },
+            "theme": {
+                "title": "Application Theme",
+                "description": "Customize the application appearance"
+            },
+            "language": {
+                "description": "Select your preferred language"
+            },
+            "notifications": {
+                "title": "Notifications",
+                "enable": "Enable system notifications",
+                "description": "Receive important alerts and updates"
+            },
+            "password": {
+                "title": "Change Password",
+                "current": "Enter your current password",
+                "new": "Enter your new password",
+                "confirm": "Confirm your new password",
+                "update": "Update Password"
+            }
+        }
     }
   }
   
