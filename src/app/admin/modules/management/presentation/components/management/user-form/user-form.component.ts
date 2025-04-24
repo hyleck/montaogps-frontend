@@ -228,19 +228,15 @@ export class UserFormComponent implements OnInit {
 
     onRoleChange() {
         if (!this.user.role) {
-            this.user.role = null;
             return;
         }
         
         const selectedRole = this.roles.find(r => r._id === this.user.role?._id);
         if (selectedRole) {
-            this.user.role = {
-                ...selectedRole,
-                privileges: selectedRole.privileges.map(p => ({
-                    ...p,
-                    actions: { ...p.actions }
-                }))
-            };
+            this.user.role.privileges = selectedRole.privileges.map(p => ({
+                ...p,
+                actions: { ...p.actions }
+            }));
         }
     }
 

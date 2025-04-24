@@ -95,6 +95,32 @@
     padding: 0.5rem;
 }
 
+.user-form__field select:hover,
+.user-form__field select:focus {
+    border-color: var(--managementColorBorderInput);
+    outline: none;
+}
+
+.user-form__field select:focus {
+    box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
+}
+
+/* Estilos para inputs, selects y textareas */
+.user-form__field input,
+.user-form__field select,
+.user-form__field textarea {
+    background-color: var(--managementColorInputSearch);
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 4px;
+    padding: 0.4rem 0.5rem;
+    color: var(--managementColorTextUser);
+    transition: all 0.3s ease;
+    width: 100%;
+    font-size: 0.9rem;
+    font-family: inherit;
+    height: 32px;
+}
+
 /* Estilos para botones nativos */
 button[type="submit"] {
     background-color: var(--managementColorTitleUser);
@@ -209,6 +235,7 @@ button[type="submit"] .pi {
     border: 1px solid var(--managementFieldsBorder);
     border-radius: 8px;
     background-color: var(--managementColorBackgroundUser);
+    position: relative;
 }
 
 .modules-privileges h4 {
@@ -500,7 +527,6 @@ button[type="submit"] .pi {
     padding: 0.5rem 1rem;
     margin-right: 1rem;
     background-color: var(--managementColorTitleUser);
-    color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -570,7 +596,6 @@ select {
     border: 1px solid var(--surface-border);
     border-radius: 6px;
     background-color: var(--surface-card);
-    color: var(--text-color);
     font-size: 0.9rem;
     transition: border-color 0.2s, box-shadow 0.2s;
     cursor: pointer;
@@ -599,8 +624,8 @@ select option {
 }
 
 /* Estilo específico para el modo oscuro */
-:host-context(.app-dark) .user-form__field select option,
-:host-context(.app-dark) .settings-dropdown option {
+:host-context(.app-dark) .user-form__field select,
+:host-context(.app-dark) .user-form__field select option {
     background-color: var(--managementColorInputSearch);
     color: var(--managementColorTextUser);
 }
@@ -649,20 +674,6 @@ select option {
     font-size: 0.85rem;
 }
 
-/* Estilos específicos para modo oscuro */
-:host-context(.app-dark) .user-form__field select,
-:host-context(.app-dark) .settings-dropdown {
-    background-color: var(--managementColorInputSearch);
-    color: var(--managementColorTextUser);
-    border-color: var(--managementFieldsBorder);
-}
-
-:host-context(.app-dark) .user-form__field select option,
-:host-context(.app-dark) .settings-dropdown option {
-    background-color: var(--managementColorInputSearch);
-    color: var(--managementColorTextUser);
-    font-size: 0.85rem;
-}
 
 /* Estilos para el hover y focus de las opciones */
 .user-form__field select option:hover,
@@ -670,4 +681,41 @@ select option {
 .user-form__field select option:focus,
 .settings-dropdown option:focus {
     background-color: var(--managementColorBorderInput);
+}
+
+.disabled-privileges {
+    opacity: 0.6;
+    pointer-events: none;
+    filter: grayscale(100%);
+}
+
+.disabled-privileges::before {
+    content: 'Seleccione un rol para gestionar los privilegios';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--managementColorBackgroundUser);
+    color: var(--managementColorTextUser);
+    padding: 1rem 2rem;
+    border-radius: 4px;
+    z-index: 10;
+    text-align: center;
+    font-weight: 500;
+    box-shadow: 0 2px 8px var(--globalColorShadow);
+    white-space: nowrap;
+    border: 1px solid var(--managementFieldsBorder);
+}
+
+.disabled-privileges .modules-list {
+    filter: blur(2px);
+}
+
+.disabled-privileges .module-section {
+    pointer-events: none;
+    user-select: none;
+}
+
+.disabled-privileges .privilege-action {
+    opacity: 0.5;
 }
