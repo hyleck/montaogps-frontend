@@ -56,6 +56,20 @@ export class SettingsComponent implements OnInit {
             icon: 'pi pi-palette',
             route: '/admin/settings/colors',
             descriptionKey: 'settings.colors.description'
+        },
+        {
+            icon: 'pi pi-server',
+            titleKey: 'settings.cards.servers.title',
+            descriptionKey: 'settings.cards.servers.description',
+            route: '/admin/settings/servers',
+            action: undefined
+        },
+        {
+            icon: 'pi pi-list',
+            titleKey: 'settings.cards.plans.title',
+            descriptionKey: 'settings.cards.plans.description',
+            route: '/admin/settings/plans',
+            action: undefined
         }
     ];
 
@@ -87,7 +101,9 @@ export class SettingsComponent implements OnInit {
     navigateTo(route: string | undefined, action?: () => void): void {
         if (action) {
             action();
-        } else if (route) {
+            return;
+        }
+        if (route) {
             this.router.navigate([route]);
         }
     }

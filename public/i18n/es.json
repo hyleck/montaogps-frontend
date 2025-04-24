@@ -178,6 +178,16 @@
           "colors": "Colores",
           "canceled": "Cancelados"
         }
+      },
+      "cards": {
+        "servers": {
+          "title": "Servidores",
+          "description": "Gestiona la configuración de los servidores del sistema"
+        },
+        "plans": {
+          "title": "Planes",
+          "description": "Administra los planes y suscripciones disponibles"
+        }
       }
     }
   }
