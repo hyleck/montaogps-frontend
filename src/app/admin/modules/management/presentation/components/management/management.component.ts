@@ -3,6 +3,9 @@ import { MenuItem } from 'primeng/api';
 import { ThemesService } from '../../../../../../shareds/services/themes.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { StatusService } from '../../../../../../shareds/services/status.service';
+import { AuthService } from '../../../../../../core/services/auth.service';
+import { UserService } from '../../../../../../core/services/user.service';
+import { User } from '../../../../../../core/interfaces';
 
 @Component({
     selector: 'app-management',
@@ -14,6 +17,7 @@ export class ManagementComponent {
   
   userFormDisplay: boolean = false;
   targetFormDisplay: boolean = false;
+  loading: boolean = true;
 
 // Propiedades relacionadas con el menú y la navegación
 items: MenuItem[] | undefined;
@@ -28,6 +32,7 @@ searchUsersTerm: string = '';
 searchTargetsTerm: string = '';
 currentUserId: string | undefined;
 showMaps: boolean = false;
+selectedUser: User | undefined;
 
 customers = [
   {
@@ -116,7 +121,9 @@ isScreenSmall: boolean = false;
 constructor(
   public _router: Router,
   public route: ActivatedRoute,
-  private status: StatusService
+  private status: StatusService,
+  private authService: AuthService,
+  private userService: UserService
 ) {}
 
  // Escucha cambios en el tamaño de la ventana
@@ -186,6 +193,35 @@ constructor(
       });
   }
 
+  loadUserData(userId: string, isInitialLoad: boolean = false) {
+    if (isInitialLoad) {
+      this.loading = true;
+    }
+    
+    this.userService.getById(userId).subscribe({
+      next: (user) => {
+        this.selectedUser = user;
+        // Actualizar el breadcrumb con el nombre del usuario
+        this.items = [
+          { label: `${user.name} ${user.last_name}` }
+        ];
+        if (isInitialLoad) {
+          setTimeout(() => {
+            this.loading = false;
+          }, 1000);
+        }
+      },
+      error: (error) => {
+        console.error('Error al cargar los datos del usuario:', error);
+        // Si hay error al cargar el usuario, redirigir al dashboard
+        this._router.navigate(['/admin/dashboard']);
+        if (isInitialLoad) {
+          this.loading = false;
+        }
+      }
+    });
+  }
+
   verifyURLStatus(params: any) {
     this.op = params['op'];
     this.currentUserId = params['user'];
@@ -200,56 +236,63 @@ constructor(
       this.goDefaultRoute();
     }
 
+    // Si hay un ID de usuario en la URL, cargar sus datos sin mostrar el skeleton
+    if (this.currentUserId) {
+      this.loadUserData(this.currentUserId, false);
+    }
+
     this.setURLStatus();
   }
 
   goDefaultRoute() {
-    this._router.navigate(
-      ['/admin/management', 't', '4541321asd3sad1sad'],
-      { queryParams: { search: this.searchUsersTerm } }
-      );
+    const currentUser = this.authService.getCurrentUser();
+    if (currentUser) {
+      this._router.navigate(['admin/management', 'u', currentUser.id]);
+    } else {
+      this._router.navigate(['auth/login']);
+    }
   }
 
   ngOnInit() {
+    this.loading = true;
+    this.checkScreenSize();
 
-    const params = this.route.snapshot.params;
-    if(!params['op'] && !params['user']){
-      this.goDefaultRoute();
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) {
+      this._router.navigate(['auth/login']);
+      return;
     }
-    
 
-    this.route.params.subscribe((params: any) => {
+    this.currentUserId = currentUser.id;
+    
+    this.loadUserData(currentUser.id, true);
+
+    this.route.params.subscribe(params => {
+      if (params['user'] && params['user'] !== this.currentUserId) {
+        this.loadUserData(params['user'], false);
+      }
       this.verifyURLStatus(params);
     });
 
     this.status.statusChanges$.subscribe((newStatus) => {
       if (newStatus.management_show_maps) {
-      this.showMaps = newStatus.management_show_maps.showMaps as boolean;
+        this.showMaps = newStatus.management_show_maps.showMaps as boolean;
       }
       if (newStatus.theme) {
-      this.currentTheme = newStatus.theme as string;
+        this.currentTheme = newStatus.theme as string;
       }
     });
 
-
-    this.checkScreenSize();
     this.route.queryParams.subscribe(queryParams => {
-
       if(this.op == 'u'){
         this.searchUsersTerm = queryParams['search'];
       }else if(this.op == 't'){
         this.searchTargetsTerm = queryParams['search'];
       }
-
-      this.setURLStatus()
+      this.setURLStatus();
     });
 
-      this.items = [
-          { label: 'Frankely García Diaz' }, 
-          { label: 'Antonio Guzman' }, 
-      ];
-
-      this.home = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
+    this.home = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
   }
 
 

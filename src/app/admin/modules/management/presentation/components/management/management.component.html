@@ -21,13 +21,15 @@
                         <i class="pi pi-user"></i>
                     </div>
                     <div class="management__user-control-title">
-                        <strong>Frankely Garcia</strong>
+                        <strong *ngIf="!loading">{{ selectedUser?.name }} {{ selectedUser?.last_name }}</strong>
+                        <p-skeleton *ngIf="loading" width="150px" height="24px"></p-skeleton>
                     </div>
                     <div class="management__user-control-subtitle">
-                        <span>Administrador</span>
+                        <span *ngIf="!loading">{{ selectedUser?.email }}</span>
+                        <p-skeleton *ngIf="loading" width="120px" height="18px"></p-skeleton>
                     </div>
              
-                    <div class="management__user-control-controls">
+                    <div class="management__user-control-controls" *ngIf="!loading">
                         <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': op === 'u', 'button--flat': op != 'u' }" class="button"> <i class="pi pi-users"></i> Usuarios ( 45 )</button>
                         <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': op === 't', 'button--flat': op != 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> Objetivos ( 2 )</button>
                     </div>
@@ -134,20 +136,24 @@
                     <i class="pi pi-user"></i>
                 </div>
                 <div class="management__user-title">
-                    <strong>Frankely Garcia</strong>
+                    <strong *ngIf="!loading">{{ selectedUser?.name }} {{ selectedUser?.last_name }}</strong>
+                    <p-skeleton *ngIf="loading" width="150px" height="24px"></p-skeleton>
                 </div>
                 <div class="management__user-subtitle">
-                    <span>Administrador</span>
+                    <span *ngIf="!loading">{{ selectedUser?.email }}</span>
+                    <p-skeleton *ngIf="loading" width="120px" height="18px"></p-skeleton>
                 </div>
                 <div class="management__user-subtitle">
-                    <span>frankely&#64;gmail.com</span>
+                    <span *ngIf="!loading">{{ selectedUser?.email }}</span>
+                    <p-skeleton *ngIf="loading" width="120px" height="18px"></p-skeleton>
                 </div>
                 <div class="management__user-footer">
-                    <span>(809) 442-0272</span>
+                    <span *ngIf="!loading">{{ selectedUser?.isActive ? 'Activo' : 'Inactivo' }}</span>
+                    <p-skeleton *ngIf="loading" width="60px" height="18px"></p-skeleton>
                 </div>
                </div>
 
-               <div class="management__user-controls">
+               <div class="management__user-controls" *ngIf="!loading">
                 <div class="management__user-options">
                     <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': op === 'u', 'button--flat': op != 'u' }" class="button"> <i class="pi pi-users"></i> Usuarios ( 45 )</button>
                     <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': op === 't', 'button--flat': op != 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> Objetivos ( 2 )</button>

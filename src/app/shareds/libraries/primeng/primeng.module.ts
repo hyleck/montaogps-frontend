@@ -18,6 +18,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ChartModule } from 'primeng/chart';
+import { SkeletonModule } from 'primeng/skeleton';
 import { ConfirmationService, MessageService } from 'primeng/api';
 
 @NgModule({
@@ -40,7 +41,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     ConfirmDialogModule,
     ToastModule,
     CheckboxModule,
-    ChartModule
+    ChartModule,
+    SkeletonModule
   ],
   exports: [
     BadgeModule,
@@ -60,7 +62,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     ConfirmDialogModule,
     ToastModule,
     CheckboxModule,
-    ChartModule
+    ChartModule,
+    SkeletonModule
   ],
   providers: [ConfirmationService, MessageService]
 })
