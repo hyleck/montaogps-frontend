@@ -98,6 +98,7 @@ export class ProfileComponent implements OnInit {
     ) {
         this.selectedTheme = this.themesService.getCurrentTheme();
         this.user.settings.language = this.translate.currentLang || this.translate.getDefaultLang();
+        this.initializeLanguageLabels();
     }
 
     ngOnInit() {
@@ -119,28 +120,31 @@ export class ProfileComponent implements OnInit {
 
         // Actualizar las etiquetas de los temas según el idioma actual
         this.updateThemeLabels();
-        this.updateLanguageLabels();
 
-        // Suscribirse a cambios de idioma
+        // Suscribirse a cambios de idioma solo para actualizar las traducciones de la interfaz
         this.translate.onLangChange.subscribe(() => {
             this.updateThemeLabels();
-            this.updateLanguageLabels();
-            this.user.settings.language = this.translate.currentLang;
+            // Ya no actualizamos las etiquetas de idioma aquí
+            // Actualizamos los breadcrumbs
+            this.items = [
+                { label: this.translate.instant('profile.title') }
+            ];
         });
+    }
+
+    private initializeLanguageLabels() {
+        // Inicializar las etiquetas de idioma una sola vez
+        this.languages = [
+            { label: 'Español', value: 'es' },
+            { label: 'English', value: 'en' },
+            { label: 'Français', value: 'fr' }
+        ];
     }
 
     private updateThemeLabels() {
         this.themes = [
             { label: this.translate.instant('theme.toggleLight'), value: 'light' },
             { label: this.translate.instant('theme.toggleDark'), value: 'dark' }
-        ];
-    }
-
-    private updateLanguageLabels() {
-        this.languages = [
-            { label: this.translate.instant('language.es'), value: 'es' },
-            { label: this.translate.instant('language.en'), value: 'en' },
-            { label: this.translate.instant('language.fr'), value: 'fr' }
         ];
     }
 
@@ -167,6 +171,7 @@ export class ProfileComponent implements OnInit {
                     if (userSettingsData.language) {
                         this.translate.use(userSettingsData.language);
                         this.langService.setLanguage(userSettingsData.language);
+                        this.user.settings.language = userSettingsData.language;
                     }
 
                     const userSettings = {
@@ -233,7 +238,6 @@ export class ProfileComponent implements OnInit {
     onLanguageChange(language: string) {
         this.langService.setLanguage(language);
         this.translate.use(language);
-        // Actualizar el idioma en las configuraciones del usuario
-        this.user.settings.language = language;
+        // No necesitamos actualizar this.user.settings.language aquí porque está vinculado con ngModel
     }
 }
