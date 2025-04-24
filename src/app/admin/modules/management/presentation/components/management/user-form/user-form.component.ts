@@ -116,12 +116,16 @@ export class UserFormComponent implements OnInit {
 
     ngOnInit() {
         this.loadRoles();
+        this.user.role = null;
     }
 
     loadRoles() {
         this.userRolesService.getAllRoles().subscribe({
             next: (roles) => {
                 this.roles = roles;
+                if (!this.user.role) {
+                    this.user.role = null;
+                }
             },
             error: (error) => {
                 console.error('Error al cargar roles:', error);
@@ -223,15 +227,20 @@ export class UserFormComponent implements OnInit {
     }
 
     onRoleChange() {
-        if (this.user.role?.privileges) {
-            // Actualizar los privilegios basados en el rol seleccionado
-            const newPrivileges: { [key: string]: Privilege } = {};
-            this.user.role.privileges.forEach(privilege => {
-                newPrivileges[privilege.module] = {
-                    ...privilege
-                };
-            });
-            this.user.privileges = newPrivileges;
+        if (!this.user.role) {
+            this.user.role = null;
+            return;
+        }
+        
+        const selectedRole = this.roles.find(r => r._id === this.user.role?._id);
+        if (selectedRole) {
+            this.user.role = {
+                ...selectedRole,
+                privileges: selectedRole.privileges.map(p => ({
+                    ...p,
+                    actions: { ...p.actions }
+                }))
+            };
         }
     }
 

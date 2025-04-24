@@ -144,7 +144,7 @@
                                     required
                                     (change)="onRoleChange()"
                                 >
-                                    <option value="">Seleccione un rol</option>
+                                    <option [ngValue]="null">Seleccione un rol</option>
                                     <option *ngFor="let role of roles" [ngValue]="role">
                                         {{role.name}}
                                     </option>
@@ -161,6 +161,7 @@
                                             <span class="module-name">{{module.label}}</span>
                                             <button type="button" class="button-select-all" (click)="toggleAllPrivileges(getPrivilegeByModule(user.role?.privileges || [], module.value))">
                                                 <i class="pi" [ngClass]="isAllSelected(getPrivilegeByModule(user.role?.privileges || [], module.value)) ? 'pi-check-square' : 'pi-square'"></i>
+                                                <span>Seleccionar todo</span>
                                             </button>
                                         </div>
                                         
@@ -171,8 +172,9 @@
                                                     (ngModelChange)="setPrivilegeAction(module.value, 'read', $event)"
                                                     [name]="'read_' + module.value"
                                                     [binary]="true"
+                                                    [inputId]="'read_' + module.value"
                                                 ></p-checkbox>
-                                                <label>Leer</label>
+                                                <label [for]="'read_' + module.value">Leer</label>
                                             </div>
                                             <div class="privilege-action">
                                                 <p-checkbox
@@ -180,8 +182,9 @@
                                                     (ngModelChange)="setPrivilegeAction(module.value, 'create', $event)"
                                                     [name]="'create_' + module.value"
                                                     [binary]="true"
+                                                    [inputId]="'create_' + module.value"
                                                 ></p-checkbox>
-                                                <label>Crear</label>
+                                                <label [for]="'create_' + module.value">Crear</label>
                                             </div>
                                             <div class="privilege-action">
                                                 <p-checkbox
@@ -189,8 +192,9 @@
                                                     (ngModelChange)="setPrivilegeAction(module.value, 'update', $event)"
                                                     [name]="'update_' + module.value"
                                                     [binary]="true"
+                                                    [inputId]="'update_' + module.value"
                                                 ></p-checkbox>
-                                                <label>Actualizar</label>
+                                                <label [for]="'update_' + module.value">Actualizar</label>
                                             </div>
                                             <div class="privilege-action">
                                                 <p-checkbox
@@ -198,8 +202,9 @@
                                                     (ngModelChange)="setPrivilegeAction(module.value, 'delete', $event)"
                                                     [name]="'delete_' + module.value"
                                                     [binary]="true"
+                                                    [inputId]="'delete_' + module.value"
                                                 ></p-checkbox>
-                                                <label>Eliminar</label>
+                                                <label [for]="'delete_' + module.value">Eliminar</label>
                                             </div>
                                         </div>
                                     </div>

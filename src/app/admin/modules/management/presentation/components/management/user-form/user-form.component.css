@@ -234,7 +234,7 @@ button[type="submit"] .pi {
 
 .module-section:hover {
     border-color: var(--managementColorBorderInput);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); */
 }
 
 .module-header {
@@ -260,22 +260,32 @@ button[type="submit"] .pi {
 }
 
 .button-select-all {
-    background: transparent;
-    border: none;
+    background-color: transparent;
+    border: 1px solid var(--managementFieldsBorder);
     color: var(--managementColorTextUser);
     font-size: 0.75rem;
-    padding: 2px 4px;
+    padding: 0.3rem 0.5rem;
     border-radius: 4px;
     display: flex;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.4rem;
     margin: 0;
     transition: all 0.3s ease;
     cursor: pointer;
 }
 
 .button-select-all:hover {
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: var(--managementColorInputSearch);
+    /* border-color: var(--managementColorBorderInput); */
+}
+
+.button-select-all i {
+    font-size: 0.9rem;
+    color: var(--managementColorTitleUser);
+}
+
+.button-select-all i.pi-check-square {
+    color: var(--managementColorTitleUser);
 }
 
 .button-select-all-modules {
