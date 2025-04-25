@@ -4,7 +4,8 @@ import { Router } from '@angular/router';
 import { Observable, tap, switchMap } from 'rxjs';
 import { environment } from '../../../environments/environment.development';
 import { jwtDecode } from 'jwt-decode';
-import { User, TokenPayload } from '../interfaces';
+import { User, BasicUser } from '../interfaces/user.interface';
+import { TokenPayload } from '../interfaces/token-payload.interface';
 import { ThemesService } from '../../shareds/services/themes.service';
 import { TranslateService } from '@ngx-translate/core';
 import { LangService } from '../../shareds/services/langi18/lang.service';
@@ -84,7 +85,7 @@ export class AuthService {
     localStorage.removeItem(this.TOKEN_KEY);
   }
 
-  private saveUser(user: User): void {
+  private saveUser(user: BasicUser): void {
     try {
       // Guardar solo la información básica del usuario
       const basicUserInfo = {
@@ -101,7 +102,7 @@ export class AuthService {
     }
   }
 
-  getCurrentUser(): User | null {
+  getCurrentUser(): BasicUser | null {
     try {
       const userStr = localStorage.getItem(this.USER_KEY);
       return userStr ? JSON.parse(userStr) : null;

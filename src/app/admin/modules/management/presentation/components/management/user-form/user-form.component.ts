@@ -11,10 +11,10 @@ interface UserSettings {
     profile_type: string;
 }
 
-interface ExtendedUser extends User {
+interface ExtendedUser extends Omit<User, 'settings'> {
     password?: string;
     dni: string;
-    birth: Date;
+    birth: string;
     address: string;
     photo: string;
     phone: string;
@@ -34,12 +34,12 @@ interface ExtendedUser extends User {
 })
 export class UserFormComponent implements OnInit {
     user: ExtendedUser = {
-        id: '',
+        _id: '',
         email: '',
         name: '',
         last_name: '',
         dni: '',
-        birth: new Date(),
+        birth: '',
         address: '',
         photo: '',
         phone: '',
@@ -53,7 +53,15 @@ export class UserFormComponent implements OnInit {
             affiliation_type: '',
             profile_type: ''
         },
-        status: 'active'
+        status: 'active',
+        access_level_id: {
+            _id: '',
+            name: '',
+            description: '',
+            privileges: [],
+            createdAt: '',
+            updatedAt: ''
+        }
     };
 
     roles: UserRole[] = [];
@@ -222,7 +230,6 @@ export class UserFormComponent implements OnInit {
     onSubmit() {
         const userToSubmit = {
             ...this.user,
-            birth: this.user.birth.toISOString(),
             role: this.user.role ? {
                 ...this.user.role,
                 privileges: this.user.role.privileges

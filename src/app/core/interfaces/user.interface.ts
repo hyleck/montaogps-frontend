@@ -1,20 +1,37 @@
 export interface AccessLevel {
-  id: string;
+  _id: string;
   createdAt: string;
   description: string;
   name: string;
-  privileges: string[];
+  privileges: any[];
   updatedAt: string;
-  _id: string;
+}
+
+export interface BasicUser {
+  id: string;
+  name: string;
+  last_name: string;
+  email: string;
+  access_level_id: AccessLevel;
 }
 
 export interface User {
-  id: string;
-  email: string;
+  _id: string;
   name: string;
   last_name: string;
-  isActive?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
-  access_level_id?: AccessLevel;
+  email: string;
+  access_level_id: AccessLevel;
+  phone?: string;
+  phone2?: string;
+  birth?: string;
+  dni?: string;
+  address?: string;
+  photo?: string;
+  settings?: UserSettings[];
+}
+
+export interface UserSettings {
+  theme?: string;
+  language?: string;
+  notifications?: boolean;
 } 

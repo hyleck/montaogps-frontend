@@ -247,7 +247,13 @@
             }
         },
         "title": "Perfil",
-        "loading": "Cargando datos del perfil..."
+        "loading": "Cargando datos del perfil...",
+        "messages": {
+            "update_success": "Perfil actualizado",
+            "update_success_detail": "Tu perfil ha sido actualizado exitosamente",
+            "update_error": "Error al actualizar",
+            "update_error_detail": "Ha ocurrido un error al actualizar tu perfil"
+        }
     }
   }
   

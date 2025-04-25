@@ -1,3 +1,5 @@
+<p-toast></p-toast>
+
 <div class="management__route">
     <p-breadcrumb [model]="items" [home]="home" />
 </div>
@@ -174,7 +176,7 @@
                             <h3>{{ 'profile.settings.notifications.title' | translate }}</h3>
                         </div>
                         <div class="settings-toggle">
-                            <p-checkbox [(ngModel)]="user.settings.notifications" [binary]="true"></p-checkbox>
+                            <p-checkbox [(ngModel)]="user.settings.notifications" [binary]="true" (onChange)="onNotificationsChange($event)"></p-checkbox>
                             <span>{{ 'profile.settings.notifications.enable' | translate }}</span>
                         </div>
                         <small>{{ 'profile.settings.notifications.description' | translate }}</small>

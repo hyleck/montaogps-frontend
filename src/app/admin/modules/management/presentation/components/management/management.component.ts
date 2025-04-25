@@ -5,7 +5,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { StatusService } from '../../../../../../shareds/services/status.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { UserService } from '../../../../../../core/services/user.service';
-import { User } from '../../../../../../core/interfaces';
+import { User, BasicUser } from '../../../../../../core/interfaces';
 
 @Component({
     selector: 'app-management',
@@ -40,80 +40,78 @@ customers = [
     status: 'En linea',
     imei: '13132121655444123',
     sim: '1553215448888',
-    id: '1',
+    _id: '1',
   },
   {
     name: 'Toyota Corolla',
     status: 'Offline',
     imei: '13132121655444124',
     sim: '1553215448889',
-    id: '2',
+    _id: '2',
   },
   {
     name: 'Ford Focus',
     status: 'En linea',
     imei: '13132121655444125',
     sim: '1553215448890',
-    id: '3',
+    _id: '3',
   },
   {
     name: 'Chevrolet Malibu',
     status: 'Offline',
     imei: '13132121655444126',
     sim: '1553215448891',
-    id: '4',
+    _id: '4',
   },
   {
     name: 'Nissan Altima',
     status: 'En linea',
     imei: '13132121655444127',
     sim: '1553215448892',
-    id: '5',
+    _id: '5',
   },
   {
     name: 'Hyundai Elantra',
     status: 'Offline',
     imei: '13132121655444128',
     sim: '1553215448893',
-    id: '6',
+    _id: '6',
   },
   {
     name: 'Volkswagen Jetta',
     status: 'En linea',
     imei: '13132121655444129',
     sim: '1553215448894',
-    id: '7',
+    _id: '7',
   },
   {
     name: 'Kia Optima',
     status: 'Offline',
     imei: '13132121655444130',
     sim: '1553215448895',
-    id: '8',
+    _id: '8',
   },
   {
     name: 'Subaru Impreza',
     status: 'En linea',
     imei: '13132121655444131',
     sim: '1553215448896',
-    id: '9',
+    _id: '9',
   },
   {
     name: 'Mazda 3',
     status: 'Offline',
     imei: '13132121655444132',
     sim: '1553215448897',
-    id: '10',
+    _id: '10',
   },
   {
     name: 'BMW 3 Series',
     status: 'En linea',
     imei: '13132121655444133',
     sim: '1553215448898',
-    id: '11',
+    _id: '11',
   }
-
- 
 ];
 
 customersSelected = [];

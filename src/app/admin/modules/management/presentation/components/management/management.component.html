@@ -82,7 +82,7 @@
                                 <p-table 
                                     [value]="customers" 
                                     [(selection)]="customersSelected" 
-                                    dataKey="id" 
+                                    dataKey="_id" 
                                     >
                                       
                                         <ng-template pTemplate="body" let-customer>
@@ -211,7 +211,7 @@
                             <p-table 
                                 [value]="customers" 
                                 [(selection)]="customersSelected" 
-                                dataKey="id" 
+                                dataKey="_id" 
                                 [tableStyle]="{'min-width': '50rem'}">
                                     <ng-template pTemplate="header" >
                                         <tr  >

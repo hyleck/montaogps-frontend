@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { MenuItem } from 'primeng/api';
+import { MenuItem, MessageService } from 'primeng/api';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { TabViewModule } from 'primeng/tabview';
 import { CheckboxModule } from 'primeng/checkbox';
@@ -13,6 +13,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { UserService } from '../../../../../../core/services/user.service';
 import { User as BackendUser } from '../../../../../../core/interfaces/user.interface';
+import { ToastModule } from 'primeng/toast';
 
 interface UserSettings {
     theme: string;
@@ -26,7 +27,15 @@ interface UserRole {
 }
 
 // Interfaz extendida para el perfil del usuario
-interface ProfileUser extends BackendUser {
+interface ProfileUser {
+    _id: string;
+    name: string;
+    last_name: string;
+    email: string;
+    isActive?: boolean;
+    createdAt?: Date;
+    updatedAt?: Date;
+    access_level_id?: any;
     phone?: string;
     phone2?: string;
     birth?: string;
@@ -48,8 +57,10 @@ interface ProfileUser extends BackendUser {
         BreadcrumbModule,
         TabViewModule,
         CheckboxModule,
-        TranslateModule
-    ]
+        TranslateModule,
+        ToastModule
+    ],
+    providers: [MessageService]
 })
 export class ProfileComponent implements OnInit {
     items: MenuItem[] = [{ label: 'Perfil' }];
@@ -57,7 +68,7 @@ export class ProfileComponent implements OnInit {
     loading: boolean = true;
 
     user: ProfileUser = {
-        id: '',
+        _id: '',
         name: '',
         last_name: '',
         email: '',
@@ -94,7 +105,8 @@ export class ProfileComponent implements OnInit {
         private translate: TranslateService,
         private langService: LangService,
         private authService: AuthService,
-        private userService: UserService
+        private userService: UserService,
+        private messageService: MessageService
     ) {
         this.selectedTheme = this.themesService.getCurrentTheme();
         this.user.settings.language = this.translate.currentLang || this.translate.getDefaultLang();
@@ -186,7 +198,7 @@ export class ProfileComponent implements OnInit {
                     }
 
                     this.user = {
-                        id: userData.id,
+                        _id: userData._id,
                         name: userData.name,
                         last_name: userData.last_name,
                         email: userData.email,
@@ -218,8 +230,53 @@ export class ProfileComponent implements OnInit {
     }
 
     onSubmit() {
-        // Aquí se implementará la actualización de datos del usuario
-        console.log('Guardando cambios del perfil:', this.user);
+        // Preparar el objeto de actualización
+        const updateUserDto = {
+            name: this.user.name,
+            last_name: this.user.last_name,
+            email: this.user.email,
+            phone: this.user.phone,
+            phone2: this.user.phone2,
+            birth: this.user.birth,
+            dni: this.user.dni,
+            address: this.user.address,
+            settings: [{
+                theme: this.user.settings.theme,
+                language: this.user.settings.language,
+                notifications: this.user.settings.notifications
+            }]
+        };
+
+        this.userService.update(this.user._id, updateUserDto).subscribe({
+            next: (updatedUser) => {
+                console.log('Usuario actualizado:', updatedUser);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.translate.instant('Perfil actualizado'),
+                    detail: this.translate.instant('Tu perfil ha sido actualizado exitosamente')
+                });
+                
+                // Actualizar el usuario en el AuthService
+                const currentUser = this.authService.getCurrentUser();
+                if (currentUser) {
+                    const basicUserInfo = {
+                        ...currentUser,
+                        name: updatedUser.name,
+                        last_name: updatedUser.last_name,
+                        email: updatedUser.email
+                    };
+                    this.authService['saveUser'](basicUserInfo);
+                }
+            },
+            error: (error) => {
+                console.error('Error al actualizar el usuario:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translate.instant('Error al actualizar'),
+                    detail: this.translate.instant('Ha ocurrido un error al actualizar tu perfil')
+                });
+            }
+        });
     }
 
     onChangePassword() {
@@ -233,11 +290,100 @@ export class ProfileComponent implements OnInit {
 
     onThemeChange() {
         this.themesService.setTheme(this.selectedTheme);
+        this.user.settings.theme = this.selectedTheme;
+        
+        // Actualizar el usuario con el nuevo tema
+        const updateUserDto: any = {
+            settings: [{
+                theme: this.user.settings.theme,
+                language: this.user.settings.language,
+                notifications: this.user.settings.notifications
+            }]
+        };
+
+        this.userService.update(this.user._id, updateUserDto).subscribe({
+            next: (updatedUser) => {
+                console.log('Tema actualizado:', updatedUser);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.translate.instant('Tema actualizado'),
+                    detail: this.translate.instant('El tema ha sido actualizado exitosamente')
+                });
+            },
+            error: (error) => {
+                console.error('Error al actualizar el tema:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translate.instant('Error al actualizar'),
+                    detail: this.translate.instant('Ha ocurrido un error al actualizar el tema')
+                });
+            }
+        });
     }
 
     onLanguageChange(language: string) {
         this.langService.setLanguage(language);
         this.translate.use(language);
-        // No necesitamos actualizar this.user.settings.language aquí porque está vinculado con ngModel
+        this.user.settings.language = language;
+        
+        // Actualizar el usuario con el nuevo idioma
+        const updateUserDto: any = {
+            settings: [{
+                theme: this.user.settings.theme,
+                language: this.user.settings.language,
+                notifications: this.user.settings.notifications
+            }]
+        };
+
+        this.userService.update(this.user._id, updateUserDto).subscribe({
+            next: (updatedUser) => {
+                console.log('Idioma actualizado:', updatedUser);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.translate.instant('Idioma actualizado'),
+                    detail: this.translate.instant('El idioma ha sido actualizado exitosamente')
+                });
+            },
+            error: (error) => {
+                console.error('Error al actualizar el idioma:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translate.instant('Error al actualizar'),
+                    detail: this.translate.instant('Ha ocurrido un error al actualizar el idioma')
+                });
+            }
+        });
+    }
+
+    onNotificationsChange(event: any) {
+        this.user.settings.notifications = event.checked;
+        
+        // Actualizar el usuario con las nuevas notificaciones
+        const updateUserDto: any = {
+            settings: [{
+                theme: this.user.settings.theme,
+                language: this.user.settings.language,
+                notifications: this.user.settings.notifications
+            }]
+        };
+
+        this.userService.update(this.user._id, updateUserDto).subscribe({
+            next: (updatedUser) => {
+                console.log('Notificaciones actualizadas:', updatedUser);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.translate.instant('Notificaciones actualizadas'),
+                    detail: this.translate.instant('Las preferencias de notificaciones han sido actualizadas exitosamente')
+                });
+            },
+            error: (error) => {
+                console.error('Error al actualizar las notificaciones:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translate.instant('Error al actualizar'),
+                    detail: this.translate.instant('Ha ocurrido un error al actualizar las notificaciones')
+                });
+            }
+        });
     }
 }
