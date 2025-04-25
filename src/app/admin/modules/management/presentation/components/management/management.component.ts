@@ -6,6 +6,7 @@ import { StatusService } from '../../../../../../shareds/services/status.service
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { UserService } from '../../../../../../core/services/user.service';
 import { User, BasicUser } from '../../../../../../core/interfaces';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
     selector: 'app-management',
@@ -33,6 +34,18 @@ searchTargetsTerm: string = '';
 currentUserId: string | undefined;
 showMaps: boolean = false;
 selectedUser: User | undefined;
+
+// Claves de traducción
+translations = {
+  users: 'management.users',
+  targets: 'management.targets',
+  searchUsers: 'management.searchUsers',
+  searchTargets: 'management.searchTargets',
+  newUser: 'management.newUser',
+  newTarget: 'management.newTarget',
+  showMap: 'management.showMap',
+  back: 'management.back'
+};
 
 customers = [
   {
@@ -121,7 +134,8 @@ constructor(
   public route: ActivatedRoute,
   private status: StatusService,
   private authService: AuthService,
-  private userService: UserService
+  private userService: UserService,
+  private translate: TranslateService
 ) {}
 
  // Escucha cambios en el tamaño de la ventana

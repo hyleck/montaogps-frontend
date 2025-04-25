@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { UserRole, Privilege, PrivilegeAction } from '../../../../../../../core/interfaces/user-role.interface';
 import { User } from '../../../../../../../core/interfaces/user.interface';
 import { UserRolesService } from '../../../../../../../core/services/user-roles.service';
+import { TranslateService } from '@ngx-translate/core';
 
 interface UserSettings {
     theme: string;
@@ -33,6 +34,30 @@ interface ExtendedUser extends Omit<User, 'settings'> {
     standalone: false
 })
 export class UserFormComponent implements OnInit {
+    // Claves de traducción
+    translations = {
+        title: 'management.userForm.title',
+        personalInfo: 'management.userForm.personalInfo',
+        name: 'management.userForm.name',
+        lastName: 'management.userForm.lastName',
+        email: 'management.userForm.email',
+        dni: 'management.userForm.dni',
+        birth: 'management.userForm.birth',
+        address: 'management.userForm.address',
+        phone: 'management.userForm.phone',
+        phone2: 'management.userForm.phone2',
+        settings: 'management.userForm.settings',
+        theme: 'management.userForm.theme',
+        language: 'management.userForm.language',
+        notifications: 'management.userForm.notifications',
+        affiliationType: 'management.userForm.affiliationType',
+        profileType: 'management.userForm.profileType',
+        role: 'management.userForm.role',
+        privileges: 'management.userForm.privileges',
+        save: 'management.userForm.save',
+        cancel: 'management.userForm.cancel'
+    };
+
     user: ExtendedUser = {
         _id: '',
         email: '',
@@ -67,22 +92,22 @@ export class UserFormComponent implements OnInit {
     roles: UserRole[] = [];
 
     availableModules = [
-        { value: 'users', label: 'Usuarios' },
-        { value: 'roles', label: 'Roles' },
-        { value: 'devices', label: 'Dispositivos' },
-        { value: 'reports', label: 'Reportes' },
-        { value: 'processes', label: 'Procesos' },
-        { value: 'sms', label: 'SMS' },
-        { value: 'cloud', label: 'Nube' },
-        { value: 'sectors', label: 'Sectores' },
-        { value: 'tags', label: 'Etiquetas' },
-        { value: 'brands', label: 'Marcas' },
-        { value: 'models', label: 'Modelos' },
-        { value: 'colors', label: 'Colores' },
-        { value: 'canceled', label: 'Cancelados' },
-        { value: 'system', label: 'Sistema' },
-        { value: 'plans', label: 'Planes' },
-        { value: 'servers', label: 'Servidores' }
+        { value: 'users', label: 'management.userForm.modules.users' },
+        { value: 'roles', label: 'management.userForm.modules.roles' },
+        { value: 'devices', label: 'management.userForm.modules.devices' },
+        { value: 'reports', label: 'management.userForm.modules.reports' },
+        { value: 'processes', label: 'management.userForm.modules.processes' },
+        { value: 'sms', label: 'management.userForm.modules.sms' },
+        { value: 'cloud', label: 'management.userForm.modules.cloud' },
+        { value: 'sectors', label: 'management.userForm.modules.sectors' },
+        { value: 'tags', label: 'management.userForm.modules.tags' },
+        { value: 'brands', label: 'management.userForm.modules.brands' },
+        { value: 'models', label: 'management.userForm.modules.models' },
+        { value: 'colors', label: 'management.userForm.modules.colors' },
+        { value: 'canceled', label: 'management.userForm.modules.canceled' },
+        { value: 'system', label: 'management.userForm.modules.system' },
+        { value: 'plans', label: 'management.userForm.modules.plans' },
+        { value: 'servers', label: 'management.userForm.modules.servers' }
     ];
 
     moduleIcons: { [key: string]: string } = {
@@ -105,28 +130,31 @@ export class UserFormComponent implements OnInit {
     };
 
     themes = [
-        { label: 'Claro', value: 'light' },
-        { label: 'Oscuro', value: 'dark' }
+        { label: 'management.userForm.theme', value: 'light' },
+        { label: 'management.userForm.theme', value: 'dark' }
     ];
 
     languages = [
-        { label: 'Español', value: 'es' },
-        { label: 'Inglés', value: 'en' }
+        { label: 'management.userForm.language', value: 'es' },
+        { label: 'management.userForm.language', value: 'en' }
     ];
 
     affiliationTypes = [
-        { label: 'Personal', value: 'personal' },
-        { label: 'Empresarial', value: 'business' },
-        { label: 'Premium', value: 'premium' }
+        { label: 'management.userForm.affiliationType', value: 'personal' },
+        { label: 'management.userForm.affiliationType', value: 'business' },
+        { label: 'management.userForm.affiliationType', value: 'premium' }
     ];
 
     profileTypes = [
-        { label: 'Básico', value: 'basic' },
-        { label: 'Avanzado', value: 'advanced' },
-        { label: 'Experto', value: 'expert' }
+        { label: 'management.userForm.profileType', value: 'basic' },
+        { label: 'management.userForm.profileType', value: 'advanced' },
+        { label: 'management.userForm.profileType', value: 'expert' }
     ];
 
-    constructor(private userRolesService: UserRolesService) {}
+    constructor(
+        private userRolesService: UserRolesService,
+        private translate: TranslateService
+    ) {}
 
     ngOnInit() {
         this.loadRoles();

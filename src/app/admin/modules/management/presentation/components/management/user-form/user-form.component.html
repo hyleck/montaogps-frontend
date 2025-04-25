@@ -3,7 +3,7 @@
         <div class="user-form__tools">
             <div class="card">
                 <p-tabView>
-                    <p-tabPanel header="Información Personal">
+                    <p-tabPanel [header]="translations.personalInfo | translate">
                         <div class="user-form__base">
                             <form class="user-form__form" (ngSubmit)="onSubmit()">
                                 <div class="user-form__grid">
@@ -11,11 +11,11 @@
                                     <!-- Columna Izquierda -->
                                     <div class="user-form__column">
                                         <div class="user-form__field">
-                                            <label for="name">Nombre</label>
+                                            <label for="name">{{ translations.name | translate }}</label>
                                             <input 
                                                 [(ngModel)]="user.name"
                                                 name="name"
-                                                placeholder="Ej: Juan" 
+                                                [placeholder]="translations.name | translate" 
                                                 type="text" 
                                                 id="name" 
                                                 required
@@ -23,11 +23,11 @@
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="email">Correo Electrónico</label>
+                                            <label for="email">{{ translations.email | translate }}</label>
                                             <input 
                                                 [(ngModel)]="user.email"
                                                 name="email"
-                                                placeholder="Ej: juan@ejemplo.com" 
+                                                [placeholder]="translations.email | translate" 
                                                 type="email" 
                                                 id="email" 
                                                 required
@@ -35,7 +35,7 @@
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="birth">Fecha de Nacimiento</label>
+                                            <label for="birth">{{ translations.birth | translate }}</label>
                                             <input
                                                 [(ngModel)]="user.birth"
                                                 name="birth"
@@ -46,11 +46,11 @@
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="phone">Teléfono Principal</label>
+                                            <label for="phone">{{ translations.phone | translate }}</label>
                                             <input 
                                                 [(ngModel)]="user.phone"
                                                 name="phone"
-                                                placeholder="Ej: (809) 555-0123" 
+                                                [placeholder]="translations.phone | translate" 
                                                 type="tel" 
                                                 id="phone" 
                                                 required
@@ -58,15 +58,15 @@
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="status">Estado</label>
+                                            <label for="status">{{ 'management.userForm.status' | translate }}</label>
                                             <select
                                                 [(ngModel)]="user.status"
                                                 name="status"
                                                 id="status"
                                                 required
                                             >
-                                                <option value="active">Activo</option>
-                                                <option value="inactive">Inactivo</option>
+                                                <option value="active">{{ 'management.userForm.statusActive' | translate }}</option>
+                                                <option value="inactive">{{ 'management.userForm.statusInactive' | translate }}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -74,11 +74,11 @@
                                     <!-- Columna Derecha -->
                                     <div class="user-form__column">
                                         <div class="user-form__field">
-                                            <label for="last_name">Apellidos</label>
+                                            <label for="last_name">{{ translations.lastName | translate }}</label>
                                             <input 
                                                 [(ngModel)]="user.last_name"
                                                 name="last_name"
-                                                placeholder="Ej: Pérez" 
+                                                [placeholder]="translations.lastName | translate" 
                                                 type="text" 
                                                 id="last_name" 
                                                 required
@@ -86,11 +86,11 @@
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="dni">DNI/Cédula</label>
+                                            <label for="dni">{{ translations.dni | translate }}</label>
                                             <input 
                                                 [(ngModel)]="user.dni"
                                                 name="dni"
-                                                placeholder="Ej: 001-0000000-0" 
+                                                [placeholder]="translations.dni | translate" 
                                                 type="text" 
                                                 id="dni" 
                                                 required
@@ -98,46 +98,43 @@
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="address">Dirección</label>
+                                            <label for="address">{{ translations.address | translate }}</label>
                                             <textarea 
                                                 [(ngModel)]="user.address"
                                                 name="address"
-                                                placeholder="Ej: Calle Principal #123" 
+                                                [placeholder]="translations.address | translate" 
                                                 id="address"
                                                 rows="3"
                                             ></textarea>
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="phone2">Teléfono Secundario</label>
+                                            <label for="phone2">{{ translations.phone2 | translate }}</label>
                                             <input 
                                                 [(ngModel)]="user.phone2"
                                                 name="phone2"
-                                                placeholder="Ej: (809) 555-0124" 
+                                                [placeholder]="translations.phone2 | translate" 
                                                 type="tel" 
                                                 id="phone2" 
                                             >
                                         </div>
-
-
-                                       
                                     </div>
                                 </div>
 
                                 <div class="user-form__actions">
                                     <button type="submit">
                                         <i class="pi pi-save"></i>
-                                        Guardar
+                                        {{ translations.save | translate }}
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </p-tabPanel>
 
-                    <p-tabPanel header="Privilegios">
+                    <p-tabPanel [header]="translations.privileges | translate">
                         <div class="user-form__base">
                             <div class="user-form__field">
-                                <label for="role">Rol del Usuario</label>
+                                <label for="role">{{ translations.role | translate }}</label>
                                 <select
                                     [(ngModel)]="user.role"
                                     name="role"
@@ -145,7 +142,7 @@
                                     required
                                     (change)="onRoleChange()"
                                 >
-                                    <option [ngValue]="null">Seleccione un rol</option>
+                                    <option [ngValue]="null">{{ 'management.userForm.selectRole' | translate }}</option>
                                     <option *ngFor="let role of roles" [ngValue]="role">
                                         {{role.name}}
                                     </option>
@@ -157,10 +154,10 @@
                                     <div *ngFor="let module of availableModules" class="module-section">
                                         <div class="module-header">
                                             <i [class]="moduleIcons[module.value]"></i>
-                                            <span class="module-name">{{module.label}}</span>
+                                            <span class="module-name">{{ module.label | translate }}</span>
                                             <button type="button" class="button-select-all" (click)="toggleAllPrivileges(getPrivilegeByModule(user.role?.privileges || [], module.value))">
                                                 <i class="pi" [ngClass]="isAllSelected(getPrivilegeByModule(user.role?.privileges || [], module.value)) ? 'pi-check-square' : 'pi-square'"></i>
-                                                <span>Seleccionar todo</span>
+                                                <span>{{ 'settings.roles_settings.privileges.select_all' | translate }}</span>
                                             </button>
                                         </div>
                                         
@@ -173,7 +170,7 @@
                                                     [binary]="true"
                                                     [inputId]="'read_' + module.value"
                                                 ></p-checkbox>
-                                                <label [for]="'read_' + module.value">Leer</label>
+                                                <label [for]="'read_' + module.value">{{ 'management.userForm.actions.read' | translate }}</label>
                                             </div>
                                             <div class="privilege-action">
                                                 <p-checkbox
@@ -183,7 +180,7 @@
                                                     [binary]="true"
                                                     [inputId]="'create_' + module.value"
                                                 ></p-checkbox>
-                                                <label [for]="'create_' + module.value">Crear</label>
+                                                <label [for]="'create_' + module.value">{{ 'management.userForm.actions.create' | translate }}</label>
                                             </div>
                                             <div class="privilege-action">
                                                 <p-checkbox
@@ -193,7 +190,7 @@
                                                     [binary]="true"
                                                     [inputId]="'update_' + module.value"
                                                 ></p-checkbox>
-                                                <label [for]="'update_' + module.value">Actualizar</label>
+                                                <label [for]="'update_' + module.value">{{ 'management.userForm.actions.update' | translate }}</label>
                                             </div>
                                             <div class="privilege-action">
                                                 <p-checkbox
@@ -203,7 +200,7 @@
                                                     [binary]="true"
                                                     [inputId]="'delete_' + module.value"
                                                 ></p-checkbox>
-                                                <label [for]="'delete_' + module.value">Eliminar</label>
+                                                <label [for]="'delete_' + module.value">{{ 'management.userForm.actions.delete' | translate }}</label>
                                             </div>
                                         </div>
                                     </div>
@@ -212,17 +209,15 @@
                         </div>
                     </p-tabPanel>
 
-                    <p-tabPanel header="Configuración">
+                    <p-tabPanel [header]="translations.settings | translate">
                         <div class="user-form__base">
                             <div class="settings-container">
                                 <div class="settings-section">
-                                
-                                    
                                     <div class="settings-grid">
                                         <div class="settings-item">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-palette"></i>
-                                                <label for="theme">Tema de la Aplicación</label>
+                                                <label for="theme">{{ translations.theme | translate }}</label>
                                             </div>
                                             <select
                                                 [(ngModel)]="user.settings.theme"
@@ -231,16 +226,16 @@
                                                 class="settings-dropdown"
                                             >
                                                 <option *ngFor="let theme of themes" [value]="theme.value">
-                                                    {{theme.label}}
+                                                    {{ theme.label | translate }}
                                                 </option>
                                             </select>
-                                            <small class="settings-description">Personaliza la apariencia de la aplicación</small>
+                                            <small class="settings-description">{{ 'management.userForm.themeDescription' | translate }}</small>
                                         </div>
 
                                         <div class="settings-item">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-globe"></i>
-                                                <label for="language">Idioma del Sistema</label>
+                                                <label for="language">{{ translations.language | translate }}</label>
                                             </div>
                                             <select
                                                 [(ngModel)]="user.settings.language"
@@ -249,16 +244,16 @@
                                                 class="settings-dropdown"
                                             >
                                                 <option *ngFor="let lang of languages" [value]="lang.value">
-                                                    {{lang.label}}
+                                                    {{ lang.label | translate }}
                                                 </option>
                                             </select>
-                                            <small class="settings-description">Selecciona el idioma de tu preferencia</small>
+                                            <small class="settings-description">{{ 'management.userForm.languageDescription' | translate }}</small>
                                         </div>
 
                                         <div class="settings-item">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-id-card"></i>
-                                                <label for="affiliation">Tipo de Afiliación</label>
+                                                <label for="affiliation">{{ translations.affiliationType | translate }}</label>
                                             </div>
                                             <select
                                                 [(ngModel)]="user.settings.affiliation_type"
@@ -266,18 +261,18 @@
                                                 id="affiliation"
                                                 class="settings-dropdown"
                                             >
-                                                <option value="">Seleccione tipo de afiliación</option>
+                                                <option value="">{{ 'management.userForm.selectAffiliation' | translate }}</option>
                                                 <option *ngFor="let type of affiliationTypes" [value]="type.value">
-                                                    {{type.label}}
+                                                    {{ type.label | translate }}
                                                 </option>
                                             </select>
-                                            <small class="settings-description">Selecciona el tipo de afiliación del usuario</small>
+                                            <small class="settings-description">{{ 'management.userForm.affiliationDescription' | translate }}</small>
                                         </div>
 
                                         <div class="settings-item">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-user-edit"></i>
-                                                <label for="profile">Tipo de Perfil</label>
+                                                <label for="profile">{{ translations.profileType | translate }}</label>
                                             </div>
                                             <select
                                                 [(ngModel)]="user.settings.profile_type"
@@ -285,18 +280,18 @@
                                                 id="profile"
                                                 class="settings-dropdown"
                                             >
-                                                <option value="">Seleccione tipo de perfil</option>
+                                                <option value="">{{ 'management.userForm.selectProfile' | translate }}</option>
                                                 <option *ngFor="let type of profileTypes" [value]="type.value">
-                                                    {{type.label}}
+                                                    {{ type.label | translate }}
                                                 </option>
                                             </select>
-                                            <small class="settings-description">Define el nivel de acceso y funcionalidades</small>
+                                            <small class="settings-description">{{ 'management.userForm.profileDescription' | translate }}</small>
                                         </div>
 
                                         <div class="settings-item">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-bell"></i>
-                                                <label>Notificaciones</label>
+                                                <label>{{ translations.notifications | translate }}</label>
                                             </div>
                                             <div class="settings-toggle">
                                                 <p-checkbox
@@ -305,15 +300,15 @@
                                                     [binary]="true"
                                                     class="settings-checkbox"
                                                 ></p-checkbox>
-                                                <span>Activar notificaciones del sistema</span>
+                                                <span>{{ 'management.userForm.notificationsEnable' | translate }}</span>
                                             </div>
-                                            <small class="settings-description">Recibe alertas y actualizaciones importantes</small>
+                                            <small class="settings-description">{{ 'management.userForm.notificationsDescription' | translate }}</small>
                                         </div>
 
                                         <div class="settings-item">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-user"></i>
-                                                <label for="photo">Foto de Perfil</label>
+                                                <label for="photo">{{ 'management.userForm.photo.title' | translate }}</label>
                                             </div>
                                             <div class="settings-file-upload">
                                                 <input 
@@ -325,7 +320,7 @@
                                                     class="settings-file-input"
                                                 >
                                             </div>
-                                            <small class="settings-description">Sube una foto para personalizar el perfil</small>
+                                            <small class="settings-description">{{ 'management.userForm.photo.description' | translate }}</small>
                                         </div>
                                     </div>
                                 </div>

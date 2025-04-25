@@ -8,6 +8,7 @@ import { FormsModule } from '@angular/forms';
 import { MapsModule } from '../../../../shareds/components/maps/maps.module';
 import { TargetFormModule } from './components/management/target-form/target-form.module';
 import { UserFormModule } from './components/management/user-form/user-form.module';
+import { TranslateModule } from '@ngx-translate/core';
 
 @NgModule({
   declarations: [
@@ -20,7 +21,8 @@ import { UserFormModule } from './components/management/user-form/user-form.modu
     PrimengModule,
     MapsModule,
     TargetFormModule,
-    UserFormModule
+    UserFormModule,
+    TranslateModule
   ]
 })
 export class ManagementModule { }

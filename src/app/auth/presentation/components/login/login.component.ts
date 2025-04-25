@@ -17,6 +17,7 @@ export class LoginComponent {
   loginForm: FormGroup;
   error: string = '';
   isLoading: boolean = false;
+  rememberMe: boolean = false;
 
   // UI/UX
   translate: TranslateService = inject(TranslateService);
@@ -31,8 +32,11 @@ export class LoginComponent {
     private fb: FormBuilder,
     private router: Router
   ) {
+    const savedEmail = localStorage.getItem('rememberedEmail') || '';
+    this.rememberMe = !!savedEmail;
+    
     this.loginForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      email: [savedEmail, [Validators.required, Validators.email]],
       password: ['', [Validators.required]]
     });
   }
@@ -56,6 +60,12 @@ export class LoginComponent {
     this.error = '';
 
     const { email, password } = this.loginForm.value;
+    
+    if (this.rememberMe) {
+      localStorage.setItem('rememberedEmail', email);
+    } else {
+      localStorage.removeItem('rememberedEmail');
+    }
     
     this.authService.login(email, password).subscribe({
       next: (response) => {

@@ -73,9 +73,9 @@
 
             <div class="login__options">
               <div class="login__remember">
-                <input type="checkbox" id="rememberMe" name="rememberMe">
+                <input type="checkbox" id="rememberMe" [(ngModel)]="rememberMe" [ngModelOptions]="{standalone: true}">
                 <label for="rememberMe">
-                  <span>{{ 'login.rememberPassword' | translate }}</span>
+                  <span>{{ 'login.rememberEmail' | translate }}</span>
                 </label>
               </div>
               <div class="login__forgot">

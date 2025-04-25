@@ -8,6 +8,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { CalendarModule } from 'primeng/calendar';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
+import { TranslateModule } from '@ngx-translate/core';
 
 @NgModule({
   declarations: [
@@ -21,7 +22,8 @@ import { ButtonModule } from 'primeng/button';
     DropdownModule,
     CalendarModule,
     CheckboxModule,
-    ButtonModule
+    ButtonModule,
+    TranslateModule
   ],
   exports: [
     UserFormComponent
