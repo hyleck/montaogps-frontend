@@ -239,11 +239,12 @@
                 "description": "Recevez des alertes et des mises à jour importantes"
             },
             "password": {
-                "title": "Changer le Mot de Passe",
-                "current": "Entrez votre mot de passe actuel",
-                "new": "Entrez votre nouveau mot de passe",
-                "confirm": "Confirmez votre nouveau mot de passe",
-                "update": "Mettre à Jour le Mot de Passe"
+                "title": "Changer le mot de passe",
+                "new": "Nouveau mot de passe",
+                "confirm": "Confirmer le mot de passe",
+                "new_placeholder": "Entrez votre nouveau mot de passe",
+                "confirm_placeholder": "Confirmez votre nouveau mot de passe",
+                "update": "Mettre à jour le mot de passe"
             }
         },
         "title": "Profil",

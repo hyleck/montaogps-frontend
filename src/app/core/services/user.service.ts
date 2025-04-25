@@ -4,6 +4,10 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { User, CreateUserDto, UpdateUserDto } from '../interfaces';
 
+interface UpdatePasswordDto {
+    password: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -26,6 +30,10 @@ export class UserService {
 
   update(id: string, updateUserDto: UpdateUserDto): Observable<User> {
     return this.http.patch<User>(`${this.apiUrl}/${id}`, updateUserDto);
+  }
+
+  updatePassword(id: string, updatePasswordDto: UpdatePasswordDto): Observable<any> {
+    return this.http.patch<any>(`${this.apiUrl}/${id}`, updatePasswordDto);
   }
 
   delete(id: string): Observable<void> {

@@ -5,6 +5,7 @@ import { MenuItem, MessageService } from 'primeng/api';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { TabViewModule } from 'primeng/tabview';
 import { CheckboxModule } from 'primeng/checkbox';
+import { PasswordModule } from 'primeng/password';
 import { ThemesService } from '../../../../../../shareds/services/themes.service';
 import { StatusService } from '../../../../../../shareds/services/status.service';
 import { TranslateService } from '@ngx-translate/core';
@@ -57,6 +58,7 @@ interface ProfileUser {
         BreadcrumbModule,
         TabViewModule,
         CheckboxModule,
+        PasswordModule,
         TranslateModule,
         ToastModule
     ],
@@ -197,6 +199,9 @@ export class ProfileComponent implements OnInit {
                         this.userPhotoUrl = userData.photo;
                     }
 
+                    // Formatear la fecha de nacimiento para el input date
+                    const birthDate = userData.birth ? new Date(userData.birth).toISOString().split('T')[0] : '';
+
                     this.user = {
                         _id: userData._id,
                         name: userData.name,
@@ -209,7 +214,7 @@ export class ProfileComponent implements OnInit {
                         // Campos extendidos
                         phone: userData.phone || '',
                         phone2: userData.phone2 || '',
-                        birth: userData.birth || '',
+                        birth: birthDate,
                         dni: userData.dni || '',
                         address: userData.address || '',
                         photo: userData.photo || '',
@@ -237,7 +242,7 @@ export class ProfileComponent implements OnInit {
             email: this.user.email,
             phone: this.user.phone,
             phone2: this.user.phone2,
-            birth: this.user.birth,
+            birth: this.user.birth ? new Date(this.user.birth).toISOString() : null,
             dni: this.user.dni,
             address: this.user.address,
             settings: [{
@@ -281,11 +286,47 @@ export class ProfileComponent implements OnInit {
 
     onChangePassword() {
         if (this.newPassword !== this.confirmPassword) {
-            // Mostrar error de contraseñas no coincidentes
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('Las contraseñas no coinciden')
+            });
             return;
         }
-        // Aquí se implementará el cambio de contraseña
-        console.log('Cambiando contraseña');
+
+        if (!this.newPassword) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('Debes ingresar una nueva contraseña')
+            });
+            return;
+        }
+
+        const updatePasswordDto = {
+            password: this.newPassword
+        };
+
+        this.userService.updatePassword(this.user._id, updatePasswordDto).subscribe({
+            next: () => {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.translate.instant('Contraseña actualizada'),
+                    detail: this.translate.instant('Tu contraseña ha sido actualizada exitosamente')
+                });
+                // Limpiar los campos
+                this.newPassword = '';
+                this.confirmPassword = '';
+            },
+            error: (error: any) => {
+                console.error('Error al actualizar la contraseña:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translate.instant('Error al actualizar'),
+                    detail: this.translate.instant('Ha ocurrido un error al actualizar tu contraseña')
+                });
+            }
+        });
     }
 
     onThemeChange() {

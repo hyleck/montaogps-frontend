@@ -16,7 +16,7 @@ export class PublicGuard implements CanActivate {
       return true;
     }
 
-    this.router.navigate(['/admin']);
+    this.router.navigate(['/admin/dashboard']);
     return false;
   }
 } 

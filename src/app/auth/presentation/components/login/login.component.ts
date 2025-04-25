@@ -62,8 +62,8 @@ export class LoginComponent {
         this.isLoading = false;
         // Guardar el token
         localStorage.setItem('token', response.token);
-        // Redirigir a admin
-        this.router.navigate(['/admin']);
+        // Redirigir a admin/management
+        this.router.navigate(['/admin/management']);
       },
       error: (error) => {
         if (error.error?.message === 'Invalid credentials') {

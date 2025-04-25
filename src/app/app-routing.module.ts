@@ -13,16 +13,22 @@ const routes: Routes = [
   },
   {
     path: 'admin',
+    redirectTo: '/admin/management',
+    pathMatch: 'full'
+  },
+  {
+    path: 'admin',
     loadChildren: () => import('./admin/presentation/admin.module').then(m => m.AdminModule),
     canActivate: [AuthGuard]
   },
   {
     path: '',
-    component: RedirectComponent
+    redirectTo: '/admin/management',
+    pathMatch: 'full'
   },
   {
     path: '**',
-    redirectTo: ''
+    redirectTo: '/admin/management'
   }
 ];
 

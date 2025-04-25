@@ -14,7 +14,7 @@
                 <div *ngIf="loading" class="loading-indicator">
                     <span>{{ 'profile.loading' | translate }}</span>
                 </div>
-                <form *ngIf="!loading" class="profile-form" (ngSubmit)="onSubmit()">
+                <form *ngIf="!loading" class="profile-form" (ngSubmit)="onSubmit()" ngNativeValidate>
                     <div class="form-grid">
                         <div class="form-column">
                             <div class="form-group">
@@ -188,13 +188,40 @@
                             <h3>{{ 'profile.settings.password.title' | translate }}</h3>
                         </div>
                         <div class="password-fields">
-                            <input type="password" [placeholder]="'profile.settings.password.current' | translate" [(ngModel)]="currentPassword">
-                            <input type="password" [placeholder]="'profile.settings.password.new' | translate" [(ngModel)]="newPassword">
-                            <input type="password" [placeholder]="'profile.settings.password.confirm' | translate" [(ngModel)]="confirmPassword">
-                            <button class="change-password-btn" (click)="onChangePassword()">
-                                <i class="pi pi-check"></i>
-                                {{ 'profile.settings.password.update' | translate }}
-                            </button>
+                            <form (ngSubmit)="onChangePassword()" ngNativeValidate>
+                                <div class="form-group">
+                                    <label for="newPassword">{{ 'profile.settings.password.new' | translate }}</label>
+                                    <p-password 
+                                        [(ngModel)]="newPassword" 
+                                        [feedback]="false" 
+                                        [toggleMask]="true" 
+                                        name="newPassword" 
+                                        required
+                                        [style]="{'width': '100%'}"
+                                        [inputStyle]="{'width': '100%'}"
+                                        [placeholder]="'profile.settings.password.new_placeholder' | translate">
+                                    </p-password>
+                                </div>
+                                <div class="form-group">
+                                    <label for="confirmPassword">{{ 'profile.settings.password.confirm' | translate }}</label>
+                                    <p-password 
+                                        [(ngModel)]="confirmPassword" 
+                                        [feedback]="false" 
+                                        [toggleMask]="true" 
+                                        name="confirmPassword" 
+                                        required
+                                        [style]="{'width': '100%'}"
+                                        [inputStyle]="{'width': '100%'}"
+                                        [placeholder]="'profile.settings.password.confirm_placeholder' | translate">
+                                    </p-password>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="save-button">
+                                        <i class="pi pi-check"></i>
+                                        {{ 'profile.settings.password.update' | translate }}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

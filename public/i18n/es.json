@@ -239,11 +239,12 @@
                 "description": "Recibe alertas y actualizaciones importantes"
             },
             "password": {
-                "title": "Cambiar Contraseña",
-                "current": "Ingresa tu contraseña actual",
-                "new": "Ingresa tu nueva contraseña",
-                "confirm": "Confirma tu nueva contraseña",
-                "update": "Actualizar Contraseña"
+                "title": "Cambiar contraseña",
+                "new": "Nueva contraseña",
+                "confirm": "Confirmar contraseña",
+                "new_placeholder": "Ingresa tu nueva contraseña",
+                "confirm_placeholder": "Confirma tu nueva contraseña",
+                "update": "Actualizar contraseña"
             }
         },
         "title": "Perfil",
