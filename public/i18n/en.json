@@ -323,7 +323,15 @@
         "photo": {
           "title": "Profile Photo",
           "description": "Upload a photo to personalize your profile"
-        }
+        },
+        "error": "Error",
+        "roleRequired": "Privileges must be configured before saving.",
+        "status": "Status",
+        "statusActive": "Active",
+        "statusInactive": "Inactive",
+        "info": "Important information",
+        "success": "Success",
+        "userCreated": "User created successfully."
       }
     }
   }

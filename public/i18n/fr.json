@@ -324,7 +324,15 @@
         "photo": {
           "title": "Photo de Profil",
           "description": "Téléchargez une photo pour personnaliser votre profil"
-        }
+        },
+        "error": "Erreur",
+        "roleRequired": "Les privilèges doivent être configurés avant de sauvegarder.",
+        "status": "Statut",
+        "statusActive": "Actif",
+        "statusInactive": "Inactif",
+        "info": "Information importante",
+        "success": "Succès",
+        "userCreated": "Utilisateur créé avec succès."
       }
     }
 }

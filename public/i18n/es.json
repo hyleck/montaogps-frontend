@@ -180,7 +180,10 @@
           "system": "Sistema",
           "plans": "Planes",
           "servers": "Servidores"
-        }
+        },
+        "creationFailed": "No se pudo crear el usuario.",
+        "userCreated": "Usuario creado correctamente.",
+        "success": "Éxito"
       },
       "cards": {
         "servers": {
@@ -329,7 +332,15 @@
         "photo": {
           "title": "Foto de Perfil",
           "description": "Sube una foto para personalizar el perfil"
-        }
+        },
+        "error": "Error",
+        "roleRequired": "Debe configurar los privilegios antes de guardarlo.",
+        "status": "Estado",
+        "statusActive": "Activo",
+        "statusInactive": "Inactivo",
+        "info": "Información importante",
+        "success": "Éxito",
+        "userCreated": "Usuario creado correctamente."
       }
     }
   }
