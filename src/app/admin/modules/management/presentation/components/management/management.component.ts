@@ -7,6 +7,7 @@ import { AuthService } from '../../../../../../core/services/auth.service';
 import { UserService } from '../../../../../../core/services/user.service';
 import { User, BasicUser } from '../../../../../../core/interfaces';
 import { TranslateService } from '@ngx-translate/core';
+import { ConfirmationService } from 'primeng/api';
 
 @Component({
     selector: 'app-management',
@@ -137,7 +138,8 @@ constructor(
   private status: StatusService,
   private authService: AuthService,
   private userService: UserService,
-  private translate: TranslateService
+  private translate: TranslateService,
+  private confirmationService: ConfirmationService
 ) {}
 
  // Escucha cambios en el tamaño de la ventana
@@ -357,6 +359,26 @@ constructor(
   editUser(user: User) {
     this.userToEdit = user;
     this.userFormDisplay = true;
+  }
+
+  deleteUser(user: User) {
+    this.confirmationService.confirm({
+      message: `¿Está seguro que desea eliminar el usuario "${user.name} ${user.last_name}"?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, eliminar',
+      rejectLabel: 'No, cancelar',
+      accept: () => {
+        this.userService.delete(user._id).subscribe({
+          next: () => {
+            this.users = this.users.filter(u => u._id !== user._id);
+          },
+          error: (error) => {
+            console.error('Error al eliminar usuario:', error);
+          }
+        });
+      }
+    });
   }
 
 }
