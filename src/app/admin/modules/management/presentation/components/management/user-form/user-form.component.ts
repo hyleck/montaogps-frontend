@@ -186,12 +186,89 @@ export class UserFormComponent implements OnInit, OnChanges {
 
     ngOnInit() {
         this.loadRoles();
-        this.user.role = null;
-        this.selectedTheme = this.getSettingValue('theme') as string;
-        this.selectedLanguage = this.getSettingValue('language') as string;
-        this.notificationsEnabled = this.getSettingValue('notifications') as boolean;
-        this.selectedAffiliationType = this.user.affiliation_type;
-        this.selectedProfileType = this.user.profile_type;
+        this.user = {
+            _id: '',
+            email: '',
+            name: '',
+            last_name: '',
+            dni: '',
+            birth: '',
+            address: '',
+            photo: '',
+            phone: '',
+            phone2: '',
+            verified_email: false,
+            role: null,
+            settings: {
+                theme: 'light',
+                language: 'es',
+                notifications: true,
+                affiliation_type: '',
+                profile_type: ''
+            },
+            status: 'active',
+            access_level_id: {
+                _id: '',
+                name: '',
+                description: '',
+                privileges: [],
+                createdAt: '',
+                updatedAt: ''
+            },
+            affiliation_type: '',
+            profile_type: ''
+        };
+        this.selectedTheme = 'light';
+        this.selectedLanguage = 'es';
+        this.notificationsEnabled = true;
+        this.selectedAffiliationType = '';
+        this.selectedProfileType = '';
+        this.confirmPassword = '';
+        this.user.password = '';
+        this.activeTabIndex = 0;
+    }
+
+    private resetForm() {
+        this.user = {
+            _id: '',
+            email: '',
+            name: '',
+            last_name: '',
+            dni: '',
+            birth: '',
+            address: '',
+            photo: '',
+            phone: '',
+            phone2: '',
+            verified_email: false,
+            role: null,
+            settings: {
+                theme: 'light',
+                language: 'es',
+                notifications: true,
+                affiliation_type: '',
+                profile_type: ''
+            },
+            status: 'active',
+            access_level_id: {
+                _id: '',
+                name: '',
+                description: '',
+                privileges: [],
+                createdAt: '',
+                updatedAt: ''
+            },
+            affiliation_type: '',
+            profile_type: ''
+        };
+        this.selectedTheme = 'light';
+        this.selectedLanguage = 'es';
+        this.notificationsEnabled = true;
+        this.selectedAffiliationType = '';
+        this.selectedProfileType = '';
+        this.confirmPassword = '';
+        this.user.password = '';
+        this.activeTabIndex = 0;
     }
 
     ngOnChanges(changes: SimpleChanges) {
@@ -218,46 +295,7 @@ export class UserFormComponent implements OnInit, OnChanges {
                 }
                 this.activeTabIndex = 0;
             } else {
-                // Limpiar el formulario si userInput es null
-                this.user = {
-                    _id: '',
-                    email: '',
-                    name: '',
-                    last_name: '',
-                    dni: '',
-                    birth: '',
-                    address: '',
-                    photo: '',
-                    phone: '',
-                    phone2: '',
-                    verified_email: false,
-                    role: null,
-                    settings: {
-                        theme: 'light',
-                        language: 'es',
-                        notifications: true,
-                        affiliation_type: '',
-                        profile_type: ''
-                    },
-                    status: 'active',
-                    access_level_id: {
-                        _id: '',
-                        name: '',
-                        description: '',
-                        privileges: [],
-                        createdAt: '',
-                        updatedAt: ''
-                    },
-                    affiliation_type: '',
-                    profile_type: ''
-                };
-                this.selectedTheme = 'light';
-                this.selectedLanguage = 'es';
-                this.notificationsEnabled = true;
-                this.selectedAffiliationType = '';
-                this.selectedProfileType = '';
-                this.confirmPassword = '';
-                this.activeTabIndex = 0;
+                this.resetForm();
             }
         }
     }
@@ -418,6 +456,7 @@ export class UserFormComponent implements OnInit, OnChanges {
                 });
                 console.log('Usuario creado:', response);
                 this.userCreated.emit();
+                // Limpiar el formulario
                 this.user = {
                     _id: '',
                     email: '',
@@ -455,6 +494,8 @@ export class UserFormComponent implements OnInit, OnChanges {
                 this.notificationsEnabled = true;
                 this.selectedAffiliationType = '';
                 this.selectedProfileType = '';
+                this.confirmPassword = ''; // Reiniciar confirmPassword
+                this.user.password = ''; // Reiniciar password
             },
             error: (error) => {
                 this.messageService.add({
