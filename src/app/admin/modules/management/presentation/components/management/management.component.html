@@ -22,11 +22,11 @@
                     </div>
                     <div class="management__user-control-title">
                         <strong *ngIf="!loading">{{ selectedUser?.name }} {{ selectedUser?.last_name }}</strong>
-                        <p-skeleton *ngIf="loading" width="150px" height="24px"></p-skeleton>
+                        <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '150px', 'height': '24px' }"></p-skeleton>
                     </div>
                     <div class="management__user-control-subtitle">
                         <span *ngIf="!loading">{{ selectedUser?.email }}</span>
-                        <p-skeleton *ngIf="loading" width="120px" height="18px"></p-skeleton>
+                        <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '120px', 'height': '18px' }"></p-skeleton>
                     </div>
                 
              
@@ -44,7 +44,7 @@
                                 <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text" [placeholder]="translations.searchUsers | translate">
                                 
                             </div>
-                            <button class="button button--primary-flat-red"> <i class="pi pi-user-plus"></i> {{ translations.newUser | translate }}</button>
+                            <button (click)="showUserForm()" class="button button--primary-flat-red"> <i class="pi pi-user-plus"></i> {{ translations.newUser | translate }}</button>
                
                         </div>
     
@@ -62,16 +62,26 @@
     
                     <div class="management__content-body">
                         <div *ngIf="op == 'u'" class="management__content-cards management__content-cards--maps">
-                        <div *ngFor="let user of [1,2,4,5,4,5,6,4,4,3,4,5,6,4]" class="management__user-card management__user-card--maps">
-                            <div class="management__user-card-title"> <strong>Frankely Garcia</strong> </div>
-                            <div class="management__user-card-subtitle"><span>frxnkely&#64;gmail.com</span></div>
-                            <div class="management__user-card-controls">
-                                <button class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
-                                <button (click)="showUserForm()" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
-                                <button class="button button--primary-flat" title="Eliminar usuario"> <i class="pi pi-trash" ></i> </button>
-                            </div>
-                        </div>
-                           
+                            <ng-container *ngIf="!loading; else loadingSkeletonsMaps">
+                                <div *ngFor="let user of users" class="management__user-card management__user-card--maps">
+                                    <div class="management__user-card-title"> <strong>{{ user.name }} {{ user.last_name }}</strong> </div>
+                                    <div class="management__user-card-subtitle"><span>{{ user.email }}</span></div>
+                                    <div class="management__user-card-controls">
+                                        <button class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
+                                        <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
+                                        <button class="button button--primary-flat" title="Eliminar usuario"> <i class="pi pi-trash" ></i> </button>
+                                    </div>
+                                </div>
+                            </ng-container>
+                            <ng-template #loadingSkeletonsMaps>
+                                <div *ngFor="let skel of [1,2]" class="management__user-card management__user-card--maps">
+                                    <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton>
+                                    <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton>
+                                    <div class="management__user-card-controls">
+                                        <!-- Opciones removidas, solo barra -->
+                                    </div>
+                                </div>
+                            </ng-template>
                         </div>
     
                         <div  *ngIf="op == 't'" class="management__content-table">
@@ -138,15 +148,15 @@
                 </div>
                 <div class="management__user-title">
                     <strong *ngIf="!loading">{{ selectedUser?.name }} {{ selectedUser?.last_name }}</strong>
-                    <p-skeleton *ngIf="loading" width="150px" height="24px"></p-skeleton>
+                    <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '150px', 'height': '24px' }"></p-skeleton>
                 </div>
                 <div class="management__user-subtitle">
                     <span *ngIf="!loading">{{ selectedUser?.email }}</span>
-                    <p-skeleton *ngIf="loading" width="120px" height="18px"></p-skeleton>
+                    <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '120px', 'height': '18px' }"></p-skeleton>
                 </div>
                 <div class="management__user-subtitle">
                     <span *ngIf="!loading">{{ selectedUser?.access_level_id?.name | titlecase }}</span>
-                    <p-skeleton *ngIf="loading" width="120px" height="18px"></p-skeleton>
+                    <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '120px', 'height': '18px' }"></p-skeleton>
                 </div>
          
            
@@ -171,7 +181,7 @@
                             <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text" [placeholder]="translations.searchUsers | translate">
                             
                         </div>
-                        <button class="button button--primary-flat-red"> <i class="pi pi-user-plus"></i> {{ translations.newUser | translate }}</button>
+                        <button (click)="showUserForm()" class="button button--primary-flat-red"> <i class="pi pi-user-plus"></i> {{ translations.newUser | translate }}</button>
            
                     </div>
 
@@ -189,18 +199,30 @@
 
                 <div class="management__content-body">
                     <div *ngIf="op == 'u'" class="management__content-cards">
-                    <div *ngFor="let user of [1,2,4,5,4,5,6,4,4,3,4,5,6,4]" class="management__user-card">
-                        <div class="management__user-card-icon"> <i class="pi pi-user"></i> </div>
-                        <div class="management__user-card-title"> <strong>Frankely Garcia</strong> </div>
-                        <div class="management__user-card-subtitle"> <span>frxnkely&#64;gmail.com</span> </div>
-                        <div class="management__user-card-footer">(809) 986-3243</div>
-                        <div class="management__user-card-controls">
-                            <button class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
-                            <button (click)="showUserForm()" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
-                            <button class="button button--primary-flat" title="Eliminar usuario"> <i class="pi pi-trash" ></i> </button>
-                        </div>
-                    </div>
-                       
+                        <ng-container *ngIf="!loading; else loadingSkeletons">
+                            <div *ngFor="let user of users" class="management__user-card">
+                                <div class="management__user-card-icon"> <i class="pi pi-user"></i> </div>
+                                <div class="management__user-card-title"> <strong>{{ user.name }} {{ user.last_name }}</strong> </div>
+                                <div class="management__user-card-subtitle"> <span>{{ user.email }}</span> </div>
+                                <div class="management__user-card-footer">{{ user.phone }}</div>
+                                <div class="management__user-card-controls">
+                                    <button class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
+                                    <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
+                                    <button class="button button--primary-flat" title="Eliminar usuario"> <i class="pi pi-trash" ></i> </button>
+                                </div>
+                            </div>
+                        </ng-container>
+                        <ng-template #loadingSkeletons>
+                            <div *ngFor="let skel of [1,2]" class="management__user-card">
+                                <div class="management__user-card-icon"> <p-skeleton [ngStyle]="{ 'width': '40px', 'height': '40px', 'shape': 'circle' }"></p-skeleton> </div>
+                                <div class="management__user-card-title"> <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton> </div>
+                                <div class="management__user-card-subtitle"> <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton> </div>
+                                <div class="management__user-card-footer"><p-skeleton [ngStyle]="{ 'width': '50%', 'height': '16px' }"></p-skeleton></div>
+                                <div class="management__user-card-controls">
+                                    <!-- Opciones removidas, solo barra -->
+                                </div>
+                            </div>
+                        </ng-template>
                     </div>
 
                     <div  *ngIf="op == 't'" class="management__content-table">
@@ -257,7 +279,9 @@
         <app-target-form></app-target-form>
     </p-dialog>
 
-    <p-dialog header="Formulario de usuario" [modal]="true" [(visible)]="userFormDisplay" >
-        <app-user-form></app-user-form>
+    <p-dialog header="Formulario de usuario" [modal]="true" [(visible)]="userFormDisplay" 
+        (onHide)="userToEdit = null"
+    >
+        <app-user-form [userInput]="userToEdit" (userCreated)="onUserCreated()"></app-user-form>
     </p-dialog>
 </div>

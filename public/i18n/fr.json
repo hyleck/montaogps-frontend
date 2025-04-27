@@ -332,7 +332,10 @@
         "statusInactive": "Inactif",
         "info": "Information importante",
         "success": "Succès",
-        "userCreated": "Utilisateur créé avec succès."
+        "userCreated": "Utilisateur créé avec succès.",
+        "password": "Mot de passe",
+        "confirmPassword": "Confirmer le mot de passe",
+        "passwordsDoNotMatch": "Les mots de passe ne correspondent pas"
       }
     }
 }

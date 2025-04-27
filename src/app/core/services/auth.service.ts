@@ -129,7 +129,10 @@ export class AuthService {
   }
 
   logout(): void {
-    this.removeToken();
-    localStorage.removeItem(this.USER_KEY);
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    localStorage.clear();
+    if (rememberedEmail) {
+      localStorage.setItem('rememberedEmail', rememberedEmail);
+    }
   }
 }

@@ -43,7 +43,7 @@
 .user-form__field select,
 .user-form__field textarea {
     background-color: var(--managementColorInputSearch);
-    border: 1px solid var(--managementFieldsBorder);
+    border: none;
     border-radius: 4px;
     padding: 0.4rem 0.5rem;
     color: var(--managementColorTextUser);
@@ -110,7 +110,7 @@
 .user-form__field select,
 .user-form__field textarea {
     background-color: var(--managementColorInputSearch);
-    border: 1px solid var(--managementFieldsBorder);
+    border: none;
     border-radius: 4px;
     padding: 0.4rem 0.5rem;
     color: var(--managementColorTextUser);
@@ -719,4 +719,18 @@ select option {
 
 .disabled-privileges .privilege-action {
     opacity: 0.5;
+}
+
+.error-message {
+    color: var(--red-500);
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+}
+
+.ng-invalid {
+    border-color: var(--red-500) !important;
+}
+
+.ng-invalid:focus {
+    box-shadow: 0 0 0 2px var(--red-200) !important;
 }

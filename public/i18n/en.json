@@ -331,7 +331,10 @@
         "statusInactive": "Inactive",
         "info": "Important information",
         "success": "Success",
-        "userCreated": "User created successfully."
+        "userCreated": "User created successfully.",
+        "password": "Password",
+        "confirmPassword": "Confirm password",
+        "passwordsDoNotMatch": "Passwords do not match"
       }
     }
   }

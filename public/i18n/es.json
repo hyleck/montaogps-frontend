@@ -340,7 +340,10 @@
         "statusInactive": "Inactivo",
         "info": "Información importante",
         "success": "Éxito",
-        "userCreated": "Usuario creado correctamente."
+        "userCreated": "Usuario creado correctamente.",
+        "password": "Contraseña",
+        "confirmPassword": "Confirmar contraseña",
+        "passwordsDoNotMatch": "Las contraseñas no coinciden"
       }
     }
   }

@@ -1,11 +1,15 @@
 <div class="main">
+    <p-toast></p-toast>
     <div class="user-form">
         <div class="user-form__tools">
             <div class="card">
-                <p-tabView>
+                <p-tabView
+                    [activeIndex]="activeTabIndex"
+                    (activeIndexChange)="activeTabIndex = $event"
+                >
                     <p-tabPanel [header]="translations.personalInfo | translate">
                         <div class="user-form__base">
-                            <form class="user-form__form" (ngSubmit)="onSubmit()">
+                            <form class="user-form__form" (ngSubmit)="onSubmit()" ngNativeValidate>
                                 <div class="user-form__grid">
 
                                     <!-- Columna Izquierda -->
@@ -23,6 +27,18 @@
                                         </div>
 
                                         <div class="user-form__field">
+                                            <label for="last_name">{{ translations.lastName | translate }}</label>
+                                            <input 
+                                                [(ngModel)]="user.last_name"
+                                                name="last_name"
+                                                [placeholder]="translations.lastName | translate" 
+                                                type="text" 
+                                                id="last_name" 
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="user-form__field">
                                             <label for="email">{{ translations.email | translate }}</label>
                                             <input 
                                                 [(ngModel)]="user.email"
@@ -34,16 +50,7 @@
                                             >
                                         </div>
 
-                                        <div class="user-form__field">
-                                            <label for="birth">{{ translations.birth | translate }}</label>
-                                            <input
-                                                [(ngModel)]="user.birth"
-                                                name="birth"
-                                                type="date"
-                                                id="birth"
-                                                required
-                                            >
-                                        </div>
+                                      
 
                                         <div class="user-form__field">
                                             <label for="phone">{{ translations.phone | translate }}</label>
@@ -54,6 +61,16 @@
                                                 type="tel" 
                                                 id="phone" 
                                                 required
+                                            >
+                                        </div>
+                                        <div class="user-form__field">
+                                            <label for="phone2">{{ translations.phone2 | translate }}</label>
+                                            <input 
+                                                [(ngModel)]="user.phone2"
+                                                name="phone2"
+                                                [placeholder]="translations.phone2 | translate" 
+                                                type="tel" 
+                                                id="phone2" 
                                             >
                                         </div>
 
@@ -73,17 +90,7 @@
 
                                     <!-- Columna Derecha -->
                                     <div class="user-form__column">
-                                        <div class="user-form__field">
-                                            <label for="last_name">{{ translations.lastName | translate }}</label>
-                                            <input 
-                                                [(ngModel)]="user.last_name"
-                                                name="last_name"
-                                                [placeholder]="translations.lastName | translate" 
-                                                type="text" 
-                                                id="last_name" 
-                                                required
-                                            >
-                                        </div>
+                                     
 
                                         <div class="user-form__field">
                                             <label for="dni">{{ translations.dni | translate }}</label>
@@ -109,13 +116,36 @@
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="phone2">{{ translations.phone2 | translate }}</label>
+                                            <label for="birth">{{ translations.birth | translate }}</label>
+                                            <input
+                                                [(ngModel)]="user.birth"
+                                                name="birth"
+                                                type="date"
+                                                id="birth"
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="user-form__field">
+                                            <label for="password">{{ 'management.userForm.password' | translate }}</label>
                                             <input 
-                                                [(ngModel)]="user.phone2"
-                                                name="phone2"
-                                                [placeholder]="translations.phone2 | translate" 
-                                                type="tel" 
-                                                id="phone2" 
+                                                [(ngModel)]="user.password"
+                                                name="password"
+                                                [placeholder]="'management.userForm.password' | translate" 
+                                                type="password" 
+                                                id="password" 
+                                                required
+                                            >
+                                        </div>
+                                        <div class="user-form__field">
+                                            <label for="confirmPassword">{{ 'management.userForm.confirmPassword' | translate }}</label>
+                                            <input 
+                                                [(ngModel)]="confirmPassword"
+                                                name="confirmPassword"
+                                                [placeholder]="'management.userForm.confirmPassword' | translate" 
+                                                type="password" 
+                                                id="confirmPassword" 
+                                                required
                                             >
                                         </div>
                                     </div>
@@ -141,12 +171,17 @@
                                     id="role"
                                     required
                                     (change)="onRoleChange()"
+                                    #roleInput="ngModel"
+                                    [ngClass]="{'ng-invalid': roleInput.invalid && roleInput.touched}"
                                 >
                                     <option [ngValue]="null">{{ 'management.userForm.selectRole' | translate }}</option>
                                     <option *ngFor="let role of roles" [ngValue]="role">
                                         {{role.name}}
                                     </option>
                                 </select>
+                                <div *ngIf="roleInput.invalid && roleInput.touched" class="error-message">
+                                    {{ 'management.userForm.roleRequired' | translate }}
+                                </div>
                             </div>
 
                             <div class="modules-privileges" [class.disabled-privileges]="!user.role">
@@ -220,7 +255,8 @@
                                                 <label for="theme">{{ translations.theme | translate }}</label>
                                             </div>
                                             <select
-                                                [(ngModel)]="user.settings.theme"
+                                                [(ngModel)]="selectedTheme"
+                                                (ngModelChange)="updateSettingValue('theme', $event)"
                                                 name="theme"
                                                 id="theme"
                                                 class="settings-dropdown"
@@ -238,7 +274,8 @@
                                                 <label for="language">{{ translations.language | translate }}</label>
                                             </div>
                                             <select
-                                                [(ngModel)]="user.settings.language"
+                                                [(ngModel)]="selectedLanguage"
+                                                (ngModelChange)="updateSettingValue('language', $event)"
                                                 name="language"
                                                 id="language"
                                                 class="settings-dropdown"
@@ -256,7 +293,8 @@
                                                 <label for="affiliation">{{ translations.affiliationType | translate }}</label>
                                             </div>
                                             <select
-                                                [(ngModel)]="user.settings.affiliation_type"
+                                                [(ngModel)]="selectedAffiliationType"
+                                                (ngModelChange)="updateSettingValue('affiliation_type', $event)"
                                                 name="affiliation"
                                                 id="affiliation"
                                                 class="settings-dropdown"
@@ -275,7 +313,8 @@
                                                 <label for="profile">{{ translations.profileType | translate }}</label>
                                             </div>
                                             <select
-                                                [(ngModel)]="user.settings.profile_type"
+                                                [(ngModel)]="selectedProfileType"
+                                                (ngModelChange)="updateSettingValue('profile_type', $event)"
                                                 name="profile"
                                                 id="profile"
                                                 class="settings-dropdown"
@@ -295,7 +334,8 @@
                                             </div>
                                             <div class="settings-toggle">
                                                 <p-checkbox
-                                                    [(ngModel)]="user.settings.notifications"
+                                                    [(ngModel)]="notificationsEnabled"
+                                                    (ngModelChange)="updateSettingValue('notifications', $event)"
                                                     name="notifications"
                                                     [binary]="true"
                                                     class="settings-checkbox"

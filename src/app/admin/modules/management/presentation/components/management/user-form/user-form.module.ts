@@ -9,6 +9,7 @@ import { CalendarModule } from 'primeng/calendar';
 import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
 import { TranslateModule } from '@ngx-translate/core';
+import { ToastModule } from 'primeng/toast';
 
 @NgModule({
   declarations: [
@@ -23,7 +24,8 @@ import { TranslateModule } from '@ngx-translate/core';
     CalendarModule,
     CheckboxModule,
     ButtonModule,
-    TranslateModule
+    TranslateModule,
+    ToastModule
   ],
   exports: [
     UserFormComponent

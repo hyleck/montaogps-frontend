@@ -34,6 +34,8 @@ searchTargetsTerm: string = '';
 currentUserId: string | undefined;
 showMaps: boolean = false;
 selectedUser: User | undefined;
+users: User[] = [];
+userToEdit: User | null = null;
 
 // Claves de traducción
 translations = {
@@ -234,28 +236,33 @@ constructor(
   }
 
   verifyURLStatus(params: any) {
-    this.op = params['op'];
-    this.currentUserId = params['user'];
-    const managementState: any = this.status.getState('management');
 
-    if (managementState.url_route[1] && !params['op'] && !params['user']) {
-      this._router.navigate(
-        managementState.url_route,
-        { queryParams: managementState.url_query_params }
-      );
-    } else if (!managementState.url_route[1] && !params['op'] && !params['user']) {
-      this.goDefaultRoute();
-    }
 
-    // Si hay un ID de usuario en la URL, cargar sus datos sin mostrar el skeleton
-    if (this.currentUserId) {
-      this.loadUserData(this.currentUserId, false);
-    }
-
-    this.setURLStatus();
+      this.op = params['op'];
+      this.currentUserId = params['user'];
+      const managementState: any = this.status.getState('management');
+  
+      if (managementState.url_route[1] && !params['op'] && !params['user']) {
+        this._router.navigate(
+          managementState.url_route,
+          { queryParams: managementState.url_query_params }
+        );
+      } else if (!managementState.url_route[1] && !params['op'] && !params['user']) {
+        this.goDefaultRoute();
+      }
+  
+      // Si hay un ID de usuario en la URL, cargar sus datos sin mostrar el skeleton
+      if (this.currentUserId) {
+        this.loadUserData(this.currentUserId, false);
+      }
+  
+      this.setURLStatus();
+    
+  
   }
 
   goDefaultRoute() {
+
     const currentUser = this.authService.getCurrentUser();
     if (currentUser) {
       this._router.navigate(['admin/management', 'u', currentUser.id]);
@@ -278,11 +285,23 @@ constructor(
     
     this.loadUserData(currentUser.id, true);
 
+    // Traer todos los usuarios al iniciar
+    this.userService.getAll(this.currentUserId).subscribe({
+      next: (users) => {
+        this.users = users;
+      },
+      error: (error) => {
+        console.error('Error al cargar todos los usuarios:', error);
+      }
+    });
+
     this.route.params.subscribe(params => {
       if (params['user'] && params['user'] !== this.currentUserId) {
         this.loadUserData(params['user'], false);
       }
-      this.verifyURLStatus(params);
+      setTimeout(() => {
+        this.verifyURLStatus(params);
+      }, 100);
     });
 
     this.status.statusChanges$.subscribe((newStatus) => {
@@ -314,6 +333,7 @@ constructor(
   // }
 
   showUserForm() {
+    this.userToEdit = null;
     this.userFormDisplay = true;
   }
 
@@ -321,5 +341,22 @@ constructor(
     this.targetFormDisplay = true;
   }
 
+  onUserCreated() {
+    this.userFormDisplay = false;
+    this.userToEdit = null;
+    this.userService.getAll(this.currentUserId).subscribe({
+      next: (users) => {
+        this.users = users;
+      },
+      error: (error) => {
+        console.error('Error al recargar usuarios:', error);
+      }
+    });
+  }
+
+  editUser(user: User) {
+    this.userToEdit = user;
+    this.userFormDisplay = true;
+  }
 
 }
