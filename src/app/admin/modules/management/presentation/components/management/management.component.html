@@ -1,3 +1,4 @@
+<p-toast></p-toast>
 <div class="main">
         <div *ngIf="showMaps" class="management__maps">
             <div class="management__route">
@@ -63,13 +64,17 @@
                     <div class="management__content-body">
                         <div *ngIf="op == 'u'" class="management__content-cards management__content-cards--maps">
                             <ng-container *ngIf="!loading; else loadingSkeletonsMaps">
+                                <div *ngIf="!loading && users.length === 0" class="no-users-message">
+                                    <i class="pi pi-users" style="font-size: 2rem; color: #888; display: block; margin-bottom: 0.5rem;"></i>
+                                    <span>{{ 'management.noUsers' | translate }}</span>
+                                </div>
                                 <div *ngFor="let user of users" class="management__user-card management__user-card--maps">
                                     <div class="management__user-card-title"> <strong>{{ user.name }} {{ user.last_name }}</strong> </div>
                                     <div class="management__user-card-subtitle"><span>{{ user.email }}</span></div>
                                     <div class="management__user-card-controls">
                                         <button class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
                                         <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
-                                        <button class="button button--primary-flat" title="Eliminar usuario"> <i class="pi pi-trash" ></i> </button>
+                                        <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)"> <i class="pi pi-trash" ></i> </button>
                                     </div>
                                 </div>
                             </ng-container>
@@ -200,6 +205,10 @@
                 <div class="management__content-body">
                     <div *ngIf="op == 'u'" class="management__content-cards">
                         <ng-container *ngIf="!loading; else loadingSkeletons">
+                            <div *ngIf="!loading && users.length === 0" class="no-users-message">
+                                <i class="pi pi-users" style="font-size: 2rem; color: #888; display: block; margin-bottom: 0.5rem;"></i>
+                                <span>{{ 'management.noUsers' | translate }}</span>
+                            </div>
                             <div *ngFor="let user of users" class="management__user-card">
                                 <div class="management__user-card-icon"> <i class="pi pi-user"></i> </div>
                                 <div class="management__user-card-title"> <strong>{{ user.name }} {{ user.last_name }}</strong> </div>
@@ -208,7 +217,7 @@
                                 <div class="management__user-card-controls">
                                     <button class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
                                     <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
-                                    <button class="button button--primary-flat" title="Eliminar usuario"> <i class="pi pi-trash" ></i> </button>
+                                    <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)"> <i class="pi pi-trash" ></i> </button>
                                 </div>
                             </div>
                         </ng-container>
@@ -285,3 +294,5 @@
         <app-user-form [userInput]="userToEdit" (userCreated)="onUserCreated()"></app-user-form>
     </p-dialog>
 </div>
+
+<p-confirmDialog></p-confirmDialog>

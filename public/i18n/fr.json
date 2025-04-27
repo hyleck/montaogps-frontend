@@ -26,7 +26,8 @@
       "contactInstallation": "Installations",
       "contactRenewal": "Renouvellement et vérification",
       "contactAccounting": "Comptabilité",
-      "contactEmergency": "Urgences"
+      "contactEmergency": "Urgences",
+      "noUsers": "Ce compte n'a pas d'utilisateurs."
     },
     "theme": {
       "toggleLight": "Clair",
@@ -335,7 +336,11 @@
         "userCreated": "Utilisateur créé avec succès.",
         "password": "Mot de passe",
         "confirmPassword": "Confirmer le mot de passe",
-        "passwordsDoNotMatch": "Les mots de passe ne correspondent pas"
+        "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
+        "confirmDeleteUser": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?",
+        "confirmDeleteHeader": "Confirmer la suppression",
+        "userDeleted": "L'utilisateur a été supprimé avec succès",
+        "errorDelete": "Impossible de supprimer l'utilisateur"
       }
     }
 }

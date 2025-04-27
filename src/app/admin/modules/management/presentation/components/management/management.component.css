@@ -1,4 +1,3 @@
-
 .main {
     height: 100%;
     background: var(--globalColorBackgroundDark);
@@ -554,5 +553,12 @@
 
 .management__content--maps {
   width: 100%;
+}
+
+.no-users-message {
+    color: var(--managementColorTextUser, #888);
+    opacity: 0.4;
+    display: flex;
+    flex-direction: column;
 }
 

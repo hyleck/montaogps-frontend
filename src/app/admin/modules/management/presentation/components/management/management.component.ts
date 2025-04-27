@@ -7,6 +7,8 @@ import { AuthService } from '../../../../../../core/services/auth.service';
 import { UserService } from '../../../../../../core/services/user.service';
 import { User, BasicUser } from '../../../../../../core/interfaces';
 import { TranslateService } from '@ngx-translate/core';
+import { ConfirmationService } from 'primeng/api';
+import { MessageService } from 'primeng/api';
 
 @Component({
     selector: 'app-management',
@@ -137,7 +139,9 @@ constructor(
   private status: StatusService,
   private authService: AuthService,
   private userService: UserService,
-  private translate: TranslateService
+  private translate: TranslateService,
+  private confirmationService: ConfirmationService,
+  private messageService: MessageService
 ) {}
 
  // Escucha cambios en el tamaño de la ventana
@@ -357,6 +361,46 @@ constructor(
   editUser(user: User) {
     this.userToEdit = user;
     this.userFormDisplay = true;
+  }
+
+  confirmDeleteUser(user: User) {
+    this.confirmationService.confirm({
+      message: this.translate.instant('management.userForm.confirmDeleteUser'),
+      header: this.translate.instant('management.userForm.confirmDeleteHeader'),
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: this.translate.instant('management.userForm.yes'),
+      rejectLabel: this.translate.instant('management.userForm.no'),
+      accept: () => {
+        this.userService.delete(user._id).subscribe({
+          next: () => {
+            this.users = this.users.filter(u => u._id !== user._id);
+            this.messageService.add({
+              severity: 'success',
+              summary: this.translate.instant('management.userForm.userDeleted'),
+              detail: this.translate.instant('management.userForm.userDeleted'),
+              life: 3000
+            });
+          },
+          error: (error) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: this.translate.instant('management.userForm.error'),
+              detail: this.translate.instant('management.userForm.errorDelete'),
+              life: 3000
+            });
+          },
+          complete: () => {
+            // Forzamos el mensaje aquí si el backend responde vacío
+            // this.messageService.add({
+            //   severity: 'success',
+            //   summary: this.translate.instant('management.userForm.userDeleted'),
+            //   detail: this.translate.instant('management.userForm.userDeleted'),
+            //   life: 3000
+            // });
+          }
+        });
+      }
+    });
   }
 
 }

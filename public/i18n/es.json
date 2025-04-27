@@ -343,8 +343,15 @@
         "userCreated": "Usuario creado correctamente.",
         "password": "Contraseña",
         "confirmPassword": "Confirmar contraseña",
-        "passwordsDoNotMatch": "Las contraseñas no coinciden"
-      }
+        "passwordsDoNotMatch": "Las contraseñas no coinciden",
+        "confirmDeleteUser": "¿Estás seguro de que deseas eliminar este usuario?",
+        "confirmDeleteHeader": "Confirmar eliminación",
+        "yes": "Sí",
+        "no": "No",
+        "userDeleted": "El usuario ha sido eliminado correctamente",
+        "errorDelete": "No se pudo eliminar el usuario"
+      },
+      "noUsers": "Esta cuenta no tiene usuarios."
     }
   }
   
