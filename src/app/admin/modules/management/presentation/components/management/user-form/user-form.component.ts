@@ -64,6 +64,7 @@ export class UserFormComponent implements OnInit, OnChanges {
         profileType: 'management.userForm.profileType',
         role: 'management.userForm.role',
         privileges: 'management.userForm.privileges',
+        of: 'management.userForm.of',
         save: 'management.userForm.save',
         cancel: 'management.userForm.cancel'
     };
@@ -151,16 +152,17 @@ export class UserFormComponent implements OnInit, OnChanges {
         { label: 'Inglés', value: 'en' }
     ];
 
-    affiliationTypes = [
-        { label: 'Personal', value: 'personal' },
-        { label: 'Empresarial', value: 'business' },
-        { label: 'Premium', value: 'premium' }
+    profileTypes = [
+        { label: 'Empresa', value: 'empresa' },
+        { label: 'Personal', value: 'personal' }
     ];
 
-    profileTypes = [
-        { label: 'Básico', value: 'basic' },
-        { label: 'Avanzado', value: 'advanced' },
-        { label: 'Experto', value: 'expert' }
+    affiliationTypes = [
+        { label: 'Cliente', value: 'cliente' },
+        { label: 'Subcliente', value: 'subcliente' },
+        { label: 'Socio', value: 'socio' },
+        { label: 'Empleado', value: 'empleado' },
+        { label: 'Otro', value: 'otro' }
     ];
 
     // Propiedades intermedias para el enlace de datos
@@ -203,7 +205,7 @@ export class UserFormComponent implements OnInit, OnChanges {
                 theme: 'light',
                 language: 'es',
                 notifications: true,
-                affiliation_type: '',
+                affiliation_type: 'cliente',
                 profile_type: ''
             },
             status: 'active',
@@ -215,13 +217,13 @@ export class UserFormComponent implements OnInit, OnChanges {
                 createdAt: '',
                 updatedAt: ''
             },
-            affiliation_type: '',
+            affiliation_type: 'cliente',
             profile_type: ''
         };
         this.selectedTheme = 'light';
         this.selectedLanguage = 'es';
         this.notificationsEnabled = true;
-        this.selectedAffiliationType = '';
+        this.selectedAffiliationType = 'cliente';
         this.selectedProfileType = '';
         this.confirmPassword = '';
         this.user.password = '';
@@ -246,7 +248,7 @@ export class UserFormComponent implements OnInit, OnChanges {
                 theme: 'light',
                 language: 'es',
                 notifications: true,
-                affiliation_type: '',
+                affiliation_type: 'cliente',
                 profile_type: ''
             },
             status: 'active',
@@ -258,13 +260,13 @@ export class UserFormComponent implements OnInit, OnChanges {
                 createdAt: '',
                 updatedAt: ''
             },
-            affiliation_type: '',
+            affiliation_type: 'cliente',
             profile_type: ''
         };
         this.selectedTheme = 'light';
         this.selectedLanguage = 'es';
         this.notificationsEnabled = true;
-        this.selectedAffiliationType = '';
+        this.selectedAffiliationType = 'cliente';
         this.selectedProfileType = '';
         this.confirmPassword = '';
         this.user.password = '';

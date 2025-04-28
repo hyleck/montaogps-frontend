@@ -180,7 +180,12 @@
           "system": "System",
           "plans": "Plans",
           "servers": "Servers"
-        }
+        },
+        "role": "Role",
+        "selectRole": "Select role",
+        "privileges": "Privileges",
+        "of": "of",
+        "selectAll": "Select all"
       },
       "cards": {
         "servers": {
@@ -282,9 +287,21 @@
         "notifications": "Notifications",
         "affiliationType": "Affiliation Type",
         "profileType": "Profile Type",
+        "profileTypes": {
+            "empresa": "Business",
+            "personal": "Personal"
+        },
+        "affiliationTypes": {
+            "cliente": "Client",
+            "subcliente": "Subclient",
+            "socio": "Partner",
+            "empleado": "Employee",
+            "otro": "Other"
+        },
         "role": "Role",
         "selectRole": "Select role",
         "privileges": "Privileges",
+        "of": "of",
         "selectAll": "Select all",
         "modules": {
           "users": "Users",
@@ -340,7 +357,8 @@
         "yes": "Yes",
         "no": "No",
         "userDeleted": "The user has been successfully deleted",
-        "errorDelete": "Could not delete user"
+        "errorDelete": "Could not delete user",
+        "backToPersonalInfo": "Back to personal information"
       },
       "noUsers": "This account has no users."
     }

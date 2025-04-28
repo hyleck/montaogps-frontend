@@ -283,10 +283,22 @@
         "language": "Langue",
         "notifications": "Notifications",
         "affiliationType": "Type d'affiliation",
-        "profileType": "Type de profil",
+        "profileType": "Type de Profil",
+        "profileTypes": {
+            "empresa": "Entreprise",
+            "personal": "Personnel"
+        },
+        "affiliationTypes": {
+            "cliente": "Client",
+            "subcliente": "Sous-client",
+            "socio": "Partenaire",
+            "empleado": "Employé",
+            "otro": "Autre"
+        },
         "role": "Rôle",
         "selectRole": "Sélectionner un rôle",
         "privileges": "Privilèges",
+        "of": "de",
         "selectAll": "Tout sélectionner",
         "modules": {
           "users": "Utilisateurs",
@@ -340,7 +352,8 @@
         "confirmDeleteUser": "Êtes-vous sûr de vouloir supprimer cet utilisateur ?",
         "confirmDeleteHeader": "Confirmer la suppression",
         "userDeleted": "L'utilisateur a été supprimé avec succès",
-        "errorDelete": "Impossible de supprimer l'utilisateur"
+        "errorDelete": "Impossible de supprimer l'utilisateur",
+        "backToPersonalInfo": "Retour aux informations personnelles"
       }
     }
 }

@@ -290,10 +290,22 @@
         "language": "Idioma",
         "notifications": "Notificaciones",
         "affiliationType": "Tipo de Afiliación",
+        "affiliationTypes": {
+            "cliente": "Cliente",
+            "subcliente": "Subcliente",
+            "socio": "Socio",
+            "empleado": "Empleado",
+            "otro": "Otro"
+        },
         "profileType": "Tipo de Perfil",
+        "profileTypes": {
+            "empresa": "Empresa",
+            "personal": "Personal"
+        },
         "role": "Rol",
         "selectRole": "Seleccionar rol",
         "privileges": "Privilegios",
+        "of": "de",
         "selectAll": "Seleccionar todo",
         "modules": {
           "users": "Usuarios",
@@ -321,10 +333,10 @@
         },
         "save": "Guardar",
         "cancel": "Cancelar",
-        "selectAffiliation": "Seleccionar tipo de afiliación",
-        "selectProfile": "Seleccionar tipo de perfil",
-        "affiliationDescription": "Seleccione el tipo de afiliación del usuario",
-        "profileDescription": "Seleccione el tipo de perfil del usuario",
+        "selectAffiliation": "Seleccione un tipo de afiliación",
+        "selectProfile": "Seleccione un tipo de perfil",
+        "affiliationDescription": "Seleccione el tipo de afiliación que mejor describa su relación con la empresa",
+        "profileDescription": "Seleccione el tipo de perfil que mejor se ajuste a sus necesidades",
         "themeDescription": "Personalice la apariencia de la aplicación",
         "languageDescription": "Seleccione el idioma preferido",
         "notificationsEnable": "Activar notificaciones del sistema",
@@ -349,7 +361,8 @@
         "yes": "Sí",
         "no": "No",
         "userDeleted": "El usuario ha sido eliminado correctamente",
-        "errorDelete": "No se pudo eliminar el usuario"
+        "errorDelete": "No se pudo eliminar el usuario",
+        "backToPersonalInfo": "Volver a información personal"
       },
       "noUsers": "Esta cuenta no tiene usuarios."
     }

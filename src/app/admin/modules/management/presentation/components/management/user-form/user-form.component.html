@@ -14,11 +14,11 @@
                                     <!-- Columna Izquierda -->
                                     <div class="user-form__column">
                                         <div class="user-form__field">
-                                            <label for="name">{{ translations.name | translate }}</label>
+                                            <label for="name">{{ translations.name | translate }} <span class="required-label">(Requerido)</span></label>
                                             <input 
                                                 [(ngModel)]="user.name"
                                                 name="name"
-                                                [placeholder]="translations.name | translate" 
+                                                placeholder="Ej: Juan Carlos" 
                                                 type="text" 
                                                 id="name" 
                                                 required
@@ -26,11 +26,11 @@
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="last_name">{{ translations.lastName | translate }}</label>
+                                            <label for="last_name">{{ translations.lastName | translate }} <span class="required-label">(Requerido)</span></label>
                                             <input 
                                                 [(ngModel)]="user.last_name"
                                                 name="last_name"
-                                                [placeholder]="translations.lastName | translate" 
+                                                placeholder="Ej: Pérez Gómez" 
                                                 type="text" 
                                                 id="last_name" 
                                                 required
@@ -38,43 +38,42 @@
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="email">{{ translations.email | translate }}</label>
+                                            <label for="email">{{ translations.email | translate }} <span class="required-label">(Requerido)</span></label>
                                             <input 
                                                 [(ngModel)]="user.email"
                                                 name="email"
-                                                [placeholder]="translations.email | translate" 
+                                                placeholder="Ej: juan.perez@empresa.com" 
                                                 type="email" 
                                                 id="email" 
                                                 required
                                             >
                                         </div>
 
-                                      
-
                                         <div class="user-form__field">
-                                            <label for="phone">{{ translations.phone | translate }}</label>
+                                            <label for="phone">{{ translations.phone | translate }} <span class="required-label">(Requerido)</span></label>
                                             <input 
                                                 [(ngModel)]="user.phone"
                                                 name="phone"
-                                                [placeholder]="translations.phone | translate" 
+                                                placeholder="Ej: (809) 555-0123" 
                                                 type="tel" 
                                                 id="phone" 
                                                 required
                                             >
                                         </div>
+
                                         <div class="user-form__field">
                                             <label for="phone2">{{ translations.phone2 | translate }}</label>
                                             <input 
                                                 [(ngModel)]="user.phone2"
                                                 name="phone2"
-                                                [placeholder]="translations.phone2 | translate" 
+                                                placeholder="Ej: (809) 555-0124" 
                                                 type="tel" 
                                                 id="phone2" 
                                             >
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="status">{{ 'management.userForm.status' | translate }}</label>
+                                            <label for="status">{{ 'management.userForm.status' | translate }} <span class="required-label">(Requerido)</span></label>
                                             <select
                                                 [(ngModel)]="user.status"
                                                 name="status"
@@ -89,14 +88,12 @@
 
                                     <!-- Columna Derecha -->
                                     <div class="user-form__column">
-                                     
-
                                         <div class="user-form__field">
-                                            <label for="dni">{{ translations.dni | translate }}</label>
+                                            <label for="dni">{{ translations.dni | translate }} <span class="required-label">(Requerido)</span></label>
                                             <input 
                                                 [(ngModel)]="user.dni"
                                                 name="dni"
-                                                [placeholder]="translations.dni | translate" 
+                                                placeholder="Ej: 001-0000000-0" 
                                                 type="text" 
                                                 id="dni" 
                                                 required
@@ -105,13 +102,34 @@
 
                                         <div class="user-form__field">
                                             <label for="address">{{ translations.address | translate }}</label>
-                                            <textarea 
+                                            <input 
                                                 [(ngModel)]="user.address"
                                                 name="address"
-                                                [placeholder]="translations.address | translate" 
+                                                placeholder="Ej: Calle Principal #123, Sector, Ciudad" 
+                                                type="text" 
                                                 id="address"
-                                                rows="3"
-                                            ></textarea>
+                                            >
+                                        </div>
+
+                                        <div class="user-form__field">
+                                            <label for="role">{{ translations.role | translate }} <span class="required-label">(Requerido)</span></label>
+                                            <select
+                                                [(ngModel)]="user.role"
+                                                name="role"
+                                                id="role"
+                                                required
+                                                (change)="onRoleChange()"
+                                                #roleInput="ngModel"
+                                                [ngClass]="{'ng-invalid': roleInput.invalid && roleInput.touched}"
+                                            >
+                                                <option [ngValue]="null">{{ 'management.userForm.selectRole' | translate }}</option>
+                                                <option *ngFor="let role of roles" [ngValue]="role">
+                                                    {{role.name}}
+                                                </option>
+                                            </select>
+                                            <!-- <div *ngIf="roleInput.invalid && roleInput.touched" class="error-message">
+                                                {{ 'management.userForm.roleRequired' | translate }}
+                                            </div> -->
                                         </div>
 
                                         <div class="user-form__field">
@@ -121,27 +139,27 @@
                                                 name="birth"
                                                 type="date"
                                                 id="birth"
-                                                required
                                             >
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="password">{{ 'management.userForm.password' | translate }}</label>
+                                            <label for="password">{{ 'management.userForm.password' | translate }} <span class="required-label">(Requerido)</span></label>
                                             <input 
                                                 [(ngModel)]="user.password"
                                                 name="password"
-                                                [placeholder]="'management.userForm.password' | translate" 
+                                                placeholder="Mínimo 8 caracteres, incluya números y símbolos" 
                                                 type="password" 
                                                 id="password" 
                                                 required
                                             >
                                         </div>
+
                                         <div class="user-form__field">
-                                            <label for="confirmPassword">{{ 'management.userForm.confirmPassword' | translate }}</label>
+                                            <label for="confirmPassword">{{ 'management.userForm.confirmPassword' | translate }} <span class="required-label">(Requerido)</span></label>
                                             <input 
                                                 [(ngModel)]="confirmPassword"
                                                 name="confirmPassword"
-                                                [placeholder]="'management.userForm.confirmPassword' | translate" 
+                                                placeholder="Repita la contraseña" 
                                                 type="password" 
                                                 id="confirmPassword" 
                                                 required
@@ -160,29 +178,8 @@
                         </div>
                     </p-tabPanel>
 
-                    <p-tabPanel [header]="translations.privileges | translate">
+                    <p-tabPanel [header]="user.role ? (translations.privileges | translate) + ' ' + (translations.of | translate) + ' ' + user.role.name : (translations.privileges | translate)">
                         <div class="user-form__base">
-                            <div class="user-form__field">
-                                <label for="role">{{ translations.role | translate }}</label>
-                                <select
-                                    [(ngModel)]="user.role"
-                                    name="role"
-                                    id="role"
-                                    required
-                                    (change)="onRoleChange()"
-                                    #roleInput="ngModel"
-                                    [ngClass]="{'ng-invalid': roleInput.invalid && roleInput.touched}"
-                                >
-                                    <option [ngValue]="null">{{ 'management.userForm.selectRole' | translate }}</option>
-                                    <option *ngFor="let role of roles" [ngValue]="role">
-                                        {{role.name}}
-                                    </option>
-                                </select>
-                                <div *ngIf="roleInput.invalid && roleInput.touched" class="error-message">
-                                    {{ 'management.userForm.roleRequired' | translate }}
-                                </div>
-                            </div>
-
                             <div class="modules-privileges" [class.disabled-privileges]="!user.role">
                                 <div class="modules-list">
                                     <div *ngFor="let module of availableModules" class="module-section">
@@ -239,6 +236,12 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="user-form__actions">
+                                <button type="button" (click)="activeTabIndex = 0" class="back-button">
+                                    <i class="pi pi-arrow-left"></i>
+                                    {{ 'management.userForm.backToPersonalInfo' | translate }}
+                                </button>
                             </div>
                         </div>
                     </p-tabPanel>
@@ -300,7 +303,7 @@
                                             >
                                                 <option value="">{{ 'management.userForm.selectAffiliation' | translate }}</option>
                                                 <option *ngFor="let type of affiliationTypes" [value]="type.value">
-                                                    {{ type.label | translate }}
+                                                    {{ 'management.userForm.affiliationTypes.' + type.value | translate }}
                                                 </option>
                                             </select>
                                             <small class="settings-description">{{ 'management.userForm.affiliationDescription' | translate }}</small>
@@ -320,7 +323,7 @@
                                             >
                                                 <option value="">{{ 'management.userForm.selectProfile' | translate }}</option>
                                                 <option *ngFor="let type of profileTypes" [value]="type.value">
-                                                    {{ type.label | translate }}
+                                                    {{ 'management.userForm.profileTypes.' + type.value | translate }}
                                                 </option>
                                             </select>
                                             <small class="settings-description">{{ 'management.userForm.profileDescription' | translate }}</small>
@@ -363,6 +366,12 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="user-form__actions">
+                                <button type="button" (click)="activeTabIndex = 0" class="back-button">
+                                    <i class="pi pi-arrow-left"></i>
+                                    {{ 'management.userForm.backToPersonalInfo' | translate }}
+                                </button>
                             </div>
                         </div>
                     </p-tabPanel>
