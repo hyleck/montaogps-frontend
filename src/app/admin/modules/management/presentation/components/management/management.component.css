@@ -733,3 +733,15 @@
   }
 }
 
+@media (max-width: 768px) {
+  .card.flex.justify-content-center {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    justify-content: flex-start !important;
+  }
+}
+

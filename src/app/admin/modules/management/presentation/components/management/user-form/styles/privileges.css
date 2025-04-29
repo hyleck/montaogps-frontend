@@ -143,4 +143,23 @@
 
 .disabled-privileges .privilege-action {
     opacity: 0.5;
+}
+
+@media (max-width: 768px) {
+  .modules-list {
+    grid-template-columns: 1fr !important;
+    gap: 0.5rem !important;
+    padding: 0 !important;
+  }
+  .privileges-group {
+    grid-template-columns: 1fr !important;
+    gap: 0.3rem !important;
+    padding: 0.3rem !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .button-select-all {
+    display: none !important;
+  }
 } 

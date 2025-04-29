@@ -6,7 +6,11 @@
                     [activeIndex]="activeTabIndex"
                     (activeIndexChange)="activeTabIndex = $event"
                 >
-                    <p-tabPanel [header]="translations.personalInfo | translate">
+                    <p-tabPanel>
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-user"></i>
+                            <span class="tab-text">{{ translations.personalInfo | translate }}</span>
+                        </ng-template>
                         <div class="user-form__base">
                             <form class="user-form__form" (ngSubmit)="onSubmit()" ngNativeValidate>
                                 <div class="user-form__grid">
@@ -178,7 +182,11 @@
                         </div>
                     </p-tabPanel>
 
-                    <p-tabPanel [header]="user.role ? (translations.privileges | translate) + ' ' + (translations.of | translate) + ' ' + user.role.name : (translations.privileges | translate)">
+                    <p-tabPanel>
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-shield"></i>
+                            <span class="tab-text">{{ user.role ? (translations.privileges | translate) + ' ' + (translations.of | translate) + ' ' + user.role.name : (translations.privileges | translate) }}</span>
+                        </ng-template>
                         <div class="user-form__base">
                             <div class="modules-privileges" [class.disabled-privileges]="!user.role">
                                 <div class="modules-list">
@@ -246,7 +254,11 @@
                         </div>
                     </p-tabPanel>
 
-                    <p-tabPanel [header]="translations.settings | translate">
+                    <p-tabPanel>
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-cog"></i>
+                            <span class="tab-text">{{ translations.settings | translate }}</span>
+                        </ng-template>
                         <div class="user-form__base">
                             <div class="settings-container">
                                 <div class="settings-section">

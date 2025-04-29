@@ -7,8 +7,7 @@ import { UserRole, Privilege, PrivilegeAction } from '@core/interfaces/user-role
 export class PrivilegeService {
     getPrivilegeByModule(privileges: Privilege[] | undefined, module: string): Privilege | undefined {
         if (!privileges) return undefined;
-        const privilege = privileges.find(p => p.module === module);
-        return privilege ? { ...privilege } : undefined;
+        return privileges.find(p => p.module === module);
     }
 
     getPrivilegeActions(privileges: { [key: string]: Privilege } | undefined, rolePrivileges: Privilege[] | undefined, module: string): PrivilegeAction {

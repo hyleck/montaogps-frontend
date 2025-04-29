@@ -85,4 +85,11 @@
 
 :host ::ng-deep .settings-checkbox .p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box:hover {
     border-color: var(--managementColorTitleUser);
-} 
+}
+
+@media (max-width: 700px) {
+
+  span.tab-text {
+    display: none !important;
+  }
+}
