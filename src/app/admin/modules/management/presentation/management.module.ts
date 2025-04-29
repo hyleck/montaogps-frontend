@@ -9,6 +9,9 @@ import { MapsModule } from '../../../../shareds/components/maps/maps.module';
 import { TargetFormModule } from './components/management/target-form/target-form.module';
 import { UserFormModule } from './components/management/user-form/user-form.module';
 import { TranslateModule } from '@ngx-translate/core';
+import { ManagementService } from './services/management.service';
+import { ScreenService } from './services/screen.service';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 @NgModule({
   declarations: [
@@ -23,6 +26,12 @@ import { TranslateModule } from '@ngx-translate/core';
     TargetFormModule,
     UserFormModule,
     TranslateModule
+  ],
+  providers: [
+    ManagementService,
+    ScreenService,
+    ConfirmationService,
+    MessageService
   ]
 })
 export class ManagementModule { }

@@ -14,19 +14,28 @@ import {
     LanguageOption,
     ProfileTypeOption,
     AffiliationTypeOption
-} from '../../../../../../../core/interfaces/user-form.constants';
+} from './constants/user-form.constants';
 import { UserRolesService } from '../../../../../../../core/services/user-roles.service';
 import { TranslateService } from '@ngx-translate/core';
 import { MessageService } from 'primeng/api';
 import { UserService } from '../../../../../../../core/services/user.service';
 import { AuthService } from '../../../../../../../core/services/auth.service';
-import { PrivilegeService } from './privilege.service';
+import { PrivilegeService } from './services/privilege.service';
 import { Subject, takeUntil } from 'rxjs';
 
 @Component({
     selector: 'app-user-form',
     templateUrl: './user-form.component.html',
-    styleUrls: ['./user-form.component.css'],
+    styleUrls: [
+        './styles/base.css',
+        './styles/inputs.css',
+        './styles/buttons.css',
+        './styles/settings.css',
+        './styles/privileges.css',
+        './styles/prime-ng.css',
+        './styles/scrollbar.css',
+        './styles/dark-mode.css'
+    ],
     standalone: false
 })
 export class UserFormComponent implements OnInit, OnChanges, OnDestroy {

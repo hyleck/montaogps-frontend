@@ -48,7 +48,7 @@
                     <tr>
                         <th>{{ 'settings.roles_settings.table.name' | translate }}</th>
                         <th>{{ 'settings.roles_settings.table.description' | translate }}</th>
-                        <th>{{ 'settings.roles_settings.actions' | translate }}</th>
+                        <th>{{ 'settings.roles_settings.table.actions' | translate }}</th>
                     </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-role>
@@ -77,7 +77,7 @@
     [style]="{width: '90vw', maxWidth: '900px'}" 
     [draggable]="false" 
     [resizable]="false"
-    [header]="'settings.roles_settings.privileges.title' | translate">
+    [header]="'management.userForm.privileges' | translate">
         <div class="modules-list">
             <div *ngFor="let privilege of roleForm.privileges; let i = index" class="module-section">
                 <div class="module-header">
@@ -88,7 +88,7 @@
                             (click)="toggleAllPrivileges(privilege)"
                             [class.selected]="isAllSelected(privilege)">
                         <i class="pi" [class.pi-check-square]="isAllSelected(privilege)" [class.pi-square]="!isAllSelected(privilege)"></i>
-                        <span>{{ 'settings.roles_settings.privileges.select_all' | translate }}</span>
+                        <span>{{ 'management.userForm.selectAll' | translate }}</span>
                     </button>
                 </div>
                 <div class="privileges-group">
@@ -98,7 +98,7 @@
                                   [(ngModel)]="privilege.actions.read" 
                                   [name]="'read-' + privilege.module">
                         </p-checkbox>
-                        <label [for]="'read-' + i">{{ 'settings.roles_settings.privileges.actions.read' | translate }}</label>
+                        <label [for]="'read-' + i">{{ 'management.userForm.actions.read' | translate }}</label>
                     </div>
                     <div class="privilege-item">
                         <p-checkbox [binary]="true" 
@@ -106,7 +106,7 @@
                                   [(ngModel)]="privilege.actions.update" 
                                   [name]="'update-' + privilege.module">
                         </p-checkbox>
-                        <label [for]="'update-' + i">{{ 'settings.roles_settings.privileges.actions.update' | translate }}</label>
+                        <label [for]="'update-' + i">{{ 'management.userForm.actions.update' | translate }}</label>
                     </div>
                     <div class="privilege-item">
                         <p-checkbox [binary]="true" 
@@ -114,7 +114,7 @@
                                   [(ngModel)]="privilege.actions.create" 
                                   [name]="'create-' + privilege.module">
                         </p-checkbox>
-                        <label [for]="'create-' + i">{{ 'settings.roles_settings.privileges.actions.create' | translate }}</label>
+                        <label [for]="'create-' + i">{{ 'management.userForm.actions.create' | translate }}</label>
                     </div>
                     <div class="privilege-item">
                         <p-checkbox [binary]="true" 
@@ -122,7 +122,7 @@
                                   [(ngModel)]="privilege.actions.delete" 
                                   [name]="'delete-' + privilege.module">
                         </p-checkbox>
-                        <label [for]="'delete-' + i">{{ 'settings.roles_settings.privileges.actions.delete' | translate }}</label>
+                        <label [for]="'delete-' + i">{{ 'management.userForm.actions.delete' | translate }}</label>
                     </div>
                 </div>
             </div>
@@ -134,11 +134,11 @@
                     (click)="toggleAllModulesPrivileges()"
                     [class.selected]="isAllModulesSelected()">
                 <i class="pi" [class.pi-check-square]="isAllModulesSelected()" [class.pi-square]="!isAllModulesSelected()"></i>
-                <span>{{ 'settings.roles_settings.privileges.select_all_modules' | translate }}</span>
+                <span>{{ 'management.userForm.actions.select_all_modules' | translate }}</span>
             </button>
             <button type="button" class="button-primary" (click)="privilegesDialogVisible = false">
                 <i class="pi pi-check"></i>
-                {{ 'settings.roles_settings.update' | translate }}
+                {{ 'settings.roles_settings.actions.done' | translate }}
             </button>
         </div>
     </ng-template>

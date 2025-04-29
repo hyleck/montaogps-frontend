@@ -1,0 +1,57 @@
+/* Estilos para botones nativos */
+button[type="submit"] {
+    background-color: var(--managementColorTitleUser);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 100%;
+}
+
+button[type="submit"]:hover {
+    background-color: var(--managementColorIconUser);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+button[type="submit"] .pi {
+    font-size: 1rem;
+}
+
+.back-button {
+    background-color: transparent;
+    color: var(--managementColorTextUser);
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    width: auto;
+}
+
+.back-button:hover {
+    background-color: var(--managementColorInputSearch);
+    border-color: var(--managementColorBorderInput);
+}
+
+.back-button i {
+    font-size: 1rem;
+} 

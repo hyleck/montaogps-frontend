@@ -1,0 +1,77 @@
+.main {
+    padding: 1rem;
+    width: 700px;
+}
+
+.user-form {
+    background-color: var(--managementColorBackgroundUser);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--globalColorShadow);
+}
+
+.user-form__base {
+    padding: 1.2rem;
+}
+
+.user-form__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+.user-form__column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.user-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.user-form__field label {
+    color: var(--managementColorTextUser);
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.user-form__field input,
+.user-form__field select,
+.user-form__field textarea {
+    background-color: var(--managementColorInputSearch);
+    border: none;
+    border-radius: 4px;
+    padding: 0.4rem 0.5rem;
+    color: var(--managementColorTextUser);
+    transition: all 0.3s ease;
+    width: 100%;
+    font-size: 0.9rem;
+    font-family: inherit;
+    height: 32px;
+}
+
+.user-form__field input:focus,
+.user-form__field select:focus,
+.user-form__field textarea:focus {
+    border-color: var(--managementColorBorderInput);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
+}
+
+.user-form__field input::placeholder,
+.user-form__field textarea::placeholder {
+    color: var(--managementColorTextUser);
+    opacity: 0.6;
+}
+
+.user-form__actions {
+    margin-top: 2rem;
+    display: flex;
+    width: 100%;
+}
+
+.user-form__actions button {
+    font-size: 15px;
+} 

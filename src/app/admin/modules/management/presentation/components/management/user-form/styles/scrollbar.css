@@ -1,0 +1,17 @@
+/* Scrollbar */
+.user-form__form::-webkit-scrollbar {
+    width: 6px;
+}
+
+.user-form__form::-webkit-scrollbar-track {
+    background: var(--surface-ground);
+}
+
+.user-form__form::-webkit-scrollbar-thumb {
+    background: var(--surface-border);
+    border-radius: 3px;
+}
+
+.user-form__form::-webkit-scrollbar-thumb:hover {
+    background: var(--surface-hover);
+} 

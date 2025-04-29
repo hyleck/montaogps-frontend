@@ -1,0 +1,88 @@
+/* Estilos específicos para PrimeNG components */
+:host ::ng-deep .p-dropdown {
+    background-color: var(--managementColorInputSearch);
+    border-color: var(--managementFieldsBorder);
+}
+
+:host ::ng-deep .p-dropdown:not(.p-disabled):hover {
+    border-color: var(--managementColorBorderInput);
+}
+
+:host ::ng-deep .p-calendar .p-inputtext {
+    background-color: var(--managementColorInputSearch);
+    border-color: var(--managementFieldsBorder);
+}
+
+:host ::ng-deep .p-calendar .p-button {
+    background-color: var(--globalColorButtonBackground);
+    border-color: var(--managementFieldsBorder);
+}
+
+:host ::ng-deep .p-tabview .p-tabview-nav {
+    background-color: var(--managementColorBackgroundUser);
+    border-color: var(--managementFieldsBorder);
+}
+
+:host ::ng-deep .p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+    color: var(--globalColorTitle);
+    border-color: var(--globalColorTitle);
+}
+
+/* Estilos para los checkboxes de PrimeNG */
+:host ::ng-deep .p-checkbox {
+    width: 0.9rem;
+    height: 0.9rem;
+}
+
+:host ::ng-deep .p-checkbox .p-checkbox-box {
+    width: 0.9rem;
+    height: 0.9rem;
+}
+
+:host ::ng-deep .p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box:hover {
+    border-color: var(--managementColorTitleUser);
+}
+
+/* Estilos para los dropdowns de PrimeNG en la configuración */
+:host ::ng-deep .settings-dropdown .p-dropdown {
+    width: 100%;
+    background-color: var(--managementColorInputSearch);
+    border-color: var(--managementFieldsBorder);
+}
+
+:host ::ng-deep .settings-dropdown .p-dropdown:not(.p-disabled):hover {
+    border-color: var(--managementColorBorderInput);
+}
+
+:host ::ng-deep .settings-dropdown .p-dropdown-panel {
+    background-color: var(--managementColorInputSearch);
+    border-color: var(--managementFieldsBorder);
+}
+
+:host ::ng-deep .settings-dropdown .p-dropdown-item {
+    color: var(--managementColorTextUser);
+}
+
+:host ::ng-deep .settings-dropdown .p-dropdown-item:hover {
+    background-color: var(--managementColorBackgroundUser);
+}
+
+/* Estilos para el checkbox de PrimeNG en la configuración */
+:host ::ng-deep .settings-checkbox .p-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+:host ::ng-deep .settings-checkbox .p-checkbox .p-checkbox-box {
+    border-color: var(--managementFieldsBorder);
+    background-color: var(--managementColorBackgroundUser);
+}
+
+:host ::ng-deep .settings-checkbox .p-checkbox .p-checkbox-box.p-highlight {
+    border-color: var(--managementColorTitleUser);
+    background-color: var(--managementColorTitleUser);
+}
+
+:host ::ng-deep .settings-checkbox .p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box:hover {
+    border-color: var(--managementColorTitleUser);
+} 

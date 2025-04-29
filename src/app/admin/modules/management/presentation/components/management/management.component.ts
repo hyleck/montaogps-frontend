@@ -12,288 +12,94 @@ import { AuthService } from '../../../../../../core/services/auth.service';
 import { UserService } from '../../../../../../core/services/user.service';
 import { ThemesService } from '../../../../../../shareds/services/themes.service';
 import { StatusService } from '../../../../../../shareds/services/status.service';
+import { ManagementService } from '../../services/management.service';
+import { ScreenService } from '../../services/screen.service';
 
 @Component({
     selector: 'app-management',
     templateUrl: './management.component.html',
-    styleUrl: './management.component.css',
+    styleUrls: ['./management.component.css'],
     standalone: false
 })
 export class ManagementComponent {
-  
+  // Propiedades públicas
   userFormDisplay: boolean = false;
   targetFormDisplay: boolean = false;
   loading: boolean = true;
-
-// Propiedades relacionadas con el menú y la navegación
-items: MenuItem[] | undefined;
-home: MenuItem | undefined;
-
-// Propiedades relacionadas con el tema
-currentTheme: string | undefined;
-
-// Propiedades relacionadas con el estado y las búsquedas
-op: string | undefined;
-searchUsersTerm: string = '';
-searchTargetsTerm: string = '';
-currentUserId: string | undefined;
-showMaps: boolean = false;
-selectedUser: User | undefined;
-users: User[] = [];
-userToEdit: ExtendedUser | null = null;
-
-// Claves de traducción
-translations = {
-  users: 'management.users',
-  targets: 'management.targets',
-  searchUsers: 'management.searchUsers',
-  searchTargets: 'management.searchTargets',
-  newUser: 'management.newUser',
-  newTarget: 'management.newTarget',
-  showMap: 'management.showMap',
-  back: 'management.back'
-};
-
-customers = [
-  {
-    name: 'Honda accord',
-    status: 'En linea',
-    imei: '13132121655444123',
-    sim: '1553215448888',
-    _id: '1',
-  },
-  {
-    name: 'Toyota Corolla',
-    status: 'Offline',
-    imei: '13132121655444124',
-    sim: '1553215448889',
-    _id: '2',
-  },
-  {
-    name: 'Ford Focus',
-    status: 'En linea',
-    imei: '13132121655444125',
-    sim: '1553215448890',
-    _id: '3',
-  },
-  {
-    name: 'Chevrolet Malibu',
-    status: 'Offline',
-    imei: '13132121655444126',
-    sim: '1553215448891',
-    _id: '4',
-  },
-  {
-    name: 'Nissan Altima',
-    status: 'En linea',
-    imei: '13132121655444127',
-    sim: '1553215448892',
-    _id: '5',
-  },
-  {
-    name: 'Hyundai Elantra',
-    status: 'Offline',
-    imei: '13132121655444128',
-    sim: '1553215448893',
-    _id: '6',
-  },
-  {
-    name: 'Volkswagen Jetta',
-    status: 'En linea',
-    imei: '13132121655444129',
-    sim: '1553215448894',
-    _id: '7',
-  },
-  {
-    name: 'Kia Optima',
-    status: 'Offline',
-    imei: '13132121655444130',
-    sim: '1553215448895',
-    _id: '8',
-  },
-  {
-    name: 'Subaru Impreza',
-    status: 'En linea',
-    imei: '13132121655444131',
-    sim: '1553215448896',
-    _id: '9',
-  },
-  {
-    name: 'Mazda 3',
-    status: 'Offline',
-    imei: '13132121655444132',
-    sim: '1553215448897',
-    _id: '10',
-  },
-  {
-    name: 'BMW 3 Series',
-    status: 'En linea',
-    imei: '13132121655444133',
-    sim: '1553215448898',
-    _id: '11',
-  }
-];
-
-customersSelected = [];
-isScreenSmall: boolean = false;
-constructor(
-  public _router: Router,
-  public route: ActivatedRoute,
-  private status: StatusService,
-  private authService: AuthService,
-  private userService: UserService,
-  private translate: TranslateService,
-  private confirmationService: ConfirmationService,
-  private messageService: MessageService
-) {}
-
- // Escucha cambios en el tamaño de la ventana
- @HostListener('window:resize', ['$event'])
- onResize(): void {
-   this.checkScreenSize();
- }
-
- // Método para verificar si la pantalla es menor a 700px
- private checkScreenSize(): void {
-   if(window.innerWidth < 500){
-    this.status.setState('sidebar', false);
-   }
-
-   if(window.innerWidth < 700){
-    this.status.setState('management_show_maps', { showMaps: true });
-   }
-  
- }
-
-  showMapsToggle() {
-    this.status.setState('management_show_maps', { showMaps: !this.showMaps });
-  }
-
-   searchUser() {
-    this._router.navigate(
-      ['admin/management', this.op, this.currentUserId], 
-      { queryParams: { search: this.searchUsersTerm } }
-    );
-    this.setURLStatus()
-   }
-
-   searchTargets() {
-    this._router.navigate(
-      ['admin/management', this.op, this.currentUserId], 
-      { queryParams: { search: this.searchTargetsTerm } }
-    );
-    this.setURLStatus()
-   }
-  
-
-
-   setOp(op: string) {
-
-    this.op = op;
-  
-    const searchTerms: { [key: string]: string | undefined } = {
-      u: this.searchUsersTerm,
-      t: this.searchTargetsTerm
-    };
-  
-    const searchParam = searchTerms[op];
-  
-    this._router.navigate(
-      ['admin/management', op, this.currentUserId],
-      { queryParams: { search: searchParam } }
-    );
-  }
-  
-
-
-  setURLStatus() {
-    this.status.setState( 'management',
-      { 
-        url_query_params: { search: this.op == 'u'? this.searchUsersTerm : this.searchTargetsTerm },
-        url_route: ['admin/management', this.op, this.currentUserId] 
-      });
-  }
-
-  loadUserData(userId: string, isInitialLoad: boolean = false) {
-    if (isInitialLoad) {
-      this.loading = true;
+  items: MenuItem[] | undefined;
+  home: MenuItem | undefined;
+  currentTheme: string | undefined;
+  searchUsersTerm: string = '';
+  searchTargetsTerm: string = '';
+  showMaps: boolean = false;
+  selectedUser: User | undefined;
+  users: User[] = [];
+  userToEdit: ExtendedUser | null = null;
+  translations = {
+    users: 'management.users',
+    targets: 'management.targets',
+    searchUsers: 'management.searchUsers',
+    searchTargets: 'management.searchTargets',
+    newUser: 'management.newUser',
+    newTarget: 'management.newTarget',
+    showMap: 'management.showMap',
+    back: 'management.back'
+  };
+  customers = [
+    {
+      name: 'Honda accord',
+      status: 'En linea',
+      imei: '13132121655444123',
+      sim: '1553215448888',
+      _id: '1',
+    },
+    {
+      name: 'Toyota Corolla',
+      status: 'Offline',
+      imei: '13132121655444124',
+      sim: '1553215448889',
+      _id: '2',
     }
-    
-    this.userService.getById(userId).subscribe({
-      next: (user) => {
-        console.log(user);
-        this.selectedUser = user;
-        // Actualizar el breadcrumb con el nombre del usuario
-        this.items = [
-          { label: `${user.name} ${user.last_name}` }
-        ];
-        if (isInitialLoad) {
-            this.loading = false;
-        }
-      },
-      error: (error) => {
-        console.error('Error al cargar los datos del usuario:', error);
-        // Si hay error al cargar el usuario, redirigir al dashboard
-        this._router.navigate(['/admin/dashboard']);
-        if (isInitialLoad) {
-          this.loading = false;
-        }
-      }
-    });
-  }
+  ];
+  customersSelected = [];
 
-  verifyURLStatus(params: any) {
+  constructor(
+    public router: Router,
+    public route: ActivatedRoute,
+    private status: StatusService,
+    private authService: AuthService,
+    private userService: UserService,
+    private translate: TranslateService,
+    private confirmationService: ConfirmationService,
+    private messageService: MessageService,
+    public managementService: ManagementService,
+    private screenService: ScreenService
+  ) {}
 
-
-      this.op = params['op'];
-      this.currentUserId = params['user'];
-      const managementState: any = this.status.getState('management');
-  
-      if (managementState.url_route[1] && !params['op'] && !params['user']) {
-        this._router.navigate(
-          managementState.url_route,
-          { queryParams: managementState.url_query_params }
-        );
-      } else if (!managementState.url_route[1] && !params['op'] && !params['user']) {
-        this.goDefaultRoute();
-      }
-  
-      // Si hay un ID de usuario en la URL, cargar sus datos sin mostrar el skeleton
-      if (this.currentUserId) {
-        this.loadUserData(this.currentUserId, false);
-      }
-  
-      this.setURLStatus();
-    
-  
-  }
-
-  goDefaultRoute() {
-
-    const currentUser = this.authService.getCurrentUser();
-    if (currentUser) {
-      this._router.navigate(['admin/management', 'u', currentUser.id]);
-    } else {
-      this._router.navigate(['auth/login']);
-    }
-  }
-
+  // Lifecycle hooks
   ngOnInit() {
     this.loading = true;
-    this.checkScreenSize();
+    this.screenService.checkScreenSize();
 
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
-      this._router.navigate(['auth/login']);
+      this.router.navigate(['auth/login']);
       return;
     }
 
-    this.currentUserId = currentUser.id;
-    
-    this.loadUserData(currentUser.id, true);
+    this.managementService.loadUserData(currentUser.id)
+      .then(user => {
+        this.selectedUser = user;
+        this.items = [
+          { label: `${user.name} ${user.last_name}` }
+        ];
+        this.loading = false;
+      })
+      .catch(() => {
+        this.loading = false;
+      });
 
-    // Traer todos los usuarios al iniciar
-    this.userService.getAll(this.currentUserId).subscribe({
+    this.userService.getAll(currentUser.id).subscribe({
       next: (users) => {
         this.users = users;
       },
@@ -303,11 +109,11 @@ constructor(
     });
 
     this.route.params.subscribe(params => {
-      if (params['user'] && params['user'] !== this.currentUserId) {
-        this.loadUserData(params['user'], false);
+      if (params['user'] && params['user'] !== currentUser.id) {
+        this.managementService.loadUserData(params['user']);
       }
       setTimeout(() => {
-        this.verifyURLStatus(params);
+        this.managementService.verifyURLStatus(params);
       }, 100);
     });
 
@@ -321,23 +127,34 @@ constructor(
     });
 
     this.route.queryParams.subscribe(queryParams => {
-      if(this.op == 'u'){
+      if (this.managementService.getOp() === 'u') {
         this.searchUsersTerm = queryParams['search'];
-      }else if(this.op == 't'){
+      } else if (this.managementService.getOp() === 't') {
         this.searchTargetsTerm = queryParams['search'];
       }
-      this.setURLStatus();
     });
 
     this.home = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
   }
 
+  // Métodos públicos
+  showMapsToggle() {
+    this.status.setState('management_show_maps', { showMaps: !this.showMaps });
+  }
 
- 
+  searchUser() {
+    this.managementService.setSearchUsersTerm(this.searchUsersTerm);
+    this.managementService.searchUser();
+  }
 
-  // showDialog() {
-  //     this.visible = true;
-  // }
+  searchTargets() {
+    this.managementService.setSearchTargetsTerm(this.searchTargetsTerm);
+    this.managementService.searchTargets();
+  }
+
+  setOp(op: string) {
+    this.managementService.setOp(op);
+  }
 
   showUserForm() {
     this.userToEdit = null;
@@ -351,7 +168,7 @@ constructor(
   onUserCreated() {
     this.userFormDisplay = false;
     this.userToEdit = null;
-    this.userService.getAll(this.currentUserId).subscribe({
+    this.userService.getAll(this.managementService.getCurrentUserId() || '').subscribe({
       next: (users) => {
         this.users = users;
       },
@@ -391,19 +208,15 @@ constructor(
               detail: this.translate.instant('management.userForm.errorDelete'),
               life: 3000
             });
-          },
-          complete: () => {
-            // Forzamos el mensaje aquí si el backend responde vacío
-            // this.messageService.add({
-            //   severity: 'success',
-            //   summary: this.translate.instant('management.userForm.userDeleted'),
-            //   detail: this.translate.instant('management.userForm.userDeleted'),
-            //   life: 3000
-            // });
           }
         });
       }
     });
   }
 
+  // Métodos privados
+  @HostListener('window:resize', ['$event'])
+  private onResize(): void {
+    this.screenService.checkScreenSize();
+  }
 }

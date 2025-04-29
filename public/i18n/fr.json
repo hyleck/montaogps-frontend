@@ -122,9 +122,9 @@
         "edit_role": "Modifier le rôle",
         "new_role": "Nouveau rôle",
         "role_name": "Nom du rôle",
-        "role_name_placeholder": "Entrez le nom du rôle",
+        "role_name_placeholder": "Ex: Administrateur, Superviseur, Utilisateur",
         "description": "Description",
-        "description_placeholder": "Entrez la description du rôle",
+        "description_placeholder": "Ex: Accès total au système, Gestion des utilisateurs, Lecture seule",
         "configure_privileges": "Configurer les privilèges",
         "update": "Mettre à jour",
         "create": "Créer",
@@ -133,8 +133,7 @@
         "table": {
           "name": "Nom",
           "description": "Description",
-          "status": "Statut",
-          "created_at": "Date de création"
+          "actions": "Actions"
         },
         "privileges": {
           "title": "Configuration des privilèges",
@@ -164,7 +163,14 @@
           "error_delete": "Impossible de supprimer le rôle",
           "error_id": "Impossible d'obtenir l'ID du rôle"
         },
-        "actions": "Actions",
+        "actions": {
+          "read": "Lire",
+          "update": "Mettre à jour",
+          "create": "Créer",
+          "delete": "Supprimer",
+          "select_all_modules": "Sélectionner tous les modules",
+          "done": "Terminé"
+        },
         "modules": {
           "users": "Utilisateurs",
           "roles": "Rôles",
@@ -250,7 +256,14 @@
             }
         },
         "title": "Profil",
-        "loading": "Chargement des données du profil..."
+        "loading": "Chargement des données du profil...",
+        "messages": {
+            "update_success": "Profil mis à jour",
+            "update_success_detail": "Votre profil a été mis à jour avec succès",
+            "update_error": "Erreur de mise à jour",
+            "update_error_detail": "Une erreur s'est produite lors de la mise à jour de votre profil",
+            "profile_updated": "Votre profil a été mis à jour avec les dernières données"
+        }
     },
     "management": {
       "users": "Utilisateurs",
@@ -320,9 +333,10 @@
         },
         "actions": {
           "read": "Lire",
-          "create": "Créer",
           "update": "Mettre à jour",
-          "delete": "Supprimer"
+          "create": "Créer",
+          "delete": "Supprimer",
+          "select_all_modules": "Sélectionner tous les modules"
         },
         "save": "Enregistrer",
         "cancel": "Annuler",

@@ -120,9 +120,9 @@
         "edit_role": "Edit role",
         "new_role": "New role",
         "role_name": "Role name",
-        "role_name_placeholder": "Enter role name",
+        "role_name_placeholder": "Ex: Administrator, Supervisor, User",
         "description": "Description",
-        "description_placeholder": "Enter role description",
+        "description_placeholder": "Ex: Full system access, User management, Read only",
         "configure_privileges": "Configure Privileges",
         "update": "Update",
         "create": "Create",
@@ -131,8 +131,7 @@
         "table": {
           "name": "Name",
           "description": "Description",
-          "status": "Status",
-          "created_at": "Creation date"
+          "actions": "Actions"
         },
         "privileges": {
           "title": "Privileges Configuration",
@@ -162,7 +161,14 @@
           "error_delete": "Could not delete role",
           "error_id": "Could not get role ID"
         },
-        "actions": "Actions",
+        "actions": {
+          "read": "Read",
+          "update": "Update",
+          "create": "Create",
+          "delete": "Delete",
+          "select_all_modules": "Select all modules",
+          "done": "Done"
+        },
         "modules": {
           "users": "Users",
           "roles": "Roles",
@@ -253,7 +259,14 @@
             }
         },
         "title": "Profile",
-        "loading": "Loading profile data..."
+        "loading": "Loading profile data...",
+        "messages": {
+            "update_success": "Profile updated",
+            "update_success_detail": "Your profile has been successfully updated",
+            "update_error": "Update error",
+            "update_error_detail": "An error occurred while updating your profile",
+            "profile_updated": "Your profile has been updated with the latest data"
+        }
     },
     "management": {
       "users": "Users",
@@ -323,9 +336,10 @@
         },
         "actions": {
           "read": "Read",
-          "create": "Create",
           "update": "Update",
-          "delete": "Delete"
+          "create": "Create",
+          "delete": "Delete",
+          "select_all_modules": "Select all modules"
         },
         "save": "Save",
         "cancel": "Cancel",

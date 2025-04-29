@@ -13,39 +13,8 @@ import { LangService } from '../../../../../../shareds/services/langi18/lang.ser
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { UserService } from '../../../../../../core/services/user.service';
-import { User as BackendUser } from '../../../../../../core/interfaces/user.interface';
+import { ProfileUser } from '@app/core/interfaces/profile.interface';
 import { ToastModule } from 'primeng/toast';
-
-interface UserSettings {
-    theme: string;
-    language: string;
-    notifications: boolean;
-}
-
-interface UserRole {
-    _id: string;
-    name: string;
-}
-
-// Interfaz extendida para el perfil del usuario
-interface ProfileUser {
-    _id: string;
-    name: string;
-    last_name: string;
-    email: string;
-    isActive?: boolean;
-    createdAt?: Date;
-    updatedAt?: Date;
-    access_level_id?: any;
-    phone?: string;
-    phone2?: string;
-    birth?: string;
-    dni?: string;
-    address?: string;
-    role?: UserRole;
-    photo?: string;
-    settings: UserSettings;
-}
 
 @Component({
     selector: 'app-profile',
@@ -65,10 +34,10 @@ interface ProfileUser {
     providers: [MessageService]
 })
 export class ProfileComponent implements OnInit {
+    // Propiedades públicas
     items: MenuItem[] = [{ label: 'Perfil' }];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
     loading: boolean = true;
-
     user: ProfileUser = {
         _id: '',
         name: '',
@@ -83,18 +52,14 @@ export class ProfileComponent implements OnInit {
             notifications: true
         }
     };
-
     userPhotoUrl: string | null = null;
-    currentPassword: string = '';
     newPassword: string = '';
     confirmPassword: string = '';
-
     selectedTheme: string;
     themes = [
         { label: 'Claro', value: 'light' },
         { label: 'Oscuro', value: 'dark' }
     ];
-
     languages = [
         { label: 'Español', value: 'es' },
         { label: 'English', value: 'en' },
@@ -112,115 +77,70 @@ export class ProfileComponent implements OnInit {
     ) {
         this.selectedTheme = this.themesService.getCurrentTheme();
         this.user.settings.language = this.translate.currentLang || this.translate.getDefaultLang();
-        this.initializeLanguageLabels();
     }
 
+    // Lifecycle Hooks
     ngOnInit() {
-        // Inicialización de breadcrumbs
-        this.items = [
-            { label: this.translate.instant('profile.title') }
-        ];
-        this.home = { icon: 'pi pi-home', routerLink: '/admin' };
-
-        // Cargar datos del usuario
+        this.loadCachedProfile();
         this.loadUserProfile();
-
-        // Suscripción a cambios de estado
-        this.status.statusChanges$.subscribe((newStatus) => {
-            if (newStatus && newStatus.theme) {
-                this.selectedTheme = newStatus.theme as string;
-            }
-        });
-
-        // Actualizar las etiquetas de los temas según el idioma actual
-        this.updateThemeLabels();
-
-        // Suscribirse a cambios de idioma solo para actualizar las traducciones de la interfaz
-        this.translate.onLangChange.subscribe(() => {
-            this.updateThemeLabels();
-            // Ya no actualizamos las etiquetas de idioma aquí
-            // Actualizamos los breadcrumbs
-            this.items = [
-                { label: this.translate.instant('profile.title') }
-            ];
-        });
     }
 
-    private initializeLanguageLabels() {
-        // Inicializar las etiquetas de idioma una sola vez
-        this.languages = [
-            { label: 'Español', value: 'es' },
-            { label: 'English', value: 'en' },
-            { label: 'Français', value: 'fr' }
-        ];
+    // Métodos Públicos
+    onSubmit() {
+        const updateUserDto = this.prepareUpdateUserDto();
+        this.updateUserProfile(updateUserDto);
     }
 
-    private updateThemeLabels() {
-        this.themes = [
-            { label: this.translate.instant('theme.toggleLight'), value: 'light' },
-            { label: this.translate.instant('theme.toggleDark'), value: 'dark' }
-        ];
+    onChangePassword() {
+        if (this.newPassword !== this.confirmPassword) {
+            this.showPasswordMismatchError();
+            return;
+        }
+
+        if (!this.newPassword) {
+            this.showEmptyPasswordError();
+            return;
+        }
+
+        this.updatePassword();
     }
 
-    loadUserProfile() {
-        this.loading = true;
+    onThemeChange() {
+        this.themesService.setTheme(this.selectedTheme);
+        this.user.settings.theme = this.selectedTheme;
+        this.updateUserSettings();
+    }
+
+    onLanguageChange(language: string) {
+        this.langService.setLanguage(language);
+        this.translate.use(language);
+        this.user.settings.language = language;
+        this.updateUserSettings();
+    }
+
+    onNotificationsChange(event: any) {
+        this.user.settings.notifications = event.checked;
+        this.updateUserSettings();
+    }
+
+    // Métodos Privados
+    private loadCachedProfile() {
+        const cachedProfile = this.status.getState<ProfileUser>('profile');
+        if (cachedProfile) {
+            this.user = cachedProfile;
+            this.loading = false;
+        }
+    }
+
+    private loadUserProfile() {
         const currentUser = this.authService.getCurrentUser();
         
         if (currentUser && currentUser.id) {
             this.userService.getById(currentUser.id).subscribe({
                 next: (userData: any) => {
-                    console.log('Datos del usuario cargados:', userData);
-                    
-                    // Obtener la configuración del array settings
-                    const userSettingsArray = userData.settings || [];
-                    const userSettingsData = userSettingsArray.length > 0 ? userSettingsArray[0] : {};
-                    
-                    // Configurar el tema basado en los settings del usuario
-                    if (userSettingsData.theme) {
-                        this.selectedTheme = userSettingsData.theme;
-                        this.themesService.setTheme(userSettingsData.theme);
-                    }
-
-                    // Configurar el idioma basado en los settings del usuario
-                    if (userSettingsData.language) {
-                        this.translate.use(userSettingsData.language);
-                        this.langService.setLanguage(userSettingsData.language);
-                        this.user.settings.language = userSettingsData.language;
-                    }
-
-                    const userSettings = {
-                        theme: userSettingsData.theme || this.selectedTheme,
-                        language: userSettingsData.language || this.translate.currentLang || 'es',
-                        notifications: userSettingsData.notifications !== undefined ? userSettingsData.notifications : true
-                    };
-
-                    // Actualizar la foto si existe
-                    if (userData.photo) {
-                        this.userPhotoUrl = userData.photo;
-                    }
-
-                    // Formatear la fecha de nacimiento para el input date
-                    const birthDate = userData.birth ? new Date(userData.birth).toISOString().split('T')[0] : '';
-
-                    this.user = {
-                        _id: userData._id,
-                        name: userData.name,
-                        last_name: userData.last_name,
-                        email: userData.email,
-                        isActive: userData.isActive,
-                        createdAt: userData.createdAt,
-                        updatedAt: userData.updatedAt,
-                        access_level_id: userData.access_level_id,
-                        // Campos extendidos
-                        phone: userData.phone || '',
-                        phone2: userData.phone2 || '',
-                        birth: birthDate,
-                        dni: userData.dni || '',
-                        address: userData.address || '',
-                        photo: userData.photo || '',
-                        settings: userSettings
-                    };
-
+                    const updatedUser = this.processUserData(userData);
+                    this.updateUserIfChanged(updatedUser);
+                    this.status.setState('profile', this.user);
                     this.loading = false;
                 },
                 error: (error) => {
@@ -234,9 +154,63 @@ export class ProfileComponent implements OnInit {
         }
     }
 
-    onSubmit() {
-        // Preparar el objeto de actualización
-        const updateUserDto = {
+    private processUserData(userData: any): ProfileUser {
+        const userSettingsArray = userData.settings || [];
+        const userSettingsData = userSettingsArray.length > 0 ? userSettingsArray[0] : {};
+        
+        if (userSettingsData.theme) {
+            this.selectedTheme = userSettingsData.theme;
+            this.themesService.setTheme(userSettingsData.theme);
+        }
+
+        if (userSettingsData.language) {
+            this.translate.use(userSettingsData.language);
+            this.langService.setLanguage(userSettingsData.language);
+            this.user.settings.language = userSettingsData.language;
+        }
+
+        const userSettings = {
+            theme: userSettingsData.theme || this.selectedTheme,
+            language: userSettingsData.language || this.translate.currentLang || 'es',
+            notifications: userSettingsData.notifications !== undefined ? userSettingsData.notifications : true
+        };
+
+        const birthDate = userData.birth ? new Date(userData.birth).toISOString().split('T')[0] : '';
+
+        return {
+            _id: userData._id,
+            name: userData.name,
+            last_name: userData.last_name,
+            email: userData.email,
+            isActive: userData.isActive,
+            createdAt: userData.createdAt,
+            updatedAt: userData.updatedAt,
+            access_level_id: userData.access_level_id,
+            phone: userData.phone || '',
+            phone2: userData.phone2 || '',
+            birth: birthDate,
+            dni: userData.dni || '',
+            address: userData.address || '',
+            photo: userData.photo || '',
+            settings: userSettings
+        };
+    }
+
+    private updateUserIfChanged(updatedUser: ProfileUser) {
+        if (JSON.stringify(this.user) !== JSON.stringify(updatedUser)) {
+            this.user = updatedUser;
+            if (!this.loading) {
+                this.messageService.add({
+                    severity: 'info',
+                    summary: this.translate.instant('profile.messages.update_success'),
+                    detail: this.translate.instant('profile.messages.profile_updated')
+                });
+            }
+        }
+    }
+
+    private prepareUpdateUserDto() {
+        return {
             name: this.user.name,
             last_name: this.user.last_name,
             email: this.user.email,
@@ -251,180 +225,123 @@ export class ProfileComponent implements OnInit {
                 notifications: this.user.settings.notifications
             }]
         };
+    }
 
+    private updateUserProfile(updateUserDto: any) {
         this.userService.update(this.user._id, updateUserDto).subscribe({
             next: (updatedUser) => {
-                console.log('Usuario actualizado:', updatedUser);
-                this.messageService.add({
-                    severity: 'success',
-                    summary: this.translate.instant('Perfil actualizado'),
-                    detail: this.translate.instant('Tu perfil ha sido actualizado exitosamente')
-                });
-                
-                // Actualizar el usuario en el AuthService
-                const currentUser = this.authService.getCurrentUser();
-                if (currentUser) {
-                    const basicUserInfo = {
-                        ...currentUser,
-                        name: updatedUser.name,
-                        last_name: updatedUser.last_name,
-                        email: updatedUser.email
-                    };
-                    this.authService['saveUser'](basicUserInfo);
-                }
+                this.status.setState('profile', this.user);
+                this.showUpdateSuccessMessage();
+                this.updateAuthServiceUser(updatedUser);
             },
             error: (error) => {
                 console.error('Error al actualizar el usuario:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.translate.instant('Error al actualizar'),
-                    detail: this.translate.instant('Ha ocurrido un error al actualizar tu perfil')
-                });
+                this.showUpdateErrorMessage();
             }
         });
     }
 
-    onChangePassword() {
-        if (this.newPassword !== this.confirmPassword) {
-            this.messageService.add({
-                severity: 'error',
-                summary: this.translate.instant('Error'),
-                detail: this.translate.instant('Las contraseñas no coinciden')
-            });
-            return;
-        }
+    private updateUserSettings() {
+        const updateUserDto: any = {
+            settings: [{
+                theme: this.user.settings.theme,
+                language: this.user.settings.language,
+                notifications: this.user.settings.notifications
+            }]
+        };
 
-        if (!this.newPassword) {
-            this.messageService.add({
-                severity: 'error',
-                summary: this.translate.instant('Error'),
-                detail: this.translate.instant('Debes ingresar una nueva contraseña')
-            });
-            return;
-        }
+        this.userService.update(this.user._id, updateUserDto).subscribe({
+            next: (updatedUser) => {
+                this.status.setState('profile', this.user);
+                this.showUpdateSuccessMessage();
+            },
+            error: (error) => {
+                console.error('Error al actualizar la configuración:', error);
+                this.showUpdateErrorMessage();
+            }
+        });
+    }
 
+    private updatePassword() {
         const updatePasswordDto = {
             password: this.newPassword
         };
 
         this.userService.updatePassword(this.user._id, updatePasswordDto).subscribe({
             next: () => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: this.translate.instant('Contraseña actualizada'),
-                    detail: this.translate.instant('Tu contraseña ha sido actualizada exitosamente')
-                });
-                // Limpiar los campos
-                this.newPassword = '';
-                this.confirmPassword = '';
+                this.showPasswordUpdateSuccessMessage();
+                this.clearPasswordFields();
             },
-            error: (error: any) => {
+            error: (error) => {
                 console.error('Error al actualizar la contraseña:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.translate.instant('Error al actualizar'),
-                    detail: this.translate.instant('Ha ocurrido un error al actualizar tu contraseña')
-                });
+                this.showPasswordUpdateErrorMessage();
             }
         });
     }
 
-    onThemeChange() {
-        this.themesService.setTheme(this.selectedTheme);
-        this.user.settings.theme = this.selectedTheme;
-        
-        // Actualizar el usuario con el nuevo tema
-        const updateUserDto: any = {
-            settings: [{
-                theme: this.user.settings.theme,
-                language: this.user.settings.language,
-                notifications: this.user.settings.notifications
-            }]
-        };
+    private updateAuthServiceUser(updatedUser: any) {
+        const currentUser = this.authService.getCurrentUser();
+        if (currentUser) {
+            const basicUserInfo = {
+                ...currentUser,
+                name: updatedUser.name,
+                last_name: updatedUser.last_name,
+                email: updatedUser.email
+            };
+            this.authService['saveUser'](basicUserInfo);
+        }
+    }
 
-        this.userService.update(this.user._id, updateUserDto).subscribe({
-            next: (updatedUser) => {
-                console.log('Tema actualizado:', updatedUser);
-                this.messageService.add({
-                    severity: 'success',
-                    summary: this.translate.instant('Tema actualizado'),
-                    detail: this.translate.instant('El tema ha sido actualizado exitosamente')
-                });
-            },
-            error: (error) => {
-                console.error('Error al actualizar el tema:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.translate.instant('Error al actualizar'),
-                    detail: this.translate.instant('Ha ocurrido un error al actualizar el tema')
-                });
-            }
+    private showUpdateSuccessMessage() {
+        this.messageService.add({
+            severity: 'success',
+            summary: this.translate.instant('profile.messages.update_success'),
+            detail: this.translate.instant('profile.messages.update_success_detail')
         });
     }
 
-    onLanguageChange(language: string) {
-        this.langService.setLanguage(language);
-        this.translate.use(language);
-        this.user.settings.language = language;
-        
-        // Actualizar el usuario con el nuevo idioma
-        const updateUserDto: any = {
-            settings: [{
-                theme: this.user.settings.theme,
-                language: this.user.settings.language,
-                notifications: this.user.settings.notifications
-            }]
-        };
-
-        this.userService.update(this.user._id, updateUserDto).subscribe({
-            next: (updatedUser) => {
-                console.log('Idioma actualizado:', updatedUser);
-                this.messageService.add({
-                    severity: 'success',
-                    summary: this.translate.instant('Idioma actualizado'),
-                    detail: this.translate.instant('El idioma ha sido actualizado exitosamente')
-                });
-            },
-            error: (error) => {
-                console.error('Error al actualizar el idioma:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.translate.instant('Error al actualizar'),
-                    detail: this.translate.instant('Ha ocurrido un error al actualizar el idioma')
-                });
-            }
+    private showUpdateErrorMessage() {
+        this.messageService.add({
+            severity: 'error',
+            summary: this.translate.instant('profile.messages.update_error'),
+            detail: this.translate.instant('profile.messages.update_error_detail')
         });
     }
 
-    onNotificationsChange(event: any) {
-        this.user.settings.notifications = event.checked;
-        
-        // Actualizar el usuario con las nuevas notificaciones
-        const updateUserDto: any = {
-            settings: [{
-                theme: this.user.settings.theme,
-                language: this.user.settings.language,
-                notifications: this.user.settings.notifications
-            }]
-        };
-
-        this.userService.update(this.user._id, updateUserDto).subscribe({
-            next: (updatedUser) => {
-                console.log('Notificaciones actualizadas:', updatedUser);
-                this.messageService.add({
-                    severity: 'success',
-                    summary: this.translate.instant('Notificaciones actualizadas'),
-                    detail: this.translate.instant('Las preferencias de notificaciones han sido actualizadas exitosamente')
-                });
-            },
-            error: (error) => {
-                console.error('Error al actualizar las notificaciones:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.translate.instant('Error al actualizar'),
-                    detail: this.translate.instant('Ha ocurrido un error al actualizar las notificaciones')
-                });
-            }
+    private showPasswordMismatchError() {
+        this.messageService.add({
+            severity: 'error',
+            summary: this.translate.instant('Error'),
+            detail: this.translate.instant('Las contraseñas no coinciden')
         });
+    }
+
+    private showEmptyPasswordError() {
+        this.messageService.add({
+            severity: 'error',
+            summary: this.translate.instant('Error'),
+            detail: this.translate.instant('Debes ingresar una nueva contraseña')
+        });
+    }
+
+    private showPasswordUpdateSuccessMessage() {
+        this.messageService.add({
+            severity: 'success',
+            summary: this.translate.instant('Contraseña actualizada'),
+            detail: this.translate.instant('Tu contraseña ha sido actualizada exitosamente')
+        });
+    }
+
+    private showPasswordUpdateErrorMessage() {
+        this.messageService.add({
+            severity: 'error',
+            summary: this.translate.instant('Error al actualizar'),
+            detail: this.translate.instant('Ha ocurrido un error al actualizar tu contraseña')
+        });
+    }
+
+    private clearPasswordFields() {
+        this.newPassword = '';
+        this.confirmPassword = '';
     }
 }

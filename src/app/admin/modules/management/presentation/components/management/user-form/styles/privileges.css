@@ -1,0 +1,146 @@
+.modules-privileges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 8px;
+    background-color: var(--managementColorBackgroundUser);
+    position: relative;
+}
+
+.modules-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+    padding: 0.3rem;
+}
+
+.module-section {
+    background-color: var(--managementColorInputSearch);
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.module-section:hover {
+    border-color: var(--managementColorBorderInput);
+}
+
+.module-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.6rem 0.8rem;
+    border-bottom: 1px solid var(--managementFieldsBorder);
+    background-color: var(--managementColorBackgroundUser);
+    border-radius: 6px 6px 0 0;
+}
+
+.module-header i {
+    font-size: 1rem;
+    color: var(--managementColorTitleUser);
+}
+
+.module-name {
+    flex: 1;
+    font-weight: 500;
+    color: var(--managementColorTextUser);
+    font-size: 0.85rem;
+}
+
+.button-select-all {
+    background-color: transparent;
+    border: 1px solid var(--managementFieldsBorder);
+    color: var(--managementColorTextUser);
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.button-select-all:hover {
+    background-color: var(--managementColorInputSearch);
+}
+
+.button-select-all i {
+    font-size: 0.9rem;
+    color: var(--managementColorTitleUser);
+}
+
+.privileges-group {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    padding: 0.6rem;
+}
+
+.privilege-action {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.privilege-action:hover {
+    background-color: var(--managementColorBackgroundUser);
+}
+
+.privilege-action label {
+    margin: 0;
+    font-weight: 500;
+    color: var(--managementColorTextUser);
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+
+.disabled-privileges {
+    opacity: 0.6;
+    pointer-events: none;
+    filter: grayscale(100%);
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.disabled-privileges::before {
+    content: 'Seleccione un rol para gestionar los privilegios';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--managementColorBackgroundUser);
+    color: var(--managementColorTextUser);
+    padding: 1rem 2rem;
+    border-radius: 4px;
+    z-index: 10;
+    text-align: center;
+    font-weight: 500;
+    white-space: nowrap;
+    border: 1px solid var(--managementColorTextUser);
+}
+
+.disabled-privileges .modules-list {
+    filter: blur(2px);
+    width: 100%;
+}
+
+.disabled-privileges .module-section {
+    pointer-events: none;
+    user-select: none;
+}
+
+.disabled-privileges .privilege-action {
+    opacity: 0.5;
+} 

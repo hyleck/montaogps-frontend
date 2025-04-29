@@ -1,0 +1,148 @@
+.settings-container {
+    padding: 1rem;
+}
+
+.settings-section {
+    background-color: var(--managementColorBackgroundUser);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.settings-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.settings-item__header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+}
+
+.settings-item__header i {
+    font-size: 1rem;
+    color: var(--managementColorTitleUser);
+}
+
+.settings-item__header label {
+    color: var(--managementColorTextUser);
+    font-weight: 500;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.settings-description {
+    color: var(--managementColorTextUser);
+    opacity: 0.8;
+    font-size: 0.75rem;
+    margin-top: 0.2rem;
+}
+
+.settings-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    background-color: var(--managementColorInputSearch);
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 6px;
+}
+
+.settings-toggle span {
+    color: var(--managementColorTextUser);
+    font-size: 0.85rem;
+}
+
+.settings-file-upload {
+    position: relative;
+    padding: 0.75rem;
+    background-color: var(--managementColorInputSearch);
+    border: 2px dashed var(--managementFieldsBorder);
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.settings-file-upload:hover {
+    border-color: var(--managementColorBorderInput);
+    background-color: var(--managementColorBackgroundUser);
+}
+
+.settings-file-input {
+    width: 100%;
+    font-size: 0.9rem;
+    color: var(--managementColorTextUser);
+}
+
+.settings-file-input::-webkit-file-upload-button {
+    padding: 0.5rem 1rem;
+    margin-right: 1rem;
+    background-color: var(--managementColorTitleUser);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.settings-file-input::-webkit-file-upload-button:hover {
+    background-color: var(--managementColorIconUser);
+}
+
+/* Estilos actualizados para los selects de settings */
+.settings-item select {
+    background-color: var(--managementColorInputSearch);
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 4px;
+    padding: 0.4rem 0.5rem;
+    color: var(--managementColorTextUser);
+    transition: all 0.3s ease;
+    width: 100%;
+    font-size: 0.9rem;
+    font-family: inherit;
+    height: 32px;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1em;
+    padding-right: 2.5rem;
+}
+
+.settings-item select:hover {
+    border-color: var(--managementColorBorderInput);
+}
+
+.settings-item select:focus {
+    border-color: var(--managementColorBorderInput);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
+}
+
+.settings-item select option {
+    background-color: var(--managementColorInputSearch);
+    color: var(--managementColorTextUser);
+    padding: 0.5rem;
+}
+
+.settings-dropdown {
+    margin-top: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Responsive */
+@media screen and (max-width: 768px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+} 

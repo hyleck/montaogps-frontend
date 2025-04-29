@@ -32,14 +32,14 @@
                 
              
                     <div class="management__user-control-controls" *ngIf="!loading">
-                        <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': op === 'u', 'button--flat': op != 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( 45 )</button>
-                        <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': op === 't', 'button--flat': op != 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( 2 )</button>
+                        <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( 45 )</button>
+                        <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( 2 )</button>
                     </div>
                 </div>
                 <div class="management__user-control-content">
                     <div class="management__content management__content--maps">
 
-                        <div *ngIf="op == 'u'" class="management__search">
+                        <div *ngIf="managementService.getOp() === 'u'" class="management__search">
                             <div  class="management__input-search">
                                 <label for="management-search"><i class="pi pi-search"></i></label>
                                 <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text" [placeholder]="translations.searchUsers | translate">
@@ -49,7 +49,7 @@
                
                         </div>
     
-                        <div *ngIf="op == 't'" class="management__search">
+                        <div *ngIf="managementService.getOp() === 't'" class="management__search">
                             <div  class="management__input-search">
                                 <label for="management-search"><i class="pi pi-search"></i></label>
                                 <input (keyup)="searchTargets()" [(ngModel)]="searchTargetsTerm" id="management-search" type="text" [placeholder]="translations.searchTargets | translate">
@@ -62,7 +62,7 @@
     
     
                     <div class="management__content-body">
-                        <div *ngIf="op == 'u'" class="management__content-cards management__content-cards--maps">
+                        <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards management__content-cards--maps">
                             <ng-container *ngIf="!loading; else loadingSkeletonsMaps">
                                 <div *ngIf="!loading && users.length === 0" class="no-users-message">
                                     <i class="pi pi-users" style="font-size: 2rem; color: #888; display: block; margin-bottom: 0.5rem;"></i>
@@ -89,7 +89,7 @@
                             </ng-template>
                         </div>
     
-                        <div  *ngIf="op == 't'" class="management__content-table">
+                        <div  *ngIf="managementService.getOp() === 't'" class="management__content-table">
                           
     
     
@@ -169,8 +169,8 @@
 
                <div class="management__user-controls" *ngIf="!loading">
                 <div class="management__user-options">
-                    <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': op === 'u', 'button--flat': op != 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( 45 )</button>
-                    <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': op === 't', 'button--flat': op != 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( 2 )</button>
+                    <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( 45 )</button>
+                    <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( 2 )</button>
                 </div>
                 <div class="management__user-back-button">
                     <button class="button button--flat"> <i class="pi pi-arrow-left"></i> {{ translations.back | translate }}</button>
@@ -180,30 +180,30 @@
             </div>
             <div class="management__content">
 
-                    <div *ngIf="op == 'u'" class="management__search">
+                    <div *ngIf="managementService.getOp() === 'u'" class="management__search">
                         <div  class="management__input-search">
                             <label for="management-search"><i class="pi pi-search"></i></label>
                             <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text" [placeholder]="translations.searchUsers | translate">
                             
                         </div>
                         <button (click)="showUserForm()" class="button button--primary-flat-red"> <i class="pi pi-user-plus"></i> {{ translations.newUser | translate }}</button>
-           
+               
                     </div>
 
-                    <div *ngIf="op == 't'" class="management__search">
+                    <div *ngIf="managementService.getOp() === 't'" class="management__search">
                         <div  class="management__input-search">
                             <label for="management-search"><i class="pi pi-search"></i></label>
                             <input (keyup)="searchTargets()" [(ngModel)]="searchTargetsTerm" id="management-search" type="text" [placeholder]="translations.searchTargets | translate">
                             
                         </div>
                         <button class="button button--primary-flat-red"> <i class="pi pi-plus"></i> {{ translations.newTarget | translate }}</button>
-           
+               
                     </div>
 
 
 
                 <div class="management__content-body">
-                    <div *ngIf="op == 'u'" class="management__content-cards">
+                    <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards">
                         <ng-container *ngIf="!loading; else loadingSkeletons">
                             <div *ngIf="!loading && users.length === 0" class="no-users-message">
                                 <i class="pi pi-users" style="font-size: 2rem; color: #888; display: block; margin-bottom: 0.5rem;"></i>
@@ -234,7 +234,7 @@
                         </ng-template>
                     </div>
 
-                    <div  *ngIf="op == 't'" class="management__content-table">
+                    <div  *ngIf="managementService.getOp() === 't'" class="management__content-table">
                       
 
 
@@ -244,33 +244,33 @@
                                 [(selection)]="customersSelected" 
                                 dataKey="_id" 
                                 [tableStyle]="{'min-width': '50rem'}">
-                                    <ng-template pTemplate="header" >
-                                        <tr  >
-                                            <th  style="width: 4rem"><p-tableHeaderCheckbox /></th>
-                                            <th>Nombre</th>
-                                            <th>Estado</th>
-                                            <th>IMEI</th>
-                                            <th>SIM</th>
-                                            <th></th>
-                                        </tr>
-                                    </ng-template>
-                                    <ng-template pTemplate="body" let-customer>
-                                        <tr class="management__content-table-tr">
-                                            <td>
-                                                <p-tableCheckbox [value]="customer" />
-                                            </td>
-                                            <td><span (click)="showMapsToggle()" class="management__content-table-link"><i class="pi pi-map-marker" ></i> {{customer.name}}</span> </td>
-                                            <td> <p-badge [value]="customer.status" [severity]="customer.status == 'En linea'?'success':'secondary'" /></td>
-                                            <td>{{customer.imei}}</td>
-                                            <td>{{customer.sim}}</td>
-                                            <td>
-                                                <div class="management__user-table-controls">
-                                                    <button class="button button--primary-flat" (click)="showTargetForm()" title="Editar usuario"> <i class="pi pi-pen-to-square" ></i> </button>
-                                                    <button class="button button--primary-flat-icon" title="Eliminar usuario"> <i class="pi pi-times-circle" ></i> </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </ng-template>
+                                <ng-template pTemplate="header" >
+                                    <tr  >
+                                        <th  style="width: 4rem"><p-tableHeaderCheckbox /></th>
+                                        <th>Nombre</th>
+                                        <th>Estado</th>
+                                        <th>IMEI</th>
+                                        <th>SIM</th>
+                                        <th></th>
+                                    </tr>
+                                </ng-template>
+                                <ng-template pTemplate="body" let-customer>
+                                    <tr class="management__content-table-tr">
+                                        <td>
+                                            <p-tableCheckbox [value]="customer" />
+                                        </td>
+                                        <td><span (click)="showMapsToggle()" class="management__content-table-link"><i class="pi pi-map-marker" ></i> {{customer.name}}</span> </td>
+                                        <td> <p-badge [value]="customer.status" [severity]="customer.status == 'En linea'?'success':'secondary'" /></td>
+                                        <td>{{customer.imei}}</td>
+                                        <td>{{customer.sim}}</td>
+                                        <td>
+                                            <div class="management__user-table-controls">
+                                                <button class="button button--primary-flat" (click)="showTargetForm()" title="Editar usuario"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                <button class="button button--primary-flat-icon" title="Eliminar usuario"> <i class="pi pi-times-circle" ></i> </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </ng-template>
                             </p-table>
                         </div>
                           

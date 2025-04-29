@@ -1,0 +1,14 @@
+/* Estilo específico para el modo oscuro */
+:host-context(.app-dark) .user-form__field select,
+:host-context(.app-dark) .user-form__field select option {
+    background-color: var(--managementColorInputSearch);
+    color: var(--managementColorTextUser);
+}
+
+/* Estilo para el hover de las opciones */
+.user-form__field select option:hover,
+.settings-dropdown option:hover,
+.user-form__field select option:focus,
+.settings-dropdown option:focus {
+    background-color: var(--managementColorBorderInput);
+} 

@@ -1,0 +1,74 @@
+/* Estilos específicos para input type="date" */
+.user-form__field input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: var(--managementColorTextUser);
+    cursor: pointer;
+    padding: 0.2rem;
+}
+
+.user-form__field input[type="date"]::-webkit-datetime-edit {
+    color: var(--managementColorTextUser);
+}
+
+/* Estilos específicos para select */
+.user-form__field select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1em;
+    padding-right: 2.5rem;
+}
+
+.user-form__field select option {
+    background-color: var(--managementColorInputSearch);
+    color: var(--managementColorTextUser);
+    padding: 0.5rem;
+}
+
+.user-form__field select:hover,
+.user-form__field select:focus {
+    border-color: var(--managementColorBorderInput);
+    outline: none;
+}
+
+.user-form__field select:focus {
+    box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
+}
+
+/* Estilos para textarea */
+.user-form__field textarea {
+    resize: vertical;
+    height: 97px;
+    line-height: 1.4;
+    resize: none;
+    padding: 0.4rem 0.5rem;
+}
+
+/* Campos requeridos */
+.user-form__field label.required::after {
+    content: '*';
+    color: var(--red-500);
+    margin-left: 4px;
+}
+
+.required-label {
+    color: var(--managementColorTextUser);
+    opacity: 0.6;
+    font-size: 0.75rem;
+    font-weight: normal;
+    margin-left: 0.25rem;
+}
+
+.ng-invalid {
+    border-color: var(--red-500) !important;
+}
+
+.ng-invalid:focus {
+    box-shadow: 0 0 0 2px var(--red-200) !important;
+}
+
+.error-message {
+    color: var(--red-500);
+    font-size: 0.8rem;
+    margin-top: 0.3rem;
+} 

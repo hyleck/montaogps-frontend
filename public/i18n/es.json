@@ -120,9 +120,9 @@
         "edit_role": "Editar rol",
         "new_role": "Nuevo rol",
         "role_name": "Nombre del rol",
-        "role_name_placeholder": "Ingrese el nombre del rol",
+        "role_name_placeholder": "Ej: Administrador, Supervisor, Usuario",
         "description": "Descripción",
-        "description_placeholder": "Ingrese una descripción del rol",
+        "description_placeholder": "Ej: Acceso total al sistema, Gestión de usuarios, Solo lectura",
         "configure_privileges": "Configurar Privilegios",
         "update": "Actualizar",
         "create": "Crear",
@@ -131,8 +131,7 @@
         "table": {
           "name": "Nombre",
           "description": "Descripción",
-          "status": "Estado",
-          "created_at": "Fecha de creación"
+          "actions": "Acciones"
         },
         "privileges": {
           "title": "Configuración de Privilegios",
@@ -162,7 +161,14 @@
           "error_delete": "No se pudo eliminar el rol",
           "error_id": "No se pudo obtener el ID del rol"
         },
-        "actions": "Acciones",
+        "actions": {
+          "read": "Leer",
+          "create": "Crear",
+          "update": "Actualizar",
+          "delete": "Eliminar",
+          "select_all_modules": "Seleccionar todos los módulos",
+          "done": "Listo"
+        },
         "modules": {
           "users": "Usuarios",
           "roles": "Roles",
@@ -256,7 +262,8 @@
             "update_success": "Perfil actualizado",
             "update_success_detail": "Tu perfil ha sido actualizado exitosamente",
             "update_error": "Error al actualizar",
-            "update_error_detail": "Ha ocurrido un error al actualizar tu perfil"
+            "update_error_detail": "Ha ocurrido un error al actualizar tu perfil",
+            "profile_updated": "Tu perfil ha sido actualizado con los datos más recientes"
         }
     },
     "management": {
@@ -329,7 +336,8 @@
           "read": "Leer",
           "create": "Crear",
           "update": "Actualizar",
-          "delete": "Eliminar"
+          "delete": "Eliminar",
+          "select_all_modules": "Seleccionar todos los módulos"
         },
         "save": "Guardar",
         "cancel": "Cancelar",
