@@ -30,8 +30,8 @@ interface ExtendedUser extends Omit<User, 'settings'> {
     privileges?: { [key: string]: Privilege };
     settings: UserSettings;
     status: 'active' | 'inactive';
-    affiliation_type: string;
-    profile_type: string;
+    affiliation_type_id: string;
+    profile_type_id: string;
 }
 
 @Component({
@@ -98,8 +98,8 @@ export class UserFormComponent implements OnInit, OnChanges {
             createdAt: '',
             updatedAt: ''
         },
-        affiliation_type: '',
-        profile_type: ''
+        affiliation_type_id: '',
+        profile_type_id: ''
     };
 
     roles: UserRole[] = [];
@@ -170,8 +170,8 @@ export class UserFormComponent implements OnInit, OnChanges {
     selectedLanguage: string = this.getSettingValue('language') as string;
     notificationsEnabled: boolean = this.getSettingValue('notifications') as boolean;
 
-    selectedAffiliationType: string = this.user.affiliation_type;
-    selectedProfileType: string = this.user.profile_type;
+    selectedAffiliationType: string = this.user.affiliation_type_id;
+    selectedProfileType: string = this.user.profile_type_id;
 
     confirmPassword: string = '';
 
@@ -206,7 +206,7 @@ export class UserFormComponent implements OnInit, OnChanges {
                 language: 'es',
                 notifications: true,
                 affiliation_type: 'cliente',
-                profile_type: ''
+                profile_type: 'personal'
             },
             status: 'active',
             access_level_id: {
@@ -217,14 +217,14 @@ export class UserFormComponent implements OnInit, OnChanges {
                 createdAt: '',
                 updatedAt: ''
             },
-            affiliation_type: 'cliente',
-            profile_type: ''
+            affiliation_type_id: 'cliente',
+            profile_type_id: 'personal'
         };
         this.selectedTheme = 'light';
         this.selectedLanguage = 'es';
         this.notificationsEnabled = true;
         this.selectedAffiliationType = 'cliente';
-        this.selectedProfileType = '';
+        this.selectedProfileType = 'personal';
         this.confirmPassword = '';
         this.user.password = '';
         this.activeTabIndex = 0;
@@ -249,7 +249,7 @@ export class UserFormComponent implements OnInit, OnChanges {
                 language: 'es',
                 notifications: true,
                 affiliation_type: 'cliente',
-                profile_type: ''
+                profile_type: 'personal'
             },
             status: 'active',
             access_level_id: {
@@ -260,14 +260,14 @@ export class UserFormComponent implements OnInit, OnChanges {
                 createdAt: '',
                 updatedAt: ''
             },
-            affiliation_type: 'cliente',
-            profile_type: ''
+            affiliation_type_id: 'cliente',
+            profile_type_id: 'personal'
         };
         this.selectedTheme = 'light';
         this.selectedLanguage = 'es';
         this.notificationsEnabled = true;
         this.selectedAffiliationType = 'cliente';
-        this.selectedProfileType = '';
+        this.selectedProfileType = 'personal';
         this.confirmPassword = '';
         this.user.password = '';
         this.activeTabIndex = 0;
@@ -283,8 +283,8 @@ export class UserFormComponent implements OnInit, OnChanges {
                 this.selectedTheme = this.user.settings?.theme || 'light';
                 this.selectedLanguage = this.user.settings?.language || 'es';
                 this.notificationsEnabled = this.user.settings?.notifications ?? true;
-                this.selectedAffiliationType = this.user.affiliation_type;
-                this.selectedProfileType = this.user.profile_type;
+                this.selectedAffiliationType = this.user.affiliation_type_id;
+                this.selectedProfileType = this.user.profile_type_id;
                 this.confirmPassword = '';
                 
                 // Seleccionar el rol correcto de la lista de roles si existe
@@ -433,6 +433,13 @@ export class UserFormComponent implements OnInit, OnChanges {
 
         const currentUser = this.authService.getCurrentUser();
         const parentId = this.route.snapshot.params['user'];
+        
+        // Asegurarnos de que los valores de affiliation_type y profile_type estén actualizados
+        this.user.affiliation_type_id = this.selectedAffiliationType;
+        this.user.profile_type_id = this.selectedProfileType;
+        this.user.settings.affiliation_type = this.selectedAffiliationType;
+        this.user.settings.profile_type = this.selectedProfileType;
+
         const userToSubmit = {
             ...this.user,
             password: this.user.password || 'examplePassword',
@@ -441,12 +448,19 @@ export class UserFormComponent implements OnInit, OnChanges {
             hashdRt: 'exampleHashdRt',
             creator_id: currentUser ? currentUser.id : 'exampleCreatorId',
             privileges: this.user.privileges || this.user.role.privileges || [],
-            settings: this.user.settings ? [this.user.settings] : [],
-            profile_type_id: 'exampleProfileTypeId',
-            affiliation_type_id: 'exampleAffiliationTypeId',
+            settings: [this.user.settings],
+            affiliation_type_id: this.selectedAffiliationType,
+            profile_type_id: this.selectedProfileType,
             department_id: 'exampleDepartmentId',
             parent_id: parentId
         };
+
+        console.log('Enviando usuario:', {
+            affiliation_type_id: userToSubmit.affiliation_type_id,
+            profile_type_id: userToSubmit.profile_type_id,
+            settings: userToSubmit.settings
+        });
+        console.log('Usuario:', userToSubmit);
 
         this.userService.create(userToSubmit).subscribe({
             next: (response) => {
@@ -488,8 +502,8 @@ export class UserFormComponent implements OnInit, OnChanges {
                         createdAt: '',
                         updatedAt: ''
                     },
-                    affiliation_type: '',
-                    profile_type: ''
+                    affiliation_type_id: '',
+                    profile_type_id: ''
                 };
                 this.selectedTheme = 'light';
                 this.selectedLanguage = 'es';

@@ -147,7 +147,7 @@
                                             <input 
                                                 [(ngModel)]="user.password"
                                                 name="password"
-                                                placeholder="Mínimo 8 caracteres, incluya números y símbolos" 
+                                                placeholder="Ingrese una contraseña" 
                                                 type="password" 
                                                 id="password" 
                                                 required
@@ -188,7 +188,7 @@
                                             <span class="module-name">{{ module.label | translate }}</span>
                                             <button type="button" class="button-select-all" (click)="toggleAllPrivileges(getPrivilegeByModule(user.role?.privileges || [], module.value))">
                                                 <i class="pi" [ngClass]="isAllSelected(getPrivilegeByModule(user.role?.privileges || [], module.value)) ? 'pi-check-square' : 'pi-square'"></i>
-                                                <span>{{ 'settings.roles_settings.privileges.select_all' | translate }}</span>
+                                                <span>{{ 'management.userForm.selectAll' | translate }}</span>
                                             </button>
                                         </div>
                                         
