@@ -1,14 +1,17 @@
+// Angular imports
 import { Component, HostListener } from '@angular/core';
-import { MenuItem } from 'primeng/api';
-import { ThemesService } from '../../../../../../shareds/services/themes.service';
 import { Router, ActivatedRoute } from '@angular/router';
-import { StatusService } from '../../../../../../shareds/services/status.service';
+
+// Third-party imports
+import { MenuItem, ConfirmationService, MessageService } from 'primeng/api';
+import { TranslateService } from '@ngx-translate/core';
+
+// Application imports
+import { User, BasicUser, ExtendedUser, convertToExtendedUser } from '../../../../../../core/interfaces';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { UserService } from '../../../../../../core/services/user.service';
-import { User, BasicUser } from '../../../../../../core/interfaces';
-import { TranslateService } from '@ngx-translate/core';
-import { ConfirmationService } from 'primeng/api';
-import { MessageService } from 'primeng/api';
+import { ThemesService } from '../../../../../../shareds/services/themes.service';
+import { StatusService } from '../../../../../../shareds/services/status.service';
 
 @Component({
     selector: 'app-management',
@@ -37,7 +40,7 @@ currentUserId: string | undefined;
 showMaps: boolean = false;
 selectedUser: User | undefined;
 users: User[] = [];
-userToEdit: User | null = null;
+userToEdit: ExtendedUser | null = null;
 
 // Claves de traducción
 translations = {
@@ -359,7 +362,7 @@ constructor(
   }
 
   editUser(user: User) {
-    this.userToEdit = user;
+    this.userToEdit = convertToExtendedUser(user);
     this.userFormDisplay = true;
   }
 

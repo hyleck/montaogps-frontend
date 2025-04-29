@@ -1,3 +1,5 @@
+import { UserRole, Privilege } from './user-role.interface';
+
 export interface AccessLevel {
   _id: string;
   createdAt: string;
@@ -31,7 +33,51 @@ export interface User {
 }
 
 export interface UserSettings {
-  theme?: string;
-  language?: string;
-  notifications?: boolean;
+  [key: string]: string | boolean;
+  theme: string;
+  language: string;
+  notifications: boolean;
+  affiliation_type: string;
+  profile_type: string;
+}
+
+export interface ExtendedUser extends Omit<User, 'settings'> {
+  password?: string;
+  dni: string;
+  birth: string;
+  address: string;
+  photo: string;
+  phone: string;
+  phone2: string;
+  verified_email: boolean;
+  role: UserRole | null;
+  privileges?: { [key: string]: Privilege };
+  settings: UserSettings;
+  status: 'active' | 'inactive';
+  affiliation_type_id: string;
+  profile_type_id: string;
+}
+
+export function convertToExtendedUser(user: User): ExtendedUser {
+    return {
+        ...user,
+        verified_email: false,
+        role: null,
+        status: 'active',
+        affiliation_type_id: '',
+        profile_type_id: '',
+        dni: user.dni || '',
+        birth: user.birth || '',
+        address: user.address || '',
+        photo: user.photo || '',
+        phone: user.phone || '',
+        phone2: user.phone2 || '',
+        settings: {
+            theme: 'light',
+            language: 'es',
+            notifications: true,
+            affiliation_type: '',
+            profile_type: ''
+        }
+    };
 } 

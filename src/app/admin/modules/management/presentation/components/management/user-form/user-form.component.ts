@@ -1,38 +1,27 @@
-import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { UserRole, Privilege, PrivilegeAction } from '../../../../../../../core/interfaces/user-role.interface';
-import { User } from '../../../../../../../core/interfaces/user.interface';
+import { User, ExtendedUser, UserSettings } from '../../../../../../../core/interfaces/user.interface';
+import { 
+    AVAILABLE_MODULES, 
+    MODULE_ICONS, 
+    THEMES, 
+    LANGUAGES, 
+    PROFILE_TYPES, 
+    AFFILIATION_TYPES,
+    ModuleOption,
+    ThemeOption,
+    LanguageOption,
+    ProfileTypeOption,
+    AffiliationTypeOption
+} from '../../../../../../../core/interfaces/user-form.constants';
 import { UserRolesService } from '../../../../../../../core/services/user-roles.service';
 import { TranslateService } from '@ngx-translate/core';
 import { MessageService } from 'primeng/api';
 import { UserService } from '../../../../../../../core/services/user.service';
 import { AuthService } from '../../../../../../../core/services/auth.service';
-import { ActivatedRoute } from '@angular/router';
-
-interface UserSettings {
-    [key: string]: string | boolean;
-    theme: string;
-    language: string;
-    notifications: boolean;
-    affiliation_type: string;
-    profile_type: string;
-}
-
-interface ExtendedUser extends Omit<User, 'settings'> {
-    password?: string;
-    dni: string;
-    birth: string;
-    address: string;
-    photo: string;
-    phone: string;
-    phone2: string;
-    verified_email: boolean;
-    role: UserRole | null;
-    privileges?: { [key: string]: Privilege };
-    settings: UserSettings;
-    status: 'active' | 'inactive';
-    affiliation_type_id: string;
-    profile_type_id: string;
-}
+import { PrivilegeService } from './privilege.service';
+import { Subject, takeUntil } from 'rxjs';
 
 @Component({
     selector: 'app-user-form',
@@ -40,8 +29,10 @@ interface ExtendedUser extends Omit<User, 'settings'> {
     styleUrls: ['./user-form.component.css'],
     standalone: false
 })
-export class UserFormComponent implements OnInit, OnChanges {
-    @Input() userInput: any = null;
+export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
+    private destroy$ = new Subject<void>();
+
+    @Input() userInput: ExtendedUser | null = null;
     @Output() userCreated = new EventEmitter<void>();
 
     // Claves de traducción
@@ -69,101 +60,15 @@ export class UserFormComponent implements OnInit, OnChanges {
         cancel: 'management.userForm.cancel'
     };
 
-    user: ExtendedUser = {
-        _id: '',
-        email: '',
-        name: '',
-        last_name: '',
-        dni: '',
-        birth: '',
-        address: '',
-        photo: '',
-        phone: '',
-        phone2: '',
-        verified_email: false,
-        role: null,
-        settings: {
-            theme: 'light',
-            language: 'es',
-            notifications: true,
-            affiliation_type: '',
-            profile_type: ''
-        },
-        status: 'active',
-        access_level_id: {
-            _id: '',
-            name: '',
-            description: '',
-            privileges: [],
-            createdAt: '',
-            updatedAt: ''
-        },
-        affiliation_type_id: '',
-        profile_type_id: ''
-    };
-
+    user: ExtendedUser = this.getEmptyUser();
     roles: UserRole[] = [];
 
-    availableModules = [
-        { value: 'users', label: 'management.userForm.modules.users' },
-        { value: 'roles', label: 'management.userForm.modules.roles' },
-        { value: 'devices', label: 'management.userForm.modules.devices' },
-        { value: 'reports', label: 'management.userForm.modules.reports' },
-        { value: 'processes', label: 'management.userForm.modules.processes' },
-        { value: 'sms', label: 'management.userForm.modules.sms' },
-        { value: 'cloud', label: 'management.userForm.modules.cloud' },
-        { value: 'sectors', label: 'management.userForm.modules.sectors' },
-        { value: 'tags', label: 'management.userForm.modules.tags' },
-        { value: 'brands', label: 'management.userForm.modules.brands' },
-        { value: 'models', label: 'management.userForm.modules.models' },
-        { value: 'colors', label: 'management.userForm.modules.colors' },
-        { value: 'canceled', label: 'management.userForm.modules.canceled' },
-        { value: 'system', label: 'management.userForm.modules.system' },
-        { value: 'plans', label: 'management.userForm.modules.plans' },
-        { value: 'servers', label: 'management.userForm.modules.servers' }
-    ];
-
-    moduleIcons: { [key: string]: string } = {
-        users: 'pi pi-users',
-        roles: 'pi pi-key',
-        devices: 'pi pi-mobile',
-        reports: 'pi pi-chart-bar',
-        processes: 'pi pi-cog',
-        sms: 'pi pi-envelope',
-        cloud: 'pi pi-cloud',
-        sectors: 'pi pi-map',
-        tags: 'pi pi-tags',
-        brands: 'pi pi-bookmark',
-        models: 'pi pi-car',
-        colors: 'pi pi-palette',
-        canceled: 'pi pi-ban',
-        system: 'pi pi-server',
-        plans: 'pi pi-dollar',
-        servers: 'pi pi-database'
-    };
-
-    themes = [
-        { label: 'Claro', value: 'light' },
-        { label: 'Oscuro', value: 'dark' }
-    ];
-
-    languages = [
-        { label: 'Español', value: 'es' },
-        { label: 'Inglés', value: 'en' }
-    ];
-
-    profileTypes = [
-        { label: 'Empresa', value: 'empresa' },
-        { label: 'Personal', value: 'personal' }
-    ];
-
-    affiliationTypes = [
-        { label: 'Cliente', value: 'cliente' },
-        { label: 'Subcliente', value: 'subcliente' },
-        { label: 'Socio', value: 'socio' },
-        { label: 'Empleado', value: 'empleado' },
-        { label: 'Otro', value: 'otro' }
-    ];
+    availableModules: ModuleOption[] = AVAILABLE_MODULES;
+    moduleIcons: { [key: string]: string } = MODULE_ICONS;
+    themes: ThemeOption[] = THEMES;
+    languages: LanguageOption[] = LANGUAGES;
+    profileTypes: ProfileTypeOption[] = PROFILE_TYPES;
+    affiliationTypes: AffiliationTypeOption[] = AFFILIATION_TYPES;
 
     // Propiedades intermedias para el enlace de datos
     selectedTheme: string = this.getSettingValue('theme') as string;
@@ -183,12 +88,12 @@ export class UserFormComponent implements OnInit, OnChanges {
         private messageService: MessageService,
         private userService: UserService,
         private authService: AuthService,
-        private route: ActivatedRoute
+        private route: ActivatedRoute,
+        private privilegeService: PrivilegeService
     ) {}
 
-    ngOnInit() {
-        this.loadRoles();
-        this.user = {
+    private getEmptyUser(): ExtendedUser {
+        return {
             _id: '',
             email: '',
             name: '',
@@ -220,6 +125,11 @@ export class UserFormComponent implements OnInit, OnChanges {
             affiliation_type_id: 'cliente',
             profile_type_id: 'personal'
         };
+    }
+
+    ngOnInit() {
+        this.loadRoles();
+        this.user = this.getEmptyUser();
         this.selectedTheme = 'light';
         this.selectedLanguage = 'es';
         this.notificationsEnabled = true;
@@ -231,38 +141,7 @@ export class UserFormComponent implements OnInit, OnChanges {
     }
 
     private resetForm() {
-        this.user = {
-            _id: '',
-            email: '',
-            name: '',
-            last_name: '',
-            dni: '',
-            birth: '',
-            address: '',
-            photo: '',
-            phone: '',
-            phone2: '',
-            verified_email: false,
-            role: null,
-            settings: {
-                theme: 'light',
-                language: 'es',
-                notifications: true,
-                affiliation_type: 'cliente',
-                profile_type: 'personal'
-            },
-            status: 'active',
-            access_level_id: {
-                _id: '',
-                name: '',
-                description: '',
-                privileges: [],
-                createdAt: '',
-                updatedAt: ''
-            },
-            affiliation_type_id: 'cliente',
-            profile_type_id: 'personal'
-        };
+        this.user = this.getEmptyUser();
         this.selectedTheme = 'light';
         this.selectedLanguage = 'es';
         this.notificationsEnabled = true;
@@ -303,111 +182,67 @@ export class UserFormComponent implements OnInit, OnChanges {
     }
 
     loadRoles() {
-        this.userRolesService.getAllRoles().subscribe({
-            next: (roles) => {
-                this.roles = roles;
-                if (!this.user.role) {
-                    this.user.role = null;
-                } else if (this.user.access_level_id && this.user.access_level_id._id) {
-                    const foundRole = this.roles.find(r => r._id === this.user.access_level_id._id);
-                    if (foundRole) {
-                        this.user.role = foundRole;
+        this.userRolesService.getAllRoles()
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (roles) => {
+                    this.roles = roles;
+                    if (!this.user.role) {
+                        this.user.role = null;
+                    } else if (this.user.access_level_id && this.user.access_level_id._id) {
+                        const foundRole = this.roles.find(r => r._id === this.user.access_level_id._id);
+                        if (foundRole) {
+                            this.user.role = foundRole;
+                        }
                     }
+                },
+                error: (error) => {
+                    console.error('Error al cargar roles:', error);
                 }
-            },
-            error: (error) => {
-                console.error('Error al cargar roles:', error);
-            }
-        });
+            });
     }
 
     getPrivilegeByModule(privileges: Privilege[] | undefined, module: string): Privilege | undefined {
-        if (!privileges) return undefined;
-        const privilege = privileges.find(p => p.module === module);
-        return privilege ? { ...privilege } : undefined;
+        return this.privilegeService.getPrivilegeByModule(privileges, module);
     }
 
     getPrivilegeActions(module: string): PrivilegeAction {
-        // Si el usuario tiene privilegios personalizados, usarlos
-        if (this.user.privileges && Array.isArray(this.user.privileges)) {
-            const userPrivilege = this.user.privileges.find(p => p.module === module);
-            if (userPrivilege) {
-                return userPrivilege.actions;
-            }
-        }
-        
-        // Si no hay privilegios personalizados, usar los del role
-        const privilege = this.getPrivilegeByModule(this.user.role?.privileges, module);
-        return privilege?.actions || {
-            read: false,
-            create: false,
-            update: false,
-            delete: false
-        };
+        return this.privilegeService.getPrivilegeActions(
+            this.user.privileges,
+            this.user.role?.privileges,
+            module
+        );
     }
 
     setPrivilegeAction(module: string, action: keyof PrivilegeAction, value: boolean): void {
-        if (!this.user.role?.privileges) {
-            this.user.role = {
-                _id: '',
-                name: '',
-                description: '',
-                status: 'active',
-                createdAt: new Date(),
-                privileges: []
-            };
-        }
-        
-        let privilege = this.getPrivilegeByModule(this.user.role.privileges, module);
-        if (!privilege) {
-            privilege = {
+        if (this.user.role) {
+            this.user.role = this.privilegeService.setPrivilegeAction(
+                this.user.role,
                 module,
-                actions: {
-                    read: false,
-                    create: false,
-                    update: false,
-                    delete: false
-                }
-            };
-            this.user.role.privileges.push(privilege);
+                action,
+                value
+            );
         }
-        privilege.actions[action] = value;
     }
 
     toggleAllPrivileges(privilege: Privilege | undefined): void {
-        if (!privilege) return;
-        
-        const allChecked = Object.values(privilege.actions).every(value => value === true);
-        const newValue = !allChecked;
-        
-        (Object.keys(privilege.actions) as Array<keyof PrivilegeAction>).forEach(action => {
-            privilege.actions[action] = newValue;
-        });
+        if (privilege) {
+            this.privilegeService.toggleAllPrivileges(privilege);
+        }
     }
 
     isAllSelected(privilege: Privilege | undefined): boolean {
-        if (!privilege) return false;
-        return Object.values(privilege.actions).every(value => value === true);
+        return this.privilegeService.isAllSelected(privilege);
     }
 
     toggleAllModulesPrivileges(): void {
-        if (!this.user.role?.privileges) return;
-        
-        const allChecked = this.isAllModulesSelected();
-        const newValue = !allChecked;
-        
-        this.user.role.privileges.forEach(privilege => {
-            (Object.keys(privilege.actions) as Array<keyof PrivilegeAction>).forEach(action => {
-                privilege.actions[action] = newValue;
-            });
-        });
+        if (this.user.role) {
+            this.user.role = this.privilegeService.toggleAllModulesPrivileges(this.user.role);
+        }
     }
 
     isAllModulesSelected(): boolean {
-        if (!this.user.role?.privileges) return false;
-        return this.user.role.privileges.every(privilege => 
-            Object.values(privilege.actions).every(value => value === true)
-        );
+        return this.privilegeService.isAllModulesSelected(this.user.role);
     }
 
     onSubmit() {
@@ -434,7 +269,6 @@ export class UserFormComponent implements OnInit, OnChanges {
         const currentUser = this.authService.getCurrentUser();
         const parentId = this.route.snapshot.params['user'];
         
-        // Asegurarnos de que los valores de affiliation_type y profile_type estén actualizados
         this.user.affiliation_type_id = this.selectedAffiliationType;
         this.user.profile_type_id = this.selectedProfileType;
         this.user.settings.affiliation_type = this.selectedAffiliationType;
@@ -455,74 +289,30 @@ export class UserFormComponent implements OnInit, OnChanges {
             parent_id: parentId
         };
 
-        console.log('Enviando usuario:', {
-            affiliation_type_id: userToSubmit.affiliation_type_id,
-            profile_type_id: userToSubmit.profile_type_id,
-            settings: userToSubmit.settings
-        });
-        console.log('Usuario:', userToSubmit);
-
-        this.userService.create(userToSubmit).subscribe({
-            next: (response) => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: this.translate.instant('management.userForm.success'),
-                    detail: this.translate.instant('management.userForm.userCreated'),
-                    life: 3000
-                });
-                console.log('Usuario creado:', response);
-                this.userCreated.emit();
-                // Limpiar el formulario
-                this.user = {
-                    _id: '',
-                    email: '',
-                    name: '',
-                    last_name: '',
-                    dni: '',
-                    birth: '',
-                    address: '',
-                    photo: '',
-                    phone: '',
-                    phone2: '',
-                    verified_email: false,
-                    role: null,
-                    settings: {
-                        theme: 'light',
-                        language: 'es',
-                        notifications: true,
-                        affiliation_type: '',
-                        profile_type: ''
-                    },
-                    status: 'active',
-                    access_level_id: {
-                        _id: '',
-                        name: '',
-                        description: '',
-                        privileges: [],
-                        createdAt: '',
-                        updatedAt: ''
-                    },
-                    affiliation_type_id: '',
-                    profile_type_id: ''
-                };
-                this.selectedTheme = 'light';
-                this.selectedLanguage = 'es';
-                this.notificationsEnabled = true;
-                this.selectedAffiliationType = '';
-                this.selectedProfileType = '';
-                this.confirmPassword = ''; // Reiniciar confirmPassword
-                this.user.password = ''; // Reiniciar password
-            },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.translate.instant('management.userForm.error'),
-                    detail: this.translate.instant('management.userForm.creationFailed'),
-                    life: 3000
-                });
-                console.error('Error al crear usuario:', error);
-            }
-        });
+        this.userService.create(userToSubmit)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (response) => {
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: this.translate.instant('management.userForm.success'),
+                        detail: this.translate.instant('management.userForm.userCreated'),
+                        life: 3000
+                    });
+                    console.log('Usuario creado:', response);
+                    this.userCreated.emit();
+                    this.resetForm();
+                },
+                error: (error) => {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: this.translate.instant('management.userForm.error'),
+                        detail: this.translate.instant('management.userForm.creationFailed'),
+                        life: 3000
+                    });
+                    console.error('Error al crear usuario:', error);
+                }
+            });
     }
 
     onRoleChange() {
@@ -563,6 +353,11 @@ export class UserFormComponent implements OnInit, OnChanges {
         const offset = date.getTimezoneOffset();
         date.setMinutes(date.getMinutes() - offset);
         return date.toISOString().slice(0, 10);
+    }
+
+    ngOnDestroy() {
+        this.destroy$.next();
+        this.destroy$.complete();
     }
 }
 
