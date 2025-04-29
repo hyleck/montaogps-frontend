@@ -85,6 +85,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     activeTabIndex: number = 0;
 
+    // Agregamos una nueva propiedad para controlar si estamos inicializando el formulario de edición
+    private isInitializingEditForm: boolean = false;
+
     constructor(
         private userRolesService: UserRolesService,
         private translate: TranslateService,
@@ -159,50 +162,92 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         if (changes['userInput']) {
             if (changes['userInput'].currentValue) {
                 const user = changes['userInput'].currentValue;
-                // Rellenar el formulario con los datos del usuario a editar
-                this.user = JSON.parse(JSON.stringify(user));
-                this.user.birth = this.formatDateToInput(user.birth);
-                this.selectedTheme = this.user.settings?.theme || 'light';
-                this.selectedLanguage = this.user.settings?.language || 'es';
-                this.notificationsEnabled = this.user.settings?.notifications ?? true;
-                this.selectedAffiliationType = this.user.affiliation_type_id;
-                this.selectedProfileType = this.user.profile_type_id;
-                this.confirmPassword = '';
                 
-                // Seleccionar el rol correcto de la lista de roles si existe
-                if (this.user.access_level_id && this.user.access_level_id._id && this.roles && Array.isArray(this.roles)) {
-                    const roleId = this.user.access_level_id._id;
-                    const foundRole = this.roles.find(r => r._id === roleId);
-                    if (foundRole) {
-                        this.user.role = foundRole;
-                    }
+                // Primero cargamos los roles si no están cargados
+                if (!this.roles || this.roles.length === 0) {
+                    this.loadRoles().then(() => {
+                        this.setupEditUser(user);
+                    });
+                } else {
+                    this.setupEditUser(user);
                 }
-                this.activeTabIndex = 0;
             } else {
                 this.resetForm();
             }
         }
     }
 
-    loadRoles() {
-        this.userRolesService.getAllRoles()
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (roles) => {
-                    this.roles = roles;
-                    if (!this.user.role) {
-                        this.user.role = null;
-                    } else if (this.user.access_level_id && this.user.access_level_id._id) {
-                        const foundRole = this.roles.find(r => r._id === this.user.access_level_id._id);
-                        if (foundRole) {
-                            this.user.role = foundRole;
-                        }
+    private setupEditUser(user: ExtendedUser) {
+        // Rellenar el formulario con los datos del usuario a editar
+        this.user = JSON.parse(JSON.stringify(user));
+        this.user.birth = this.formatDateToInput(user.birth);
+        this.selectedTheme = this.user.settings?.theme || 'light';
+        this.selectedLanguage = this.user.settings?.language || 'es';
+        this.notificationsEnabled = this.user.settings?.notifications ?? true;
+        
+        // Asignamos explícitamente los valores para el tipo de afiliación y perfil
+        this.selectedAffiliationType = user.affiliation_type_id || 'cliente';
+        this.selectedProfileType = user.profile_type_id || 'personal';
+        
+        this.confirmPassword = '';
+        
+        // Preservar los privilegios personalizados si existen
+        const userPrivileges = user.privileges;
+        
+        // Seleccionar el rol correcto de la lista de roles
+        if (user.access_level_id && user.access_level_id._id && this.roles && Array.isArray(this.roles)) {
+            const roleId = user.access_level_id._id;
+            const foundRole = this.roles.find(r => r._id === roleId);
+            
+            if (foundRole) {
+                console.log('Rol encontrado:', foundRole.name);
+                this.user.role = foundRole;
+                
+                // Invocar onRoleChange para inicializar correctamente, pero sin borrar privilegios personalizados
+                setTimeout(() => {
+                    // Conservar la bandera de que estamos en modo edición para no borrar privilegios personalizados
+                    this.isInitializingEditForm = true;
+                    this.onRoleChange();
+                    this.isInitializingEditForm = false;
+                    
+                    // Restaurar los privilegios personalizados después de inicializar el rol
+                    if (userPrivileges) {
+                        this.user.privileges = userPrivileges;
+                        console.log('Privilegios personalizados restaurados:', userPrivileges);
                     }
-                },
-                error: (error) => {
-                    console.error('Error al cargar roles:', error);
-                }
-            });
+                }, 0);
+            } else {
+                console.warn('No se encontró el rol con ID:', roleId);
+            }
+        }
+        
+        this.activeTabIndex = 0;
+        
+        console.log('Usuario cargado para edición:', {
+            name: this.user.name,
+            role: this.user.role ? this.user.role.name : 'Sin rol',
+            affiliation: this.selectedAffiliationType,
+            profile: this.selectedProfileType,
+            hasCustomPrivileges: userPrivileges ? true : false
+        });
+    }
+
+    loadRoles() {
+        return new Promise<void>((resolve) => {
+            this.userRolesService.getAllRoles()
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                    next: (roles) => {
+                        this.roles = roles;
+                        console.log('Roles cargados:', roles.length);
+                        resolve();
+                    },
+                    error: (error) => {
+                        console.error('Error al cargar roles:', error);
+                        resolve();
+                    }
+                });
+        });
     }
 
     getPrivilegeByModule(privileges: Privilege[] | undefined, module: string): Privilege | undefined {
@@ -229,8 +274,30 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     toggleAllPrivileges(privilege: Privilege | undefined): void {
-        if (privilege) {
-            this.privilegeService.toggleAllPrivileges(privilege);
+        if (!privilege) return;
+        
+        // Modificar el privilegio sin crear una nueva referencia
+        this.privilegeService.toggleAllPrivileges(privilege);
+        
+        // Si estamos trabajando con privilegios personalizados del usuario
+        if (this.user.privileges && Array.isArray(this.user.privileges)) {
+            const userPrivilegeIndex = this.user.privileges.findIndex(p => p.module === privilege.module);
+            if (userPrivilegeIndex >= 0) {
+                // Actualizar el privilegio personalizado
+                this.user.privileges[userPrivilegeIndex] = {...privilege};
+                console.log('Actualizado privilegio personalizado:', privilege.module);
+                return; // Salimos para no actualizar también los privilegios del rol
+            }
+        }
+        
+        // Si llegamos aquí, actualizamos los privilegios del rol
+        if (this.user.role && this.user.role.privileges) {
+            const rolePrivilegeIndex = this.user.role.privileges.findIndex(p => p.module === privilege.module);
+            if (rolePrivilegeIndex >= 0) {
+                // Actualizar el privilegio del rol
+                this.user.role.privileges[rolePrivilegeIndex] = {...privilege};
+                console.log('Actualizado privilegio del rol:', privilege.module);
+            }
         }
     }
 
@@ -388,8 +455,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             // Mantener la referencia al objeto original del array roles
             this.user.role = originalRole;
             
-            // Limpiar los privilegios personalizados del usuario
-            this.user.privileges = undefined;
+            // Limpiar los privilegios personalizados del usuario SOLO si no estamos inicializando el formulario de edición
+            if (!this.isInitializingEditForm) {
+                this.user.privileges = undefined;
+                console.log('Privilegios personalizados limpiados por cambio de rol manual');
+            }
         }
     }
 
