@@ -363,6 +363,7 @@
         "info": "Important information",
         "success": "Success",
         "userCreated": "User created successfully.",
+        "userUpdated": "User updated successfully.",
         "password": "Password",
         "confirmPassword": "Confirm password",
         "passwordsDoNotMatch": "Passwords do not match",

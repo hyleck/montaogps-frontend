@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
+import { StatusService } from '@shared/services/status.service';
 
 @Component({
     selector: 'app-settings',

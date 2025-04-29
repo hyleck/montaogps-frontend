@@ -189,6 +189,7 @@
         },
         "creationFailed": "No se pudo crear el usuario.",
         "userCreated": "Usuario creado correctamente.",
+        "userUpdated": "Usuario actualizado correctamente.",
         "success": "Éxito"
       },
       "cards": {
@@ -361,6 +362,7 @@
         "info": "Información importante",
         "success": "Éxito",
         "userCreated": "Usuario creado correctamente.",
+        "userUpdated": "Usuario actualizado correctamente.",
         "password": "Contraseña",
         "confirmPassword": "Confirmar contraseña",
         "passwordsDoNotMatch": "Las contraseñas no coinciden",

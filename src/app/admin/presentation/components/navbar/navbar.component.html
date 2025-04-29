@@ -23,7 +23,7 @@
             </div>
 
             <div class="card flex justify-content-center navbar__drupdown">
-                <p-menu #menu [model]="items" [popup]="true" />
+                <p-menu #menu [model]="items" [popup]="true" styleClass="ellipsis-dropdown-menu" />
                 <i (click)="menu.toggle($event)" class="pi pi-ellipsis-v"></i>
             </div>
          
@@ -46,7 +46,7 @@
             </div> -->
 
             <div class="user-menu">
-                <p-menu #userMenu [model]="userMenuItems" [popup]="true" />
+                <p-menu #userMenu [model]="userMenuItems" [popup]="true" styleClass="user-dropdown-menu" />
                 <button class="button button--flat-negative" (click)="userMenu.toggle($event)">
                     <i class="pi pi-user"></i>
                 </button>

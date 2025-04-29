@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { UserRole, CreateUserRoleDto, Privilege } from '../../../../../../../core/interfaces/user-role.interface';
-import { UserRolesService } from '../../../../../../../core/services/user-roles.service';
+import { UserRole, CreateUserRoleDto, Privilege } from '@core/interfaces/user-role.interface';
+import { UserRolesService } from '@core/services/user-roles.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
 

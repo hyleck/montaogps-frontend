@@ -439,6 +439,14 @@
   top: 32px;
   
 }
+@media (max-width: 760px) {
+  .management__user-control-back-button{
+
+    top: 22px;
+    
+  }
+}
+
 .management__user-control-back-button i{
   font-size: 13px;
 }
@@ -560,5 +568,168 @@
     opacity: 0.4;
     display: flex;
     flex-direction: column;
+}
+
+/* Estilos para móvil */
+@media screen and (max-width: 768px) {
+    /* Estilos para los datos del usuario */
+    .management__user-card-title,
+    .management__user-card-subtitle,
+    .management__user-card-footer,
+    .management__user-control-title strong,
+    .management__user-control-subtitle span {
+        display: block;
+        width: 100%;
+        max-width: 120px;
+        box-sizing: border-box;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: left;
+    }
+
+    .management__user-card {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 10px;
+        margin-bottom: 14px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-radius: 8px;
+        min-width: 0;
+        background: var(--globalColorCardBackground, #222);
+    }
+    .management__user-card-icon {
+        margin-bottom: 8px;
+        align-self: center;
+    }
+    .management__user-card-title,
+    .management__user-card-title strong,
+    .management__user-card-subtitle,
+    .management__user-card-subtitle span,
+    .management__user-card-footer {
+        text-align: left;
+        width: 100%;
+        margin-bottom: 2px;
+    }
+    .management__user-card-footer {
+        margin-bottom: 6px;
+    }
+    .management__user-card-controls {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 6px;
+        margin-top: 8px;
+    }
+    .management__user-card-controls button {
+        flex: 1 1 0;
+        min-width: 0;
+        padding: 0.3rem 0.2rem;
+        font-size: 0.7rem;
+    }
+
+    /* Estilos para los botones */
+    .button .button-text {
+        display: none;
+    }
+
+    .button {
+        padding: 0.5rem;
+        min-width: 2.5rem;
+        justify-content: center;
+    }
+
+    .button i {
+        padding-right: 0;
+    }
+
+    .management__user-control-controls .button,
+    .management__user-options .button {
+        font-size: 0.65rem;
+        padding: 0.25rem 0.4rem;
+        min-width: 2rem;
+    }
+
+    .management__user-control-controls .button i,
+    .management__user-options .button i {
+        font-size: 0.75rem;
+        margin-right: 0.15rem;
+    }
+
+    .management__user-control-controls .button span,
+    .management__user-options .button span {
+        font-size: 0.6rem;
+    }
+
+    /* Tarjeta de usuario destacada */
+    .management__card-user {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 14px 12px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+        border-radius: 10px;
+        min-width: 0;
+        background: var(--globalColorCardBackground, #222);
+    }
+    .management__card-user-img {
+        align-self: center;
+        margin-bottom: 10px;
+    }
+    .management__card-user-title,
+    .management__card-user-title strong,
+    .management__card-user-subtitle,
+    .management__card-user-subtitle span,
+    .management__card-user-footer {
+        text-align: left;
+        width: 100%;
+        margin-bottom: 2px;
+    }
+    .management__card-user-footer {
+        margin-bottom: 6px;
+    }
+}
+
+@media screen and (max-width: 340px) {
+    .management__user-card-title,
+    .management__user-card-title strong,
+    .management__user-card-subtitle,
+    .management__user-card-subtitle span,
+    .management__user-card-footer,
+    .management__user-control-title strong,
+    .management__user-control-subtitle span,
+    .management__user-options .button,
+    .management__user-options .button i,
+    .management__user-options .button span,
+    .management__user-control-controls .button,
+    .management__user-control-controls .button i,
+    .management__user-control-controls .button span {
+        font-size: 0.55rem !important;
+        max-width: 80px;
+    }
+}
+
+.button i {
+    padding-right: 0.4em;
+    transition: padding 0.2s;
+}
+
+.management__content-cards--maps .button .button-text {
+    display: none !important;
+}
+
+@media (max-width: 760px) {
+  .management__content-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 490px) {
+  .management__content-cards {
+    grid-template-columns: 1fr;
+  }
 }
 

@@ -26,7 +26,13 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@app/*": ["src/app/*"]
+      "@app/*": ["src/app/*"],
+      "@core/*": ["src/app/core/*"],
+      "@shared/*": ["src/app/shareds/*"],
+      "@admin/*": ["src/app/admin/*"],
+      "@management/*": ["src/app/admin/modules/management/*"],
+      "@profile/*": ["src/app/admin/modules/profile/*"],
+      "@settings/*": ["src/app/admin/modules/settings/*"]
     }
   },
   "angularCompilerOptions": {

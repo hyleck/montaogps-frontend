@@ -360,6 +360,7 @@
         "info": "Information importante",
         "success": "Succès",
         "userCreated": "Utilisateur créé avec succès.",
+        "userUpdated": "Utilisateur mis à jour avec succès.",
         "password": "Mot de passe",
         "confirmPassword": "Confirmer le mot de passe",
         "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",

@@ -6,14 +6,14 @@ import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { TabViewModule } from 'primeng/tabview';
 import { CheckboxModule } from 'primeng/checkbox';
 import { PasswordModule } from 'primeng/password';
-import { ThemesService } from '../../../../../../shareds/services/themes.service';
-import { StatusService } from '../../../../../../shareds/services/status.service';
+import { ThemesService } from '@shared/services/themes.service';
+import { StatusService } from '@shared/services/status.service';
 import { TranslateService } from '@ngx-translate/core';
-import { LangService } from '../../../../../../shareds/services/langi18/lang.service';
+import { LangService } from '@shared/services/langi18/lang.service';
 import { TranslateModule } from '@ngx-translate/core';
-import { AuthService } from '../../../../../../core/services/auth.service';
-import { UserService } from '../../../../../../core/services/user.service';
-import { ProfileUser } from '@app/core/interfaces/profile.interface';
+import { AuthService } from '@core/services/auth.service';
+import { UserService } from '@core/services/user.service';
+import { ProfileUser } from '@core/interfaces/profile.interface';
 import { ToastModule } from 'primeng/toast';
 
 @Component({

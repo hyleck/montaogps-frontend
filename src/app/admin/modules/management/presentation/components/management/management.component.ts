@@ -7,13 +7,13 @@ import { MenuItem, ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
 
 // Application imports
-import { User, BasicUser, ExtendedUser, convertToExtendedUser } from '../../../../../../core/interfaces';
-import { AuthService } from '../../../../../../core/services/auth.service';
-import { UserService } from '../../../../../../core/services/user.service';
-import { ThemesService } from '../../../../../../shareds/services/themes.service';
-import { StatusService } from '../../../../../../shareds/services/status.service';
-import { ManagementService } from '../../services/management.service';
-import { ScreenService } from '../../services/screen.service';
+import { User, BasicUser, ExtendedUser, convertToExtendedUser } from '@core/interfaces';
+import { AuthService } from '@core/services/auth.service';
+import { UserService } from '@core/services/user.service';
+import { ThemesService } from '@shared/services/themes.service';
+import { StatusService } from '@shared/services/status.service';
+import { ManagementService } from '@management/presentation/services/management.service';
+import { ScreenService } from '@management/presentation/services/screen.service';
 
 @Component({
     selector: 'app-management',

@@ -97,7 +97,21 @@
 }
 
 :host ::ng-deep .p-menu {
-    min-width: 200px;
+    right: -90px !important;
+    width: 200px;
+  
+}
+
+@media (max-width: 768px) {
+    :host ::ng-deep .p-menu {
+        left: 200px!important;
+        /* right: -90px !important; */
+        transform: translateX(-50%);
+        margin: 0 auto !important;
+        width: 200px;
+        border-radius: 10px !important;
+        top: 55px !important;
+    }
 }
 
 :host ::ng-deep .p-menu .p-menuitem-link {
@@ -106,5 +120,16 @@
 
 :host ::ng-deep .p-menu .p-menuitem-icon {
     margin-right: 8px;
+}
+
+@media (max-width: 760px) {
+  :host ::ng-deep .user-dropdown-menu {
+    right: -90px !important;
+    left: auto !important;
+  }
+  :host ::ng-deep .ellipsis-dropdown-menu {
+    left: 200px !important;
+    right: auto !important;
+  }
 }
 

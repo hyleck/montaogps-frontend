@@ -32,8 +32,8 @@
                 
              
                     <div class="management__user-control-controls" *ngIf="!loading">
-                        <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( 45 )</button>
-                        <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( 2 )</button>
+                        <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} {{ users.length }} </button>
+                        <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} 2 </button>
                     </div>
                 </div>
                 <div class="management__user-control-content">
@@ -45,8 +45,10 @@
                                 <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text" [placeholder]="translations.searchUsers | translate">
                                 
                             </div>
-                            <button (click)="showUserForm()" class="button button--primary-flat-red"> <i class="pi pi-user-plus"></i> {{ translations.newUser | translate }}</button>
-               
+                            <button (click)="showUserForm()" class="button button--primary-flat-red">
+                                <i class="pi pi-user-plus"></i>
+                                <!-- <span class="button-text">{{ translations.newUser | translate }}</span> -->
+                            </button>
                         </div>
     
                         <div *ngIf="managementService.getOp() === 't'" class="management__search">
@@ -55,8 +57,10 @@
                                 <input (keyup)="searchTargets()" [(ngModel)]="searchTargetsTerm" id="management-search" type="text" [placeholder]="translations.searchTargets | translate">
                                 
                             </div>
-                            <button class="button button--primary-flat-red"> <i class="pi pi-plus"></i> {{ translations.newTarget | translate }}</button>
-               
+                            <button class="button button--primary-flat-red">
+                                <i class="pi pi-plus"></i>
+                                <!-- <span class="button-text">{{ translations.newTarget | translate }}</span> -->
+                            </button>
                         </div>
     
     
@@ -169,7 +173,7 @@
 
                <div class="management__user-controls" *ngIf="!loading">
                 <div class="management__user-options">
-                    <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( 45 )</button>
+                    <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( {{ users.length }} )</button>
                     <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( 2 )</button>
                 </div>
                 <div class="management__user-back-button">
@@ -186,8 +190,10 @@
                             <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text" [placeholder]="translations.searchUsers | translate">
                             
                         </div>
-                        <button (click)="showUserForm()" class="button button--primary-flat-red"> <i class="pi pi-user-plus"></i> {{ translations.newUser | translate }}</button>
-               
+                        <button (click)="showUserForm()" class="button button--primary-flat-red">
+                            <i class="pi pi-user-plus"></i>
+                            <span class="button-text">{{ translations.newUser | translate }}</span>
+                        </button>
                     </div>
 
                     <div *ngIf="managementService.getOp() === 't'" class="management__search">
@@ -196,8 +202,10 @@
                             <input (keyup)="searchTargets()" [(ngModel)]="searchTargetsTerm" id="management-search" type="text" [placeholder]="translations.searchTargets | translate">
                             
                         </div>
-                        <button class="button button--primary-flat-red"> <i class="pi pi-plus"></i> {{ translations.newTarget | translate }}</button>
-               
+                        <button class="button button--primary-flat-red">
+                            <i class="pi pi-plus"></i>
+                            <span class="button-text">{{ translations.newTarget | translate }}</span>
+                        </button>
                     </div>
 
 
