@@ -64,8 +64,8 @@ export function convertToExtendedUser(user: User): ExtendedUser {
         verified_email: false,
         role: null,
         status: 'active',
-        affiliation_type_id: '',
-        profile_type_id: '',
+        affiliation_type_id: user.settings?.[0]?.affiliation_type || 'cliente',
+        profile_type_id: user.settings?.[0]?.profile_type || 'personal',
         dni: user.dni || '',
         birth: user.birth || '',
         address: user.address || '',
@@ -73,11 +73,11 @@ export function convertToExtendedUser(user: User): ExtendedUser {
         phone: user.phone || '',
         phone2: user.phone2 || '',
         settings: {
-            theme: 'light',
-            language: 'es',
-            notifications: true,
-            affiliation_type: '',
-            profile_type: ''
+            theme: user.settings?.[0]?.theme || 'light',
+            language: user.settings?.[0]?.language || 'es',
+            notifications: user.settings?.[0]?.notifications ?? true,
+            affiliation_type: user.settings?.[0]?.affiliation_type || 'cliente',
+            profile_type: user.settings?.[0]?.profile_type || 'personal'
         }
     };
 } 

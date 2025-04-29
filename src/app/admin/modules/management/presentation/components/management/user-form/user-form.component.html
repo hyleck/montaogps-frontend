@@ -143,26 +143,26 @@
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="password">{{ 'management.userForm.password' | translate }} <span class="required-label">(Requerido)</span></label>
+                                            <label for="password">{{ 'management.userForm.password' | translate }} <span class="required-label" *ngIf="!userInput">(Requerido)</span></label>
                                             <input 
                                                 [(ngModel)]="user.password"
                                                 name="password"
                                                 placeholder="Ingrese una contraseña" 
                                                 type="password" 
                                                 id="password" 
-                                                required
+                                                [required]="!userInput"
                                             >
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="confirmPassword">{{ 'management.userForm.confirmPassword' | translate }} <span class="required-label">(Requerido)</span></label>
+                                            <label for="confirmPassword">{{ 'management.userForm.confirmPassword' | translate }} <span class="required-label" *ngIf="!userInput">(Requerido)</span></label>
                                             <input 
                                                 [(ngModel)]="confirmPassword"
                                                 name="confirmPassword"
                                                 placeholder="Repita la contraseña" 
                                                 type="password" 
                                                 id="confirmPassword" 
-                                                required
+                                                [required]="!userInput"
                                             >
                                         </div>
                                     </div>

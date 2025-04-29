@@ -30,10 +30,19 @@ export class ManagementService {
     };
     const searchParam = searchTerms[op];
 
+    if (!this.currentUserId) {
+      const currentUser = this.authService.getCurrentUser();
+      if (currentUser) {
+        this.currentUserId = currentUser.id;
+      }
+    }
+
     this.router.navigate(
       ['admin/management', op, this.currentUserId],
       { queryParams: { search: searchParam } }
-    );
+    ).then(() => {
+      this.setURLStatus();
+    });
   }
 
   setURLStatus() {
@@ -64,12 +73,17 @@ export class ManagementService {
     this.currentUserId = params['user'];
     const managementState: any = this.status.getState('management');
 
-    if (managementState.url_route[1] && !params['op'] && !params['user']) {
+    if (!managementState) {
+      this.goDefaultRoute();
+      return;
+    }
+
+    if (managementState.url_route && managementState.url_route[1] && !params['op'] && !params['user']) {
       this.router.navigate(
         managementState.url_route,
         { queryParams: managementState.url_query_params }
       );
-    } else if (!managementState.url_route[1] && !params['op'] && !params['user']) {
+    } else if ((!managementState.url_route || !managementState.url_route[1]) && !params['op'] && !params['user']) {
       this.goDefaultRoute();
     }
 

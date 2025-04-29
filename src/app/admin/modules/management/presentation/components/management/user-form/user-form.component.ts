@@ -1,41 +1,35 @@
 import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { UserRole, Privilege, PrivilegeAction } from '../../../../../../../core/interfaces/user-role.interface';
-import { User, ExtendedUser, UserSettings } from '../../../../../../../core/interfaces/user.interface';
-import { 
-    AVAILABLE_MODULES, 
-    MODULE_ICONS, 
-    THEMES, 
-    LANGUAGES, 
-    PROFILE_TYPES, 
-    AFFILIATION_TYPES,
-    ModuleOption,
-    ThemeOption,
-    LanguageOption,
-    ProfileTypeOption,
-    AffiliationTypeOption
-} from './constants/user-form.constants';
-import { UserRolesService } from '../../../../../../../core/services/user-roles.service';
+import { UserRole, Privilege, PrivilegeAction } from '@core/interfaces/user-role.interface';
+import { ExtendedUser, UserSettings } from '@core/interfaces/user.interface';
 import { TranslateService } from '@ngx-translate/core';
+
+import { UserRolesService } from '@core/services/user-roles.service';
 import { MessageService } from 'primeng/api';
-import { UserService } from '../../../../../../../core/services/user.service';
-import { AuthService } from '../../../../../../../core/services/auth.service';
+import { UserService } from '@core/services/user.service';
+import { AuthService } from '@core/services/auth.service';
 import { PrivilegeService } from './services/privilege.service';
 import { Subject, takeUntil } from 'rxjs';
+
+import { 
+    AVAILABLE_MODULES, // Lista de módulos disponibles
+    MODULE_ICONS, // Iconos de los módulos
+    THEMES, // Temas disponibles
+    LANGUAGES, // Idiomas disponibles
+    PROFILE_TYPES, // Tipos de perfil
+    AFFILIATION_TYPES, // Tipos de afiliación
+    USER_FORM_STYLES, // Estilos del formulario
+    ModuleOption, // Opciones de módulo 
+    ThemeOption, // Opciones de tema
+    LanguageOption, // Opciones de idioma
+    ProfileTypeOption, // Opciones de perfil
+    AffiliationTypeOption // Opciones de afiliación
+} from './constants/user-form.constants';
 
 @Component({
     selector: 'app-user-form',
     templateUrl: './user-form.component.html',
-    styleUrls: [
-        './styles/base.css',
-        './styles/inputs.css',
-        './styles/buttons.css',
-        './styles/settings.css',
-        './styles/privileges.css',
-        './styles/prime-ng.css',
-        './styles/scrollbar.css',
-        './styles/dark-mode.css'
-    ],
+    styleUrls: USER_FORM_STYLES,
     standalone: false
 })
 export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
@@ -265,7 +259,27 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             return;
         }
 
-        if (this.user.password !== this.confirmPassword) {
+        // Validar contraseñas solo si se está creando un nuevo usuario o si se ha ingresado una contraseña
+        if (!this.userInput) {
+            if (!this.user.password || !this.confirmPassword) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translate.instant('management.userForm.error'),
+                    detail: this.translate.instant('management.userForm.passwordRequired'),
+                    life: 3000
+                });
+                return;
+            }
+            if (this.user.password !== this.confirmPassword) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translate.instant('management.userForm.error'),
+                    detail: this.translate.instant('management.userForm.passwordsDoNotMatch'),
+                    life: 3000
+                });
+                return;
+            }
+        } else if (this.user.password && this.user.password !== this.confirmPassword) {
             this.messageService.add({
                 severity: 'error',
                 summary: this.translate.instant('management.userForm.error'),
@@ -283,14 +297,16 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.user.settings.affiliation_type = this.selectedAffiliationType;
         this.user.settings.profile_type = this.selectedProfileType;
 
+        // Asegurar que los privilegios modificados se incluyan en el envío
+        const privileges = this.user.role?.privileges || [];
+
         const userToSubmit = {
             ...this.user,
-            password: this.user.password || 'examplePassword',
             role: this.user.role._id,
             access_level_id: this.user.role._id,
             hashdRt: 'exampleHashdRt',
             creator_id: currentUser ? currentUser.id : 'exampleCreatorId',
-            privileges: this.user.privileges || this.user.role.privileges || [],
+            privileges: privileges,
             settings: [this.user.settings],
             affiliation_type_id: this.selectedAffiliationType,
             profile_type_id: this.selectedProfileType,
@@ -298,30 +314,67 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             parent_id: parentId
         };
 
-        this.userService.create(userToSubmit)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (response) => {
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: this.translate.instant('management.userForm.success'),
-                        detail: this.translate.instant('management.userForm.userCreated'),
-                        life: 3000
-                    });
-                    console.log('Usuario creado:', response);
-                    this.userCreated.emit();
-                    this.resetForm();
-                },
-                error: (error) => {
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: this.translate.instant('management.userForm.error'),
-                        detail: this.translate.instant('management.userForm.creationFailed'),
-                        life: 3000
-                    });
-                    console.error('Error al crear usuario:', error);
-                }
-            });
+        if (this.userInput) {
+            // Actualizar usuario existente
+            const updateUserDto = {
+                ...userToSubmit,
+                password: this.user.password || undefined
+            };
+            this.userService.update(this.userInput._id, updateUserDto)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                    next: (response) => {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: this.translate.instant('management.userForm.success'),
+                            detail: this.translate.instant('management.userForm.userUpdated'),
+                            life: 3000
+                        });
+                        console.log('Usuario actualizado:', response);
+                        this.userCreated.emit();
+                        this.resetForm();
+                    },
+                    error: (error) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: this.translate.instant('management.userForm.error'),
+                            detail: this.translate.instant('management.userForm.updateFailed'),
+                            life: 3000
+                        });
+                        console.error('Error al actualizar usuario:', error);
+                    }
+                });
+        } else {
+            // Crear nuevo usuario
+            const createUserDto = {
+                ...userToSubmit,
+                password: this.user.password || ''
+            };
+            this.userService.create(createUserDto)
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                    next: (response) => {
+                        this.messageService.add({
+                            severity: 'success',
+                            summary: this.translate.instant('management.userForm.success'),
+                            detail: this.translate.instant('management.userForm.userCreated'),
+                            life: 3000
+                        });
+                        console.log('Usuario creado:', response);
+                        this.userCreated.emit();
+                        this.resetForm();
+                    },
+                    error: (error) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: this.translate.instant('management.userForm.error'),
+                            detail: this.translate.instant('management.userForm.creationFailed'),
+                            life: 3000
+                        });
+                        console.error('Error al crear usuario:', error);
+                    }
+                });
+        }
     }
 
     onRoleChange() {

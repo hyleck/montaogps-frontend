@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { UserRole, Privilege, PrivilegeAction } from '../../../../../../../../core/interfaces/user-role.interface';
+import { UserRole, Privilege, PrivilegeAction } from '@core/interfaces/user-role.interface';
 
 @Injectable({
     providedIn: 'root'

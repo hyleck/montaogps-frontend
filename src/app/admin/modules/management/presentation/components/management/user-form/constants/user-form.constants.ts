@@ -82,4 +82,15 @@ export const AFFILIATION_TYPES: AffiliationTypeOption[] = [
     { label: 'Socio', value: 'socio' },
     { label: 'Empleado', value: 'empleado' },
     { label: 'Otro', value: 'otro' }
+];
+
+export const USER_FORM_STYLES = [
+    './styles/base.css',
+    './styles/inputs.css',
+    './styles/buttons.css',
+    './styles/settings.css',
+    './styles/privileges.css',
+    './styles/prime-ng.css',
+    './styles/scrollbar.css',
+    './styles/dark-mode.css'
 ]; 
