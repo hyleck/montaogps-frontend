@@ -22,20 +22,23 @@ export class ManagementService {
     @Inject(AuthService) private authService: AuthService
   ) {}
 
-  setOp(op: string) {
+  setOp(op: string, userId?: string) {
     this.op = op;
-    const searchTerms: { [key: string]: string | undefined } = {
-      u: this.searchUsersTerm,
-      t: this.searchTargetsTerm
-    };
-    const searchParam = searchTerms[op];
-
-    if (!this.currentUserId) {
+    
+    if (userId) {
+      this.currentUserId = userId;
+    } else if (!this.currentUserId) {
       const currentUser = this.authService.getCurrentUser();
       if (currentUser) {
         this.currentUserId = currentUser.id;
       }
     }
+    
+    const searchTerms: { [key: string]: string | undefined } = {
+      u: this.searchUsersTerm,
+      t: this.searchTargetsTerm
+    };
+    const searchParam = searchTerms[op];
 
     this.router.navigate(
       ['admin/management', op, this.currentUserId],
@@ -117,6 +120,13 @@ export class ManagementService {
       { queryParams: { search: this.searchTargetsTerm } }
     );
     this.setURLStatus();
+  }
+
+  setCurrentUserId(userId: string) {
+    if (userId) {
+      this.currentUserId = userId;
+      console.log('ID de usuario actual actualizado a:', userId);
+    }
   }
 
   // Getters y setters

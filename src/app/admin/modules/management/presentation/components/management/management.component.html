@@ -76,7 +76,7 @@
                                     <div class="management__user-card-title"> <strong>{{ user.name }} {{ user.last_name }}</strong> </div>
                                     <div class="management__user-card-subtitle"><span>{{ user.email }}</span></div>
                                     <div class="management__user-card-controls">
-                                        <button class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
+                                        <button (click)="enterUser(user)" class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
                                         <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
                                         <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)"> <i class="pi pi-trash" ></i> </button>
                                     </div>
@@ -223,7 +223,7 @@
                                 <div class="management__user-card-subtitle"> <span>{{ user.email }}</span> </div>
                                 <div class="management__user-card-footer">{{ user.phone }}</div>
                                 <div class="management__user-card-controls">
-                                    <button class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
+                                    <button (click)="enterUser(user)" class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
                                     <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
                                     <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)"> <i class="pi pi-trash" ></i> </button>
                                 </div>

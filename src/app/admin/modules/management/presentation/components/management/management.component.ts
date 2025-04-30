@@ -87,34 +87,81 @@ export class ManagementComponent {
       return;
     }
 
-    this.managementService.loadUserData(currentUser.id)
-      .then(user => {
-        this.selectedUser = user;
-        this.items = [
-          { label: `${user.name} ${user.last_name}` }
-        ];
-        this.loading = false;
-      })
-      .catch(() => {
-        this.loading = false;
-      });
-
-    this.userService.getAll(currentUser.id).subscribe({
-      next: (users) => {
-        this.users = users;
-      },
-      error: (error) => {
-        console.error('Error al cargar todos los usuarios:', error);
-      }
-    });
-
     this.route.params.subscribe(params => {
-      if (params['user'] && params['user'] !== currentUser.id) {
-        this.managementService.loadUserData(params['user']);
+      if (params['user']) {
+        this.managementService.loadUserData(params['user'])
+          .then(user => {
+            this.selectedUser = user;
+            this.items = [
+              { label: `${user.name} ${user.last_name}` }
+            ];
+            
+            this.userService.getAll(user._id).subscribe({
+              next: (users) => {
+                this.users = users;
+              },
+              error: (error) => {
+                console.error('Error al cargar usuarios:', error);
+              }
+            });
+            
+            this.loading = false;
+          })
+          .catch(() => {
+            this.loading = false;
+          });
+      } else {
+        const managementState: any = this.status.getState('management');
+        const storedUserId = managementState && managementState.url_route ? managementState.url_route[2] : null;
+        
+        if (storedUserId) {
+          this.managementService.loadUserData(storedUserId)
+            .then(user => {
+              this.selectedUser = user;
+              this.items = [
+                { label: `${user.name} ${user.last_name}` }
+              ];
+              
+              this.userService.getAll(user._id).subscribe({
+                next: (users) => {
+                  this.users = users;
+                },
+                error: (error) => {
+                  console.error('Error al cargar usuarios:', error);
+                }
+              });
+              
+              this.loading = false;
+            })
+            .catch(() => {
+              this.loading = false;
+            });
+        } else {
+          this.managementService.loadUserData(currentUser.id)
+            .then(user => {
+              this.selectedUser = user;
+              this.items = [
+                { label: `${user.name} ${user.last_name}` }
+              ];
+              
+              this.userService.getAll(currentUser.id).subscribe({
+                next: (users) => {
+                  this.users = users;
+                },
+                error: (error) => {
+                  console.error('Error al cargar todos los usuarios:', error);
+                }
+              });
+              
+              this.loading = false;
+            })
+            .catch(() => {
+              this.loading = false;
+            });
+        }
       }
-      setTimeout(() => {
-        this.managementService.verifyURLStatus(params);
-      }, 100);
+      
+      this.managementService.verifyURLStatus(params);
     });
 
     this.status.statusChanges$.subscribe((newStatus) => {
@@ -150,6 +197,43 @@ export class ManagementComponent {
   searchTargets() {
     this.managementService.setSearchTargetsTerm(this.searchTargetsTerm);
     this.managementService.searchTargets();
+  }
+
+  enterUser(user: User) {
+    if (!user || !user._id) return;
+    
+    console.log('Entrando al usuario:', user.name, user._id);
+    
+    // Primero establecemos explícitamente el ID del usuario
+    this.managementService.setCurrentUserId(user._id);
+    
+    // Luego navegamos usando el método setOp, pasando explícitamente el ID
+    this.managementService.setOp('u', user._id);
+    
+    // Cargamos los datos del usuario
+    this.managementService.loadUserData(user._id)
+      .then(loadedUser => {
+        this.selectedUser = loadedUser;
+        this.items = [
+          { label: `${loadedUser.name} ${loadedUser.last_name}` }
+        ];
+        
+        // Cargamos la lista de usuarios
+        this.userService.getAll(user._id).subscribe({
+          next: (users) => {
+            this.users = users;
+            console.log('Usuarios cargados:', users.length);
+          },
+          error: (error) => {
+            console.error('Error al cargar usuarios:', error);
+          }
+        });
+        
+        this.loading = false;
+      })
+      .catch(() => {
+        this.loading = false;
+      });
   }
 
   setOp(op: string) {
