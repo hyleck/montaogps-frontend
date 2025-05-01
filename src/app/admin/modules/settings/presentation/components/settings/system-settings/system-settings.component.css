@@ -1,0 +1,553 @@
+.system-settings {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.system-settings h2 {
+    margin: 0 0 20px 0;
+    color: var(--globalColorTitle);
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.system-settings__form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Grid layout for cards */
+.config-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.span-2-cols {
+    grid-column: span 2;
+}
+
+/* Card styles */
+.config-card {
+    background-color: var(--globalColorBackground);
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px var(--globalColorShadow);
+}
+
+.general-card {
+    background: linear-gradient(to right, var(--globalColorBackground), var(--globalColorBackground));
+    border-left: 4px solid var(--globalColorAccent);
+    transition: all 0.3s ease;
+}
+
+.general-card:hover {
+    box-shadow: 0 4px 12px var(--globalColorShadow);
+    border-color: var(--globalColorCardBorderHover);
+}
+
+.config-card-title {
+    margin: 0;
+    padding: 15px;
+    color: var(--globalColorTitle);
+    font-size: 1.1rem;
+    font-weight: 500;
+    border-bottom: 1px solid var(--globalColorBorderLight);
+}
+
+.general-card .config-card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    border-bottom: 1px solid var(--globalColorBorderLight);
+    padding-bottom: 12px;
+    margin-bottom: 5px;
+}
+
+.config-card-content {
+    padding: 15px;
+}
+
+.general-card .config-card-content {
+    padding: 20px;
+}
+
+.config-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid var(--globalColorBorderLight);
+}
+
+/* Form elements */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--globalColorLabelText);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--globalColorBorderInput);
+    border-radius: 4px;
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextInput);
+    font-size: 0.9rem;
+}
+
+.form-group input:focus {
+    border-color: var(--globalColorBorderHover);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--globalColorInputFocusShadow);
+    /* background-color: var(--globalColorInputBackgroundFocus); */
+}
+
+/* Logo styles */
+.logo-container {
+    width: 100%;
+    display: block;
+}
+
+.logo-preview-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: var(--globalColorFormCardBackground);
+    min-height: 120px;
+    width: 100%;
+    align-items: center;
+    padding: 10px;
+    box-shadow: 0 2px 5px var(--globalColorShadow);
+}
+
+.logo-preview {
+    max-width: 100%;
+    max-height: 100px;
+    display: block;
+    object-fit: contain;
+}
+
+.logo-clear-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background-color: var(--globalColorAccent);
+    color: var(--globalColorTextStrong);
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.logo-clear-btn:hover {
+    background-color: var(--globalColorHighlight);
+    transform: scale(1.05);
+}
+
+.logo-upload {
+    width: 100%;
+}
+
+.logo-file-input {
+    position: absolute;
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    z-index: -1;
+}
+
+.logo-upload-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    cursor: pointer;
+}
+
+.input-styled {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--globalColorBorderInput);
+    border-radius: 4px;
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextInput);
+    font-size: 0.9rem;
+}
+
+/* Contact and download lists */
+.contacts-list,
+.downloads-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.contact-item,
+.download-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 4px;
+    background-color: var(--globalColorBackground);
+}
+
+.contact-icon,
+.download-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: var(--globalColorAccent);
+    color: var(--globalColorTextStrong);
+    margin-right: 10px;
+}
+
+.contact-info,
+.download-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.contact-info h4,
+.download-info h4 {
+    margin: 0 0 3px 0;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--globalColorTextDark);
+}
+
+.contact-info p,
+.download-info p {
+    margin: 0 0 3px 0;
+    font-size: 0.8rem;
+    color: var(--globalColorTextMuted);
+}
+
+.contact-value,
+.download-value {
+    font-size: 0.85rem;
+    color: var(--globalColorTextDark);
+}
+
+.contact-actions,
+.download-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.no-items {
+    padding: 20px;
+    text-align: center;
+    color: var(--globalColorTextMuted);
+    font-style: italic;
+    background-color: var(--globalColorBackground);
+    border: 1px dashed var(--globalColorBorderLight);
+    border-radius: 4px;
+}
+
+/* Buttons */
+.config-btn-add {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextDark);
+    border: 1px solid var(--globalColorBorderInput);
+    padding: 10px 12px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.config-btn-add:hover {
+    /* background-color: var(--globalColorInputBackgroundFocus); */
+    border-color: var(--globalColorBorderHover);
+}
+
+.config-btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextDark);
+    border: 1px solid var(--globalColorBorderInput);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.config-btn-icon:hover {
+    background-color: var(--globalColorInputBackgroundFocus);
+    border-color: var(--globalColorBorderHover);
+}
+
+.config-btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--globalColorAccent);
+    color: var(--globalColorTextStrong);
+    border: none;
+    padding: 10px 16px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.config-btn-primary:hover {
+    background-color: var(--globalColorHighlight);
+    transform: translateY(-1px);
+}
+
+.config-btn-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextDark);
+    border: 1px solid var(--globalColorBorderInput);
+    padding: 10px 16px;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.config-btn-secondary:hover {
+    /* background-color: var(--globalColorInputBackgroundFocus); */
+    border-color: var(--globalColorBorderHover);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
+
+.flex-grow {
+    flex: 1;
+}
+
+.icon-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-preview {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--globalColorAccent);
+    color: var(--globalColorTextStrong);
+    border-radius: 4px;
+}
+
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.input-styled:focus {
+    border-color: var(--globalColorBorderHover);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--globalColorInputFocusShadow);
+    /* background-color: var(--globalColorInputBackgroundFocus); */
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .config-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .span-2-cols {
+        grid-column: auto;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .flex-grow {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    :host ::ng-deep .small-dialog .p-dialog {
+        min-width: 300px;
+    }
+}
+
+/* Modal sizes */
+:host ::ng-deep .small-dialog .p-dialog {
+    max-width: 500px;
+    min-width: 400px;
+}
+
+:host ::ng-deep .small-dialog .p-dialog-content {
+    padding: 1rem;
+}
+
+/* Ajustar el estilo del texto de ayuda */
+.input-hint {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--globalColorHintText);
+    margin-top: 5px;
+    font-style: italic;
+}
+
+/* Mejorar estilos para los diálogos */
+:host ::ng-deep .p-dialog {
+    background-color: var(--globalColorBackground);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+:host ::ng-deep .p-dialog .p-dialog-header {
+    background-color: var(--globalColorBackground);
+    color: var(--globalColorTitle);
+    border-bottom: 1px solid var(--globalColorBorderLight);
+    padding: 1rem 1.5rem;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-content {
+    background-color: var(--globalColorBackground);
+    padding: 1.5rem;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-footer {
+    background-color: var(--globalColorBackground);
+    border-top: 1px solid var(--globalColorBorderLight);
+    padding: 1rem 1.5rem;
+}
+
+/* Asegurar que las etiquetas en los diálogos sean más visibles */
+:host ::ng-deep .p-dialog .form-group label {
+    color: var(--globalColorTextDark);
+    font-weight: 500;
+}
+
+/* Dropdown styles */
+:host ::ng-deep .w-100 {
+    width: 100%;
+}
+
+:host ::ng-deep .p-dropdown {
+    width: 100%;
+    background-color: var(--globalColorInputBackground);
+    border: 1px solid var(--globalColorBorderInput);
+    border-radius: 4px;
+}
+
+:host ::ng-deep .p-dropdown:not(.p-disabled).p-focus {
+    border-color: var(--globalColorBorderHover);
+    box-shadow: 0 0 0 2px var(--globalColorInputFocusShadow);
+}
+
+:host ::ng-deep .p-dropdown .p-dropdown-label {
+    color: var(--globalColorTextInput);
+    padding: 8px 10px;
+    font-size: 0.9rem;
+}
+
+:host ::ng-deep .p-dropdown-panel {
+    background-color: var(--globalColorBackground);
+    border: 1px solid var(--globalColorBorderInput);
+    border-radius: 4px;
+}
+
+:host ::ng-deep .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+    color: var(--globalColorTextDark);
+    padding: 8px 12px;
+}
+
+:host ::ng-deep .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
+    background-color: var(--globalColorInputBackground);
+}
+
+:host ::ng-deep .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+    background-color: var(--globalColorAccent);
+    color: var(--globalColorTextStrong);
+}
+
+/* Select native styles */
+select.input-styled {
+    appearance: auto;
+    padding-right: 30px;
+    cursor: pointer;
+    /* background-image: linear-gradient(45deg, transparent 50%, var(--globalColorTextDark) 50%),
+                      linear-gradient(135deg, var(--globalColorTextDark) 50%, transparent 50%);
+    background-position: calc(100% - 15px) center, calc(100% - 10px) center;
+    background-size: 5px 5px, 5px 5px; */
+    background-repeat: no-repeat;
+}
+
+select.input-styled:focus {
+    border-color: var(--globalColorBorderHover);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--globalColorInputFocusShadow);
+}
+
+select.input-styled option {
+    background-color: var(--globalColorBackground);
+    color: var(--globalColorTextDark);
+    padding: 8px;
+}
