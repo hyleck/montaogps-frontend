@@ -114,7 +114,8 @@
         "description": "Configuración de colores"
       },
       "dialogs": {
-        "roles": "Configuración de roles"
+        "roles": "Configuración de roles",
+        "system": "Configuración del sistema"
       },
       "roles_settings": {
         "edit_role": "Editar rol",
@@ -204,7 +205,52 @@
       },
       "system": {
         "title": "Sistema",
-        "description": "Configuración general del sistema"
+        "description": "Configuración general del sistema",
+        "general": "General",
+        "logo": "Logo",
+        "upload_logo": "Subir logo",
+        "remove_logo": "Eliminar logo",
+        "logo_hint": "El logo se mostrará en la cabecera de la aplicación y en los reportes.",
+        "company_name": "Nombre de la empresa",
+        "company_name_placeholder": "Ej: Montao GPS",
+        "company_name_hint": "Este nombre se mostrará en la aplicación y en los reportes.",
+        "contacts": "Contactos",
+        "add_contact": "Agregar contacto",
+        "add": "Agregar",
+        "edit_contact": "Editar contacto",
+        "contact_name": "Nombre",
+        "contact_name_placeholder": "Ej: Soporte técnico",
+        "contact_value": "Valor",
+        "contact_value_placeholder": "Ej: soporte@empresa.com",
+        "contact_description": "Descripción",
+        "contact_description_placeholder": "Ej: Contacto para problemas técnicos",
+        "contact_icon": "Ícono",
+        "contact_icon_placeholder": "Ej: pi-phone",
+        "contact_type": "Tipo",
+        "select_type": "Seleccione un tipo",
+        "no_contacts": "No hay contactos configurados",
+        "downloads": "Descargas",
+        "add_download": "Agregar descarga",
+        "edit_download": "Editar descarga",
+        "download_name": "Nombre",
+        "download_name_placeholder": "Ej: Manual de usuario",
+        "download_value": "Valor",
+        "download_value_placeholder": "Ej: https://montao.net/manuales/usuario.pdf",
+        "download_description": "Descripción",
+        "download_description_placeholder": "Ej: Manual completo para usuarios del sistema",
+        "download_icon": "Ícono",
+        "download_icon_placeholder": "Ej: pi-file-pdf",
+        "download_type": "Tipo",
+        "no_downloads": "No hay descargas configuradas",
+        "sim_api1": "API SIM 1",
+        "sim_api2": "API SIM 2",
+        "map_api1": "API Mapa 1",
+        "map_api2": "API Mapa 2",
+        "api_name": "Nombre de API",
+        "api_url": "URL de API",
+        "api_key": "Clave de API",
+        "save": "Guardar",
+        "cancel": "Cancelar"
       }
     },
     "profile": {

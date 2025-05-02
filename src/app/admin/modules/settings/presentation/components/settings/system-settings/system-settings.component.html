@@ -1,0 +1,315 @@
+
+<div class="system-settings">
+  
+    <form (ngSubmit)="onSubmit()" class="system-settings__form" ngNativeValidate>
+      <div class="config-grid">
+        <!-- Bloque General -->
+        <div class="config-card span-2-cols general-card">
+          <div class="config-card-content">
+            <div class="form-row">
+              <div class="form-group flex-grow">
+                <label for="logo">{{ 'settings.system.logo' | translate }}</label>
+                <div class="logo-container">
+                  <div class="logo-preview-wrapper" *ngIf="form.logoPreview">
+                    <img [src]="form.logoPreview" alt="Logo preview" class="logo-preview">
+                    <button type="button" class="logo-clear-btn" (click)="clearLogo()" title="{{ 'settings.system.remove_logo' | translate }}">
+                      <i class="pi pi-times"></i>
+                    </button>
+                  </div>
+                  <div class="logo-upload" *ngIf="!form.logoPreview">
+                    <input 
+                      id="logo" 
+                      type="file" 
+                      (change)="onLogoFileSelected($event)" 
+                      name="logo" 
+                      accept="image/*"
+                      class="logo-file-input" />
+                    <label for="logo" class="logo-upload-label input-styled">
+                      <i class="pi pi-upload"></i>
+                      {{ 'settings.system.upload_logo' | translate }}
+                    </label>
+                    <p class="input-hint">{{ 'settings.system.logo_hint' | translate }}</p>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group flex-grow">
+                <label for="company_name">{{ 'settings.system.company_name' | translate }}</label>
+                <input 
+                  id="company_name" 
+                  type="text" 
+                  [(ngModel)]="form.company_name" 
+                  name="company_name" 
+                  required 
+                  placeholder="{{ 'settings.system.company_name_placeholder' | translate }}" 
+                  class="input-styled" />
+                <p class="input-hint">{{ 'settings.system.company_name_hint' | translate }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+  
+        <!-- Bloque SIM API 1 -->
+        <div class="config-card">
+          <h3 class="config-card-title">{{ 'settings.system.sim_api1' | translate }}</h3>
+          <div class="config-card-content">
+            <div class="form-group">
+              <input [(ngModel)]="form.sim_api1.name" name="sim1_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
+            </div>
+            <div class="form-group">
+              <input [(ngModel)]="form.sim_api1.url" name="sim1_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
+            </div>
+            <div class="form-group">
+              <input [(ngModel)]="form.sim_api1.key" name="sim1_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+            </div>
+          </div>
+        </div>
+  
+        <!-- Bloque SIM API 2 -->
+        <div class="config-card">
+          <h3 class="config-card-title">{{ 'settings.system.sim_api2' | translate }}</h3>
+          <div class="config-card-content">
+            <div class="form-group">
+              <input [(ngModel)]="form.sim_api2.name" name="sim2_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
+            </div>
+            <div class="form-group">
+              <input [(ngModel)]="form.sim_api2.url" name="sim2_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
+            </div>
+            <div class="form-group">
+              <input [(ngModel)]="form.sim_api2.key" name="sim2_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+            </div>
+          </div>
+        </div>
+  
+        <!-- Bloque Map API 1 -->
+        <div class="config-card">
+          <h3 class="config-card-title">{{ 'settings.system.map_api1' | translate }}</h3>
+          <div class="config-card-content">
+            <div class="form-group">
+              <input [(ngModel)]="form.map_api1.name" name="map1_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
+            </div>
+            <div class="form-group">
+              <input [(ngModel)]="form.map_api1.url" name="map1_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
+            </div>
+            <div class="form-group">
+              <input [(ngModel)]="form.map_api1.key" name="map1_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+            </div>
+          </div>
+        </div>
+  
+        <!-- Bloque Map API 2 -->
+        <div class="config-card">
+          <h3 class="config-card-title">{{ 'settings.system.map_api2' | translate }}</h3>
+          <div class="config-card-content">
+            <div class="form-group">
+              <input [(ngModel)]="form.map_api2.name" name="map2_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
+            </div>
+            <div class="form-group">
+              <input [(ngModel)]="form.map_api2.url" name="map2_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
+            </div>
+            <div class="form-group">
+              <input [(ngModel)]="form.map_api2.key" name="map2_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+            </div>
+          </div>
+        </div>
+  
+        <!-- Bloque Contactos -->
+        <div class="config-card">
+          <div class="config-card-header">
+            <h3 class="config-card-title">{{ 'settings.system.contacts' | translate }}</h3>
+            <button type="button" class="config-btn-add" (click)="showContactModal()">
+              <i class="pi pi-plus"></i> {{ 'settings.system.add' | translate }}
+            </button>
+          </div>
+          <div class="config-card-content">
+            <div class="contacts-list" *ngIf="form.contacts.length > 0">
+              <div class="contact-item" *ngFor="let c of form.contacts; let i = index">
+                <div class="contact-icon">
+                  <i class="pi" [ngClass]="c.icon || 'pi-user'"></i>
+                </div>
+                <div class="contact-info">
+                  <h4>{{ c.name }}</h4>
+                  <p>{{ c.description }}</p>
+                  <div class="contact-value">{{ c.value }} <span *ngIf="c.type">({{ c.type }})</span></div>
+                </div>
+                <div class="contact-actions">
+                  <button type="button" class="config-btn-icon" (click)="editContact(i)">
+                    <i class="pi pi-pencil"></i>
+                  </button>
+                  <button type="button" class="config-btn-icon" (click)="removeContact(i)">
+                    <i class="pi pi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="no-items" *ngIf="form.contacts.length === 0">
+              {{ 'settings.system.no_contacts' | translate }}
+            </div>
+          </div>
+        </div>
+  
+        <!-- Bloque Descargas -->
+        <div class="config-card">
+          <div class="config-card-header">
+            <h3 class="config-card-title">{{ 'settings.system.downloads' | translate }}</h3>
+            <button type="button" class="config-btn-add" (click)="showDownloadModal()">
+              <i class="pi pi-plus"></i> {{ 'settings.system.add' | translate }}
+            </button>
+          </div>
+          <div class="config-card-content">
+            <div class="downloads-list" *ngIf="form.downloads.length > 0">
+              <div class="download-item" *ngFor="let d of form.downloads; let j = index">
+                <div class="download-icon">
+                  <i class="pi" [ngClass]="d.icon || 'pi-download'"></i>
+                </div>
+                <div class="download-info">
+                  <h4>{{ d.name }}</h4>
+                  <p>{{ d.description }}</p>
+                  <div class="download-value">{{ d.value }} <span *ngIf="d.type">({{ d.type }})</span></div>
+                </div>
+                <div class="download-actions">
+                  <button type="button" class="config-btn-icon" (click)="editDownload(j)">
+                    <i class="pi pi-pencil"></i>
+                  </button>
+                  <button type="button" class="config-btn-icon" (click)="removeDownload(j)">
+                    <i class="pi pi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="no-items" *ngIf="form.downloads.length === 0">
+              {{ 'settings.system.no_downloads' | translate }}
+            </div>
+          </div>
+        </div>
+      </div>
+  
+      <div class="form-actions">
+        <button type="submit" class="config-btn-primary">
+          <i class="pi pi-save"></i> {{ 'settings.system.save' | translate }}
+        </button>
+      </div>
+    </form>
+  
+    <!-- Modal para añadir/editar contacto -->
+    <p-dialog 
+      [header]="contactModalTitle" 
+      [(visible)]="contactModalVisible" 
+      [modal]="true" 
+      [style]="{width: '500px'}"
+      [closeOnEscape]="true"
+      [dismissableMask]="true"
+      [draggable]="false"
+      styleClass="small-dialog">
+      <form (ngSubmit)="saveContact()" ngNativeValidate class="form-grid">
+        <div class="form-row">
+          <div class="form-group flex-grow">
+            <label for="contact_name">{{ 'settings.system.contact_name' | translate }}</label>
+            <input id="contact_name" type="text" [(ngModel)]="currentContact.name" name="contact_name" required class="input-styled" 
+                   placeholder="{{ 'settings.system.contact_name_placeholder' | translate }}" />
+          </div>
+          <div class="form-group flex-grow">
+            <label for="contact_value">{{ 'settings.system.contact_value' | translate }}</label>
+            <input id="contact_value" type="text" [(ngModel)]="currentContact.value" name="contact_value" required class="input-styled" 
+                   placeholder="{{ 'settings.system.contact_value_placeholder' | translate }}" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-grow">
+            <label for="contact_type">{{ 'settings.system.contact_type' | translate }}</label>
+            <select id="contact_type" 
+                   [(ngModel)]="currentContact.type" 
+                   name="contact_type" 
+                   class="input-styled">
+              <option value="">{{ 'settings.system.select_type' | translate }}</option>
+              <option *ngFor="let option of contactTypeOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </div>
+          <div class="form-group flex-grow">
+            <label for="contact_icon">{{ 'settings.system.contact_icon' | translate }}</label>
+            <div class="icon-selector">
+              <input id="contact_icon" type="text" [(ngModel)]="currentContact.icon" name="contact_icon" class="input-styled" 
+                     placeholder="{{ 'settings.system.contact_icon_placeholder' | translate }}" />
+              <div class="icon-preview" *ngIf="currentContact.icon">
+                <i class="pi" [ngClass]="currentContact.icon || 'pi-user'"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="contact_description">{{ 'settings.system.contact_description' | translate }}</label>
+          <input id="contact_description" type="text" [(ngModel)]="currentContact.description" name="contact_description" class="input-styled" 
+                 placeholder="{{ 'settings.system.contact_description_placeholder' | translate }}" />
+        </div>
+        <div class="dialog-footer">
+          <button type="button" class="config-btn-secondary" (click)="contactModalVisible = false">
+            {{ 'settings.system.cancel' | translate }}
+          </button>
+          <button type="submit" class="config-btn-primary">
+            {{ 'settings.system.save' | translate }}
+          </button>
+        </div>
+      </form>
+    </p-dialog>
+  
+    <!-- Modal para añadir/editar descarga -->
+    <p-dialog 
+      [header]="downloadModalTitle" 
+      [(visible)]="downloadModalVisible" 
+      [modal]="true" 
+      [style]="{width: '500px'}"
+      [closeOnEscape]="true"
+      [dismissableMask]="true"
+      [draggable]="false"
+      styleClass="small-dialog">
+      <form (ngSubmit)="saveDownload()" ngNativeValidate class="form-grid">
+        <div class="form-row">
+          <div class="form-group flex-grow">
+            <label for="download_name">{{ 'settings.system.download_name' | translate }}</label>
+            <input id="download_name" type="text" [(ngModel)]="currentDownload.name" name="download_name" required class="input-styled" 
+                   placeholder="{{ 'settings.system.download_name_placeholder' | translate }}" />
+          </div>
+          <div class="form-group flex-grow">
+            <label for="download_value">{{ 'settings.system.download_value' | translate }}</label>
+            <input id="download_value" type="text" [(ngModel)]="currentDownload.value" name="download_value" required class="input-styled" 
+                   placeholder="{{ 'settings.system.download_value_placeholder' | translate }}" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group flex-grow">
+            <label for="download_type">{{ 'settings.system.download_type' | translate }}</label>
+            <select id="download_type" 
+                   [(ngModel)]="currentDownload.type" 
+                   name="download_type" 
+                   class="input-styled">
+              <option value="">{{ 'settings.system.select_type' | translate }}</option>
+              <option *ngFor="let option of downloadTypeOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </div>
+          <div class="form-group flex-grow">
+            <label for="download_icon">{{ 'settings.system.download_icon' | translate }}</label>
+            <div class="icon-selector">
+              <input id="download_icon" type="text" [(ngModel)]="currentDownload.icon" name="download_icon" class="input-styled" 
+                     placeholder="{{ 'settings.system.download_icon_placeholder' | translate }}" />
+              <div class="icon-preview" *ngIf="currentDownload.icon">
+                <i class="pi" [ngClass]="currentDownload.icon || 'pi-download'"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="download_description">{{ 'settings.system.download_description' | translate }}</label>
+          <input id="download_description" type="text" [(ngModel)]="currentDownload.description" name="download_description" class="input-styled" 
+                 placeholder="{{ 'settings.system.download_description_placeholder' | translate }}" />
+        </div>
+        <div class="dialog-footer">
+          <button type="button" class="config-btn-secondary" (click)="downloadModalVisible = false">
+            {{ 'settings.system.cancel' | translate }}
+          </button>
+          <button type="submit" class="config-btn-primary">
+            {{ 'settings.system.save' | translate }}
+          </button>
+        </div>
+      </form>
+    </p-dialog>
+  </div>
+  

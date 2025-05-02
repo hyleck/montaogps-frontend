@@ -1,747 +1,777 @@
 .main {
-    height: 100%;
-    background: var(--globalColorBackgroundDark);
-  }
-  
-  .management {
-    height: 100%;
-    display: grid;
-    grid-template-areas: "header header controls" "user content content";
-    grid-template-columns: 200px 1fr 70px;
-    grid-template-rows: 38px calc(100% - 55px);
-    gap: 10px;
-    padding-left: 10px;
-  }
+  height: 100%;
+  background: var(--globalColorBackgroundDark);
+}
 
-  .management__route {
-    grid-area: header;
-    opacity: 0.5;
-    margin-left: -10px;
-    
-  }
-
-  .management__controls{
-    grid-area: controls;
-    display: flex;
-    padding-top: 10px;
-    justify-content: center;
-    align-items: center;
-    color: rgb(255, 122, 28);
-  }
-
-  .management__controls i{
-    font-size: 16px;
-    color: var(--managementColorIconControls);
-    cursor: pointer;
-  }
-  .management__controls i:hover{
-    transform: scale(1.1);
-  }
-  
-  .management__user {
-    position: relative;
-    padding-top: 30px;
-    grid-area: user;
-    border-right: 1px solid var(--globalColorBorderLight);
-    padding-right: 10px;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-    border: 1px solid var(--globalColorInputBorderAccent);
-    border-radius: 5px;
-    padding: 10px;
-    background: var(--managementColorBackgroundUser);
-  }
-  
-  .management__user-controls {
-    padding-top: 30px;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr auto;
-  }
-  
-  .management__user-options {
-    padding-top: 10px;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-auto-rows: 30px;
-    gap: 10px;
-  }
-  
-  .management__user-back-button {
-    background: var(--globalColorCardBackground);
-    display: grid;
-    grid-template-columns: 1fr;
-    border-radius: 10px;
-  }
-  
-  .management__card-user {
-    width: 100%;
-  }
-
-  .management__user-title {
-    height: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .management__user-title strong {
-    font-size: 15px;
-    color: var(--managementColorTitleUser);
-  }
-  
-  .management__user-subtitle {
-    height: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .management__user-subtitle span {
-    font-size: 13px;
-    opacity: 0.6;
-    color: var(--managementColorTextUser);
-  }
-  
-  .management__user-footer {
-    height: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .management__user-footer span {
-    font-size: 12px;
-    opacity: 0.6;
-    color: var(--managementColorTextUser);
-  }
-  
-  .management__card-user > div {
-    margin-bottom: 10px;
-  }
-  
-  .management__card-user-img {
-    height: 60px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .management__card-user-img i {
-    font-size: 30px;
-    color: var(--managementColorIconUser);
-  }
-  
-  .management__card-user-title {
-    height: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .management__card-user-title strong {
-    font-size: 15px;
-    color: var(--globalColorAccent);
-  }
-  
-  .management__card-user-subtitle {
-    height: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .management__card-user-subtitle span {
-    font-size: 13px;
-    opacity: 0.6;
-    color: var(--globalColorAccent);
-  }
-  
-  .management__card-user-footer {
-    height: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .management__card-user-footer span {
-    font-size: 12px;
-    opacity: 0.6;
-    color: var(--globalColorAccent);
-  }
-  
-  .management__content {
-    height: 100%;
-    grid-area: content;
-    position: relative;
-    background: var(--globalColorBackground);
-    border-left: 1px solid var(--globalColorBorderDark);
-    border-top: 1px solid var(--globalColorBorderLight);
-    border: 1px solid var(--globalColorBorderLight);
-    margin-right: 10px;
-    border-radius: 5px;
-  }
-  
-  .management__content-body {
-    position: relative;
-    height: calc(100% - 60px);
-    overflow: auto;
-  }
-  
-  .management__content-cards {
-    padding: 10px;
-    width: 100%;
-    top: 0;
-    position: absolute;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
-    grid-auto-rows: 200px;
-    overflow-y: auto;
-    gap: 20px;
-  }
-  
-  @media (max-width: 1300px) {
-    .management__content-cards {
-      grid-template-columns: 1fr 1fr 1fr 1fr;
-    }
-  }
-  
-  @media (max-width: 1150px) {
-    .management__content-cards {
-      grid-template-columns: 1fr 1fr 1fr;
-    }
-  }
-  
-  @media (max-width: 950px) {
-    .management__content-cards {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-  .management__content-cards--maps{
-    grid-template-columns: 1fr;
-    grid-auto-rows: auto;
-  }
-  
-  .management__user-card {
-    overflow: hidden;
-    border: 1px solid var(--globalColorCardBorderLight);
-    /* background: var(--globalColorCardBackground); */
-    border-radius: 5px;
-    display: grid;
-    grid-template-rows: 60px auto auto auto auto;
-  }
-  .management__user-card--maps{
-    grid-template-rows: 30px auto auto ;
-    padding-top: 10px;
-    gap: 15px;
-  
-  }
-  
-  .management__user-card:hover {
-    border: 1px solid var(--globalColorCardBorderHover);
-  }
-  
-  .management__user-card-icon {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .management__user-card-icon i {
-    font-size: 25px;
-    color: var(--globalColorIconMuted);
-  }
-  
-  .management__user-card-title {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: var(--globalColorTextMuted);
-    font-size: 14px;
-  }
-  
-  .management__user-card-subtitle {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: var(--globalColorTextMuted);
-    font-size: 13px;
-  }
-  
-  .management__user-card-footer {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: var(--globalColorTextMuted);
-    font-size: 13px;
-    padding-bottom: 20px;
-  }
-  
-  .management__user-card-controls {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 20px;
-    background: var(--managementColorCardBackground);
-  }
-  
-  .management__user-card-controls button:hover i {
-    opacity: 1 !important;
-    transform: scale(1.3);
-  }
-
-  .management__content-table{
-    width: 100%;
-    height: 100%;
-    position: relative;
-
-  }
-
-  .management__content-table > div {
-    top: 0;
-    position: absolute;
-    width: 100%;
-    height: calc(100% - 200px);
-    /* border-collapse: collapse; */
-  }
- 
-  .management__user-table-controls {
-    margin: auto;
-    display: flex;
-    justify-content: end;
-    /* background: var(--managementColorCardBackground); */
-  }
-
-  .management__user-table-controls i{
-    font-size: 18px;
-    color: var(--managementColorTextUser);
-    opacity: 0.5;
-    /* transition: all 0.3s; */
-  }
-
-  .management__user-table-controls i:hover{
-    opacity: 1;
-    transform: scale(1.1);
-  }
-  .management__content-table-tr {
-    background: var(--globalColorNone);
-    color: var(--globalColorTextMuted);
-  }
-  
-  .management__content-table-tr td{
-    font-size: 14px!important;
-    transition: none!important;
-    border-bottom: 1px solid var(--globalColorBorderDark);
-  }
-
-  .management__user-table-controls--maps{
-    display: grid;
-    grid-template-columns: 1fr ;
-    
-  }
-  
-  .management__input-search {
-    position: relative;
-    border-radius: 7px;
-    overflow: hidden;
-    border: 1px solid var(--globalColorBorderLight);
-    border-bottom: 2px solid var(--managementColorBorderInput);
-  }
-  
-  .management__search {
-    height: 60px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-rows: 40px;
-    gap: 10px;
-    padding: 10px;
-  }
-  
-  .management__input-search button {
-    margin-top: 30px;
-  }
-  
-  .management__input-search input {
-    width: 100%;
-    height: 100%;
-    border: none;
-    color: var(--globalColorTextDark);
-    background: var(--managementColorInputSearch);
-    padding-left: 50px;
-    outline: none;
-  }
-  
-  .management__input-search label {
-    cursor: pointer;
-  }
-  
-  .management__input-search i {
-    position: absolute;
-    font-weight: bold;
-    left: 15px;
-    top: calc(50% - 8px);
-    opacity: 0.5;
-    color: var(--managementColorBorderInput);
-  }
-  
-/* MAPA */
-.management__maps {
+.management {
   height: 100%;
   display: grid;
   grid-template-areas: "header header controls" "user content content";
-  grid-template-columns: 300px 1fr 70px;
+  grid-template-columns: 200px 1fr 70px;
   grid-template-rows: 38px calc(100% - 55px);
   gap: 10px;
   padding-left: 10px;
-  padding-right: 10px;
 }
 
-.management__user-control {
-  grid-area: user;
-  background: var(--managementColorCardBackground);
-  display: grid;
-  grid-template-columns: 50px 1fr;
-  grid-template-rows: auto 1fr;
-  gap: 10px;
-  grid-template-areas: "user_header user_header" "user_content user_content";
-  position: relative;
-}
-
-.management__user-control-display-button {
-  position: absolute;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: var(--managementColorIconUser);
-  cursor: pointer;
-  right: 5px;
-  top: 5px;
-}
-.management__user-control-back-button{
-  position: absolute;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: var(--globalColorIconMuted);
-  cursor: pointer;
-  right: 5px;
-  top: 32px;
+.management__route {
+  grid-area: header;
+  opacity: 0.5;
+  margin-left: -10px;
   
 }
-@media (max-width: 760px) {
-  .management__user-control-back-button{
 
-    top: 22px;
-    
-  }
-}
-
-.management__user-control-back-button i{
-  font-size: 13px;
-}
-.management__content-maps {
-  grid-area: content;
-  background: var(--managementColorContentBackground);
-  border-radius: 5px;
-  overflow: hidden;
-  border: 3px solid var(--globalColorInputBorderAccent);
-
-}
-
-@media (max-width: 760px) {
-  .management__maps{
-    grid-template-areas: "user";
-  grid-template-columns: calc(100% - 10px);
-  grid-template-rows: 100%;
+.management__controls{
+  grid-area: controls;
+  display: flex;
   padding-top: 10px;
-  padding-right: 0;
-  }
-  .management__content-maps{
-    display: none;
-  }
-
-  .management__route {
-    display: none;
-  }
-
-  .management__user-control-display-button {
-    display: none;
-  }
+  justify-content: center;
+  align-items: center;
+  color: rgb(255, 122, 28);
 }
 
-.management__user-control-header {
-  grid-area: user_header;
+.management__controls i{
+  font-size: 16px;
+  color: var(--managementColorIconControls);
+  cursor: pointer;
+}
+.management__controls i:hover{
+  transform: scale(1.1);
+}
+
+.management__user {
+  position: relative;
+  padding-top: 30px;
+  grid-area: user;
+  border-right: 1px solid var(--globalColorBorderLight);
+  padding-right: 10px;
   display: grid;
-  border: 1px solid var(--managementColorBorderInput);
-  background: var(--managementColorBackgroundUser);
-  padding: 10px;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+  border: 1px solid var(--globalColorInputBorderAccent);
   border-radius: 5px;
-  gap: 10px;
-  grid-template-columns: 50px 1fr;
-  grid-auto-rows: auto;
-  grid-template-areas: 
-    "user_control_icon user_control_title"
-    "user_control_icon user_control_subtitle"
-    "user_control_controls user_control_controls";
+  padding: 10px;
+  background: var(--managementColorBackgroundUser);
 }
 
-.management__user-control-icon {
-  grid-area: user_control_icon;
-  background: var(--managementColorIconBackground, rgb(222, 57, 57));
-  border-radius: 5px;
+.management__user-controls {
+  padding-top: 30px;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr auto;
+}
+
+.management__user-options {
+  padding-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-auto-rows: 30px;
+  gap: 10px;
+}
+
+.management__user-back-button {
+  background: var(--globalColorCardBackground);
+  display: grid;
+  grid-template-columns: 1fr;
+  border-radius: 10px;
+}
+
+.management__card-user {
+  width: 100%;
+}
+
+.management__user-title {
+  height: 20px;
+  width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.management__user-control-icon i {
-  font-size: 20px;
-  color: var(--managementColorTextIcon, rgb(255, 255, 255));
-}
-
-.management__user-control-title {
-  grid-area: user_control_title;
-}
-
-.management__user-control-title strong {
+.management__user-title strong {
   font-size: 15px;
   color: var(--managementColorTitleUser);
 }
 
-.management__user-control-subtitle {
-  font-size: 13px;
-  grid-area: user_control_subtitle;
-  color: var(--managementColorTextUser);
-}
-
-.management__user-control-footer {
-  font-size: 13px;
-  grid-area: user_control_footer;
-  color: var(--managementColorTextUser);
-}
-
-.management__user-control-controls {
-  grid-area: user_control_controls;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-top: 1px solid var(--managementColorBorderInput);
-}
-
-.management__user-control-content {
-  grid-area: user_content;
-}
-
-.management__content-table-link {
-  color: var(--managementOnlineStatus);
-  padding-bottom: 5px;
-  display: block;
-  cursor: pointer;
-}
-
-.management__content-table-link:hover {
-  text-decoration: underline;
-}
-
-.management__content-table-link i {
-  font-size: 13px;
-  opacity: 0.5;
-  transform: scale(0.8); /* escalar */
-}
-
-.management__content--maps {
+.management__user-subtitle {
+  height: 20px;
   width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.no-users-message {
-    color: var(--managementColorTextUser, #888);
-    opacity: 0.4;
-    display: flex;
-    flex-direction: column;
+.management__user-subtitle span {
+  font-size: 13px;
+  opacity: 0.6;
+  color: var(--managementColorTextUser);
 }
 
-/* Estilos para móvil */
-@media screen and (max-width: 768px) {
-    /* Estilos para los datos del usuario */
-    .management__user-card-title,
-    .management__user-card-subtitle,
-    .management__user-card-footer,
-    .management__user-control-title strong,
-    .management__user-control-subtitle span {
-        display: block;
-        width: 100%;
-        max-width: 120px;
-        box-sizing: border-box;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        text-align: left;
-    }
-
-    .management__user-card {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 12px 10px;
-        margin-bottom: 14px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        border-radius: 8px;
-        min-width: 0;
-        background: var(--globalColorCardBackground, #222);
-    }
-    .management__user-card-icon {
-        margin-bottom: 8px;
-        align-self: center;
-    }
-    .management__user-card-title,
-    .management__user-card-title strong,
-    .management__user-card-subtitle,
-    .management__user-card-subtitle span,
-    .management__user-card-footer {
-        text-align: left;
-        width: 100%;
-        margin-bottom: 2px;
-    }
-    .management__user-card-footer {
-        margin-bottom: 6px;
-    }
-    .management__user-card-controls {
-        width: 100%;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        gap: 6px;
-        margin-top: 8px;
-    }
-    .management__user-card-controls button {
-        flex: 1 1 0;
-        min-width: 0;
-        padding: 0.3rem 0.2rem;
-        font-size: 0.7rem;
-    }
-
-    /* Estilos para los botones */
-    .button .button-text {
-        display: none;
-    }
-
-    .button {
-        padding: 0.5rem;
-        min-width: 2.5rem;
-        justify-content: center;
-    }
-
-    .button i {
-        padding-right: 0;
-    }
-
-    .management__user-control-controls .button,
-    .management__user-options .button {
-        font-size: 0.65rem;
-        padding: 0.25rem 0.4rem;
-        min-width: 2rem;
-    }
-
-    .management__user-control-controls .button i,
-    .management__user-options .button i {
-        font-size: 0.75rem;
-        margin-right: 0.15rem;
-    }
-
-    .management__user-control-controls .button span,
-    .management__user-options .button span {
-        font-size: 0.6rem;
-    }
-
-    /* Tarjeta de usuario destacada */
-    .management__card-user {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 14px 12px;
-        margin-bottom: 16px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.10);
-        border-radius: 10px;
-        min-width: 0;
-        background: var(--globalColorCardBackground, #222);
-    }
-    .management__card-user-img {
-        align-self: center;
-        margin-bottom: 10px;
-    }
-    .management__card-user-title,
-    .management__card-user-title strong,
-    .management__card-user-subtitle,
-    .management__card-user-subtitle span,
-    .management__card-user-footer {
-        text-align: left;
-        width: 100%;
-        margin-bottom: 2px;
-    }
-    .management__card-user-footer {
-        margin-bottom: 6px;
-    }
+.management__user-footer {
+  height: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-@media screen and (max-width: 340px) {
-    .management__user-card-title,
-    .management__user-card-title strong,
-    .management__user-card-subtitle,
-    .management__user-card-subtitle span,
-    .management__user-card-footer,
-    .management__user-control-title strong,
-    .management__user-control-subtitle span,
-    .management__user-options .button,
-    .management__user-options .button i,
-    .management__user-options .button span,
-    .management__user-control-controls .button,
-    .management__user-control-controls .button i,
-    .management__user-control-controls .button span {
-        font-size: 0.55rem !important;
-        max-width: 80px;
-    }
+.management__user-footer span {
+  font-size: 12px;
+  opacity: 0.6;
+  color: var(--managementColorTextUser);
 }
 
-.button i {
-    padding-right: 0.4em;
-    transition: padding 0.2s;
+.management__card-user > div {
+  margin-bottom: 10px;
 }
 
-.management__content-cards--maps .button .button-text {
-    display: none !important;
+.management__card-user-img {
+  height: 60px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-@media (max-width: 760px) {
+.management__card-user-img i {
+  font-size: 30px;
+  color: var(--managementColorIconUser);
+}
+
+.management__card-user-title {
+  height: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.management__card-user-title strong {
+  font-size: 15px;
+  color: var(--globalColorAccent);
+}
+
+.management__card-user-subtitle {
+  height: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.management__card-user-subtitle span {
+  font-size: 13px;
+  opacity: 0.6;
+  color: var(--globalColorAccent);
+}
+
+.management__card-user-footer {
+  height: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.management__card-user-footer span {
+  font-size: 12px;
+  opacity: 0.6;
+  color: var(--globalColorAccent);
+}
+
+.management__content {
+  height: 100%;
+  grid-area: content;
+  position: relative;
+  background: var(--globalColorBackground);
+  border-left: 1px solid var(--globalColorBorderDark);
+  border-top: 1px solid var(--globalColorBorderLight);
+  border: 1px solid var(--globalColorBorderLight);
+  margin-right: 10px;
+  border-radius: 5px;
+}
+
+.management__content-body {
+  position: relative;
+  height: calc(100% - 60px);
+  overflow: auto;
+}
+
+.management__content-cards {
+  padding: 10px;
+  width: 100%;
+  top: 0;
+  position: absolute;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  grid-auto-rows: 200px;
+  overflow-y: auto;
+  gap: 20px;
+}
+
+@media (max-width: 1300px) {
+  .management__content-cards {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+}
+
+@media (max-width: 1150px) {
+  .management__content-cards {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+@media (max-width: 950px) {
   .management__content-cards {
     grid-template-columns: 1fr 1fr;
   }
 }
+.management__content-cards--maps{
+  grid-template-columns: 1fr;
+  grid-auto-rows: auto;
+}
 
-@media (max-width: 490px) {
-  .management__content-cards {
-    grid-template-columns: 1fr;
+.management__user-card {
+  overflow: hidden;
+  border: 1px solid var(--globalColorCardBorderLight);
+  /* background: var(--globalColorCardBackground); */
+  border-radius: 5px;
+  display: grid;
+  grid-template-rows: 60px auto auto auto auto;
+}
+.management__user-card--maps{
+  grid-template-rows: 30px auto auto ;
+  padding-top: 10px;
+  gap: 15px;
+
+}
+
+.management__user-card:hover {
+  border: 1px solid var(--globalColorCardBorderHover);
+}
+
+.management__user-card-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.management__user-card-icon i {
+  font-size: 25px;
+  color: var(--globalColorIconMuted);
+}
+
+.management__user-card-title {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--globalColorTextMuted);
+  font-size: 14px;
+}
+
+.management__user-card-subtitle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--globalColorTextMuted);
+  font-size: 13px;
+}
+
+.management__user-card-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--globalColorTextMuted);
+  font-size: 13px;
+  padding-bottom: 20px;
+}
+
+.management__user-card-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  background: var(--managementColorCardBackground);
+}
+
+.management__user-card-controls button:hover i {
+  opacity: 1 !important;
+  transform: scale(1.3);
+}
+
+.management__content-table{
+  width: 100%;
+  height: 100%;
+  position: relative;
+
+}
+
+.management__content-table > div {
+  top: 0;
+  position: absolute;
+  width: 100%;
+  height: calc(100% - 200px);
+  /* border-collapse: collapse; */
+}
+
+.management__user-table-controls {
+  margin: auto;
+  display: flex;
+  justify-content: end;
+  /* background: var(--managementColorCardBackground); */
+}
+
+.management__user-table-controls i{
+  font-size: 18px;
+  color: var(--managementColorTextUser);
+  opacity: 0.5;
+  /* transition: all 0.3s; */
+}
+
+.management__user-table-controls i:hover{
+  opacity: 1;
+  transform: scale(1.1);
+}
+.management__content-table-tr {
+  background: var(--globalColorNone);
+  color: var(--globalColorTextMuted);
+}
+
+.management__content-table-tr td{
+  font-size: 14px!important;
+  transition: none!important;
+  border-bottom: 1px solid var(--globalColorBorderDark);
+}
+
+.management__user-table-controls--maps{
+  display: grid;
+  grid-template-columns: 1fr ;
+  
+}
+
+.management__input-search {
+  position: relative;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid var(--globalColorBorderLight);
+  border-bottom: 2px solid var(--managementColorBorderInput);
+}
+
+.management__search {
+  height: 60px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 40px;
+  gap: 10px;
+  padding: 10px;
+}
+
+.management__input-search button {
+  margin-top: 30px;
+}
+
+.management__input-search input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  color: var(--globalColorTextDark);
+  background: var(--managementColorInputSearch);
+  padding-left: 50px;
+  outline: none;
+}
+
+.management__input-search label {
+  cursor: pointer;
+}
+
+.management__input-search i {
+  position: absolute;
+  font-weight: bold;
+  left: 15px;
+  top: calc(50% - 8px);
+  opacity: 0.5;
+  color: var(--managementColorBorderInput);
+}
+
+/* MAPA */
+.management__maps {
+height: 100%;
+display: grid;
+grid-template-areas: "header header controls" "user content content";
+grid-template-columns: 300px 1fr 70px;
+grid-template-rows: 38px calc(100% - 55px);
+gap: 10px;
+padding-left: 10px;
+padding-right: 10px;
+}
+
+.management__user-control {
+grid-area: user;
+background: var(--managementColorCardBackground);
+display: grid;
+grid-template-columns: 50px 1fr;
+grid-template-rows: auto 1fr;
+gap: 10px;
+grid-template-areas: "user_header user_header" "user_content user_content";
+position: relative;
+}
+
+.management__user-control-display-button {
+position: absolute;
+width: 30px;
+height: 30px;
+display: flex;
+justify-content: center;
+align-items: center;
+color: var(--managementColorIconUser);
+cursor: pointer;
+right: 5px;
+top: 5px;
+}
+.management__user-control-back-button{
+position: absolute;
+width: 30px;
+height: 30px;
+display: flex;
+justify-content: center;
+align-items: center;
+color: var(--globalColorIconMuted);
+cursor: pointer;
+right: 5px;
+top: 32px;
+
+}
+@media (max-width: 760px) {
+.management__user-control-back-button{
+
+  top: 22px;
+  
+}
+}
+
+.management__user-control-back-button i{
+font-size: 13px;
+}
+.management__content-maps {
+grid-area: content;
+background: var(--managementColorContentBackground);
+border-radius: 5px;
+overflow: hidden;
+border: 3px solid var(--globalColorInputBorderAccent);
+
+}
+
+@media (max-width: 760px) {
+.management__maps{
+  grid-template-areas: "user";
+grid-template-columns: calc(100% - 10px);
+grid-template-rows: 100%;
+padding-top: 10px;
+padding-right: 0;
+}
+.management__content-maps{
+  display: none;
+}
+
+.management__route {
+  display: none;
+}
+
+.management__user-control-display-button {
+  display: none;
+}
+}
+
+.management__user-control-header {
+grid-area: user_header;
+display: grid;
+border: 1px solid var(--managementColorBorderInput);
+background: var(--managementColorBackgroundUser);
+padding: 10px;
+border-radius: 5px;
+gap: 10px;
+grid-template-columns: 50px 1fr;
+grid-auto-rows: auto;
+grid-template-areas: 
+  "user_control_icon user_control_title"
+  "user_control_icon user_control_subtitle"
+  "user_control_controls user_control_controls";
+}
+
+.management__user-control-icon {
+grid-area: user_control_icon;
+background: var(--managementColorIconBackground, rgb(222, 57, 57));
+border-radius: 5px;
+display: flex;
+justify-content: center;
+align-items: center;
+}
+
+.management__user-control-icon i {
+font-size: 20px;
+color: var(--managementColorTextIcon, rgb(255, 255, 255));
+}
+
+.management__user-control-title {
+grid-area: user_control_title;
+}
+
+.management__user-control-title strong {
+font-size: 15px;
+color: var(--managementColorTitleUser);
+}
+
+.management__user-control-subtitle {
+font-size: 13px;
+grid-area: user_control_subtitle;
+color: var(--managementColorTextUser);
+}
+
+.management__user-control-footer {
+font-size: 13px;
+grid-area: user_control_footer;
+color: var(--managementColorTextUser);
+}
+
+.management__user-control-controls {
+grid-area: user_control_controls;
+display: grid;
+grid-template-columns: 1fr 1fr;
+border-top: 1px solid var(--managementColorBorderInput);
+}
+
+.management__user-control-content {
+grid-area: user_content;
+}
+
+.management__content-table-link {
+color: var(--managementOnlineStatus);
+padding-bottom: 5px;
+display: block;
+cursor: pointer;
+}
+
+.management__content-table-link:hover {
+text-decoration: underline;
+}
+
+.management__content-table-link i {
+font-size: 13px;
+opacity: 0.5;
+transform: scale(0.8); /* escalar */
+}
+
+.management__content--maps {
+width: 100%;
+}
+
+.no-users-message {
+  color: var(--managementColorTextUser, #888);
+  opacity: 0.5; /* Cambiado de 0.4 para que la animación controle la opacidad */
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.8s ease-in-out;
+  animation-delay: 0.5s;
+  animation-fill-mode: both;
+}
+
+@keyframes fadeIn {
+  0% {
+      opacity: 0;
+  }
+  100% {
+      opacity: 0.5
   }
 }
 
-@media (max-width: 768px) {
-  .card.flex.justify-content-center {
-    width: 100vw !important;
-    max-width: 100vw !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-sizing: border-box !important;
-    justify-content: flex-start !important;
+/* Estilos para móvil */
+@media screen and (max-width: 768px) {
+  /* Estilos para los datos del usuario */
+  .management__user-card-title,
+  .management__user-card-subtitle,
+  .management__user-card-footer,
+  .management__user-control-title strong,
+  .management__user-control-subtitle span {
+      display: block;
+      width: 100%;
+      max-width: 120px;
+      box-sizing: border-box;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
   }
+
+  .management__user-card {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 12px 10px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      border-radius: 8px;
+      min-width: 0;
+      background: var(--globalColorCardBackground, #222);
+  }
+  .management__user-card-icon {
+      margin-bottom: 8px;
+      align-self: center;
+  }
+  .management__user-card-title,
+  .management__user-card-title strong,
+  .management__user-card-subtitle,
+  .management__user-card-subtitle span,
+  .management__user-card-footer {
+      text-align: left;
+      width: 100%;
+      margin-bottom: 2px;
+  }
+  .management__user-card-footer {
+      margin-bottom: 6px;
+  }
+  .management__user-card-controls {
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      gap: 6px;
+      margin-top: 8px;
+  }
+  .management__user-card-controls button {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 0.3rem 0.2rem;
+      font-size: 0.7rem;
+  }
+
+  /* Estilos para los botones */
+  .button .button-text {
+      display: none;
+  }
+
+  .button {
+      padding: 0.5rem;
+      min-width: 2.5rem;
+      justify-content: center;
+  }
+
+  .button i {
+      padding-right: 0;
+  }
+
+  .management__user-control-controls .button,
+  .management__user-options .button {
+      font-size: 0.65rem;
+      padding: 0.25rem 0.4rem;
+      min-width: 2rem;
+  }
+
+  .management__user-control-controls .button i,
+  .management__user-options .button i {
+      font-size: 0.75rem;
+      margin-right: 0.15rem;
+  }
+
+  .management__user-control-controls .button span,
+  .management__user-options .button span {
+      font-size: 0.6rem;
+  }
+
+  /* Tarjeta de usuario destacada */
+  .management__card-user {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 14px 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+      border-radius: 10px;
+      min-width: 0;
+      background: var(--globalColorCardBackground, #222);
+  }
+  .management__card-user-img {
+      align-self: center;
+      margin-bottom: 10px;
+  }
+  .management__card-user-title,
+  .management__card-user-title strong,
+  .management__card-user-subtitle,
+  .management__card-user-subtitle span,
+  .management__card-user-footer {
+      text-align: left;
+      width: 100%;
+      margin-bottom: 2px;
+  }
+  .management__card-user-footer {
+      margin-bottom: 6px;
+  }
+}
+
+@media screen and (max-width: 340px) {
+  .management__user-card-title,
+  .management__user-card-title strong,
+  .management__user-card-subtitle,
+  .management__user-card-subtitle span,
+  .management__user-card-footer,
+  .management__user-control-title strong,
+  .management__user-control-subtitle span,
+  .management__user-options .button,
+  .management__user-options .button i,
+  .management__user-options .button span,
+  .management__user-control-controls .button,
+  .management__user-control-controls .button i,
+  .management__user-control-controls .button span {
+      font-size: 0.55rem !important;
+      max-width: 80px;
+  }
+}
+
+.button i {
+  padding-right: 0.4em;
+  transition: padding 0.2s;
+}
+
+.management__content-cards--maps .button .button-text {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+.management__content-cards {
+  grid-template-columns: 1fr 1fr;
+}
+}
+
+@media (max-width: 490px) {
+.management__content-cards {
+  grid-template-columns: 1fr;
+}
+}
+
+
+
+/* Estilos para el breadcrumb - enfoque alternativo */
+.management__route ::ng-deep .p-breadcrumb .p-menuitem .p-menuitem-link,
+.management__route ::ng-deep .p-breadcrumb .p-menuitem-link,
+.management__route ::ng-deep .p-breadcrumb .p-menuitem-text,
+.management__route ::ng-deep .p-breadcrumb .p-menuitem-icon,
+.management__route ::ng-deep .p-breadcrumb li,
+.management__route ::ng-deep .p-breadcrumb a {
+cursor: pointer !important;
+}
+
+/* Aplicar cursor también al elemento raíz home */
+.management__route ::ng-deep .p-breadcrumb .p-breadcrumb-home,
+.management__route ::ng-deep .p-breadcrumb .p-breadcrumb-home-icon {
+cursor: pointer !important;
+}
+
+/* Estilo hover */
+.management__route ::ng-deep .p-menuitem-link:hover .p-menuitem-text {
+text-decoration: underline;
+}
+
+/* Estado de carga para breadcrumb */
+.breadcrumb-loading {
+opacity: 0.15; /* Muy opaco durante la carga */
+transition: opacity 0.3s ease;
+pointer-events: none; /* Desactivar interacción mientras carga */
 }
 

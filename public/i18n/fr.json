@@ -116,7 +116,8 @@
         "description": "Configuration des couleurs"
       },
       "dialogs": {
-        "roles": "Configuration des rôles"
+        "roles": "Configuration des rôles",
+        "system": "Configuration du système"
       },
       "roles_settings": {
         "edit_role": "Modifier le rôle",
@@ -202,7 +203,51 @@
       },
       "system": {
         "title": "Système",
-        "description": "Configuration générale du système"
+        "description": "Configuration générale du système",
+        "general": "Général",
+        "logo": "Logo",
+        "upload_logo": "Télécharger logo",
+        "remove_logo": "Supprimer logo",
+        "logo_hint": "Le logo sera affiché dans l'en-tête de l'application et les rapports.",
+        "company_name": "Nom de l'entreprise",
+        "company_name_placeholder": "Ex: Montao GPS",
+        "company_name_hint": "Ce nom sera affiché dans l'application et les rapports.",
+        "contacts": "Contacts",
+        "add_contact": "Ajouter un contact",
+        "add": "Ajouter",
+        "edit_contact": "Modifier un contact",
+        "contact_name": "Nom",
+        "contact_name_placeholder": "Ex: Support technique",
+        "contact_desc": "Description",
+        "contact_desc_placeholder": "Ex: Contact pour problèmes techniques",
+        "contact_value": "Valeur",
+        "contact_value_placeholder": "Ex: support@entreprise.com",
+        "contact_icon": "Icône",
+        "contact_icon_placeholder": "Ex: pi-phone",
+        "contact_type": "Type",
+        "select_type": "Sélectionnez un type",
+        "no_contacts": "Aucun contact configuré",
+        "downloads": "Téléchargements",
+        "add_download": "Ajouter un téléchargement",
+        "edit_download": "Modifier un téléchargement",
+        "download_name": "Nom",
+        "download_name_placeholder": "Ex: Manuel d'utilisateur",
+        "download_desc": "Description",
+        "download_desc_placeholder": "Ex: Manuel complet du système pour les utilisateurs",
+        "download_value": "Valeur",
+        "download_value_placeholder": "Ex: https://montao.net/manuels/utilisateur.pdf",
+        "download_icon": "Icône",
+        "download_icon_placeholder": "Ex: pi-file-pdf",
+        "download_type": "Type",
+        "no_downloads": "Aucun téléchargement configuré",
+        "sim_api1": "API SIM 1",
+        "sim_api2": "API SIM 2",
+        "map_api1": "API Carte 1",
+        "map_api2": "API Carte 2",
+        "api_name": "Nom de l'API",
+        "api_url": "URL de l'API",
+        "api_key": "Clé de l'API",
+        "save": "Enregistrer"
       }
     },
     "profile": {

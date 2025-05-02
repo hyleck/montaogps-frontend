@@ -6,11 +6,13 @@ import { SettingsRoutingModule } from './settings-routing.module';
 import { SettingsComponent } from './components/settings/settings.component';
 import { UserRolesSettingsComponent } from './components/settings/user-roles-settings/user-roles-settings.component';
 import { TranslateModule } from '@ngx-translate/core';
+import { SystemSettingsComponent } from './components/settings/system-settings/system-settings.component';
 
 @NgModule({
   declarations: [
     SettingsComponent,
-    UserRolesSettingsComponent
+    UserRolesSettingsComponent,
+    SystemSettingsComponent
   ],
   imports: [
     CommonModule,

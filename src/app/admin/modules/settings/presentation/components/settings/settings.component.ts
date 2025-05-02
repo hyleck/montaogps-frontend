@@ -14,12 +14,13 @@ export class SettingsComponent implements OnInit {
     items: MenuItem[] = [];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
     RolesFormDisplay: boolean = false;
+    SystemSettingsDisplay: boolean = false;
 
     settingsCards = [
         {
             titleKey: 'settings.system.title',
             icon: 'pi pi-cog',
-            route: '/admin/settings/system',
+            action: () => this.SystemSettingsDisplay = true,
             descriptionKey: 'settings.system.description'
         },
         {
