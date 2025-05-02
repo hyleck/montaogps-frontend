@@ -565,9 +565,21 @@
 
 .no-users-message {
     color: var(--managementColorTextUser, #888);
-    opacity: 0.4;
+    opacity: 0.5; /* Cambiado de 0.4 para que la animación controle la opacidad */
     display: flex;
     flex-direction: column;
+    animation: fadeIn 0.8s ease-in-out;
+    animation-delay: 0.5s;
+    animation-fill-mode: both;
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 0.5
+    }
 }
 
 /* Estilos para móvil */
@@ -733,15 +745,33 @@
   }
 }
 
-@media (max-width: 768px) {
-  .card.flex.justify-content-center {
-    width: 100vw !important;
-    max-width: 100vw !important;
-    min-width: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    box-sizing: border-box !important;
-    justify-content: flex-start !important;
-  }
+
+
+/* Estilos para el breadcrumb - enfoque alternativo */
+.management__route ::ng-deep .p-breadcrumb .p-menuitem .p-menuitem-link,
+.management__route ::ng-deep .p-breadcrumb .p-menuitem-link,
+.management__route ::ng-deep .p-breadcrumb .p-menuitem-text,
+.management__route ::ng-deep .p-breadcrumb .p-menuitem-icon,
+.management__route ::ng-deep .p-breadcrumb li,
+.management__route ::ng-deep .p-breadcrumb a {
+  cursor: pointer !important;
+}
+
+/* Aplicar cursor también al elemento raíz home */
+.management__route ::ng-deep .p-breadcrumb .p-breadcrumb-home,
+.management__route ::ng-deep .p-breadcrumb .p-breadcrumb-home-icon {
+  cursor: pointer !important;
+}
+
+/* Estilo hover */
+.management__route ::ng-deep .p-menuitem-link:hover .p-menuitem-text {
+  text-decoration: underline;
+}
+
+/* Estado de carga para breadcrumb */
+.breadcrumb-loading {
+  opacity: 0.15; /* Muy opaco durante la carga */
+  transition: opacity 0.3s ease;
+  pointer-events: none; /* Desactivar interacción mientras carga */
 }
 

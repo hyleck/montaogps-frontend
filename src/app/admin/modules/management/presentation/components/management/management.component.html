@@ -1,8 +1,7 @@
 <p-toast></p-toast>
 <div class="main">
         <div *ngIf="showMaps" class="management__maps">
-            <div class="management__route">
-
+            <div class="management__route" [ngClass]="{'breadcrumb-loading': breadcrumbLoading}">
                 <p-breadcrumb 
                 
                 [model]="items" 
@@ -16,7 +15,7 @@
 
             <div class="management__user-control">
                 <div class="management__user-control-display-button">  <i (click)="showMapsToggle()" class="pi pi-window-maximize"></i></div>
-                <div class="management__user-control-back-button">  <i  class="pi pi-arrow-left"></i></div>
+                <div class="management__user-control-back-button" *ngIf="canNavigateBack()">  <i (click)="goToParent()" class="pi pi-arrow-left"></i></div>
                 <div class="management__user-control-header">
                     <div class="management__user-control-icon">
                         <i class="pi pi-user"></i>
@@ -68,7 +67,7 @@
                     <div class="management__content-body">
                         <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards management__content-cards--maps">
                             <ng-container *ngIf="!loading; else loadingSkeletonsMaps">
-                                <div *ngIf="!loading && users.length === 0" class="no-users-message">
+                                <div *ngIf="users.length === 0" class="no-users-message">
                                     <i class="pi pi-users" style="font-size: 2rem; color: #888; display: block; margin-bottom: 0.5rem;"></i>
                                     <span>{{ 'management.noUsers' | translate }}</span>
                                 </div>
@@ -137,8 +136,7 @@
 
 
         <div *ngIf="!showMaps" class="management">
-            <div class="management__route">
-
+            <div class="management__route" [ngClass]="{'breadcrumb-loading': breadcrumbLoading}">
                 <p-breadcrumb 
                 
                 [model]="items" 
@@ -177,7 +175,7 @@
                     <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( 2 )</button>
                 </div>
                 <div class="management__user-back-button">
-                    <button class="button button--flat"> <i class="pi pi-arrow-left"></i> {{ translations.back | translate }}</button>
+                    <button *ngIf="canNavigateBack()" (click)="goToParent()" class="button button--flat"> <i class="pi pi-arrow-left"></i> {{ translations.back | translate }}</button>
                 </div>
                </div>
 
@@ -213,7 +211,7 @@
                 <div class="management__content-body">
                     <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards">
                         <ng-container *ngIf="!loading; else loadingSkeletons">
-                            <div *ngIf="!loading && users.length === 0" class="no-users-message">
+                            <div *ngIf="users.length === 0" class="no-users-message">
                                 <i class="pi pi-users" style="font-size: 2rem; color: #888; display: block; margin-bottom: 0.5rem;"></i>
                                 <span>{{ 'management.noUsers' | translate }}</span>
                             </div>
