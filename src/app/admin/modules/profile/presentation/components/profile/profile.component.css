@@ -146,7 +146,7 @@
 
 .form-group label {
     display: block;
-    color: var(--managementColorTextUser);
+    color: var(--globalColorTextDark, var(--managementColorTextUser));
     margin-bottom: 0.5rem;
     font-size: 0.9rem;
     font-weight: 500;
@@ -156,18 +156,18 @@
 .form-group textarea {
     width: 100%;
     padding: 0.6rem;
-    border: 1px solid var(--managementFieldsBorder);
+    border: 1px solid var(--globalColorBorderInput, var(--managementFieldsBorder));
     border-radius: 4px;
-    background-color: var(--managementColorInputSearch);
-    color: var(--managementColorTextUser);
+    background-color: var(--globalColorInputBackground, var(--managementColorInputSearch));
+    color: var(--globalColorTextInput, var(--managementColorTextUser));
     transition: all 0.2s;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
-    border-color: var(--managementColorTitleUser);
+    border-color: var(--globalColorBorderHover, var(--managementColorTitleUser));
     outline: none;
-    box-shadow: 0 0 0 2px rgba(236, 67, 67, 0.1);
+    box-shadow: 0 0 0 2px rgba(255, 80, 80, 0.25);
 }
 
 .form-group textarea {
@@ -229,7 +229,7 @@
 }
 
 .settings-header h3 {
-    color: var(--managementColorTextUser);
+    color: var(--globalColorTextDark, var(--managementColorTextUser));
     margin: 0;
     font-size: 1rem;
     font-weight: 500;
@@ -238,12 +238,12 @@
 .settings-item select {
     width: 100%;
     padding: 0.6rem;
-    border: 1px solid var(--managementFieldsBorder);
+    border: 1px solid var(--globalColorBorderInput, var(--managementFieldsBorder));
     border-radius: 4px;
-    background-color: var(--managementColorInputSearch);
-    color: var(--managementColorTextUser);
+    background-color: var(--globalColorInputBackground, var(--managementColorInputSearch));
+    color: var(--globalColorTextInput, var(--managementColorTextUser));
     margin-bottom: 0.5rem;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     font-size: 0.9rem;
     cursor: pointer;
     appearance: none;
@@ -256,9 +256,9 @@
 }
 
 .settings-item select:focus {
-    border-color: var(--managementColorTitleUser);
+    border-color: var(--globalColorBorderHover, var(--managementColorTitleUser));
     outline: none;
-    box-shadow: 0 0 0 2px rgba(236, 67, 67, 0.1);
+    box-shadow: 0 0 0 2px rgba(255, 80, 80, 0.25);
 }
 
 .settings-item select:hover {
@@ -266,8 +266,8 @@
 }
 
 .settings-item select option {
-    background-color: var(--managementColorInputSearch);
-    color: var(--managementColorTextUser);
+    background-color: var(--globalColorInputBackground, var(--managementColorInputSearch));
+    color: var(--globalColorTextInput, var(--managementColorTextUser));
     padding: 0.8rem;
 }
 
@@ -279,12 +279,12 @@
 }
 
 .settings-toggle span {
-    color: var(--managementColorTextUser);
+    color: var(--globalColorTextDark, var(--managementColorTextUser));
 }
 
 .settings-item small {
-    color: var(--managementColorTextUser);
-    opacity: 0.7;
+    color: var(--globalColorTextMuted, var(--managementColorTextUser));
+    opacity: 0.9;
     font-size: 0.85rem;
     display: block;
     margin-top: 0.5rem;
@@ -304,7 +304,7 @@
 }
 
 .password-fields .form-group label {
-    color: var(--globalColorTextDark);
+    color: var(--globalColorTextDark, var(--managementColorTextUser));
     font-weight: 500;
     font-size: 0.9rem;
 }
@@ -353,18 +353,18 @@
 .password-fields ::ng-deep .p-password input {
     width: 100%;
     padding: 0.8rem;
-    border: 1px solid var(--managementFieldsBorder);
+    border: 1px solid var(--globalColorBorderInput, var(--managementFieldsBorder));
     border-radius: 4px;
-    background-color: var(--managementColorInputSearch);
-    color: var(--managementColorTextUser);
+    background-color: var(--globalColorInputBackground, var(--managementColorInputSearch));
+    color: var(--globalColorTextInput, var(--managementColorTextUser));
     font-size: 0.9rem;
     transition: all 0.3s ease;
 }
 
 .password-fields ::ng-deep .p-password input:focus {
     outline: none;
-    border-color: var(--managementColorTitleUser);
-    box-shadow: 0 0 0 2px rgba(236, 67, 67, 0.1);
+    border-color: var(--globalColorBorderHover, var(--managementColorTitleUser));
+    box-shadow: 0 0 0 2px rgba(255, 80, 80, 0.25);
 }
 
 .password-fields ::ng-deep .p-password .p-password-toggle {
@@ -562,4 +562,128 @@
 
 .theme-box.light .theme-dots span {
     background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Estilos para todos los inputs del formulario de perfil */
+#name, #last_name, #email, #dni, #birth, #phone, #phone2, #address {
+    background-color: var(--globalColorInputBackground, var(--managementColorInputSearch));
+    border: 1px solid var(--globalColorBorderInput, var(--managementFieldsBorder));
+    color: var(--globalColorTextInput, var(--managementColorTextUser));
+    font-size: 0.9rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+#name:focus, #last_name:focus, #email:focus, #dni:focus, #birth:focus, #phone:focus, #phone2:focus, #address:focus {
+    border-color: var(--globalColorBorderHover, var(--managementColorTitleUser));
+    box-shadow: 0 0 0 2px rgba(255, 80, 80, 0.25);
+}
+
+/* Estilos para todos los labels del formulario */
+.form-group label {
+    display: block;
+    color: var(--globalColorTextDark, var(--managementColorTextUser));
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Estilos mejorados para los selects de la sección de configuración */
+.settings-item select {
+    background-color: var(--globalColorInputBackground, var(--managementColorInputSearch));
+    border: 1px solid var(--globalColorBorderInput, var(--managementFieldsBorder));
+    color: var(--globalColorTextInput, var(--managementColorTextUser));
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.settings-item select:focus {
+    border-color: var(--globalColorBorderHover, var(--managementColorTitleUser));
+    box-shadow: 0 0 0 2px rgba(255, 80, 80, 0.25);
+}
+
+/* Estilos para elementos de configuración */
+.settings-header h3 {
+    color: var(--globalColorTextDark, var(--managementColorTextUser));
+}
+
+.settings-toggle span {
+    color: var(--globalColorTextDark, var(--managementColorTextUser));
+}
+
+.settings-item small {
+    color: var(--globalColorTextMuted, var(--managementColorTextUser));
+    opacity: 0.9;
+}
+
+/* Estilos mejorados para los campos de contraseña */
+.password-fields ::ng-deep .p-password input {
+    background-color: var(--globalColorInputBackground, var(--managementColorInputSearch));
+    border: 1px solid var(--globalColorBorderInput, var(--managementFieldsBorder));
+    color: var(--globalColorTextInput, var(--managementColorTextUser));
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.password-fields ::ng-deep .p-password input:focus {
+    border-color: var(--globalColorBorderHover, var(--managementColorTitleUser));
+    box-shadow: 0 0 0 2px rgba(255, 80, 80, 0.25);
+}
+
+.password-fields .form-group label {
+    color: var(--globalColorTextDark, var(--managementColorTextUser));
+}
+
+/* Estilo para destacar los campos en modo oscuro */
+@media (prefers-color-scheme: dark) {
+    /* Mejora de los labels para mayor visibilidad en modo oscuro */
+    .form-group label {
+        color: var(--globalColorTextLight, #ffffff) !important;
+        font-weight: 500;
+    }
+
+    /* Textos de configuración en modo oscuro */
+    .settings-header h3 {
+        color: var(--globalColorTextLight, #ffffff) !important;
+    }
+
+    .settings-toggle span {
+        color: var(--globalColorTextLight, #ffffff) !important;
+    }
+
+    .settings-item small {
+        color: var(--globalColorTextLight, #d1d1d1) !important;
+        opacity: 0.9;
+    }
+
+    /* Labels de contraseña */
+    .password-fields .form-group label {
+        color: var(--globalColorTextLight, #ffffff) !important;
+    }
+
+    /* Inputs en modo oscuro */
+    #name, #last_name, #email, #dni, #birth, #phone, #phone2, #address {
+        background-color: var(--globalColorInputBackground, var(--managementColorInputSearch));
+        border-color: var(--globalColorBorderInput, var(--managementFieldsBorder));
+        color: var(--globalColorTextLight, #ffffff);
+    }
+
+    /* Selects en modo oscuro */
+    .settings-item select {
+        background-color: var(--globalColorInputBackground, var(--managementColorInputSearch));
+        border-color: var(--globalColorBorderInput, var(--managementFieldsBorder));
+        color: var(--globalColorTextLight, #ffffff);
+    }
+    
+    .settings-item select option {
+        background-color: var(--globalColorInputBackground, var(--managementColorInputSearch));
+        color: var(--globalColorTextLight, #ffffff);
+    }
+    
+    /* Contraseñas en modo oscuro */
+    .password-fields ::ng-deep .p-password input {
+        background-color: var(--globalColorInputBackground, var(--managementColorInputSearch));
+        border-color: var(--globalColorBorderInput, var(--managementFieldsBorder));
+        color: var(--globalColorTextLight, #ffffff);
+    }
 }

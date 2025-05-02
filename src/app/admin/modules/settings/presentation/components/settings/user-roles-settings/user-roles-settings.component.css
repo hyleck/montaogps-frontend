@@ -51,7 +51,8 @@
     font-size: 12px;
     display: block;
     margin-bottom: 5px;
-    color: var(--userRolesText);
+    color: var(--globalColorTextDark, #1f1f1f);
+    font-weight: 500;
 }
 
 .form-group input,
@@ -435,5 +436,72 @@ button {
 :host ::ng-deep .small-text-table .p-datatable-tbody > tr > td {
     font-size: 0.875rem;
     padding: 0.5rem 0.75rem;
+}
+
+/* Estilos específicos para los campos name y description */
+#name, #description {
+    background-color: var(--globalColorInputBackground, var(--userRolesBackground));
+    border: 1px solid var(--globalColorBorderInput, var(--managementFieldsBorder));
+    color: var(--globalColorTextInput, var(--userRolesText));
+    font-size: 0.9rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+#name:focus, #description:focus {
+    border-color: var(--globalColorBorderHover, #ff5050);
+    box-shadow: 0 0 0 2px rgba(255, 80, 80, 0.25);
+}
+
+/* Estilo para destacar los campos en modo oscuro */
+@media (prefers-color-scheme: dark) {
+    #name, #description {
+        border-width: 1px;
+        border-style: solid;
+        transition: all 0.2s ease;
+        background-color: var(--globalColorInputBackground, #3a3a3a);
+        border-color: var(--globalColorBorderInput, #555555);
+    }
+
+    #name:focus, #description:focus {
+        border-color: var(--globalColorBorderHover, #ff5050);
+        box-shadow: 0 0 0 2px rgba(255, 80, 80, 0.25);
+    }
+
+    .form-group label[for="name"],
+    .form-group label[for="description"] {
+        color: #e0e0e0;
+        font-weight: 500;
+        margin-bottom: 6px;
+    }
+}
+
+/* Asegurarse que los labels sean visibles en ambos modos */
+@media (prefers-color-scheme: light) {
+    .form-group label {
+        color: var(--globalColorTextDark, #1f1f1f) !important;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .form-group label {
+        color: var(--globalColorTextLight, #ffffff) !important;
+    }
+}
+
+/* Estilos específicos para los labels de nombre y descripción */
+label[for="name"],
+label[for="description"] {
+    color: var(--globalColorTextDark, #1f1f1f) !important;
+    font-weight: 500;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+    label[for="name"],
+    label[for="description"] {
+        color: var(--globalColorTextLight, #ffffff) !important;
+    }
 }
 

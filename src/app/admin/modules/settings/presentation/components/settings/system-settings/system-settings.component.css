@@ -37,6 +37,36 @@
     box-shadow: 0 1px 3px var(--globalColorShadow);
 }
 
+/* Estilo para destacar los campos en modo oscuro */
+@media (prefers-color-scheme: dark) {
+    .input-styled,
+    .form-group input,
+    select.input-styled,
+    :host ::ng-deep .p-dropdown {
+        border-width: 1px;
+        border-style: solid;
+        transition: all 0.2s ease;
+    }
+
+    .input-styled:focus,
+    .form-group input:focus,
+    select.input-styled:focus,
+    :host ::ng-deep .p-dropdown:not(.p-disabled).p-focus {
+        border-color: var(--globalColorBorderHover);
+        box-shadow: 0 0 0 2px rgba(255, 80, 80, 0.25);
+    }
+
+    .form-group label {
+        color: #e0e0e0;
+        font-weight: 500;
+        margin-bottom: 6px;
+    }
+
+    .config-card {
+        border-color: var(--globalColorBorderLight);
+    }
+}
+
 .general-card {
     background: linear-gradient(to right, var(--globalColorBackground), var(--globalColorBackground));
     border-left: 4px solid var(--globalColorAccent);
@@ -102,6 +132,7 @@
     background-color: var(--globalColorInputBackground);
     color: var(--globalColorTextInput);
     font-size: 0.9rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .form-group input:focus {
@@ -194,6 +225,14 @@
     background-color: var(--globalColorInputBackground);
     color: var(--globalColorTextInput);
     font-size: 0.9rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.input-styled:focus {
+    border-color: var(--globalColorBorderHover);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--globalColorInputFocusShadow);
+    /* background-color: var(--globalColorInputBackgroundFocus); */
 }
 
 /* Contact and download lists */
@@ -402,49 +441,6 @@
     margin-top: 20px;
 }
 
-.input-styled:focus {
-    border-color: var(--globalColorBorderHover);
-    outline: none;
-    box-shadow: 0 0 0 2px var(--globalColorInputFocusShadow);
-    /* background-color: var(--globalColorInputBackgroundFocus); */
-}
-
-/* Responsive adjustments */
-@media (max-width: 992px) {
-    .config-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .span-2-cols {
-        grid-column: auto;
-    }
-    
-    .form-row {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .flex-grow {
-        width: 100%;
-    }
-}
-
-@media (max-width: 576px) {
-    :host ::ng-deep .small-dialog .p-dialog {
-        min-width: 300px;
-    }
-}
-
-/* Modal sizes */
-:host ::ng-deep .small-dialog .p-dialog {
-    max-width: 500px;
-    min-width: 400px;
-}
-
-:host ::ng-deep .small-dialog .p-dialog-content {
-    padding: 1rem;
-}
-
 /* Ajustar el estilo del texto de ayuda */
 .input-hint {
     display: block;
@@ -495,6 +491,7 @@
     background-color: var(--globalColorInputBackground);
     border: 1px solid var(--globalColorBorderInput);
     border-radius: 4px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 :host ::ng-deep .p-dropdown:not(.p-disabled).p-focus {
@@ -512,6 +509,7 @@
     background-color: var(--globalColorBackground);
     border: 1px solid var(--globalColorBorderInput);
     border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 :host ::ng-deep .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
@@ -550,4 +548,40 @@ select.input-styled option {
     background-color: var(--globalColorBackground);
     color: var(--globalColorTextDark);
     padding: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .config-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .span-2-cols {
+        grid-column: auto;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .flex-grow {
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    :host ::ng-deep .small-dialog .p-dialog {
+        min-width: 300px;
+    }
+}
+
+/* Modal sizes */
+:host ::ng-deep .small-dialog .p-dialog {
+    max-width: 500px;
+    min-width: 400px;
+}
+
+:host ::ng-deep .small-dialog .p-dialog-content {
+    padding: 1rem;
 }

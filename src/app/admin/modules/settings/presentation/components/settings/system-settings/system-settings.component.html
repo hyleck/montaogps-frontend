@@ -1,4 +1,3 @@
-
 <div class="system-settings">
   
     <form (ngSubmit)="onSubmit()" class="system-settings__form" ngNativeValidate>
@@ -53,13 +52,16 @@
           <h3 class="config-card-title">{{ 'settings.system.sim_api1' | translate }}</h3>
           <div class="config-card-content">
             <div class="form-group">
-              <input [(ngModel)]="form.sim_api1.name" name="sim1_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
+              <label for="sim1_name">{{ 'settings.system.api_name' | translate }}</label>
+              <input [(ngModel)]="form.sim_api1.name" name="sim1_name" id="sim1_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
             </div>
             <div class="form-group">
-              <input [(ngModel)]="form.sim_api1.url" name="sim1_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
+              <label for="sim1_url">{{ 'settings.system.api_url' | translate }}</label>
+              <input [(ngModel)]="form.sim_api1.url" name="sim1_url" id="sim1_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
             </div>
             <div class="form-group">
-              <input [(ngModel)]="form.sim_api1.key" name="sim1_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+              <label for="sim1_key">{{ 'settings.system.api_key' | translate }}</label>
+              <input [(ngModel)]="form.sim_api1.key" name="sim1_key" id="sim1_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
             </div>
           </div>
         </div>
@@ -69,13 +71,16 @@
           <h3 class="config-card-title">{{ 'settings.system.sim_api2' | translate }}</h3>
           <div class="config-card-content">
             <div class="form-group">
-              <input [(ngModel)]="form.sim_api2.name" name="sim2_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
+              <label for="sim2_name">{{ 'settings.system.api_name' | translate }}</label>
+              <input [(ngModel)]="form.sim_api2.name" name="sim2_name" id="sim2_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
             </div>
             <div class="form-group">
-              <input [(ngModel)]="form.sim_api2.url" name="sim2_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
+              <label for="sim2_url">{{ 'settings.system.api_url' | translate }}</label>
+              <input [(ngModel)]="form.sim_api2.url" name="sim2_url" id="sim2_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
             </div>
             <div class="form-group">
-              <input [(ngModel)]="form.sim_api2.key" name="sim2_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+              <label for="sim2_key">{{ 'settings.system.api_key' | translate }}</label>
+              <input [(ngModel)]="form.sim_api2.key" name="sim2_key" id="sim2_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
             </div>
           </div>
         </div>
@@ -85,13 +90,16 @@
           <h3 class="config-card-title">{{ 'settings.system.map_api1' | translate }}</h3>
           <div class="config-card-content">
             <div class="form-group">
-              <input [(ngModel)]="form.map_api1.name" name="map1_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
+              <label for="map1_name">{{ 'settings.system.api_name' | translate }}</label>
+              <input [(ngModel)]="form.map_api1.name" name="map1_name" id="map1_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
             </div>
             <div class="form-group">
-              <input [(ngModel)]="form.map_api1.url" name="map1_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
+              <label for="map1_url">{{ 'settings.system.api_url' | translate }}</label>
+              <input [(ngModel)]="form.map_api1.url" name="map1_url" id="map1_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
             </div>
             <div class="form-group">
-              <input [(ngModel)]="form.map_api1.key" name="map1_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+              <label for="map1_key">{{ 'settings.system.api_key' | translate }}</label>
+              <input [(ngModel)]="form.map_api1.key" name="map1_key" id="map1_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
             </div>
           </div>
         </div>
@@ -101,13 +109,16 @@
           <h3 class="config-card-title">{{ 'settings.system.map_api2' | translate }}</h3>
           <div class="config-card-content">
             <div class="form-group">
-              <input [(ngModel)]="form.map_api2.name" name="map2_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
+              <label for="map2_name">{{ 'settings.system.api_name' | translate }}</label>
+              <input [(ngModel)]="form.map_api2.name" name="map2_name" id="map2_name" placeholder="{{'settings.system.api_name'|translate}}" class="input-styled" />
             </div>
             <div class="form-group">
-              <input [(ngModel)]="form.map_api2.url" name="map2_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
+              <label for="map2_url">{{ 'settings.system.api_url' | translate }}</label>
+              <input [(ngModel)]="form.map_api2.url" name="map2_url" id="map2_url" placeholder="{{'settings.system.api_url'|translate}}" class="input-styled" />
             </div>
             <div class="form-group">
-              <input [(ngModel)]="form.map_api2.key" name="map2_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+              <label for="map2_key">{{ 'settings.system.api_key' | translate }}</label>
+              <input [(ngModel)]="form.map_api2.key" name="map2_key" id="map2_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
             </div>
           </div>
         </div>

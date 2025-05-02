@@ -74,7 +74,7 @@ export const globalPalette = {
         globalColorBackground: "#2c2c2c",
         globalColorBackgroundLight: "#ff5050",
         globalColorInfoContactBackground: "#444444",
-        globalColorInputBackground: "#2f2f2f",
+        globalColorInputBackground: "#3a3a3a",
         globalColorSelectOption: "rgb(155, 155, 155)",
         globalColorTransparent: "rgba(0, 0, 0, 0)",
         globalColorPrimaryDarkEnd: "#292929",
@@ -91,9 +91,9 @@ export const globalPalette = {
         globalColorTextInput: "#ffffff",
 
         /* globalColores de borde */
-        globalColorBorderInput: "#313131",
-        globalColorBorderLight: "rgba(0, 0, 0, 0)",
-        globalColorBorderDark: "#414141",
+        globalColorBorderInput: "#555555",
+        globalColorBorderLight: "#444444",
+        globalColorBorderDark: "#565656",
         globalColorBorderHover: "#ff5050",
         globalColorBorderTransparent: "rgba(255, 255, 255, 0.124)",
 
@@ -101,18 +101,18 @@ export const globalPalette = {
         globalColorHighlight: "#ff7070",
         globalColorAccent: "#cf3f3f",
         globalColorSecondaryDark: "#2f2f2f",
-        globalColorCardBorderLight: "#525252",
-        globalColorCardBorderHover: "#d6d6d6",
+        globalColorCardBorderLight: "#555555",
+        globalColorCardBorderHover: "#e6e6e6",
         globalColorCardHighlight: "#d16f6f",
         globalColorCardBackground: "#333333",
         globalColorInputBorderAccent: "#ff7070",
-        globalColorIconMuted: "rgba(255, 255, 255, 0.3)",
+        globalColorIconMuted: "rgba(255, 255, 255, 0.5)",
         globalColorIconDark: "#ffffff",
 
         /* Otros */
-        globalColorShadow: "rgba(0, 0, 0, 0.1)",
+        globalColorShadow: "rgba(0, 0, 0, 0.3)",
         globalColorShadowInfoContact: "rgba(255, 255, 255, 0.15)",
-        globalColorBackgroundDark: "#131313",
+        globalColorBackgroundDark: "#1e1e1e",
         globalColorScrollThumb: "#ff5050",
         backgroundCheckBox: "#2f2f2f",
         globalGreen: "#15f915"
