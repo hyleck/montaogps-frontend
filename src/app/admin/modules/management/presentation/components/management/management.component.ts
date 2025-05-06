@@ -99,13 +99,14 @@ export class ManagementComponent {
             this.userService.getAll(user._id).subscribe({
               next: (users) => {
                 this.users = users;
+                this.loading = false;
               },
               error: (error) => {
                 console.error('Error al cargar usuarios:', error);
               }
             });
             
-            this.loading = false;
+            
           })
           .catch(() => {
             this.loading = false;
@@ -189,6 +190,36 @@ export class ManagementComponent {
     this.status.setState('management_show_maps', { showMaps: !this.showMaps });
   }
 
+  // Método para navegar al usuario padre
+  goToParent() {
+    if (!this.selectedUser) return;
+
+    // Verificar si el usuario actual tiene parent_id usando acceso con casting
+    const parentId = (this.selectedUser as any).parent_id;
+    if (!parentId) {
+      console.log('El usuario actual no tiene padre definido');
+      return;
+    }
+
+    // Mostrar skeletons inmediatamente
+    this.loading = true;
+    
+    console.log('Navegando al usuario padre:', parentId);
+    
+    // Establecer el ID del padre como usuario actual
+    this.managementService.setCurrentUserId(parentId);
+    
+    // Navegar al usuario padre
+    this.managementService.setOp('u', parentId);
+  }
+
+  // Método para verificar si se puede navegar hacia atrás
+  canNavigateBack(): boolean {
+    if (!this.selectedUser) return false;
+    // Verificar si el usuario tiene parent_id usando acceso con casting
+    return !!(this.selectedUser as any).parent_id;
+  }
+
   searchUser() {
     this.managementService.setSearchUsersTerm(this.searchUsersTerm);
     this.managementService.searchUser();
@@ -201,6 +232,9 @@ export class ManagementComponent {
 
   enterUser(user: User) {
     if (!user || !user._id) return;
+    
+    // Mostrar skeletons inmediatamente
+    this.loading = true;
     
     console.log('Entrando al usuario:', user.name, user._id);
     
@@ -223,13 +257,13 @@ export class ManagementComponent {
           next: (users) => {
             this.users = users;
             console.log('Usuarios cargados:', users.length);
+            this.loading = false;
           },
           error: (error) => {
             console.error('Error al cargar usuarios:', error);
+            this.loading = false;
           }
         });
-        
-        this.loading = false;
       })
       .catch(() => {
         this.loading = false;

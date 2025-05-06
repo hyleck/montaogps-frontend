@@ -1,12 +1,19 @@
 <div class="system-settings">
+  <p-toast></p-toast>
   
-    <form (ngSubmit)="onSubmit()" class="system-settings__form" ngNativeValidate>
+  <div *ngIf="loading" class="loading-container">
+    <p-progressSpinner></p-progressSpinner>
+    <span>{{ 'settings.system.loading' | translate }}</span>
+  </div>
+  
+  <form *ngIf="!loading" (ngSubmit)="onSubmit()" class="system-settings__form" ngNativeValidate>
       <div class="config-grid">
         <!-- Bloque General -->
         <div class="config-card span-2-cols general-card">
           <div class="config-card-content">
-            <div class="form-row">
-              <div class="form-group flex-grow">
+            <div class="header-layout">
+              <!-- Columna izquierda: Logo -->
+              <div class="logo-section">
                 <label for="logo">{{ 'settings.system.logo' | translate }}</label>
                 <div class="logo-container">
                   <div class="logo-preview-wrapper" *ngIf="form.logoPreview">
@@ -27,21 +34,33 @@
                       <i class="pi pi-upload"></i>
                       {{ 'settings.system.upload_logo' | translate }}
                     </label>
-                    <p class="input-hint">{{ 'settings.system.logo_hint' | translate }}</p>
                   </div>
                 </div>
               </div>
-              <div class="form-group flex-grow">
-                <label for="company_name">{{ 'settings.system.company_name' | translate }}</label>
-                <input 
-                  id="company_name" 
-                  type="text" 
-                  [(ngModel)]="form.company_name" 
-                  name="company_name" 
-                  required 
-                  placeholder="{{ 'settings.system.company_name_placeholder' | translate }}" 
-                  class="input-styled" />
-                <p class="input-hint">{{ 'settings.system.company_name_hint' | translate }}</p>
+              
+              <!-- Columna derecha: Nombre de empresa y teléfono -->
+              <div class="company-info-section">
+                <div class="form-group">
+                  <label for="company_name">{{ 'settings.system.company_name' | translate }}</label>
+                  <input 
+                    id="company_name" 
+                    type="text" 
+                    [(ngModel)]="form.company_name" 
+                    name="company_name" 
+                    required 
+                    placeholder="{{ 'settings.system.company_name_placeholder' | translate }}" 
+                    class="input-styled" />
+                </div>
+                <div class="form-group">
+                  <label for="phone">{{ 'settings.system.phone' | translate }}</label>
+                  <input 
+                    id="phone" 
+                    type="text" 
+                    [(ngModel)]="form.phone" 
+                    name="phone" 
+                    placeholder="{{ 'settings.system.phone_placeholder' | translate }}" 
+                    class="input-styled" />
+                </div>
               </div>
             </div>
           </div>
@@ -61,7 +80,7 @@
             </div>
             <div class="form-group">
               <label for="sim1_key">{{ 'settings.system.api_key' | translate }}</label>
-              <input [(ngModel)]="form.sim_api1.key" name="sim1_key" id="sim1_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+              <input [(ngModel)]="form.sim_api1.key" name="sim1_key" id="sim1_key" type="password" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
             </div>
           </div>
         </div>
@@ -80,7 +99,7 @@
             </div>
             <div class="form-group">
               <label for="sim2_key">{{ 'settings.system.api_key' | translate }}</label>
-              <input [(ngModel)]="form.sim_api2.key" name="sim2_key" id="sim2_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+              <input [(ngModel)]="form.sim_api2.key" name="sim2_key" id="sim2_key" type="password" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
             </div>
           </div>
         </div>
@@ -99,7 +118,7 @@
             </div>
             <div class="form-group">
               <label for="map1_key">{{ 'settings.system.api_key' | translate }}</label>
-              <input [(ngModel)]="form.map_api1.key" name="map1_key" id="map1_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+              <input [(ngModel)]="form.map_api1.key" name="map1_key" id="map1_key" type="password" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
             </div>
           </div>
         </div>
@@ -118,7 +137,7 @@
             </div>
             <div class="form-group">
               <label for="map2_key">{{ 'settings.system.api_key' | translate }}</label>
-              <input [(ngModel)]="form.map_api2.key" name="map2_key" id="map2_key" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
+              <input [(ngModel)]="form.map_api2.key" name="map2_key" id="map2_key" type="password" placeholder="{{'settings.system.api_key'|translate}}" class="input-styled" />
             </div>
           </div>
         </div>
@@ -195,8 +214,13 @@
       </div>
   
       <div class="form-actions">
-        <button type="submit" class="config-btn-primary">
-          <i class="pi pi-save"></i> {{ 'settings.system.save' | translate }}
+        <button type="button" class="config-btn-secondary" (click)="fillWithTestData()" *ngIf="!existingSystem">
+          <i class="pi pi-database"></i> 
+          {{ 'settings.system.fill_test_data' | translate }}
+        </button>
+        <button type="submit" class="config-btn-primary" [disabled]="saving">
+          <i class="pi" [ngClass]="saving ? 'pi-spin pi-spinner' : 'pi-save'"></i> 
+          {{ (saving ? 'settings.system.saving' : 'settings.system.save') | translate }}
         </button>
       </div>
     </form>

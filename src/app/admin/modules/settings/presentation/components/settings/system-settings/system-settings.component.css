@@ -53,11 +53,11 @@
     select.input-styled:focus,
     :host ::ng-deep .p-dropdown:not(.p-disabled).p-focus {
         border-color: var(--globalColorBorderHover);
-        box-shadow: 0 0 0 2px rgba(255, 80, 80, 0.25);
+        box-shadow: 0 0 0 2px var(--globalColorInputFocusShadow);
     }
 
     .form-group label {
-        color: #e0e0e0;
+        color: var(--globalColorTextLight);
         font-weight: 500;
         margin-bottom: 6px;
     }
@@ -75,7 +75,7 @@
 
 .general-card:hover {
     box-shadow: 0 4px 12px var(--globalColorShadow);
-    border-color: var(--globalColorCardBorderHover);
+    border-color: var(--globalColorAccent);
 }
 
 .config-card-title {
@@ -132,7 +132,7 @@
     background-color: var(--globalColorInputBackground);
     color: var(--globalColorTextInput);
     font-size: 0.9rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px var(--globalColorShadow);
 }
 
 .form-group input:focus {
@@ -156,7 +156,7 @@
     border: 1px solid var(--globalColorBorderLight);
     border-radius: 6px;
     overflow: hidden;
-    background-color: var(--globalColorFormCardBackground);
+    background-color: var(--globalColorInputBackground);
     min-height: 120px;
     width: 100%;
     align-items: center;
@@ -225,7 +225,7 @@
     background-color: var(--globalColorInputBackground);
     color: var(--globalColorTextInput);
     font-size: 0.9rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px var(--globalColorShadow);
 }
 
 .input-styled:focus {
@@ -398,6 +398,8 @@
 .form-actions {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
     margin-top: 20px;
 }
 
@@ -454,7 +456,7 @@
 :host ::ng-deep .p-dialog {
     background-color: var(--globalColorBackground);
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px var(--globalColorShadow);
 }
 
 :host ::ng-deep .p-dialog .p-dialog-header {
@@ -491,7 +493,7 @@
     background-color: var(--globalColorInputBackground);
     border: 1px solid var(--globalColorBorderInput);
     border-radius: 4px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 2px var(--globalColorShadow);
 }
 
 :host ::ng-deep .p-dropdown:not(.p-disabled).p-focus {
@@ -509,7 +511,7 @@
     background-color: var(--globalColorBackground);
     border: 1px solid var(--globalColorBorderInput);
     border-radius: 4px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 8px var(--globalColorShadow);
 }
 
 :host ::ng-deep .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
@@ -584,4 +586,76 @@ select.input-styled option {
 
 :host ::ng-deep .small-dialog .p-dialog-content {
     padding: 1rem;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    width: 100%;
+}
+
+.loading-container span {
+    margin-top: 1rem;
+    font-size: 1rem;
+    color: var(--text-color);
+}
+
+/* Estilos para el nuevo diseño de dos columnas en sección general */
+.header-layout {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  /* border: 1px solid #ddd; */
+  padding: 15px;
+  border-radius: 5px;
+}
+
+.logo-section {
+  flex: 1;
+  padding: 10px;
+}
+
+.company-info-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  padding: 10px;
+}
+
+.logo-preview-wrapper img {
+  max-width: 100%;
+  max-height: 150px;
+  object-fit: contain;
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 4px;
+  padding: 10px;
+  background-color: var(--globalColorBackground);
+}
+
+.logo-upload {
+  border: 1px dashed var(--globalColorBorderInput);
+  padding: 20px;
+  text-align: center;
+  border-radius: 4px;
+  background-color: var(--globalColorInputBackground);
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Estilos responsivos */
+@media (max-width: 768px) {
+  .header-layout {
+    flex-direction: column;
+  }
+
+  .logo-section, .company-info-section {
+    width: 100%;
+  }
 }

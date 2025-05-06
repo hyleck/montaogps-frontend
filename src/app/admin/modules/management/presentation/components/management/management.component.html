@@ -16,7 +16,7 @@
 
             <div class="management__user-control">
                 <div class="management__user-control-display-button">  <i (click)="showMapsToggle()" class="pi pi-window-maximize"></i></div>
-                <div class="management__user-control-back-button">  <i  class="pi pi-arrow-left"></i></div>
+                <div class="management__user-control-back-button" *ngIf="canNavigateBack()">  <i (click)="goToParent()" class="pi pi-arrow-left"></i></div>
                 <div class="management__user-control-header">
                     <div class="management__user-control-icon">
                         <i class="pi pi-user"></i>
@@ -176,8 +176,8 @@
                     <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( {{ users.length }} )</button>
                     <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( 2 )</button>
                 </div>
-                <div class="management__user-back-button">
-                    <button class="button button--flat"> <i class="pi pi-arrow-left"></i> {{ translations.back | translate }}</button>
+                <div class="management__user-back-button" *ngIf="canNavigateBack()">
+                    <button (click)="goToParent()" class="button button--flat"> <i class="pi pi-arrow-left"></i> {{ translations.back | translate }}</button>
                 </div>
                </div>
 
