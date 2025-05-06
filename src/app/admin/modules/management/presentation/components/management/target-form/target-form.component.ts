@@ -25,6 +25,7 @@ interface TargetDevice {
   gps_model: string;
   ignition_sensor: string;
   shutdown_control: string;
+  installation_details: string;
   status: 'active' | 'inactive';
 }
 
@@ -63,6 +64,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         gpsModel: 'management.targetForm.gpsModel',
         ignitionSensor: 'management.targetForm.ignitionSensor',
         shutdownControl: 'management.targetForm.shutdownControl',
+        installationDetails: 'management.targetForm.installationDetails',
         save: 'management.targetForm.save',
         cancel: 'management.targetForm.cancel'
     };
@@ -79,6 +81,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     availableGpsModels: { label: string, value: string }[] = [];
     availableLocations: { label: string, value: string }[] = [];
     availableColors: { label: string, value: string }[] = [];
+    availableSimCardTypes: { label: string, value: string }[] = [];
     filteredColors: { label: string, value: string }[] = [];
     
     constructor(
@@ -124,6 +127,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             gps_model: '',
             ignition_sensor: '',
             shutdown_control: '',
+            installation_details: '',
             status: 'active'
         };
     }
@@ -131,6 +135,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     ngOnInit() {
         this.loadInitialData();
         this.target = this.getEmptyTarget();
+        this.target.api_id = '';
         this.activeTabIndex = 0;
     }
 
@@ -179,6 +184,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             { label: 'Beige', value: '#F5F5DC' }
         ];
         
+        this.availableSimCardTypes = [
+            { label: 'Nacionales', value: 'nacionales' },
+            { label: 'Global-E', value: 'global-e' },
+            { label: 'Global-M', value: 'global-m' }
+        ];
+        
         this.filteredColors = [...this.availableColors];
     }
 
@@ -196,6 +207,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     private setupEditTarget(target: TargetDevice) {
         // Rellenar el formulario con los datos del objetivo a editar
         this.target = JSON.parse(JSON.stringify(target));
+        this.target.api_id = target.api_id || '';
         this.target.installation_date = this.formatDateToInput(target.installation_date);
         this.target.expiration_date = this.formatDateToInput(target.expiration_date);
         this.activeTabIndex = 0;
@@ -211,6 +223,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
 
     private resetForm() {
         this.target = this.getEmptyTarget();
+        this.target.api_id = '';
         this.activeTabIndex = 0;
         this.displayColorName = '';
         // No modificamos showColorOptions ya que queremos que siempre esté visible

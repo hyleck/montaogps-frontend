@@ -203,13 +203,16 @@
 
                                         <div class="target-form__field">
                                             <label for="api_id">{{ translate(translations.apiId) }}</label>
-                                            <input 
+                                            <select
                                                 [(ngModel)]="target.api_id"
                                                 name="api_id"
-                                                placeholder="Ej: API12345" 
-                                                type="text" 
                                                 id="api_id"
                                             >
+                                                <option value="">{{ translate('management.targetForm.selectSimCardType') }}</option>
+                                                <option *ngFor="let simType of availableSimCardTypes" [value]="simType.value">
+                                                    {{simType.label}}
+                                                </option>
+                                            </select>
                                         </div>
 
                                         <div class="target-form__field">
@@ -224,6 +227,37 @@
                                             >
                                         </div>
 
+                                   
+
+                                        <div class="target-form__field">
+                                            <label for="gps_model">{{ translate(translations.gpsModel) }}</label>
+                                            <select
+                                                [(ngModel)]="target.gps_model"
+                                                name="gps_model"
+                                                id="gps_model"
+                                            >
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectGpsModel') }}</option>
+                                                <option *ngFor="let model of availableGpsModels" [value]="model.value">
+                                                    {{model.label}}
+                                                </option>
+                                            </select>
+                                        </div>
+
+
+                                        <div class="target-form__field">
+                                            <label for="installation_details">{{ translate(translations.installationDetails) }}</label>
+                                            <textarea 
+                                                [(ngModel)]="target.installation_details"
+                                                name="installation_details"
+                                                placeholder="Detalles técnicos de la instalación" 
+                                                id="installation_details"
+                                                rows="3"
+                                            ></textarea>
+                                        </div>
+                                    </div>
+
+                                    <!-- Columna Derecha -->
+                                    <div class="target-form__column">
                                         <div class="target-form__field">
                                             <label for="installation_date">{{ translate(translations.installationDate) }}</label>
                                             <input
@@ -242,23 +276,6 @@
                                                 type="date"
                                                 id="expiration_date"
                                             >
-                                        </div>
-                                    </div>
-
-                                    <!-- Columna Derecha -->
-                                    <div class="target-form__column">
-                                        <div class="target-form__field">
-                                            <label for="gps_model">{{ translate(translations.gpsModel) }}</label>
-                                            <select
-                                                [(ngModel)]="target.gps_model"
-                                                name="gps_model"
-                                                id="gps_model"
-                                            >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectGpsModel') }}</option>
-                                                <option *ngFor="let model of availableGpsModels" [value]="model.value">
-                                                    {{model.label}}
-                                                </option>
-                                            </select>
                                         </div>
 
                                         <div class="target-form__field">
@@ -298,6 +315,8 @@
                                                 <option value="no">{{ translate('management.targetForm.no') }}</option>
                                             </select>
                                         </div>
+
+                                     
                                     </div>
                                 </div>
 
