@@ -78,7 +78,9 @@
             </p-tabPanel>
 
             <!-- Pestaña de Configuración -->
-            <p-tabPanel [header]="'profile.settings.title' | translate">
+             <!-- tap personalizado para que abra por defecto   -->
+             <p-tabPanel [header]="'profile.settings.title' | translate" [selected]="true">
+
                 <div class="settings-grid">
                     <div class="settings-item profile-photo-section">
                         <div class="settings-header">

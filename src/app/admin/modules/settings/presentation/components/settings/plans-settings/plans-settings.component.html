@@ -1,0 +1,159 @@
+<div class="user-roles-layout">
+    
+    <!-- Panel lateral izquierdo -->
+    <div class="user-roles-layout__sidebar">
+        <div class="sidebar-content">
+            <h3>{{ (isEditing ? 'settings.plans.edit_plan' : 'settings.plans.new_plan') | translate }}</h3>
+            <form (ngSubmit)="onSubmit()" ngNativeValidate>
+                <div class="form-group">
+                    <label for="plan_name">{{ 'settings.plans.plan_name' | translate }}</label>
+                    <input id="plan_name" type="text" [(ngModel)]="planForm.plan_name" name="plan_name" required 
+                           [placeholder]="'settings.plans.plan_name_placeholder' | translate">
+                </div>
+                <div class="form-group">
+                    <label for="plan_description">{{ 'settings.plans.plan_description' | translate }}</label>
+                    <textarea id="plan_description" [(ngModel)]="planForm.plan_description" name="plan_description" rows="3" 
+                            [placeholder]="'settings.plans.plan_description_placeholder' | translate"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="server_id">{{ 'settings.plans.server_id' | translate }}</label>
+                    <select id="server_id" [(ngModel)]="planForm.server_id" name="server_id" required class="form-select">
+                        <option value="" disabled selected>{{ 'settings.plans.server_placeholder' | translate }}</option>
+                        <option *ngFor="let server of servers" [value]="server._id">{{ server.name }}</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" [(ngModel)]="planForm.recommended" id="recommended" name="recommended">
+                        <label for="recommended">{{ 'settings.plans.recommended' | translate }}</label>
+                    </div>
+                </div>
+
+                <div class="prices-section">
+                    <h4>{{ 'settings.plans.prices' | translate }}</h4>
+                    <div class="price-form">
+                        <div class="price-form-row">
+                            <div class="form-group">
+                                <label for="amount">{{ 'settings.plans.price_amount' | translate }}</label>
+                                <input id="amount" type="number" [(ngModel)]="priceForm.amount" name="amount" min="0" step="0.01" 
+                                    [placeholder]="'settings.plans.price_amount_placeholder' | translate">
+                            </div>
+                            <div class="form-group">
+                                <label for="payment_period">{{ 'settings.plans.price_interval' | translate }}</label>
+                                <select id="payment_period" [(ngModel)]="priceForm.payment_period" name="payment_period" class="form-select">
+                                    <option *ngFor="let period of availablePaymentPeriods" [value]="period">{{ 'settings.plans.' + period | translate }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="button" class="button-secondary add-price-btn" (click)="addPrice()">
+                            <i class="pi pi-plus"></i>
+                            {{ 'settings.plans.add_price' | translate }}
+                        </button>
+                    </div>
+                    
+                    <div class="prices-list" *ngIf="planForm.prices.length > 0">
+                        <div class="price-item" *ngFor="let price of planForm.prices; let i = index">
+                            <span>{{ price.amount }} ({{ 'settings.plans.' + price.payment_period | translate }})</span>
+                            <button type="button" class="button-action button-danger" (click)="removePrice(i)">
+                                <i class="pi pi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="features-section">
+                    <h4>{{ 'settings.plans.features' | translate }}</h4>
+                    <div class="feature-form">
+                        <div class="form-group">
+                            <label for="feature_name">{{ 'settings.plans.feature_name' | translate }}</label>
+                            <input id="feature_name" type="text" [(ngModel)]="featureForm.name" name="feature_name" 
+                                [placeholder]="'settings.plans.feature_name_placeholder' | translate">
+                        </div>
+                        <div class="form-group">
+                            <label for="feature_description">{{ 'settings.plans.feature_description' | translate }}</label>
+                            <input id="feature_description" type="text" [(ngModel)]="featureForm.description" name="feature_description" 
+                                [placeholder]="'settings.plans.feature_description_placeholder' | translate">
+                        </div>
+                        <button type="button" class="button-secondary add-feature-btn" (click)="addFeature()">
+                            <i class="pi pi-plus"></i>
+                            {{ 'settings.plans.add_feature' | translate }}
+                        </button>
+                    </div>
+                    
+                    <div class="features-list" *ngIf="planForm.plan_features.length > 0">
+                        <div class="feature-item" *ngFor="let feature of planForm.plan_features; let i = index">
+                            <div class="feature-content">
+                                <div class="feature-name" title="{{ feature.description }}">{{ feature.name }}</div>
+                            </div>
+                            <button type="button" class="button-action button-danger" (click)="removeFeature(i)">
+                                <i class="pi pi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="button-primary">
+                        <i class="pi pi-save"></i>
+                        {{ (isEditing ? 'settings.plans.update' : 'settings.plans.create') | translate }}
+                    </button>
+                    <button type="button" *ngIf="isEditing" class="button-secondary" (click)="cancelEdit()">
+                        <i class="pi pi-times"></i>
+                        {{ 'settings.plans.cancel' | translate }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="user-roles-layout__main">
+        <div class="main-content">
+            <h2>{{ 'settings.plans.plans_list' | translate }}</h2>
+            
+            <!-- Spinner de carga -->
+            <div *ngIf="loading" class="loading-container">
+                <div class="spinner"></div>
+                <p>{{ 'settings.plans.loading' | translate }}</p>
+            </div>
+
+            <!-- Tabla de planes -->
+            <div *ngIf="!loading" class="table-container">
+                <table class="plans-table">
+                    <thead>
+                        <tr>
+                            <th>{{ 'settings.plans.table.name' | translate }}</th>
+                            <th>{{ 'settings.plans.table.recommended' | translate }}</th>
+                            <th>{{ 'settings.plans.table.actions' | translate }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let plan of plans">
+                            <td>{{plan.plan_name}}</td>
+                            <td>
+                                <span class="plan-status" [ngClass]="{'status-recommended': plan.recommended, 'status-standard': !plan.recommended}">
+                                    {{ (plan.recommended ? 'settings.plans.status_recommended' : 'settings.plans.status_standard') | translate }}
+                                </span>
+                            </td>
+                            <td>
+                                <button type="button" class="button-action button-success" (click)="editPlan(plan)">
+                                    <i class="pi pi-pencil"></i>
+                                </button>
+                                <button type="button" class="button-action button-danger" (click)="deletePlan(plan)">
+                                    <i class="pi pi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr *ngIf="plans.length === 0">
+                            <td colspan="5" class="text-center p-4">{{ 'settings.plans.no_plans' | translate }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<p-toast></p-toast>
+<p-confirmDialog></p-confirmDialog>

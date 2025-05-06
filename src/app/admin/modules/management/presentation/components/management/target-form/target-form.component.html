@@ -1,306 +1,416 @@
 <div class="main">
     <div class="target-form">
-      
         <div class="target-form__tools">
             <div class="card">
-                <p-tabView>
-                    <p-tabPanel header="Vehículo">
+                <p-tabView
+                    [activeIndex]="activeTabIndex"
+                    (activeIndexChange)="activeTabIndex = $event"
+                >
+                    <p-tabPanel>
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-car"></i>
+                            <span class="tab-text">{{ translate(translations.vehicleInfo) }}</span>
+                        </ng-template>
                         <div class="target-form__base">
-                            <form class="target-form__form">
-                                <div class="target-form__field">
-                                    <label for="brand">Marca</label>
-                                    <select name="brand" id="brand" title="Seleccione la marca del vehículo">
-                                        <option value="">Option 1</option>
-                                        <option value="">Option 2</option>
-                                        <option value="">Option 3</option>
-                                    </select>
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="model">Modelo</label>
-                                    <select name="model" id="model" title="Seleccione el modelo del vehículo">
-                                        <option value="">Option 1</option>
-                                        <option value="">Option 2</option>
-                                        <option value="">Option 3</option>
-                                    </select>
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="year">Año</label>
-                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
-                                        <option value="">Option 1</option>
-                                        <option value="">Option 2</option>
-                                        <option value="">Option 3</option>
-                                    </select>
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="chassis">Chasis</label>
-                                    <input 
-                                        placeholder="Ej: 1HGCM82633A123456" 
-                                        type="text" 
-                                        id="chassis" 
-                                        title="Ingrese el número de chasis (VIN) del vehículo"
-                                    >
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="plate">Placa</label>
-                                    <input 
-                                        placeholder="Ej: G123456" 
-                                        type="text" 
-                                        id="plate" 
-                                        title="Ingrese el número de placa o matrícula del vehículo"
-                                    >
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="name">Nombre / Ficha</label>
-                                    <input 
-                                        placeholder="Ej: Ford 2018" 
-                                        type="text" 
-                                        id="name" 
-                                        title="Ingrese un nombre o descripción breve para identificar el vehículo"
-                                    >
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="color">Color</label>
-                                    <input 
-                                        placeholder="Ej: rojo" 
-                                        type="text" 
-                                        id="color" 
-                                        title="Ingrese el color del vehículo"
-                                    >
-                                </div>
-                
-                                <div class="target-form__field">
-                                    <label for="color">...</label>
-                                  <div class="target-form__field-colors">
-                                    <div *ngFor="let color of [1,2,3,4,5,6,5,6,4,5,2]" class="target-form__field-color"></div>
-                                  </div>
-                                </div>
-                
-                                <div class="target-form__field">
-                                  <button class="button button--primary-flat"> <i class="pi pi-save"></i> Guardar</button>
-                                </div>
-                            </form>
-                            
-                        </div>
-                    </p-tabPanel>
-                    <p-tabPanel header="Instalación">
-                        <div class="target-form__base">
-                            <form class="target-form__form">
-                                <div class="target-form__field">
-                                    <label for="chassis">GPS ID</label>
-                                    <input 
-                                        placeholder="Ej: 541351324534515" 
-                                        type="text" 
-                                        id="chassis" 
-                                        title="Ingrese el número de chasis (VIN) del vehículo"
-                                    >
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="chassis">No. Tarjeta SIM</label>
-                                    <input 
-                                        placeholder="Ej: 541351324534515" 
-                                        type="text" 
-                                        id="chassis" 
-                                        title="Ingrese el número de chasis (VIN) del vehículo"
-                                    >
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="chassis">Fecha de Instalación</label>
-                                    <input 
-                                        placeholder="Ej: 541351324534515" 
-                                        type="date" 
-                                        id="chassis" 
-                                        title="Ingrese el número de chasis (VIN) del vehículo"
-                                    >
-                                </div>
-                            
+                            <form class="target-form__form" (ngSubmit)="onSubmit()" ngNativeValidate>
+                                <div class="target-form__grid">
+
+                                    <!-- Columna Izquierda -->
+                                    <div class="target-form__column">
+                                        <div class="target-form__field">
+                                            <label for="name">{{ translate(translations.name) }} <span class="required-label">(Requerido)</span></label>
+                                            <input 
+                                                [(ngModel)]="target.name"
+                                                name="name"
+                                                placeholder="Ej: Ford Explorer 2021" 
+                                                type="text" 
+                                                id="name" 
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="brand">{{ translate(translations.brand) }} <span class="required-label">(Requerido)</span></label>
+                                            <select
+                                                [(ngModel)]="target.brand"
+                                                name="brand"
+                                                id="brand"
+                                                required
+                                                (change)="onBrandChange()"
+                                            >
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectBrand') }}</option>
+                                                <option *ngFor="let brand of availableBrands" [value]="brand.value">
+                                                    {{brand.label}}
+                                                </option>
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="model">{{ translate(translations.model) }} <span class="required-label">(Requerido)</span></label>
+                                            <select
+                                                [(ngModel)]="target.model"
+                                                name="model"
+                                                id="model"
+                                                required
+                                            >
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectModel') }}</option>
+                                                <option *ngFor="let model of availableModels" [value]="model.value">
+                                                    {{model.label}}
+                                                </option>
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="year">{{ translate(translations.year) }}</label>
+                                            <select
+                                                [(ngModel)]="target.year"
+                                                name="year"
+                                                id="year"
+                                            >
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectYear') }}</option>
+                                                <option *ngFor="let year of availableYears" [value]="year.value">
+                                                    {{year.label}}
+                                                </option>
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="status">{{ translate('management.targetForm.status') }}</label>
+                                            <select
+                                                [(ngModel)]="target.status"
+                                                name="status"
+                                                id="status"
+                                            >
+                                                <option value="active">{{ translate('management.targetForm.statusActive') }}</option>
+                                                <option value="inactive">{{ translate('management.targetForm.statusInactive') }}</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="description">{{ translate(translations.description) }}</label>
+                                            <textarea 
+                                                [(ngModel)]="target.description"
+                                                name="description"
+                                                placeholder="Ej: Vehículo de flota para entregas" 
+                                                id="description"
+                                                rows="3"
+                                            ></textarea>
+                                        </div>
+                                    </div>
+
+                                    <!-- Columna Derecha -->
+                                    <div class="target-form__column">
+                                        <div class="target-form__field">
+                                            <label for="plate">{{ translate(translations.plate) }} <span class="required-label">(Requerido)</span></label>
+                                            <input 
+                                                [(ngModel)]="target.plate"
+                                                name="plate"
+                                                placeholder="Ej: G123456" 
+                                                type="text" 
+                                                id="plate" 
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="chassis">{{ translate(translations.chassis) }}</label>
+                                            <input 
+                                                [(ngModel)]="target.chassis"
+                                                name="chassis"
+                                                placeholder="Ej: 1HGCM82633A123456" 
+                                                type="text" 
+                                                id="chassis"
+                                            >
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="color">{{ translate(translations.color) }}</label>
+                                            <input 
+                                                [(ngModel)]="displayColorName"
+                                                name="colorDisplay"
+                                                id="color"
+                                                placeholder="{{ translate('management.targetForm.selectColor') }}"
+                                                type="text"
+                                                (input)="filterColors($event)"
+                                            >
+                                            <input 
+                                                [(ngModel)]="target.color"
+                                                name="color"
+                                                type="hidden"
+                                            >
+                                            <div class="color-container">
+                                                <div class="color-options">
+                                                    <div class="color-header">
+                                                        <span>Colores disponibles</span>
+                                                        <button type="button" class="close-btn" style="visibility: hidden;">
+                                                            <i class="pi pi-times"></i>
+                                                        </button>
+                                                    </div>
+                                                    <div class="color-list">
+                                                        <div 
+                                                            *ngFor="let color of filteredColors" 
+                                                            class="color-option" 
+                                                            [attr.data-value]="color.value"
+                                                            [class.selected]="color.value === target.color"
+                                                            (click)="selectColor(color)"
+                                                        >
+                                                            <div class="color-swatch" [style.background-color]="color.value"></div>
+                                                            <span>{{color.label}}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                   
+
                                 
-                            
-                                <div class="target-form__field">
-                                    <label for="chassis">Fecha de expiración</label>
-                                    <input 
-                                        placeholder="Ej: 541351324534515" 
-                                        type="date" 
-                                        id="chassis" 
-                                        title="Ingrese el número de chasis (VIN) del vehículo"
-                                    >
+                                    </div>
                                 </div>
 
-                                <div class="target-form__field">
-                                    <label for="year">Modelo de GPS</label>
-                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
-                                        <option value="">Option 1</option>
-                                        <option value="">Option 2</option>
-                                        <option value="">Option 3</option>
-                                    </select>
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="year">Lugar de instalación</label>
-                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
-                                        <option value="">Option 1</option>
-                                        <option value="">Option 2</option>
-                                        <option value="">Option 3</option>
-                                    </select>
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="year">Sensor de encendido</label>
-                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
-                                        <option value="">Option 1</option>
-                                        <option value="">Option 2</option>
-                                        <option value="">Option 3</option>
-                                    </select>
-                                </div>
-
-                                <div class="target-form__field">
-                                    <label for="year">Control de apagado</label>
-                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
-                                        <option value="">Option 1</option>
-                                        <option value="">Option 2</option>
-                                        <option value="">Option 3</option>
-                                    </select>
-                                </div>
-                
-                
-                                <div class="target-form__field">
-                                  <button class="button button--primary-flat"> <i class="pi pi-save"></i> Guardar</button>
-                                </div>
-                            </form>
-                            
-                        </div>
-                    </p-tabPanel>
-                    <p-tabPanel header="Procesos">
-                      <div class="process">
-                        <div class="process__form">
-                            <form class="process__form-main">
-                                <div class="target-form__field">
-                                    <label for="year">Tipo de proceso</label>
-                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
-                                        <option value="">Option 1</option>
-                                        <option value="">Option 2</option>
-                                        <option value="">Option 3</option>
-                                    </select>
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="year">Fecha</label>
-                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
-                                        <option value="">Option 1</option>
-                                        <option value="">Option 2</option>
-                                        <option value="">Option 3</option>
-                                    </select>
-                                </div>
-                            
-                                <div class="target-form__field">
-                                    <label for="year">Técnico</label>
-                                    <select name="year" id="year" title="Seleccione el año de fabricación del vehículo">
-                                        <option value="">Option 1</option>
-                                        <option value="">Option 2</option>
-                                        <option value="">Option 3</option>
-                                    </select>
-                                </div>
-
-                                <div class="target-form__field">
-                                    <label for="year">Control de apagado</label>
-                                    <input 
-                                        placeholder="Ej: 541351324534515" 
-                                        type="text" 
-                                        id="chassis" 
-                                        title="Ingrese el número de chasis (VIN) del vehículo"
-                                    >
+                                <div class="target-form__actions">
+                                    <button type="submit">
+                                        <i class="pi pi-save"></i>
+                                        {{ translate(translations.save) }}
+                                    </button>
                                 </div>
                             </form>
                         </div>
-                        <div class="process__logs">
-                            <p-accordion >
-                                <p-accordionTab header="Instalación - 02/05/24">
-                                    <p>
-                                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-                                        consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                                    </p>
-                                </p-accordionTab>
-                                <p-accordionTab header="Cambio de GPS - 02/05/24">
-                                    <p>
-                                        Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim
-                                        ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Consectetur, adipisci velit, sed quia non numquam eius modi.
-                                    </p>
-                                </p-accordionTab>
-                                <p-accordionTab header="Chequeo - 02/05/24">
-                                    <p>
-                                        At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa
-                                        qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus.
-                                    </p>
-                                </p-accordionTab>
-                            </p-accordion>
+                    </p-tabPanel>
+
+                    <p-tabPanel>
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-map-marker"></i>
+                            <span class="tab-text">{{ translate(translations.installationInfo) }}</span>
+                        </ng-template>
+                        <div class="target-form__base">
+                            <form class="target-form__form" (ngSubmit)="onSubmit()" ngNativeValidate>
+                                <div class="target-form__grid">
+                                
+                                    <!-- Columna Izquierda -->
+                                    <div class="target-form__column">
+                                        <div class="target-form__field">
+                                            <label for="imei">{{ translate(translations.imei) }} <span class="required-label">(Requerido)</span></label>
+                                            <input 
+                                                [(ngModel)]="target.imei"
+                                                name="imei"
+                                                placeholder="Ej: 990000862471854" 
+                                                type="text" 
+                                                id="imei" 
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="api_id">{{ translate(translations.apiId) }}</label>
+                                            <input 
+                                                [(ngModel)]="target.api_id"
+                                                name="api_id"
+                                                placeholder="Ej: API12345" 
+                                                type="text" 
+                                                id="api_id"
+                                            >
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="sim_card">{{ translate(translations.simCard) }} <span class="required-label">(Requerido)</span></label>
+                                            <input 
+                                                [(ngModel)]="target.sim_card"
+                                                name="sim_card"
+                                                placeholder="Ej: 8999991234567891234" 
+                                                type="text" 
+                                                id="sim_card" 
+                                                required
+                                            >
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="installation_date">{{ translate(translations.installationDate) }}</label>
+                                            <input
+                                                [(ngModel)]="target.installation_date"
+                                                name="installation_date"
+                                                type="date"
+                                                id="installation_date"
+                                            >
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="expiration_date">{{ translate(translations.expirationDate) }}</label>
+                                            <input
+                                                [(ngModel)]="target.expiration_date"
+                                                name="expiration_date"
+                                                type="date"
+                                                id="expiration_date"
+                                            >
+                                        </div>
+                                    </div>
+
+                                    <!-- Columna Derecha -->
+                                    <div class="target-form__column">
+                                        <div class="target-form__field">
+                                            <label for="gps_model">{{ translate(translations.gpsModel) }}</label>
+                                            <select
+                                                [(ngModel)]="target.gps_model"
+                                                name="gps_model"
+                                                id="gps_model"
+                                            >
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectGpsModel') }}</option>
+                                                <option *ngFor="let model of availableGpsModels" [value]="model.value">
+                                                    {{model.label}}
+                                                </option>
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="installation_location">{{ translate(translations.installationLocation) }}</label>
+                                            <select
+                                                [(ngModel)]="target.installation_location"
+                                                name="installation_location"
+                                                id="installation_location"
+                                            >
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectLocation') }}</option>
+                                                <option *ngFor="let location of availableLocations" [value]="location.value">
+                                                    {{location.label}}
+                                                </option>
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="ignition_sensor">{{ translate(translations.ignitionSensor) }}</label>
+                                            <select
+                                                [(ngModel)]="target.ignition_sensor"
+                                                name="ignition_sensor"
+                                                id="ignition_sensor"
+                                            >
+                                                <option value="yes">{{ translate('management.targetForm.yes') }}</option>
+                                                <option value="no">{{ translate('management.targetForm.no') }}</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="shutdown_control">{{ translate(translations.shutdownControl) }}</label>
+                                            <select
+                                                [(ngModel)]="target.shutdown_control"
+                                                name="shutdown_control"
+                                                id="shutdown_control"
+                                            >
+                                                <option value="yes">{{ translate('management.targetForm.yes') }}</option>
+                                                <option value="no">{{ translate('management.targetForm.no') }}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="target-form__actions">
+                                    <button type="submit">
+                                        <i class="pi pi-save"></i>
+                                        {{ translate(translations.save) }}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                      </div>
                     </p-tabPanel>
 
-               
+                    <p-tabPanel>
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-history"></i>
+                            <span class="tab-text">{{ translate(translations.processInfo) }}</span>
+                        </ng-template>
+                        <div class="process">
+                            <div class="process__form">
+                                <form class="process__form-main">
+                                    <div class="target-form__grid process-grid">
+                                        <!-- Columna Izquierda - Campos de formulario -->
+                                        <div class="target-form__column process-fields-column">
+                                            <div class="target-form__field">
+                                                <label for="process_type">{{ translate('management.targetForm.processType') }}</label>
+                                                <select
+                                                    name="process_type"
+                                                    id="process_type"
+                                                >
+                                                    <option value="installation">{{ translate('management.targetForm.processTypeInstallation') }}</option>
+                                                    <option value="maintenance">{{ translate('management.targetForm.processTypeMaintenance') }}</option>
+                                                    <option value="replacement">{{ translate('management.targetForm.processTypeReplacement') }}</option>
+                                                    <option value="check">{{ translate('management.targetForm.processTypeCheck') }}</option>
+                                                </select>
+                                            </div>
+                                        
+                                            <div class="target-form__field">
+                                                <label for="process_date">{{ translate('management.targetForm.processDate') }}</label>
+                                                <input
+                                                    type="date"
+                                                    id="process_date"
+                                                    name="process_date"
+                                                >
+                                            </div>
+                                        
+                                            <div class="target-form__field">
+                                                <label for="technician">{{ translate('management.targetForm.technician') }}</label>
+                                                <select
+                                                    name="technician"
+                                                    id="technician"
+                                                >
+                                                    <option value="">Técnico 1</option>
+                                                    <option value="">Técnico 2</option>
+                                                    <option value="">Técnico 3</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <!-- Botón para agregar proceso (con el estilo del botón de agregar campos) -->
+                                            <div class="add-process-container">
+                                                <button type="button" class="add-field-btn" (click)="onSubmitProcess()">
+                                                    <i class="pi pi-plus"></i>
+                                                    {{ translate('management.targetForm.addProcess') }}
+                                                </button>
+                                            </div>
+                                        </div>
 
-                    <p-tabPanel header="Nube | Admin">
-                        <h3 style="opacity: 0.5;">Esta función está en mantenimiento</h3>
-                    </p-tabPanel>
-
-                    <p-tabPanel header="Nube | Cliente">
-                        <h3 style="opacity: 0.5;">Esta función está en mantenimiento</h3>
-                    </p-tabPanel>
-
-                
-                    <p-tabPanel header="SMS">
-                        <div class="chat-container">
-                          <div class="chat-messages">
-                            <div class="message system">
-                              <div class="message-content">
-                                <p>Conexión a internet establecida correctamente.</p>
-                                <span class="message-time">16/04/2023 20:00</span>
-                              </div>
+                                        <!-- Columna Derecha - Notas del proceso -->
+                                        <div class="target-form__column">
+                                            <div class="target-form__field full-height-field">
+                                                <label for="process_notes">{{ translate('management.targetForm.processNotes') }}</label>
+                                                <textarea 
+                                                    name="process_notes"
+                                                    id="process_notes"
+                                                    placeholder="Describa el proceso realizado" 
+                                                    class="auto-resize-textarea"
+                                                ></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
                             </div>
-
-                            <div class="message response">
-                              <div class="message-content">
-                                <p>Configuración de red iniciada. Por favor, espere mientras se completa el proceso.</p>
-                                <span class="message-time">16/04/2023 20:01</span>
-                              </div>
+                            <div class="process__logs">
+                                <p-accordion>
+                                    <p-accordionTab header="Instalación - 02/05/24">
+                                        <p>
+                                            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                                            consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                                        </p>
+                                    </p-accordionTab>
+                                    <p-accordionTab header="Cambio de GPS - 02/05/24">
+                                        <p>
+                                            Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim
+                                            ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Consectetur, adipisci velit, sed quia non numquam eius modi.
+                                        </p>
+                                    </p-accordionTab>
+                                    <p-accordionTab header="Chequeo - 02/05/24">
+                                        <p>
+                                            At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa
+                                            qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus.
+                                        </p>
+                                    </p-accordionTab>
+                                </p-accordion>
                             </div>
-                          </div>
-
-                          <div class="chat-footer">
-                            <p class="messages-left">Puedes enviar 40 mensajes.</p>
-                            <div class="action-buttons">
-                              <button class="action-button">
-                                <i class="pi pi-wifi"></i>
-                                Conectar a internet
-                              </button>
-                              <button class="action-button">
-                                <i class="pi pi-cog"></i>
-                                Configurar Red
-                              </button>
-                              <button class="action-button">
-                                <i class="pi pi-refresh"></i>
-                                Reiniciar Dispositivo
-                              </button>
-                              <button class="action-button">
-                                <i class="pi pi-map"></i>
-                                Google Maps
-                              </button>
-                            </div>
-                            <div class="message-input">
-                              <input type="text" placeholder="Enviar mensaje personalizado...">
-                              <button>
-                                <i class="pi pi-send"></i>
-                              </button>
-                            </div>
-                          </div>
                         </div>
+                    </p-tabPanel>
+
+                    <p-tabPanel>
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-cloud"></i>
+                            <span class="tab-text">{{ translate('management.targetForm.cloudAdmin') }}</span>
+                        </ng-template>
+                        <h3 style="opacity: 0.5;">{{ translate('management.targetForm.maintenanceMode') }}</h3>
                     </p-tabPanel>
                 </p-tabView>
             </div>

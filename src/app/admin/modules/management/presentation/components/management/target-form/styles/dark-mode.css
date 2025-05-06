@@ -1,0 +1,43 @@
+/* Estilos específicos para el modo oscuro */
+:root.app-dark .target-form {
+    background-color: var(--managementColorBackgroundUser);
+}
+
+:root.app-dark .target-form__field label {
+    color: var(--managementColorTextUser);
+}
+
+:root.app-dark .target-form__field input,
+:root.app-dark .target-form__field select,
+:root.app-dark .target-form__field textarea {
+    background-color: var(--managementColorInputSearch);
+    color: var(--managementColorTextUser);
+    border-color: var(--globalColorBorderDark);
+}
+
+:root.app-dark .target-form__field input:focus,
+:root.app-dark .target-form__field select:focus,
+:root.app-dark .target-form__field textarea:focus {
+    border-color: var(--managementColorBorderInput);
+    box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
+}
+
+:root.app-dark .process__form {
+    background-color: var(--globalColorPrimaryDarkStart);
+}
+
+:root.app-dark .target-form__actions button,
+:root.app-dark .button--primary-flat {
+    background-color: var(--primaryColor);
+    color: var(--globalTextLight);
+}
+
+:root.app-dark .target-form__actions button:hover,
+:root.app-dark .button--primary-flat:hover {
+    background-color: var(--primaryColorDarker);
+}
+
+:root.app-dark ::ng-deep .p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+    background-color: var(--globalColorPrimaryDarkStart);
+    color: var(--globalTextLight);
+} 

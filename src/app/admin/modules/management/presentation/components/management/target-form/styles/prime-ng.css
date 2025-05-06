@@ -1,0 +1,47 @@
+/* Estilos para las pestañas */
+::ng-deep .p-tabview .p-tabview-nav {
+    border-bottom: 1px solid var(--surface-border);
+}
+
+::ng-deep .p-tabview .p-tabview-nav li .p-tabview-nav-link {
+    padding: 0.75rem 1.25rem;
+    transition: color 0.2s, background-color 0.2s;
+    border-radius: 4px 4px 0 0;
+}
+
+::ng-deep .p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+    background-color: var(--surface-card);
+    color: var(--primaryColor);
+    border-color: var(--primaryColor);
+    border-bottom-color: var(--surface-card);
+}
+
+/* Estilos para el accordion */
+::ng-deep .p-accordion .p-accordion-header .p-accordion-header-link {
+    padding: 0.75rem;
+    border-radius: 4px;
+}
+
+::ng-deep .p-accordion .p-accordion-header:not(.p-disabled).p-highlight .p-accordion-header-link {
+    color: var(--primaryColor);
+}
+
+::ng-deep .p-accordion .p-accordion-content {
+    padding: 1rem;
+    border-radius: 0 0 4px 4px;
+}
+
+/* Estilos generales PrimeNG */
+::ng-deep .p-component {
+    font-family: inherit;
+}
+
+::ng-deep .p-card {
+    background-color: var(--managementColorBackgroundUser);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--globalColorShadow);
+}
+
+::ng-deep .p-dropdown {
+    width: 100%;
+} 

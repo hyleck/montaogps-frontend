@@ -2,8 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { TargetFormComponent } from './target-form.component';
 import { PrimengModule } from '../../../../../../../shareds/libraries/primeng/primeng.module';
-
-
+import { FormsModule } from '@angular/forms';
 
 @NgModule({
   declarations: [
@@ -11,7 +10,8 @@ import { PrimengModule } from '../../../../../../../shareds/libraries/primeng/pr
   ],
   imports: [
     CommonModule,
-    PrimengModule
+    PrimengModule,
+    FormsModule
   ],
   exports: [
     TargetFormComponent

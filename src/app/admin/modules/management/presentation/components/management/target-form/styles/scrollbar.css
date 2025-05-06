@@ -1,0 +1,25 @@
+/* Barra de desplazamiento personalizada */
+.target-form ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.target-form ::-webkit-scrollbar-track {
+    background: var(--surface-ground);
+    border-radius: 10px;
+}
+
+.target-form ::-webkit-scrollbar-thumb {
+    background: var(--globalColorScrollThumb);
+    border-radius: 10px;
+}
+
+.target-form ::-webkit-scrollbar-thumb:hover {
+    background: var(--primaryColor);
+}
+
+/* Para Firefox */
+.target-form {
+    scrollbar-width: thin;
+    scrollbar-color: var(--globalColorScrollThumb) var(--surface-ground);
+} 

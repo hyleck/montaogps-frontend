@@ -1,0 +1,109 @@
+<div class="user-roles-layout">
+    
+    <!-- Panel lateral izquierdo -->
+    <div class="user-roles-layout__sidebar">
+        <div class="sidebar-content">
+            <h3>{{ (isEditing ? 'settings.servers.edit_server' : 'settings.servers.new_server') | translate }}</h3>
+            <form (ngSubmit)="onSubmit()" ngNativeValidate>
+                <div class="form-group">
+                    <label for="name">{{ 'settings.servers.name' | translate }}</label>
+                    <input id="name" type="text" [(ngModel)]="serverForm.name" name="name" required 
+                           [placeholder]="'settings.servers.name_placeholder' | translate">
+                </div>
+                <div class="form-group">
+                    <label for="description">{{ 'settings.servers.description' | translate }}</label>
+                    <textarea id="description" [(ngModel)]="serverForm.description" name="description" rows="3" 
+                            [placeholder]="'settings.servers.description_placeholder' | translate"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="url">{{ 'settings.servers.url' | translate }}</label>
+                    <input id="url" type="text" [(ngModel)]="serverForm.url" name="url" required 
+                           [placeholder]="'settings.servers.url_placeholder' | translate">
+                </div>
+                <div class="form-group">
+                    <label for="token">{{ 'settings.servers.token' | translate }}</label>
+                    <input id="token" type="text" [(ngModel)]="serverForm.token" name="token" required 
+                           [placeholder]="'settings.servers.token_placeholder' | translate">
+                </div>
+                <div class="form-group">
+                    <label for="months_of_storage">{{ 'settings.servers.months_of_storage' | translate }}</label>
+                    <input id="months_of_storage" type="number" min="1" [(ngModel)]="serverForm.months_of_storage" name="months_of_storage" required 
+                           [placeholder]="'settings.servers.months_of_storage_placeholder' | translate">
+                </div>
+                <div class="form-group">
+                    <label for="device_limit">{{ 'settings.servers.device_limit' | translate }}</label>
+                    <input id="device_limit" type="number" min="1" [(ngModel)]="serverForm.device_limit" name="device_limit" required 
+                           [placeholder]="'settings.servers.device_limit_placeholder' | translate">
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <p-checkbox [(ngModel)]="serverForm.maintenance" [binary]="true" inputId="maintenance" name="maintenance"></p-checkbox>
+                        <label for="maintenance">{{ 'settings.servers.maintenance' | translate }}</label>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="button-primary">
+                        <i class="pi pi-save"></i>
+                        {{ (isEditing ? 'settings.servers.update' : 'settings.servers.create') | translate }}
+                    </button>
+                    <button type="button" *ngIf="isEditing" class="button-secondary" (click)="cancelEdit()">
+                        <i class="pi pi-times"></i>
+                        {{ 'settings.servers.cancel' | translate }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="user-roles-layout__main">
+        <div class="main-content">
+            <h2>{{ 'settings.servers.servers_list' | translate }}</h2>
+            
+            <!-- Spinner de carga -->
+            <div *ngIf="loading" class="loading-container">
+                <p-progressSpinner></p-progressSpinner>
+                <p>{{ 'settings.servers.loading' | translate }}</p>
+            </div>
+
+            <!-- Tabla de servidores -->
+            <p-table *ngIf="!loading" [value]="servers" [tableStyle]="{ 'min-width': '20rem', 'font-size': '0.875rem' }" styleClass="small-text-table">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>{{ 'settings.servers.table.name' | translate }}</th>
+                        <th>{{ 'settings.servers.table.device_limit' | translate }}</th>
+                        <th>{{ 'settings.servers.table.status' | translate }}</th>
+                        <th>{{ 'settings.servers.table.actions' | translate }}</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-server>
+                    <tr>
+                        <td>{{server.name}}</td>
+                        <td>{{server.device_limit}}</td>
+                        <td>
+                            <span class="server-status" [ngClass]="{'status-maintenance': server.maintenance, 'status-active': !server.maintenance}">
+                                {{ (server.maintenance ? 'settings.servers.status_maintenance' : 'settings.servers.status_active') | translate }}
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" class="button-action button-success" (click)="editServer(server)">
+                                <i class="pi pi-pencil"></i>
+                            </button>
+                            <button type="button" class="button-action button-danger" (click)="deleteServer(server)">
+                                <i class="pi pi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="4" class="text-center p-4">{{ 'settings.servers.no_servers' | translate }}</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
+</div>
+
+<p-toast/>

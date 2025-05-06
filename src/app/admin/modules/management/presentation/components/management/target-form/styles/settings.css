@@ -1,0 +1,46 @@
+/* Estilos para las secciones de configuración */
+.settings-section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    background-color: var(--surface-card);
+}
+
+.settings-section__header {
+    margin-bottom: 1rem;
+    color: var(--managementColorTextUser);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.settings-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.settings-option__label {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--managementColorTextUser);
+}
+
+/* Estilos para opciones específicas del vehículo */
+.vehicle-settings {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.vehicle-option {
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid var(--globalColorBorderLight);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.vehicle-option:hover {
+    border-color: var(--globalColorBorderHover);
+    transform: translateY(-2px);
+} 

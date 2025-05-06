@@ -1,0 +1,176 @@
+.target-form__field input,
+.target-form__field select,
+.target-form__field textarea {
+    background-color: var(--managementColorInputSearch);
+    border: none;
+    border-radius: 4px;
+    padding: 0.4rem 0.5rem;
+    color: var(--managementColorTextUser);
+    transition: all 0.3s ease;
+    width: 100%;
+    font-size: 0.9rem;
+    font-family: inherit;
+    height: 32px;
+}
+
+.target-form__field textarea {
+    height: auto;
+    min-height: 80px;
+    resize: none;
+}
+
+/* Textarea que se ajusta automáticamente a la altura de los campos de la izquierda */
+.full-height-field {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.auto-resize-textarea {
+    flex: 1;
+    min-height: 172px; /* Altura mínima para 3 campos */
+}
+
+.target-form__field input:focus,
+.target-form__field select:focus,
+.target-form__field textarea:focus {
+    border-color: var(--managementColorBorderInput);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
+}
+
+.target-form__field input::placeholder,
+.target-form__field textarea::placeholder {
+    color: var(--managementColorTextUser);
+    opacity: 0.6;
+}
+
+.target-form__field input:disabled, 
+.target-form__field select:disabled,
+.target-form__field textarea:disabled {
+    background-color: var(--surface-ground);
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Estilos para el botón de agregar proceso */
+.add-process-container {
+    margin-top: 0.8rem;
+}
+
+.add-field-btn {
+    background: none;
+    border: 1px dashed var(--managementColorBorderInput);
+    color: var(--managementColorTextUser);
+    padding: 0.5rem 0.7rem;
+    width: 100%;
+    text-align: center;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+}
+
+.add-field-btn:hover {
+    opacity: 1;
+    background-color: var(--managementColorInputSearch);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos para el selector de colores */
+.color-container {
+    width: 100%;
+    margin-top: 5px;
+}
+
+.color-options {
+    position: relative;
+    height: 235px;
+    width: 100%;
+    max-height: 350px;
+    background-color: var(--managementColorInputSearch);
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+    border: 1px solid var(--globalColorBorderLight);
+    margin-bottom: 10px;
+}
+
+.color-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--globalColorBorderLight);
+    font-size: 0.9rem;
+    font-weight: 500;
+    background-color: var(--surface-ground);
+    border-radius: 4px 4px 0 0;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--managementColorTextUser);
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    opacity: 1;
+}
+
+.color-list {
+    overflow-y: auto;
+    max-height: 190px;
+}
+
+.color-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.color-option:hover {
+    background-color: var(--globalColorHoverLight);
+}
+
+.color-option.selected {
+    background-color: var(--globalColorHoverLight);
+    font-weight: bold;
+    position: relative;
+}
+
+.color-option.selected::after {
+    content: '✓';
+    position: absolute;
+    right: 12px;
+    color: var(--globalColorPrimaryInmutable);
+}
+
+.color-swatch {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid var(--globalColorBorderLight);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Asegura que el campo del color tenga posición relativa para el dropdown */
+.target-form__field {
+    position: relative;
+} 

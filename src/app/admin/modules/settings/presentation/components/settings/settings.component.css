@@ -49,3 +49,38 @@
     font-size: 0.9rem;
     opacity: 0.8;
 }
+
+.settings__card--disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    position: relative;
+    background-color: var(--managementColorBackgroundDisabled);
+    border: 1px dashed var(--managementColorBorderDisabled);
+    box-shadow: none;
+}
+
+.settings__card--disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.settings__card--disabled .settings__card-header i,
+.settings__card--disabled .settings__card-header h3 {
+    color: var(--managementColorTextDisabled);
+}
+
+.settings__card--disabled .settings__card-description {
+    color: var(--managementColorTextDisabled);
+}
+
+.settings__card-disabled-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background-color: var(--managementColorBadgeBackground);
+    color: var(--globalColorTextStrong);
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+}
