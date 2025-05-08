@@ -112,7 +112,7 @@
 .cloud-item:hover {
   box-shadow: 0 6px 24px rgba(189,53,53,0.13);
   border-color: var(--globalColorPrimaryInmutable);
-  background: var(--globalColorCardHighlight);
+  /* background: var(--globalColorCardHighlight); */
   transform: translateY(-2px) scale(1.03);
 }
 .cloud-item i {
@@ -440,10 +440,10 @@
   margin-bottom: 1.2rem;
 }
 .cloud-card-drive {
-  background: var(--globalColorPrimaryDarkStart);
+  background: var(--globalColorCardBackground);
   border-radius: 14px;
   border: 1.5px solid var(--globalColorCardBorderLight);
-  box-shadow: 0 2px 12px rgba(0,0,0,0.13);
+  box-shadow: 0 2px 12px var(--globalColorShadow);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -457,9 +457,9 @@
   box-sizing: border-box;
 }
 .cloud-card-drive:hover {
-  box-shadow: 0 8px 32px rgba(59,130,246,0.13);
-  border-color: #3b82f6;
-  background: var(--globalColorPrimaryDarkEnd);
+  box-shadow: 0 8px 32px var(--globalColorShadow);
+  border-color: var(--globalColorPrimaryInmutable);
+  /* background: var(--globalColorCardHighlight); */
   transform: translateY(-2px) scale(1.03);
 }
 .cloud-card-icon {
@@ -472,7 +472,7 @@
 }
 .cloud-card-icon i {
   font-size: 2.3rem;
-  color: #3b82f6;
+  color: var(--globalColorPrimaryInmutable);
   opacity: 0.95;
 }
 .cloud-img-preview-drive {
@@ -491,7 +491,7 @@
   line-height: 2.1em;
   font-weight: 600;
   font-size: 1rem;
-  color: #fff;
+  color: var(--globalColorTextLight);
   margin-bottom: 0.1rem;
   max-width: 100%;
   width: 100%;
@@ -535,7 +535,7 @@
 .cloud-card-action {
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--globalColorAccent);
   font-size: 0.95rem;
   border-radius: 50%;
   padding: 0.25rem;
@@ -550,10 +550,9 @@
 .cloud-card-action i {
   font-size: 1.1em;
 }
-.cloud-card-action i:hover {
-  /* background: #3b82f6; */
+.cloud-card-action:hover {
+  /* background: var(--globalColorPrimaryInmutable); */
   color: #fff;
-  /* box-shadow: 0 2px 8px rgba(59,130,246,0.13); */
 }
 .cloud-card-action.delete {
   font-size: 1rem;
