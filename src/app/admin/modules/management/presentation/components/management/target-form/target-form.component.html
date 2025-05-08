@@ -86,7 +86,7 @@
                                             </select>
                                         </div>
 
-                                        <div class="target-form__field">
+                                        <div class="target-form__field target-form__field--small">
                                             <label for="description">{{ translate(translations.description) }}</label>
                                             <textarea 
                                                 [(ngModel)]="target.description"
@@ -227,8 +227,6 @@
                                             >
                                         </div>
 
-                                   
-
                                         <div class="target-form__field">
                                             <label for="gps_model">{{ translate(translations.gpsModel) }}</label>
                                             <select
@@ -313,6 +311,20 @@
                                             >
                                                 <option value="yes">{{ translate('management.targetForm.yes') }}</option>
                                                 <option value="no">{{ translate('management.targetForm.no') }}</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="plan">{{ translate(translations.plan) }}</label>
+                                            <select
+                                                [(ngModel)]="target.plan"
+                                                name="plan"
+                                                id="plan"
+                                            >
+                                                <option value="">{{ translate('management.targetForm.selectPlan') }}</option>
+                                                <option *ngFor="let plan of availablePlans" [value]="plan.value">
+                                                    {{plan.label}}
+                                                </option>
                                             </select>
                                         </div>
 
@@ -429,7 +441,7 @@
                             <i class="tab-icon pi pi-cloud"></i>
                             <span class="tab-text">{{ translate('management.targetForm.cloudAdmin') }}</span>
                         </ng-template>
-                        <h3 style="opacity: 0.5;">{{ translate('management.targetForm.maintenanceMode') }}</h3>
+                        <app-cloud></app-cloud>
                     </p-tabPanel>
                 </p-tabView>
             </div>

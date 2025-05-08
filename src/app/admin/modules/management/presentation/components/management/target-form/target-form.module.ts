@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { TargetFormComponent } from './target-form.component';
 import { PrimengModule } from '../../../../../../../shareds/libraries/primeng/primeng.module';
 import { FormsModule } from '@angular/forms';
+import { CloudModule } from '../../../../../../../shareds/components/cloud/cloud.module';
+
 
 @NgModule({
   declarations: [
@@ -11,7 +13,8 @@ import { FormsModule } from '@angular/forms';
   imports: [
     CommonModule,
     PrimengModule,
-    FormsModule
+    FormsModule,
+    CloudModule
   ],
   exports: [
     TargetFormComponent

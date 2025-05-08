@@ -52,7 +52,7 @@ export class MapsComponent implements OnInit {
         return;
       }
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyDTcpHcDElgnEB8fXzoZ5Ee30H_kpIwEjI`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyDi-rktDaz9YF39u4OApmUQWPZ_M4fZ1ec`;
       script.async = true;
       script.defer = true;
       script.onload = () => resolve();

@@ -518,7 +518,9 @@
         "requiredFieldsMissing": "Faltan campos requeridos",
         "deviceInfoMissing": "Faltan datos del dispositivo GPS",
         "saveSuccess": "Objetivo guardado",
-        "saveSuccessDetail": "El objetivo ha sido guardado exitosamente"
+        "saveSuccessDetail": "El objetivo ha sido guardado exitosamente",
+        "plan": "Plan",
+        "selectPlan": "Seleccione un plan"
       },
       "userForm": {
         "title": "Formulario de Usuario",

@@ -1,0 +1,112 @@
+<div class="cloud-bar">
+  <span class="cloud-bar-title">
+    <i class="pi pi-cloud"></i> Montao Cloud: <b>1.77 MB</b> de <b>5.12 GB</b> usado
+  </span>
+</div>
+<div class="cloud-header cloud-header-drive">
+  <div class="cloud-search-group">
+    <i class="pi pi-search search-icon"></i>
+    <input class="cloud-search" type="text" [(ngModel)]="searchTerm" placeholder="Buscar archivos o carpetas">
+  </div>
+  <button class="btn-nuevo" (click)="toggleMenu()">
+    <i class="pi pi-bars"></i> Nuevo
+  </button>
+  <div class="actions-menu" *ngIf="showMenu">
+    <button (click)="showNewFolderModal = true; showMenu = false"><i class="pi pi-folder"></i> Nueva carpeta</button>
+    <button (click)="showNewNoteModal = true; showMenu = false"><i class="pi pi-file-edit"></i> Nueva nota</button>
+    <label class="upload-btn">
+      <i class="pi pi-upload"></i> Subir archivo
+      <input type="file" (change)="onFileSelected($event); showMenu = false" multiple hidden>
+    </label>
+  </div>
+</div>
+<div class="cloud-breadcrumb">
+  <span (click)="currentPath = []" class="breadcrumb-link">Raíz</span>
+  <ng-container *ngFor="let folder of currentPath; let i = index">
+    <span> / </span>
+    <span (click)="currentPath = currentPath.slice(0, i + 1)" class="breadcrumb-link">{{folder.name}}</span>
+  </ng-container>
+</div>
+<div class="cloud-list cloud-list-drive">
+  <div *ngIf="currentPath.length > 0" class="cloud-item cloud-item--back" (click)="goBack()">
+    <i class="pi pi-arrow-left"></i> Atrás
+  </div>
+  <div *ngFor="let item of getFilteredItems()" class="cloud-item cloud-card-drive">
+    <ng-container [ngSwitch]="item.type">
+      <div *ngSwitchCase="'folder'" (dblclick)="enterFolder(item)">
+        <div class="cloud-card-icon"><i class="pi pi-folder"></i></div>
+        <div class="cloud-card-title"><span>{{item.name}}</span></div>
+        <div class="cloud-card-meta">Carpeta</div>
+        <div class="cloud-card-actions">
+          <button class="cloud-card-action info" (click)="openInfoModal(item)"><i class="pi pi-info-circle"></i></button>
+          <button class="cloud-card-action edit" (click)="editItem(item)"><i class="pi pi-pencil"></i></button>
+          <button class="cloud-card-action delete" (click)="deleteItem(item)"><i class="pi pi-trash"></i></button>
+        </div>
+      </div>
+      <div *ngSwitchCase="'note'">
+        <div class="cloud-card-icon"><i class="pi pi-file-edit"></i></div>
+        <div class="cloud-card-title"><span>{{item.name}}</span></div>
+        <div class="cloud-card-meta">Nota</div>
+        <div class="cloud-card-actions">
+          <button class="cloud-card-action info" (click)="openInfoModal(item)"><i class="pi pi-info-circle"></i></button>
+          <button class="cloud-card-action edit" (click)="editItem(item)"><i class="pi pi-pencil"></i></button>
+          <button class="cloud-card-action delete" (click)="deleteItem(item)"><i class="pi pi-trash"></i></button>
+        </div>
+      </div>
+      <div *ngSwitchCase="'file'">
+        <div class="cloud-card-icon">
+          <ng-container *ngIf="isImageFile(item.name); else fileIcon">
+            <img [src]="getImagePreview(item)" class="cloud-img-preview-drive" alt="preview" />
+          </ng-container>
+          <ng-template #fileIcon>
+            <i class="pi pi-file"></i>
+          </ng-template>
+        </div>
+        <div class="cloud-card-title"><span>{{item.name}}</span></div>
+        <div class="cloud-card-meta">{{item.name.split('.').pop() | lowercase}}</div>
+        <div class="cloud-card-actions">
+          <button class="cloud-card-action info" (click)="openInfoModal(item)"><i class="pi pi-info-circle"></i></button>
+          <button class="cloud-card-action edit" (click)="editItem(item)"><i class="pi pi-pencil"></i></button>
+          <button class="cloud-card-action delete" (click)="deleteItem(item)"><i class="pi pi-trash"></i></button>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+  <div *ngIf="getFilteredItems().length === 0" class="cloud-empty">No hay elementos en esta carpeta.</div>
+</div>
+<!-- Modal Nueva Carpeta -->
+<div class="modal" *ngIf="showNewFolderModal">
+  <div class="modal-content">
+    <h3>Nueva carpeta</h3>
+    <input [(ngModel)]="newFolderName" placeholder="Nombre de la carpeta">
+    <div class="modal-actions">
+      <button (click)="createFolder()">Crear</button>
+      <button (click)="showNewFolderModal = false">Cancelar</button>
+    </div>
+  </div>
+</div>
+<!-- Modal Nueva Nota -->
+<div class="modal" *ngIf="showNewNoteModal">
+  <div class="modal-content">
+    <h3>Nueva nota</h3>
+    <input [(ngModel)]="newNoteName" placeholder="Nombre de la nota">
+    <textarea [(ngModel)]="newNoteContent" placeholder="Contenido de la nota"></textarea>
+    <div class="modal-actions">
+      <button (click)="createNote()">Crear</button>
+      <button (click)="showNewNoteModal = false">Cancelar</button>
+    </div>
+  </div>
+</div>
+<!-- Modal Info Item -->
+<div class="modal" *ngIf="showInfoModal">
+  <div class="modal-content">
+    <h3>Información del elemento</h3>
+    <div><b>Nombre:</b> {{selectedItem?.name}}</div>
+    <div><b>Tipo:</b> {{selectedItem?.type}}</div>
+    <div><b>Fecha de creación:</b> {{selectedItem?.createdAt | date:'medium'}}</div>
+    <div *ngIf="selectedItem?.createdBy"><b>Creado por:</b> {{selectedItem?.createdBy}}</div>
+    <div class="modal-actions">
+      <button (click)="showInfoModal = false">Cerrar</button>
+    </div>
+  </div>
+</div>

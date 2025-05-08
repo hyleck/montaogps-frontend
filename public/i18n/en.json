@@ -519,7 +519,9 @@
         "requiredFieldsMissing": "Required fields are missing",
         "deviceInfoMissing": "GPS device information is missing",
         "saveSuccess": "Target saved",
-        "saveSuccessDetail": "The target has been saved successfully"
+        "saveSuccessDetail": "The target has been saved successfully",
+        "plan": "Plan",
+        "selectPlan": "Select a plan"
       },
       "userForm": {
         "title": "User Form",

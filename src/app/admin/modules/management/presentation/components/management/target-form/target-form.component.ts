@@ -3,6 +3,7 @@ import { MessageService } from 'primeng/api';
 import { Subject, takeUntil } from 'rxjs';
 import { LangService } from '../../../../../../../shareds/services/langi18/lang.service';
 import { TARGET_FORM_STYLES } from './constants/target-form.constants';
+import { CloudComponent } from 'src/app/shareds/components/cloud/cloud.component';
 
 // Interfaces para el objetivo/dispositivo
 interface TargetDevice {
@@ -27,6 +28,7 @@ interface TargetDevice {
   shutdown_control: string;
   installation_details: string;
   status: 'active' | 'inactive';
+  plan: string;
 }
 
 @Component({
@@ -66,7 +68,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         shutdownControl: 'management.targetForm.shutdownControl',
         installationDetails: 'management.targetForm.installationDetails',
         save: 'management.targetForm.save',
-        cancel: 'management.targetForm.cancel'
+        cancel: 'management.targetForm.cancel',
+        plan: 'management.targetForm.plan'
     };
 
     target: TargetDevice = this.getEmptyTarget();
@@ -82,6 +85,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     availableLocations: { label: string, value: string }[] = [];
     availableColors: { label: string, value: string }[] = [];
     availableSimCardTypes: { label: string, value: string }[] = [];
+    availablePlans: { label: string, value: string }[] = [];
     filteredColors: { label: string, value: string }[] = [];
     
     constructor(
@@ -128,7 +132,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             ignition_sensor: '',
             shutdown_control: '',
             installation_details: '',
-            status: 'active'
+            status: 'active',
+            plan: ''
         };
     }
 
@@ -188,6 +193,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             { label: 'Nacionales', value: 'nacionales' },
             { label: 'Global-E', value: 'global-e' },
             { label: 'Global-M', value: 'global-m' }
+        ];
+        
+        this.availablePlans = [
+            { label: 'Básico', value: 'basico' },
+            { label: 'Estándar', value: 'estandar' },
+            { label: 'Premium', value: 'premium' },
+            { label: 'Empresarial', value: 'empresarial' }
         ];
         
         this.filteredColors = [...this.availableColors];

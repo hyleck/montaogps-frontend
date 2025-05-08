@@ -603,7 +603,9 @@
         "processAdded": "Processus ajouté",
         "processAddedDetail": "Le processus a été enregistré avec succès",
         "saveSuccess": "Enregistré avec succès",
-        "saveSuccessDetail": "L'objectif a été enregistré avec succès"
+        "saveSuccessDetail": "L'objectif a été enregistré avec succès",
+        "plan": "Forfait",
+        "selectPlan": "Sélectionnez un forfait"
       }
     }
 }
