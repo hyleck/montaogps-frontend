@@ -29,7 +29,7 @@
                                             >
                                         </div>
 
-                                        <div class="target-form__field">
+                                <div class="target-form__field">
                                             <label for="brand">{{ translate(translations.brand) }} <span class="required-label">(Requerido)</span></label>
                                             <select
                                                 [(ngModel)]="target.brand"
@@ -42,10 +42,10 @@
                                                 <option *ngFor="let brand of availableBrands" [value]="brand.value">
                                                     {{brand.label}}
                                                 </option>
-                                            </select>
-                                        </div>
-
-                                        <div class="target-form__field">
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
                                             <label for="model">{{ translate(translations.model) }} <span class="required-label">(Requerido)</span></label>
                                             <select
                                                 [(ngModel)]="target.model"
@@ -57,10 +57,10 @@
                                                 <option *ngFor="let model of availableModels" [value]="model.value">
                                                     {{model.label}}
                                                 </option>
-                                            </select>
-                                        </div>
-
-                                        <div class="target-form__field">
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
                                             <label for="year">{{ translate(translations.year) }}</label>
                                             <select
                                                 [(ngModel)]="target.year"
@@ -71,10 +71,10 @@
                                                 <option *ngFor="let year of availableYears" [value]="year.value">
                                                     {{year.label}}
                                                 </option>
-                                            </select>
-                                        </div>
-
-                                        <div class="target-form__field">
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
                                             <label for="status">{{ translate('management.targetForm.status') }}</label>
                                             <select
                                                 [(ngModel)]="target.status"
@@ -96,41 +96,41 @@
                                                 rows="3"
                                             ></textarea>
                                         </div>
-                                    </div>
-
+                                </div>
+                            
                                     <!-- Columna Derecha -->
                                     <div class="target-form__column">
-                                        <div class="target-form__field">
+                                <div class="target-form__field">
                                             <label for="plate">{{ translate(translations.plate) }} <span class="required-label">(Requerido)</span></label>
-                                            <input 
+                                    <input 
                                                 [(ngModel)]="target.plate"
                                                 name="plate"
-                                                placeholder="Ej: G123456" 
-                                                type="text" 
-                                                id="plate" 
+                                        placeholder="Ej: G123456" 
+                                        type="text" 
+                                        id="plate" 
                                                 required
-                                            >
-                                        </div>
-
-                                        <div class="target-form__field">
+                                    >
+                                </div>
+                            
+                                <div class="target-form__field">
                                             <label for="chassis">{{ translate(translations.chassis) }}</label>
-                                            <input 
+                                    <input 
                                                 [(ngModel)]="target.chassis"
                                                 name="chassis"
                                                 placeholder="Ej: 1HGCM82633A123456" 
-                                                type="text" 
+                                        type="text" 
                                                 id="chassis"
-                                            >
-                                        </div>
-
-                                        <div class="target-form__field">
+                                    >
+                                </div>
+                            
+                                <div class="target-form__field">
                                             <label for="color">{{ translate(translations.color) }}</label>
-                                            <input 
+                                    <input 
                                                 [(ngModel)]="displayColorName"
                                                 name="colorDisplay"
                                                 id="color"
                                                 placeholder="{{ translate('management.targetForm.selectColor') }}"
-                                                type="text"
+                                        type="text" 
                                                 (input)="filterColors($event)"
                                             >
                                             <input 
@@ -160,14 +160,14 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
-
+                                </div>
+                
                                    
 
                                 
-                                    </div>
+                                  </div>
                                 </div>
-
+                
                                 <div class="target-form__actions">
                                     <button type="submit">
                                         <i class="pi pi-save"></i>
@@ -189,19 +189,19 @@
                                 
                                     <!-- Columna Izquierda -->
                                     <div class="target-form__column">
-                                        <div class="target-form__field">
+                                <div class="target-form__field">
                                             <label for="imei">{{ translate(translations.imei) }} <span class="required-label">(Requerido)</span></label>
-                                            <input 
+                                    <input 
                                                 [(ngModel)]="target.imei"
                                                 name="imei"
                                                 placeholder="Ej: 990000862471854" 
-                                                type="text" 
+                                        type="text" 
                                                 id="imei" 
                                                 required
-                                            >
-                                        </div>
-
-                                        <div class="target-form__field">
+                                    >
+                                </div>
+                            
+                                <div class="target-form__field">
                                             <label for="api_id">{{ translate(translations.apiId) }}</label>
                                             <select
                                                 [(ngModel)]="target.api_id"
@@ -217,17 +217,17 @@
 
                                         <div class="target-form__field">
                                             <label for="sim_card">{{ translate(translations.simCard) }} <span class="required-label">(Requerido)</span></label>
-                                            <input 
+                                    <input 
                                                 [(ngModel)]="target.sim_card"
                                                 name="sim_card"
                                                 placeholder="Ej: 8999991234567891234" 
-                                                type="text" 
+                                        type="text" 
                                                 id="sim_card" 
                                                 required
-                                            >
-                                        </div>
-
-                                        <div class="target-form__field">
+                                    >
+                                </div>
+                            
+                                <div class="target-form__field">
                                             <label for="gps_model">{{ translate(translations.gpsModel) }}</label>
                                             <select
                                                 [(ngModel)]="target.gps_model"
@@ -239,9 +239,9 @@
                                                     {{model.label}}
                                                 </option>
                                             </select>
-                                        </div>
-
-
+                                </div>
+                            
+                                
                                         <div class="target-form__field">
                                             <label for="installation_details">{{ translate(translations.installationDetails) }}</label>
                                             <textarea 
@@ -265,18 +265,18 @@
                                                 id="installation_date"
                                             >
                                         </div>
-
-                                        <div class="target-form__field">
+                            
+                                <div class="target-form__field">
                                             <label for="expiration_date">{{ translate(translations.expirationDate) }}</label>
-                                            <input
+                                    <input 
                                                 [(ngModel)]="target.expiration_date"
                                                 name="expiration_date"
-                                                type="date"
+                                        type="date" 
                                                 id="expiration_date"
-                                            >
-                                        </div>
+                                    >
+                                </div>
 
-                                        <div class="target-form__field">
+                                <div class="target-form__field">
                                             <label for="installation_location">{{ translate(translations.installationLocation) }}</label>
                                             <select
                                                 [(ngModel)]="target.installation_location"
@@ -287,10 +287,10 @@
                                                 <option *ngFor="let location of availableLocations" [value]="location.value">
                                                     {{location.label}}
                                                 </option>
-                                            </select>
-                                        </div>
-
-                                        <div class="target-form__field">
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
                                             <label for="ignition_sensor">{{ translate(translations.ignitionSensor) }}</label>
                                             <select
                                                 [(ngModel)]="target.ignition_sensor"
@@ -299,10 +299,10 @@
                                             >
                                                 <option value="yes">{{ translate('management.targetForm.yes') }}</option>
                                                 <option value="no">{{ translate('management.targetForm.no') }}</option>
-                                            </select>
-                                        </div>
-
-                                        <div class="target-form__field">
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
                                             <label for="shutdown_control">{{ translate(translations.shutdownControl) }}</label>
                                             <select
                                                 [(ngModel)]="target.shutdown_control"
@@ -311,10 +311,10 @@
                                             >
                                                 <option value="yes">{{ translate('management.targetForm.yes') }}</option>
                                                 <option value="no">{{ translate('management.targetForm.no') }}</option>
-                                            </select>
-                                        </div>
+                                    </select>
+                                </div>
 
-                                        <div class="target-form__field">
+                                <div class="target-form__field">
                                             <label for="plan">{{ translate(translations.plan) }}</label>
                                             <select
                                                 [(ngModel)]="target.plan"
@@ -325,10 +325,10 @@
                                                 <option *ngFor="let plan of availablePlans" [value]="plan.value">
                                                     {{plan.label}}
                                                 </option>
-                                            </select>
-                                        </div>
-
-                                     
+                                    </select>
+                                </div>
+                
+                
                                     </div>
                                 </div>
 
@@ -347,13 +347,13 @@
                             <i class="tab-icon pi pi-history"></i>
                             <span class="tab-text">{{ translate(translations.processInfo) }}</span>
                         </ng-template>
-                        <div class="process">
-                            <div class="process__form">
-                                <form class="process__form-main">
+                      <div class="process">
+                        <div class="process__form">
+                            <form class="process__form-main">
                                     <div class="target-form__grid process-grid">
                                         <!-- Columna Izquierda - Campos de formulario -->
                                         <div class="target-form__column process-fields-column">
-                                            <div class="target-form__field">
+                                <div class="target-form__field">
                                                 <label for="process_type">{{ translate('management.targetForm.processType') }}</label>
                                                 <select
                                                     name="process_type"
@@ -363,19 +363,19 @@
                                                     <option value="maintenance">{{ translate('management.targetForm.processTypeMaintenance') }}</option>
                                                     <option value="replacement">{{ translate('management.targetForm.processTypeReplacement') }}</option>
                                                     <option value="check">{{ translate('management.targetForm.processTypeCheck') }}</option>
-                                                </select>
-                                            </div>
-                                        
-                                            <div class="target-form__field">
+                                    </select>
+                                </div>
+                            
+                                <div class="target-form__field">
                                                 <label for="process_date">{{ translate('management.targetForm.processDate') }}</label>
                                                 <input
                                                     type="date"
                                                     id="process_date"
                                                     name="process_date"
                                                 >
-                                            </div>
-                                        
-                                            <div class="target-form__field">
+                                </div>
+                            
+                                <div class="target-form__field">
                                                 <label for="technician">{{ translate('management.targetForm.technician') }}</label>
                                                 <select
                                                     name="technician"
@@ -384,9 +384,9 @@
                                                     <option value="">Técnico 1</option>
                                                     <option value="">Técnico 2</option>
                                                     <option value="">Técnico 3</option>
-                                                </select>
-                                            </div>
-                                            
+                                    </select>
+                                </div>
+
                                             <!-- Botón para agregar proceso (con el estilo del botón de agregar campos) -->
                                             <div class="add-process-container">
                                                 <button type="button" class="add-field-btn" (click)="onSubmitProcess()">
@@ -408,32 +408,32 @@
                                                 ></textarea>
                                             </div>
                                         </div>
-                                    </div>
-                                </form>
-                            </div>
-                            <div class="process__logs">
-                                <p-accordion>
-                                    <p-accordionTab header="Instalación - 02/05/24">
-                                        <p>
-                                            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-                                            consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                                        </p>
-                                    </p-accordionTab>
-                                    <p-accordionTab header="Cambio de GPS - 02/05/24">
-                                        <p>
-                                            Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim
-                                            ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Consectetur, adipisci velit, sed quia non numquam eius modi.
-                                        </p>
-                                    </p-accordionTab>
-                                    <p-accordionTab header="Chequeo - 02/05/24">
-                                        <p>
-                                            At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa
-                                            qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus.
-                                        </p>
-                                    </p-accordionTab>
-                                </p-accordion>
-                            </div>
+                                </div>
+                            </form>
                         </div>
+                        <div class="process__logs">
+                                <p-accordion>
+                                <p-accordionTab header="Instalación - 02/05/24">
+                                    <p>
+                                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                                        consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                                    </p>
+                                </p-accordionTab>
+                                <p-accordionTab header="Cambio de GPS - 02/05/24">
+                                    <p>
+                                        Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim
+                                        ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Consectetur, adipisci velit, sed quia non numquam eius modi.
+                                    </p>
+                                </p-accordionTab>
+                                <p-accordionTab header="Chequeo - 02/05/24">
+                                    <p>
+                                        At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa
+                                        qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus.
+                                    </p>
+                                </p-accordionTab>
+                            </p-accordion>
+                        </div>
+                      </div>
                     </p-tabPanel>
 
                     <p-tabPanel>

@@ -130,8 +130,16 @@
                 </div>
            </div>
             <div class="management__content-maps">
-
-                <app-maps></app-maps>
+                <div class="map-provider-select-wrapper"
+                     [ngStyle]="{ right: providerType === 'mapbox' ? '20px' : '60px' }">
+                    <select [(ngModel)]="selectedMap" (change)="setMapProvider(selectedMap)">
+                        <option value="google-light">Google Maps Claro</option>
+                        <option value="google-dark">Google Maps Oscuro</option>
+                        <option value="mapbox-light">Mapbox Claro</option>
+                        <option value="mapbox-dark">Mapbox Oscuro</option>
+                    </select>
+                </div>
+                <app-maps *ngIf="mapsKey" [provider]="providerType" [theme]="providerTheme"></app-maps>
             </div>
         </div>
 

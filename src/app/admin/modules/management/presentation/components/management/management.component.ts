@@ -62,6 +62,10 @@ export class ManagementComponent {
     }
   ];
   customersSelected = [];
+  selectedMap: string = 'mapbox-light';
+  providerType: 'google' | 'mapbox' = 'mapbox';
+  providerTheme: 'light' | 'dark' = 'light';
+  mapsKey: number | null = Date.now();
 
   constructor(
     public router: Router,
@@ -78,6 +82,22 @@ export class ManagementComponent {
 
   // Lifecycle hooks
   ngOnInit() {
+    const savedProvider = this.status.getState('map_provider');
+    let defaultTheme: 'light' | 'dark' = 'light';
+    const globalTheme = this.status.getState('theme');
+    if (globalTheme === 'dark') {
+      defaultTheme = 'dark';
+    }
+    if (typeof savedProvider === 'string') {
+      this.selectedMap = savedProvider;
+      const [type, theme] = savedProvider.split('-');
+      this.providerType = type as 'google' | 'mapbox';
+      this.providerTheme = theme as 'light' | 'dark';
+    } else {
+      this.selectedMap = `google-${defaultTheme}`;
+      this.providerType = 'google';
+      this.providerTheme = defaultTheme;
+    }
     this.loading = true;
     this.screenService.checkScreenSize();
 
@@ -330,6 +350,17 @@ export class ManagementComponent {
         });
       }
     });
+  }
+
+  setMapProvider(value: string) {
+    const [type, theme] = value.split('-');
+    this.providerType = type as 'google' | 'mapbox';
+    this.providerTheme = theme as 'light' | 'dark';
+    this.status.setState('map_provider', value);
+    this.mapsKey = null;
+    setTimeout(() => {
+      this.mapsKey = Date.now();
+    }, 0);
   }
 
   // Métodos privados

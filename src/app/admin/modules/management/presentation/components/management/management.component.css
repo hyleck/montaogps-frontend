@@ -452,6 +452,7 @@ font-size: 13px;
 }
 .management__content-maps {
 grid-area: content;
+position: relative;
 background: var(--managementColorContentBackground);
 border-radius: 5px;
 overflow: hidden;
@@ -773,5 +774,31 @@ text-decoration: underline;
 opacity: 0.15; /* Muy opaco durante la carga */
 transition: opacity 0.3s ease;
 pointer-events: none; /* Desactivar interacción mientras carga */
+}
+
+.map-provider-select-wrapper {
+  position: absolute;
+  top: 10px;
+  
+  z-index: 10;
+  background: var(--globalColorCardBackground, #fff);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  padding: 0.4rem 0.8rem;
+  display: flex;
+  align-items: center;
+  transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.map-provider-select-wrapper select {
+  border: 1px solid var(--globalColorCardBorderLight, #444);
+  border-radius: 6px;
+  padding: 0.25rem 0.8rem 0.25rem 0.5rem;
+  font-size: 1rem;
+  background: var(--globalColorCardBackground, #222);
+  color: var(--globalColorTextLight, #fff);
+  outline: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  transition: background 0.2s, color 0.2s, border 0.2s;
 }
 
