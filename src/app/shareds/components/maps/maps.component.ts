@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ThemesService } from '../../services/themes.service';
 import { StatusService } from '../../services/status.service';
+import { SystemService, SystemSettings } from '../../../core/services/system.service';
 
 @Component({
     selector: 'app-maps',
@@ -11,8 +12,14 @@ import { StatusService } from '../../services/status.service';
 export class MapsComponent implements OnInit {
   map!: google.maps.Map;
   theme: 'dark' | 'light' = 'dark'; // Cambia este valor a 'light' si deseas el tema claro por defecto
+  googleMapsApiKey: string = '';
+  googleMapsApiUrl: string = '';
 
-  constructor(private _theme: ThemesService, private _status: StatusService) {
+  constructor(
+    private _theme: ThemesService,
+    private _status: StatusService,
+    private systemService: SystemService
+  ) {
     const currentTheme = this._theme.getCurrentTheme();
     if (currentTheme === 'dark' || currentTheme === 'light') {
       this.theme = currentTheme;
@@ -23,14 +30,10 @@ export class MapsComponent implements OnInit {
     this._status.statusChanges$.subscribe(( status:any ) => {
       const currentTheme = this._theme.getCurrentTheme();
       if (currentTheme === 'dark' || currentTheme === 'light') {
-       
         if(this.theme !== currentTheme){
           this.theme = currentTheme;
           this.initializeMap();
         }
-        
-        // inicailizar
-       
       } else {
         console.warn(`Invalid theme: ${currentTheme}. Falling back to default theme.`);
       }
@@ -40,8 +43,15 @@ export class MapsComponent implements OnInit {
   // Definir el tema por defecto como 'light', pero puede ser cambiado dinámicamente
 
   ngOnInit(): void {
-    this.loadGoogleMapsScript().then(() => {
-      this.initializeMap();
+    this.systemService.getAll().subscribe((systems: SystemSettings[]) => {
+      if (systems && systems.length > 0 && systems[0].map_api1?.key && systems[0].map_api1?.url) {
+        this.googleMapsApiKey = systems[0].map_api1.key;
+        this.googleMapsApiUrl = systems[0].map_api1.url;
+        console.log(this.googleMapsApiKey, this.googleMapsApiUrl)
+      }
+      this.loadGoogleMapsScript().then(() => {
+        this.initializeMap();
+      });
     });
   }
 
@@ -51,8 +61,12 @@ export class MapsComponent implements OnInit {
         resolve();
         return;
       }
+      if (!this.googleMapsApiKey || !this.googleMapsApiUrl) {
+        reject('No se encontró configuración de Google Maps');
+        return;
+      }
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyDi-rktDaz9YF39u4OApmUQWPZ_M4fZ1ec`;
+      script.src = `${this.googleMapsApiUrl}${this.googleMapsApiKey}`;
       script.async = true;
       script.defer = true;
       script.onload = () => resolve();
