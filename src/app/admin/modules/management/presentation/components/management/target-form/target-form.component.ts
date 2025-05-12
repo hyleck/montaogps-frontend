@@ -4,6 +4,8 @@ import { Subject, takeUntil } from 'rxjs';
 import { LangService } from '../../../../../../../shareds/services/langi18/lang.service';
 import { TARGET_FORM_STYLES } from './constants/target-form.constants';
 import { CloudComponent } from 'src/app/shareds/components/cloud/cloud.component';
+import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
+import { ColorsService } from 'src/app/core/services/colors.service';
 
 // Interfaces para el objetivo/dispositivo
 interface TargetDevice {
@@ -90,7 +92,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     
     constructor(
         private langService: LangService,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private vehicleBrandsService: VehicleBrandsService,
+        private colorsService: ColorsService
     ) {}
 
     // Método para manejar el envío del formulario de procesos
@@ -144,65 +148,65 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         this.activeTabIndex = 0;
     }
 
-    private loadInitialData() {
-        // Aquí cargaríamos datos iniciales como marcas, modelos, etc.
-        // Ejemplo de datos de muestra
-        this.availableBrands = [
-            { label: 'Toyota', value: 'toyota' },
-            { label: 'Honda', value: 'honda' },
-            { label: 'Ford', value: 'ford' },
-            { label: 'Chevrolet', value: 'chevrolet' }
-        ];
-        
-        this.availableYears = Array.from({ length: 30 }, (_, i) => {
-            const year = 2024 - i;
-            return { label: year.toString(), value: year.toString() };
-        });
-        
-        this.availableGpsModels = [
-            { label: 'Modelo A', value: 'modelo_a' },
-            { label: 'Modelo B', value: 'modelo_b' },
-            { label: 'Modelo C', value: 'modelo_c' }
-        ];
-        
-        this.availableLocations = [
-            { label: 'Interior', value: 'interior' },
-            { label: 'Exterior', value: 'exterior' },
-            { label: 'Bajo tablero', value: 'bajo_tablero' }
-        ];
-        
-        this.availableColors = [
-            { label: 'Negro', value: '#000000' },
-            { label: 'Blanco', value: '#FFFFFF' },
-            { label: 'Rojo', value: '#FF0000' },
-            { label: 'Azul', value: '#0000FF' },
-            { label: 'Plata', value: '#C0C0C0' },
-            { label: 'Gris', value: '#808080' },
-            { label: 'Verde', value: '#008000' },
-            { label: 'Amarillo', value: '#FFFF00' },
-            { label: 'Naranja', value: '#FFA500' },
-            { label: 'Marrón', value: '#A52A2A' },
-            { label: 'Púrpura', value: '#800080' },
-            { label: 'Dorado', value: '#FFD700' },
-            { label: 'Azul marino', value: '#000080' },
-            { label: 'Verde oliva', value: '#808000' },
-            { label: 'Beige', value: '#F5F5DC' }
-        ];
-        
-        this.availableSimCardTypes = [
-            { label: 'Nacionales', value: 'nacionales' },
-            { label: 'Global-E', value: 'global-e' },
-            { label: 'Global-M', value: 'global-m' }
-        ];
-        
-        this.availablePlans = [
-            { label: 'Básico', value: 'basico' },
-            { label: 'Estándar', value: 'estandar' },
-            { label: 'Premium', value: 'premium' },
-            { label: 'Empresarial', value: 'empresarial' }
-        ];
-        
-        this.filteredColors = [...this.availableColors];
+    private async loadInitialData() {
+        try {
+            // Cargar años
+            this.availableYears = Array.from({ length: 30 }, (_, i) => {
+                const year = new Date().getFullYear() - i;
+                return { label: year.toString(), value: year.toString() };
+            });
+            
+            // Cargar marcas desde el servicio
+            const brands = await this.vehicleBrandsService.getAllBrands();
+            this.availableBrands = brands.map((brand: any) => ({
+                label: brand.nombre,
+                value: brand._id
+            })).sort((a: any, b: any) => a.label.localeCompare(b.label));
+            
+            // Cargar colores desde el servicio
+            const colors = await this.colorsService.getAllColors();
+            this.availableColors = colors.map((color: any) => ({
+                label: color.nombre,
+                value: color.hex
+            })).sort((a: any, b: any) => a.label.localeCompare(b.label));
+            
+            // Inicializar filteredColors con todos los colores
+            this.filteredColors = [...this.availableColors];
+            
+            // Otras opciones que no dependen de servicios
+            this.availableGpsModels = [
+                { label: 'Modelo A', value: 'modelo_a' },
+                { label: 'Modelo B', value: 'modelo_b' },
+                { label: 'Modelo C', value: 'modelo_c' }
+            ];
+            
+            this.availableLocations = [
+                { label: 'Interior', value: 'interior' },
+                { label: 'Exterior', value: 'exterior' },
+                { label: 'Bajo tablero', value: 'bajo_tablero' }
+            ];
+            
+            this.availableSimCardTypes = [
+                { label: 'Nacionales', value: 'nacionales' },
+                { label: 'Global-E', value: 'global-e' },
+                { label: 'Global-M', value: 'global-m' }
+            ];
+            
+            this.availablePlans = [
+                { label: 'Básico', value: 'basico' },
+                { label: 'Estándar', value: 'estandar' },
+                { label: 'Premium', value: 'premium' },
+                { label: 'Empresarial', value: 'empresarial' }
+            ];
+            
+        } catch (error) {
+            console.error('Error al cargar datos iniciales:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudieron cargar algunos datos. Por favor, recargue la página.'
+            });
+        }
     }
 
     ngOnChanges(changes: SimpleChanges) {
@@ -231,6 +235,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         } else {
             this.displayColorName = '';
         }
+        
+        // Cargar los modelos para la marca seleccionada
+        if (this.target.brand) {
+            this.onBrandChange();
+        }
     }
 
     private resetForm() {
@@ -241,33 +250,29 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         // No modificamos showColorOptions ya que queremos que siempre esté visible
     }
 
-    onBrandChange() {
-        // Actualiza los modelos disponibles según la marca seleccionada
-        if (this.target.brand === 'toyota') {
-            this.availableModels = [
-                { label: 'Corolla', value: 'corolla' },
-                { label: 'Camry', value: 'camry' },
-                { label: 'RAV4', value: 'rav4' }
-            ];
-        } else if (this.target.brand === 'honda') {
-            this.availableModels = [
-                { label: 'Civic', value: 'civic' },
-                { label: 'Accord', value: 'accord' },
-                { label: 'CR-V', value: 'crv' }
-            ];
-        } else if (this.target.brand === 'ford') {
-            this.availableModels = [
-                { label: 'Focus', value: 'focus' },
-                { label: 'Mustang', value: 'mustang' },
-                { label: 'Explorer', value: 'explorer' }
-            ];
-        } else if (this.target.brand === 'chevrolet') {
-            this.availableModels = [
-                { label: 'Cruze', value: 'cruze' },
-                { label: 'Malibu', value: 'malibu' },
-                { label: 'Equinox', value: 'equinox' }
-            ];
-        } else {
+    async onBrandChange() {
+        try {
+            if (this.target.brand) {
+                // Limpiar el modelo seleccionado
+                this.target.model = '';
+                
+                // Cargar modelos para la marca seleccionada
+                const models = await this.vehicleBrandsService.getAllModelsByBrand(this.target.brand);
+                this.availableModels = models.map((model: any) => ({
+                    label: model.nombre,
+                    value: model._id
+                })).sort((a: any, b: any) => a.label.localeCompare(b.label));
+            } else {
+                // Si no hay marca seleccionada, vaciar los modelos
+                this.availableModels = [];
+            }
+        } catch (error) {
+            console.error('Error al cargar modelos:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudieron cargar los modelos para esta marca.'
+            });
             this.availableModels = [];
         }
     }
