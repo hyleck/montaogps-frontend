@@ -9,6 +9,9 @@ import { TranslateModule } from '@ngx-translate/core';
 import { SystemSettingsComponent } from './components/settings/system-settings/system-settings.component';
 import { ServersSettingsComponent } from './components/settings/servers-settings/servers-settings.component';
 import { PlansSettingsComponent } from './components/settings/plans-settings/plans-settings.component';
+import { ColorsSettingsComponent } from './components/settings/colors-settings/colors-settings.component';
+import { VehicleBrandsSettingsComponent } from './components/settings/vehicle-brands-settings/vehicle-brands-settings.component';
+import { VehicleModelsSettingsComponent } from './components/settings/vehicle-models-settings/vehicle-models-settings.component';
 
 @NgModule({
   declarations: [
@@ -16,7 +19,10 @@ import { PlansSettingsComponent } from './components/settings/plans-settings/pla
     UserRolesSettingsComponent,
     SystemSettingsComponent,
     ServersSettingsComponent,
-    PlansSettingsComponent
+    PlansSettingsComponent,
+    ColorsSettingsComponent,
+    VehicleBrandsSettingsComponent,
+    VehicleModelsSettingsComponent
   ],
   imports: [
     CommonModule,

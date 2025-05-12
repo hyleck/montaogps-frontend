@@ -687,3 +687,13 @@
         color: var(--globalColorTextLight, #ffffff);
     }
 }
+
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .form-column {
+    display: flex;
+    flex-direction: column;
+  }

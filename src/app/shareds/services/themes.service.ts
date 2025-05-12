@@ -7,6 +7,7 @@ import { adminPalette } from '../../admin/presentation/components/admin-layout/a
 import { navbarPalette } from '../../admin/presentation/components/navbar/navbar.palette';
 import { userRolesPalette } from '../../admin/modules/settings/presentation/components/settings/user-roles-settings/user-roles.palette';
 import { dashboardPalette } from '../../admin/modules/dashboard/presentation/components/dashboard/dashboard.palette';
+import { colorsPalette } from '../../admin/modules/settings/presentation/components/settings/colors-settings/colors.palette';
 import { StatusService } from './status.service';
 // import { applyThemeTransition } from '../../shareds/helpers/theme-transition.helper';
 
@@ -25,7 +26,8 @@ export class ThemesService {
       ...adminPalette.light,
       ...navbarPalette.light,
       ...userRolesPalette.light,
-      ...dashboardPalette.light
+      ...dashboardPalette.light,
+      ...colorsPalette.light
     },
     dark: {
       ...globalPalette.dark,
@@ -35,7 +37,8 @@ export class ThemesService {
       ...adminPalette.dark,
       ...navbarPalette.dark,
       ...userRolesPalette.dark,
-      ...dashboardPalette.dark
+      ...dashboardPalette.dark,
+      ...colorsPalette.dark
     }
   };
 

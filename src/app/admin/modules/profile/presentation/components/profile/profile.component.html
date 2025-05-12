@@ -16,54 +16,70 @@
                 </div>
                 <form *ngIf="!loading" class="profile-form" (ngSubmit)="onSubmit()" ngNativeValidate>
                     <div class="form-grid">
+                        <!-- Columna 1: Foto -->
                         <div class="form-column">
-                            <div class="form-group">
-                                <label for="name">{{ 'profile.personal_info.name' | translate }}</label>
-                                <input [(ngModel)]="user.name" name="name" type="text" id="name" 
-                                    [placeholder]="'profile.personal_info.name_placeholder' | translate" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="email">{{ 'profile.personal_info.email' | translate }}</label>
-                                <input [(ngModel)]="user.email" name="email" type="email" id="email" 
-                                    [placeholder]="'profile.personal_info.email_placeholder' | translate" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="birth">{{ 'profile.personal_info.birth_date' | translate }}</label>
-                                <input [(ngModel)]="user.birth" name="birth" type="date" id="birth" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="phone">{{ 'profile.personal_info.phone' | translate }}</label>
-                                <input [(ngModel)]="user.phone" name="phone" type="tel" id="phone" 
-                                    [placeholder]="'profile.personal_info.phone_placeholder' | translate" required>
+                            <div class="settings-item profile-photo-section">
+                                <div class="settings-header">
+                                    <i class="pi pi-user"></i>
+                                    <h3>{{ 'profile.settings.photo.title' | translate }}</h3>
+                                </div>
+                                <div class="profile-photo-container">
+                                    <div class="profile-photo" [class.no-photo]="!userPhotoUrl">
+                                        <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="'profile.settings.photo.alt' | translate" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <i *ngIf="!userPhotoUrl" class="pi pi-user"></i>
+                                    </div>
+                                    <div class="photo-actions">
+                                        <button class="change-photo-btn">
+                                            <i class="pi pi-camera"></i>
+                                            <span>{{ 'profile.settings.photo.change' | translate }}</span>
+                                        </button>
+                                        <button class="remove-photo-btn" *ngIf="userPhotoUrl">
+                                            <i class="pi pi-trash"></i>
+                                            <span>{{ 'profile.settings.photo.remove' | translate }}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <small>{{ 'profile.settings.photo.description' | translate }}</small>
                             </div>
                         </div>
 
+                        <!-- Columna 2: Datos principales -->
                         <div class="form-column">
                             <div class="form-group">
-                                <label for="last_name">{{ 'profile.personal_info.last_name' | translate }}</label>
-                                <input [(ngModel)]="user.last_name" name="last_name" type="text" id="last_name" 
-                                    [placeholder]="'profile.personal_info.last_name_placeholder' | translate" required>
+                                <label for="name">{{ 'profile.personal_info.name' | translate }}</label>
+                                <input [(ngModel)]="user.name" name="name" type="text" id="name" required>
                             </div>
-
+                            <div class="form-group">
+                                <label for="last_name">{{ 'profile.personal_info.last_name' | translate }}</label>
+                                <input [(ngModel)]="user.last_name" name="last_name" type="text" id="last_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">{{ 'profile.personal_info.email' | translate }}</label>
+                                <input [(ngModel)]="user.email" name="email" type="email" id="email" required>
+                            </div>
                             <div class="form-group">
                                 <label for="dni">{{ 'profile.personal_info.dni' | translate }}</label>
-                                <input [(ngModel)]="user.dni" name="dni" type="text" id="dni" 
-                                    [placeholder]="'profile.personal_info.dni_placeholder' | translate" required>
+                                <input [(ngModel)]="user.dni" name="dni" type="text" id="dni" required>
                             </div>
+                        </div>
 
+                        <!-- Columna 3: Contacto y dirección -->
+                        <div class="form-column">
                             <div class="form-group">
-                                <label for="address">{{ 'profile.personal_info.address' | translate }}</label>
-                                <textarea [(ngModel)]="user.address" name="address" id="address" rows="3" 
-                                    [placeholder]="'profile.personal_info.address_placeholder' | translate"></textarea>
+                                <label for="phone">{{ 'profile.personal_info.phone' | translate }}</label>
+                                <input [(ngModel)]="user.phone" name="phone" type="tel" id="phone" required>
                             </div>
-
                             <div class="form-group">
                                 <label for="phone2">{{ 'profile.personal_info.phone2' | translate }}</label>
-                                <input [(ngModel)]="user.phone2" name="phone2" type="tel" id="phone2" 
-                                    [placeholder]="'profile.personal_info.phone2_placeholder' | translate">
+                                <input [(ngModel)]="user.phone2" name="phone2" type="tel" id="phone2">
+                            </div>
+                            <div class="form-group">
+                                <label for="address">{{ 'profile.personal_info.address' | translate }}</label>
+                                <input [(ngModel)]="user.address" name="address" id="address" type="text" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="birth">{{ 'profile.personal_info.birth_date' | translate }}</label>
+                                <input [(ngModel)]="user.birth" name="birth" type="date" id="birth" required>
                             </div>
                         </div>
                     </div>
@@ -79,33 +95,37 @@
 
             <!-- Pestaña de Configuración -->
              <!-- tap personalizado para que abra por defecto   -->
-             <p-tabPanel [header]="'profile.settings.title' | translate" [selected]="true">
+             <p-tabPanel [header]="'profile.settings.title' | translate" >
 
                 <div class="settings-grid">
-                    <div class="settings-item profile-photo-section">
+                  
+                   
+
+                   
+                    <div class="settings-item">
                         <div class="settings-header">
-                            <i class="pi pi-user"></i>
-                            <h3>{{ 'profile.settings.photo.title' | translate }}</h3>
+                            <i class="pi pi-globe"></i>
+                            <h3>{{ 'language.selectLanguage' | translate }}</h3>
                         </div>
-                        <div class="profile-photo-container">
-                            <div class="profile-photo" [class.no-photo]="!userPhotoUrl">
-                                <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="'profile.settings.photo.alt' | translate" style="width: 100%; height: 100%; object-fit: cover;">
-                                <i *ngIf="!userPhotoUrl" class="pi pi-user"></i>
-                            </div>
-                            <div class="photo-actions">
-                                <button class="change-photo-btn">
-                                    <i class="pi pi-camera"></i>
-                                    <span>{{ 'profile.settings.photo.change' | translate }}</span>
-                                </button>
-                                <button class="remove-photo-btn" *ngIf="userPhotoUrl">
-                                    <i class="pi pi-trash"></i>
-                                    <span>{{ 'profile.settings.photo.remove' | translate }}</span>
-                                </button>
-                            </div>
-                        </div>
-                        <small>{{ 'profile.settings.photo.description' | translate }}</small>
+                        <select [(ngModel)]="user.settings.language" (change)="onLanguageChange(user.settings.language)" name="language" class="settings-select">
+                            <option *ngFor="let lang of languages" [value]="lang.value">
+                                {{lang.label}}
+                            </option>
+                        </select>
+                        <small>{{ 'profile.settings.language.description' | translate }}</small>
                     </div>
 
+                    <div class="settings-item">
+                        <div class="settings-header">
+                            <i class="pi pi-bell"></i>
+                            <h3>{{ 'profile.settings.notifications.title' | translate }}</h3>
+                        </div>
+                        <div class="settings-toggle">
+                            <p-checkbox [(ngModel)]="user.settings.notifications" [binary]="true" (onChange)="onNotificationsChange($event)"></p-checkbox>
+                            <span>{{ 'profile.settings.notifications.enable' | translate }}</span>
+                        </div>
+                        <small>{{ 'profile.settings.notifications.description' | translate }}</small>
+                    </div>
                     <div class="settings-item">
                         <div class="settings-header">
                             <i class="pi pi-palette"></i>
@@ -158,32 +178,6 @@
                         </div>
                         <small>{{ 'profile.settings.theme.description' | translate }}</small>
                     </div>
-
-                    <div class="settings-item">
-                        <div class="settings-header">
-                            <i class="pi pi-globe"></i>
-                            <h3>{{ 'language.selectLanguage' | translate }}</h3>
-                        </div>
-                        <select [(ngModel)]="user.settings.language" (change)="onLanguageChange(user.settings.language)" name="language" class="settings-select">
-                            <option *ngFor="let lang of languages" [value]="lang.value">
-                                {{lang.label}}
-                            </option>
-                        </select>
-                        <small>{{ 'profile.settings.language.description' | translate }}</small>
-                    </div>
-
-                    <div class="settings-item">
-                        <div class="settings-header">
-                            <i class="pi pi-bell"></i>
-                            <h3>{{ 'profile.settings.notifications.title' | translate }}</h3>
-                        </div>
-                        <div class="settings-toggle">
-                            <p-checkbox [(ngModel)]="user.settings.notifications" [binary]="true" (onChange)="onNotificationsChange($event)"></p-checkbox>
-                            <span>{{ 'profile.settings.notifications.enable' | translate }}</span>
-                        </div>
-                        <small>{{ 'profile.settings.notifications.description' | translate }}</small>
-                    </div>
-
                     <div class="settings-item">
                         <div class="settings-header">
                             <i class="pi pi-lock"></i>
@@ -231,3 +225,4 @@
         </p-tabView>
     </div>
 </div>
+

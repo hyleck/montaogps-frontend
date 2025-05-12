@@ -1,0 +1,83 @@
+<div class="colors-container">
+
+  <div class="colors-layout">
+    <!-- Panel lateral izquierdo con formulario -->
+    <div class="colors-layout__sidebar" *ngIf="showColorForm">
+      <div class="sidebar-content">
+        <h3>{{ (isEditing ? 'Editar color' : 'Nuevo color') }}</h3>
+        <form (ngSubmit)="saveColor()" ngNativeValidate>
+          <div class="form-group">
+            <label for="nombre">Nombre del color</label>
+            <input id="nombre" type="text" [(ngModel)]="colorForm.nombre" name="nombre" required
+                 placeholder="Ej: Rojo Montao">
+          </div>
+          <div class="form-group">
+            <label for="hex">Código hexadecimal</label>
+            <div class="color-picker-container">
+              <input id="hex" type="color" [(ngModel)]="colorForm.hex" name="hex" required>
+              <input type="text" [(ngModel)]="colorForm.hex" name="hexText" required
+                   placeholder="#ff0000">
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="button-primary">
+              <i class="pi pi-save"></i>
+              {{ isEditing ? 'Actualizar' : 'Crear' }}
+            </button>
+            <button type="button" class="button-secondary" (click)="cancelEdit()">
+              <i class="pi pi-times"></i>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Contenido principal con lista de colores -->
+    <div class="colors-layout__main">
+      <div class="main-content">
+        <div class="main-header">
+          <h2>Configuración de Colores</h2>
+          <button class="button-primary" (click)="openNewColorForm()">
+            <i class="pi pi-plus"></i>
+            Nuevo Color
+          </button>
+        </div>
+
+        <div class="loading" *ngIf="loading">
+          <p-progressSpinner></p-progressSpinner>
+          <span>Cargando colores...</span>
+        </div>
+
+        <div class="colors-grid" *ngIf="!loading && colors.length > 0">
+          <div class="color-card" *ngFor="let color of colors">
+            <div class="color-card__header">
+              <div class="color-preview" [style.background-color]="color.hex"></div>
+              <div class="color-actions">
+                <button class="button-icon" (click)="editColor(color)">
+                  <i class="pi pi-pencil"></i>
+                </button>
+                <button class="button-icon" (click)="deleteColor(color)">
+                  <i class="pi pi-trash"></i>
+                </button>
+              </div>
+            </div>
+            <div class="color-card__body">
+              <h3 class="color-name">{{color.nombre}}</h3>
+              <span class="color-hex">{{color.hex}}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="no-colors" *ngIf="!loading && colors.length === 0">
+          <p>No hay colores configurados</p>
+          <button class="button-primary" (click)="openNewColorForm()">
+            <i class="pi pi-plus"></i>
+            Agregar color
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

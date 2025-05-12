@@ -1,0 +1,233 @@
+.colors-container {
+  padding: 20px;
+  background-color: var(--colorsBackground);
+  height: 100%;
+}
+
+.colors-layout {
+  display: flex;
+  gap: 20px;
+  height: 100%;
+}
+
+.colors-layout__sidebar {
+  width: 300px;
+}
+
+.colors-layout__main {
+  flex: 1;
+}
+
+.sidebar-content {
+  background-color: var(--colorsSidebarBackground);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid var(--colorsBorder);
+}
+
+.main-content {
+  background-color: var(--colorsMainBackground);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border: 1px solid var(--colorsBorder);
+}
+
+.main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+h2, h3 {
+  color: var(--colorsTitle);
+  margin: 0;
+}
+
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+.form-group label {
+  font-size: 12px;
+  display: block;
+  margin-bottom: 5px;
+  color: var(--colorsText);
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+  border: 1px solid var(--colorsFormInputBorder);
+  padding: 10px;
+  border-radius: 5px;
+  outline: none;
+  width: 100%;
+  background-color: var(--colorsFormInput);
+  color: var(--colorsFormInputText);
+}
+
+.form-group textarea {
+  resize: none;
+}
+
+.color-picker-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.color-picker-container input[type="color"] {
+  width: 50px;
+  height: 40px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.color-picker-container input[type="text"] {
+  flex: 1;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.button-primary {
+  background-color: var(--colorsButtonPrimary);
+  color: var(--colorsButtonText);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.button-primary:hover {
+  background-color: var(--colorsButtonPrimaryHover);
+}
+
+.button-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.color-card {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--colorsCardBorder);
+  background-color: var(--colorsCardBackground);
+  transition: all 0.2s;
+}
+
+.color-card:hover {
+  border-color: var(--colorsCardBorderHover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.color-card__header {
+  position: relative;
+  height: 100px;
+}
+
+.color-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.color-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.color-card:hover .color-actions {
+  opacity: 1;
+}
+
+.button-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.button-icon:hover {
+  background-color: rgba(255, 255, 255, 1);
+  transform: scale(1.1);
+}
+
+.color-card__body {
+  padding: 15px;
+}
+
+.color-name {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--colorsCardText);
+}
+
+.color-hex {
+  display: block;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 0;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--colorsText);
+}
+
+.loading span {
+  margin-top: 15px;
+}
+
+.no-colors {
+  text-align: center;
+  padding: 40px;
+  color: var(--colorsText);
+}
+
+.no-colors p {
+  margin-bottom: 20px;
+}
+
+.no-colors button {
+  margin: 0 auto;
+}

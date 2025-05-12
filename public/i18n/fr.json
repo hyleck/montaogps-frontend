@@ -120,7 +120,9 @@
         "roles": "Configuration des rôles",
         "system": "Configuration du système",
         "servers": "Configuration des serveurs",
-        "plans": "Configuration des plans"
+        "plans": "Configuration des plans",
+        "colors": "Configuration des couleurs",
+        "brands": "Configuration des marques"
       },
       "servers": {
         "servers_list": "Liste des serveurs",
@@ -381,6 +383,41 @@
           "error_delete": "Impossible de supprimer le plan",
           "invalid_price": "Le prix doit être supérieur à 0",
           "invalid_feature": "Le nom de la caractéristique est requis"
+        }
+      },
+      "vehicle_brands": {
+        "title": "Configuration des Marques",
+        "new_brand": "Nouvelle marque",
+        "edit_brand": "Modifier la marque",
+        "brand_name": "Nom de la marque",
+        "brand_name_placeholder": "Ex: Toyota",
+        "table": {
+          "name": "Nom",
+          "actions": "Actions"
+        },
+        "update": "Mettre à jour",
+        "create": "Créer",
+        "cancel": "Annuler",
+        "loading": "Chargement des marques...",
+        "no_brands": "Aucune marque configurée",
+        "add_brand": "Ajouter une marque",
+        "messages": {
+          "confirm_delete": "Êtes-vous sûr de vouloir supprimer la marque \"{name}\" ?",
+          "confirm_delete_header": "Confirmer la suppression",
+          "yes_delete": "Oui, supprimer",
+          "no_cancel": "Non, annuler",
+          "brand_updated": "Marque mise à jour",
+          "brand_updated_detail": "La marque \"{name}\" a été mise à jour avec succès",
+          "brand_created": "Marque créée",
+          "brand_created_detail": "La marque \"{name}\" a été créée avec succès",
+          "brand_deleted": "Marque supprimée",
+          "brand_deleted_detail": "La marque \"{name}\" a été supprimée avec succès",
+          "error": "Erreur",
+          "success": "Succès",
+          "error_update": "Impossible de mettre à jour la marque",
+          "error_create": "Impossible de créer la marque",
+          "error_delete": "Impossible de supprimer la marque",
+          "error_loading_brands": "Impossible de charger les marques"
         }
       }
     },

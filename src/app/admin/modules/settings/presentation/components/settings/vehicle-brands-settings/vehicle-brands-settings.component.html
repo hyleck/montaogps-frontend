@@ -1,0 +1,70 @@
+<div class="user-roles-layout">
+    
+    <!-- Panel lateral izquierdo -->
+    <div class="user-roles-layout__sidebar">
+        <div class="sidebar-content">
+            <h3>{{ (isEditing ? 'settings.vehicle_brands.edit_brand' : 'settings.vehicle_brands.new_brand') | translate }}</h3>
+            <form (ngSubmit)="saveBrand()" ngNativeValidate>
+                <div class="form-group">
+                    <label for="nombre">{{ 'settings.vehicle_brands.brand_name' | translate }}</label>
+                    <input id="nombre" type="text" [(ngModel)]="brandForm.nombre" name="nombre" required
+                         placeholder="{{ 'settings.vehicle_brands.brand_name_placeholder' | translate }}">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="button-primary">
+                        <i class="pi pi-save"></i>
+                        {{ (isEditing ? 'settings.vehicle_brands.update' : 'settings.vehicle_brands.create') | translate }}
+                    </button>
+                    <button type="button" class="button-secondary" (click)="cancelEdit()">
+                        <i class="pi pi-times"></i>
+                        {{ 'settings.vehicle_brands.cancel' | translate }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="user-roles-layout__main">
+        <div class="main-content">
+            <h2>{{ 'settings.vehicle_brands.title' | translate }}</h2>
+            
+            <!-- Spinner de carga -->
+            <div *ngIf="loading" class="loading-container">
+                <p-progressSpinner></p-progressSpinner>
+                <p>{{ 'settings.vehicle_brands.loading' | translate }}</p>
+            </div>
+
+            <!-- Tabla de marcas -->
+            <p-table *ngIf="!loading" [value]="brands" [tableStyle]="{ 'min-width': '20rem', 'font-size': '0.875rem' }" styleClass="small-text-table">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>{{ 'settings.vehicle_brands.table.name' | translate }}</th>
+                        <th>{{ 'settings.vehicle_brands.table.actions' | translate }}</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-brand>
+                    <tr>
+                        <td>{{brand.nombre}}</td>
+                        <td>
+                            <button type="button" class="button-action button-success" (click)="editBrand(brand)">
+                                <i class="pi pi-pencil"></i>
+                            </button>
+                            <button type="button" class="button-action button-danger" (click)="deleteBrand(brand)">
+                                <i class="pi pi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="2" class="text-center p-4">{{ 'settings.vehicle_brands.no_brands' | translate }}</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
+</div>
+
+

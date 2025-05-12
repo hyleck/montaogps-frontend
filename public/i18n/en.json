@@ -115,10 +115,13 @@
       },
       "disabled": "Disabled",
       "dialogs": {
-        "roles": "Role configuration",
-        "system": "System configuration",
-        "servers": "Server configuration",
-        "plans": "Plan configuration"
+        "roles": "Roles Configuration",
+        "system": "System Configuration",
+        "servers": "Servers Configuration",
+        "plans": "Plans Configuration",
+        "colors": "Colors Configuration",
+        "brands": "Brands Configuration",
+        "models": "Models Configuration"
       },
       "servers": {
         "servers_list": "Servers list",
@@ -385,6 +388,41 @@
           "invalid_price": "Price must be greater than 0",
           "invalid_feature": "Feature name is required"
         }
+      },
+      "vehicle_brands": {
+        "title": "Brands Configuration",
+        "new_brand": "New brand",
+        "edit_brand": "Edit brand",
+        "brand_name": "Brand name",
+        "brand_name_placeholder": "Ex: Toyota",
+        "table": {
+          "name": "Name",
+          "actions": "Actions"
+        },
+        "update": "Update",
+        "create": "Create",
+        "cancel": "Cancel",
+        "loading": "Loading brands...",
+        "no_brands": "No brands configured",
+        "add_brand": "Add brand",
+        "messages": {
+          "confirm_delete": "Are you sure you want to delete the brand \"{name}\"?",
+          "confirm_delete_header": "Confirm deletion",
+          "yes_delete": "Yes, delete",
+          "no_cancel": "No, cancel",
+          "brand_updated": "Brand updated",
+          "brand_updated_detail": "The brand \"{name}\" has been successfully updated",
+          "brand_created": "Brand created",
+          "brand_created_detail": "The brand \"{name}\" has been successfully created",
+          "brand_deleted": "Brand deleted",
+          "brand_deleted_detail": "The brand \"{name}\" has been successfully deleted",
+          "error": "Error",
+          "success": "Success",
+          "error_update": "Could not update brand",
+          "error_create": "Could not create brand",
+          "error_delete": "Could not delete brand",
+          "error_loading_brands": "Could not load brands"
+        }
       }
     },
     "profile": {
@@ -616,6 +654,49 @@
         "backToPersonalInfo": "Back to personal information"
       },
       "noUsers": "This account has no users."
+    },
+    "vehicle_models": {
+      "title": "Models Configuration",
+      "new_model": "New model",
+      "edit_model": "Edit model",
+      "model_name": "Model name",
+      "model_name_placeholder": "Ex: Corolla",
+      "brand": "Brand",
+      "select_brand": "Select a brand",
+      "vehicle_type": "Vehicle type",
+      "select_vehicle_type": "Select a vehicle type",
+      "table": {
+        "name": "Name",
+        "brand": "Brand",
+        "vehicle_type": "Vehicle type",
+        "actions": "Actions"
+      },
+      "update": "Update",
+      "create": "Create",
+      "cancel": "Cancel",
+      "loading": "Loading models...",
+      "no_models": "No models configured",
+      "add_model": "Add model",
+      "messages": {
+        "confirm_delete": "Are you sure you want to delete the model \"{name}\"?",
+        "confirm_delete_header": "Confirm deletion",
+        "yes_delete": "Yes, delete",
+        "no_cancel": "No, cancel",
+        "model_updated": "Model updated",
+        "model_updated_detail": "The model \"{name}\" has been successfully updated",
+        "model_created": "Model created",
+        "model_created_detail": "The model \"{name}\" has been successfully created",
+        "model_deleted": "Model deleted",
+        "model_deleted_detail": "The model \"{name}\" has been successfully deleted",
+        "error": "Error",
+        "success": "Success",
+        "error_update": "Could not update model",
+        "error_create": "Could not create model",
+        "error_delete": "Could not delete model",
+        "error_loading_models": "Could not load models",
+        "error_loading_brands": "Could not load brands",
+        "error_loading_types": "Could not load vehicle types"
+      }
     }
   }
   

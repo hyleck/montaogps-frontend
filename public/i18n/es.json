@@ -118,7 +118,10 @@
         "roles": "Configuración de roles",
         "system": "Configuración del sistema",
         "servers": "Configuración de servidores",
-        "plans": "Configuración de planes"
+        "plans": "Configuración de planes",
+        "colors": "Configuración de colores",
+        "brands": "Configuración de marcas",
+        "models": "Configuración de Modelos"
       },
       "servers": {
         "servers_list": "Lista de servidores",
@@ -167,6 +170,41 @@
           "error_create": "No se pudo crear el servidor",
           "error_delete": "No se pudo eliminar el servidor",
           "error_loading": "No se pudieron cargar los servidores"
+        }
+      },
+      "vehicle_brands": {
+        "title": "Configuración de Marcas",
+        "new_brand": "Nueva marca",
+        "edit_brand": "Editar marca",
+        "brand_name": "Nombre de la marca",
+        "brand_name_placeholder": "Ej: Toyota",
+        "table": {
+          "name": "Nombre",
+          "actions": "Acciones"
+        },
+        "update": "Actualizar",
+        "create": "Crear",
+        "cancel": "Cancelar",
+        "loading": "Cargando marcas...",
+        "no_brands": "No hay marcas configuradas",
+        "add_brand": "Agregar marca",
+        "messages": {
+          "confirm_delete": "¿Está seguro que desea eliminar la marca \"{name}\"?",
+          "confirm_delete_header": "Confirmar eliminación",
+          "yes_delete": "Sí, eliminar",
+          "no_cancel": "No, cancelar",
+          "brand_updated": "Marca actualizada",
+          "brand_updated_detail": "La marca \"{name}\" ha sido actualizada correctamente",
+          "brand_created": "Marca creada",
+          "brand_created_detail": "La marca \"{name}\" ha sido creada correctamente",
+          "brand_deleted": "Marca eliminada",
+          "brand_deleted_detail": "La marca \"{name}\" ha sido eliminada correctamente",
+          "error": "Error",
+          "success": "Éxito",
+          "error_update": "No se pudo actualizar la marca",
+          "error_create": "No se pudo crear la marca",
+          "error_delete": "No se pudo eliminar la marca",
+          "error_loading_brands": "No se pudieron cargar las marcas"
         }
       },
       "roles_settings": {
@@ -383,6 +421,49 @@
           "error_delete": "No se pudo eliminar el plan",
           "invalid_price": "El precio debe ser mayor que 0",
           "invalid_feature": "El nombre de la característica es requerido"
+        }
+      },
+      "vehicle_models": {
+        "title": "Configuración de Modelos",
+        "new_model": "Nuevo modelo",
+        "edit_model": "Editar modelo",
+        "model_name": "Nombre del modelo",
+        "model_name_placeholder": "Ej: Corolla",
+        "brand": "Marca",
+        "select_brand": "Seleccione una marca",
+        "vehicle_type": "Tipo de vehículo",
+        "select_vehicle_type": "Seleccione un tipo de vehículo",
+        "table": {
+          "name": "Nombre",
+          "brand": "Marca",
+          "vehicle_type": "Tipo de vehículo",
+          "actions": "Acciones"
+        },
+        "update": "Actualizar",
+        "create": "Crear",
+        "cancel": "Cancelar",
+        "loading": "Cargando modelos...",
+        "no_models": "No hay modelos configurados",
+        "add_model": "Agregar modelo",
+        "messages": {
+          "confirm_delete": "¿Está seguro que desea eliminar el modelo \"{name}\"?",
+          "confirm_delete_header": "Confirmar eliminación",
+          "yes_delete": "Sí, eliminar",
+          "no_cancel": "No, cancelar",
+          "model_updated": "Modelo actualizado",
+          "model_updated_detail": "El modelo \"{name}\" ha sido actualizado correctamente",
+          "model_created": "Modelo creado",
+          "model_created_detail": "El modelo \"{name}\" ha sido creado correctamente",
+          "model_deleted": "Modelo eliminado",
+          "model_deleted_detail": "El modelo \"{name}\" ha sido eliminado correctamente",
+          "error": "Error",
+          "success": "Éxito",
+          "error_update": "No se pudo actualizar el modelo",
+          "error_create": "No se pudo crear el modelo",
+          "error_delete": "No se pudo eliminar el modelo",
+          "error_loading_models": "No se pudieron cargar los modelos",
+          "error_loading_brands": "No se pudieron cargar las marcas",
+          "error_loading_types": "No se pudieron cargar los tipos de vehículos"
         }
       }
     },

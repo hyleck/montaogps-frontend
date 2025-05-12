@@ -17,6 +17,9 @@ export class SettingsComponent implements OnInit {
     SystemSettingsDisplay: boolean = false;
     ServersSettingsDisplay: boolean = false;
     PlansSettingsDisplay: boolean = false;
+    ColorsSettingsDisplay: boolean = false;
+    VehicleBrandsSettingsDisplay: boolean = false;
+    VehicleModelsSettingsDisplay: boolean = false;
 
     settingsCards = [
         {
@@ -44,6 +47,12 @@ export class SettingsComponent implements OnInit {
             action: () => this.PlansSettingsDisplay = true
         },
         {
+            titleKey: 'settings.colors.title',
+            icon: 'pi pi-palette',
+            action: () => this.ColorsSettingsDisplay = true,
+            descriptionKey: 'settings.colors.description'
+        },
+        {
             titleKey: 'settings.sectors.title',
             icon: 'pi pi-map',
             route: '/admin/settings/sectors',
@@ -60,23 +69,15 @@ export class SettingsComponent implements OnInit {
         {
             titleKey: 'settings.brands.title',
             icon: 'pi pi-car',
-            route: '/admin/settings/brands',
-            descriptionKey: 'settings.brands.description',
-            disabled: true
+            action: () => this.VehicleBrandsSettingsDisplay = true,
+            descriptionKey: 'settings.brands.description'
         },
         {
             titleKey: 'settings.models.title',
             icon: 'pi pi-truck',
-            route: '/admin/settings/models',
+            action: () => this.VehicleModelsSettingsDisplay = true,
             descriptionKey: 'settings.models.description',
-            disabled: true
-        },
-        {
-            titleKey: 'settings.colors.title',
-            icon: 'pi pi-palette',
-            route: '/admin/settings/colors',
-            descriptionKey: 'settings.colors.description',
-            disabled: true
+            disabled: false
         }
     ];
 

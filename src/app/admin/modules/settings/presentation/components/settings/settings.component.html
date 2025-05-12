@@ -1,4 +1,5 @@
 <div class="management__route">
+    <p-confirmDialog [style]="{width: '450px'}"></p-confirmDialog>
 
     <p-breadcrumb 
     
@@ -55,6 +56,33 @@
              [contentStyle]="{overflow: 'auto'}"
              styleClass="app-dark-dialog">
         <app-plans-settings></app-plans-settings>
+    </p-dialog>
+
+    <p-dialog [header]="'settings.dialogs.colors' | translate" 
+             [modal]="true" 
+             [(visible)]="ColorsSettingsDisplay"
+             [style]="{width: '70vw', maxWidth: '900px'}"
+             [contentStyle]="{overflow: 'auto'}"
+             styleClass="app-dark-dialog">
+        <app-colors-settings></app-colors-settings>
+    </p-dialog>
+
+    <p-dialog [header]="'settings.dialogs.brands' | translate" 
+             [modal]="true" 
+             [(visible)]="VehicleBrandsSettingsDisplay"
+             [style]="{width: '80vw', maxWidth: '950px'}"
+             [contentStyle]="{overflow: 'auto'}"
+             styleClass="app-dark-dialog">
+        <app-vehicle-brands-settings></app-vehicle-brands-settings>
+    </p-dialog>
+
+    <p-dialog [header]="'settings.dialogs.models' | translate" 
+             [modal]="true" 
+             [(visible)]="VehicleModelsSettingsDisplay"
+             [style]="{width: '90vw', maxWidth: '1050px'}"
+             [contentStyle]="{overflow: 'auto'}"
+             styleClass="app-dark-dialog">
+        <app-vehicle-models-settings></app-vehicle-models-settings>
     </p-dialog>
 
 </div>

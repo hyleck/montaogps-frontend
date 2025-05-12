@@ -1,0 +1,90 @@
+<div class="user-roles-layout">
+    
+    <!-- Panel lateral izquierdo -->
+    <div class="user-roles-layout__sidebar">
+        <div class="sidebar-content">
+            <h3>{{ (isEditing ? 'settings.vehicle_models.edit_model' : 'settings.vehicle_models.new_model') | translate }}</h3>
+            <form (ngSubmit)="saveModel()" ngNativeValidate>
+                <div class="form-group">
+                    <label for="nombre">{{ 'settings.vehicle_models.model_name' | translate }}</label>
+                    <input id="nombre" type="text" [(ngModel)]="modelForm.nombre" name="nombre" required
+                         placeholder="{{ 'settings.vehicle_models.model_name_placeholder' | translate }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_marca">{{ 'settings.vehicle_models.brand' | translate }}</label>
+                    <select id="id_marca" [(ngModel)]="modelForm.id_marca" name="id_marca" required class="form-select" (change)="onBrandChange($event)">
+                        <option value="" disabled selected>{{ 'settings.vehicle_models.select_brand' | translate }}</option>
+                        <option *ngFor="let brand of brands" [value]="brand._id">{{ brand.nombre }}</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_tipo_vehiculo">{{ 'settings.vehicle_models.vehicle_type' | translate }}</label>
+                    <select id="id_tipo_vehiculo" [(ngModel)]="modelForm.id_tipo_vehiculo" name="id_tipo_vehiculo" required class="form-select">
+                        <option value="" disabled selected>{{ 'settings.vehicle_models.select_vehicle_type' | translate }}</option>
+                        <option *ngFor="let type of vehicleTypes" [value]="type._id">{{ type.nombre }}</option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="button-primary">
+                        <i class="pi pi-save"></i>
+                        {{ (isEditing ? 'settings.vehicle_models.update' : 'settings.vehicle_models.create') | translate }}
+                    </button>
+                    <button type="button" class="button-secondary" (click)="cancelEdit()">
+                        <i class="pi pi-times"></i>
+                        {{ 'settings.vehicle_models.cancel' | translate }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="user-roles-layout__main">
+        <div class="main-content">
+            <h2>{{ 'settings.vehicle_models.title' | translate }}</h2>
+            
+            <!-- Spinner de carga -->
+            <div *ngIf="loading" class="loading-container">
+                <p-progressSpinner></p-progressSpinner>
+                <p>{{ 'settings.vehicle_models.loading' | translate }}</p>
+            </div>
+
+            <!-- Tabla de modelos -->
+            <p-table *ngIf="!loading" [value]="models" [tableStyle]="{ 'min-width': '20rem', 'font-size': '0.875rem' }" styleClass="small-text-table">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>{{ 'settings.vehicle_models.table.name' | translate }}</th>
+                        <th>{{ 'settings.vehicle_models.table.brand' | translate }}</th>
+                        <th>{{ 'settings.vehicle_models.table.vehicle_type' | translate }}</th>
+                        <th>{{ 'settings.vehicle_models.table.actions' | translate }}</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-model>
+                    <tr>
+                        <td>{{model.nombre}}</td>
+                        <td>{{getBrandName(model.id_marca)}}</td>
+                        <td>{{getVehicleTypeName(model.id_tipo_vehiculo)}}</td>
+                        <td>
+                            <button type="button" class="button-action button-success" (click)="editModel(model)">
+                                <i class="pi pi-pencil"></i>
+                            </button>
+                            <button type="button" class="button-action button-danger" (click)="deleteModel(model)">
+                                <i class="pi pi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="4" class="text-center p-4">{{ 'settings.vehicle_models.no_models' | translate }}</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
+</div>
+
+<p-toast></p-toast>

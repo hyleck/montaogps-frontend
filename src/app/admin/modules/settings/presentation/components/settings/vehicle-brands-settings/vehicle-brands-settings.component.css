@@ -1,0 +1,210 @@
+.user-roles-layout {
+  display: flex;
+  gap: 0;
+  height: 100%;
+  background-color: var(--userRolesBackground);
+  padding: 1rem;
+}
+
+.user-roles-layout__sidebar {
+  width: 300px;
+  padding-right: 1rem;
+}
+
+.user-roles-layout__main {
+  flex: 1;
+}
+
+.sidebar-content {
+  background-color: var(--userRolesSidebarBackground);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.main-content {
+  background-color: var(--userRolesMainBackground);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.sidebar-content h3 {
+  margin: 0 0 1.5rem 0;
+  color: var(--userRolesTitle);
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.main-content h2 {
+  margin: 0 0 1.5rem 0;
+  color: var(--userRolesTitle);
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+.form-group label {
+  font-size: 12px;
+  display: block;
+  margin-bottom: 5px;
+  color: var(--globalColorTextDark, #1f1f1f);
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea {
+  border: 1px solid var(--managementFieldsBorder);
+  padding: 10px;
+  border-radius: 5px;
+  outline: none;
+  width: 100%;
+  background-color: var(--userRolesBackground);
+  color: var(--userRolesText);
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+/* Estilos para la tabla */
+:host ::ng-deep .p-datatable {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:host ::ng-deep .p-datatable .p-datatable-header {
+  background-color: var(--userRolesTableHeader);
+  border-bottom: 1px solid var(--userRolesTableBorder);
+  padding: 1rem;
+}
+
+:host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+  background-color: var(--userRolesTableHeader);
+  color: var(--userRolesText);
+  font-weight: 600;
+  padding: 1rem;
+  border-bottom: 1px solid var(--userRolesTableBorder);
+}
+
+:host ::ng-deep .p-datatable .p-datatable-tbody > tr {
+  background-color: var(--userRolesMainBackground);
+  transition: background-color 0.2s;
+}
+
+:host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+  padding: 0.8rem 1rem;
+  color: var(--userRolesText);
+  border-bottom: 1px solid var(--userRolesTableBorder);
+}
+
+/* Botones de acción */
+.button-action {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.5rem;
+}
+
+.button-success {
+  background-color: #22c55e;
+  color: white;
+}
+
+.button-danger {
+  background-color: #ef4444;
+  color: white;
+}
+
+.button-primary {
+  background-color: var(--userRolesButtonPrimary);
+  color: var(--userRolesButtonText);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.button-primary:hover {
+  background-color: var(--userRolesButtonPrimaryHover);
+}
+
+.button-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.button-secondary:hover {
+  background-color: #5a6268;
+}
+
+@media (max-width: 992px) {
+  .user-roles-layout {
+    flex-direction: column;
+  }
+  
+  .user-roles-layout__sidebar {
+    width: 100%;
+    padding-right: 0;
+    padding-bottom: 1rem;
+  }
+}
+
+:host ::ng-deep .small-text-table {
+  font-size: 0.875rem;
+}
+
+:host ::ng-deep .small-text-table .p-datatable-header,
+:host ::ng-deep .small-text-table .p-datatable-thead > tr > th,
+:host ::ng-deep .small-text-table .p-datatable-tbody > tr > td {
+  padding: 0.75rem;
+}
+
+#nombre:focus {
+  border-color: var(--globalColorBorderHover);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+}
+
+.loading-container p {
+  margin-top: 1rem;
+  color: var(--userRolesText);
+  font-size: 0.9rem;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.p-4 {
+  padding: 1rem;
+}
