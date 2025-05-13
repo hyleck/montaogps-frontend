@@ -79,10 +79,19 @@
     <p-dialog [header]="'settings.dialogs.models' | translate" 
              [modal]="true" 
              [(visible)]="VehicleModelsSettingsDisplay"
-             [style]="{width: '90vw', maxWidth: '1050px'}"
+             [style]="{width: '80vw', maxWidth: '950px'}"
              [contentStyle]="{overflow: 'auto'}"
              styleClass="app-dark-dialog">
         <app-vehicle-models-settings></app-vehicle-models-settings>
+    </p-dialog>
+
+    <p-dialog [header]="'settings.dialogs.protocols' | translate" 
+             [modal]="true" 
+             [(visible)]="ProtocolsSettingsDisplay"
+             [style]="{width: '80vw', maxWidth: '950px'}"
+             [contentStyle]="{overflow: 'auto'}"
+             styleClass="app-dark-dialog">
+        <app-protocols-settings></app-protocols-settings>
     </p-dialog>
 
 </div>

@@ -8,8 +8,10 @@ import { TranslateService } from '@ngx-translate/core';
 
 // Application imports
 import { User, BasicUser, ExtendedUser, convertToExtendedUser } from '@core/interfaces';
+import { Target } from '@core/interfaces/target.interface';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
+import { TargetsService } from '@core/services/targets.service';
 import { ThemesService } from '@shared/services/themes.service';
 import { StatusService } from '@shared/services/status.service';
 import { ManagementService } from '@management/presentation/services/management.service';
@@ -45,27 +47,13 @@ export class ManagementComponent {
     showMap: 'management.showMap',
     back: 'management.back'
   };
-  customers = [
-    {
-      name: 'Honda accord',
-      status: 'En linea',
-      imei: '13132121655444123',
-      sim: '1553215448888',
-      _id: '1',
-    },
-    {
-      name: 'Toyota Corolla',
-      status: 'Offline',
-      imei: '13132121655444124',
-      sim: '1553215448889',
-      _id: '2',
-    }
-  ];
-  customersSelected = [];
+  targetsList: any[] = [];
+  targetsSelected: any[] = [];
   selectedMap: string = 'mapbox-light';
   providerType: 'google' | 'mapbox' = 'mapbox';
   providerTheme: 'light' | 'dark' = 'light';
   mapsKey: number | null = Date.now();
+  targets: Target[] = [];
 
   constructor(
     public router: Router,
@@ -73,11 +61,12 @@ export class ManagementComponent {
     private status: StatusService,
     private authService: AuthService,
     private userService: UserService,
-    private translate: TranslateService,
+    public translate: TranslateService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
     public managementService: ManagementService,
-    private screenService: ScreenService
+    private screenService: ScreenService,
+    private targetsService: TargetsService
   ) {}
 
   // Lifecycle hooks
@@ -126,7 +115,8 @@ export class ManagementComponent {
               }
             });
             
-            
+            // Cargar objetivos del usuario
+            this.loadTargetsForUser(user._id);
           })
           .catch(() => {
             this.loading = false;
@@ -152,6 +142,9 @@ export class ManagementComponent {
                 }
               });
               
+              // Cargar objetivos del usuario
+              this.loadTargetsForUser(user._id);
+              
               this.loading = false;
             })
             .catch(() => {
@@ -173,6 +166,9 @@ export class ManagementComponent {
                   console.error('Error al cargar todos los usuarios:', error);
                 }
               });
+              
+              // Cargar objetivos del usuario actual
+              this.loadTargetsForUser(currentUser.id);
               
               this.loading = false;
             })
@@ -247,7 +243,36 @@ export class ManagementComponent {
 
   searchTargets() {
     this.managementService.setSearchTargetsTerm(this.searchTargetsTerm);
-    this.managementService.searchTargets();
+    // Si hay término de búsqueda, filtrar objetivos
+    if (this.searchTargetsTerm && this.searchTargetsTerm.trim() !== '') {
+      console.log('Buscando objetivos con término:', this.searchTargetsTerm);
+      this.targetsService.searchTargets(this.searchTargetsTerm)
+        .then((targets: Target[]) => {
+          console.log('Respuesta de búsqueda de objetivos:', targets);
+          this.targets = targets;
+          
+          if (targets && targets.length > 0) {
+            this.targetsList = targets.map((target: Target) => ({
+              name: target.name,
+              status: target.status === 'active' ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
+              imei: target.device_imei || target.imei, // Intentar ambos campos
+              sim: target.sim_card_number || target.sim_card, // Intentar ambos campos
+              _id: target._id
+            }));
+          } else {
+            console.log('No se encontraron objetivos en la búsqueda');
+            this.targetsList = [];
+          }
+          
+          console.log('Objetivos encontrados transformados:', this.targetsList);
+        })
+        .catch((error: any) => {
+          console.error('Error al buscar objetivos:', error);
+        });
+    } else if (this.selectedUser) {
+      // Si no hay término, recargar todos los objetivos del usuario
+      this.loadTargetsForUser(this.selectedUser._id);
+    }
   }
 
   enterUser(user: User) {
@@ -361,6 +386,45 @@ export class ManagementComponent {
     setTimeout(() => {
       this.mapsKey = Date.now();
     }, 0);
+  }
+
+  // Método para cargar objetivos de un usuario específico
+  private async loadTargetsForUser(userId: string) {
+    try {
+      console.log('Cargando objetivos para el usuario:', userId);
+      const targets = await this.targetsService.getTargetsByUserId(userId);
+      console.log('Respuesta del API de objetivos:', targets);
+      
+      this.targets = targets;
+      
+      // Verificar si hay datos antes de transformarlos
+      if (targets && targets.length > 0) {
+        console.log('Primer objetivo recibido:', targets[0]);
+        this.targetsList = targets.map(target => {
+          const isOnline = target.status === 'active';
+          console.log('Mapeando target con IMEI:', target.device_imei || target.imei, 'y SIM:', target.sim_card_number || target.sim_card);
+          return {
+            name: target.name,
+            status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
+            imei: target.device_imei || target.imei, // Intentar ambos campos
+            sim: target.sim_card_number || target.sim_card, // Intentar ambos campos
+            _id: target._id
+          };
+        });
+      } else {
+        console.log('No se recibieron objetivos del API');
+        this.targetsList = [];
+      }
+      
+      console.log('Objetivos transformados para la UI:', this.targetsList);
+    } catch (error) {
+      console.error('Error al cargar objetivos:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.error'),
+        detail: this.translate.instant('management.targetsLoadError')
+      });
+    }
   }
 
   // Métodos privados

@@ -1,0 +1,97 @@
+export interface Target {
+    _id: string;
+    name: string;
+    imei: string;
+    device_imei: string;
+    api_id?: string | null;
+    sim_card: string;
+    sim_card_number: string;
+    description?: string;
+    plate: string;
+    contacts?: string[];
+    year?: string | null;
+    installation_location?: string | null;
+    brand?: string | null;
+    model?: string | null;
+    color?: string;
+    chassis?: string;
+    installation_date?: string;
+    expiration_date?: string;
+    gps_model?: string | null;
+    ignition_sensor?: string | null;
+    shutdown_control?: string | null;
+    installation_details?: string;
+    status: 'active' | 'inactive' | null;
+    plan?: string | null;
+    user_id?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface CreateTargetDto {
+    name: string;
+    device_imei: string;
+    api_device_id: string;
+    api_position_id: string;
+    type: string;
+    sim_card_number: string;
+    sim_company: string;
+    description?: string;
+    plate: string;
+    contacts: string;
+    year?: string | null;
+    installation_location?: string | null;
+    brand?: string | null;
+    model?: string | null;
+    color?: string;
+    chassis?: string;
+    activation_date: Date;
+    expiration_date?: Date;
+    last_change_date: Date;
+    gps_model?: string | null;
+    ignition_sensor?: string | null;
+    shutdown_control?: string | null;
+    installation_details?: string;
+    status: boolean;
+    canceled: boolean;
+    delete: boolean;
+    index: string;
+    plan?: string | null;
+    creator_id: string;
+    parent_id: string;
+    user_id?: string;
+}
+
+export interface UpdateTargetDto {
+    name?: string;
+    device_imei?: string;
+    api_device_id?: string;
+    api_position_id?: string;
+    type?: string;
+    sim_card_number?: string;
+    sim_company?: string;
+    description?: string;
+    plate?: string;
+    contacts?: string;
+    year?: string | null;
+    installation_location?: string | null;
+    brand?: string | null;
+    model?: string | null;
+    color?: string;
+    chassis?: string;
+    activation_date?: Date;
+    expiration_date?: Date;
+    last_change_date?: Date;
+    gps_model?: string | null;
+    ignition_sensor?: string | null;
+    shutdown_control?: string | null;
+    installation_details?: string;
+    status?: boolean;
+    canceled?: boolean;
+    delete?: boolean;
+    index?: string;
+    plan?: string | null;
+    creator_id?: string;
+    parent_id?: string;
+    user_id?: string;
+} 

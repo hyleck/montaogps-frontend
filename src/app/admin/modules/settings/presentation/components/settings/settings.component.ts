@@ -20,6 +20,7 @@ export class SettingsComponent implements OnInit {
     ColorsSettingsDisplay: boolean = false;
     VehicleBrandsSettingsDisplay: boolean = false;
     VehicleModelsSettingsDisplay: boolean = false;
+    ProtocolsSettingsDisplay: boolean = false;
 
     settingsCards = [
         {
@@ -67,6 +68,13 @@ export class SettingsComponent implements OnInit {
             disabled: true
         },
         {
+            titleKey: 'settings.protocols.title',
+            icon: 'pi pi-shield',
+            action: () => this.ProtocolsSettingsDisplay = true,
+            descriptionKey: 'settings.protocols.description',
+            disabled: false
+        },
+        {
             titleKey: 'settings.brands.title',
             icon: 'pi pi-car',
             action: () => this.VehicleBrandsSettingsDisplay = true,
@@ -83,7 +91,8 @@ export class SettingsComponent implements OnInit {
 
     constructor(
         private router: Router,
-        private translate: TranslateService
+        private translate: TranslateService,
+        private statusService: StatusService
     ) {
         this.initializeBreadcrumb();
     }
@@ -106,13 +115,11 @@ export class SettingsComponent implements OnInit {
         };
     }
 
-    navigateTo(route: string | undefined, action?: () => void): void {
-        if (action) {
-            action();
-            return;
-        }
+    navigateTo(route: string | undefined, action: Function | undefined) {
         if (route) {
             this.router.navigate([route]);
+        } else if (action) {
+            action();
         }
     }
 }

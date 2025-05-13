@@ -1,0 +1,406 @@
+.user-roles-layout {
+    display: flex;
+    height: 100%;
+    min-height: 500px;
+    background-color: var(--userRolesBackground);
+    padding: 1rem;
+}
+
+.user-roles-layout__sidebar {
+    width: 280px;
+    background-color: var(--userRolesSidebarBackground);
+    border-right: 1px solid var(--userRolesTableBorder);
+    overflow-y: auto;
+    padding-right: 1rem;
+}
+
+.user-roles-layout__main {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.sidebar-content {
+    background-color: var(--userRolesSidebarBackground);
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.sidebar-content h3 {
+    margin: 0 0 1.5rem 0;
+    color: var(--userRolesTitle);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.main-content {
+    background-color: var(--userRolesMainBackground);
+    border-radius: 8px;
+    padding: 1.5rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.main-content h2 {
+    margin: 0 0 1.5rem 0;
+    color: var(--userRolesTitle);
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+.form-group {
+    margin-bottom: 1.2rem;
+}
+
+.form-group label {
+    font-size: 12px;
+    display: block;
+    margin-bottom: 5px;
+    color: var(--globalColorTextDark, #1f1f1f);
+    font-weight: 500;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select,
+.input-styled {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 5px;
+    font-size: 16px;
+    background-color: var(--userRolesBackground);
+    color: var(--userRolesText);
+    transition: border-color 0.2s;
+}
+
+.form-group select:focus,
+.input-styled:focus {
+    border-color: var(--globalColorBorderHover);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
+}
+
+select.input-styled {
+    height: 42px;
+}
+
+textarea.input-styled {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 1.5rem;
+}
+
+.button-primary {
+    background-color: var(--userRolesButtonPrimary);
+    color: var(--userRolesButtonText);
+    border: none;
+    padding: 10px 18px;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.button-primary:hover {
+    background-color: var(--userRolesButtonPrimaryHover);
+}
+
+.button-secondary {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.button-secondary:hover {
+    background-color: #5a6268;
+}
+
+.button-icon {
+    background: none;
+    border: none;
+    color: var(--userRolesText);
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.button-icon:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #d32f2f;
+}
+
+/* Estilos para la tabla */
+:host ::ng-deep .p-datatable {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+:host ::ng-deep .p-datatable .p-datatable-header {
+    background-color: var(--userRolesTableHeader);
+    border-bottom: 1px solid var(--userRolesTableBorder);
+    padding: 1rem;
+}
+
+:host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+    background-color: var(--userRolesTableHeader);
+    color: var(--userRolesText);
+    font-weight: 600;
+    padding: 1rem;
+    border-bottom: 1px solid var(--userRolesTableBorder);
+}
+
+:host ::ng-deep .p-datatable .p-datatable-tbody > tr {
+    background-color: var(--userRolesMainBackground);
+    transition: background-color 0.2s;
+}
+
+:host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+    padding: 0.8rem 1rem;
+    color: var(--userRolesText);
+    border-bottom: 1px solid var(--userRolesTableBorder);
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+}
+
+.loading-container p {
+    margin-top: 1rem;
+    color: var(--userRolesText);
+    font-size: 0.9rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.p-4 {
+    padding: 1rem;
+}
+
+.required {
+    color: #d32f2f;
+}
+
+/* Estilos específicos para protocolos */
+.protocols-list {
+    margin-top: 16px;
+}
+
+.protocol-item {
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    background-color: var(--userRolesMainBackground);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.2s;
+}
+
+.protocol-item:hover {
+    background-color: var(--userRolesTableHeader);
+}
+
+.protocol-item.active {
+    background-color: var(--userRolesTableHeader);
+    border-left: 3px solid var(--userRolesButtonPrimary);
+}
+
+.protocol-item__name {
+    font-weight: 500;
+    margin-bottom: 4px;
+    color: var(--userRolesText);
+}
+
+.protocol-item__type {
+    font-size: 12px;
+    color: var(--userRolesText);
+}
+
+.protocol-actions {
+    display: flex;
+    align-items: center;
+}
+
+.protocol-details {
+    background-color: var(--userRolesMainBackground);
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+}
+
+.detail-item {
+    margin-bottom: 16px;
+}
+
+.detail-item:last-child {
+    margin-bottom: 0;
+}
+
+.detail-label {
+    font-size: 14px;
+    color: var(--userRolesText);
+    margin-bottom: 4px;
+}
+
+.detail-value {
+    font-size: 16px;
+    color: var(--userRolesText);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: var(--userRolesTableHeader);
+    color: var(--userRolesText);
+}
+
+.status-active {
+    background-color: rgba(40, 167, 69, 0.15);
+    color: #28a745;
+}
+
+/* Estilos para la sección de comandos */
+.commands-section {
+    margin-top: 16px;
+}
+
+.commands-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.command-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background-color: var(--userRolesTableHeader);
+    border-radius: 4px;
+    border: 1px solid var(--userRolesTableBorder);
+}
+
+.command-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.no-commands {
+    padding: 12px;
+    background-color: var(--userRolesTableHeader);
+    border-radius: 4px;
+    text-align: center;
+    color: var(--userRolesText);
+}
+
+.commands-management {
+    background-color: var(--userRolesTableHeader);
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid var(--userRolesTableBorder);
+}
+
+.add-command-form {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--userRolesTableBorder);
+}
+
+.add-command-form h4 {
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--userRolesTitle);
+}
+
+.command-form-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.command-form-field {
+    flex: 1;
+    min-width: 150px;
+}
+
+.command-form-action {
+    padding-bottom: 4px;
+}
+
+/* Estilo para los botones de acción en la tabla */
+.button-action {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.5rem;
+}
+
+.button-success {
+    background-color: #22c55e;
+    color: white;
+}
+
+.button-danger {
+    background-color: #ef4444;
+    color: white;
+}
+
+:host ::ng-deep .small-text-table {
+    font-size: 0.875rem;
+}
+
+:host ::ng-deep .small-text-table .p-datatable-header,
+:host ::ng-deep .small-text-table .p-datatable-thead > tr > th,
+:host ::ng-deep .small-text-table .p-datatable-tbody > tr > td {
+    padding: 0.75rem;
+}
+
+@media (max-width: 992px) {
+    .user-roles-layout {
+        flex-direction: column;
+    }
+    
+    .user-roles-layout__sidebar {
+        width: 100%;
+        padding-right: 0;
+        padding-bottom: 1rem;
+    }
+}

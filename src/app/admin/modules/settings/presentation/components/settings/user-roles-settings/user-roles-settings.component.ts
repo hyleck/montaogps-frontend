@@ -33,7 +33,8 @@ export class UserRolesSettingsComponent implements OnInit {
     'canceled',
     'system',
     'plans',
-    'servers'
+    'servers',
+    'protocols'
   ];
 
   // Mapeo de módulos a sus traducciones
@@ -53,7 +54,8 @@ export class UserRolesSettingsComponent implements OnInit {
     'canceled': 'settings.roles_settings.modules.canceled',
     'system': 'settings.roles_settings.modules.system',
     'plans': 'settings.roles_settings.modules.plans',
-    'servers': 'settings.roles_settings.modules.servers'
+    'servers': 'settings.roles_settings.modules.servers',
+    'protocols': 'settings.roles_settings.modules.protocols'
   };
 
   moduleIcons: { [key: string]: string } = {
@@ -72,7 +74,8 @@ export class UserRolesSettingsComponent implements OnInit {
     canceled: 'pi pi-ban',
     system: 'pi pi-cog',
     plans: 'pi pi-list',
-    servers: 'pi pi-server'
+    servers: 'pi pi-server',
+    protocols: 'pi pi-shield'
   };
 
   roleForm = {

@@ -802,3 +802,13 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   transition: background 0.2s, color 0.2s, border 0.2s;
 }
 
+.target-offline {
+    color: rgb(134, 134, 134); /* globalColorTextMuted del tema claro */
+}
+
+.dark .target-offline {
+    color: #a1a1a1; /* globalColorTextMuted del tema oscuro */
+}
+
+/* Si se necesita agregar contenido existente, añadir aquí */
+

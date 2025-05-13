@@ -97,6 +97,63 @@
         "title": "Tags",
         "description": "Tags management"
       },
+      "protocols": {
+        "title": "Protocols",
+        "description": "Communication protocols configuration",
+        "list": "Protocols List",
+        "create": "Create Protocol",
+        "loading": "Loading protocols...",
+        "no_protocols": "No protocols defined",
+        "select_protocol": "Select a protocol to view details",
+        "type": "Type",
+        "name": "Name",
+        "description": "Description",
+        "port": "Port",
+        "image": "Image",
+        "image_placeholder": "Image URL (ex: assets/img/protocols/tcp.png)",
+        "status": "Status",
+        "status_active": "Active",
+        "status_inactive": "Inactive",
+        "edit": "Edit",
+        "edit_title": "Edit Protocol",
+        "create_title": "Create Protocol",
+        "save": "Save",
+        "cancel": "Cancel",
+        "select_type": "Select a type",
+        "type_communication": "Communication",
+        "type_api": "API",
+        "type_other": "Other",
+        "validation_error": "Validation error",
+        "validation_fields": "Please check required fields",
+        "updated": "Protocol updated",
+        "update_success": "Protocol '{name}' has been updated successfully",
+        "created": "Protocol created",
+        "create_success": "Protocol '{name}' has been created successfully",
+        "deleted": "Protocol deleted",
+        "delete_success": "Protocol '{name}' has been deleted successfully",
+        "confirm_delete": "Are you sure you want to delete the protocol '{name}'?",
+        "delete_header": "Confirm deletion",
+        "commands": "Commands",
+        "no_commands": "No commands defined for this protocol",
+        "add_command": "Add Command",
+        "command_name": "Command Name",
+        "command_value": "Command Value",
+        "command_icon": "Icon",
+        "command_fields_required": "Command name and value are required",
+        "add": "Add",
+        "table": {
+          "actions": "Actions"
+        },
+        "messages": {
+          "error": "Error",
+          "error_loading": "Could not load protocols",
+          "error_create": "Could not create protocol",
+          "error_update": "Could not update protocol",
+          "error_delete": "Could not delete protocol",
+          "yes_delete": "Yes, delete",
+          "no_cancel": "No, cancel"
+        }
+      },
       "features": {
         "title": "Features",
         "description": "Features management"
@@ -115,13 +172,14 @@
       },
       "disabled": "Disabled",
       "dialogs": {
-        "roles": "Roles Configuration",
+        "roles": "Roles Management",
         "system": "System Configuration",
-        "servers": "Servers Configuration",
-        "plans": "Plans Configuration",
-        "colors": "Colors Configuration",
-        "brands": "Brands Configuration",
-        "models": "Models Configuration"
+        "servers": "Servers Management",
+        "plans": "Plans Management",
+        "colors": "Colors Management",
+        "brands": "Brands Management",
+        "models": "Models Management",
+        "protocols": "Protocols Management"
       },
       "servers": {
         "servers_list": "Servers list",
@@ -241,7 +299,8 @@
           "canceled": "Canceled",
           "system": "System",
           "plans": "Plans",
-          "servers": "Servers"
+          "servers": "Servers",
+          "protocols": "Protocols"
         },
         "role": "Role",
         "selectRole": "Select role",
@@ -500,6 +559,17 @@
       "back": "Back",
       "showMap": "Show map",
       "targetConfiguration": "Target configuration",
+      "status": {
+        "online": "Online",
+        "offline": "Offline"
+      },
+      "table": {
+        "name": "Name",
+        "status": "Status",
+        "imei": "IMEI",
+        "sim": "SIM",
+        "actions": "Actions"
+      },
       "targetForm": {
         "title": "Target Form",
         "vehicleInfo": "Vehicle",
@@ -533,6 +603,10 @@
         "selectGpsModel": "Select a GPS model",
         "selectLocation": "Select an installation location",
         "selectSimCardType": "Select SIMCard Type",
+        "selectStatus": "Select a status",
+        "selectOption": "Select an option",
+        "selectProcessType": "Select a process type",
+        "selectTechnician": "Select a technician",
         "yes": "Yes",
         "no": "No",
         "typeCar": "Car",
@@ -557,9 +631,15 @@
         "requiredFieldsMissing": "Required fields are missing",
         "deviceInfoMissing": "GPS device information is missing",
         "saveSuccess": "Target saved",
-        "saveSuccessDetail": "The target has been saved successfully",
+        "saveSuccessDetail": "The target has been successfully saved",
+        "updateSuccess": "Target updated",
+        "updateSuccessDetail": "The target has been successfully updated",
+        "saveError": "Error saving target",
+        "additionalDataInfo": "Some system-required fields will be filled automatically",
         "plan": "Plan",
-        "selectPlan": "Select a plan"
+        "selectPlan": "Select a plan",
+        "selectPrice": "Plan Price",
+        "selectPriceOption": "Select a price"
       },
       "userForm": {
         "title": "User Form",
@@ -610,7 +690,8 @@
           "canceled": "Canceled",
           "system": "System",
           "plans": "Plans",
-          "servers": "Servers"
+          "servers": "Servers",
+          "protocols": "Protocols"
         },
         "actions": {
           "read": "Read",

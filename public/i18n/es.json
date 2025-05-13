@@ -97,6 +97,63 @@
         "title": "Etiquetas",
         "description": "Administración de etiquetas"
       },
+      "protocols": {
+        "title": "Protocolos",
+        "description": "Configuración de protocolos de comunicación",
+        "list": "Lista de Protocolos",
+        "create": "Crear Protocolo",
+        "loading": "Cargando protocolos...",
+        "no_protocols": "No hay protocolos definidos",
+        "select_protocol": "Seleccione un protocolo para ver sus detalles",
+        "type": "Tipo",
+        "name": "Nombre",
+        "description": "Descripción",
+        "port": "Puerto",
+        "image": "Imagen",
+        "image_placeholder": "URL de la imagen (ej: assets/img/protocols/tcp.png)",
+        "status": "Estado",
+        "status_active": "Activo",
+        "status_inactive": "Inactivo",
+        "edit": "Editar",
+        "edit_title": "Editar Protocolo",
+        "create_title": "Crear Protocolo",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "select_type": "Seleccione un tipo",
+        "type_communication": "Comunicación",
+        "type_api": "API",
+        "type_other": "Otro",
+        "validation_error": "Error de validación",
+        "validation_fields": "Verifique los campos obligatorios",
+        "updated": "Protocolo actualizado",
+        "update_success": "El protocolo '{name}' ha sido actualizado correctamente",
+        "created": "Protocolo creado",
+        "create_success": "El protocolo '{name}' ha sido creado correctamente",
+        "deleted": "Protocolo eliminado",
+        "delete_success": "El protocolo '{name}' ha sido eliminado correctamente",
+        "confirm_delete": "¿Está seguro que desea eliminar el protocolo '{name}'?",
+        "delete_header": "Confirmar eliminación",
+        "commands": "Comandos",
+        "no_commands": "No hay comandos definidos para este protocolo",
+        "add_command": "Añadir Comando",
+        "command_name": "Nombre del Comando",
+        "command_value": "Valor del Comando",
+        "command_icon": "Icono",
+        "command_fields_required": "El nombre y valor del comando son obligatorios",
+        "add": "Añadir",
+        "table": {
+          "actions": "Acciones"
+        },
+        "messages": {
+          "error": "Error",
+          "error_loading": "No se pudieron cargar los protocolos",
+          "error_create": "No se pudo crear el protocolo",
+          "error_update": "No se pudo actualizar el protocolo",
+          "error_delete": "No se pudo eliminar el protocolo",
+          "yes_delete": "Sí, eliminar",
+          "no_cancel": "No, cancelar"
+        }
+      },
       "features": {
         "title": "Características",
         "description": "Gestión de características"
@@ -113,15 +170,16 @@
         "title": "Colores",
         "description": "Configuración de colores"
       },
-      "disabled": "Desactivado",
+      "disabled": "No disponible",
       "dialogs": {
-        "roles": "Configuración de roles",
-        "system": "Configuración del sistema",
-        "servers": "Configuración de servidores",
-        "plans": "Configuración de planes",
-        "colors": "Configuración de colores",
-        "brands": "Configuración de marcas",
-        "models": "Configuración de Modelos"
+        "roles": "Gestión de Roles",
+        "system": "Configuración del Sistema",
+        "servers": "Gestión de Servidores",
+        "plans": "Gestión de Planes",
+        "colors": "Gestión de Colores",
+        "brands": "Gestión de Marcas",
+        "models": "Gestión de Modelos",
+        "protocols": "Gestión de Protocolos"
       },
       "servers": {
         "servers_list": "Lista de servidores",
@@ -276,7 +334,8 @@
           "canceled": "Cancelados",
           "system": "Sistema",
           "plans": "Planes",
-          "servers": "Servidores"
+          "servers": "Servidores",
+          "protocols": "Protocolos"
         },
         "creationFailed": "No se pudo crear el usuario.",
         "userCreated": "Usuario creado correctamente.",
@@ -542,6 +601,17 @@
       "back": "Volver",
       "showMap": "Mostrar el mapa",
       "targetConfiguration": "Configuración de objetivo",
+      "status": {
+        "online": "En línea",
+        "offline": "Fuera de línea"
+      },
+      "table": {
+        "name": "Nombre",
+        "status": "Estado",
+        "imei": "IMEI",
+        "sim": "SIM",
+        "actions": "Acciones"
+      },
       "targetForm": {
         "title": "Formulario de Objetivo",
         "vehicleInfo": "Vehículo",
@@ -575,6 +645,10 @@
         "selectGpsModel": "Seleccione un modelo de GPS",
         "selectLocation": "Seleccione un lugar de instalación",
         "selectSimCardType": "Seleccione tipo de SIMCard",
+        "selectStatus": "Seleccione un estado",
+        "selectOption": "Seleccione una opción",
+        "selectProcessType": "Seleccione un tipo de proceso",
+        "selectTechnician": "Seleccione un técnico",
         "yes": "Sí",
         "no": "No",
         "typeCar": "Automóvil",
@@ -600,8 +674,14 @@
         "deviceInfoMissing": "Faltan datos del dispositivo GPS",
         "saveSuccess": "Objetivo guardado",
         "saveSuccessDetail": "El objetivo ha sido guardado exitosamente",
+        "updateSuccess": "Objetivo actualizado",
+        "updateSuccessDetail": "El objetivo ha sido actualizado exitosamente",
+        "saveError": "Error al guardar el objetivo",
+        "additionalDataInfo": "Algunos campos requeridos por el sistema serán completados automáticamente",
         "plan": "Plan",
-        "selectPlan": "Seleccione un plan"
+        "selectPlan": "Seleccione un plan",
+        "selectPrice": "Precio del plan",
+        "selectPriceOption": "Seleccione un precio"
       },
       "userForm": {
         "title": "Formulario de Usuario",
@@ -652,7 +732,8 @@
           "canceled": "Cancelados",
           "system": "Sistema",
           "plans": "Planes",
-          "servers": "Servidores"
+          "servers": "Servidores",
+          "protocols": "Protocolos"
         },
         "actions": {
           "read": "Leer",

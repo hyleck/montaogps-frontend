@@ -12,6 +12,8 @@
                             <span class="tab-text">{{ translate(translations.vehicleInfo) }}</span>
                         </ng-template>
                         <div class="target-form__base">
+                            <!-- Mensaje informativo eliminado -->
+                            
                             <form class="target-form__form" (ngSubmit)="onSubmit()" ngNativeValidate>
                                 <div class="target-form__grid">
 
@@ -169,8 +171,8 @@
                                 </div>
                 
                                 <div class="target-form__actions">
-                                    <button type="submit">
-                                        <i class="pi pi-save"></i>
+                                    <button type="submit" [disabled]="isLoading">
+                                        <i class="pi" [ngClass]="isLoading ? 'pi-spin pi-spinner' : 'pi-save'"></i>
                                         {{ translate(translations.save) }}
                                     </button>
                                 </div>
@@ -208,8 +210,8 @@
                                                 name="api_id"
                                                 id="api_id"
                                             >
-                                                <option value="">{{ translate('management.targetForm.selectSimCardType') }}</option>
-                                                <option *ngFor="let simType of availableSimCardTypes" [value]="simType.value">
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectSimCardType') }}</option>
+                                                <option *ngFor="let simType of availableSimCardTypes" [ngValue]="simType.value">
                                                     {{simType.label}}
                                                 </option>
                                             </select>
@@ -235,7 +237,7 @@
                                                 id="gps_model"
                                             >
                                                 <option [ngValue]="null">{{ translate('management.targetForm.selectGpsModel') }}</option>
-                                                <option *ngFor="let model of availableGpsModels" [value]="model.value">
+                                                <option *ngFor="let model of availableGpsModels" [ngValue]="model.value">
                                                     {{model.label}}
                                                 </option>
                                             </select>
@@ -284,7 +286,7 @@
                                                 id="installation_location"
                                             >
                                                 <option [ngValue]="null">{{ translate('management.targetForm.selectLocation') }}</option>
-                                                <option *ngFor="let location of availableLocations" [value]="location.value">
+                                                <option *ngFor="let location of availableLocations" [ngValue]="location.value">
                                                     {{location.label}}
                                                 </option>
                                     </select>
@@ -297,8 +299,9 @@
                                                 name="ignition_sensor"
                                                 id="ignition_sensor"
                                             >
-                                                <option value="yes">{{ translate('management.targetForm.yes') }}</option>
-                                                <option value="no">{{ translate('management.targetForm.no') }}</option>
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectOption') }}</option>
+                                                <option [ngValue]="'yes'">{{ translate('management.targetForm.yes') }}</option>
+                                                <option [ngValue]="'no'">{{ translate('management.targetForm.no') }}</option>
                                     </select>
                                 </div>
                             
@@ -309,32 +312,52 @@
                                                 name="shutdown_control"
                                                 id="shutdown_control"
                                             >
-                                                <option value="yes">{{ translate('management.targetForm.yes') }}</option>
-                                                <option value="no">{{ translate('management.targetForm.no') }}</option>
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectOption') }}</option>
+                                                <option [ngValue]="'yes'">{{ translate('management.targetForm.yes') }}</option>
+                                                <option [ngValue]="'no'">{{ translate('management.targetForm.no') }}</option>
                                     </select>
                                 </div>
 
                                 <div class="target-form__field">
-                                            <label for="plan">{{ translate(translations.plan) }}</label>
+                                            <label for="plan">{{ translate(translations.plan) }} <span class="required-label">(Requerido)</span></label>
                                             <select
                                                 [(ngModel)]="target.plan"
                                                 name="plan"
                                                 id="plan"
+                                                required
+                                                (change)="onPlanChange()"
                                             >
-                                                <option value="">{{ translate('management.targetForm.selectPlan') }}</option>
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectPlan') }}</option>
                                                 <option *ngFor="let plan of availablePlans" [value]="plan.value">
                                                     {{plan.label}}
                                                 </option>
-                                    </select>
-                                </div>
+                                            </select>
+                                        </div>
+
+                                        <!-- Price selector (appears only when a plan is selected) -->
+                                        <div class="target-form__field" *ngIf="target.plan">
+                                            <label for="price">{{ translate('management.targetForm.selectPrice') }} <span class="required-label">(Requerido)</span></label>
+                                            <select
+                                                [(ngModel)]="target.selectedPrice"
+                                                name="price"
+                                                id="price"
+                                                required
+                                                [compareWith]="comparePrices"
+                                            >
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectPriceOption') }}</option>
+                                                <option *ngFor="let price of availablePrices" [ngValue]="price">
+                                                    {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }}
+                                                </option>
+                                            </select>
+                                        </div>
                 
                 
                                     </div>
                                 </div>
 
                                 <div class="target-form__actions">
-                                    <button type="submit">
-                                        <i class="pi pi-save"></i>
+                                    <button type="submit" [disabled]="isLoading">
+                                        <i class="pi" [ngClass]="isLoading ? 'pi-spin pi-spinner' : 'pi-save'"></i>
                                         {{ translate(translations.save) }}
                                     </button>
                                 </div>

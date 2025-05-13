@@ -99,6 +99,10 @@
         "title": "Étiquettes",
         "description": "Gestion des étiquettes"
       },
+      "protocols": {
+        "title": "Protocoles",
+        "description": "Configuration des protocoles de communication"
+      },
       "features": {
         "title": "Fonctionnalités",
         "description": "Gestion des fonctionnalités"
@@ -115,14 +119,16 @@
         "title": "Couleurs",
         "description": "Configuration des couleurs"
       },
-      "disabled": "Désactivé",
+      "disabled": "Non disponible",
       "dialogs": {
-        "roles": "Configuration des rôles",
-        "system": "Configuration du système",
-        "servers": "Configuration des serveurs",
-        "plans": "Configuration des plans",
-        "colors": "Configuration des couleurs",
-        "brands": "Configuration des marques"
+        "roles": "Gestion des Rôles",
+        "system": "Configuration du Système",
+        "servers": "Gestion des Serveurs",
+        "plans": "Gestion des Forfaits",
+        "colors": "Gestion des Couleurs",
+        "brands": "Gestion des Marques",
+        "models": "Gestion des Modèles",
+        "protocols": "Gestion des Protocoles"
       },
       "servers": {
         "servers_list": "Liste des serveurs",
@@ -242,7 +248,8 @@
           "canceled": "Annulés",
           "system": "Système",
           "plans": "Plans",
-          "servers": "Serveurs"
+          "servers": "Serveurs",
+          "protocols": "Protocoles"
         }
       },
       "cards": {
@@ -419,6 +426,63 @@
           "error_delete": "Impossible de supprimer la marque",
           "error_loading_brands": "Impossible de charger les marques"
         }
+      },
+      "protocols": {
+        "title": "Protocoles",
+        "description": "Configuration des protocoles de communication",
+        "list": "Liste des Protocoles",
+        "create": "Créer Protocole",
+        "loading": "Chargement des protocoles...",
+        "no_protocols": "Aucun protocole défini",
+        "select_protocol": "Sélectionnez un protocole pour voir les détails",
+        "type": "Type",
+        "name": "Nom",
+        "description": "Description",
+        "port": "Port",
+        "image": "Image",
+        "image_placeholder": "URL de l'image (ex: assets/img/protocols/tcp.png)",
+        "status": "État",
+        "status_active": "Actif",
+        "status_inactive": "Inactif",
+        "edit": "Modifier",
+        "edit_title": "Modifier Protocole",
+        "create_title": "Créer Protocole",
+        "save": "Enregistrer",
+        "cancel": "Annuler",
+        "select_type": "Sélectionnez un type",
+        "type_communication": "Communication",
+        "type_api": "API",
+        "type_other": "Autre",
+        "validation_error": "Erreur de validation",
+        "validation_fields": "Veuillez vérifier les champs obligatoires",
+        "updated": "Protocole mis à jour",
+        "update_success": "Le protocole '{name}' a été mis à jour avec succès",
+        "created": "Protocole créé",
+        "create_success": "Le protocole '{name}' a été créé avec succès",
+        "deleted": "Protocole supprimé",
+        "delete_success": "Le protocole '{name}' a été supprimé avec succès",
+        "confirm_delete": "Êtes-vous sûr de vouloir supprimer le protocole '{name}'?",
+        "delete_header": "Confirmer la suppression",
+        "commands": "Commandes",
+        "no_commands": "Aucune commande définie pour ce protocole",
+        "add_command": "Ajouter Commande",
+        "command_name": "Nom de la Commande",
+        "command_value": "Valeur de la Commande",
+        "command_icon": "Icône",
+        "command_fields_required": "Le nom et la valeur de la commande sont obligatoires",
+        "add": "Ajouter",
+        "table": {
+          "actions": "Actions"
+        },
+        "messages": {
+          "error": "Erreur",
+          "error_loading": "Impossible de charger les protocoles",
+          "error_create": "Impossible de créer le protocole",
+          "error_update": "Impossible de mettre à jour le protocole",
+          "error_delete": "Impossible de supprimer le protocole",
+          "yes_delete": "Oui, supprimer",
+          "no_cancel": "Non, annuler"
+        }
       }
     },
     "profile": {
@@ -488,14 +552,25 @@
       "searchTargets": "Rechercher des objectifs",
       "newUser": "Nouvel utilisateur",
       "newTarget": "Nouvel objectif",
-      "enterUser": "Entrer dans l'utilisateur",
-      "editUser": "Modifier l'utilisateur",
-      "deleteUser": "Supprimer l'utilisateur",
-      "editTarget": "Modifier l'objectif",
-      "deleteTarget": "Supprimer l'objectif",
+      "enterUser": "Entrer utilisateur",
+      "editUser": "Modifier utilisateur",
+      "deleteUser": "Supprimer utilisateur",
+      "editTarget": "Modifier objectif",
+      "deleteTarget": "Supprimer objectif",
       "back": "Retour",
       "showMap": "Afficher la carte",
       "targetConfiguration": "Configuration de l'objectif",
+      "status": {
+        "online": "En ligne",
+        "offline": "Hors ligne"
+      },
+      "table": {
+        "name": "Nom",
+        "status": "État",
+        "imei": "IMEI",
+        "sim": "SIM",
+        "actions": "Actions"
+      },
       "userForm": {
         "title": "Formulaire d'utilisateur",
         "personalInfo": "Informations personnelles",
@@ -545,7 +620,8 @@
           "canceled": "Annulés",
           "system": "Système",
           "plans": "Plans",
-          "servers": "Serveurs"
+          "servers": "Serveurs",
+          "protocols": "Protocoles"
         },
         "actions": {
           "read": "Lire",
@@ -618,6 +694,10 @@
         "selectLocation": "Sélectionner l'emplacement",
         "selectGpsModel": "Sélectionner le modèle GPS",
         "selectSimCardType": "Sélectionner le type de carte SIM",
+        "selectStatus": "Sélectionner un statut",
+        "selectOption": "Sélectionner une option",
+        "selectProcessType": "Sélectionner un type de processus",
+        "selectTechnician": "Sélectionner un technicien",
         "yes": "Oui",
         "no": "Non",
         "status": "Statut",
@@ -639,10 +719,16 @@
         "deviceInfoMissing": "Les informations du dispositif sont incomplètes",
         "processAdded": "Processus ajouté",
         "processAddedDetail": "Le processus a été enregistré avec succès",
-        "saveSuccess": "Enregistré avec succès",
+        "saveSuccess": "Objectif enregistré",
         "saveSuccessDetail": "L'objectif a été enregistré avec succès",
-        "plan": "Forfait",
-        "selectPlan": "Sélectionnez un forfait"
+        "updateSuccess": "Objectif mis à jour",
+        "updateSuccessDetail": "L'objectif a été mis à jour avec succès",
+        "saveError": "Erreur lors de l'enregistrement de l'objectif",
+        "additionalDataInfo": "Certains champs requis par le système seront remplis automatiquement",
+        "plan": "Plan",
+        "selectPlan": "Sélectionnez un forfait",
+        "selectPrice": "Prix du forfait",
+        "selectPriceOption": "Sélectionnez un prix"
       }
     }
 }

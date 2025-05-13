@@ -1,0 +1,149 @@
+<div class="user-roles-layout">
+    
+    <!-- Panel lateral izquierdo con formulario -->
+    <div class="user-roles-layout__sidebar">
+        <div class="sidebar-content">
+            <h3>{{ (isEditing ? 'settings.protocols.edit_title' : 'settings.protocols.create_title') | translate }}</h3>
+            <form (ngSubmit)="onSubmit()" ngNativeValidate>
+                <div class="form-group">
+                    <label for="name">{{ 'settings.protocols.name' | translate }} <span class="required">*</span></label>
+                    <input id="name" type="text" [(ngModel)]="protocolForm.name" name="name" required 
+                           [placeholder]="'settings.protocols.name' | translate">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">{{ 'settings.protocols.description' | translate }}</label>
+                    <textarea id="description" [(ngModel)]="protocolForm.description" name="description" rows="3" 
+                            [placeholder]="'settings.protocols.description' | translate"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="port">{{ 'settings.protocols.port' | translate }} <span class="required">*</span></label>
+                    <input id="port" type="number" [(ngModel)]="protocolForm.port" name="port" required min="1" max="65535" 
+                           [placeholder]="'settings.protocols.port' | translate">
+                </div>
+                
+                <div class="form-group">
+                    <label for="img">{{ 'settings.protocols.image' | translate }}</label>
+                    <input id="img" type="text" [(ngModel)]="protocolForm.img" name="img" 
+                           [placeholder]="'settings.protocols.image_placeholder' | translate">
+                </div>
+                
+                <!-- Sección de comandos -->
+                <div class="form-group commands-management">
+                    <label>{{ 'settings.protocols.commands' | translate }}</label>
+                    
+                    <!-- Listado de comandos existentes -->
+                    <div *ngIf="protocolForm.commands.length > 0" class="commands-list">
+                        <div *ngFor="let command of protocolForm.commands; let i = index" class="command-item">
+                            <div class="command-content">
+                                <i class="pi {{ command.icon }}"></i>
+                                <span>{{ command.name }} ({{ command.value }})</span>
+                            </div>
+                            <button type="button" class="button-icon" (click)="removeCommand(i)">
+                                <i class="pi pi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Mensaje si no hay comandos -->
+                    <div *ngIf="protocolForm.commands.length === 0" class="no-commands">
+                        <p>{{ 'settings.protocols.no_commands' | translate }}</p>
+                    </div>
+                    
+                    <!-- Formulario para añadir nuevo comando -->
+                    <div class="add-command-form">
+                        <h4>{{ 'settings.protocols.add_command' | translate }}</h4>
+                        <div class="command-form-group">
+                            <div class="command-form-field">
+                                <label for="commandName">{{ 'settings.protocols.command_name' | translate }}</label>
+                                <input id="commandName" type="text" [(ngModel)]="newCommand.name" name="commandName" class="input-styled" />
+                            </div>
+                            <div class="command-form-field">
+                                <label for="commandValue">{{ 'settings.protocols.command_value' | translate }}</label>
+                                <input id="commandValue" type="text" [(ngModel)]="newCommand.value" name="commandValue" class="input-styled" />
+                            </div>
+                            <div class="command-form-field">
+                                <label for="commandIcon">{{ 'settings.protocols.command_icon' | translate }}</label>
+                                <select id="commandIcon" [(ngModel)]="newCommand.icon" name="commandIcon" class="input-styled">
+                                    <option value="pi-code">Code</option>
+                                    <option value="pi-play">Play</option>
+                                    <option value="pi-stop">Stop</option>
+                                    <option value="pi-refresh">Refresh</option>
+                                    <option value="pi-send">Send</option>
+                                    <option value="pi-download">Download</option>
+                                    <option value="pi-upload">Upload</option>
+                                    <option value="pi-trash">Delete</option>
+                                </select>
+                            </div>
+                            <div class="command-form-action">
+                                <button type="button" class="button-secondary" (click)="addCommand()">
+                                    <i class="pi pi-plus"></i>
+                                    {{ 'settings.protocols.add' | translate }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="button-primary">
+                        <i class="pi pi-save"></i>
+                        {{ (isEditing ? 'settings.protocols.save' : 'settings.protocols.create') | translate }}
+                    </button>
+                    <button type="button" *ngIf="isEditing" class="button-secondary" (click)="cancelEdit()">
+                        <i class="pi pi-times"></i>
+                        {{ 'settings.protocols.cancel' | translate }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="user-roles-layout__main">
+        <div class="main-content">
+            <h2>{{ 'settings.protocols.list' | translate }}</h2>
+            
+            <!-- Spinner de carga -->
+            <div *ngIf="loading" class="loading-container">
+                <p-progressSpinner></p-progressSpinner>
+                <p>{{ 'settings.protocols.loading' | translate }}</p>
+            </div>
+
+            <!-- Tabla de protocolos -->
+            <p-table *ngIf="!loading" [value]="protocols" [tableStyle]="{ 'min-width': '20rem', 'font-size': '0.875rem' }" styleClass="small-text-table">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>{{ 'settings.protocols.name' | translate }}</th>
+                        <th>{{ 'settings.protocols.port' | translate }}</th>
+                        <th>{{ 'settings.protocols.commands' | translate }}</th>
+                        <th>{{ 'settings.protocols.table.actions' | translate }}</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-protocol>
+                    <tr>
+                        <td>{{protocol.name}}</td>
+                        <td>{{protocol.port}}</td>
+                        <td>{{protocol.commands.length}}</td>
+                        <td>
+                            <button type="button" class="button-action button-success" (click)="editProtocol(protocol)">
+                                <i class="pi pi-pencil"></i>
+                            </button>
+                            <button type="button" class="button-action button-danger" (click)="deleteProtocol(protocol)">
+                                <i class="pi pi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="4" class="text-center p-4">{{ 'settings.protocols.no_protocols' | translate }}</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
+</div>
+
+<p-toast/>

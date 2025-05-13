@@ -39,7 +39,8 @@ export const AVAILABLE_MODULES: ModuleOption[] = [
     { value: 'canceled', label: 'management.userForm.modules.canceled' },
     { value: 'system', label: 'management.userForm.modules.system' },
     { value: 'plans', label: 'management.userForm.modules.plans' },
-    { value: 'servers', label: 'management.userForm.modules.servers' }
+    { value: 'servers', label: 'management.userForm.modules.servers' },
+    { value: 'protocols', label: 'management.userForm.modules.protocols' }
 ];
 
 export const MODULE_ICONS: { [key: string]: string } = {
@@ -58,7 +59,8 @@ export const MODULE_ICONS: { [key: string]: string } = {
     canceled: 'pi pi-ban',
     system: 'pi pi-server',
     plans: 'pi pi-dollar',
-    servers: 'pi pi-database'
+    servers: 'pi pi-database',
+    protocols: 'pi pi-shield'
 };
 
 export const THEMES: ThemeOption[] = [

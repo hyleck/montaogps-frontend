@@ -12,6 +12,7 @@ import { PlansSettingsComponent } from './components/settings/plans-settings/pla
 import { ColorsSettingsComponent } from './components/settings/colors-settings/colors-settings.component';
 import { VehicleBrandsSettingsComponent } from './components/settings/vehicle-brands-settings/vehicle-brands-settings.component';
 import { VehicleModelsSettingsComponent } from './components/settings/vehicle-models-settings/vehicle-models-settings.component';
+import { ProtocolsSettingsComponent } from './components/settings/protocols-settings/protocols-settings.component';
 
 @NgModule({
   declarations: [
@@ -22,7 +23,8 @@ import { VehicleModelsSettingsComponent } from './components/settings/vehicle-mo
     PlansSettingsComponent,
     ColorsSettingsComponent,
     VehicleBrandsSettingsComponent,
-    VehicleModelsSettingsComponent
+    VehicleModelsSettingsComponent,
+    ProtocolsSettingsComponent
   ],
   imports: [
     CommonModule,

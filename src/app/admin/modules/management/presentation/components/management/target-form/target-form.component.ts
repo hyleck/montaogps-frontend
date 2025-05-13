@@ -6,31 +6,42 @@ import { TARGET_FORM_STYLES } from './constants/target-form.constants';
 import { CloudComponent } from 'src/app/shareds/components/cloud/cloud.component';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { ColorsService } from 'src/app/core/services/colors.service';
+import { TargetsService } from 'src/app/core/services/targets.service';
+import { PlansService } from 'src/app/core/services/plans.service';
+import { CreateTargetDto, Target, UpdateTargetDto } from 'src/app/core/interfaces/target.interface';
+import { Plan, PlanPrice } from 'src/app/core/interfaces/plan.interface';
+import { ProtocolsService } from 'src/app/core/services/protocols.service';
+import { Protocol } from 'src/app/core/interfaces/protocol.interface';
 
-// Interfaces para el objetivo/dispositivo
+// Interface local para el componente
 interface TargetDevice {
   _id: string;
   name: string;
   imei: string;
-  api_id: string;
+  api_id: string | null;
   sim_card: string;
   description: string;
   plate: string;
   contacts: string[];
-  year: string;
-  installation_location: string;
-  brand: string;
-  model: string;
+  year: string | null;
+  installation_location: string | null;
+  brand: string | null;
+  model: string | null;
   color: string;
   chassis: string;
   installation_date: string;
   expiration_date: string;
-  gps_model: string;
-  ignition_sensor: string;
-  shutdown_control: string;
+  gps_model: string | null;
+  ignition_sensor: string | null;
+  shutdown_control: string | null;
   installation_details: string;
-  status: 'active' | 'inactive';
-  plan: string;
+  status: 'active' | 'inactive' | null;
+  plan: string | null;
+  selectedPrice: {
+    id: string;
+    amount: number;
+    payment_period: string | number;
+  } | null;
 }
 
 @Component({
@@ -78,6 +89,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     activeTabIndex: number = 0;
     displayColorName: string = '';
     showColorOptions: boolean = true;
+    isLoading: boolean = false;
     
     // Opciones para selects
     availableBrands: { label: string, value: string }[] = [];
@@ -88,13 +100,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     availableColors: { label: string, value: string }[] = [];
     availableSimCardTypes: { label: string, value: string }[] = [];
     availablePlans: { label: string, value: string }[] = [];
+    availablePrices: PlanPrice[] = [];
     filteredColors: { label: string, value: string }[] = [];
     
     constructor(
         private langService: LangService,
         private messageService: MessageService,
         private vehicleBrandsService: VehicleBrandsService,
-        private colorsService: ColorsService
+        private colorsService: ColorsService,
+        private targetsService: TargetsService,
+        private plansService: PlansService,
+        private protocolsService: ProtocolsService
     ) {}
 
     // Método para manejar el envío del formulario de procesos
@@ -119,32 +135,32 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             _id: '',
             name: '',
             imei: '',
-            api_id: '',
+            api_id: null,
             sim_card: '',
             description: '',
             plate: '',
             contacts: [],
-            year: '',
-            installation_location: '',
-            brand: '',
-            model: '',
+            year: null,
+            installation_location: null,
+            brand: null,
+            model: null,
             color: '',
             chassis: '',
             installation_date: '',
             expiration_date: '',
-            gps_model: '',
-            ignition_sensor: '',
-            shutdown_control: '',
+            gps_model: null,
+            ignition_sensor: null,
+            shutdown_control: null,
             installation_details: '',
             status: 'active',
-            plan: ''
+            plan: null,
+            selectedPrice: null
         };
     }
 
     ngOnInit() {
         this.loadInitialData();
         this.target = this.getEmptyTarget();
-        this.target.api_id = '';
         this.activeTabIndex = 0;
     }
 
@@ -173,12 +189,26 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             // Inicializar filteredColors con todos los colores
             this.filteredColors = [...this.availableColors];
             
-            // Otras opciones que no dependen de servicios
-            this.availableGpsModels = [
-                { label: 'Modelo A', value: 'modelo_a' },
-                { label: 'Modelo B', value: 'modelo_b' },
-                { label: 'Modelo C', value: 'modelo_c' }
-            ];
+            // Cargar protocolos para modelos de GPS
+            this.protocolsService.getAllProtocols()
+                .pipe(takeUntil(this.destroy$))
+                .subscribe({
+                    next: (protocols: Protocol[]) => {
+                        this.availableGpsModels = protocols.map(protocol => ({
+                            label: protocol.name,
+                            value: protocol._id
+                        })).sort((a, b) => a.label.localeCompare(b.label));
+                    },
+                    error: (error) => {
+                        console.error('Error al cargar protocolos:', error);
+                        // Fallback a modelos estáticos si hay error
+                        this.availableGpsModels = [
+                            { label: 'Modelo A', value: 'modelo_a' },
+                            { label: 'Modelo B', value: 'modelo_b' },
+                            { label: 'Modelo C', value: 'modelo_c' }
+                        ];
+                    }
+                });
             
             this.availableLocations = [
                 { label: 'Interior', value: 'interior' },
@@ -192,12 +222,25 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                 { label: 'Global-M', value: 'global-m' }
             ];
             
-            this.availablePlans = [
-                { label: 'Básico', value: 'basico' },
-                { label: 'Estándar', value: 'estandar' },
-                { label: 'Premium', value: 'premium' },
-                { label: 'Empresarial', value: 'empresarial' }
-            ];
+            // Cargar planes desde el servicio
+            this.plansService.getAllPlans().subscribe({
+                next: (plans: Plan[]) => {
+                    this.availablePlans = plans.map(plan => ({
+                        label: plan.plan_name,
+                        value: plan._id
+                    })).sort((a, b) => a.label.localeCompare(b.label));
+                },
+                error: (error) => {
+                    console.error('Error al cargar planes:', error);
+                    // Fallback a planes estáticos si hay error
+                    this.availablePlans = [
+                        { label: 'Básico', value: 'basico' },
+                        { label: 'Estándar', value: 'estandar' },
+                        { label: 'Premium', value: 'premium' },
+                        { label: 'Empresarial', value: 'empresarial' }
+                    ];
+                }
+            });
             
         } catch (error) {
             console.error('Error al cargar datos iniciales:', error);
@@ -223,7 +266,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     private setupEditTarget(target: TargetDevice) {
         // Rellenar el formulario con los datos del objetivo a editar
         this.target = JSON.parse(JSON.stringify(target));
-        this.target.api_id = target.api_id || '';
+        this.target.api_id = target.api_id || null;
         this.target.installation_date = this.formatDateToInput(target.installation_date);
         this.target.expiration_date = this.formatDateToInput(target.expiration_date);
         this.activeTabIndex = 0;
@@ -244,7 +287,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
 
     private resetForm() {
         this.target = this.getEmptyTarget();
-        this.target.api_id = '';
         this.activeTabIndex = 0;
         this.displayColorName = '';
         // No modificamos showColorOptions ya que queremos que siempre esté visible
@@ -254,7 +296,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         try {
             if (this.target.brand) {
                 // Limpiar el modelo seleccionado
-                this.target.model = '';
+                this.target.model = null;
                 
                 // Cargar modelos para la marca seleccionada
                 const models = await this.vehicleBrandsService.getAllModelsByBrand(this.target.brand);
@@ -277,31 +319,154 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         }
     }
 
-    onSubmit() {
+    async onSubmit() {
         // Validar los datos antes de enviar
         if (!this.validateForm()) {
             return;
         }
 
-        const targetToSave = { ...this.target };
+        try {
+            this.isLoading = true;
+            const targetToSave = this.prepareTargetData();
+            
+            console.log('Datos preparados para enviar:', targetToSave);
+            
+            if (this.target._id) {
+                // Actualizar objetivo existente
+                await this.targetsService.updateTarget(this.target._id, targetToSave as UpdateTargetDto);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.translate('management.targetForm.updateSuccess'),
+                    detail: this.translate('management.targetForm.updateSuccessDetail')
+                });
+            } else {
+                // Crear nuevo objetivo
+                await this.targetsService.createTarget(targetToSave as CreateTargetDto);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.translate('management.targetForm.saveSuccess'),
+                    detail: this.translate('management.targetForm.saveSuccessDetail')
+                });
+            }
+            
+            this.targetCreated.emit();
+            this.resetForm();
+        } catch (error: any) {
+            console.error('Error al guardar el objetivo:', error);
+            
+            // Mostrar mensaje de error más detallado si está disponible
+            let errorMessage = this.translate('management.targetForm.saveError');
+            
+            if (error.error && error.error.message) {
+                if (Array.isArray(error.error.message)) {
+                    // Si hay varios mensajes de error, mostrar el primero
+                    errorMessage += `: ${error.error.message[0]}`;
+                    console.log('Errores de validación del servidor:', error.error.message);
+                } else {
+                    errorMessage += `: ${error.error.message}`;
+                }
+            }
+            
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: errorMessage
+            });
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    /**
+     * Obtiene valores por defecto para campos no presentes en el formulario
+     * basados en el contexto del usuario actual u otra lógica
+     */
+    private getDefaultValues(): any {
+        // En una implementación real, algunos de estos valores deberían venir
+        // del contexto de la aplicación (usuario autenticado, configuración, etc.)
         
-        // Aquí se enviaría al backend
-        console.log('Enviando datos del objetivo:', targetToSave);
+        // ID de ejemplo (debe ser reemplazado con el ID real del usuario o cliente)
+        const sampleUserId = '64a7ecf2de1b240df0a97345';
         
-        this.messageService.add({
-            severity: 'success',
-            summary: this.translate('management.targetForm.saveSuccess'),
-            detail: this.translate('management.targetForm.saveSuccessDetail')
-        });
+        return {
+            api_position_id: 'default_position_id',
+            type: 'vehicle',
+            sim_company: 'telcel', // o cualquier compañía de SIM por defecto
+            creator_id: sampleUserId,
+            parent_id: sampleUserId,
+            index: '1',
+            canceled: false,
+            delete: false
+        };
+    }
+
+    private prepareTargetData(): CreateTargetDto | UpdateTargetDto {
+        // Crear una copia del objeto target con los campos actuales
+        const targetData: any = { ...this.target };
         
-        this.targetCreated.emit();
-        this.resetForm();
+        // Obtener valores por defecto
+        const defaultValues = this.getDefaultValues();
+        
+        // Estructurar el plan en el formato requerido
+        const planData = targetData.plan && targetData.selectedPrice ? {
+            id_plan: targetData.plan,
+            selected_price: {
+                id: targetData.selectedPrice.id,
+                amount: targetData.selectedPrice.amount,
+                payment_period: typeof targetData.selectedPrice.payment_period === 'string' ? 
+                    targetData.selectedPrice.payment_period : 
+                    this.mapPeriodToString(targetData.selectedPrice.payment_period)
+            }
+        } : null;
+        
+        // Mapear campos actuales a los campos esperados por el backend
+        const mappedData: any = {
+            name: targetData.name,
+            device_imei: targetData.imei,
+            api_device_id: targetData.api_id || defaultValues.api_device_id || 'default_api_device_id',
+            api_position_id: defaultValues.api_position_id,
+            type: targetData.gps_model || defaultValues.type,
+            sim_card_number: targetData.sim_card,
+            sim_company: defaultValues.sim_company,
+            description: targetData.description || '',
+            plate: targetData.plate,
+            // Convertir el array de contactos a string (o usar valor por defecto)
+            contacts: Array.isArray(targetData.contacts) ? targetData.contacts.join(',') : '',
+            year: targetData.year,
+            installation_location: targetData.installation_location,
+            brand: targetData.brand,
+            model: targetData.model,
+            color: targetData.color,
+            chassis: targetData.chassis,
+            activation_date: targetData.installation_date ? new Date(targetData.installation_date) : new Date(),
+            expiration_date: targetData.expiration_date ? new Date(targetData.expiration_date) : undefined,
+            last_change_date: new Date(),
+            gps_model: targetData.gps_model,
+            ignition_sensor: targetData.ignition_sensor,
+            shutdown_control: targetData.shutdown_control,
+            installation_details: targetData.installation_details || '',
+            status: targetData.status === 'active',
+            canceled: defaultValues.canceled,
+            delete: defaultValues.delete,
+            index: defaultValues.index,
+            plan: planData,
+            creator_id: defaultValues.creator_id,
+            parent_id: defaultValues.parent_id,
+            user_id: targetData.user_id || defaultValues.creator_id
+        };
+        
+        // Si es una actualización, eliminar el _id para actualizaciones
+        if (this.target._id && this.target._id !== '') {
+            mappedData._id = this.target._id;
+        }
+        
+        return mappedData;
     }
 
     private validateForm(): boolean {
         // Validaciones según el tab activo
         if (this.activeTabIndex === 0) { // Tab de vehículo
-            if (!this.target.name || !this.target.plate) {
+            if (!this.target.name || !this.target.plate || !this.target.plan || !this.target.selectedPrice) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate('management.targetForm.validationError'),
@@ -310,7 +475,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                 return false;
             }
         } else if (this.activeTabIndex === 1) { // Tab de instalación
-            if (!this.target.imei || !this.target.sim_card) {
+            if (!this.target.imei || !this.target.sim_card || !this.target.plan || !this.target.selectedPrice) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate('management.targetForm.validationError'),
@@ -379,5 +544,76 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     ngOnDestroy() {
         this.destroy$.next();
         this.destroy$.complete();
+    }
+
+    // Método para mapear periodos de string a número
+    private mapPeriodToNumber(period: string): number {
+        const periodMap: Record<string, number> = {
+            'monthly': 30,
+            'quarterly': 90,
+            'yearly': 365
+        };
+        return periodMap[period] || 30; // Por defecto mensual si el periodo no es reconocido
+    }
+
+    async onPlanChange() {
+        if (this.target.plan) {
+            try {
+                // Resetear el precio seleccionado
+                this.target.selectedPrice = null;
+                
+                // Cargar el plan completo con sus precios
+                this.plansService.getPlanById(this.target.plan).subscribe({
+                    next: (plan: Plan) => {
+                        // Asegurar que los períodos de pago sean strings
+                        this.availablePrices = plan.prices.map(price => {
+                            return {
+                                id: price.id,
+                                amount: price.amount,
+                                payment_period: typeof price.payment_period === 'string' ? 
+                                    price.payment_period : 
+                                    this.mapPeriodToString(price.payment_period)
+                            };
+                        });
+                    },
+                    error: (error) => {
+                        console.error('Error al cargar los precios del plan:', error);
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: 'No se pudieron cargar los precios del plan'
+                        });
+                        this.availablePrices = [];
+                    }
+                });
+            } catch (error) {
+                console.error('Error al cambiar de plan:', error);
+                this.availablePrices = [];
+            }
+        } else {
+            // Si no hay plan seleccionado, vaciar los precios
+            this.availablePrices = [];
+            this.target.selectedPrice = null;
+        }
+    }
+
+    // Método para comparar objetos de precio (usado en select compareWith)
+    comparePrices(price1: any, price2: any): boolean {
+        return price1 && price2 ? price1.id === price2.id : price1 === price2;
+    }
+
+    // Método para mapear periodos de número a string
+    mapPeriodToString(period: string | number): string {
+        if (typeof period === 'string') {
+            return period;
+        }
+        
+        const periodMap: Record<number, string> = {
+            30: 'monthly',
+            90: 'quarterly',
+            365: 'yearly'
+        };
+        
+        return periodMap[period as number] || 'monthly';
     }
 }
