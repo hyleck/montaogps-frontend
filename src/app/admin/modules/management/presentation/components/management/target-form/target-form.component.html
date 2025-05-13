@@ -210,7 +210,7 @@
                                                 name="sim_company"
                                                 id="sim_company"
                                             >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectSimCardType') }}</option>
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectSimCardType') }}</option>
                                                 <option *ngFor="let simType of availableSimCardTypes" [ngValue]="simType.value">
                                                     {{simType.label}}
                                                 </option>
@@ -236,7 +236,7 @@
                                                 name="gps_model"
                                                 id="gps_model"
                                             >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectGpsModel') }}</option>
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectGpsModel') }}</option>
                                                 <option *ngFor="let model of availableGpsModels" [ngValue]="model.value">
                                                     {{model.label}}
                                                 </option>
@@ -285,7 +285,7 @@
                                                 name="installation_location"
                                                 id="installation_location"
                                             >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectLocation') }}</option>
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectLocation') }}</option>
                                                 <option *ngFor="let location of availableLocations" [ngValue]="location.value">
                                                     {{location.label}}
                                                 </option>
@@ -299,7 +299,7 @@
                                                 name="ignition_sensor"
                                                 id="ignition_sensor"
                                             >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectOption') }}</option>
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectOption') }}</option>
                                                 <option [ngValue]="'yes'">{{ translate('management.targetForm.yes') }}</option>
                                                 <option [ngValue]="'no'">{{ translate('management.targetForm.no') }}</option>
                                     </select>
@@ -312,7 +312,7 @@
                                                 name="shutdown_control"
                                                 id="shutdown_control"
                                             >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectOption') }}</option>
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectOption') }}</option>
                                                 <option [ngValue]="'yes'">{{ translate('management.targetForm.yes') }}</option>
                                                 <option [ngValue]="'no'">{{ translate('management.targetForm.no') }}</option>
                                     </select>
@@ -327,7 +327,7 @@
                                                 required
                                                 (change)="onPlanChange()"
                                             >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectPlan') }}</option>
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectPlan') }}</option>
                                                 <option *ngFor="let plan of availablePlans" [value]="plan.value">
                                                     {{plan.label}}
                                                 </option>
@@ -344,7 +344,7 @@
                                                 required
                                                 [compareWith]="comparePrices"
                                             >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectPriceOption') }}</option>
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectPriceOption') }}</option>
                                                 <option *ngFor="let price of availablePrices" [ngValue]="price">
                                                     {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }}
                                                 </option>

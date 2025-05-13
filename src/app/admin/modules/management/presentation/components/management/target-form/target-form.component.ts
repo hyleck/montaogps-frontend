@@ -365,10 +365,37 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         this.target.year = this.target.target_year || this.target.year || null;
         
         // type -> gps_model (compatibilidad: en la interfaz se usa gps_model, pero en el backend se guarda como type)
-        this.target.gps_model = this.target.type || this.target.gps_model || null;
+        if (!this.target.type && !this.target.gps_model) {
+            this.target.gps_model = '';
+        } else {
+            this.target.gps_model = this.target.type || this.target.gps_model || '';
+        }
+        
+        // sim_company - asegurar que tenga un valor vacío en lugar de null para mostrar la opción por defecto
+        if (!this.target.sim_company) {
+            this.target.sim_company = '';
+        }
         
         // engine_shutdown -> shutdown_control (compatibilidad)
-        this.target.shutdown_control = this.target.engine_shutdown || this.target.shutdown_control || null;
+        if (!this.target.engine_shutdown && !this.target.shutdown_control) {
+            this.target.shutdown_control = '';
+        } else {
+            this.target.shutdown_control = this.target.engine_shutdown || this.target.shutdown_control || '';
+        }
+        
+        // Asegurarse de que los campos de selección muestren la opción por defecto cuando están vacíos
+        // Si installation_location está vacío o es una cadena vacía, asignar value de la primera opción
+        if (!this.target.installation_location || this.target.installation_location === '') {
+            // No asignamos null directamente para evitar errores de tipo
+            // En su lugar, borramos el valor para que el select muestre la opción por defecto
+            this.target.installation_location = '';
+        }
+        
+        // Si ignition_sensor está vacío o es una cadena vacía, necesitamos manejarlo también
+        if (!this.target.ignition_sensor || this.target.ignition_sensor === '') {
+            // No asignamos null directamente para evitar errores de tipo
+            this.target.ignition_sensor = '';
+        }
         
         // Ajuste para el estado (status): en DB es boolean, en formulario puede ser string
         if (this.target.status === true || String(this.target.status) === 'true') {
