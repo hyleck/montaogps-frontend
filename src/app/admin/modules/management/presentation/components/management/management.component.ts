@@ -246,7 +246,12 @@ export class ManagementComponent {
     // Si hay término de búsqueda, filtrar objetivos
     if (this.searchTargetsTerm && this.searchTargetsTerm.trim() !== '') {
       console.log('Buscando objetivos con término:', this.searchTargetsTerm);
-      this.targetsService.searchTargets(this.searchTargetsTerm)
+      
+      // Obtener el ID del usuario de la URL (management) como parent
+      const parentId = this.managementService.getCurrentUserId();
+      console.log('ID de usuario padre (parent) para búsqueda:', parentId);
+      
+      this.targetsService.searchTargets(this.searchTargetsTerm, parentId)
         .then((targets: Target[]) => {
           console.log('Respuesta de búsqueda de objetivos:', targets);
           this.targets = targets;
@@ -392,7 +397,13 @@ export class ManagementComponent {
   private async loadTargetsForUser(userId: string) {
     try {
       console.log('Cargando objetivos para el usuario:', userId);
-      const targets = await this.targetsService.getTargetsByUserId(userId);
+      
+      // Obtener el ID del usuario de la URL (management) como parent
+      const parentId = this.managementService.getCurrentUserId();
+      console.log('ID de usuario padre (parent):', parentId);
+      
+      // Pasar el ID del usuario y el parent al método del servicio
+      const targets = await this.targetsService.getTargetsByUserId(userId, parentId);
       console.log('Respuesta del API de objetivos:', targets);
       
       this.targets = targets;
@@ -425,6 +436,51 @@ export class ManagementComponent {
         detail: this.translate.instant('management.targetsLoadError')
       });
     }
+  }
+
+  onTargetCreated() {
+    this.targetFormDisplay = false;
+    
+    // Si existe un usuario seleccionado, recargar sus objetivos
+    if (this.selectedUser) {
+      this.loadTargetsForUser(this.selectedUser._id);
+    }
+  }
+
+  confirmDeleteTarget(target: any) {
+    this.confirmationService.confirm({
+      message: this.translate.instant('management.confirmDeleteTarget'),
+      header: this.translate.instant('management.userForm.confirmDeleteHeader'),
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: this.translate.instant('management.userForm.yes'),
+      rejectLabel: this.translate.instant('management.userForm.no'),
+      accept: () => {
+        // Eliminar el objetivo
+        this.targetsService.deleteTarget(target._id)
+          .then(() => {
+            // Filtrar el objetivo eliminado de la lista
+            this.targets = this.targets.filter(t => t._id !== target._id);
+            this.targetsList = this.targetsList.filter(t => t._id !== target._id);
+            
+            // Mostrar mensaje de éxito
+            this.messageService.add({
+              severity: 'success',
+              summary: this.translate.instant('management.targetDeleted'),
+              detail: this.translate.instant('management.targetDeleted'),
+              life: 3000
+            });
+          })
+          .catch((error) => {
+            console.error('Error al eliminar objetivo:', error);
+            this.messageService.add({
+              severity: 'error',
+              summary: this.translate.instant('management.error'),
+              detail: this.translate.instant('management.errorDeleteTarget'),
+              life: 3000
+            });
+          });
+      }
+    });
   }
 
   // Métodos privados

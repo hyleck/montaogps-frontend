@@ -67,20 +67,38 @@ export class TargetsService {
   /**
    * Busca objetivos por un criterio
    * @param query Criterio de búsqueda
+   * @param parentId ID del usuario padre (opcional)
    * @returns Promise con los objetivos encontrados
    */
-  async searchTargets(query: string): Promise<Target[]> {
-    const observable = this.http.get<Target[]>(`${this.apiUrl}?search=${query}`);
+  async searchTargets(query: string, parentId?: string): Promise<Target[]> {
+    let url = `${this.apiUrl}?search=${query}`;
+    
+    // Si se proporciona el ID del padre, añadirlo a la URL
+    if (parentId) {
+      url += `&parent=${parentId}`;
+    }
+    
+    console.log('Buscando objetivos con URL:', url);
+    const observable = this.http.get<Target[]>(url);
     return await lastValueFrom(observable);
   }
 
   /**
    * Obtiene objetivos por ID de usuario
    * @param userId ID del usuario
+   * @param parentId ID del usuario padre (opcional)
    * @returns Promise con los objetivos del usuario
    */
-  async getTargetsByUserId(userId: string): Promise<Target[]> {
-    const observable = this.http.get<Target[]>(`${this.apiUrl}?user_id=${userId}`);
+  async getTargetsByUserId(userId: string, parentId?: string): Promise<Target[]> {
+    let url = `${this.apiUrl}?user_id=${userId}`;
+    
+    // Si se proporciona el ID del padre, añadirlo a la URL
+    if (parentId) {
+      url += `&parent=${parentId}`;
+    }
+    
+    console.log('Solicitando objetivos con URL:', url);
+    const observable = this.http.get<Target[]>(url);
     return await lastValueFrom(observable);
   }
 

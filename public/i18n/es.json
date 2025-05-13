@@ -601,6 +601,10 @@
       "back": "Volver",
       "showMap": "Mostrar el mapa",
       "targetConfiguration": "Configuración de objetivo",
+      "confirmDeleteTarget": "¿Estás seguro de que deseas eliminar este objetivo?",
+      "targetDeleted": "El objetivo ha sido eliminado correctamente",
+      "errorDeleteTarget": "No se pudo eliminar el objetivo",
+      "error": "Error",
       "status": {
         "online": "En línea",
         "offline": "Fuera de línea"

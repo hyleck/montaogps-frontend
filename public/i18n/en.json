@@ -559,6 +559,10 @@
       "back": "Back",
       "showMap": "Show map",
       "targetConfiguration": "Target configuration",
+      "confirmDeleteTarget": "Are you sure you want to delete this target?",
+      "targetDeleted": "The target has been successfully deleted",
+      "errorDeleteTarget": "Could not delete target",
+      "error": "Error",
       "status": {
         "online": "Online",
         "offline": "Offline"

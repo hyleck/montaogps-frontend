@@ -560,6 +560,10 @@
       "back": "Retour",
       "showMap": "Afficher la carte",
       "targetConfiguration": "Configuration de l'objectif",
+      "confirmDeleteTarget": "Êtes-vous sûr de vouloir supprimer cet objectif ?",
+      "targetDeleted": "L'objectif a été supprimé avec succès",
+      "errorDeleteTarget": "Impossible de supprimer l'objectif",
+      "error": "Erreur",
       "status": {
         "online": "En ligne",
         "offline": "Hors ligne"

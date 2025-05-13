@@ -12,6 +12,7 @@ import { CreateTargetDto, Target, UpdateTargetDto } from 'src/app/core/interface
 import { Plan, PlanPrice } from 'src/app/core/interfaces/plan.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
+import { ManagementService } from 'src/app/admin/modules/management/presentation/services/management.service';
 
 // Interface local para el componente
 interface TargetDevice {
@@ -110,7 +111,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         private colorsService: ColorsService,
         private targetsService: TargetsService,
         private plansService: PlansService,
-        private protocolsService: ProtocolsService
+        private protocolsService: ProtocolsService,
+        private managementService: ManagementService
     ) {}
 
     // Método para manejar el envío del formulario de procesos
@@ -382,18 +384,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
      * basados en el contexto del usuario actual u otra lógica
      */
     private getDefaultValues(): any {
-        // En una implementación real, algunos de estos valores deberían venir
-        // del contexto de la aplicación (usuario autenticado, configuración, etc.)
-        
-        // ID de ejemplo (debe ser reemplazado con el ID real del usuario o cliente)
-        const sampleUserId = '64a7ecf2de1b240df0a97345';
+        // Obtener el ID del usuario actual de management service
+        const currentUserId = this.managementService.getCurrentUserId();
+        console.log('ID de usuario actual para parent_id:', currentUserId);
         
         return {
             api_position_id: 'default_position_id',
             type: 'vehicle',
             sim_company: 'telcel', // o cualquier compañía de SIM por defecto
-            creator_id: sampleUserId,
-            parent_id: sampleUserId,
+            creator_id: currentUserId || '64a7ecf2de1b240df0a97345', // usar un ID de fallback si no hay ID actual
+            parent_id: currentUserId || '64a7ecf2de1b240df0a97345', // usar un ID de fallback si no hay ID actual
             index: '1',
             canceled: false,
             delete: false
