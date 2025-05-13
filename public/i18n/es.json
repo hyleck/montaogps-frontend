@@ -624,6 +624,7 @@
         "name": "Nombre / Ficha",
         "imei": "IMEI / GPS ID",
         "apiId": "Tipo de SIMCard",
+        "simCardType": "Tipo de SIMCard",
         "simCard": "Número de Tarjeta SIM",
         "description": "Descripción",
         "type": "Tipo",
@@ -685,7 +686,8 @@
         "plan": "Plan",
         "selectPlan": "Seleccione un plan",
         "selectPrice": "Precio del plan",
-        "selectPriceOption": "Seleccione un precio"
+        "selectPriceOption": "Seleccione un precio",
+        "errorLoadingModels": "No se pudieron cargar los modelos para esta marca"
       },
       "userForm": {
         "title": "Formulario de Usuario",

@@ -674,6 +674,7 @@
         "name": "Nom / Fiche",
         "imei": "IMEI",
         "apiId": "Type de Carte SIM",
+        "simCardType": "Type de Carte SIM",
         "simCard": "Carte SIM",
         "description": "Description",
         "plate": "Plaque",
@@ -732,7 +733,8 @@
         "plan": "Plan",
         "selectPlan": "Sélectionnez un forfait",
         "selectPrice": "Prix du forfait",
-        "selectPriceOption": "Sélectionnez un prix"
+        "selectPriceOption": "Sélectionnez un prix",
+        "errorLoadingModels": "Impossible de charger les modèles pour cette marque"
       }
     }
 }

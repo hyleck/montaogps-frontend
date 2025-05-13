@@ -125,7 +125,7 @@
                                             
                                                 <td style="width: 1rem">
                                                     <div style="transform: scale(0.8)" class="management__user-table-controls management__user-table-controls--maps">
-                                                        <button (click)="showTargetForm()" class="button button--primary-flat" title="Editar objetivo"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                        <button (click)="showTargetForm(target)" class="button button--primary-flat" title="Editar objetivo"> <i class="pi pi-pen-to-square" ></i> </button>
                                                         <button class="button button--primary-flat-icon" title="Eliminar objetivo" (click)="confirmDeleteTarget(target)"> <i class="pi pi-times-circle" ></i> </button>
                                                     </div>
                                                 </td>
@@ -298,7 +298,7 @@
                                         <td>{{target.sim}}</td>
                                         <td>
                                             <div class="management__user-table-controls">
-                                                <button class="button button--primary-flat" (click)="showTargetForm()" title="Editar objetivo"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                <button class="button button--primary-flat" (click)="showTargetForm(target)" title="Editar objetivo"> <i class="pi pi-pen-to-square" ></i> </button>
                                                 <button class="button button--primary-flat-icon" title="Eliminar objetivo" (click)="confirmDeleteTarget(target)"> <i class="pi pi-times-circle" ></i> </button>
                                             </div>
                                         </td>
@@ -317,8 +317,8 @@
 
 <div class="card flex justify-content-center">
    
-    <p-dialog header="Configuración de objetivo" [modal]="true" [(visible)]="targetFormDisplay" >
-        <app-target-form (targetCreated)="onTargetCreated()"></app-target-form>
+    <p-dialog header="Configuración de objetivo" [modal]="true" [(visible)]="targetFormDisplay" (onHide)="onHideTargetForm()">
+        <app-target-form [targetInput]="targetToEdit" (targetCreated)="onTargetCreated()"></app-target-form>
     </p-dialog>
 
     <p-dialog header="Formulario de usuario" [modal]="true" [(visible)]="userFormDisplay" 

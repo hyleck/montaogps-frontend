@@ -579,9 +579,9 @@
         "vehicleInfo": "Vehicle",
         "installationInfo": "Installation",
         "processInfo": "Processes",
-        "name": "Name / ID",
+        "name": "Name / File",
         "imei": "IMEI / GPS ID",
-        "apiId": "SIMCard Type",
+        "simCardType": "SIM Card Type",
         "simCard": "SIM Card Number",
         "description": "Description",
         "type": "Type",
@@ -643,7 +643,8 @@
         "plan": "Plan",
         "selectPlan": "Select a plan",
         "selectPrice": "Plan Price",
-        "selectPriceOption": "Select a price"
+        "selectPriceOption": "Select a price",
+        "errorLoadingModels": "Could not load models for this brand"
       },
       "userForm": {
         "title": "User Form",

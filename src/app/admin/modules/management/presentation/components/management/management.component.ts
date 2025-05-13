@@ -54,6 +54,7 @@ export class ManagementComponent {
   providerTheme: 'light' | 'dark' = 'light';
   mapsKey: number | null = Date.now();
   targets: Target[] = [];
+  targetToEdit: any | null = null;
 
   constructor(
     public router: Router,
@@ -329,8 +330,31 @@ export class ManagementComponent {
     this.userFormDisplay = true;
   }
 
-  showTargetForm() {
+  async showTargetForm(target?: any) {
+    // Si recibimos un target (edición), necesitamos obtener todos los detalles
+    if (target) {
+      try {
+        // Obtener los detalles completos del objetivo desde el backend
+        const targetDetails = await this.targetsService.getTargetById(target._id);
+        console.log('Detalles completos del objetivo a editar:', targetDetails);
+        this.targetToEdit = targetDetails;
+      } catch (error) {
+        console.error('Error al obtener detalles del objetivo:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: this.translate.instant('management.error'),
+          detail: this.translate.instant('management.targetsLoadError')
+        });
+      }
+    } else {
+      this.targetToEdit = null;
+    }
+    
     this.targetFormDisplay = true;
+  }
+
+  onHideTargetForm() {
+    this.targetToEdit = null;
   }
 
   onUserCreated() {
@@ -440,6 +464,7 @@ export class ManagementComponent {
 
   onTargetCreated() {
     this.targetFormDisplay = false;
+    this.targetToEdit = null;
     
     // Si existe un usuario seleccionado, recargar sus objetivos
     if (this.selectedUser) {
