@@ -34,28 +34,28 @@
                                 <div class="target-form__field">
                                             <label for="brand">{{ translate(translations.brand) }} <span class="required-label">(Requerido)</span></label>
                                             <select
-                                                [(ngModel)]="target.brand"
-                                                name="brand"
+                                                [(ngModel)]="target.target_brand_id"
+                                                name="target_brand_id"
                                                 id="brand"
                                                 required
                                                 (change)="onBrandChange()"
                                             >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectBrand') }}</option>
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectBrand') }}</option>
                                                 <option *ngFor="let brand of availableBrands" [value]="brand.value">
                                                     {{brand.label}}
                                                 </option>
-                                    </select>
+                                            </select>
                                 </div>
                             
                                 <div class="target-form__field">
                                             <label for="model">{{ translate(translations.model) }} <span class="required-label">(Requerido)</span></label>
                                             <select
-                                                [(ngModel)]="target.model"
-                                                name="model"
+                                                [(ngModel)]="target.target_model_id"
+                                                name="target_model_id"
                                                 id="model"
                                                 required
                                             >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectModel') }}</option>
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectModel') }}</option>
                                                 <option *ngFor="let model of availableModels" [value]="model.value">
                                                     {{model.label}}
                                                 </option>
@@ -65,11 +65,11 @@
                                 <div class="target-form__field">
                                             <label for="year">{{ translate(translations.year) }}</label>
                                             <select
-                                                [(ngModel)]="target.year"
-                                                name="year"
+                                                [(ngModel)]="target.target_year"
+                                                name="target_year"
                                                 id="year"
                                             >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectYear') }}</option>
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectYear') }}</option>
                                                 <option *ngFor="let year of availableYears" [value]="year.value">
                                                     {{year.label}}
                                                 </option>
@@ -105,8 +105,8 @@
                                 <div class="target-form__field">
                                             <label for="plate">{{ translate(translations.plate) }} <span class="required-label">(Requerido)</span></label>
                                     <input 
-                                                [(ngModel)]="target.plate"
-                                                name="plate"
+                                                [(ngModel)]="target.target_plate_number"
+                                                name="target_plate_number"
                                         placeholder="Ej: G123456" 
                                         type="text" 
                                         id="plate" 
@@ -117,8 +117,8 @@
                                 <div class="target-form__field">
                                             <label for="chassis">{{ translate(translations.chassis) }}</label>
                                     <input 
-                                                [(ngModel)]="target.chassis"
-                                                name="chassis"
+                                                [(ngModel)]="target.target_chassis_number"
+                                                name="target_chassis_number"
                                                 placeholder="Ej: 1HGCM82633A123456" 
                                         type="text" 
                                                 id="chassis"
@@ -194,8 +194,8 @@
                                 <div class="target-form__field">
                                             <label for="imei">{{ translate(translations.imei) }} <span class="required-label">(Requerido)</span></label>
                                     <input 
-                                                [(ngModel)]="target.imei"
-                                                name="imei"
+                                                [(ngModel)]="target.device_imei"
+                                                name="device_imei"
                                                 placeholder="Ej: 990000862471854" 
                                         type="text" 
                                                 id="imei" 
@@ -220,8 +220,8 @@
                                         <div class="target-form__field">
                                             <label for="sim_card">{{ translate(translations.simCard) }} <span class="required-label">(Requerido)</span></label>
                                     <input 
-                                                [(ngModel)]="target.sim_card"
-                                                name="sim_card"
+                                                [(ngModel)]="target.sim_card_number"
+                                                name="sim_card_number"
                                                 placeholder="Ej: 8999991234567891234" 
                                         type="text" 
                                                 id="sim_card" 
@@ -232,8 +232,8 @@
                                 <div class="target-form__field">
                                             <label for="gps_model">{{ translate(translations.gpsModel) }}</label>
                                             <select
-                                                [(ngModel)]="target.gps_model"
-                                                name="gps_model"
+                                                [(ngModel)]="target.type"
+                                                name="type"
                                                 id="gps_model"
                                             >
                                                 <option [ngValue]="''">{{ translate('management.targetForm.selectGpsModel') }}</option>
@@ -308,8 +308,8 @@
                                 <div class="target-form__field">
                                             <label for="shutdown_control">{{ translate(translations.shutdownControl) }}</label>
                                             <select
-                                                [(ngModel)]="target.shutdown_control"
-                                                name="shutdown_control"
+                                                [(ngModel)]="target.engine_shutdown"
+                                                name="engine_shutdown"
                                                 id="shutdown_control"
                                             >
                                                 <option [ngValue]="''">{{ translate('management.targetForm.selectOption') }}</option>
@@ -343,8 +343,9 @@
                                                 id="price"
                                                 required
                                                 [compareWith]="comparePrices"
+                                                (ngModelChange)="onPriceChange()"
                                             >
-                                                <option [ngValue]="''">{{ translate('management.targetForm.selectPriceOption') }}</option>
+                                                <option [ngValue]="null">{{ translate('management.targetForm.selectPriceOption') }}</option>
                                                 <option *ngFor="let price of availablePrices" [ngValue]="price">
                                                     {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }}
                                                 </option>

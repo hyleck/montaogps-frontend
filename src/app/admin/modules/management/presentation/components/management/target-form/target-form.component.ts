@@ -203,20 +203,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             parent_id: '',
             user_id: '',
             plan: '',
-            selectedPrice: null,
-            // Campos de compatibilidad
-            imei: '',
-            api_id: null,
-            sim_card: '',
-            plate: '',
-            chassis: '',
-            year: null,
-            brand: null,
-            model: null,
-            color: '',
-            installation_date: '',
-            gps_model: '',
-            shutdown_control: ''
+            selectedPrice: null
         };
     }
 
@@ -331,69 +318,43 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         // Rellenar el formulario con los datos del objetivo a editar
         this.target = JSON.parse(JSON.stringify(target));
         
-        // Asegurarse de que los campos de compatibilidad estén sincronizados
-        // Copiamos de los campos nuevos a los antiguos para compatibilidad del formulario
+        // Asegurarse de que los campos estén correctamente formateados
+        // y que los valores vacíos tengan el formato adecuado para los selectores
         
-        // device_imei -> imei (compatibilidad)
-        this.target.imei = this.target.device_imei || this.target.imei || '';
-        
-        // api_device_id -> api_id (compatibilidad)
-        this.target.api_id = this.target.api_device_id || this.target.api_id || null;
-        
-        // sim_card_number -> sim_card (compatibilidad)
-        this.target.sim_card = this.target.sim_card_number || this.target.sim_card || '';
-        
-        // target_plate_number -> plate (compatibilidad)
-        this.target.plate = this.target.target_plate_number || this.target.plate || '';
-        
-        // target_chassis_number -> chassis (compatibilidad)
-        this.target.chassis = this.target.target_chassis_number || this.target.chassis || '';
-        
-        // target_brand_id -> brand (compatibilidad)
-        this.target.brand = this.target.target_brand_id || this.target.brand || null;
+        // Para mantener compatibilidad con versiones anteriores,
+        // aseguramos que algunos campos siempre tengan un valor
+        this.target.device_imei = this.target.device_imei || '';
+        this.target.sim_card_number = this.target.sim_card_number || '';
+        this.target.target_plate_number = this.target.target_plate_number || '';
+        this.target.target_chassis_number = this.target.target_chassis_number || '';
+        this.target.target_brand_id = this.target.target_brand_id || '';
+        this.target.target_color = this.target.target_color || '';
+        this.target.target_year = this.target.target_year || '';
         
         // Guardar temporalmente el ID del modelo seleccionado
-        const selectedModelId = this.target.target_model_id || this.target.model || null;
+        const selectedModelId = this.target.target_model_id || '';
         
-        // Establecer el modelo a null inicialmente hasta que carguemos los modelos disponibles
-        this.target.model = null;
+        // Establecer el modelo a string vacía inicialmente hasta que carguemos los modelos disponibles
+        this.target.target_model_id = '';
         
-        // target_color -> color (compatibilidad)
-        this.target.color = this.target.target_color || this.target.color || '';
-        
-        // target_year -> year (compatibilidad)
-        this.target.year = this.target.target_year || this.target.year || null;
-        
-        // type -> gps_model (compatibilidad: en la interfaz se usa gps_model, pero en el backend se guarda como type)
-        if (!this.target.type && !this.target.gps_model) {
-            this.target.gps_model = '';
-        } else {
-            this.target.gps_model = this.target.type || this.target.gps_model || '';
+        // Para campos de selección, asegurarse de que se muestre la opción por defecto cuando están vacíos
+        if (!this.target.type) {
+            this.target.type = '';
         }
         
-        // sim_company - asegurar que tenga un valor vacío en lugar de null para mostrar la opción por defecto
         if (!this.target.sim_company) {
             this.target.sim_company = '';
         }
         
-        // engine_shutdown -> shutdown_control (compatibilidad)
-        if (!this.target.engine_shutdown && !this.target.shutdown_control) {
-            this.target.shutdown_control = '';
-        } else {
-            this.target.shutdown_control = this.target.engine_shutdown || this.target.shutdown_control || '';
+        if (!this.target.engine_shutdown) {
+            this.target.engine_shutdown = '';
         }
         
-        // Asegurarse de que los campos de selección muestren la opción por defecto cuando están vacíos
-        // Si installation_location está vacío o es una cadena vacía, asignar value de la primera opción
         if (!this.target.installation_location || this.target.installation_location === '') {
-            // No asignamos null directamente para evitar errores de tipo
-            // En su lugar, borramos el valor para que el select muestre la opción por defecto
             this.target.installation_location = '';
         }
         
-        // Si ignition_sensor está vacío o es una cadena vacía, necesitamos manejarlo también
         if (!this.target.ignition_sensor || this.target.ignition_sensor === '') {
-            // No asignamos null directamente para evitar errores de tipo
             this.target.ignition_sensor = '';
         }
         
@@ -405,8 +366,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         }
         
         // Formatear fechas para el input HTML
-        // activation_date -> installation_date (compatibilidad) 
-        this.target.installation_date = this.formatDateToInput(this.target.activation_date || this.target.installation_date || '');
+        this.target.activation_date = this.formatDateToInput(this.target.activation_date || '');
         
         if (this.target.expiration_date) {
             this.target.expiration_date = this.formatDateToInput(this.target.expiration_date);
@@ -415,18 +375,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         this.activeTabIndex = 0;
         
         // Actualizar el nombre del color para mostrar
-        if (this.target.target_color || this.target.color) {
-            const colorValue = this.target.target_color || this.target.color;
-            const colorObj = this.availableColors.find(c => c.value === colorValue);
+        if (this.target.target_color) {
+            const colorObj = this.availableColors.find(c => c.value === this.target.target_color);
             this.displayColorName = colorObj ? colorObj.label : '';
         } else {
             this.displayColorName = '';
         }
         
         // Cargar los modelos para la marca seleccionada
-        if (this.target.brand) {
+        if (this.target.target_brand_id) {
             // Cargar modelos según la marca seleccionada
-            this.vehicleBrandsService.getAllModelsByBrand(this.target.brand)
+            this.vehicleBrandsService.getAllModelsByBrand(this.target.target_brand_id)
                 .then((models: any) => {
                     this.availableModels = models.map((model: any) => ({
                         label: model.nombre,
@@ -435,7 +394,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                     
                     // Una vez cargados los modelos, establecer el modelo seleccionado
                     if (selectedModelId && this.availableModels.some(m => m.value === selectedModelId)) {
-                        this.target.model = selectedModelId;
+                        this.target.target_model_id = selectedModelId;
                     }
                 })
                 .catch(error => {
@@ -446,26 +405,57 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         
         // Configurar el plan si existe
         if (this.target.plan && typeof this.target.plan === 'object') {
-            console.log('Configurando plan:', this.target.plan);
+            console.log('Configurando plan desde objeto:', this.target.plan);
             // Extraer el ID del plan
             if ('id_plan' in this.target.plan && this.target.plan.id_plan) {
                 // Guardar el objeto plan original
                 const originalPlan = this.target.plan;
                 
-                // Establecer el ID del plan como string para el selector
-                this.target.plan = originalPlan.id_plan as string;
-                
-                // Si hay un precio seleccionado, configurarlo
+                // Si hay un precio seleccionado, configurarlo antes de convertir el plan a string
                 if (originalPlan.selected_price) {
+                    console.log('Precio seleccionado encontrado:', originalPlan.selected_price);
                     this.target.selectedPrice = {
                         id: originalPlan.selected_price.id,
                         amount: originalPlan.selected_price.amount,
                         payment_period: originalPlan.selected_price.payment_period
                     };
-                    
-                    // Cargar los precios disponibles para este plan
-                    this.onPlanChange();
                 }
+                
+                // Establecer el ID del plan como string para el selector
+                this.target.plan = originalPlan.id_plan as string;
+                
+                // Cargar los precios disponibles para este plan
+                // Hacemos esto después de configurar selectedPrice para que no se pierda
+                this.plansService.getPlanById(this.target.plan).subscribe({
+                    next: (plan: Plan) => {
+                        console.log('Plan cargado con éxito:', plan);
+                        this.availablePrices = plan.prices.map(price => ({
+                            id: price.id,
+                            amount: price.amount,
+                            payment_period: typeof price.payment_period === 'string' ? 
+                                price.payment_period : 
+                                this.mapPeriodToString(price.payment_period)
+                        }));
+                        
+                        console.log('Precios disponibles:', this.availablePrices);
+                        console.log('Precio seleccionado antes de restaurar:', this.target.selectedPrice);
+                        
+                        // Asegurarnos de que el precio seleccionado coincide con uno de los disponibles
+                        if (this.target.selectedPrice) {
+                            const matchedPrice = this.availablePrices.find(price => 
+                                price.id === this.target.selectedPrice?.id
+                            );
+                            
+                            if (matchedPrice) {
+                                console.log('Precio coincidente encontrado:', matchedPrice);
+                                this.target.selectedPrice = matchedPrice;
+                            }
+                        }
+                    },
+                    error: (error) => {
+                        console.error('Error al cargar el plan:', error);
+                    }
+                });
             }
         } else if (!this.target.plan) {
             // Si no hay plan, establecer string vacía para mostrar la opción por defecto
@@ -482,16 +472,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
 
     async onBrandChange() {
         try {
-            if (this.target.brand) {
+            if (this.target.target_brand_id) {
                 // Limpiar el modelo seleccionado
-                this.target.model = null;
+                this.target.target_model_id = '';
                 this.availableModels = [];
                 
                 // Mostrar indicador de carga si es necesario
                 // this.isLoadingModels = true;
                 
                 // Cargar modelos para la marca seleccionada
-                const models = await this.vehicleBrandsService.getAllModelsByBrand(this.target.brand);
+                const models = await this.vehicleBrandsService.getAllModelsByBrand(this.target.target_brand_id);
                 
                 if (models && models.length > 0) {
                     this.availableModels = models.map((model: any) => ({
@@ -507,7 +497,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             } else {
                 // Si no hay marca seleccionada, vaciar los modelos
                 this.availableModels = [];
-                this.target.model = null;
+                this.target.target_model_id = '';
                 console.log('No hay marca seleccionada, se han limpiado los modelos');
             }
         } catch (error) {
@@ -518,7 +508,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                 detail: this.translate('management.targetForm.errorLoadingModels') || 'No se pudieron cargar los modelos para esta marca.'
             });
             this.availableModels = [];
-            this.target.model = null;
+            this.target.target_model_id = '';
         } finally {
             // Desactivar indicador de carga si se implementa
             // this.isLoadingModels = false;
@@ -614,67 +604,62 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         const defaultValues = this.getDefaultValues();
         
         // Estructurar el plan en el formato requerido
-        const planData = targetData.plan && targetData.selectedPrice ? {
-            id_plan: targetData.plan,
-            selected_price: {
-                id: targetData.selectedPrice.id,
-                amount: targetData.selectedPrice.amount,
-                payment_period: typeof targetData.selectedPrice.payment_period === 'string' ? 
-                    targetData.selectedPrice.payment_period : 
-                    this.mapPeriodToString(targetData.selectedPrice.payment_period)
-            }
-        } : null;
-        
-        // Mapear campos actuales a los campos esperados por el backend
-        const mappedData: any = {
-            name: targetData.name,
-            device_imei: targetData.imei || targetData.device_imei,
-            api_device_id: targetData.api_id || targetData.api_device_id || defaultValues.api_device_id,
-            api_position_id: targetData.api_position_id || defaultValues.api_position_id,
-            type: targetData.gps_model || targetData.type || defaultValues.type,
-            sim_card_number: targetData.sim_card || targetData.sim_card_number,
-            sim_company: targetData.sim_company || defaultValues.sim_company,
-            description: targetData.description || '',
-            target_plate_number: targetData.plate || targetData.target_plate_number,
-            target_chassis_number: targetData.chassis || targetData.target_chassis_number || '',
-            // Convertir el array de contactos a string (o usar valor por defecto)
-            contacts: Array.isArray(targetData.contacts) ? targetData.contacts.join(',') : (targetData.contacts || ''),
-            mechanic_id: targetData.mechanic_id || null,
-            target_year: targetData.year || targetData.target_year,
-            installation_location: targetData.installation_location,
-            target_brand_id: targetData.brand || targetData.target_brand_id,
-            target_model_id: targetData.model || targetData.target_model_id,
-            target_color: targetData.color || targetData.target_color,
-            activation_date: targetData.installation_date ? new Date(targetData.installation_date) : new Date(targetData.activation_date || new Date()),
-            expiration_date: targetData.expiration_date ? new Date(targetData.expiration_date) : undefined,
-            last_change_date: new Date(),
-            ignition_sensor: targetData.ignition_sensor,
-            engine_shutdown: targetData.shutdown_control || targetData.engine_shutdown,
-            required_check: targetData.required_check || null,
-            installation_details: targetData.installation_details || '',
-            status: targetData.status === 'active',
-            canceled: targetData.canceled !== undefined ? targetData.canceled : defaultValues.canceled,
-            deleted: targetData.deleted !== undefined ? targetData.deleted : defaultValues.deleted,
-            index: targetData.index || defaultValues.index,
-            plan: planData,
-            creator_id: targetData.creator_id || defaultValues.creator_id,
-            parent_id: targetData.parent_id || defaultValues.parent_id,
-            shared: targetData.shared || null,
-            user_id: targetData.user_id || defaultValues.creator_id
-        };
-        
-        // Si es una actualización, incluir el _id
-        if (this.target._id && this.target._id !== '') {
-            mappedData._id = this.target._id;
+        if (targetData.plan && targetData.selectedPrice) {
+            targetData.plan = {
+                id_plan: targetData.plan,
+                selected_price: {
+                    id: targetData.selectedPrice.id,
+                    amount: targetData.selectedPrice.amount,
+                    payment_period: typeof targetData.selectedPrice.payment_period === 'string' ? 
+                        targetData.selectedPrice.payment_period : 
+                        this.mapPeriodToString(targetData.selectedPrice.payment_period)
+                }
+            };
+        } else {
+            targetData.plan = null;
         }
         
-        return mappedData;
+        // Convertir el array de contactos a string si es necesario
+        if (Array.isArray(targetData.contacts)) {
+            targetData.contacts = targetData.contacts.join(',');
+        }
+        
+        // Formatear fechas
+        if (targetData.activation_date) {
+            targetData.activation_date = new Date(targetData.activation_date);
+        } else if (targetData.activation_date) {
+            targetData.activation_date = new Date(targetData.activation_date);
+        } else {
+            targetData.activation_date = new Date();
+        }
+        
+        if (targetData.expiration_date) {
+            targetData.expiration_date = new Date(targetData.expiration_date);
+        }
+        
+        // Actualizar la fecha del último cambio
+        targetData.last_change_date = new Date();
+        
+        // Convertir status de string a boolean
+        targetData.status = targetData.status === 'active';
+        
+        // Aplicar valores por defecto para campos requeridos pero que podrían estar vacíos
+        for (const key in defaultValues) {
+            if (!targetData[key]) {
+                targetData[key] = defaultValues[key];
+            }
+        }
+        
+        // Eliminar propiedades que no deben enviarse al backend
+        delete targetData.selectedPrice;
+        
+        return targetData;
     }
 
     private validateForm(): boolean {
         // Validaciones según el tab activo
         if (this.activeTabIndex === 0) { // Tab de vehículo
-            if (!this.target.name || !this.target.plate || !this.target.plan || !this.target.selectedPrice) {
+            if (!this.target.name || !this.target.target_plate_number || !this.target.plan || !this.target.selectedPrice) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate('management.targetForm.validationError'),
@@ -683,7 +668,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                 return false;
             }
         } else if (this.activeTabIndex === 1) { // Tab de instalación
-            if (!this.target.imei || !this.target.sim_card || !this.target.plan || !this.target.selectedPrice) {
+            if (!this.target.device_imei || !this.target.sim_card_number || !this.target.plan || !this.target.selectedPrice) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate('management.targetForm.validationError'),
@@ -764,10 +749,38 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         return periodMap[period] || 30; // Por defecto mensual si el periodo no es reconocido
     }
 
+    // Método para calcular la fecha de expiración basada en el período de pago
+    private updateExpirationDate(): void {
+        if (this.target.selectedPrice && this.target.selectedPrice.payment_period) {
+            // Obtener los días del período de pago
+            const periodInDays = this.mapPeriodToNumber(this.target.selectedPrice.payment_period.toString());
+            
+            // Usar la fecha de activación/instalación como base si existe, o la fecha actual
+            let baseDate = new Date();
+            if (this.target.activation_date) {
+                baseDate = new Date(this.target.activation_date);
+            } else if (this.target.installation_date) {
+                baseDate = new Date(this.target.installation_date);
+            }
+            
+            // Calcular la fecha de expiración sumando los días del período
+            const expirationDate = new Date(baseDate);
+            expirationDate.setDate(expirationDate.getDate() + periodInDays);
+            
+            // Formatear la fecha de expiración para el input HTML
+            this.target.expiration_date = this.formatDateToInput(expirationDate.toISOString());
+            
+            console.log(`Fecha de expiración calculada: ${this.target.expiration_date} (basada en un período de ${periodInDays} días)`);
+        }
+    }
+
     async onPlanChange() {
         if (this.target.plan && typeof this.target.plan === 'string' && this.target.plan !== '') {
             try {
-                // Resetear el precio seleccionado
+                // Guardar el precio seleccionado actual para restaurarlo si es necesario
+                const currentSelectedPrice = this.target.selectedPrice;
+                
+                // Resetear el precio seleccionado temporalmente
                 this.target.selectedPrice = null;
                 
                 // Cargar el plan completo con sus precios
@@ -783,6 +796,19 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                                     this.mapPeriodToString(price.payment_period)
                             };
                         });
+                        
+                        // Restaurar el precio seleccionado si existe y coincide con uno de los precios disponibles
+                        if (currentSelectedPrice) {
+                            const matchedPrice = this.availablePrices.find(price => 
+                                price.id === currentSelectedPrice.id
+                            );
+                            
+                            if (matchedPrice) {
+                                this.target.selectedPrice = matchedPrice;
+                                // Actualizar fecha de expiración según el período de pago
+                                this.updateExpirationDate();
+                            }
+                        }
                     },
                     error: (error) => {
                         console.error('Error al cargar los precios del plan:', error);
@@ -803,6 +829,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             this.availablePrices = [];
             this.target.selectedPrice = null;
         }
+    }
+    
+    // Método para manejar el cambio de precio seleccionado
+    onPriceChange(): void {
+        // Actualizar la fecha de expiración basada en el período de pago
+        this.updateExpirationDate();
     }
 
     // Método para comparar objetos de precio (usado en select compareWith)
