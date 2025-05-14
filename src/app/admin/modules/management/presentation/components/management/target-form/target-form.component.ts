@@ -202,7 +202,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             index: '',
             parent_id: '',
             user_id: '',
-            plan: null,
+            plan: '',
             selectedPrice: null,
             // Campos de compatibilidad
             imei: '',
@@ -215,8 +215,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             model: null,
             color: '',
             installation_date: '',
-            gps_model: null,
-            shutdown_control: null
+            gps_model: '',
+            shutdown_control: ''
         };
     }
 
@@ -467,6 +467,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                     this.onPlanChange();
                 }
             }
+        } else if (!this.target.plan) {
+            // Si no hay plan, establecer string vacía para mostrar la opción por defecto
+            this.target.plan = '';
         }
     }
 
@@ -762,7 +765,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     async onPlanChange() {
-        if (this.target.plan && typeof this.target.plan === 'string') {
+        if (this.target.plan && typeof this.target.plan === 'string' && this.target.plan !== '') {
             try {
                 // Resetear el precio seleccionado
                 this.target.selectedPrice = null;

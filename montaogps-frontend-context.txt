@@ -1,0 +1,116 @@
+# MONTAO GPS FRONTEND - CONTEXTO Y NOTAS
+===========================================
+IMPORTANTE: ESTE ARCHIVO DEBE SER CONSULTADO EN CADA SOLICITUD DEL USUARIO
+===========================================
+
+## DESCRIPCIÓN GENERAL
+Aplicación Angular para monitoreo GPS de vehículos. Frontend principal del sistema MontaoGPS.
+
+## ESTRUCTURA DEL PROYECTO
+- Frontend Angular con PrimeNG como biblioteca de componentes
+- Sistema de traducción i18n con archivos JSON (es.json, en.json, fr.json)
+- Arquitectura modular con componentes, servicios e interfaces
+
+## ENDPOINTS Y SERVICIOS
+- API Principal: https://mgpsb.montao.net (desde environment.ts)
+- API de Montao: https://hostapi.montao.net (desde environment.ts)
+
+## COMPONENTES PRINCIPALES CONOCIDOS
+- TargetFormComponent: Formulario de creación/edición de objetivos (vehículos)
+- ManagementComponent: Gestión de objetivos
+- CloudComponent: Componente para administración de nube
+- ServersSettingsComponent: Componente para gestión de servidores (en módulo Settings)
+
+## FLUJOS IMPORTANTES
+1. Gestión de vehículos (objetivos):
+   - Listado de objetivos
+   - Formulario de creación/edición en pestañas (Vehículo, Instalación, Procesos, Nube)
+   - Compatibilidad con diferentes versiones de API (campos antiguos y nuevos)
+
+## ESTÁNDARES DE DISEÑO Y PATRONES UI
+1. Componentes de Settings:
+   - Todos los módulos creados en Settings deben seguir el patrón de diseño de ServersSettingsComponent:
+   - Layout dividido en dos paneles (izquierdo/derecho) con clase "user-roles-layout"
+   - Panel izquierdo (.user-roles-layout__sidebar): Formulario de creación/edición
+   - Panel derecho (.user-roles-layout__main): Tabla de listado con p-table
+   - Acciones consistentes: botones de edición/eliminación circulares con iconos
+   - Estado visual mediante badges con colores semánticos
+   - Formularios con validación y feedback visual
+   - Diseño responsivo que cambia a columnas en dispositivos móviles
+   - Mensajes de confirmación mediante p-toast
+   - Traducciones para todos los textos
+
+2. Sistema de temas y paletas de colores:
+   - SIEMPRE se deben utilizar las variables de paleta de colores globales definidas en global.palette.ts
+   - La estructura de paletas tiene dos modos: light y dark, cada uno con sus propias variables de color
+   - Categorías principales de colores:
+     * globalColores primarios: para elementos principales de marca
+     * globalColores de fondo: para diferentes tipos de fondos
+     * globalColores de texto: para diferentes tipos de texto
+     * globalColores de borde: para diferentes tipos de bordes
+     * globalColores adicionales: para componentes y estados específicos
+   - Para módulos específicos, se pueden crear paletas personalizadas siguiendo el mismo formato de globalPalette
+   - Nuevas paletas deben agregarse al ThemesService en src/app/shareds/services/themes.service.ts
+   - Pasos para crear y registrar una nueva paleta:
+     1. Crear archivo [nombre-componente].palette.ts con estructura similar a global.palette.ts
+     2. Importar la nueva paleta en themes.service.ts
+     3. Añadirla a los objetos themes.light y themes.dark
+   - Acceder a las variables en CSS mediante: var(--nombreVariable)
+   - Las variables específicas de componente deben seguir la nomenclatura consistente
+
+3. Sistema de traducción i18n:
+   - TODOS los textos visibles para el usuario DEBEN ser traducidos a los 3 idiomas soportados (Español, Inglés y Francés)
+   - Usar SIEMPRE el sistema de claves de traducción en los archivos de la carpeta public/i18n (es.json, en.json, fr.json)
+   - Las claves deben seguir la estructura jerárquica según el módulo y la funcionalidad: 'módulo.componente.elemento'
+   - Ejemplos de estructura de claves:
+     * 'management.targetForm.simCardType': para textos del formulario de objetivos
+     * 'settings.servers.title': para título en sección de servidores
+     * 'common.buttons.save': para elementos comunes como botones
+   - Para mostrar textos traducidos, usar el método translate() pasando la clave
+   - Para textos dinámicos, usar interpolación: {{ translate('clave') }}
+   - Para nuevas funcionalidades, SIEMPRE agregar las nuevas claves a TODOS los archivos de idioma
+   - Mantener consistencia en la nomenclatura de las claves entre módulos similares
+
+## MODIFICACIONES REALIZADAS
+1. Mejora en secuencia de carga de modelos de vehículo:
+   - Ahora el modelo solo se selecciona después de cargar los modelos disponibles para la marca
+   - Se implementó carga asíncrona de modelos para evitar estados inconsistentes
+
+2. Corrección de selectores para mostrar opción por defecto:
+   - installation_location, ignition_sensor, shutdown_control, sim_company, gps_model, plan, selectedPrice
+   - Se cambió [ngValue]="null" por [ngValue]="''" en todos los selectores
+   - Se actualizó el método setupEditTarget para inicializar correctamente los campos
+
+3. Traducciones:
+   - Se añadió la clave "management.targetForm.simCardType" en los archivos de idioma
+   - Se añadió la clave "management.targetForm.errorLoadingModels" en los archivos de idioma
+
+## DETALLES TÉCNICOS IMPORTANTES
+1. Campos de compatibilidad en TargetDevice:
+   - La interfaz maneja nombres de campos antiguos y nuevos para compatibilidad con diferentes versiones del API
+   - Ejemplos: device_imei/imei, target_brand_id/brand, sim_card_number/sim_card, etc.
+
+2. Selectores de formulario:
+   - Deben usar [ngValue]="''" para la opción por defecto (no null)
+   - Para campos requeridos, se muestra un texto (Requerido) junto a la etiqueta
+
+3. Comportamiento de campos dependientes:
+   - Los modelos dependen de la marca seleccionada
+   - Los precios dependen del plan seleccionado
+
+4. Estilos CSS de componentes Settings:
+   - Uso de variables CSS para temas claro/oscuro (--userRolesBackground, --userRolesText, etc.)
+   - Bordes redondeados (border-radius: 8px)
+   - Espacio interno consistente (padding: 1.5rem)
+   - Botones con iconos y textos
+   - Animaciones de transición (transition: all 0.2s)
+
+## PROBLEMAS CONOCIDOS RESUELTOS
+1. Campos de selección no mostraban la opción por defecto cuando estaban vacíos
+2. El modelo de vehículo no se cargaba correctamente al editar un objetivo existente
+
+## NOTAS ADICIONALES
+- Las fechas se formatean para los inputs HTML usando el método formatDateToInput
+- Algunos campos tienen comportamientos especiales (plan, color, sim_company, etc.)
+- Sistema soporta tres idiomas: Español, Inglés y Francés 
+- Las paletas de colores existentes incluyen: globalPalette, loginPalette, managementPalette, sidebarPalette, adminPalette, navbarPalette, userRolesPalette, dashboardPalette, colorsPalette 
