@@ -258,25 +258,7 @@
 
                                     <!-- Columna Derecha -->
                                     <div class="target-form__column">
-                                        <div class="target-form__field">
-                                            <label for="installation_date">{{ translate(translations.installationDate) }}</label>
-                                            <input
-                                                [(ngModel)]="target.installation_date"
-                                                name="installation_date"
-                                                type="date"
-                                                id="installation_date"
-                                            >
-                                        </div>
-                            
-                                <div class="target-form__field">
-                                            <label for="expiration_date">{{ translate(translations.expirationDate) }}</label>
-                                    <input 
-                                                [(ngModel)]="target.expiration_date"
-                                                name="expiration_date"
-                                        type="date" 
-                                                id="expiration_date"
-                                    >
-                                </div>
+                                 
 
                                 <div class="target-form__field">
                                             <label for="installation_location">{{ translate(translations.installationLocation) }}</label>
@@ -336,22 +318,51 @@
 
                                         <!-- Price selector (appears only when a plan is selected) -->
                                         <div class="target-form__field" *ngIf="target.plan">
-                                            <label for="price">{{ translate('management.targetForm.selectPrice') }} <span class="required-label">(Requerido)</span></label>
-                                            <select
-                                                [(ngModel)]="target.selectedPrice"
-                                                name="price"
-                                                id="price"
-                                                required
-                                                [compareWith]="comparePrices"
-                                                (ngModelChange)="onPriceChange()"
-                                            >
-                                                <option [ngValue]="null">{{ translate('management.targetForm.selectPriceOption') }}</option>
-                                                <option *ngFor="let price of availablePrices" [ngValue]="price">
-                                                    {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }}
-                                                </option>
-                                            </select>
+                                            <label for="price">
+                                                {{ translate('management.targetForm.selectPrice') }} <span class="required-label">(Requerido)</span>
+                                                <i class="pi pi-pencil edit-price-icon" (click)="startCustomPriceEdit()" style="color: var(--globalColorPrimaryInmutable); cursor: pointer; margin-left: 5px; font-size: 0.8rem; opacity: 0.7;"></i>
+                                            </label>
+                                            <div class="price-selector-container">
+                                                <select
+                                                    [(ngModel)]="target.selectedPrice"
+                                                    name="price"
+                                                    id="price"
+                                                    required
+                                                    [compareWith]="comparePrices"
+                                                    (ngModelChange)="onPriceChange()"
+                                                    class="price-select"
+                                                >
+                                                    <option [ngValue]="null">{{ translate('management.targetForm.selectPriceOption') }}</option>
+                                                    <option *ngFor="let price of availablePrices" [ngValue]="price">
+                                                        <ng-container *ngIf="isPriceCustomized(price); else normalPrice">
+                                                            {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }} ({{ translate('management.targetForm.customized') }})
+                                                        </ng-container>
+                                                        <ng-template #normalPrice>
+                                                            {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }}
+                                                        </ng-template>
+                                                    </option>
+                                                </select>
+                                            </div>
                                         </div>
-                
+                                        <div class="target-form__field">
+                                            <label for="installation_date">{{ translate(translations.installationDate) }}</label>
+                                            <input
+                                                [(ngModel)]="target.installation_date"
+                                                name="installation_date"
+                                                type="date"
+                                                id="installation_date"
+                                            >
+                                        </div>
+                            
+                                <div class="target-form__field" *ngIf="target.plan && target.selectedPrice">
+                                            <label for="expiration_date">{{ translate(translations.expirationDate) }}</label>
+                                    <input 
+                                                [(ngModel)]="target.expiration_date"
+                                                name="expiration_date"
+                                        type="date" 
+                                                id="expiration_date"
+                                    >
+                                </div>
                 
                                     </div>
                                 </div>
@@ -468,6 +479,77 @@
                         <app-cloud></app-cloud>
                     </p-tabPanel>
                 </p-tabView>
+
+                <!-- Diálogo modal para edición de precios -->
+                <p-dialog 
+                    [(visible)]="displayPriceDialog" 
+                    [style]="{width: '500px'}" 
+                    [modal]="true"
+                    [draggable]="false" 
+                    [resizable]="false"
+                    [header]="translate('management.targetForm.customizePriceTitle')"
+                >
+                    <div class="custom-price-form">
+                        <div class="target-form__field custom-price-field">
+                            <label for="custom_amount">{{ translate('management.targetForm.amount') }}</label>
+                            <input 
+                                [(ngModel)]="customPrice.amount"
+                                name="custom_amount"
+                                type="number" 
+                                id="custom_amount"
+                                min="0"
+                                step="1"
+                            >
+                        </div>
+                        <div class="target-form__field custom-price-field">
+                            <label for="custom_period">{{ translate('management.targetForm.period') }}</label>
+                            <select
+                                [(ngModel)]="customPrice.payment_period"
+                                name="custom_period"
+                                id="custom_period"
+                            >
+                                <option value="monthly">{{ translate('settings.plans.monthly') }}</option>
+                                <option value="quarterly">{{ translate('settings.plans.quarterly') }}</option>
+                                <option value="yearly">{{ translate('settings.plans.yearly') }}</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Mensaje informativo del precio original del plan -->
+                    <div *ngIf="originalPlanPrice" class="original-price-info">
+                        <div class="price-info-header">
+                            <i class="pi pi-tag"></i>
+                            {{ translate('management.targetForm.originalPrice') }}
+                        </div>
+                        <div class="price-info-content">
+                            <!-- Si el precio personalizado es diferente al original, mostrar ambos -->
+                            <ng-container *ngIf="customPrice.amount !== originalPlanPrice.amount; else onlyOriginal">
+                                <span class="price-amount original">
+                                    <span class="strikethrough">{{originalPlanPrice.amount}}</span>
+                                </span>
+                                <span class="price-arrow">→</span>
+                                <span class="price-amount custom">{{customPrice.amount}}</span>
+                                <span class="price-period">{{ translate('settings.plans.' + originalPlanPrice.payment_period) }}</span>
+                            </ng-container>
+                            <!-- Si son iguales, mostrar solo el original -->
+                            <ng-template #onlyOriginal>
+                                <span class="price-amount">{{originalPlanPrice.amount}}</span>
+                                <span class="price-period">{{ translate('settings.plans.' + originalPlanPrice.payment_period) }}</span>
+                            </ng-template>
+                        </div>
+                    </div>
+                    
+                    <ng-template pTemplate="footer">
+                        <button type="button" class="cancel-btn" (click)="cancelCustomPrice()">
+                            <i class="pi pi-times"></i>
+                            {{ translate('management.targetForm.cancel') }}
+                        </button>
+                        <button type="button" class="apply-btn" (click)="applyCustomPrice()">
+                            <i class="pi pi-check"></i>
+                            {{ translate('management.targetForm.apply') }}
+                        </button>
+                    </ng-template>
+                </p-dialog>
             </div>
         </div>
     </div>

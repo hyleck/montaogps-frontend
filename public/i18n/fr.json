@@ -734,7 +734,15 @@
         "selectPlan": "Sélectionnez un forfait",
         "selectPrice": "Prix du forfait",
         "selectPriceOption": "Sélectionnez un prix",
-        "errorLoadingModels": "Impossible de charger les modèles pour cette marque"
+        "errorLoadingModels": "Impossible de charger les modèles pour cette marque",
+        "customizePriceTitle": "Personnaliser le prix",
+        "amount": "Montant",
+        "period": "Période",
+        "apply": "Appliquer",
+        "invalidPrice": "Le prix doit être supérieur à zéro",
+        "customPriceApplied": "Prix personnalisé appliqué avec succès",
+        "customized": "personnalisé",
+        "originalPrice": "Prix original du forfait"
       }
     }
 }

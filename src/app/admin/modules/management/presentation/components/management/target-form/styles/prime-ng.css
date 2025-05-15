@@ -44,4 +44,117 @@
 
 ::ng-deep .p-dropdown {
     width: 100%;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-header {
+    background-color: var(--globalColorCardBackground);
+    color: var(--globalColorTextDark);
+    border-bottom: 1px solid var(--globalColorBorderLight);
+    padding: 1rem;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-content {
+    background-color: var(--globalColorCardBackground);
+    color: var(--globalColorTextDark);
+    padding: 1rem;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-footer {
+    padding: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-top: 1px solid var(--globalColorBorderLight);
+}
+
+:host ::ng-deep .p-dialog .p-dialog-footer button {
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-footer .apply-btn {
+    background-color: var(--globalColorAccent);
+    color: var(--globalColorTextStrong);
+    border: none;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-footer .apply-btn:hover {
+    background-color: var(--globalColorHighlight);
+}
+
+:host ::ng-deep .p-dialog .p-dialog-footer .cancel-btn {
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextDark);
+    border: 1px solid var(--globalColorBorderLight);
+}
+
+:host ::ng-deep .p-dialog .p-dialog-footer .cancel-btn:hover {
+    background-color: var(--globalColorBorderLight);
+}
+
+/* Estilos para el mensaje de precio original en el diálogo */
+.original-price-info {
+    margin-top: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    border: 1px solid var(--globalColorBorderLight);
+    background-color: var(--globalColorCardBackground);
+}
+
+.price-info-header {
+    background-color: var(--globalColorAccent);
+    color: var(--globalColorTextStrong);
+    padding: 10px 12px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+}
+
+.price-info-header i {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.price-info-content {
+    padding: 12px 15px;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+}
+
+.price-amount {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--globalColorTextDark);
+    margin-right: 8px;
+}
+
+.price-amount.original {
+    margin-right: 4px;
+}
+
+.price-amount.custom {
+    color: var(--globalGreen);
+    margin-left: 4px;
+}
+
+.strikethrough {
+    text-decoration: line-through;
+    color: var(--globalColorTextMuted);
+    opacity: 0.8;
+}
+
+.price-arrow {
+    font-size: 18px;
+    color: var(--globalColorAccent);
+    margin: 0 4px;
+}
+
+.price-period {
+    color: var(--globalColorTextMuted);
+    font-size: 14px;
 } 

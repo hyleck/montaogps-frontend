@@ -687,7 +687,15 @@
         "selectPlan": "Seleccione un plan",
         "selectPrice": "Precio del plan",
         "selectPriceOption": "Seleccione un precio",
-        "errorLoadingModels": "No se pudieron cargar los modelos para esta marca"
+        "errorLoadingModels": "No se pudieron cargar los modelos para esta marca",
+        "customizePriceTitle": "Personalizar precio",
+        "amount": "Monto",
+        "period": "Período",
+        "apply": "Aplicar",
+        "invalidPrice": "El precio debe ser mayor que cero",
+        "customPriceApplied": "Precio personalizado aplicado correctamente",
+        "customized": "personalizado",
+        "originalPrice": "Precio original del plan"
       },
       "userForm": {
         "title": "Formulario de Usuario",

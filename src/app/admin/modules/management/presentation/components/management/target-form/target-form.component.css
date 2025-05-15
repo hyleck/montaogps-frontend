@@ -1,6 +1,6 @@
 .target-form__info-message {
-    background-color: #f8f9fa;
-    border-left: 4px solid #2196F3;
+    background-color: var(--globalColorBackgroundLight);
+    border-left: 4px solid var(--globalColorAccent);
     padding: 12px 16px;
     margin-bottom: 15px;
     display: flex;
@@ -10,25 +10,167 @@
 }
 
 .target-form__info-message i {
-    color: #2196F3;
+    color: var(--globalColorAccent);
     margin-right: 10px;
     font-size: 18px;
 }
 
 .target-form__info-message span {
-    color: #555;
+    color: var(--globalColorTextDark);
 }
 
-/* Versión para tema oscuro */
-:host-context([data-theme="dark"]) .target-form__info-message {
-    background-color: #2d2d2d;
-    border-left-color: #ff5050;
+/* Estilos para el mensaje de precio original */
+.original-price-info {
+    margin-top: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    border: 1px solid var(--globalColorBorderLight);
+    background-color: var(--globalColorCardBackground);
 }
 
-:host-context([data-theme="dark"]) .target-form__info-message i {
-    color: #ff5050;
+.price-info-header {
+    background-color: var(--globalColorAccent);
+    color: var(--globalColorTextStrong);
+    padding: 10px 12px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
 }
 
-:host-context([data-theme="dark"]) .target-form__info-message span {
-    color: #d1d1d1;
+.price-info-header i {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.price-info-content {
+    padding: 12px 15px;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+}
+
+.price-amount {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--globalColorTextDark);
+    margin-right: 8px;
+}
+
+.price-period {
+    color: var(--globalColorTextMuted);
+    font-size: 14px;
+}
+
+/* Estilos para selector de precio con botón de edición */
+.price-selector-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.price-select {
+    flex: 1;
+}
+
+.edit-price-btn {
+    background-color: var(--globalColorInputBackground);
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 4px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: var(--globalColorIconDark);
+}
+
+.edit-price-btn:hover {
+    background-color: var(--globalColorBorderLight);
+    border-color: var(--globalColorBorderHover);
+}
+
+/* Estilos para el editor de precios personalizados */
+.custom-price-editor {
+    margin-top: 10px;
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 8px;
+    padding: 15px;
+    background-color: var(--globalColorCardBackground);
+}
+
+.custom-price-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    padding: 10px 0;
+}
+
+.custom-price-field {
+    margin-bottom: 0;
+}
+
+.custom-price-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.apply-btn, .cancel-btn {
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 0.2s;
+    font-size: 14px;
+    min-width: 100px;
+    justify-content: center;
+}
+
+.apply-btn {
+    background-color: var(--globalColorAccent);
+    color: var(--globalColorTextStrong);
+    border: none;
+}
+
+.apply-btn:hover {
+    background-color: var(--globalColorHighlight);
+}
+
+.cancel-btn {
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextDark);
+    border: 1px solid var(--globalColorBorderLight);
+}
+
+.cancel-btn:hover {
+    background-color: var(--globalColorBorderLight);
+}
+
+/* Estilos para personalizar el diálogo */
+:host ::ng-deep .p-dialog .p-dialog-header {
+    background-color: var(--globalColorCardBackground);
+    color: var(--globalColorTextDark);
+    border-bottom: 1px solid var(--globalColorBorderLight);
+    padding: 1rem;
+}
+
+:host ::ng-deep .p-dialog .p-dialog-content {
+    background-color: var(--globalColorCardBackground);
+    color: var(--globalColorTextDark);
+    padding: 1rem;
+}
+
+/* Estilos para los botones en el pie del diálogo */
+:host ::ng-deep .p-dialog .p-dialog-footer {
+    padding: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-top: 1px solid var(--globalColorBorderLight);
 } 

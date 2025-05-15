@@ -14,6 +14,11 @@ import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
 import { ManagementService } from 'src/app/admin/modules/management/presentation/services/management.service';
 
+// Interfaz extendida para PlanPrice que incluye el monto original
+interface ExtendedPlanPrice extends PlanPrice {
+  originalAmount?: number;
+}
+
 // Interface local para el componente
 interface TargetDevice {
   _id: string;
@@ -92,6 +97,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     @Input() targetInput: TargetDevice | null = null;
     @Output() targetCreated = new EventEmitter<void>();
 
+    // Flag para mostrar/ocultar la edición personalizada de precio
+    isCustomPriceEditing = false;
+    customPrice: { id: string; amount: number; payment_period: string; originalAmount?: number } = { id: '', amount: 0, payment_period: 'monthly' };
+    
+    // Precio original del plan, antes de cualquier personalización
+    originalPlanPrice: { id: string; amount: number; payment_period: string } | null = null;
+    
+    // Flag para controlar la visibilidad del diálogo modal
+    displayPriceDialog = false;
+
     // Claves de traducción
     translations = {
         title: 'management.targetForm.title',
@@ -136,7 +151,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     availableColors: { label: string, value: string }[] = [];
     availableSimCardTypes: { label: string, value: string }[] = [];
     availablePlans: { label: string, value: string }[] = [];
-    availablePrices: PlanPrice[] = [];
+    availablePrices: ExtendedPlanPrice[] = [];
     filteredColors: { label: string, value: string }[] = [];
     
     constructor(
@@ -372,6 +387,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             this.target.expiration_date = this.formatDateToInput(this.target.expiration_date);
         }
         
+        // Formatear la fecha de instalación si existe, o usar la fecha actual si no existe
+        if (this.target.installation_date) {
+            this.target.installation_date = this.formatDateToInput(this.target.installation_date);
+        } else {
+            this.target.installation_date = new Date().toISOString().substring(0, 10);
+        }
+        
         this.activeTabIndex = 0;
         
         // Actualizar el nombre del color para mostrar
@@ -414,6 +436,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                 // Si hay un precio seleccionado, configurarlo antes de convertir el plan a string
                 if (originalPlan.selected_price) {
                     console.log('Precio seleccionado encontrado:', originalPlan.selected_price);
+                    
+                    // Crear objeto de precio seleccionado
                     this.target.selectedPrice = {
                         id: originalPlan.selected_price.id,
                         amount: originalPlan.selected_price.amount,
@@ -429,6 +453,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                 this.plansService.getPlanById(this.target.plan).subscribe({
                     next: (plan: Plan) => {
                         console.log('Plan cargado con éxito:', plan);
+                        
+                        // Guardar precio seleccionado actual para preservar su valor personalizado
+                        const currentSelectedPrice = this.target.selectedPrice ? { ...this.target.selectedPrice } : null;
+                        
+                        // Mapear precios disponibles
                         this.availablePrices = plan.prices.map(price => ({
                             id: price.id,
                             amount: price.amount,
@@ -438,17 +467,49 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                         }));
                         
                         console.log('Precios disponibles:', this.availablePrices);
-                        console.log('Precio seleccionado antes de restaurar:', this.target.selectedPrice);
+                        console.log('Precio seleccionado antes de restaurar:', currentSelectedPrice);
                         
-                        // Asegurarnos de que el precio seleccionado coincide con uno de los disponibles
-                        if (this.target.selectedPrice) {
+                        // Si hay un precio seleccionado, buscamos su correspondiente en los precios del plan
+                        if (currentSelectedPrice) {
                             const matchedPrice = this.availablePrices.find(price => 
-                                price.id === this.target.selectedPrice?.id
+                                price.id === currentSelectedPrice.id
                             );
                             
                             if (matchedPrice) {
                                 console.log('Precio coincidente encontrado:', matchedPrice);
-                                this.target.selectedPrice = matchedPrice;
+                                
+                                // Si el precio ha sido modificado, guardamos el original
+                                if (currentSelectedPrice.amount !== matchedPrice.amount) {
+                                    console.log('Precio personalizado detectado:', currentSelectedPrice.amount, 'Original:', matchedPrice.amount);
+                                    
+                                    // Guardar el monto original
+                                    const customPrice = {
+                                        ...matchedPrice,
+                                        amount: currentSelectedPrice.amount, // Usar el monto personalizado
+                                        originalAmount: matchedPrice.amount  // Guardar el monto original
+                                    };
+                                    
+                                    // Reemplazar el precio en la lista
+                                    const priceIndex = this.availablePrices.findIndex(p => p.id === matchedPrice.id);
+                                    if (priceIndex >= 0) {
+                                        this.availablePrices[priceIndex] = customPrice;
+                                    }
+                                    
+                                    // Actualizar el precio seleccionado
+                                    this.target.selectedPrice = customPrice;
+                                } else {
+                                    this.target.selectedPrice = matchedPrice;
+                                }
+                            } else {
+                                // Si no encontramos el precio en la lista, lo agregamos como personalizado
+                                const customPrice = {
+                                    ...currentSelectedPrice,
+                                    originalAmount: 0 // No conocemos el original, marcamos como 0
+                                };
+                                
+                                // Agregar al inicio de la lista
+                                this.availablePrices = [customPrice, ...this.availablePrices];
+                                this.target.selectedPrice = customPrice;
                             }
                         }
                     },
@@ -855,5 +916,158 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         };
         
         return periodMap[period as number] || 'monthly';
+    }
+
+    // Método para iniciar la edición personalizada de precio
+    startCustomPriceEdit(): void {
+        // Si ya hay un precio seleccionado, tomamos sus valores como base
+        if (this.target.selectedPrice && this.target.plan) {
+            console.log('Iniciando edición de precio con ID:', this.target.selectedPrice.id);
+            
+            // Guardar el precio actual para edición
+            this.customPrice = {
+                id: this.target.selectedPrice.id,
+                amount: this.target.selectedPrice.amount,
+                payment_period: this.target.selectedPrice.payment_period as string
+            };
+            
+            // Cargar los precios originales del plan directamente desde el servicio
+            // para asegurarnos de tener los valores originales, no los personalizados
+            this.plansService.getPlanById(this.target.plan as string).subscribe({
+                next: (plan: Plan) => {
+                    // Buscar el precio original por ID
+                    const planOriginalPrice = plan.prices.find(price => price.id === this.target.selectedPrice?.id);
+                    
+                    if (planOriginalPrice) {
+                        console.log('Precio original encontrado en plan:', planOriginalPrice);
+                        
+                        // Guardar el precio original para mostrarlo en el modal
+                        this.originalPlanPrice = {
+                            id: planOriginalPrice.id,
+                            amount: planOriginalPrice.amount,
+                            payment_period: typeof planOriginalPrice.payment_period === 'string' ?
+                                planOriginalPrice.payment_period :
+                                this.mapPeriodToString(planOriginalPrice.payment_period)
+                        };
+                    } else {
+                        console.log('No se encontró el precio original en el plan');
+                        this.originalPlanPrice = null;
+                    }
+                },
+                error: (error) => {
+                    console.error('Error al cargar el plan para obtener el precio original:', error);
+                    this.originalPlanPrice = null;
+                }
+            });
+            
+            console.log('Custom price configurado:', this.customPrice);
+        } else {
+            // Iniciar con valores por defecto
+            this.customPrice = {
+                id: 'custom_' + new Date().getTime(),
+                amount: 0,
+                payment_period: 'monthly'
+            };
+            this.originalPlanPrice = null;
+        }
+        
+        // Mostrar el diálogo modal
+        this.displayPriceDialog = true;
+    }
+
+    // Método para verificar si un precio está personalizado (tiene un monto diferente al original)
+    isPriceCustomized(price: any): boolean {
+        // Si el precio tiene un originalAmount definido, es personalizado
+        if (price && price.originalAmount !== undefined && price.originalAmount !== price.amount && price.originalAmount > 0) {
+            return true;
+        }
+        
+        // Si no tiene originalAmount, buscamos el original en la lista para comparar
+        const originalPrice = this.availablePrices.find(p => p.id === price?.id && p !== price);
+        return originalPrice !== undefined && originalPrice.amount !== price.amount;
+    }
+
+    // Método para obtener el monto original de un precio
+    getOriginalPriceAmount(price: any): number | undefined {
+        // Si el precio tiene originalAmount definido, usarlo
+        if (price && price.originalAmount !== undefined && price.originalAmount > 0) {
+            return price.originalAmount;
+        }
+        
+        // Si no, buscar el precio original en la lista
+        if (price && price.id) {
+            const originalPrice = this.availablePrices.find(p => p.id === price.id && p !== price);
+            if (originalPrice) {
+                return originalPrice.amount;
+            }
+        }
+        
+        // Si no se encuentra, devolver undefined
+        return undefined;
+    }
+
+    // Método para obtener el monto original de un precio por su ID
+    getOriginalPriceAmountForId(priceId: string): number | undefined {
+        // Buscar el precio original en la lista de precios disponibles
+        const originalPrice = this.availablePrices.find(p => p.id === priceId);
+        if (originalPrice) {
+            return originalPrice.amount;
+        }
+        return undefined;
+    }
+
+    // Método para aplicar el precio personalizado
+    applyCustomPrice(): void {
+        if (this.customPrice.amount <= 0) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: this.translate('management.targetForm.invalidPrice')
+            });
+            return;
+        }
+
+        // Crear un nuevo precio personalizado
+        const customPriceObj = {
+            id: this.customPrice.id, // Mantener el ID original
+            amount: this.customPrice.amount,
+            payment_period: this.customPrice.payment_period,
+            originalAmount: this.getOriginalPriceAmountForId(this.customPrice.id) // Guardar el monto original
+        };
+
+        // Añadir/actualizar el precio personalizado en la lista
+        const existingIndex = this.availablePrices.findIndex(p => p.id === customPriceObj.id);
+        if (existingIndex >= 0) {
+            // Guardar el monto original si no existe
+            if (!this.availablePrices[existingIndex].originalAmount) {
+                customPriceObj.originalAmount = this.availablePrices[existingIndex].amount;
+            }
+            // Actualizar el precio existente
+            this.availablePrices[existingIndex] = customPriceObj;
+        } else {
+            // Añadir el precio personalizado al inicio de la lista para que aparezca primero
+            this.availablePrices = [customPriceObj, ...this.availablePrices.filter(p => !p.id.startsWith('custom_'))];
+        }
+
+        // Seleccionar el precio personalizado
+        this.target.selectedPrice = customPriceObj;
+
+        // Actualizar la fecha de expiración
+        this.updateExpirationDate();
+
+        // Cerrar el diálogo modal
+        this.displayPriceDialog = false;
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: this.translate('management.targetForm.customPriceApplied')
+        });
+    }
+
+    // Método para cancelar la edición personalizada
+    cancelCustomPrice(): void {
+        // Cerrar el diálogo modal
+        this.displayPriceDialog = false;
     }
 }
