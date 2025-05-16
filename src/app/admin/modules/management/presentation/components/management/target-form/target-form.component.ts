@@ -590,24 +590,38 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             
             if (this.target._id) {
                 // Actualizar objetivo existente
-                await this.targetsService.updateTarget(this.target._id, targetToSave as UpdateTargetDto);
+                console.log('Actualizando target existente con ID:', this.target._id);
+                const updatedTarget = await this.targetsService.updateTarget(this.target._id, targetToSave as UpdateTargetDto);
+                console.log('Target actualizado exitosamente:', updatedTarget);
+                
                 this.messageService.add({
                     severity: 'success',
                     summary: this.translate('management.targetForm.updateSuccess'),
                     detail: this.translate('management.targetForm.updateSuccessDetail')
                 });
+                
+                // Emitir evento de actualización
+                this.targetCreated.emit();
             } else {
                 // Crear nuevo objetivo
-                await this.targetsService.createTarget(targetToSave as CreateTargetDto);
+                const newTarget = await this.targetsService.createTarget(targetToSave as CreateTargetDto);
+                console.log('Nuevo target creado exitosamente:', newTarget);
+                
                 this.messageService.add({
                     severity: 'success',
                     summary: this.translate('management.targetForm.saveSuccess'),
                     detail: this.translate('management.targetForm.saveSuccessDetail')
                 });
+                
+                // Emitir evento de creación
+                this.targetCreated.emit();
             }
             
-            this.targetCreated.emit();
-            this.resetForm();
+            // Resetear el formulario solo después de una creación exitosa
+            // Para edición, mantenemos los datos para posibles ediciones adicionales
+            if (!this.target._id) {
+                this.resetForm();
+            }
         } catch (error: any) {
             console.error('Error al guardar el objetivo:', error);
             
@@ -622,6 +636,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                 } else {
                     errorMessage += `: ${error.error.message}`;
                 }
+            } else if (error.message) {
+                errorMessage += `: ${error.message}`;
             }
             
             this.messageService.add({
@@ -666,6 +682,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         
         // Estructurar el plan en el formato requerido
         if (targetData.plan && targetData.selectedPrice) {
+            // Cuando hay un precio personalizado, conservamos el ID original
+            // y solo modificamos el monto
             targetData.plan = {
                 id_plan: targetData.plan,
                 selected_price: {
@@ -676,6 +694,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                         this.mapPeriodToString(targetData.selectedPrice.payment_period)
                 }
             };
+            
+            // Debug para verificar la estructura del plan en el envío
+            console.log('Estructura del plan a enviar:', {
+                id_plan: targetData.plan.id_plan,
+                precio_id: targetData.plan.selected_price.id,
+                monto: targetData.plan.selected_price.amount,
+                periodo: targetData.plan.selected_price.payment_period
+            });
         } else {
             targetData.plan = null;
         }
@@ -714,6 +740,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         // Eliminar propiedades que no deben enviarse al backend
         delete targetData.selectedPrice;
         
+        // Para depuración, mostrar campos clave que se enviarán
+        if (this.target._id) {
+            console.log('Campos clave para actualización:', {
+                id: this.target._id,
+                name: targetData.name,
+                device_imei: targetData.device_imei,
+                plan: targetData.plan,
+                status: targetData.status
+            });
+        }
+        
         return targetData;
     }
 
@@ -737,6 +774,40 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                 });
                 return false;
             }
+        }
+        
+        // Validación específica para el plan y precio
+        if (!this.target.plan) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate('management.targetForm.validationError'),
+                detail: this.translate('management.targetForm.planRequired')
+            });
+            return false;
+        }
+        
+        if (!this.target.selectedPrice) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate('management.targetForm.validationError'),
+                detail: this.translate('management.targetForm.priceRequired')
+            });
+            return false;
+        }
+        
+        // Si estamos actualizando, validamos que tengamos un ID
+        if (this.target._id === '') {
+            console.log('Advertencia: Formulario en modo edición pero sin ID de target');
+        }
+        
+        // Validar el formato del IMEI
+        if (this.target.device_imei && (this.target.device_imei.length < 10 || !/^[0-9]+$/.test(this.target.device_imei))) {
+            this.messageService.add({
+                severity: 'warning',
+                summary: this.translate('management.targetForm.validationWarning'),
+                detail: this.translate('management.targetForm.imeiFormatWarning')
+            });
+            // No bloqueamos el guardado, solo advertimos
         }
         
         return true;

@@ -642,6 +642,7 @@
         "shutdownControl": "Control de Apagado",
         "installationDetails": "Detalles de Instalación",
         "save": "Guardar",
+        "update": "Actualizar",
         "cancel": "Cancelar",
         "selectBrand": "Seleccione una marca",
         "selectModel": "Seleccione un modelo",
@@ -695,7 +696,11 @@
         "invalidPrice": "El precio debe ser mayor que cero",
         "customPriceApplied": "Precio personalizado aplicado correctamente",
         "customized": "personalizado",
-        "originalPrice": "Precio original del plan"
+        "originalPrice": "Precio original del plan",
+        "planRequired": "Debe seleccionar un plan",
+        "priceRequired": "Debe seleccionar un precio del plan",
+        "validationWarning": "Advertencia de validación",
+        "imeiFormatWarning": "El formato del IMEI parece incorrecto. Verifique que sea un número válido."
       },
       "userForm": {
         "title": "Formulario de Usuario",

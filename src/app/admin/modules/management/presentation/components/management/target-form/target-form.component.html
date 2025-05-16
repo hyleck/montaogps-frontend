@@ -172,8 +172,8 @@
                 
                                 <div class="target-form__actions">
                                     <button type="submit" [disabled]="isLoading">
-                                        <i class="pi" [ngClass]="isLoading ? 'pi-spin pi-spinner' : 'pi-save'"></i>
-                                        {{ translate(translations.save) }}
+                                        <i class="pi" [ngClass]="isLoading ? 'pi-spin pi-spinner' : (target._id ? 'pi-sync' : 'pi-save')"></i>
+                                        {{ translate(target._id ? 'management.targetForm.update' : translations.save) }}
                                     </button>
                                 </div>
                             </form>
@@ -369,8 +369,8 @@
 
                                 <div class="target-form__actions">
                                     <button type="submit" [disabled]="isLoading">
-                                        <i class="pi" [ngClass]="isLoading ? 'pi-spin pi-spinner' : 'pi-save'"></i>
-                                        {{ translate(translations.save) }}
+                                        <i class="pi" [ngClass]="isLoading ? 'pi-spin pi-spinner' : (target._id ? 'pi-sync' : 'pi-save')"></i>
+                                        {{ translate(target._id ? 'management.targetForm.update' : translations.save) }}
                                     </button>
                                 </div>
                             </form>
