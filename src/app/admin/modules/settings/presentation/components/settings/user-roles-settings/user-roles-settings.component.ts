@@ -113,7 +113,6 @@ export class UserRolesSettingsComponent implements OnInit {
   loadRoles() {
     this.userRolesService.getAllRoles().subscribe({
       next: (roles: UserRole[]) => {
-        console.log('Roles cargados:', roles);
         this.roles = roles;
       },
       error: (error: unknown) => {
@@ -125,7 +124,6 @@ export class UserRolesSettingsComponent implements OnInit {
 
   onSubmit() {
     if (this.isEditing && this.roleForm._id) {
-      console.log('Actualizando rol con ID:', this.roleForm._id);
       this.userRolesService.updateRole(this.roleForm._id, {
         name: this.roleForm.name,
         description: this.roleForm.description,
@@ -133,7 +131,6 @@ export class UserRolesSettingsComponent implements OnInit {
         privileges: this.roleForm.privileges
       }).subscribe({
         next: (updatedRole: UserRole) => {
-          console.log('Rol actualizado:', updatedRole);
           const index = this.roles.findIndex(role => role._id === this.roleForm._id);
           if (index !== -1) {
             this.roles[index] = updatedRole;
@@ -156,7 +153,6 @@ export class UserRolesSettingsComponent implements OnInit {
 
       this.userRolesService.createRole(newRole).subscribe({
         next: (createdRole: UserRole) => {
-          console.log('Rol creado:', createdRole);
           this.roles.push(createdRole);
           this.cancelEdit();
           this.showSuccessMessage('role_created', createdRole.name);
@@ -170,7 +166,6 @@ export class UserRolesSettingsComponent implements OnInit {
   }
 
   editRole(role: UserRole) {
-    console.log('Editando rol:', role);
     this.selectedRole = role;
     this.roleForm = {
       _id: role._id,
@@ -202,7 +197,6 @@ export class UserRolesSettingsComponent implements OnInit {
 
         this.userRolesService.deleteRole(role._id).subscribe({
           next: () => {
-            console.log('Rol eliminado con éxito');
             const index = this.roles.findIndex(r => r._id === role._id);
             if (index !== -1) {
               this.roles.splice(index, 1);

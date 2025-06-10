@@ -13,6 +13,7 @@ export class MapsComponent implements OnInit, OnChanges {
   @Input() provider: 'google' | 'mapbox' = 'google';
   @Input() theme: 'dark' | 'light' = 'dark';
   @Input() selectedTarget: any = null;
+  @Input() vehicleTypeGetter: ((modelId: string) => string) | null = null;
   map: any;
   apiKey: string = '';
   apiUrl: string = '';
@@ -28,13 +29,11 @@ export class MapsComponent implements OnInit, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     // Verificar si cambió el tema
     if (this.map && changes['theme']) {
-      console.log('🎨 Tema cambió, actualizando estilo del mapa');
       this.updateMapTheme();
     }
     
     // Solo proceder si el mapa ya está inicializado y selectedTarget cambió
     if (this.map && changes['selectedTarget']) {
-      console.log('🔄 Target seleccionado cambió, actualizando mapa');
       
       // Verificar si solo cambió la posición (mismo target, nueva ubicación)
       const previousTarget = changes['selectedTarget'].previousValue;
@@ -44,11 +43,9 @@ export class MapsComponent implements OnInit, OnChanges {
           previousTarget._id === currentTarget._id &&
           this.currentMarkers.length > 0) {
         // Solo actualizar posición del marcador existente
-        console.log('🎯 Actualizando solo posición del marcador existente');
         this.updateMarkerPosition();
       } else {
         // Crear nuevo marcador o cambio completo de target
-        console.log('🆕 Creando nuevo marcador');
         this.updateMapWithNewTarget();
       }
     }
@@ -131,7 +128,6 @@ export class MapsComponent implements OnInit, OnChanges {
        centerLat = this.selectedTarget.traccarInfo.geolocation.latitude;
        centerLng = this.selectedTarget.traccarInfo.geolocation.longitude;
        zoomLevel = 16; // Zoom más cercano para el target específico
-       console.log('Centrando mapa en target:', this.selectedTarget.name, centerLat, centerLng);
      }
     
     if (this.provider === 'google') {
@@ -343,111 +339,70 @@ export class MapsComponent implements OnInit, OnChanges {
         styles: this.theme === 'dark' ? darkTheme : []
       });
       
-      console.log('✅ Tema de Google Maps actualizado a:', this.theme);
-      
     } else if (this.provider === 'mapbox') {
       // Para Mapbox, cambiar el estilo completo
-      const newStyle = this.theme === 'dark'
-        ? 'mapbox://styles/mapbox/dark-v10'
-        : 'mapbox://styles/mapbox/streets-v11';
+      const styleUrl = this.theme === 'dark' 
+        ? 'mapbox://styles/mapbox/dark-v10' 
+        : 'mapbox://styles/mapbox/light-v10';
+        
+      this.map.setStyle(styleUrl);
       
-      // Guardar información del marcador actual si existe
-      const shouldRestoreMarker = this.currentMarkers.length > 0 && this.selectedTarget;
-      let markerLat: number | undefined, markerLng: number | undefined, markerTitle: string | undefined;
-      
-      if (shouldRestoreMarker) {
-        markerLat = this.selectedTarget.traccarInfo?.geolocation?.latitude;
-        markerLng = this.selectedTarget.traccarInfo?.geolocation?.longitude;
-        markerTitle = this.selectedTarget.name;
-      }
-      
-      // Cambiar el estilo
-      this.map.setStyle(newStyle);
-      
-      // Re-añadir marcador después de que se cargue el nuevo estilo
-      if (shouldRestoreMarker && markerLat && markerLng && markerTitle) {
-        this.map.once('style.load', () => {
-          this.currentMarkers = []; // Limpiar referencias viejas
-          this.addMapboxMarker(markerLng!, markerLat!, markerTitle!);
-          console.log('🔄 Marcador restaurado después del cambio de estilo');
-        });
-      }
-      
-      console.log('✅ Tema de Mapbox actualizado a:', this.theme, 'con estilo:', newStyle);
+      // Después de cambiar el estilo, restaurar marcadores si existen
+      this.map.once('styledata', () => {
+        if (this.selectedTarget?.traccarInfo?.geolocation?.latitude && 
+            this.selectedTarget?.traccarInfo?.geolocation?.longitude) {
+          this.addMapboxMarker(
+            this.selectedTarget.traccarInfo.geolocation.longitude,
+            this.selectedTarget.traccarInfo.geolocation.latitude,
+            this.selectedTarget.name
+          );
+        }
+      });
     }
   }
 
-  // Método para actualizar solo la posición del marcador existente
   private updateMarkerPosition(): void {
-    if (!this.map || !this.selectedTarget || this.currentMarkers.length === 0) return;
-    
-    // Obtener las nuevas coordenadas
-    const newLat = this.selectedTarget.traccarInfo?.geolocation?.latitude;
-    const newLng = this.selectedTarget.traccarInfo?.geolocation?.longitude;
-    
-    if (!newLat || !newLng) {
-      console.warn('❌ No se encontraron coordenadas válidas para actualizar posición');
+    if (!this.selectedTarget?.traccarInfo?.geolocation?.latitude || 
+        !this.selectedTarget?.traccarInfo?.geolocation?.longitude) {
       return;
     }
+
+    const newLat = this.selectedTarget.traccarInfo.geolocation.latitude;
+    const newLng = this.selectedTarget.traccarInfo.geolocation.longitude;
     
-    console.log('📍 Actualizando posición del marcador a:', newLat, newLng);
-    
-    // Obtener nueva velocidad para actualizar etiquetas
-    const newSpeed = this.selectedTarget.traccarInfo?.['speed'] || 0;
-    const newStatus = this.selectedTarget.traccarInfo?.status || 'desconocido';
-    
-    // Actualizar posición según el proveedor
-    if (this.provider === 'google') {
-      // Para Google Maps - actualizar posición suavemente
+    if (this.provider === 'google' && this.currentMarkers.length > 0) {
+      // Actualizar posición del marcador en Google Maps
       const marker = this.currentMarkers[0];
-      if (marker && marker.setPosition) {
-        // Actualizar posición sin recrear el marcador
-        marker.setPosition({ lat: newLat, lng: newLng });
-        
-        // Actualizar título del marcador con nueva velocidad
-        marker.setTitle(`${this.selectedTarget.name} - ${Math.round(newSpeed)} km/h`);
-        
-        console.log('✅ Posición actualizada en Google Maps (sin recrear marcador)');
-      }
-    } else if (this.provider === 'mapbox') {
-      // Para Mapbox - actualizar posición suavemente
+      const newPosition = new google.maps.LatLng(newLat, newLng);
+      marker.setPosition(newPosition);
+    } else if (this.provider === 'mapbox' && this.currentMarkers.length > 0) {
+      // Actualizar posición del marcador en Mapbox
       const marker = this.currentMarkers[0];
-      if (marker && marker.setLngLat) {
-        // Actualizar posición sin modificar el marcador
-        marker.setLngLat([newLng, newLat]);
-        console.log('✅ Posición actualizada en Mapbox');
-      }
+      marker.setLngLat([newLng, newLat]);
     }
   }
 
-  // Método para actualizar el mapa cuando cambia el target seleccionado
   private updateMapWithNewTarget(): void {
-    if (!this.map) return;
-    
-    console.log('🔄 Actualizando mapa con nuevo target:', this.selectedTarget);
-    
-    // Limpiar marcadores existentes
+    // Limpiar marcadores existentes primero
     this.clearExistingMarkers();
     
-    // Si hay un target seleccionado con geolocalización
-    if (this.selectedTarget?.traccarInfo?.geolocation?.latitude && 
-        this.selectedTarget?.traccarInfo?.geolocation?.longitude) {
-      
-      const lat = this.selectedTarget.traccarInfo.geolocation.latitude;
-      const lng = this.selectedTarget.traccarInfo.geolocation.longitude;
-      
-      console.log('🎯 Centrando mapa en nuevo target:', this.selectedTarget.name, lat, lng);
-      
-      // Centrar el mapa en las nuevas coordenadas
-      if (this.provider === 'google') {
-        this.map.setCenter({ lat: lat, lng: lng });
-        this.map.setZoom(16);
-        this.addGoogleMarker(lat, lng, this.selectedTarget.name);
-      } else if (this.provider === 'mapbox') {
-        this.map.setCenter([lng, lat]);
-        this.map.setZoom(16);
-        this.addMapboxMarker(lng, lat, this.selectedTarget.name);
-      }
+    if (!this.selectedTarget?.traccarInfo?.geolocation?.latitude || 
+        !this.selectedTarget?.traccarInfo?.geolocation?.longitude) {
+      return;
+    }
+
+    const lat = this.selectedTarget.traccarInfo.geolocation.latitude;
+    const lng = this.selectedTarget.traccarInfo.geolocation.longitude;
+    
+    // Centrar mapa en el nuevo target
+    if (this.provider === 'google') {
+      this.map.setCenter({ lat, lng });
+      this.map.setZoom(16);
+      this.addGoogleMarker(lat, lng, this.selectedTarget.name);
+    } else if (this.provider === 'mapbox') {
+      this.map.setCenter([lng, lat]);
+      this.map.setZoom(16);
+      this.addMapboxMarker(lng, lat, this.selectedTarget.name);
     }
   }
   
@@ -504,12 +459,26 @@ export class MapsComponent implements OnInit, OnChanges {
     const popupStatus = this.selectedTarget?.traccarInfo?.status || 'desconocido';
     const speedUnit = 'km/h'; // Puedes cambiar esto según tu configuración
     
+    // Obtener tipo de vehículo si está disponible
+    let vehicleTypeInfo = '';
+    if (this.vehicleTypeGetter && this.selectedTarget?.model) {
+      const vehicleType = this.vehicleTypeGetter(this.selectedTarget.model);
+      if (vehicleType && vehicleType !== 'Desconocido') {
+        vehicleTypeInfo = `
+          <div style="margin-bottom: 5px; color: #000000;">
+            <strong style="color: #000000;">🚙 Tipo:</strong> 
+            <span style="color: #9C27B0; font-weight: bold;">${vehicleType}</span>
+          </div>`;
+      }
+    }
+    
     // Crear contenido de la ventana de información con velocidad
     const infoContent = `
       <div style="font-family: Arial, sans-serif; min-width: 200px; color: #000000;">
         <h4 style="margin: 0 0 10px 0; color: #000000; font-size: 16px;">
           <strong>${title}</strong>
         </h4>
+        ${vehicleTypeInfo}
         <div style="margin-bottom: 5px; color: #000000;">
           <strong style="color: #000000;">🚗 Velocidad:</strong> 
           <span style="color: #2196F3; font-weight: bold;">${popupSpeed} ${speedUnit}</span>
@@ -561,12 +530,26 @@ export class MapsComponent implements OnInit, OnChanges {
     const status = this.selectedTarget?.traccarInfo?.status || 'desconocido';
     const speedUnit = 'km/h'; // Puedes cambiar esto según tu configuración
     
+    // Obtener tipo de vehículo si está disponible
+    let vehicleTypeInfo = '';
+    if (this.vehicleTypeGetter && this.selectedTarget?.model) {
+      const vehicleType = this.vehicleTypeGetter(this.selectedTarget.model);
+      if (vehicleType && vehicleType !== 'Desconocido') {
+        vehicleTypeInfo = `
+          <div style="margin-bottom: 5px; color: #000000;">
+            <strong style="color: #000000;">🚙 Tipo:</strong> 
+            <span style="color: #9C27B0; font-weight: bold;">${vehicleType}</span>
+          </div>`;
+      }
+    }
+    
     // Crear contenido del popup con velocidad
     const popupContent = `
       <div style="font-family: Arial, sans-serif; min-width: 200px; color: #000000;">
         <h4 style="margin: 0 0 10px 0; color: #000000; font-size: 16px;">
           <strong>${title}</strong>
         </h4>
+        ${vehicleTypeInfo}
         <div style="margin-bottom: 5px; color: #000000;">
           <strong style="color: #000000;">🚗 Velocidad:</strong> 
           <span style="color: #2196F3; font-weight: bold;">${speed} ${speedUnit}</span>

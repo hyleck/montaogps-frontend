@@ -168,7 +168,7 @@
                         <option value="mapbox-dark">Mapbox Oscuro</option>
                     </select>
                 </div>
-                <app-maps *ngIf="mapsKey" [provider]="providerType" [theme]="providerTheme" [selectedTarget]="selectedTargetForMap"></app-maps>
+                <app-maps *ngIf="mapsKey" [provider]="providerType" [theme]="providerTheme" [selectedTarget]="selectedTargetForMap" [vehicleTypeGetter]="getVehicleTypeByModelId.bind(this)"></app-maps>
             </div>
         </div>
 

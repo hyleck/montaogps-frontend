@@ -37,7 +37,6 @@ export class TargetsService {
    * @returns Promise con el objetivo creado
    */
   async createTarget(targetData: CreateTargetDto): Promise<Target> {
-    console.log('Enviando datos al servidor:', targetData);
     const observable = this.http.post<Target>(this.apiUrl, targetData);
     return await lastValueFrom(observable);
   }
@@ -49,7 +48,6 @@ export class TargetsService {
    * @returns Promise con el objetivo actualizado
    */
   async updateTarget(id: string, targetData: UpdateTargetDto): Promise<Target> {
-    console.log('Actualizando datos en el servidor:', targetData);
     const observable = this.http.patch<Target>(`${this.apiUrl}/${id}`, targetData);
     return await lastValueFrom(observable);
   }
@@ -78,7 +76,6 @@ export class TargetsService {
       url += `&parent=${parentId}`;
     }
     
-    console.log('Buscando objetivos con URL:', url);
     const observable = this.http.get<Target[]>(url);
     return await lastValueFrom(observable);
   }
@@ -97,7 +94,6 @@ export class TargetsService {
       url += `&parent=${parentId}`;
     }
     
-    console.log('Solicitando objetivos con URL:', url);
     const observable = this.http.get<Target[]>(url);
     return await lastValueFrom(observable);
   }

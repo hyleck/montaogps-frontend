@@ -200,7 +200,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             const foundRole = this.roles.find(r => r._id === roleId);
             
             if (foundRole) {
-                console.log('Rol encontrado:', foundRole.name);
                 this.user.role = foundRole;
                 
                 // Invocar onRoleChange para inicializar correctamente, pero sin borrar privilegios personalizados
@@ -213,7 +212,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                     // Restaurar los privilegios personalizados después de inicializar el rol
                     if (userPrivileges) {
                         this.user.privileges = userPrivileges;
-                        console.log('Privilegios personalizados restaurados:', userPrivileges);
                     }
                 }, 0);
             } else {
@@ -222,14 +220,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
         
         this.activeTabIndex = 0;
-        
-        console.log('Usuario cargado para edición:', {
-            name: this.user.name,
-            role: this.user.role ? this.user.role.name : 'Sin rol',
-            affiliation: this.selectedAffiliationType,
-            profile: this.selectedProfileType,
-            hasCustomPrivileges: userPrivileges ? true : false
-        });
     }
 
     loadRoles() {
@@ -239,7 +229,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 .subscribe({
                     next: (roles) => {
                         this.roles = roles;
-                        console.log('Roles cargados:', roles.length);
+                
                         resolve();
                     },
                     error: (error) => {
@@ -285,7 +275,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             if (userPrivilegeIndex >= 0) {
                 // Actualizar el privilegio personalizado
                 this.user.privileges[userPrivilegeIndex] = {...privilege};
-                console.log('Actualizado privilegio personalizado:', privilege.module);
                 return; // Salimos para no actualizar también los privilegios del rol
             }
         }
@@ -296,7 +285,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             if (rolePrivilegeIndex >= 0) {
                 // Actualizar el privilegio del rol
                 this.user.role.privileges[rolePrivilegeIndex] = {...privilege};
-                console.log('Actualizado privilegio del rol:', privilege.module);
             }
         }
     }
@@ -397,7 +385,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                             detail: this.translate.instant('management.userForm.userUpdated'),
                             life: 3000
                         });
-                        console.log('Usuario actualizado:', response);
                         this.userCreated.emit();
                         this.resetForm();
                     },
@@ -427,7 +414,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                             detail: this.translate.instant('management.userForm.userCreated'),
                             life: 3000
                         });
-                        console.log('Usuario creado:', response);
                         this.userCreated.emit();
                         this.resetForm();
                     },
@@ -458,13 +444,12 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             // Limpiar los privilegios personalizados del usuario SOLO si no estamos inicializando el formulario de edición
             if (!this.isInitializingEditForm) {
                 this.user.privileges = undefined;
-                console.log('Privilegios personalizados limpiados por cambio de rol manual');
             }
         }
     }
 
     onSaveSettings() {
-        console.log('Configuración actualizada:', this.user.settings);
+        
     }
 
     getSettingValue(key: keyof UserSettings): string | boolean {

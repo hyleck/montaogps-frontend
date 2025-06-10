@@ -18,6 +18,7 @@ import { ThemesService } from '@shared/services/themes.service';
 import { StatusService } from '@shared/services/status.service';
 import { ManagementService } from '@management/presentation/services/management.service';
 import { ScreenService } from '@management/presentation/services/screen.service';
+import { VehicleBrandsService } from '@core/services/vehicle-brands.service';
 
 @Component({
     selector: 'app-management',
@@ -63,6 +64,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // Polling para actualización automática
   private pollingSubscription: Subscription | null = null;
   private readonly POLLING_INTERVAL = 10000; // 10 segundos
+  
+  // Cache para tipos de vehículos, marcas y modelos
+  private vehicleTypes: any[] = [];
+  private vehicleBrands: any[] = [];
+  private vehicleModels: any[] = [];
 
   constructor(
     public router: Router,
@@ -75,7 +81,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private messageService: MessageService,
     public managementService: ManagementService,
     private screenService: ScreenService,
-    private targetsService: TargetsService
+    private targetsService: TargetsService,
+    private vehicleBrandsService: VehicleBrandsService
   ) {}
 
   // Lifecycle hooks
@@ -114,7 +121,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
             // Llamar al nuevo método getUserPath e imprimir la respuesta
             this.userService.getUserPath(user._id).subscribe({
               next: (pathData) => {
-                console.log('Datos de ruta del usuario desde /path/ endpoint:', pathData);
                 this.updateBreadcrumbFromPath(pathData);
               },
               error: (error) => {
@@ -152,7 +158,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
               // Llamar al nuevo método getUserPath e imprimir la respuesta
               this.userService.getUserPath(user._id).subscribe({
                 next: (pathData) => {
-                  console.log('Datos de ruta del usuario desde /path/ endpoint:', pathData);
                   this.updateBreadcrumbFromPath(pathData);
                 },
                 error: (error) => {
@@ -200,7 +205,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
               // Llamar al nuevo método getUserPath e imprimir la respuesta
               this.userService.getUserPath(currentUser.id).subscribe({
                 next: (pathData) => {
-                  console.log('Datos de ruta del usuario desde /path/ endpoint:', pathData);
                   this.updateBreadcrumbFromPath(pathData);
                 },
                 error: (error) => {
@@ -249,18 +253,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.status.statusChanges$.subscribe((newStatus) => {
       if (newStatus.management_show_maps) {
         const newShowMaps = newStatus.management_show_maps.showMaps as boolean;
-        console.log('🔄 Status subscription - showMaps cambió de', this.showMaps, 'a', newShowMaps);
-        console.log('🔄 selectedTargetForMap antes del cambio:', this.selectedTargetForMap);
-        
         this.showMaps = newShowMaps;
         
         // Solo limpiar selectedTargetForMap si se está cerrando el mapa desde el subscription
         if (!this.showMaps && this.selectedTargetForMap) {
-          console.log('🔄 Limpiando selectedTargetForMap desde subscription');
           this.selectedTargetForMap = null;
         }
-        
-        console.log('🔄 selectedTargetForMap después del cambio:', this.selectedTargetForMap);
       }
       if (newStatus.theme) {
         this.currentTheme = newStatus.theme as string;
@@ -279,6 +277,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
     
     // Inicializar polling para actualización automática de targets
     this.startTargetsPolling();
+    
+    // Cargar datos de vehículos (tipos, marcas, modelos)
+    this.loadVehicleData();
   }
 
   // Métodos públicos
@@ -291,18 +292,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.selectedTargetForMap = null;
       this.shouldCenterMapOnUpdate = true; // Resetear para la próxima selección
       this.clearTargetFromUrl();
-      console.log('🗺️ Mapa cerrado - Target y URL limpiados');
     }
   }
 
   // Nuevo método para mostrar target específico en el mapa
   showTargetOnMap(target: any) {
-    console.log('🗺️ Mostrando target en mapa:', target);
-    console.log('🔍 Estructura completa del target:', JSON.stringify(target, null, 2));
-    
-    // Debugging: revisar todas las posibles ubicaciones de la geolocalización
-    console.log('🔍 traccarInfo completo:', target.traccarInfo);
-    console.log('🔍 originalTarget:', target.originalTarget);
     
     // Verificar múltiples posibles estructuras de geolocalización
     let lat = null;
@@ -312,42 +306,29 @@ export class ManagementComponent implements OnInit, OnDestroy {
      if (target.traccarInfo?.geolocation?.latitude && target.traccarInfo?.geolocation?.longitude) {
        lat = target.traccarInfo.geolocation.latitude;
        lng = target.traccarInfo.geolocation.longitude;
-       console.log('✅ Geolocalización encontrada en traccarInfo.geolocation:', lat, lng);
      }
     // Opción 2: traccarInfo directamente
     else if (target.traccarInfo?.latitude && target.traccarInfo?.longitude) {
       lat = target.traccarInfo.latitude;
       lng = target.traccarInfo.longitude;
-      console.log('✅ Geolocalización encontrada en traccarInfo directo:', lat, lng);
     }
          // Opción 3: originalTarget.traccarInfo.geolocation (nombres en inglés)
      else if (target.originalTarget?.traccarInfo?.geolocation?.latitude && target.originalTarget?.traccarInfo?.geolocation?.longitude) {
        lat = target.originalTarget.traccarInfo.geolocation.latitude;
        lng = target.originalTarget.traccarInfo.geolocation.longitude;
-       console.log('✅ Geolocalización encontrada en originalTarget.traccarInfo.geolocation:', lat, lng);
      }
     // Opción 4: originalTarget.traccarInfo directamente
     else if (target.originalTarget?.traccarInfo?.latitude && target.originalTarget?.traccarInfo?.longitude) {
       lat = target.originalTarget.traccarInfo.latitude;
       lng = target.originalTarget.traccarInfo.longitude;
-      console.log('✅ Geolocalización encontrada en originalTarget.traccarInfo directo:', lat, lng);
     }
     // Opción 5: traccarInfo con lat/lon
     else if (target.traccarInfo?.lat && target.traccarInfo?.lon) {
       lat = target.traccarInfo.lat;
       lng = target.traccarInfo.lon;
-      console.log('✅ Geolocalización encontrada en traccarInfo.lat/lon:', lat, lng);
     }
     
     if (!lat || !lng) {
-      console.warn('❌ El target no tiene información de geolocalización válida');
-      console.log('🔍 Todas las estructuras verificadas:', {
-        'traccarInfo.geolocation': target.traccarInfo?.geolocation,
-        'traccarInfo directo': { lat: target.traccarInfo?.latitude, lng: target.traccarInfo?.longitude },
-        'originalTarget.traccarInfo.geolocation': target.originalTarget?.traccarInfo?.geolocation,
-        'originalTarget.traccarInfo directo': { lat: target.originalTarget?.traccarInfo?.latitude, lng: target.originalTarget?.traccarInfo?.longitude },
-        'traccarInfo.lat/lon': { lat: target.traccarInfo?.lat, lng: target.traccarInfo?.lon }
-      });
       
       this.messageService.add({
         severity: 'warn',
@@ -375,22 +356,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Reactivar el centrado automático para la nueva selección
     this.shouldCenterMapOnUpdate = true;
     
-    console.log('✅ Target preparado para el mapa:', this.selectedTargetForMap);
-    
     // Activar la vista del mapa
     // Solo cambiar el estado si no está ya activo
     if (!this.showMaps) {
       this.showMaps = true;
       this.status.setState('management_show_maps', { showMaps: true });
-      console.log('🗺️ Mapa activado desde cerrado');
-    } else {
-      console.log('🗺️ Mapa ya estaba abierto, actualizando target seleccionado');
     }
     
     // SIEMPRE forzar actualización del mapa para que se centre en el nuevo target
     // Esto es necesario tanto si el mapa estaba cerrado como si ya estaba abierto
     this.mapsKey = Date.now();
-    console.log('🗺️ Mapa actualizado con nueva key para target:', this.selectedTargetForMap.name);
     
     // Actualizar URL con el query parameter del target seleccionado
     this.updateUrlWithTargetId(target._id);
@@ -403,14 +378,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Verificar si el usuario actual tiene parent_id usando acceso con casting
     const parentId = (this.selectedUser as any).parent_id;
     if (!parentId) {
-      console.log('El usuario actual no tiene padre definido');
       return;
     }
 
     // Mostrar skeletons inmediatamente
     this.loading = true;
-    
-    console.log('Navegando al usuario padre:', parentId);
     
     // Establecer el ID del padre como usuario actual
     this.managementService.setCurrentUserId(parentId);
@@ -435,15 +407,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.managementService.setSearchTargetsTerm(this.searchTargetsTerm);
     // Si hay término de búsqueda, filtrar objetivos
     if (this.searchTargetsTerm && this.searchTargetsTerm.trim() !== '') {
-      console.log('Buscando objetivos con término:', this.searchTargetsTerm);
-      
       // Obtener el ID del usuario de la URL (management) como parent
       const parentId = this.managementService.getCurrentUserId();
-      console.log('ID de usuario padre (parent) para búsqueda:', parentId);
       
       this.targetsService.searchTargets(this.searchTargetsTerm, parentId)
         .then((targets: Target[]) => {
-          console.log('Respuesta de búsqueda de objetivos:', targets);
           this.targets = targets;
           
           if (targets && targets.length > 0) {
@@ -453,10 +421,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
               const isOnline = traccarStatus === 'online';
               
               return {
-                name: target.name,
+              name: target.name,
                 status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
-                imei: target.device_imei || target.imei, // Intentar ambos campos
-                sim: target.sim_card_number || target.sim_card, // Intentar ambos campos
+              imei: target.device_imei || target.imei, // Intentar ambos campos
+              sim: target.sim_card_number || target.sim_card, // Intentar ambos campos
                 _id: target._id,
                 traccarStatus: traccarStatus,
                 // ✅ NUEVA: Incluir toda la información del target original, especialmente traccarInfo
@@ -465,11 +433,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
               };
             });
           } else {
-            console.log('No se encontraron objetivos en la búsqueda');
             this.targetsList = [];
           }
-          
-          console.log('Objetivos encontrados transformados:', this.targetsList);
         })
         .catch((error: any) => {
           console.error('Error al buscar objetivos:', error);
@@ -486,7 +451,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Mostrar skeletons inmediatamente
     this.loading = true;
     
-    console.log('Entrando al usuario:', user.name, user._id);
+
     
     // Primero establecemos explícitamente el ID del usuario
     this.managementService.setCurrentUserId(user._id);
@@ -502,7 +467,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
         // Llamar al getUserPath para actualizar el breadcrumb correctamente
         this.userService.getUserPath(user._id).subscribe({
           next: (pathData) => {
-            console.log('Datos de ruta del usuario al entrar:', pathData);
             this.updateBreadcrumbFromPath(pathData);
           },
           error: (error) => {
@@ -516,7 +480,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.userService.getAll(user._id).subscribe({
           next: (users) => {
             this.users = users;
-            console.log('Usuarios cargados:', users.length);
             this.loading = false;
           },
           error: (error) => {
@@ -545,7 +508,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       try {
         // Obtener los detalles completos del objetivo desde el backend
         const targetDetails = await this.targetsService.getTargetById(target._id);
-        console.log('Detalles completos del objetivo a editar:', targetDetails);
+
         this.targetToEdit = targetDetails;
       } catch (error) {
         console.error('Error al obtener detalles del objetivo:', error);
@@ -629,45 +592,20 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // Método para cargar objetivos de un usuario específico
   private async loadTargetsForUser(userId: string) {
     try {
-      console.log('Cargando objetivos para el usuario:', userId);
-      
       // Obtener el ID del usuario de la URL (management) como parent
       const parentId = this.managementService.getCurrentUserId();
-      console.log('ID de usuario padre (parent):', parentId);
       
       // Pasar el ID del usuario y el parent al método del servicio
       const targets = await this.targetsService.getTargetsByUserId(userId, parentId);
-      console.log('🔍 ===== RESPUESTA COMPLETA DEL API DE TARGETS =====');
-      console.log('📊 Cantidad de targets recibidos:', targets?.length || 0);
-      console.log('📋 Respuesta completa del API:', JSON.stringify(targets, null, 2));
-      
-      if (targets && targets.length > 0) {
-        console.log('🎯 ===== ANÁLISIS DEL PRIMER TARGET =====');
-        const firstTarget = targets[0];
-        console.log('📝 Target completo:', JSON.stringify(firstTarget, null, 2));
-        console.log('🏷️ Nombre:', firstTarget.name);
-        console.log('🆔 ID:', firstTarget._id);
-        console.log('📱 IMEI:', firstTarget.device_imei || firstTarget.imei);
-        console.log('📞 SIM:', firstTarget.sim_card_number || firstTarget.sim_card);
-        console.log('📡 traccarInfo completo:', JSON.stringify(firstTarget.traccarInfo, null, 2));
-        console.log('📍 Geolocalización:', firstTarget.traccarInfo?.['geolocation']);
-        console.log('🔄 Status:', firstTarget.traccarInfo?.status);
-        console.log('🚗 Speed:', firstTarget.traccarInfo?.['speed']);
-        console.log('🔗 originalTarget:', (firstTarget as any).originalTarget ? 'Existe' : 'No existe');
-      }
       
       this.targets = targets;
       
       // Verificar si hay datos antes de transformarlos
       if (targets && targets.length > 0) {
-        console.log('Primer objetivo recibido:', targets[0]);
         this.targetsList = targets.map(target => {
           // Usar traccarInfo.status en lugar de target.status
           const traccarStatus = target.traccarInfo?.status || 'offline';
           const isOnline = traccarStatus === 'online';
-          
-          console.log('Mapeando target:', target.name, 'con traccarInfo.status:', traccarStatus);
-          console.log('Target con IMEI:', target.device_imei || target.imei, 'y SIM:', target.sim_card_number || target.sim_card);
           
           return {
             name: target.name,
@@ -680,13 +618,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
             traccarInfo: target.traccarInfo, // Incluir geolocalización y otros datos de traccar
             originalTarget: target // Incluir el target completo para casos complejos
           };
-        });
-      } else {
-        console.log('No se recibieron objetivos del API');
-        this.targetsList = [];
-      }
-      
-      console.log('Objetivos transformados para la UI:', this.targetsList);
+                  });
+        } else {
+          this.targetsList = [];
+        }
       
       // Verificar si hay un target en la URL para seleccionarlo automáticamente
       // Se ejecuta después de cargar los targets para asegurar que estén disponibles
@@ -753,11 +688,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // Método para obtener y mostrar datos de un target específico
   async loadTargetDetails(target: any) {
     try {
-      console.log('Obteniendo datos del target:', target.name, target._id);
       
       // Obtener los datos completos del target
       const targetDetails = await this.targetsService.getTargetById(target._id);
-      console.log('Datos completos del target:', targetDetails);
       
       // Aquí puedes decidir qué hacer con los datos:
       // 1. Mostrar un modal con los datos
@@ -804,7 +737,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
         label: pathItem.fullName,
         // Para elementos que no son el último, agregar comando para navegar
         command: !isLast ? () => {
-          console.log('Navegando a usuario:', pathItem.fullName, pathItem.id);
           // Navegar al usuario específico del path
           this.managementService.setOp('u', pathItem.id);
         } : undefined,
@@ -812,13 +744,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
         disabled: isLast
       };
     });
-
-    console.log('Breadcrumb actualizado con:', this.items);
   }
 
   // Métodos privados para polling
   private startTargetsPolling(): void {
-    console.log('🔄 Iniciando polling de targets cada', this.POLLING_INTERVAL / 1000, 'segundos');
     
     // Crear observable que ejecuta cada 10 segundos
     this.pollingSubscription = interval(this.POLLING_INTERVAL)
@@ -835,22 +764,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (!this.selectedUser?._id) return;
     
     try {
-      console.log('🔄 Actualizando datos de targets (polling)...');
       
       // Obtener el ID del usuario padre como antes
       const parentId = this.managementService.getCurrentUserId();
       
       // Obtener datos actualizados de targets
       const updatedTargets = await this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId);
-      
-      console.log('🔄 ===== POLLING - TARGETS ACTUALIZADOS =====');
-      console.log('📊 Cantidad actualizada:', updatedTargets?.length || 0);
-      if (updatedTargets && updatedTargets.length > 0) {
-        const firstUpdated = updatedTargets[0];
-        console.log('📍 Primera ubicación actualizada:', firstUpdated.traccarInfo?.['geolocation']);
-        console.log('🔄 Primer status actualizado:', firstUpdated.traccarInfo?.status);
-        console.log('🚗 Primera velocidad actualizada:', firstUpdated.traccarInfo?.['speed']);
-      }
       
       if (updatedTargets && updatedTargets.length > 0) {
         // Actualizar el array principal de targets
@@ -877,8 +796,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
         if (this.selectedTargetForMap) {
           this.updateSelectedTargetLocation(updatedTargets);
         }
-        
-        console.log('✅ Targets actualizados:', this.targetsList.length, 'dispositivos');
       }
       
     } catch (error) {
@@ -893,7 +810,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const updatedTarget = updatedTargets.find(target => target._id === this.selectedTargetForMap._id);
     
     if (updatedTarget?.traccarInfo?.['geolocation']) {
-      console.log('🎯 Actualizando ubicación del target seleccionado:', updatedTarget.name);
       
       // Actualizar las coordenadas del target seleccionado
       const lat = updatedTarget.traccarInfo['geolocation'].latitude;
@@ -923,20 +839,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.selectedTargetForMap = updatedTargetForMap;
         
         if (hasLocationChanged) {
-          console.log('📍 Ubicación actualizada (sin centrar mapa):', lat, lng);
-          console.log('🔄 Posición anterior:', oldLat, oldLng, '-> Nueva:', lat, lng);
           
           // Solo actualizar mapsKey si es la primera selección (para centrar)
           // Para actualizaciones posteriores, el componente de mapas moverá el marcador suavemente
           if (this.shouldCenterMapOnUpdate) {
             this.mapsKey = Date.now();
             this.shouldCenterMapOnUpdate = false; // Desactivar centrado automático después de la primera vez
-            console.log('🎯 Primera selección - centrando mapa');
           } else {
             // NO cambiar mapsKey para evitar recrear el marcador
             // El cambio en selectedTargetForMap será detectado por ngOnChanges del componente de mapas
             // y solo actualizará la posición del marcador existente
-            console.log('🔄 Actualización suave de posición - marcador se moverá sin recrearse');
           }
         }
       }
@@ -955,7 +867,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
       queryParams: { target: targetId },
       queryParamsHandling: 'merge'
     });
-    console.log('🔗 URL actualizada con target ID:', targetId);
   }
 
   private clearTargetFromUrl(): void {
@@ -964,18 +875,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
       queryParams: { target: null },
       queryParamsHandling: 'merge'
     });
-    console.log('🔗 Query parameter "target" removido de la URL');
   }
 
   private checkAndLoadTargetFromUrl(): void {
     this.route.queryParams.subscribe(params => {
       const targetId = params['target'];
       if (targetId && this.targets.length > 0) {
-        console.log('🔍 Buscando target con ID desde URL:', targetId);
         
         const targetToSelect = this.targets.find(target => target._id === targetId);
         if (targetToSelect) {
-          console.log('✅ Target encontrado, seleccionando automáticamente:', targetToSelect.name);
           
           // Activar el mapa si no está activo
           if (!this.showMaps) {
@@ -986,14 +894,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
           // Seleccionar el target en el mapa (sin actualizar URL para evitar loop)
           this.selectTargetForMapWithoutUrlUpdate(targetToSelect);
         } else {
-          console.log('❌ No se encontró target con ID:', targetId);
         }
       }
     });
   }
 
   private selectTargetForMapWithoutUrlUpdate(target: any): void {
-    console.log('🗺️ Seleccionando target para mapa (sin actualizar URL):', target);
     
     // Verificar geolocalización como en showTargetOnMap
     let lat = null;
@@ -1017,7 +923,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
 
     if (!lat || !lng) {
-      console.warn('❌ El target desde URL no tiene información de geolocalización válida');
       return;
     }
 
@@ -1041,14 +946,70 @@ export class ManagementComponent implements OnInit, OnDestroy {
     
     // Forzar actualización del mapa
     this.mapsKey = Date.now();
-    console.log('🗺️ Mapa actualizado desde URL con nueva key para target:', this.selectedTargetForMap.name);
+  }
+
+  // Métodos para manejo de datos de vehículos
+  private async loadVehicleData(): Promise<void> {
+    try {
+      
+      // Cargar tipos de vehículos, marcas y modelos en paralelo
+      const [types, brands] = await Promise.all([
+        this.vehicleBrandsService.getAllTypes(),
+        this.vehicleBrandsService.getAllBrands()
+      ]);
+      
+      this.vehicleTypes = types || [];
+      this.vehicleBrands = brands || [];
+      
+      // Cargar todos los modelos para todas las marcas
+      if (this.vehicleBrands.length > 0) {
+        const allModels = await this.vehicleBrandsService.getAllModelsByBrand('all');
+        this.vehicleModels = allModels || [];
+      }
+      
+    } catch (error) {
+      console.error('❌ Error al cargar datos de vehículos:', error);
+    }
+  }
+
+  public getVehicleTypeByModelId(modelId: string): string {
+    if (!modelId || this.vehicleModels.length === 0) {
+      return 'Desconocido';
+    }
+    
+    // Buscar el modelo por ID
+    const model = this.vehicleModels.find(m => m._id === modelId);
+    if (!model || !model.id_tipo_vehiculo) {
+      return 'Desconocido';
+    }
+    
+    // Buscar el tipo de vehículo por ID
+    const vehicleType = this.vehicleTypes.find(t => t._id === model.id_tipo_vehiculo);
+    return vehicleType ? vehicleType.nombre : 'Desconocido';
+  }
+
+  private getVehicleModelName(modelId: string): string {
+    if (!modelId || this.vehicleModels.length === 0) {
+      return 'Desconocido';
+    }
+    
+    const model = this.vehicleModels.find(m => m._id === modelId);
+    return model ? model.nombre : 'Desconocido';
+  }
+
+  private getVehicleBrandName(brandId: string): string {
+    if (!brandId || this.vehicleBrands.length === 0) {
+      return 'Desconocido';
+    }
+    
+    const brand = this.vehicleBrands.find(b => b._id === brandId);
+    return brand ? brand.nombre : 'Desconocido';
   }
 
   ngOnDestroy(): void {
     // Limpiar el polling cuando el componente se destruya
     if (this.pollingSubscription) {
       this.pollingSubscription.unsubscribe();
-      console.log('🔄 Polling de targets detenido');
     }
   }
 }
