@@ -1,3 +1,8 @@
+export interface TraccarInfo {
+    status: 'online' | 'offline' | string;
+    [key: string]: any; // Para otras propiedades que pueda tener traccarInfo
+}
+
 export interface Target {
     _id: string;
     name: string;
@@ -26,6 +31,7 @@ export interface Target {
     user_id?: string;
     created_at?: string;
     updated_at?: string;
+    traccarInfo?: TraccarInfo;
 }
 
 export interface CreateTargetDto {

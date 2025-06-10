@@ -700,7 +700,39 @@
         "planRequired": "Debe seleccionar un plan",
         "priceRequired": "Debe seleccionar un precio del plan",
         "validationWarning": "Advertencia de validación",
-        "imeiFormatWarning": "El formato del IMEI parece incorrecto. Verifique que sea un número válido."
+        "imeiFormatWarning": "El formato del IMEI parece incorrecto. Verifique que sea un número válido.",
+        "smsAdmin": "SMS",
+        "smsEnabled": "SMS Habilitado",
+        "enabled": "Habilitado",
+        "disabled": "Deshabilitado",
+        "smsPhone": "Teléfono para SMS",
+        "smsFrequency": "Frecuencia de SMS",
+        "immediate": "Inmediato",
+        "hourly": "Cada Hora",
+        "daily": "Diario",
+        "weekly": "Semanal",
+        "notificationTypes": "Tipos de Notificaciones",
+        "alertNotifications": "Notificaciones de Alerta",
+        "geofenceNotifications": "Notificaciones de Geocerca",
+        "maintenanceNotifications": "Notificaciones de Mantenimiento",
+        "reportNotifications": "Notificaciones de Reportes",
+        "sms": "SMS",
+        "smsCommands": "Comandos SMS",
+        "connectInternet": "Conectar a internet",
+        "configureNetwork": "Configurar red",
+        "restartDevice": "Reiniciar dispositivo",
+        "googleMaps": "Google Maps",
+        "messageHistory": "Historial de Mensajes",
+        "noMessages": "No hay mensajes",
+        "typeMessage": "Escribe un mensaje...",
+        "sendCommand": "Enviar comando",
+        "lastCommand": "Último comando",
+        "deviceStatus": "Estado del dispositivo",
+        "deviceOfflineMessage": "El dispositivo debe estar en línea para enviar comandos",
+        "deviceOnlineMessage": "Los comandos se ejecutarán inmediatamente",
+        "deviceOfflineResponseMessage": "El comando se enviará por SMS. La respuesta llegará cuando el dispositivo se reconecte",
+        "selectProtocolFirst": "Selecciona primero un modelo de GPS en la pestaña de Instalación",
+        "noCommandsAvailable": "Este protocolo no tiene comandos SMS configurados"
       },
       "userForm": {
         "title": "Formulario de Usuario",
@@ -795,7 +827,8 @@
         "errorDelete": "No se pudo eliminar el usuario",
         "backToPersonalInfo": "Volver a información personal"
       },
-      "noUsers": "Esta cuenta no tiene usuarios."
+      "noUsers": "Esta cuenta no tiene usuarios.",
+      "noTargets": "No hay dispositivos disponibles"
     }
   }
   

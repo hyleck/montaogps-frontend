@@ -229,12 +229,13 @@
                                     >
                                 </div>
                             
-                                <div class="target-form__field">
+                                                                        <div class="target-form__field">
                                             <label for="gps_model">{{ translate(translations.gpsModel) }}</label>
                                             <select
                                                 [(ngModel)]="target.type"
                                                 name="type"
                                                 id="gps_model"
+                                                (change)="onGpsModelChange()"
                                             >
                                                 <option [ngValue]="''">{{ translate('management.targetForm.selectGpsModel') }}</option>
                                                 <option *ngFor="let model of availableGpsModels" [ngValue]="model.value">
@@ -471,12 +472,93 @@
                       </div>
                     </p-tabPanel>
 
-                    <p-tabPanel>
+                    <!-- Pestaña Cloud ocultada -->
+                    <!-- <p-tabPanel>
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-cloud"></i>
                             <span class="tab-text">{{ translate('management.targetForm.cloudAdmin') }}</span>
                         </ng-template>
                         <app-cloud></app-cloud>
+                    </p-tabPanel> -->
+
+                    <p-tabPanel>
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-envelope"></i>
+                            <span class="tab-text">{{ translate('management.targetForm.sms') }}</span>
+                        </ng-template>
+                        <div class="sms-admin">
+                            <div class="sms-admin__grid">
+                                <!-- Columna Izquierda - Lista de comandos SMS -->
+                                <div class="sms-commands" #smsCommands>
+                                    <div class="sms-commands__header">
+                                        <h3>{{ translate('management.targetForm.smsCommands') }}</h3>
+                                    </div>
+                                    <div class="sms-commands__list">
+                                        <!-- Mostrar mensaje si no hay protocolo seleccionado -->
+                                        <div *ngIf="!selectedProtocol" class="no-protocol-message">
+                                            <div class="info-message">
+                                                <i class="pi pi-info-circle"></i>
+                                                <span>{{ translate('management.targetForm.selectProtocolFirst') }}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Mostrar mensaje si no hay comandos disponibles -->
+                                        <div *ngIf="selectedProtocol && availableCommands.length === 0" class="no-commands-message">
+                                            <div class="info-message">
+                                                <i class="pi pi-exclamation-triangle"></i>
+                                                <span>{{ translate('management.targetForm.noCommandsAvailable') }}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Lista de comandos dinámicos -->
+                                        <div *ngFor="let command of availableCommands" 
+                                             class="command-item" 
+                                             (click)="selectSmsCommand(command.name)" 
+                                             [class.active]="selectedSmsCommand === command.name">
+                                            <i class="pi {{ command.icon }}"></i>
+                                            <span>{{ command.name }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Columna Derecha - Chat de mensajes -->
+                                <div class="sms-chat" #smsChat>
+                                    <div class="sms-chat__header">
+                                        <h3>{{ translate('management.targetForm.messageHistory') }}</h3>
+                                        <span class="device-status" [class.online]="isDeviceOnline()">
+                                            <i class="pi" [ngClass]="isDeviceOnline() ? 'pi-circle-fill' : 'pi-circle'"></i>
+                                            {{ translate(isDeviceOnline() ? 'management.status.online' : 'management.status.offline') }}
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="sms-chat__messages" #chatMessages>
+                                        <div class="message-container" *ngFor="let message of smsMessages">
+                                            <div class="message" [class.sent]="message.type === 'sent'" [class.received]="message.type === 'received'">
+                                                <div class="message-content">
+                                                    <p>{{ message.content }}</p>
+                                                    <small class="message-time">{{ message.timestamp | date:'dd/MM/yyyy HH:mm' }}</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="no-messages" *ngIf="smsMessages.length === 0">
+                                            <i class="pi pi-inbox"></i>
+                                            <p>{{ translate('management.targetForm.noMessages') }}</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="sms-chat__footer">
+                                        <div class="connection-status">
+                                            <span class="status-text">
+                                                                                        {{ translate('management.targetForm.deviceStatus') }}:
+                                        <strong [class.online]="isDeviceOnline()" [class.offline]="!isDeviceOnline()">
+                                            {{ translate(isDeviceOnline() ? 'management.status.online' : 'management.status.offline') }}
+                                        </strong>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </p-tabPanel>
                 </p-tabView>
 

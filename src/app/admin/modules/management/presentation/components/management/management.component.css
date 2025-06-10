@@ -810,5 +810,122 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     color: #a1a1a1; /* globalColorTextMuted del tema oscuro */
 }
 
+.target-online {
+    color: #22c55e; /* Verde para dispositivos online - tema claro */
+    font-weight: 500;
+}
+
+.dark .target-online {
+    color: #34d399; /* Verde más claro para tema oscuro */
+    font-weight: 500;
+}
+
 /* Si se necesita agregar contenido existente, añadir aquí */
+
+/* ✨ ESTILOS PARA TARGET SELECCIONADO EN MAPA */
+
+/* Fila completa del target seleccionado */
+.target-selected-for-map {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.04)) !important;
+    border: 1px solid rgba(34, 197, 94, 0.3) !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15) !important;
+    transform: translateY(-1px) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.dark .target-selected-for-map {
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.12), rgba(52, 211, 153, 0.06)) !important;
+    border: 1px solid rgba(52, 211, 153, 0.4) !important;
+    box-shadow: 0 2px 8px rgba(52, 211, 153, 0.2) !important;
+}
+
+/* Nombre del target cuando está mostrándose en mapa */
+.target-showing-on-map {
+    font-weight: 600 !important;
+    color: #16a34a !important; /* Verde más intenso */
+    text-shadow: 0 1px 2px rgba(22, 163, 74, 0.1) !important;
+    transition: all 0.3s ease !important;
+}
+
+.dark .target-showing-on-map {
+    color: #4ade80 !important; /* Verde más brillante para tema oscuro */
+    text-shadow: 0 1px 2px rgba(74, 222, 128, 0.15) !important;
+}
+
+/* Icono de map-marker cuando está activo */
+.map-marker-active {
+    color: #dc2626 !important; /* Rojo más intenso para el marcador */
+    animation: pulse-marker 2s infinite !important;
+    font-size: 1.1em !important;
+    transform: scale(1.1) !important;
+}
+
+.dark .map-marker-active {
+    color: #f87171 !important; /* Rojo más claro para tema oscuro */
+}
+
+/* Indicador de "ojo" que aparece junto al nombre */
+.target-map-indicator {
+    color: #2563eb !important; /* Azul para el ojo */
+    margin-left: 8px !important;
+    animation: blink-eye 1.5s infinite !important;
+    font-size: 0.9em !important;
+}
+
+.dark .target-map-indicator {
+    color: #60a5fa !important; /* Azul más claro para tema oscuro */
+}
+
+/* Animaciones */
+@keyframes pulse-marker {
+    0%, 100% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+}
+
+@keyframes blink-eye {
+    0%, 80%, 100% {
+        opacity: 1;
+    }
+    40%, 60% {
+        opacity: 0.3;
+    }
+}
+
+/* Efecto hover mejorado para target seleccionado */
+.target-selected-for-map:hover {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.08)) !important;
+    border-color: rgba(34, 197, 94, 0.5) !important;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25) !important;
+    transform: translateY(-2px) !important;
+}
+
+.dark .target-selected-for-map:hover {
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.16), rgba(52, 211, 153, 0.10)) !important;
+    border-color: rgba(52, 211, 153, 0.6) !important;
+    box-shadow: 0 4px 12px rgba(52, 211, 153, 0.3) !important;
+}
+
+/* Responsive - ajustes para móviles */
+@media screen and (max-width: 768px) {
+    .target-map-indicator {
+        margin-left: 4px !important;
+        font-size: 0.8em !important;
+    }
+    
+    .map-marker-active {
+        font-size: 1em !important;
+    }
+    
+    .target-selected-for-map {
+        transform: none !important;
+        box-shadow: 0 1px 4px rgba(34, 197, 94, 0.15) !important;
+    }
+}
 

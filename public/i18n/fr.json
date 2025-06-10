@@ -489,7 +489,14 @@
           "error_delete": "Impossible de supprimer le protocole",
           "yes_delete": "Oui, supprimer",
           "no_cancel": "Non, annuler"
-        }
+        },
+        "lastCommand": "Dernière commande",
+        "deviceStatus": "État de l'appareil",
+        "deviceOfflineMessage": "L'appareil doit être en ligne pour envoyer des commandes",
+        "deviceOnlineMessage": "Les commandes seront exécutées immédiatement",
+        "deviceOfflineResponseMessage": "La commande sera envoyée par SMS. La réponse arrivera quand l'appareil se reconnectera",
+        "selectProtocolFirst": "Sélectionnez d'abord un modèle GPS dans l'onglet Installation",
+        "noCommandsAvailable": "Ce protocole n'a pas de commandes SMS configurées"
       }
     },
     "profile": {
@@ -671,7 +678,8 @@
         "confirmDeleteHeader": "Confirmer la suppression",
         "userDeleted": "L'utilisateur a été supprimé avec succès",
         "errorDelete": "Impossible de supprimer l'utilisateur",
-        "backToPersonalInfo": "Retour aux informations personnelles"
+        "backToPersonalInfo": "Retour aux informations personnelles",
+        "noTargets": "Aucun appareil disponible"
       },
       "targetForm": {
         "title": "Formulaire d'Objectif",
@@ -751,7 +759,38 @@
         "invalidPrice": "Le prix doit être supérieur à zéro",
         "customPriceApplied": "Prix personnalisé appliqué avec succès",
         "customized": "personnalisé",
-        "originalPrice": "Prix original du forfait"
+        "originalPrice": "Prix original du forfait",
+        "sms": "SMS",
+        "smsConfig": "Configuration SMS",
+        "smsEnabled": "SMS Activé",
+        "smsPhone": "Numéro de Téléphone",
+        "smsFrequency": "Fréquence",
+        "smsFrequencyImmediate": "Immédiat",
+        "smsFrequencyHourly": "Horaire",
+        "smsFrequencyDaily": "Quotidien",
+        "smsFrequencyWeekly": "Hebdomadaire",
+        "notificationTypes": "Types de Notifications",
+        "alertNotifications": "Notifications d'Alertes",
+        "geofenceNotifications": "Notifications de Géobarrière",
+        "maintenanceNotifications": "Notifications de Maintenance",
+        "reportNotifications": "Notifications de Rapports",
+        "sms": "SMS",
+        "smsCommands": "Commandes SMS",
+        "connectInternet": "Se connecter à Internet",
+        "configureNetwork": "Configurer le réseau",
+        "restartDevice": "Redémarrer l'appareil",
+        "googleMaps": "Google Maps",
+        "messageHistory": "Historique des Messages",
+        "noMessages": "Aucun message",
+        "typeMessage": "Tapez un message...",
+        "sendCommand": "Envoyer la commande",
+        "lastCommand": "Dernière commande",
+        "deviceStatus": "État de l'appareil",
+        "deviceOfflineMessage": "L'appareil doit être en ligne pour envoyer des commandes",
+        "deviceOnlineMessage": "Les commandes seront exécutées immédiatement",
+        "deviceOfflineResponseMessage": "La commande sera envoyée par SMS. La réponse arrivera quand l'appareil se reconnectera",
+        "selectProtocolFirst": "Sélectionnez d'abord un modèle GPS dans l'onglet Installation",
+        "noCommandsAvailable": "Ce protocole n'a pas de commandes SMS configurées"
       }
     }
 }

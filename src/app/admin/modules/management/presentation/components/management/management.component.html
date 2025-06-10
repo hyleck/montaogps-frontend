@@ -111,11 +111,30 @@
                                     </ng-template>
                                       
                                         <ng-template pTemplate="body" let-target>
-                                            <tr class="management__content-table-tr">
+                                            <tr class="management__content-table-tr"
+                                                [ngClass]="{
+                                                  'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id
+                                                }"
+                                                [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
+                                                [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
+                                                [title]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'TARGET SELECCIONADO VISTA MAPA - ID: ' + target._id : ''">
                                             
                                                 <td style="font-size: 13px!important;"> 
-                                                    <span (click)="showMapsToggle()" class="management__content-table-link" [ngClass]="{'target-offline': target.status !== 'En linea'}">
-                                                        <i class="pi pi-map-marker"></i> {{target.name}}
+                                                    <span (click)="showTargetOnMap(target)" class="management__content-table-link" 
+                                                          [ngClass]="{
+                                                            'target-online': target.traccarStatus === 'online',
+                                                            'target-offline': target.traccarStatus !== 'online',
+                                                            'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id
+                                                          }">
+                                                        <i class="pi pi-map-marker"
+                                                           [ngClass]="{
+                                                             'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
+                                                           }"></i> 
+                                                        {{target.name}}
+                                                        
+                                                        <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id" 
+                                                           class="pi pi-eye target-map-indicator" 
+                                                           title="Mostrando en mapa"></i>
                                                     </span>   
                                                     <span style="margin-bottom: 10px; display: block;">IMEI: {{target.imei}}</span>
                                                     <p-tableCheckbox [value]="target" />
@@ -149,7 +168,7 @@
                         <option value="mapbox-dark">Mapbox Oscuro</option>
                     </select>
                 </div>
-                <app-maps *ngIf="mapsKey" [provider]="providerType" [theme]="providerTheme"></app-maps>
+                <app-maps *ngIf="mapsKey" [provider]="providerType" [theme]="providerTheme" [selectedTarget]="selectedTargetForMap"></app-maps>
             </div>
         </div>
 
@@ -284,13 +303,33 @@
                                     </tr>
                                 </ng-template>
                                 <ng-template pTemplate="body" let-target>
-                                    <tr class="management__content-table-tr">
+                                    <tr class="management__content-table-tr" 
+                                        [ngClass]="{
+                                          'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id
+                                        }"
+                                        [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
+                                        [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
+                                        [title]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'TARGET SELECCIONADO - ID: ' + target._id : ''">
                                         <td>
                                             <p-tableCheckbox [value]="target" />
                                         </td>
                                         <td>
-                                            <span (click)="showMapsToggle()" class="management__content-table-link" [ngClass]="{'target-offline': target.status !== 'En linea'}">
-                                                <i class="pi pi-map-marker"></i> {{target.name}}
+                                            <span (click)="showTargetOnMap(target)" class="management__content-table-link" 
+                                                  [ngClass]="{
+                                                    'target-online': target.traccarStatus === 'online',
+                                                    'target-offline': target.traccarStatus !== 'online',
+                                                    'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id
+                                                  }"
+                                                  title="Ver en mapa">
+                                                <i class="pi pi-map-marker" 
+                                                   [ngClass]="{
+                                                     'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
+                                                   }"></i> 
+                                                {{target.name}}
+                                                
+                                                <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id" 
+                                                   class="pi pi-eye target-map-indicator" 
+                                                   title="Mostrando en mapa"></i>
                                             </span>
                                         </td>
                                         <td> <p-badge [value]="target.status" [severity]="target.status == translate.instant('management.status.online') ? 'success' : 'secondary'" /></td>

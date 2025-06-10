@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { Subject, takeUntil } from 'rxjs';
 import { LangService } from '../../../../../../../shareds/services/langi18/lang.service';
@@ -12,6 +12,7 @@ import { CreateTargetDto, Target, UpdateTargetDto } from 'src/app/core/interface
 import { Plan, PlanPrice } from 'src/app/core/interfaces/plan.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
+import { ProtocolCommand } from 'src/app/core/interfaces/protocol.interface';
 import { ManagementService } from 'src/app/admin/modules/management/presentation/services/management.service';
 
 // Interfaz extendida para PlanPrice que incluye el monto original
@@ -81,6 +82,10 @@ interface TargetDevice {
   installation_date?: string;
   gps_model?: string | null;
   shutdown_control?: string | null;
+    // Información de Traccar para estado del dispositivo
+    traccarInfo?: {
+        status: 'online' | 'offline' | string;
+    };
   // Campos adicionales que pueden existir
   [key: string]: any;
 }
@@ -91,7 +96,7 @@ interface TargetDevice {
     styleUrls: TARGET_FORM_STYLES,
     standalone: false
 })
-export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
+export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterViewInit {
     private destroy$ = new Subject<void>();
 
     @Input() targetInput: TargetDevice | null = null;
@@ -153,6 +158,22 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     availablePlans: { label: string, value: string }[] = [];
     availablePrices: ExtendedPlanPrice[] = [];
     filteredColors: { label: string, value: string }[] = [];
+    
+    // Propiedades para SMS
+    selectedSmsCommand: string = '';
+    smsMessages: { type: 'sent' | 'received', content: string, timestamp: Date }[] = [];
+    lastSentCommand: string = '';
+    
+    // Protocolos y comandos dinámicos
+    loadedProtocols: Protocol[] = [];
+    availableCommands: ProtocolCommand[] = [];
+    selectedProtocol: Protocol | null = null;
+    pendingGpsModel: string = ''; // GPS model a asignar después de cargar protocolos
+    
+    // Referencias a elementos del DOM
+    @ViewChild('smsCommands') smsCommands!: ElementRef;
+    @ViewChild('smsChat') smsChat!: ElementRef;
+    @ViewChild('chatMessages') chatMessages!: ElementRef;
     
     constructor(
         private langService: LangService,
@@ -226,6 +247,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         this.loadInitialData();
         this.target = this.getEmptyTarget();
         this.activeTabIndex = 0;
+        // El estado del dispositivo se obtiene desde traccarInfo.status
     }
 
     private async loadInitialData() {
@@ -258,10 +280,24 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                 .pipe(takeUntil(this.destroy$))
                 .subscribe({
                     next: (protocols: Protocol[]) => {
+                        // Almacenar protocolos completos para usar en SMS
+                        this.loadedProtocols = protocols;
+                        
+                        // Mapear para select de GPS models
                         this.availableGpsModels = protocols.map(protocol => ({
                             label: protocol.name,
                             value: protocol._id
                         })).sort((a, b) => a.label.localeCompare(b.label));
+                        
+                        // Si hay un GPS model pendiente de asignar, asignarlo ahora
+                        if (this.pendingGpsModel && this.availableGpsModels.some(model => model.value === this.pendingGpsModel)) {
+                            this.target.type = this.pendingGpsModel;
+                            this.pendingGpsModel = ''; // Limpiar el pendiente
+                            console.log('GPS model asignado después de cargar protocolos:', this.target.type);
+                        }
+                        
+                        // Si hay un protocolo ya seleccionado, cargar sus comandos
+                        this.updateSmsCommands();
                     },
                     error: (error) => {
                         console.error('Error al cargar protocolos:', error);
@@ -271,6 +307,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                             { label: 'Modelo B', value: 'modelo_b' },
                             { label: 'Modelo C', value: 'modelo_c' }
                         ];
+                        this.loadedProtocols = [];
+                        this.availableCommands = [];
                     }
                 });
             
@@ -329,6 +367,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
 
     private setupEditTarget(target: TargetDevice) {
         console.log('Configurando objetivo para edición:', target);
+        console.log('DEBUG sim_company recibido del backend:', {
+            sim_company: target.sim_company,
+            tipo: typeof target.sim_company
+        });
         
         // Rellenar el formulario con los datos del objetivo a editar
         this.target = JSON.parse(JSON.stringify(target));
@@ -346,6 +388,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         this.target.target_color = this.target.target_color || '';
         this.target.target_year = this.target.target_year || '';
         
+        // Guardar temporalmente el ID del modelo GPS para asignarlo después de cargar protocolos
+        const selectedGpsModel = this.target.type || '';
+        
         // Guardar temporalmente el ID del modelo seleccionado
         const selectedModelId = this.target.target_model_id || '';
         
@@ -357,8 +402,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             this.target.type = '';
         }
         
-        if (!this.target.sim_company) {
+        if (this.target.sim_company === null || this.target.sim_company === undefined) {
             this.target.sim_company = '';
+            console.log('DEBUG: sim_company era null/undefined, se estableció a string vacío');
+        } else {
+            console.log('DEBUG: sim_company preservado como:', this.target.sim_company);
         }
         
         if (!this.target.engine_shutdown) {
@@ -522,6 +570,22 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             // Si no hay plan, establecer string vacía para mostrar la opción por defecto
             this.target.plan = '';
         }
+        
+        // Si el plan original del target es diferente al plan actualizado, 
+        // actualizar la fecha de expiración
+        if (this.target.plan) {
+            this.updateExpirationDate();
+        }
+        
+        // Asignar el GPS model después de que los protocolos se hayan cargado
+        // Si ya están cargados, asignar inmediatamente, si no, se asignará en el callback de protocolos
+        if (selectedGpsModel && this.availableGpsModels.length > 0) {
+            this.target.type = selectedGpsModel;
+            this.updateSmsCommands();
+        } else if (selectedGpsModel) {
+            // Guardar el GPS model para asignarlo cuando se carguen los protocolos
+            this.pendingGpsModel = selectedGpsModel;
+        }
     }
 
     private resetForm() {
@@ -591,8 +655,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             if (this.target._id) {
                 // Actualizar objetivo existente
                 console.log('Actualizando target existente con ID:', this.target._id);
+                console.log('📤 ENVIANDO AL BACKEND:');
+                console.log('- sim_company que se enviará:', targetToSave.sim_company);
+                console.log('- Datos completos:', targetToSave);
                 const updatedTarget = await this.targetsService.updateTarget(this.target._id, targetToSave as UpdateTargetDto);
-                console.log('Target actualizado exitosamente:', updatedTarget);
+                console.log('📥 RESPUESTA DEL BACKEND:');
+                console.log('- sim_company recibido:', (updatedTarget as any).sim_company);
+                console.log('- Target completo actualizado:', updatedTarget);
                 
                 this.messageService.add({
                     severity: 'success',
@@ -663,7 +732,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
             api_position_id: 'default_position_id',
             api_device_id: 'default_api_device_id',
             type: 'vehicle',
-            sim_company: 'default', // Valor por defecto para sim_company
             creator_id: currentUserId || '64a7ecf2de1b240df0a97345', // usar un ID de fallback si no hay ID actual
             parent_id: currentUserId || '64a7ecf2de1b240df0a97345', // usar un ID de fallback si no hay ID actual
             index: '1',
@@ -676,6 +744,45 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     private prepareTargetData(): CreateTargetDto | UpdateTargetDto {
         // Crear una copia del objeto target con los campos actuales
         const targetData: any = { ...this.target };
+        
+        // Mapear campos del formulario a los nombres requeridos por el backend
+        if (targetData.target_plate_number) {
+            targetData.plate = targetData.target_plate_number;
+            delete targetData.target_plate_number;
+        }
+        
+        if (targetData.target_chassis_number) {
+            targetData.chassis = targetData.target_chassis_number;
+            delete targetData.target_chassis_number;
+        }
+        
+        if (targetData.target_color) {
+            targetData.color = targetData.target_color;
+            delete targetData.target_color;
+        }
+        
+        if (targetData.target_year) {
+            targetData.year = targetData.target_year;
+            delete targetData.target_year;
+        }
+        
+        if (targetData.target_brand_id) {
+            targetData.brand = targetData.target_brand_id;
+            delete targetData.target_brand_id;
+        }
+        
+        if (targetData.target_model_id) {
+            targetData.model = targetData.target_model_id;
+            delete targetData.target_model_id;
+        }
+        
+        // Mapear campos de compatibilidad si existen
+        if (targetData.engine_shutdown) {
+            targetData.shutdown_control = targetData.engine_shutdown;
+            delete targetData.engine_shutdown;
+        }
+        
+        // sim_company y sim_card_number ya tienen los nombres correctos, no necesitan mapeo
         
         // Obtener valores por defecto
         const defaultValues = this.getDefaultValues();
@@ -731,11 +838,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
         targetData.status = targetData.status === 'active';
         
         // Aplicar valores por defecto para campos requeridos pero que podrían estar vacíos
+        // Excluir sim_company para que mantenga su valor original (incluido string vacío)
         for (const key in defaultValues) {
-            if (!targetData[key]) {
+            if ((targetData[key] === undefined || targetData[key] === null) && key !== 'sim_company') {
                 targetData[key] = defaultValues[key];
             }
         }
+        
+        // Asegurar que sim_company siempre se incluya, incluso si está vacío
+        // No aplicar ningún valor por defecto a sim_company
         
         // Eliminar propiedades que no deben enviarse al backend
         delete targetData.selectedPrice;
@@ -746,10 +857,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
                 id: this.target._id,
                 name: targetData.name,
                 device_imei: targetData.device_imei,
+                sim_company: targetData.sim_company,
                 plan: targetData.plan,
                 status: targetData.status
             });
         }
+        
+        // VERIFICACIÓN SIMPLE DE sim_company
+        console.log('🔍 VERIFICACIÓN SIMPLE:');
+        console.log('- sim_company en this.target:', this.target.sim_company);
+        console.log('- sim_company en targetData:', targetData.sim_company);
+        console.log('- targetData completo:', JSON.stringify(targetData, null, 2));
         
         return targetData;
     }
@@ -863,7 +981,106 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     }
     
     closeColorOptions() {
-        // No hacemos nada
+        this.showColorOptions = false;
+    }
+
+    // Métodos para SMS
+    selectSmsCommand(command: string): void {
+        this.selectedSmsCommand = command;
+        
+        // Enviar comando automáticamente siempre
+        this.sendCommand(command);
+        
+        // Sincronizar altura después de cualquier cambio
+        setTimeout(() => {
+            this.syncChatHeight();
+            this.scrollToBottom();
+        }, 50);
+    }
+
+    sendCommand(commandName: string): void {
+        // Buscar el comando en los comandos disponibles del protocolo
+        const selectedCommand = this.availableCommands.find(cmd => cmd.name === commandName);
+        
+        if (selectedCommand) {
+            // Añadir mensaje enviado
+            this.smsMessages.push({
+                type: 'sent',
+                content: selectedCommand.value,
+                timestamp: new Date()
+            });
+            
+            // Hacer scroll hacia abajo inmediatamente después de enviar
+            this.scrollToBottom();
+            
+            // Guardar el último comando enviado
+            this.lastSentCommand = commandName;
+            
+            // Simular respuesta del dispositivo según su estado
+            if (this.isDeviceOnline()) {
+                // Dispositivo online: respuesta rápida (2 segundos)
+                setTimeout(() => {
+                    this.smsMessages.push({
+                        type: 'received',
+                        content: `Comando "${selectedCommand.name}" ejecutado correctamente`,
+                        timestamp: new Date()
+                    });
+                    
+                    // Hacer scroll hacia abajo después de recibir respuesta
+                    this.scrollToBottom();
+                }, 2000);
+            } else {
+                // Dispositivo offline: respuesta cuando se reconecte (tiempo aleatorio entre 10-30 segundos)
+                const randomDelay = Math.floor(Math.random() * 20000) + 10000; // 10-30 segundos
+                setTimeout(() => {
+                    this.smsMessages.push({
+                        type: 'received',
+                        content: `Comando "${selectedCommand.name}" ejecutado correctamente (recibido al reconectar)`,
+                        timestamp: new Date()
+                    });
+                    
+                    // Hacer scroll hacia abajo después de recibir respuesta offline
+                    this.scrollToBottom();
+                }, randomDelay);
+            }
+        } else {
+            // Mensaje de error si no se encuentra el comando
+            console.error('Comando no encontrado:', commandName);
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Comando no encontrado',
+                detail: `El comando "${commandName}" no está disponible para este protocolo`
+            });
+        }
+    }
+
+    getCommandName(commandName: string): string {
+        const command = this.availableCommands.find(cmd => cmd.name === commandName);
+        return command ? command.name : commandName;
+    }
+
+    ngAfterViewInit() {
+        // Sincronizar alturas después de que la vista esté completamente cargada
+        setTimeout(() => {
+            this.syncChatHeight();
+            this.scrollToBottom();
+        }, 100);
+    }
+
+    syncChatHeight(): void {
+        if (this.smsCommands && this.smsChat) {
+            const commandsHeight = this.smsCommands.nativeElement.offsetHeight;
+            this.smsChat.nativeElement.style.height = `${commandsHeight}px`;
+        }
+    }
+
+    scrollToBottom(): void {
+        if (this.chatMessages) {
+            setTimeout(() => {
+                const element = this.chatMessages.nativeElement;
+                element.scrollTop = element.scrollHeight;
+            }, 100);
+        }
     }
 
     ngOnDestroy() {
@@ -1140,5 +1357,49 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy {
     cancelCustomPrice(): void {
         // Cerrar el diálogo modal
         this.displayPriceDialog = false;
+    }
+
+    // Métodos para manejar comandos SMS dinámicos
+    updateSmsCommands(): void {
+        const gpsModelId = this.target.type;
+        if (gpsModelId && this.loadedProtocols.length > 0) {
+            this.selectedProtocol = this.loadedProtocols.find(p => p._id === gpsModelId) || null;
+            this.availableCommands = this.selectedProtocol?.commands || [];
+        } else {
+            this.selectedProtocol = null;
+            this.availableCommands = [];
+        }
+    }
+
+    onGpsModelChange(): void {
+        // Actualizar comandos cuando cambie el modelo GPS
+        this.updateSmsCommands();
+        // Limpiar comando seleccionado al cambiar modelo
+        this.selectedSmsCommand = '';
+    }
+
+    onSimCompanyChange(event: any): void {
+        let rawValue = event.target.value;
+        
+        // Limpiar el valor si Angular añadió un prefijo (ej: "1: nacionales" -> "nacionales")
+        let cleanValue = rawValue;
+        if (rawValue && rawValue.includes(': ')) {
+            cleanValue = rawValue.split(': ')[1] || rawValue;
+        }
+        
+        console.log('DEBUG: sim_company cambió a:', {
+            valor_select_raw: rawValue,
+            valor_limpio: cleanValue,
+            target_sim_company_antes: this.target.sim_company
+        });
+        
+        // Establecer el valor limpio
+        this.target.sim_company = cleanValue;
+        console.log('ESTABLECIDO: sim_company final:', this.target.sim_company);
+    }
+
+    // Método para obtener el estado real del dispositivo desde traccarInfo
+    isDeviceOnline(): boolean {
+        return this.target?.traccarInfo?.status === 'online';
     }
 }

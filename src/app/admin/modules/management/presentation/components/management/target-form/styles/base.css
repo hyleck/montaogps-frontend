@@ -167,6 +167,364 @@
     }
 }
 
+/* Estilos para la sección SMS */
+.sms-admin {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.sms-admin__form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    background-color: var(--surface-ground);
+}
+
+.sms-admin__form-main {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sms-notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.notification-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0;
+}
+
+.notification-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-color);
+}
+
+.notification-item label {
+    font-size: 0.85rem;
+    color: var(--managementColorTextUser);
+    cursor: pointer;
+    margin: 0;
+}
+
+.notification-item input[type="checkbox"]:checked + label {
+    font-weight: 500;
+}
+
+/* Estilos para la nueva interfaz SMS */
+.sms-admin__grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+/* Columna izquierda - Comandos SMS */
+.sms-commands {
+    background-color: var(--surface-ground);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--surface-border);
+}
+
+.sms-commands__header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--surface-border);
+}
+
+.sms-commands__header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.sms-commands__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.command-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.8rem;
+    border-radius: 6px;
+    background-color: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.command-item:hover {
+    background-color: var(--primary-color-text);
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+}
+
+.command-item.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.command-item i {
+    font-size: 1.2rem;
+    width: 20px;
+    text-align: center;
+}
+
+.command-item span {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Columna derecha - Chat SMS */
+.sms-chat {
+    background-color: var(--surface-ground);
+    border-radius: 8px;
+    border: 1px solid var(--surface-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: auto;
+    min-height: 300px;
+}
+
+.sms-chat__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--surface-border);
+    background-color: var(--surface-card);
+}
+
+.sms-chat__header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.device-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 12px;
+    background-color: var(--surface-ground);
+}
+
+.device-status.online {
+    color: #22c55e;
+}
+
+.device-status.online i {
+    color: #22c55e;
+}
+
+.device-status:not(.online) {
+    color: #6b7280;
+}
+
+.device-status:not(.online) i {
+    color: #6b7280;
+}
+
+.sms-chat__messages {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    background-color: var(--surface-50);
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    min-height: 180px;
+    max-height: calc(100% - 120px);
+}
+
+.message-container {
+    display: flex;
+    width: 100%;
+}
+
+.message {
+    max-width: 70%;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    word-wrap: break-word;
+}
+
+.message.sent {
+    align-self: flex-end;
+    background-color: var(--primary-color);
+    color: white;
+    margin-left: auto;
+}
+
+.message.received {
+    align-self: flex-start;
+    background-color: var(--surface-card);
+    color: var(--text-color);
+    border: 1px solid var(--surface-border);
+}
+
+.message-content p {
+    margin: 0 0 0.3rem 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.no-messages {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-color-secondary);
+    gap: 0.5rem;
+}
+
+.no-messages i {
+    font-size: 2rem;
+    opacity: 0.5;
+}
+
+.sms-chat__footer {
+    padding: 1rem;
+    border-top: 1px solid var(--surface-border);
+    background-color: var(--surface-card);
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    min-height: 50px;
+    flex-shrink: 0;
+}
+
+.connection-status {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    width: 100%;
+    min-height: 20px;
+    justify-content: center;
+}
+
+.status-text {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    line-height: 1.4;
+    word-wrap: break-word;
+    white-space: normal;
+}
+
+.status-text strong.online {
+    color: #22c55e;
+}
+
+.status-text strong.offline {
+    color: #6b7280;
+}
+
+/* Ajustar comando activo para indicar cuando está deshabilitado */
+.command-item.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: var(--surface-100);
+    transform: none;
+}
+
+.command-item.disabled:hover {
+    background-color: var(--surface-100);
+    border-color: var(--surface-border);
+    transform: none;
+}
+
+/* Estilos para mensajes informativos de SMS */
+.no-protocol-message,
+.no-commands-message {
+    padding: 1rem;
+    text-align: center;
+}
+
+.info-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-color-secondary);
+    font-size: 0.9rem;
+}
+
+.info-message i {
+    font-size: 1.5rem;
+    opacity: 0.7;
+}
+
+.no-protocol-message .info-message i {
+    color: var(--blue-500);
+}
+
+.no-commands-message .info-message i {
+    color: var(--orange-500);
+}
+
+/* Responsive para SMS */
+@media (max-width: 768px) {
+    .sms-admin__grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+        height: 70vh;
+    }
+    
+    .sms-commands {
+        height: auto;
+    }
+    
+    .sms-commands__list {
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+    
+    .command-item {
+        flex-shrink: 0;
+        min-width: 120px;
+        justify-content: center;
+        text-align: center;
+        flex-direction: column;
+        gap: 0.3rem;
+        padding: 0.6rem;
+    }
+    
+    .command-item span {
+        font-size: 0.8rem;
+    }
+    
+    .sms-chat {
+        min-height: 400px;
+    }
+}
+
 @media (max-width: 400px) {
     .main,
     .target-form {
@@ -175,5 +533,35 @@
       min-width: 0 !important;
       box-sizing: border-box !important;
       padding: 0.5rem !important;
+    }
+    
+    .sms-admin__grid {
+        height: 60vh;
+    }
+    
+    .message {
+        max-width: 85%;
+    }
+    
+    .command-item {
+        min-width: 100px;
+        padding: 0.5rem;
+    }
+    
+    .command-item span {
+        font-size: 0.75rem;
+    }
+    
+    .sms-chat__footer {
+        padding: 0.8rem;
+        min-height: 90px;
+    }
+    
+    .status-text {
+        font-size: 0.85rem;
+    }
+    
+    .status-instructions {
+        font-size: 0.75rem;
     }
 } 

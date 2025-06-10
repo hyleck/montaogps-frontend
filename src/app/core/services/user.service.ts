@@ -28,6 +28,10 @@ export class UserService {
     return this.http.get<User>(`${this.apiUrl}/${id}`);
   }
 
+  getUserPath(id: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${id}/path/`);
+  }
+
   create(createUserDto: CreateUserDto): Observable<User> {
     return this.http.post<User>(this.apiUrl, createUserDto);
   }
