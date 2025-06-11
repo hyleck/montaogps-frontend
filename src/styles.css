@@ -182,3 +182,6 @@ body .p-toast .p-toast-close-button::before {
 
 
 
+.gm-style-iw-d{
+  overflow: hidden!important;
+}

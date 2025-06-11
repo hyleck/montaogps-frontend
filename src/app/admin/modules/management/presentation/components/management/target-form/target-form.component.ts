@@ -366,11 +366,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     private setupEditTarget(target: TargetDevice) {
-        console.log('Configurando objetivo para edición:', target);
-        console.log('DEBUG sim_company recibido del backend:', {
-            sim_company: target.sim_company,
-            tipo: typeof target.sim_company
-        });
         
         // Rellenar el formulario con los datos del objetivo a editar
         this.target = JSON.parse(JSON.stringify(target));
@@ -404,9 +399,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         if (this.target.sim_company === null || this.target.sim_company === undefined) {
             this.target.sim_company = '';
-            console.log('DEBUG: sim_company era null/undefined, se estableció a string vacío');
-        } else {
-            console.log('DEBUG: sim_company preservado como:', this.target.sim_company);
         }
         
         if (!this.target.engine_shutdown) {
@@ -475,7 +467,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         // Configurar el plan si existe
         if (this.target.plan && typeof this.target.plan === 'object') {
-            console.log('Configurando plan desde objeto:', this.target.plan);
             // Extraer el ID del plan
             if ('id_plan' in this.target.plan && this.target.plan.id_plan) {
                 // Guardar el objeto plan original
@@ -483,7 +474,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 
                 // Si hay un precio seleccionado, configurarlo antes de convertir el plan a string
                 if (originalPlan.selected_price) {
-                    console.log('Precio seleccionado encontrado:', originalPlan.selected_price);
                     
                     // Crear objeto de precio seleccionado
                     this.target.selectedPrice = {
@@ -514,8 +504,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                                 this.mapPeriodToString(price.payment_period)
                         }));
                         
-                        console.log('Precios disponibles:', this.availablePrices);
-                        console.log('Precio seleccionado antes de restaurar:', currentSelectedPrice);
                         
                         // Si hay un precio seleccionado, buscamos su correspondiente en los precios del plan
                         if (currentSelectedPrice) {
@@ -524,11 +512,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                             );
                             
                             if (matchedPrice) {
-                                console.log('Precio coincidente encontrado:', matchedPrice);
                                 
                                 // Si el precio ha sido modificado, guardamos el original
                                 if (currentSelectedPrice.amount !== matchedPrice.amount) {
-                                    console.log('Precio personalizado detectado:', currentSelectedPrice.amount, 'Original:', matchedPrice.amount);
                                     
                                     // Guardar el monto original
                                     const customPrice = {
@@ -1119,7 +1105,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Formatear la fecha de expiración para el input HTML
             this.target.expiration_date = this.formatDateToInput(expirationDate.toISOString());
             
-            console.log(`Fecha de expiración calculada: ${this.target.expiration_date} (basada en un período de ${periodInDays} días)`);
         }
     }
 
