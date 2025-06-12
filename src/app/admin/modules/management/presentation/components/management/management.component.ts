@@ -99,8 +99,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.providerType = type as 'google' | 'mapbox';
       this.providerTheme = theme as 'light' | 'dark';
     } else {
-      this.selectedMap = `google-${defaultTheme}`;
-      this.providerType = 'google';
+      this.selectedMap = `mapbox-${defaultTheme}`;
+      this.providerType = 'mapbox';
       this.providerTheme = defaultTheme;
     }
     this.loading = true;

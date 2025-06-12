@@ -10,7 +10,7 @@ import { SystemService, SystemSettings } from '../../../core/services/system.ser
     standalone: false
 })
 export class MapsComponent implements OnInit, OnChanges, OnDestroy {
-  @Input() provider: 'google' | 'mapbox' = 'google';
+  @Input() provider: 'google' | 'mapbox' = 'mapbox';
   @Input() theme: 'dark' | 'light' = 'dark';
   @Input() selectedTarget: any = null;
   @Input() vehicleTypeGetter: ((modelId: string) => string) | null = null;
@@ -473,7 +473,23 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
                   ${this.selectedTarget?.name}${vehicleTypeInfo}
                 </div>
               </div>
-              <button onclick="this.closest('#custom-info-window').parentElement.parentElement.parentElement.style.display='none'" 
+              <button onclick="
+                        const iwOuter = this.closest('.gm-style-iw');
+                        const iwContainer = this.closest('.gm-style-iw-c');
+                        const iwBackground = document.querySelector('.gm-style-iw-d');
+                        const iwTail = document.querySelector('.gm-style-iw-t');
+                        
+                        if (iwOuter) iwOuter.style.display = 'none';
+                        if (iwContainer) iwContainer.style.display = 'none';
+                        if (iwBackground) iwBackground.style.display = 'none';
+                        if (iwTail) iwTail.style.display = 'none';
+                        
+                        setTimeout(() => {
+                          if (iwOuter && iwOuter.parentNode) iwOuter.parentNode.removeChild(iwOuter);
+                          if (iwContainer && iwContainer.parentNode) iwContainer.parentNode.removeChild(iwContainer);
+                          if (iwBackground && iwBackground.parentNode) iwBackground.parentNode.removeChild(iwBackground);
+                          if (iwTail && iwTail.parentNode) iwTail.parentNode.removeChild(iwTail);
+                        }, 50);" 
                       style="
                         background: none; 
                         border: none; 
@@ -556,30 +572,100 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         if (this.vehicleTypeGetter && this.selectedTarget?.model) {
           const vehicleType = this.vehicleTypeGetter(this.selectedTarget.model);
           if (vehicleType && vehicleType !== 'Desconocido') {
-            vehicleTypeInfo = `
-              <div style="margin-bottom: 5px; color: #000000;">
-                <strong style="color: #000000;">🚙 Tipo:</strong> 
-                <span style="color: #9C27B0; font-weight: bold;">${vehicleType}</span>
-              </div>`;
+            vehicleTypeInfo = `<span style="color: #9C27B0; font-size: 11px; margin-left: 4px;">(${vehicleType})</span>`;
           }
         }
         
-        // Crear contenido actualizado del popup
+        // Crear contenido actualizado del popup con el MISMO diseño que Google Maps
         const updatedPopupContent = `
-          <div style="font-family: Arial, sans-serif; min-width: 200px; color: #000000;">
-            <h4 style="margin: 0 0 10px 0; color: #000000; font-size: 16px;">
-              <strong>${this.selectedTarget?.name}</strong>
-            </h4>
-            ${vehicleTypeInfo}
-            <div style="margin-bottom: 5px; color: #000000;">
-              <strong style="color: #000000;">🚗 Velocidad:</strong> 
-              <span style="color: #2196F3; font-weight: bold;">${updatedSpeed} ${speedUnit}</span>
+          <div id="custom-info-window" style="
+            font-family: 'Segoe UI', sans-serif; 
+            width: 215px;
+            background: white; 
+            border: 1px solid #e0e0e0;
+            border-radius: 4px; 
+            margin-right: 15px;
+            margin-bottom: 10px;
+          ">
+            <!-- Header minimalista -->
+            <div style="
+              background: #f8f9fa; 
+              color: #333; 
+              padding: 10px 12px; 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: center;
+              border-bottom: 1px solid #e0e0e0;
+            ">
+              <div style="flex: 1; min-width: 0;">
+                <div style="
+                  font-size: 14px; 
+                  font-weight: 500; 
+                  color: #333;
+                  white-space: nowrap; 
+                  overflow: hidden; 
+                  text-overflow: ellipsis;
+                ">
+                  ${this.selectedTarget?.name}${vehicleTypeInfo}
+                </div>
+              </div>
+              <button onclick="
+                        this.closest('.mapboxgl-popup').style.display = 'none';
+                        setTimeout(() => { 
+                          const popup = this.closest('.mapboxgl-popup'); 
+                          if (popup && popup.parentNode) popup.parentNode.removeChild(popup); 
+                        }, 50);" 
+                      style="
+                        background: none; 
+                        border: none; 
+                        color: #666; 
+                        width: 20px; 
+                        height: 20px; 
+                        cursor: pointer; 
+                        font-size: 16px; 
+                        line-height: 1; 
+                        margin-left: 10px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                      "
+                      onmouseover="this.style.color='#333'"
+                      onmouseout="this.style.color='#666'">
+                ×
+              </button>
             </div>
-            <div style="margin-bottom: 5px; color: #000000;">
-              <strong style="color: #000000;">📡 Estado:</strong> 
-              <span style="color: ${updatedStatus === 'online' ? '#4CAF50' : '#F44336'}; font-weight: bold;">
-                ${updatedStatus === 'online' ? '🟢 En línea' : '🔴 Desconectado'}
-              </span>
+            
+            <!-- Contenido minimalista -->
+            <div style="padding: 12px;">
+              <div style="
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                margin-bottom: 10px; 
+              ">
+                <span style="color: #666; font-size: 13px;">Velocidad</span>
+                <span style="color: #333; font-weight: 600; font-size: 18px;">${Math.round(updatedSpeed)} ${speedUnit}</span>
+              </div>
+              
+              <div style="
+                display: flex; 
+                align-items: center; 
+                gap: 8px;
+              ">
+                <span style="
+                  width: 8px; 
+                  height: 8px; 
+                  border-radius: 50%; 
+                  background: ${updatedStatus === 'online' ? '#4CAF50' : '#F44336'};
+                "></span>
+                <span style="
+                  color: #666; 
+                  font-size: 13px;
+                ">
+                  ${updatedStatus === 'online' ? 'Conectado' : 'Desconectado'}
+                </span>
+              </div>
             </div>
           </div>
         `;
@@ -734,7 +820,23 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
               ${title}${vehicleTypeInfo}
             </div>
           </div>
-          <button onclick="this.closest('#custom-info-window').parentElement.parentElement.parentElement.style.display='none'" 
+          <button onclick="
+                    const iwOuter = this.closest('.gm-style-iw');
+                    const iwContainer = this.closest('.gm-style-iw-c');
+                    const iwBackground = document.querySelector('.gm-style-iw-d');
+                    const iwTail = document.querySelector('.gm-style-iw-t');
+                    
+                    if (iwOuter) iwOuter.style.display = 'none';
+                    if (iwContainer) iwContainer.style.display = 'none';
+                    if (iwBackground) iwBackground.style.display = 'none';
+                    if (iwTail) iwTail.style.display = 'none';
+                    
+                    setTimeout(() => {
+                      if (iwOuter && iwOuter.parentNode) iwOuter.parentNode.removeChild(iwOuter);
+                      if (iwContainer && iwContainer.parentNode) iwContainer.parentNode.removeChild(iwContainer);
+                      if (iwBackground && iwBackground.parentNode) iwBackground.parentNode.removeChild(iwBackground);
+                      if (iwTail && iwTail.parentNode) iwTail.parentNode.removeChild(iwTail);
+                    }, 50);" 
                   style="
                     background: none; 
                     border: none; 
@@ -877,36 +979,110 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     if (this.vehicleTypeGetter && this.selectedTarget?.model) {
       const vehicleType = this.vehicleTypeGetter(this.selectedTarget.model);
       if (vehicleType && vehicleType !== 'Desconocido') {
-        vehicleTypeInfo = `
-          <div style="margin-bottom: 5px; color: #000000;">
-            <strong style="color: #000000;">🚙 Tipo:</strong> 
-            <span style="color: #9C27B0; font-weight: bold;">${vehicleType}</span>
-          </div>`;
+        vehicleTypeInfo = `<span style="color: #9C27B0; font-size: 11px; margin-left: 4px;">(${vehicleType})</span>`;
       }
     }
     
-    // Crear contenido del popup con velocidad
+    // Crear contenido del popup con el MISMO diseño que Google Maps
     const popupContent = `
-      <div style="font-family: Arial, sans-serif; min-width: 200px; color: #000000;">
-        <h4 style="margin: 0 0 10px 0; color: #000000; font-size: 16px;">
-          <strong>${title}</strong>
-        </h4>
-        ${vehicleTypeInfo}
-        <div style="margin-bottom: 5px; color: #000000;">
-          <strong style="color: #000000;">🚗 Velocidad:</strong> 
-          <span style="color: #2196F3; font-weight: bold;">${popupSpeed} ${speedUnit}</span>
+      <div id="custom-info-window" style="
+        font-family: 'Segoe UI', sans-serif; 
+        width: 215px;
+        background: white; 
+        border: 1px solid #e0e0e0;
+        border-radius: 4px; 
+        margin-right: 15px;
+        margin-bottom: 10px;
+      ">
+        <!-- Header minimalista -->
+        <div style="
+          background: #f8f9fa; 
+          color: #333; 
+          padding: 10px 12px; 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center;
+          border-bottom: 1px solid #e0e0e0;
+        ">
+          <div style="flex: 1; min-width: 0;">
+            <div style="
+              font-size: 14px; 
+              font-weight: 500; 
+              color: #333;
+              white-space: nowrap; 
+              overflow: hidden; 
+              text-overflow: ellipsis;
+            ">
+              ${title}${vehicleTypeInfo}
+            </div>
+          </div>
+          <button onclick="
+                    this.closest('.mapboxgl-popup').style.display = 'none';
+                    setTimeout(() => { 
+                      const popup = this.closest('.mapboxgl-popup'); 
+                      if (popup && popup.parentNode) popup.parentNode.removeChild(popup); 
+                    }, 50);" 
+                  style="
+                    background: none; 
+                    border: none; 
+                    color: #666; 
+                    width: 20px; 
+                    height: 20px; 
+                    cursor: pointer; 
+                    font-size: 16px; 
+                    line-height: 1; 
+                    margin-left: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                  "
+                  onmouseover="this.style.color='#333'"
+                  onmouseout="this.style.color='#666'">
+            ×
+          </button>
         </div>
-        <div style="margin-bottom: 5px; color: #000000;">
-          <strong style="color: #000000;">📡 Estado:</strong> 
-          <span style="color: ${popupStatus === 'online' ? '#4CAF50' : '#F44336'}; font-weight: bold;">
-            ${popupStatus === 'online' ? '🟢 En línea' : '🔴 Desconectado'}
-          </span>
+        
+        <!-- Contenido minimalista -->
+        <div style="padding: 12px;">
+          <div style="
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 10px; 
+          ">
+            <span style="color: #666; font-size: 13px;">Velocidad</span>
+            <span style="color: #333; font-weight: 600; font-size: 18px;">${Math.round(popupSpeed)} ${speedUnit}</span>
+          </div>
+          
+          <div style="
+            display: flex; 
+            align-items: center; 
+            gap: 8px;
+          ">
+            <span style="
+              width: 8px; 
+              height: 8px; 
+              border-radius: 50%; 
+              background: ${popupStatus === 'online' ? '#4CAF50' : '#F44336'};
+            "></span>
+            <span style="
+              color: #666; 
+              font-size: 13px;
+            ">
+              ${popupStatus === 'online' ? 'Conectado' : 'Desconectado'}
+            </span>
+          </div>
         </div>
       </div>
     `;
     
-    // Agregar popup
-    const popup = new mapboxgl.Popup({ offset: 25 })
+    // Agregar popup con configuración personalizada
+    const popup = new mapboxgl.Popup({ 
+      offset: 25, // Volver al offset original
+      closeButton: false, // Deshabilitamos el botón por defecto para usar el nuestro
+      closeOnClick: false // Evitamos que se cierre al hacer click fuera
+    })
       .setHTML(popupContent);
     
     marker.setPopup(popup);
