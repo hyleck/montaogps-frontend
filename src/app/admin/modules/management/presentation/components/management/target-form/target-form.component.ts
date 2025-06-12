@@ -826,7 +826,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // Aplicar valores por defecto para campos requeridos pero que podrían estar vacíos
         // Excluir sim_company para que mantenga su valor original (incluido string vacío)
         for (const key in defaultValues) {
-            if ((targetData[key] === undefined || targetData[key] === null) && key !== 'sim_company') {
+            if ((targetData[key] === undefined || targetData[key] === null || targetData[key] === '') && key !== 'sim_company') {
                 targetData[key] = defaultValues[key];
             }
         }

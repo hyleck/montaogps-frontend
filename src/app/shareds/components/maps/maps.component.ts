@@ -409,15 +409,184 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     const newLat = this.selectedTarget.traccarInfo.geolocation.latitude;
     const newLng = this.selectedTarget.traccarInfo.geolocation.longitude;
     
+    // Obtener información actualizada para el popup
+    const updatedSpeed = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
+    const updatedStatus = this.selectedTarget?.traccarInfo?.status || 'desconocido';
+    const speedUnit = 'km/h';
+    
+    console.log('🔄 ACTUALIZANDO VELOCIDAD EN TIEMPO REAL:', {
+      targetName: this.selectedTarget?.name,
+      velocidadActualizada: updatedSpeed,
+      statusActualizado: updatedStatus,
+      coordenadas: { lat: newLat, lng: newLng }
+    });
+    
     if (this.provider === 'google' && this.currentMarkers.length > 0) {
       // Actualizar posición del marcador en Google Maps
       const marker = this.currentMarkers[0];
       const newPosition = new google.maps.LatLng(newLat, newLng);
       marker.setPosition(newPosition);
+      
+      // NUEVO: Actualizar el InfoWindow si está abierto
+      if ((marker as any).infoWindow) {
+        const infoWindow = (marker as any).infoWindow;
+        
+        // Obtener información adicional del target para el popup actualizado
+        let vehicleTypeInfo = '';
+        if (this.vehicleTypeGetter && this.selectedTarget?.model) {
+          const vehicleType = this.vehicleTypeGetter(this.selectedTarget.model);
+          if (vehicleType && vehicleType !== 'Desconocido') {
+            vehicleTypeInfo = `<span style="color: #9C27B0; font-size: 11px; margin-left: 4px;">(${vehicleType})</span>`;
+          }
+        }
+        
+        // Crear contenido actualizado del InfoWindow
+        const updatedInfoContent = `
+          <div id="custom-info-window" style="
+            font-family: 'Segoe UI', sans-serif; 
+            width: 230px; 
+            background: white; 
+            border: 1px solid #e0e0e0;
+            border-radius: 4px; 
+            margin-right: 10px;
+            margin-bottom: 10px;
+          ">
+            <!-- Header minimalista -->
+            <div style="
+              background: #f8f9fa; 
+              color: #333; 
+              padding: 10px 12px; 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: center;
+              border-bottom: 1px solid #e0e0e0;
+            ">
+              <div style="flex: 1; min-width: 0;">
+                <div style="
+                  font-size: 14px; 
+                  font-weight: 500; 
+                  color: #333;
+                  white-space: nowrap; 
+                  overflow: hidden; 
+                  text-overflow: ellipsis;
+                ">
+                  ${this.selectedTarget?.name}${vehicleTypeInfo}
+                </div>
+              </div>
+              <button onclick="this.closest('#custom-info-window').parentElement.parentElement.parentElement.style.display='none'" 
+                      style="
+                        background: none; 
+                        border: none; 
+                        color: #666; 
+                        width: 20px; 
+                        height: 20px; 
+                        cursor: pointer; 
+                        font-size: 16px; 
+                        line-height: 1; 
+                        margin-left: 10px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                      "
+                      onmouseover="this.style.color='#333'"
+                      onmouseout="this.style.color='#666'">
+                ×
+              </button>
+            </div>
+            
+            <!-- Contenido minimalista -->
+            <div style="padding: 12px;">
+              <div style="
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                margin-bottom: 10px; 
+              ">
+                <span style="color: #666; font-size: 13px;">Velocidad</span>
+                <span style="color: #333; font-weight: 600; font-size: 18px;">${Math.round(updatedSpeed)} ${speedUnit}</span>
+              </div>
+              
+              <div style="
+                display: flex; 
+                align-items: center; 
+                gap: 8px;
+              ">
+                <span style="
+                  width: 8px; 
+                  height: 8px; 
+                  border-radius: 50%; 
+                  background: ${updatedStatus === 'online' ? '#4CAF50' : '#F44336'};
+                "></span>
+                <span style="
+                  color: #666; 
+                  font-size: 13px;
+                ">
+                  ${updatedStatus === 'online' ? 'Conectado' : 'Desconectado'}
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Actualizar el contenido del InfoWindow
+        infoWindow.setContent(updatedInfoContent);
+        
+        // Reconfigurar eventos para el botón de cerrar
+        google.maps.event.addListener(infoWindow, 'domready', () => {
+          const closeBtns = document.querySelectorAll('.gm-ui-hover-effect, [title="Close"], [aria-label="Close"]');
+          closeBtns.forEach((btn: any) => {
+            if (btn && btn.style) {
+              btn.style.display = 'none';
+            }
+          });
+        });
+      }
+      
     } else if (this.provider === 'mapbox' && this.currentMarkers.length > 0) {
       // Actualizar posición del marcador en Mapbox
       const marker = this.currentMarkers[0];
-        marker.setLngLat([newLng, newLat]);
+      marker.setLngLat([newLng, newLat]);
+      
+      // NUEVO: Actualizar el popup si existe
+      const popup = marker.getPopup();
+      if (popup) {
+        // Obtener información adicional del target para el popup actualizado
+        let vehicleTypeInfo = '';
+        if (this.vehicleTypeGetter && this.selectedTarget?.model) {
+          const vehicleType = this.vehicleTypeGetter(this.selectedTarget.model);
+          if (vehicleType && vehicleType !== 'Desconocido') {
+            vehicleTypeInfo = `
+              <div style="margin-bottom: 5px; color: #000000;">
+                <strong style="color: #000000;">🚙 Tipo:</strong> 
+                <span style="color: #9C27B0; font-weight: bold;">${vehicleType}</span>
+              </div>`;
+          }
+        }
+        
+        // Crear contenido actualizado del popup
+        const updatedPopupContent = `
+          <div style="font-family: Arial, sans-serif; min-width: 200px; color: #000000;">
+            <h4 style="margin: 0 0 10px 0; color: #000000; font-size: 16px;">
+              <strong>${this.selectedTarget?.name}</strong>
+            </h4>
+            ${vehicleTypeInfo}
+            <div style="margin-bottom: 5px; color: #000000;">
+              <strong style="color: #000000;">🚗 Velocidad:</strong> 
+              <span style="color: #2196F3; font-weight: bold;">${updatedSpeed} ${speedUnit}</span>
+            </div>
+            <div style="margin-bottom: 5px; color: #000000;">
+              <strong style="color: #000000;">📡 Estado:</strong> 
+              <span style="color: ${updatedStatus === 'online' ? '#4CAF50' : '#F44336'}; font-weight: bold;">
+                ${updatedStatus === 'online' ? '🟢 En línea' : '🔴 Desconectado'}
+              </span>
+            </div>
+          </div>
+        `;
+        
+        // Actualizar el contenido del popup
+        popup.setHTML(updatedPopupContent);
+      }
     }
   }
 
@@ -470,7 +639,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     if (!this.map) return;
     
     // Obtener información del target para el marcador
-    const markerSpeed = this.selectedTarget?.traccarInfo?.['speed'] || 0;
+    const markerSpeed = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
     const markerStatus = this.selectedTarget?.traccarInfo?.status || 'desconocido';
     
     // Crear un marcador personalizado con velocidad para Google Maps
@@ -495,9 +664,29 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     this.currentMarkers.push(marker);
     
     // Obtener información adicional del target para el popup
-    const popupSpeed = this.selectedTarget?.traccarInfo?.['speed'] || 0;
+    const popupSpeed = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
     const popupStatus = this.selectedTarget?.traccarInfo?.status || 'desconocido';
     const speedUnit = 'km/h';
+    
+    // Console para verificar los datos de velocidad
+    console.log('🗺️ DATOS DE VELOCIDAD EN MAPA (GOOGLE):', {
+      targetName: title,
+      velocidadOriginal: this.selectedTarget?.traccarInfo?.geolocation?.speed,
+      velocidadMostrada: popupSpeed,
+      rutaCompleta: 'traccarInfo.geolocation.speed',
+      traccarInfo: this.selectedTarget?.traccarInfo,
+      geolocation: this.selectedTarget?.traccarInfo?.geolocation,
+      geolocationAttributes: this.selectedTarget?.traccarInfo?.geolocation?.attributes,
+      possibleSpeedPaths: {
+        'geolocation.speed': this.selectedTarget?.traccarInfo?.geolocation?.speed,
+        'geolocation.velocity': this.selectedTarget?.traccarInfo?.geolocation?.velocity,
+        'geolocation.attributes.speed': this.selectedTarget?.traccarInfo?.geolocation?.attributes?.speed,
+        'geolocation.attributes.velocity': this.selectedTarget?.traccarInfo?.geolocation?.attributes?.velocity,
+        'traccarInfo.geolocation.speed': this.selectedTarget?.traccarInfo?.geolocation?.speed
+      },
+      allGeolocationProps: this.selectedTarget?.traccarInfo?.geolocation ? Object.keys(this.selectedTarget.traccarInfo.geolocation) : [],
+      speedFound: !!this.selectedTarget?.traccarInfo?.geolocation?.speed
+    });
     
     // Obtener tipo de vehículo si está disponible
     let vehicleTypeInfo = '';
@@ -659,9 +848,29 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     this.currentMarkers.push(marker);
     
     // Obtener información adicional del target
-    const speed = this.selectedTarget?.traccarInfo?.['speed'] || 0;
-    const status = this.selectedTarget?.traccarInfo?.status || 'desconocido';
+    const popupSpeed = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
+    const popupStatus = this.selectedTarget?.traccarInfo?.status || 'desconocido';
     const speedUnit = 'km/h'; // Puedes cambiar esto según tu configuración
+    
+    // Console para verificar los datos de velocidad
+    console.log('🗺️ DATOS DE VELOCIDAD EN MAPA (MAPBOX):', {
+      targetName: title,
+      velocidadOriginal: this.selectedTarget?.traccarInfo?.geolocation?.speed,
+      velocidadMostrada: popupSpeed,
+      rutaCompleta: 'traccarInfo.geolocation.speed',
+      traccarInfo: this.selectedTarget?.traccarInfo,
+      geolocation: this.selectedTarget?.traccarInfo?.geolocation,
+      geolocationAttributes: this.selectedTarget?.traccarInfo?.geolocation?.attributes,
+      possibleSpeedPaths: {
+        'geolocation.speed': this.selectedTarget?.traccarInfo?.geolocation?.speed,
+        'geolocation.velocity': this.selectedTarget?.traccarInfo?.geolocation?.velocity,
+        'geolocation.attributes.speed': this.selectedTarget?.traccarInfo?.geolocation?.attributes?.speed,
+        'geolocation.attributes.velocity': this.selectedTarget?.traccarInfo?.geolocation?.attributes?.velocity,
+        'traccarInfo.geolocation.speed': this.selectedTarget?.traccarInfo?.geolocation?.speed
+      },
+      allGeolocationProps: this.selectedTarget?.traccarInfo?.geolocation ? Object.keys(this.selectedTarget.traccarInfo.geolocation) : [],
+      speedFound: !!this.selectedTarget?.traccarInfo?.geolocation?.speed
+    });
     
     // Obtener tipo de vehículo si está disponible
     let vehicleTypeInfo = '';
@@ -685,12 +894,12 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         ${vehicleTypeInfo}
         <div style="margin-bottom: 5px; color: #000000;">
           <strong style="color: #000000;">🚗 Velocidad:</strong> 
-          <span style="color: #2196F3; font-weight: bold;">${speed} ${speedUnit}</span>
+          <span style="color: #2196F3; font-weight: bold;">${popupSpeed} ${speedUnit}</span>
         </div>
         <div style="margin-bottom: 5px; color: #000000;">
           <strong style="color: #000000;">📡 Estado:</strong> 
-          <span style="color: ${status === 'online' ? '#4CAF50' : '#F44336'}; font-weight: bold;">
-            ${status === 'online' ? '🟢 En línea' : '🔴 Desconectado'}
+          <span style="color: ${popupStatus === 'online' ? '#4CAF50' : '#F44336'}; font-weight: bold;">
+            ${popupStatus === 'online' ? '🟢 En línea' : '🔴 Desconectado'}
           </span>
         </div>
       </div>

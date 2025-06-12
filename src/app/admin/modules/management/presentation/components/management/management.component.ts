@@ -338,17 +338,47 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
-         // Crear objeto target con la estructura esperada por el mapa
-     const targetForMap = {
-       ...target,
-       traccarInfo: {
-         ...target.traccarInfo,
-         geolocation: {
-           latitude: lat,  // Usar nombres en inglés
-           longitude: lng
-         }
-       }
-     };
+             // Crear objeto target con la estructura esperada por el mapa
+    
+    // DEBUG: Verificar qué datos tenemos disponibles ANTES de crear targetForMap
+    console.log('🔍 DEBUGGING showTargetOnMap:');
+    console.log('- target completo:', target);
+    console.log('- target.traccarInfo:', target.traccarInfo);
+    console.log('- target.traccarInfo?.geolocation:', target.traccarInfo?.geolocation);
+    console.log('- target.originalTarget?.traccarInfo?.geolocation:', target.originalTarget?.traccarInfo?.geolocation);
+    console.log('- lat/lng extraídos:', { lat, lng });
+    
+    // Priorizar la geolocation completa cuando esté disponible
+    let geolocationToUse;
+    if (target.traccarInfo?.geolocation) {
+      console.log('✅ Usando target.traccarInfo.geolocation (COMPLETA)');
+      geolocationToUse = target.traccarInfo.geolocation;
+    } else if (target.originalTarget?.traccarInfo?.geolocation) {
+      console.log('✅ Usando target.originalTarget.traccarInfo.geolocation (COMPLETA)');
+      geolocationToUse = target.originalTarget.traccarInfo.geolocation;
+    } else {
+      console.log('⚠️ Usando coordenadas básicas como fallback');
+      geolocationToUse = {
+        latitude: lat,
+        longitude: lng
+      };
+    }
+    
+    const targetForMap = {
+      ...target,
+      traccarInfo: {
+        ...target.traccarInfo,
+        geolocation: geolocationToUse
+      }
+    };
+
+    // DEBUG: Verificar que la geolocation completa se esté pasando al mapa
+    console.log('🗺️ SHOWTATGETONMAP - ENVIANDO AL MAPA:');
+    console.log('- Target original:', target);
+    console.log('- Target para mapa:', targetForMap);
+    console.log('- Geolocation completa:', targetForMap.traccarInfo?.geolocation);
+    console.log('- Velocidad en geolocation:', targetForMap.traccarInfo?.geolocation?.speed);
+    console.log('- Todas las propiedades de geolocation:', targetForMap.traccarInfo?.geolocation ? Object.keys(targetForMap.traccarInfo.geolocation) : 'No hay geolocation');
 
     // Almacenar el target seleccionado
     this.selectedTargetForMap = targetForMap;
@@ -792,14 +822,91 @@ export class ManagementComponent implements OnInit, OnDestroy {
           };
         });
         
-        // Si hay un target seleccionado en el mapa, actualizar su información
-        if (this.selectedTargetForMap) {
-          this.updateSelectedTargetLocation(updatedTargets);
+        // Si hay un target seleccionado en el mapa, obtener sus detalles específicos
+        if (this.selectedTargetForMap?._id) {
+          await this.updateSelectedTargetDetails();
         }
       }
       
     } catch (error) {
       console.error('❌ Error actualizando targets:', error);
+    }
+  }
+
+  private async updateSelectedTargetDetails(): Promise<void> {
+    if (!this.selectedTargetForMap?._id) return;
+    
+    try {
+      // Usar el método específico para obtener detalles del target seleccionado
+      const updatedTargetDetails = await this.targetsService.getTargetById(this.selectedTargetForMap._id);
+      
+      // Console para ver los detalles completos del target
+      console.log('🎯 DETALLES DEL TARGET ESPECÍFICO:', {
+        targetId: this.selectedTargetForMap._id,
+        targetName: updatedTargetDetails.name,
+        detallesCompletos: updatedTargetDetails,
+        traccarInfo: updatedTargetDetails.traccarInfo,
+        geolocation: updatedTargetDetails.traccarInfo?.['geolocation'],
+        geolocationAttributes: updatedTargetDetails.traccarInfo?.['geolocation']?.attributes,
+        geolocationSpeed: updatedTargetDetails.traccarInfo?.['geolocation']?.speed,
+        geolocationVelocity: updatedTargetDetails.traccarInfo?.['geolocation']?.velocity,
+        allGeolocationProps: updatedTargetDetails.traccarInfo?.['geolocation'] ? Object.keys(updatedTargetDetails.traccarInfo['geolocation']) : [],
+        status: updatedTargetDetails.traccarInfo?.status
+      });
+      
+      if (updatedTargetDetails?.traccarInfo?.['geolocation']) {
+        
+        // Actualizar las coordenadas del target seleccionado
+        const lat = updatedTargetDetails.traccarInfo['geolocation'].latitude;
+        const lng = updatedTargetDetails.traccarInfo['geolocation'].longitude;
+        
+        if (lat && lng) {
+          // Verificar si las coordenadas han cambiado significativamente
+          const oldLat = this.selectedTargetForMap.traccarInfo?.geolocation?.latitude;
+          const oldLng = this.selectedTargetForMap.traccarInfo?.geolocation?.longitude;
+          
+          const hasLocationChanged = !oldLat || !oldLng || 
+            Math.abs(lat - oldLat) > 0.0001 || Math.abs(lng - oldLng) > 0.0001;
+          
+          // Crear nuevo objeto targetForMap con datos actualizados completos
+          const updatedTargetForMap = {
+            ...this.selectedTargetForMap,
+            ...updatedTargetDetails, // Usar todos los datos actualizados del target específico
+            traccarInfo: {
+              ...updatedTargetDetails.traccarInfo,
+              geolocation: updatedTargetDetails.traccarInfo?.['geolocation'] || {
+                latitude: lat,
+                longitude: lng
+              }
+            }
+          };
+          
+          // DEBUG: Verificar que el polling preserva la geolocation completa
+          console.log('🔄 POLLING updateSelectedTargetDetails:');
+          console.log('- Geolocation completa preservada:', updatedTargetForMap.traccarInfo?.geolocation);
+          console.log('- Velocidad preservada:', updatedTargetForMap.traccarInfo?.geolocation?.speed);
+          
+          // Actualizar el target seleccionado
+          this.selectedTargetForMap = updatedTargetForMap;
+          
+          if (hasLocationChanged) {
+            
+            // Solo actualizar mapsKey si es la primera selección (para centrar)
+            // Para actualizaciones posteriores, el componente de mapas moverá el marcador suavemente
+            if (this.shouldCenterMapOnUpdate) {
+              this.mapsKey = Date.now();
+              this.shouldCenterMapOnUpdate = false; // Desactivar centrado automático después de la primera vez
+            } else {
+              // NO cambiar mapsKey para evitar recrear el marcador
+              // El cambio en selectedTargetForMap será detectado por ngOnChanges del componente de mapas
+              // y solo actualizará la posición del marcador existente
+            }
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ Error actualizando detalles del target seleccionado:', error);
     }
   }
 
@@ -828,13 +935,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
           ...this.selectedTargetForMap,
           traccarInfo: {
             ...updatedTarget.traccarInfo,
-            geolocation: {
+            geolocation: updatedTarget.traccarInfo?.['geolocation'] || {
               latitude: lat,
               longitude: lng
             }
           }
         };
         
+        // DEBUG: Verificar que el polling preserva la geolocation completa
+        console.log('🔄 POLLING updateSelectedTargetLocation:');
+        console.log('- Geolocation completa preservada:', updatedTargetForMap.traccarInfo?.geolocation);
+        console.log('- Velocidad preservada:', updatedTargetForMap.traccarInfo?.geolocation?.speed);
+
         // Actualizar el target seleccionado
         this.selectedTargetForMap = updatedTargetForMap;
         
@@ -927,14 +1039,28 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
 
     // Crear objeto target con la estructura esperada por el mapa
+    
+    // Priorizar la geolocation completa cuando esté disponible
+    let geolocationToUse;
+    if (target.traccarInfo?.['geolocation']) {
+      console.log('✅ selectTargetForMapWithoutUrlUpdate - Usando target.traccarInfo.geolocation (COMPLETA)');
+      geolocationToUse = target.traccarInfo['geolocation'];
+    } else if (target.originalTarget?.traccarInfo?.['geolocation']) {
+      console.log('✅ selectTargetForMapWithoutUrlUpdate - Usando target.originalTarget.traccarInfo.geolocation (COMPLETA)');
+      geolocationToUse = target.originalTarget.traccarInfo['geolocation'];
+    } else {
+      console.log('⚠️ selectTargetForMapWithoutUrlUpdate - Usando coordenadas básicas como fallback');
+      geolocationToUse = {
+        latitude: lat,
+        longitude: lng
+      };
+    }
+    
     const targetForMap = {
       ...target,
       traccarInfo: {
         ...target.traccarInfo,
-        geolocation: {
-          latitude: lat,
-          longitude: lng
-        }
+        geolocation: geolocationToUse
       }
     };
 
