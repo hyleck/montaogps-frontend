@@ -547,14 +547,7 @@
                                     </div>
 
                                     <div class="sms-chat__footer">
-                                        <div class="connection-status">
-                                            <span class="status-text">
-                                                                                        {{ translate('management.targetForm.deviceStatus') }}:
-                                        <strong [class.online]="isDeviceOnline()" [class.offline]="!isDeviceOnline()">
-                                            {{ translate(isDeviceOnline() ? 'management.status.online' : 'management.status.offline') }}
-                                        </strong>
-                                            </span>
-                                        </div>
+                                        <!-- Footer limpio sin mensajes confusos -->
                                     </div>
                                 </div>
                             </div>

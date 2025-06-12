@@ -786,11 +786,12 @@
         "sendCommand": "Envoyer la commande",
         "lastCommand": "Dernière commande",
         "deviceStatus": "État de l'appareil",
-        "deviceOfflineMessage": "L'appareil doit être en ligne pour envoyer des commandes",
-        "deviceOnlineMessage": "Les commandes seront exécutées immédiatement",
-        "deviceOfflineResponseMessage": "La commande sera envoyée par SMS. La réponse arrivera quand l'appareil se reconnectera",
-        "selectProtocolFirst": "Sélectionnez d'abord un modèle GPS dans l'onglet Installation",
-        "noCommandsAvailable": "Ce protocole n'a pas de commandes SMS configurées"
+        "selectProtocolFirst": "Sélectionnez d'abord un modèle GPS dans l'onglet Installation pour voir les commandes disponibles",
+        "noCommandsAvailable": "Ce protocole n'a pas de commandes SMS configurées",
+        "commandSent": "Commande envoyée",
+        "commandExecuted": "Commande exécutée avec succès",
+        "sendingCommand": "Envoi de la commande SMS...",
+        "waitingResponse": "En attente de la réponse de l'appareil..."
       }
     }
 }

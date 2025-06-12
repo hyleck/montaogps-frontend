@@ -731,8 +731,12 @@
         "deviceOfflineMessage": "El dispositivo debe estar en línea para enviar comandos",
         "deviceOnlineMessage": "Los comandos se ejecutarán inmediatamente",
         "deviceOfflineResponseMessage": "El comando se enviará por SMS. La respuesta llegará cuando el dispositivo se reconecte",
-        "selectProtocolFirst": "Selecciona primero un modelo de GPS en la pestaña de Instalación",
-        "noCommandsAvailable": "Este protocolo no tiene comandos SMS configurados"
+        "selectProtocolFirst": "Selecciona primero un modelo de GPS en la pestaña de Instalación para ver los comandos disponibles",
+        "noCommandsAvailable": "Este protocolo no tiene comandos SMS configurados",
+        "commandSent": "Comando enviado",
+        "commandExecuted": "Comando ejecutado correctamente", 
+        "sendingCommand": "Enviando comando SMS...",
+        "waitingResponse": "Esperando respuesta del dispositivo..."
       },
       "userForm": {
         "title": "Formulario de Usuario",

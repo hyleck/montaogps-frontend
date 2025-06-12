@@ -911,17 +911,21 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       });
     });
     
+    // Cerrar otros InfoWindows abiertos antes de abrir el nuevo
+    this.currentMarkers.forEach((m: any) => {
+      if (m.infoWindow) {
+        m.infoWindow.close();
+      }
+    });
+    
+    // Guardar referencia del InfoWindow en el marcador
+    (marker as any).infoWindow = infoWindow;
+    
+    // Abrir automáticamente el InfoWindow
+    infoWindow.open(this.map, marker);
+    
+    // Mantener el evento click para re-abrir si se cierra
     marker.addListener('click', () => {
-      // Cerrar otros InfoWindows abiertos antes de abrir el nuevo
-      this.currentMarkers.forEach((m: any) => {
-        if (m.infoWindow) {
-          m.infoWindow.close();
-        }
-      });
-      
-      // Guardar referencia del InfoWindow en el marcador
-      (marker as any).infoWindow = infoWindow;
-      
       infoWindow.open(this.map, marker);
     });
   }
@@ -1086,6 +1090,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       .setHTML(popupContent);
     
     marker.setPopup(popup);
+    
+    // Abrir automáticamente el popup
+    marker.togglePopup();
   }
 
   // Método para limpiar completamente el mapa

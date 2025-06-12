@@ -685,11 +685,13 @@
         "sendCommand": "Send command",
         "lastCommand": "Last command",
         "deviceStatus": "Device status",
-        "deviceOfflineMessage": "Device must be online to send commands",
-        "deviceOnlineMessage": "Commands will be executed immediately",
-        "deviceOfflineResponseMessage": "Command will be sent via SMS. Response will arrive when device reconnects",
-        "selectProtocolFirst": "First select a GPS model in the Installation tab",
-        "noCommandsAvailable": "This protocol has no SMS commands configured"
+
+        "selectProtocolFirst": "First select a GPS model in the Installation tab to view available commands",
+        "noCommandsAvailable": "This protocol has no SMS commands configured",
+        "commandSent": "Command sent",
+        "commandExecuted": "Command executed successfully",
+        "sendingCommand": "Sending SMS command...",
+        "waitingResponse": "Waiting for device response..."
       },
       "userForm": {
         "title": "User Form",

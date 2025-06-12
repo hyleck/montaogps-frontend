@@ -138,7 +138,19 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         installationDetails: 'management.targetForm.installationDetails',
         save: 'management.targetForm.save',
         cancel: 'management.targetForm.cancel',
-        plan: 'management.targetForm.plan'
+        plan: 'management.targetForm.plan',
+        // SMS-related translations
+        sms: 'management.targetForm.sms',
+        smsCommands: 'management.targetForm.smsCommands',
+        messageHistory: 'management.targetForm.messageHistory',
+        deviceStatus: 'management.targetForm.deviceStatus',
+        noMessages: 'management.targetForm.noMessages',
+        selectProtocolFirst: 'management.targetForm.selectProtocolFirst',
+        noCommandsAvailable: 'management.targetForm.noCommandsAvailable',
+        commandSent: 'management.targetForm.commandSent',
+        commandExecuted: 'management.targetForm.commandExecuted',
+        sendingCommand: 'management.targetForm.sendingCommand',
+        waitingResponse: 'management.targetForm.waitingResponse'
     };
 
     target: TargetDevice = this.getEmptyTarget();
@@ -989,6 +1001,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         const selectedCommand = this.availableCommands.find(cmd => cmd.name === commandName);
         
         if (selectedCommand) {
+            // Mostrar mensaje de envío inmediato
+            this.messageService.add({
+                severity: 'info',
+                summary: this.translate(this.translations.commandSent),
+                detail: this.translate(this.translations.sendingCommand),
+                life: 2000
+            });
+
             // Añadir mensaje enviado
             this.smsMessages.push({
                 type: 'sent',
@@ -1002,39 +1022,34 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Guardar el último comando enviado
             this.lastSentCommand = commandName;
             
-            // Simular respuesta del dispositivo según su estado
-            if (this.isDeviceOnline()) {
-                // Dispositivo online: respuesta rápida (2 segundos)
-                setTimeout(() => {
-                    this.smsMessages.push({
-                        type: 'received',
-                        content: `Comando "${selectedCommand.name}" ejecutado correctamente`,
-                        timestamp: new Date()
-                    });
-                    
-                    // Hacer scroll hacia abajo después de recibir respuesta
-                    this.scrollToBottom();
-                }, 2000);
-            } else {
-                // Dispositivo offline: respuesta cuando se reconecte (tiempo aleatorio entre 10-30 segundos)
-                const randomDelay = Math.floor(Math.random() * 20000) + 10000; // 10-30 segundos
-                setTimeout(() => {
-                    this.smsMessages.push({
-                        type: 'received',
-                        content: `Comando "${selectedCommand.name}" ejecutado correctamente (recibido al reconectar)`,
-                        timestamp: new Date()
-                    });
-                    
-                    // Hacer scroll hacia abajo después de recibir respuesta offline
-                    this.scrollToBottom();
-                }, randomDelay);
-            }
+            // Simular respuesta del dispositivo (los comandos SMS funcionan sin conexión a internet)
+            // Tiempo aleatorio de respuesta entre 3-8 segundos
+            const responseDelay = Math.floor(Math.random() * 5000) + 3000; // 3-8 segundos
+            
+            setTimeout(() => {
+                this.smsMessages.push({
+                    type: 'received',
+                    content: this.translate(this.translations.commandExecuted),
+                    timestamp: new Date()
+                });
+                
+                // Mostrar mensaje de éxito
+                this.messageService.add({
+                    severity: 'success',
+                    summary: this.translate(this.translations.commandExecuted),
+                    detail: `Comando "${selectedCommand.name}" procesado correctamente`,
+                    life: 3000
+                });
+                
+                // Hacer scroll hacia abajo después de recibir respuesta
+                this.scrollToBottom();
+            }, responseDelay);
         } else {
             // Mensaje de error si no se encuentra el comando
             console.error('Comando no encontrado:', commandName);
             this.messageService.add({
-                severity: 'warn',
-                summary: 'Comando no encontrado',
+                severity: 'error',
+                summary: 'Error',
                 detail: `El comando "${commandName}" no está disponible para este protocolo`
             });
         }
@@ -1051,12 +1066,35 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.syncChatHeight();
             this.scrollToBottom();
         }, 100);
+        
+        // Observar cambios en el tamaño de la lista de comandos
+        if (this.smsCommands) {
+            const resizeObserver = new ResizeObserver(() => {
+                this.syncChatHeight();
+            });
+            resizeObserver.observe(this.smsCommands.nativeElement);
+        }
+        
+        // Listener para cambios de tamaño de ventana
+        window.addEventListener('resize', () => {
+            setTimeout(() => {
+                this.syncChatHeight();
+            }, 100);
+        });
     }
 
     syncChatHeight(): void {
         if (this.smsCommands && this.smsChat) {
+            // No aplicar sincronización en móvil (768px o menos)
+            if (window.innerWidth <= 768) {
+                this.smsChat.nativeElement.style.height = 'auto';
+                return;
+            }
+            
             const commandsHeight = this.smsCommands.nativeElement.offsetHeight;
-            this.smsChat.nativeElement.style.height = `${commandsHeight}px`;
+            const minHeight = 350; // Altura mínima
+            const finalHeight = Math.max(commandsHeight, minHeight);
+            this.smsChat.nativeElement.style.height = `${finalHeight}px`;
         }
     }
 
@@ -1354,6 +1392,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.selectedProtocol = null;
             this.availableCommands = [];
         }
+        
+        // Sincronizar altura después de cambiar comandos
+        setTimeout(() => {
+            this.syncChatHeight();
+        }, 50);
     }
 
     onGpsModelChange(): void {
