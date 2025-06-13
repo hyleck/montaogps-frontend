@@ -138,10 +138,11 @@
                                                     </span>   
                                                     <span style="margin-bottom: 10px; display: block;">IMEI: {{target.imei}}</span>
                                                     
-                                                    <p-tableCheckbox [value]="target" />
+                                                    
                                                     
                                                     <!-- Estado y velocidad combinados -->
                                                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+                                                        <p-tableCheckbox [value]="target" />
                                                         <p-badge [style]="{transform: 'scale(0.8)'}" [value]="target.status" [severity]="target.status == translate.instant('management.status.online') ? 'success' : 'secondary'" />
                                                         <span class="device-speed-display device-speed-display--inline">
                                                             🚗 {{ getDeviceSpeed(target) }}
