@@ -37,6 +37,9 @@
       "es": "Spanish",
       "fr": "French"
     },
+    "common": {
+      "parked": "Parked"
+    },
     "breadcrumb": {
       "dashboard": {
         "title": "Dashboard",

@@ -1114,6 +1114,43 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return vehicleType ? vehicleType.nombre : 'Desconocido';
   }
 
+  /**
+   * Convierte velocidad de nudos a kilómetros por hora
+   * @param speedInKnots Velocidad en nudos
+   * @returns Velocidad en km/h
+   */
+  private convertKnotsToKmh(speedInKnots: number): number {
+    return Math.round(speedInKnots * 1.852);
+  }
+
+  /**
+   * Formatea la velocidad para mostrar "Estacionado" si es 0 o la velocidad en km/h
+   * @param speedInKmh Velocidad en km/h
+   * @returns String formateado de la velocidad
+   */
+  public formatSpeedDisplay(speedInKmh: number): string {
+    if (speedInKmh === 0) {
+      return this.translate.instant('common.parked') || 'Estacionado';
+    }
+    return `${speedInKmh} km/h`;
+  }
+
+  /**
+   * Obtiene la velocidad actual del dispositivo
+   * @param target Target del cual obtener la velocidad
+   * @returns Velocidad formateada como string
+   */
+  public getDeviceSpeed(target: any): string {
+    if (!target.traccarInfo || !target.traccarInfo.geolocation) {
+      return '--';
+    }
+
+    const speedInKnots = target.traccarInfo.geolocation.speed || 0;
+    const speedInKmh = this.convertKnotsToKmh(speedInKnots);
+    
+    return this.formatSpeedDisplay(speedInKmh);
+  }
+
   private getVehicleModelName(modelId: string): string {
     if (!modelId || this.vehicleModels.length === 0) {
       return 'Desconocido';

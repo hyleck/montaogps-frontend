@@ -1430,4 +1430,24 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     isDeviceOnline(): boolean {
         return this.target?.traccarInfo?.status === 'online';
     }
+
+    // Método para verificar si hay un tipo de SIM card seleccionado
+    hasSimCardTypeSelected(): boolean {
+        return !!(this.target?.sim_company && this.target.sim_company.trim() !== '');
+    }
+
+    // Método para obtener el nombre de visualización del tipo de SIM card
+    getSimCardDisplayName(): string {
+        if (!this.target?.sim_company) {
+            return 'SMS';
+        }
+
+        // Buscar el tipo de SIM card en la lista de opciones disponibles
+        const simCardType = this.availableSimCardTypes.find(
+            simType => simType.value === this.target.sim_company
+        );
+
+        // Devolver el label si se encuentra, o el valor original si no se encuentra
+        return simCardType ? simCardType.label : this.target.sim_company;
+    }
 }

@@ -208,6 +208,164 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     } else if (this.provider === 'mapbox') {
       const marker = this.currentMarkers[0];
       marker.setLngLat([lng, lat]);
+      
+      // Verificar si el marcador está fuera de la vista y centrarlo si es necesario
+      this.checkAndCenterMapboxMarker(lng, lat);
+    }
+  }
+
+  /**
+   * Verifica si el marcador está visible en Mapbox y lo centra si está fuera de la vista
+   * @param lng Longitud del marcador
+   * @param lat Latitud del marcador
+   */
+  private checkAndCenterMapboxMarker(lng: number, lat: number): void {
+    if (!this.map || this.provider !== 'mapbox') return;
+
+    try {
+      // Obtener los límites actuales del mapa
+      const bounds = this.map.getBounds();
+      const markerPoint = { lng: lng, lat: lat };
+      
+      // Verificar si el marcador está dentro de los límites visibles
+      const isVisible = bounds.contains(markerPoint);
+      const isNearEdge = this.isMarkerNearMapboxEdge(lng, lat);
+      
+      console.log('🗺️ VERIFICANDO VISIBILIDAD DEL MARCADOR (MAPBOX):', {
+        marcador: markerPoint,
+        limitesActuales: {
+          norte: bounds.getNorth(),
+          sur: bounds.getSouth(),
+          este: bounds.getEast(),
+          oeste: bounds.getWest()
+        },
+        estaVisible: isVisible,
+        cercaDelBorde: isNearEdge
+      });
+      
+      // Si el marcador no está visible O está muy cerca del borde, centrar el mapa
+      if (!isVisible || isNearEdge) {
+        const reason = !isVisible ? 'MARCADOR FUERA DE VISTA' : 'MARCADOR CERCA DEL BORDE';
+        console.log(`📍 ${reason} - CENTRANDO MAPA (MAPBOX)`);
+        
+        // Usar la función de centrado optimizada
+        this.centerMapboxMap(lng, lat, {
+          duration: isVisible ? 1500 : 2000, // Más rápido si solo está cerca del borde
+          padding: 100, // Margen alrededor del marcador
+          force: !isVisible // Forzar solo si está completamente fuera de vista
+        });
+      }
+    } catch (error) {
+      console.error('Error al verificar visibilidad del marcador en Mapbox:', error);
+    }
+  }
+
+  /**
+   * Verifica si el marcador está cerca del borde del mapa y necesita recentrado preventivo
+   * @param lng Longitud del marcador
+   * @param lat Latitud del marcador
+   * @param threshold Porcentaje del borde (0.15 = 15% del borde)
+   */
+  private isMarkerNearMapboxEdge(lng: number, lat: number, threshold: number = 0.15): boolean {
+    if (!this.map || this.provider !== 'mapbox') return false;
+
+    try {
+      const bounds = this.map.getBounds();
+      const lngRange = bounds.getEast() - bounds.getWest();
+      const latRange = bounds.getNorth() - bounds.getSouth();
+      
+      // Calcular márgenes basados en el threshold
+      const lngMargin = lngRange * threshold;
+      const latMargin = latRange * threshold;
+      
+      // Verificar si está cerca de los bordes
+      const nearWestEdge = lng <= (bounds.getWest() + lngMargin);
+      const nearEastEdge = lng >= (bounds.getEast() - lngMargin);
+      const nearSouthEdge = lat <= (bounds.getSouth() + latMargin);
+      const nearNorthEdge = lat >= (bounds.getNorth() - latMargin);
+      
+      const isNearEdge = nearWestEdge || nearEastEdge || nearSouthEdge || nearNorthEdge;
+      
+      if (isNearEdge) {
+        console.log('🔍 MARCADOR CERCA DEL BORDE:', {
+          marcador: { lng, lat },
+          bordes: {
+            oeste: nearWestEdge,
+            este: nearEastEdge,
+            sur: nearSouthEdge,
+            norte: nearNorthEdge
+          },
+          margenes: {
+            longitud: lngMargin,
+            latitud: latMargin
+          }
+        });
+      }
+      
+      return isNearEdge;
+    } catch (error) {
+      console.error('Error al verificar proximidad al borde en Mapbox:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Centra el mapa de Mapbox en el marcador actual con opciones personalizables
+   * @param lng Longitud del centro
+   * @param lat Latitud del centro
+   * @param options Opciones de centrado
+   */
+  private centerMapboxMap(lng: number, lat: number, options: {
+    duration?: number;
+    zoom?: number;
+    padding?: number;
+    force?: boolean;
+  } = {}): void {
+    if (!this.map || this.provider !== 'mapbox') return;
+
+    const {
+      duration = 2000,
+      zoom = undefined, // Mantener zoom actual
+      padding = 50,
+      force = false
+    } = options;
+
+    try {
+      // Si no es forzado, verificar si realmente necesita centrado
+      if (!force) {
+        const bounds = this.map.getBounds();
+        const isVisible = bounds.contains({ lng, lat });
+        const isNearEdge = this.isMarkerNearMapboxEdge(lng, lat);
+        
+        if (isVisible && !isNearEdge) {
+          console.log('🚫 NO ES NECESARIO CENTRAR EL MAPA');
+          return;
+        }
+      }
+
+      console.log('🎯 CENTRANDO MAPA MAPBOX:', {
+        coordenadas: { lng, lat },
+        duracion: `${duration}ms`,
+        zoom: zoom || 'actual',
+        padding: `${padding}px`,
+        forzado: force
+      });
+
+      const centerOptions: any = {
+        center: [lng, lat],
+        duration: duration,
+        easing: (t: number) => t * (2 - t), // Easing suave
+        padding: padding
+      };
+
+      // Solo incluir zoom si se especifica
+      if (zoom !== undefined) {
+        centerOptions.zoom = zoom;
+      }
+
+      this.map.easeTo(centerOptions);
+    } catch (error) {
+      console.error('Error al centrar el mapa de Mapbox:', error);
     }
   }
 

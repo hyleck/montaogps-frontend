@@ -481,10 +481,10 @@
                         <app-cloud></app-cloud>
                     </p-tabPanel> -->
 
-                    <p-tabPanel>
+                    <p-tabPanel *ngIf="hasSimCardTypeSelected()">
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-envelope"></i>
-                            <span class="tab-text">{{ translate('management.targetForm.sms') }}</span>
+                            <span class="tab-text">{{ getSimCardDisplayName() }} ({{ translate('management.targetForm.sms') }})</span>
                         </ng-template>
                         <div class="sms-admin">
                             <div class="sms-admin__grid">

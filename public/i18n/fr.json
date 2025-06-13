@@ -39,6 +39,9 @@
       "es": "Espagnol",
       "fr": "Français"
     },
+    "common": {
+      "parked": "Stationné"
+    },
     "breadcrumb": {
       "dashboard": {
         "title": "Panorama",

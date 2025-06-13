@@ -929,3 +929,52 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     }
 }
 
+/* ✨ ESTILOS PARA VELOCIDAD DEL DISPOSITIVO - DISEÑO MINIMALISTA */
+
+/* Display de velocidad - tema claro (solo texto) */
+.device-speed-display {
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: 400;
+    padding: 0;
+    background: none;
+    border: none;
+    display: inline-block;
+    opacity: 0.8;
+}
+
+/* Display de velocidad - tema oscuro (solo texto) */
+.dark .device-speed-display {
+    color: #6b7280;
+    background: none;
+    border: none;
+}
+
+/* Variante compacta para tabla (debajo del badge) */
+.device-speed-display--compact {
+    font-size: 9px;
+    padding: 0;
+    background: none;
+    border: none;
+    opacity: 0.7;
+}
+
+.dark .device-speed-display--compact {
+    background: none;
+    border: none;
+}
+
+/* Variante inline (al lado del badge) */
+.device-speed-display--inline {
+    font-size: 10px;
+    padding: 0;
+    background: none;
+    border: none;
+    opacity: 0.75;
+}
+
+.dark .device-speed-display--inline {
+    background: none;
+    border: none;
+}
+

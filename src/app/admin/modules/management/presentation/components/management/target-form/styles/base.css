@@ -472,13 +472,13 @@
     color: var(--globalColorTextMuted);
 }
 
-/* Estilos para mensajes informativos de SMS */
+/* Estilos para mensajes informativos de SMS - DISEÑO MINIMALISTA */
 .no-protocol-message,
 .no-commands-message {
     padding: 1rem;
     text-align: center;
-    border-radius: 8px;
-    background-color: var(--globalColorBackgroundLight);
+    background: none;
+    border: none;
     margin: 0.5rem 0;
 }
 
