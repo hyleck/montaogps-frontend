@@ -791,7 +791,8 @@
         "commandSent": "Commande envoyée",
         "commandExecuted": "Commande exécutée avec succès",
         "sendingCommand": "Envoi de la commande SMS...",
-        "waitingResponse": "En attente de la réponse de l'appareil..."
+        "waitingResponse": "En attente de la réponse de l'appareil...",
+        "parked": "Stationné"
       }
     }
 }

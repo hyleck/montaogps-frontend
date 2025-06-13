@@ -26,6 +26,30 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   ) {
   }
 
+  /**
+   * Convierte velocidad de nudos (knots) a kilómetros por hora (km/h)
+   * Factor de conversión: 1 nudo = 1.852 km/h
+   * @param speedInKnots Velocidad en nudos (desde Traccar)
+   * @returns Velocidad en km/h redondeada para mostrar al usuario
+   */
+  private convertKnotsToKmh(speedInKnots: number): number {
+    if (!speedInKnots || speedInKnots < 0) return 0;
+    // Conversión: nudos × 1.852 = km/h
+    return Math.round(speedInKnots * 1.852);
+  }
+
+  /**
+   * Formatea la velocidad para mostrar al usuario
+   * @param speedInKmh Velocidad en km/h
+   * @returns String formateado: "Estacionado" si es 0, o "X km/h" si tiene velocidad
+   */
+  private formatSpeedDisplay(speedInKmh: number): string {
+    if (speedInKmh === 0) {
+      return 'Estacionado'; // TODO: Usar traducción cuando esté disponible el servicio de idiomas
+    }
+    return `${speedInKmh} km/h`;
+  }
+
   ngOnChanges(changes: SimpleChanges): void {
     // Si cambió el proveedor de mapas, necesitamos reinicializar completamente el mapa
     if (changes['provider'] && this.map) {
@@ -410,13 +434,16 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     const newLng = this.selectedTarget.traccarInfo.geolocation.longitude;
     
     // Obtener información actualizada para el popup
-    const updatedSpeed = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
+    const speedInKnots = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
+    const updatedSpeed = this.convertKnotsToKmh(speedInKnots);
     const updatedStatus = this.selectedTarget?.traccarInfo?.status || 'desconocido';
     const speedUnit = 'km/h';
     
     console.log('🔄 ACTUALIZANDO VELOCIDAD EN TIEMPO REAL:', {
       targetName: this.selectedTarget?.name,
-      velocidadActualizada: updatedSpeed,
+      velocidadEnNudos: speedInKnots,
+      velocidadEnKmh: updatedSpeed,
+      conversionAplicada: speedInKnots > 0 ? `${speedInKnots} nudos → ${this.formatSpeedDisplay(updatedSpeed)}` : 'Sin velocidad',
       statusActualizado: updatedStatus,
       coordenadas: { lat: newLat, lng: newLng }
     });
@@ -520,7 +547,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
                 margin-bottom: 10px; 
               ">
                 <span style="color: #666; font-size: 13px;">Velocidad</span>
-                <span style="color: #333; font-weight: 600; font-size: 18px;">${Math.round(updatedSpeed)} ${speedUnit}</span>
+                <span style="color: #333; font-weight: 600; font-size: 18px;">${this.formatSpeedDisplay(updatedSpeed)}</span>
               </div>
               
               <div style="
@@ -645,7 +672,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
                 margin-bottom: 10px; 
               ">
                 <span style="color: #666; font-size: 13px;">Velocidad</span>
-                <span style="color: #333; font-weight: 600; font-size: 18px;">${Math.round(updatedSpeed)} ${speedUnit}</span>
+                <span style="color: #333; font-weight: 600; font-size: 18px;">${this.formatSpeedDisplay(updatedSpeed)}</span>
               </div>
               
               <div style="
@@ -725,7 +752,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     if (!this.map) return;
     
     // Obtener información del target para el marcador
-    const markerSpeed = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
+    const markerSpeedInKnots = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
+    const markerSpeed = this.convertKnotsToKmh(markerSpeedInKnots);
     const markerStatus = this.selectedTarget?.traccarInfo?.status || 'desconocido';
     
     // Crear un marcador personalizado con velocidad para Google Maps
@@ -750,15 +778,17 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     this.currentMarkers.push(marker);
     
     // Obtener información adicional del target para el popup
-    const popupSpeed = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
+    const popupSpeedInKnots = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
+    const popupSpeed = this.convertKnotsToKmh(popupSpeedInKnots);
     const popupStatus = this.selectedTarget?.traccarInfo?.status || 'desconocido';
     const speedUnit = 'km/h';
     
     // Console para verificar los datos de velocidad
     console.log('🗺️ DATOS DE VELOCIDAD EN MAPA (GOOGLE):', {
       targetName: title,
-      velocidadOriginal: this.selectedTarget?.traccarInfo?.geolocation?.speed,
-      velocidadMostrada: popupSpeed,
+      velocidadEnNudos: popupSpeedInKnots,
+      velocidadEnKmh: popupSpeed,
+      conversionAplicada: popupSpeedInKnots > 0 ? `${popupSpeedInKnots} nudos → ${this.formatSpeedDisplay(popupSpeed)}` : 'Sin velocidad',
       rutaCompleta: 'traccarInfo.geolocation.speed',
       traccarInfo: this.selectedTarget?.traccarInfo,
       geolocation: this.selectedTarget?.traccarInfo?.geolocation,
@@ -868,7 +898,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
            
           ">
             <span style="color: #666; font-size: 13px;">Velocidad</span>
-            <span style="color: #333; font-weight: 600; font-size: 18px;">${Math.round(popupSpeed)} ${speedUnit}</span>
+            <span style="color: #333; font-weight: 600; font-size: 18px;">${this.formatSpeedDisplay(popupSpeed)}</span>
           </div>
           
           <div style="
@@ -954,15 +984,17 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     this.currentMarkers.push(marker);
     
     // Obtener información adicional del target
-    const popupSpeed = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
+    const popupSpeedInKnots = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
+    const popupSpeed = this.convertKnotsToKmh(popupSpeedInKnots);
     const popupStatus = this.selectedTarget?.traccarInfo?.status || 'desconocido';
-    const speedUnit = 'km/h'; // Puedes cambiar esto según tu configuración
+    const speedUnit = 'km/h';
     
     // Console para verificar los datos de velocidad
     console.log('🗺️ DATOS DE VELOCIDAD EN MAPA (MAPBOX):', {
       targetName: title,
-      velocidadOriginal: this.selectedTarget?.traccarInfo?.geolocation?.speed,
-      velocidadMostrada: popupSpeed,
+      velocidadEnNudos: popupSpeedInKnots,
+      velocidadEnKmh: popupSpeed,
+      conversionAplicada: popupSpeedInKnots > 0 ? `${popupSpeedInKnots} nudos → ${this.formatSpeedDisplay(popupSpeed)}` : 'Sin velocidad',
       rutaCompleta: 'traccarInfo.geolocation.speed',
       traccarInfo: this.selectedTarget?.traccarInfo,
       geolocation: this.selectedTarget?.traccarInfo?.geolocation,
@@ -1056,7 +1088,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
             margin-bottom: 10px; 
           ">
             <span style="color: #666; font-size: 13px;">Velocidad</span>
-            <span style="color: #333; font-weight: 600; font-size: 18px;">${Math.round(popupSpeed)} ${speedUnit}</span>
+            <span style="color: #333; font-weight: 600; font-size: 18px;">${this.formatSpeedDisplay(popupSpeed)}</span>
           </div>
           
           <div style="

@@ -691,7 +691,8 @@
         "commandSent": "Command sent",
         "commandExecuted": "Command executed successfully",
         "sendingCommand": "Sending SMS command...",
-        "waitingResponse": "Waiting for device response..."
+        "waitingResponse": "Waiting for device response...",
+        "parked": "Parked"
       },
       "userForm": {
         "title": "User Form",
