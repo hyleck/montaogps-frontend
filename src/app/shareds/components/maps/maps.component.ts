@@ -18,6 +18,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   apiKey: string = '';
   apiUrl: string = '';
   private currentMarkers: any[] = []; // Array para guardar marcadores actuales
+  private animationFrameId: number | null = null; // ID del frame de animación
+  private lastPosition: { lat: number; lng: number } | null = null; // Última posición conocida
+  private currentDisplayedSpeed: number = 0; // Velocidad actualmente mostrada en el UI
 
   constructor(
     private _theme: ThemesService,
@@ -48,6 +51,441 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       return 'Estacionado'; // TODO: Usar traducción cuando esté disponible el servicio de idiomas
     }
     return `${speedInKmh} km/h`;
+  }
+
+  /**
+   * Genera velocidades intermedias entre la velocidad actual y la nueva
+   * @param currentSpeed Velocidad actual en km/h
+   * @param targetSpeed Velocidad objetivo en km/h
+   * @param numberOfSteps Número de pasos para la transición
+   * @returns Array de velocidades intermedias
+   */
+  private generateIntermediateSpeeds(currentSpeed: number, targetSpeed: number, numberOfSteps: number): number[] {
+    const speeds: number[] = [];
+    const speedDiff = targetSpeed - currentSpeed;
+    
+    for (let i = 1; i <= numberOfSteps; i++) {
+      const progress = i / numberOfSteps;
+      const intermediateSpeed = Math.round(currentSpeed + (speedDiff * progress));
+      speeds.push(intermediateSpeed);
+    }
+    
+    return speeds;
+  }
+
+  /**
+   * Genera posiciones intermedias entre dos puntos y mueve el marcador paso a paso
+   * También interpola la velocidad gradualmente
+   * @param fromLat Latitud inicial
+   * @param fromLng Longitud inicial
+   * @param toLat Latitud final
+   * @param toLng Longitud final
+   * @param targetSpeed Velocidad objetivo en km/h
+   * @param stepDelayMs Delay entre cada paso en millisegundos
+   */
+  private generateIntermediateMovement(
+    fromLat: number, 
+    fromLng: number, 
+    toLat: number, 
+    toLng: number, 
+    targetSpeed: number,
+    stepDelayMs: number = 800
+  ): void {
+    // Cancelar movimiento anterior si existe
+    if (this.animationFrameId) {
+      clearTimeout(this.animationFrameId);
+    }
+
+    // Calcular distancia para determinar número de pasos
+    const distance = this.calculateDistance(fromLat, fromLng, toLat, toLng);
+    const distanceInMeters = distance * 1000;
+    
+    // Determinar número de pasos basado en la distancia (aumentado para movimiento más lento)
+    let numberOfSteps: number;
+    if (distanceInMeters < 50) {
+      numberOfSteps = 5; // Distancias cortas: más pasos para suavidad
+    } else if (distanceInMeters < 200) {
+      numberOfSteps = 8; // Distancias medias: más pasos
+    } else if (distanceInMeters < 500) {
+      numberOfSteps = 12; // Distancias largas: muchos más pasos
+    } else {
+      numberOfSteps = 16; // Distancias muy largas: máximos pasos
+    }
+
+    // Generar velocidades intermedias
+    const intermediateSpeeds = this.generateIntermediateSpeeds(
+      this.currentDisplayedSpeed, 
+      targetSpeed, 
+      numberOfSteps
+    );
+
+    console.log('🎯 GENERANDO MOVIMIENTO POR PASOS:', {
+      desde: { lat: fromLat, lng: fromLng },
+      hacia: { lat: toLat, lng: toLng },
+      distancia: `${Math.round(distanceInMeters)}m`,
+      numeroDepasos: numberOfSteps,
+      delayEntrePasos: `${stepDelayMs}ms`,
+      velocidadActual: this.currentDisplayedSpeed,
+      velocidadObjetivo: targetSpeed,
+      velocidadesIntermedias: intermediateSpeeds
+    });
+
+    // Generar posiciones intermedias con ligera variación para movimiento más realista
+    const intermediatePositions: { lat: number; lng: number }[] = [];
+    
+    for (let i = 1; i <= numberOfSteps; i++) {
+      const progress = i / numberOfSteps;
+      
+      // Interpolación lineal básica
+      let lat = fromLat + (toLat - fromLat) * progress;
+      let lng = fromLng + (toLng - fromLng) * progress;
+      
+      // Agregar ligera variación aleatoria para simular movimiento real del vehículo
+      // Solo para pasos intermedios (no el último paso)
+      if (i < numberOfSteps && distanceInMeters > 100) {
+        const variationFactor = 0.0001; // Muy pequeña variación (~10 metros)
+        const latVariation = (Math.random() - 0.5) * variationFactor;
+        const lngVariation = (Math.random() - 0.5) * variationFactor;
+        
+        lat += latVariation;
+        lng += lngVariation;
+      }
+      
+      intermediatePositions.push({ lat, lng });
+    }
+
+    // Ejecutar movimiento paso a paso
+    let currentStep = 0;
+    const executeStep = () => {
+      if (currentStep < intermediatePositions.length) {
+        const position = intermediatePositions[currentStep];
+        const currentSpeed = intermediateSpeeds[currentStep];
+        
+        console.log(`📍 PASO ${currentStep + 1}/${numberOfSteps}:`, {
+          coordenadas: `${position.lat.toFixed(6)}, ${position.lng.toFixed(6)}`,
+          velocidad: `${currentSpeed} km/h`,
+          porcentaje: `${Math.round((currentStep + 1) / numberOfSteps * 100)}%`
+        });
+        
+        // Mover marcador a la posición intermedia
+        this.updateMarkerPositionInstant(position.lat, position.lng);
+        
+        // Actualizar velocidad mostrada
+        this.currentDisplayedSpeed = currentSpeed;
+        
+        // Actualizar popups/InfoWindows con la nueva velocidad
+        this.updatePopupSpeeds(currentSpeed);
+        
+        currentStep++;
+        
+        // Programar siguiente paso
+        this.animationFrameId = setTimeout(executeStep, stepDelayMs) as any;
+      } else {
+        // Movimiento completado
+        this.animationFrameId = null;
+        this.lastPosition = { lat: toLat, lng: toLng };
+        this.currentDisplayedSpeed = targetSpeed;
+        console.log('✅ MOVIMIENTO COMPLETADO');
+      }
+    };
+
+    // Iniciar el movimiento paso a paso
+    executeStep();
+  }
+
+  /**
+   * Actualiza instantáneamente la posición del marcador sin animación
+   * @param lat Nueva latitud
+   * @param lng Nueva longitud
+   */
+  private updateMarkerPositionInstant(lat: number, lng: number): void {
+    if (this.currentMarkers.length === 0) return;
+
+    if (this.provider === 'google') {
+      const marker = this.currentMarkers[0];
+      const newPosition = new google.maps.LatLng(lat, lng);
+      marker.setPosition(newPosition);
+    } else if (this.provider === 'mapbox') {
+      const marker = this.currentMarkers[0];
+      marker.setLngLat([lng, lat]);
+    }
+  }
+
+  /**
+   * Actualiza la velocidad mostrada en los popups/InfoWindows existentes
+   * @param speedKmh Nueva velocidad en km/h
+   */
+  private updatePopupSpeeds(speedKmh: number): void {
+    if (this.currentMarkers.length === 0) return;
+
+    const formattedSpeed = this.formatSpeedDisplay(speedKmh);
+    const updatedStatus = this.selectedTarget?.traccarInfo?.status || 'desconocido';
+
+    if (this.provider === 'google') {
+      const marker = this.currentMarkers[0];
+      if ((marker as any).infoWindow) {
+        const infoWindow = (marker as any).infoWindow;
+        
+        // Obtener información adicional del target para el popup actualizado
+        let vehicleTypeInfo = '';
+        if (this.vehicleTypeGetter && this.selectedTarget?.model) {
+          const vehicleType = this.vehicleTypeGetter(this.selectedTarget.model);
+          if (vehicleType && vehicleType !== 'Desconocido') {
+            vehicleTypeInfo = `<span style="color: #9C27B0; font-size: 11px; margin-left: 4px;">(${vehicleType})</span>`;
+          }
+        }
+        
+        // Crear contenido actualizado del InfoWindow con la nueva velocidad
+        const updatedInfoContent = `
+          <div id="custom-info-window" style="
+            font-family: 'Segoe UI', sans-serif; 
+            width: 230px; 
+            background: white; 
+            border: 1px solid #e0e0e0;
+            border-radius: 4px; 
+            margin-right: 10px;
+            margin-bottom: 10px;
+          ">
+            <!-- Header minimalista -->
+            <div style="
+              background: #f8f9fa; 
+              color: #333; 
+              padding: 10px 12px; 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: center;
+              border-bottom: 1px solid #e0e0e0;
+            ">
+              <div style="flex: 1; min-width: 0;">
+                <div style="
+                  font-size: 14px; 
+                  font-weight: 500; 
+                  color: #333;
+                  white-space: nowrap; 
+                  overflow: hidden; 
+                  text-overflow: ellipsis;
+                ">
+                  ${this.selectedTarget?.name}${vehicleTypeInfo}
+                </div>
+              </div>
+              <button onclick="
+                        const iwOuter = this.closest('.gm-style-iw');
+                        const iwContainer = this.closest('.gm-style-iw-c');
+                        const iwBackground = document.querySelector('.gm-style-iw-d');
+                        const iwTail = document.querySelector('.gm-style-iw-t');
+                        
+                        if (iwOuter) iwOuter.style.display = 'none';
+                        if (iwContainer) iwContainer.style.display = 'none';
+                        if (iwBackground) iwBackground.style.display = 'none';
+                        if (iwTail) iwTail.style.display = 'none';
+                        
+                        setTimeout(() => {
+                          if (iwOuter && iwOuter.parentNode) iwOuter.parentNode.removeChild(iwOuter);
+                          if (iwContainer && iwContainer.parentNode) iwContainer.parentNode.removeChild(iwContainer);
+                          if (iwBackground && iwBackground.parentNode) iwBackground.parentNode.removeChild(iwBackground);
+                          if (iwTail && iwTail.parentNode) iwTail.parentNode.removeChild(iwTail);
+                        }, 50);" 
+                      style="
+                        background: none; 
+                        border: none; 
+                        color: #666; 
+                        width: 20px; 
+                        height: 20px; 
+                        cursor: pointer; 
+                        font-size: 16px; 
+                        line-height: 1; 
+                        margin-left: 10px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                      "
+                      onmouseover="this.style.color='#333'"
+                      onmouseout="this.style.color='#666'">
+                ×
+              </button>
+            </div>
+            
+            <!-- Contenido minimalista -->
+            <div style="padding: 12px;">
+              <div style="
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                margin-bottom: 10px; 
+              ">
+                <span style="color: #666; font-size: 13px;">Velocidad</span>
+                <span style="color: #333; font-weight: 600; font-size: 18px;">${formattedSpeed}</span>
+              </div>
+              
+              <div style="
+                display: flex; 
+                align-items: center; 
+                gap: 8px;
+              ">
+                <span style="
+                  width: 8px; 
+                  height: 8px; 
+                  border-radius: 50%; 
+                  background: ${updatedStatus === 'online' ? '#4CAF50' : '#F44336'};
+                "></span>
+                <span style="
+                  color: #666; 
+                  font-size: 13px;
+                ">
+                  ${updatedStatus === 'online' ? 'Conectado' : 'Desconectado'}
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Actualizar el contenido del InfoWindow
+        infoWindow.setContent(updatedInfoContent);
+      }
+    } else if (this.provider === 'mapbox') {
+      const marker = this.currentMarkers[0];
+      const popup = marker.getPopup();
+      if (popup) {
+        // Obtener información adicional del target para el popup actualizado
+        let vehicleTypeInfo = '';
+        if (this.vehicleTypeGetter && this.selectedTarget?.model) {
+          const vehicleType = this.vehicleTypeGetter(this.selectedTarget.model);
+          if (vehicleType && vehicleType !== 'Desconocido') {
+            vehicleTypeInfo = `<span style="color: #9C27B0; font-size: 11px; margin-left: 4px;">(${vehicleType})</span>`;
+          }
+        }
+        
+        // Crear contenido actualizado del popup con la nueva velocidad
+        const updatedPopupContent = `
+          <div id="custom-info-window" style="
+            font-family: 'Segoe UI', sans-serif; 
+            width: 215px;
+            background: white; 
+            border: 1px solid #e0e0e0;
+            border-radius: 4px; 
+            margin-right: 15px;
+            margin-bottom: 10px;
+          ">
+            <!-- Header minimalista -->
+            <div style="
+              background: #f8f9fa; 
+              color: #333; 
+              padding: 10px 12px; 
+              display: flex; 
+              justify-content: space-between; 
+              align-items: center;
+              border-bottom: 1px solid #e0e0e0;
+            ">
+              <div style="flex: 1; min-width: 0;">
+                <div style="
+                  font-size: 14px; 
+                  font-weight: 500; 
+                  color: #333;
+                  white-space: nowrap; 
+                  overflow: hidden; 
+                  text-overflow: ellipsis;
+                ">
+                  ${this.selectedTarget?.name}${vehicleTypeInfo}
+                </div>
+              </div>
+              <button onclick="
+                        this.closest('.mapboxgl-popup').style.display = 'none';
+                        setTimeout(() => { 
+                          const popup = this.closest('.mapboxgl-popup'); 
+                          if (popup && popup.parentNode) popup.parentNode.removeChild(popup); 
+                        }, 50);" 
+                      style="
+                        background: none; 
+                        border: none; 
+                        color: #666; 
+                        width: 20px; 
+                        height: 20px; 
+                        cursor: pointer; 
+                        font-size: 16px; 
+                        line-height: 1; 
+                        margin-left: 10px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-shrink: 0;
+                      "
+                      onmouseover="this.style.color='#333'"
+                      onmouseout="this.style.color='#666'">
+                ×
+              </button>
+            </div>
+            
+            <!-- Contenido minimalista -->
+            <div style="padding: 12px;">
+              <div style="
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center; 
+                margin-bottom: 10px; 
+              ">
+                <span style="color: #666; font-size: 13px;">Velocidad</span>
+                <span style="color: #333; font-weight: 600; font-size: 18px;">${formattedSpeed}</span>
+              </div>
+              
+              <div style="
+                display: flex; 
+                align-items: center; 
+                gap: 8px;
+              ">
+                <span style="
+                  width: 8px; 
+                  height: 8px; 
+                  border-radius: 50%; 
+                  background: ${updatedStatus === 'online' ? '#4CAF50' : '#F44336'};
+                "></span>
+                <span style="
+                  color: #666; 
+                  font-size: 13px;
+                ">
+                  ${updatedStatus === 'online' ? 'Conectado' : 'Desconectado'}
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Actualizar el contenido del popup
+        popup.setHTML(updatedPopupContent);
+      }
+    }
+  }
+
+  /**
+   * Calcula la distancia entre dos puntos geográficos usando la fórmula de Haversine
+   * @param lat1 Latitud del primer punto
+   * @param lng1 Longitud del primer punto
+   * @param lat2 Latitud del segundo punto
+   * @param lng2 Longitud del segundo punto
+   * @returns Distancia en kilómetros
+   */
+  private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371; // Radio de la Tierra en kilómetros
+    const dLat = this.toRadians(lat2 - lat1);
+    const dLng = this.toRadians(lng2 - lng1);
+    
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    
+    return distance;
+  }
+
+  /**
+   * Convierte grados a radianes
+   * @param degrees Grados
+   * @returns Radianes
+   */
+  private toRadians(degrees: number): number {
+    return degrees * (Math.PI / 180);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -445,14 +883,77 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       velocidadEnKmh: updatedSpeed,
       conversionAplicada: speedInKnots > 0 ? `${speedInKnots} nudos → ${this.formatSpeedDisplay(updatedSpeed)}` : 'Sin velocidad',
       statusActualizado: updatedStatus,
-      coordenadas: { lat: newLat, lng: newLng }
+      coordenadas: { lat: newLat, lng: newLng },
+      ultimaPosicion: this.lastPosition
     });
     
+    // Verificar si hay una posición anterior para animar
+    if (this.lastPosition && this.currentMarkers.length > 0) {
+      // Calcular la distancia para determinar si vale la pena animar
+      const distance = this.calculateDistance(
+        this.lastPosition.lat, 
+        this.lastPosition.lng, 
+        newLat, 
+        newLng
+      );
+      
+      // Solo animar si la distancia es significativa (más de 5 metros) pero no demasiado grande (menos de 1km)
+      if (distance > 0.005 && distance < 1) { // 5 metros a 1 km
+                 console.log('🚶 MOVIMIENTO PASO A PASO DEL MARCADOR:', {
+           desde: this.lastPosition,
+           hacia: { lat: newLat, lng: newLng },
+           distancia: `${Math.round(distance * 1000)}m`
+         });
+        
+                 // Calcular delay basado en la velocidad del vehículo
+         const vehicleSpeed = this.convertKnotsToKmh(speedInKnots);
+         let stepDelay = 800; // Delay por defecto más lento
+         
+         if (vehicleSpeed === 0) {
+           stepDelay = 1200; // Vehículo estacionado: movimiento muy lento
+         } else if (vehicleSpeed < 20) {
+           stepDelay = 1000; // Velocidad baja: movimiento lento
+         } else if (vehicleSpeed < 50) {
+           stepDelay = 800; // Velocidad media: movimiento pausado
+         } else {
+           stepDelay = 600; // Velocidad alta: movimiento moderado
+         }
+         
+         console.log('⚡ CALCULANDO DELAY BASADO EN VELOCIDAD:', {
+           velocidadKmh: vehicleSpeed,
+           delayCalculado: `${stepDelay}ms`
+         });
+         
+         // Generar movimiento por pasos intermedios
+         this.generateIntermediateMovement(
+           this.lastPosition.lat,
+           this.lastPosition.lng,
+           newLat,
+           newLng,
+           updatedSpeed,
+           stepDelay
+         );
+      } else {
+        // Si la distancia es muy pequeña o muy grande, mover instantáneamente
+        console.log('📍 MOVIMIENTO INSTANTÁNEO:', {
+          distancia: `${Math.round(distance * 1000)}m`,
+          razon: distance <= 0.005 ? 'Distancia muy pequeña' : 'Distancia muy grande'
+        });
+        this.updateMarkerPositionInstant(newLat, newLng);
+        this.lastPosition = { lat: newLat, lng: newLng };
+        // Actualizar velocidad mostrada instantáneamente
+        this.currentDisplayedSpeed = updatedSpeed;
+      }
+    } else {
+      // Primera posición o no hay marcadores, mover instantáneamente
+      this.updateMarkerPositionInstant(newLat, newLng);
+      this.lastPosition = { lat: newLat, lng: newLng };
+      // Inicializar velocidad mostrada para futuros cálculos
+      this.currentDisplayedSpeed = updatedSpeed;
+    }
+    
     if (this.provider === 'google' && this.currentMarkers.length > 0) {
-      // Actualizar posición del marcador en Google Maps
       const marker = this.currentMarkers[0];
-      const newPosition = new google.maps.LatLng(newLat, newLng);
-      marker.setPosition(newPosition);
       
       // NUEVO: Actualizar el InfoWindow si está abierto
       if ((marker as any).infoWindow) {
@@ -587,9 +1088,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       }
       
     } else if (this.provider === 'mapbox' && this.currentMarkers.length > 0) {
-      // Actualizar posición del marcador en Mapbox
       const marker = this.currentMarkers[0];
-      marker.setLngLat([newLng, newLat]);
       
       // NUEVO: Actualizar el popup si existe
       const popup = marker.getPopup();
@@ -777,6 +1276,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     // Guardar referencia del marcador para poder eliminarlo después
     this.currentMarkers.push(marker);
     
+    // Establecer la posición inicial para futuras animaciones
+    this.lastPosition = { lat: lat, lng: lng };
+    
     // Obtener información adicional del target para el popup
     const popupSpeedInKnots = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
     const popupSpeed = this.convertKnotsToKmh(popupSpeedInKnots);
@@ -941,16 +1443,16 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       });
     });
     
-    // Cerrar otros InfoWindows abiertos antes de abrir el nuevo
-    this.currentMarkers.forEach((m: any) => {
-      if (m.infoWindow) {
-        m.infoWindow.close();
-      }
-    });
-    
-    // Guardar referencia del InfoWindow en el marcador
-    (marker as any).infoWindow = infoWindow;
-    
+      // Cerrar otros InfoWindows abiertos antes de abrir el nuevo
+      this.currentMarkers.forEach((m: any) => {
+        if (m.infoWindow) {
+          m.infoWindow.close();
+        }
+      });
+      
+      // Guardar referencia del InfoWindow en el marcador
+      (marker as any).infoWindow = infoWindow;
+      
     // Abrir automáticamente el InfoWindow
     infoWindow.open(this.map, marker);
     
@@ -982,6 +1484,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     
     // Guardar referencia del marcador para poder eliminarlo después
     this.currentMarkers.push(marker);
+    
+    // Establecer la posición inicial para futuras animaciones
+    this.lastPosition = { lat: lat, lng: lng };
     
     // Obtener información adicional del target
     const popupSpeedInKnots = this.selectedTarget?.traccarInfo?.geolocation?.speed || 0;
@@ -1050,7 +1555,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
               text-overflow: ellipsis;
             ">
               ${title}${vehicleTypeInfo}
-            </div>
+        </div>
           </div>
           <button onclick="
                     this.closest('.mapboxgl-popup').style.display = 'none';
@@ -1107,7 +1612,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
               font-size: 13px;
             ">
               ${popupStatus === 'online' ? 'Conectado' : 'Desconectado'}
-            </span>
+          </span>
           </div>
         </div>
       </div>
@@ -1153,6 +1658,12 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Cancelar cualquier movimiento paso a paso en progreso
+    if (this.animationFrameId) {
+      clearTimeout(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    
     this.destroyMap();
   }
 }
