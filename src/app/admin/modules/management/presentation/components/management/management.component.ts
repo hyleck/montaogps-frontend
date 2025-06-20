@@ -55,7 +55,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   selectedMap: string = 'mapbox-light';
   providerType: 'google' | 'mapbox' = 'mapbox';
   providerTheme: 'light' | 'dark' = 'light';
-  mapsKey: number | null = Date.now();
+  mapsKey: string | null = 'mapbox'; // Key que cambia solo cuando cambia el proveedor
   targets: Target[] = [];
   targetToEdit: any | null = null;
   selectedTargetForMap: any | null = null;
@@ -98,10 +98,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const [type, theme] = savedProvider.split('-');
       this.providerType = type as 'google' | 'mapbox';
       this.providerTheme = theme as 'light' | 'dark';
+      this.mapsKey = this.providerType; // Inicializar con el proveedor
     } else {
       this.selectedMap = `mapbox-${defaultTheme}`;
       this.providerType = 'mapbox';
       this.providerTheme = defaultTheme;
+      this.mapsKey = this.providerType; // Inicializar con el proveedor
     }
     this.loading = true;
     this.screenService.checkScreenSize();
@@ -304,31 +306,32 @@ export class ManagementComponent implements OnInit, OnDestroy {
     
          // Opción 1: traccarInfo.geolocation (nombres en inglés)
      if (target.traccarInfo?.geolocation?.latitude && target.traccarInfo?.geolocation?.longitude) {
-       lat = target.traccarInfo.geolocation.latitude;
-       lng = target.traccarInfo.geolocation.longitude;
+       lat = parseFloat(target.traccarInfo.geolocation.latitude);
+       lng = parseFloat(target.traccarInfo.geolocation.longitude);
      }
     // Opción 2: traccarInfo directamente
     else if (target.traccarInfo?.latitude && target.traccarInfo?.longitude) {
-      lat = target.traccarInfo.latitude;
-      lng = target.traccarInfo.longitude;
+      lat = parseFloat(target.traccarInfo.latitude);
+      lng = parseFloat(target.traccarInfo.longitude);
     }
          // Opción 3: originalTarget.traccarInfo.geolocation (nombres en inglés)
      else if (target.originalTarget?.traccarInfo?.geolocation?.latitude && target.originalTarget?.traccarInfo?.geolocation?.longitude) {
-       lat = target.originalTarget.traccarInfo.geolocation.latitude;
-       lng = target.originalTarget.traccarInfo.geolocation.longitude;
+       lat = parseFloat(target.originalTarget.traccarInfo.geolocation.latitude);
+       lng = parseFloat(target.originalTarget.traccarInfo.geolocation.longitude);
      }
     // Opción 4: originalTarget.traccarInfo directamente
     else if (target.originalTarget?.traccarInfo?.latitude && target.originalTarget?.traccarInfo?.longitude) {
-      lat = target.originalTarget.traccarInfo.latitude;
-      lng = target.originalTarget.traccarInfo.longitude;
+      lat = parseFloat(target.originalTarget.traccarInfo.latitude);
+      lng = parseFloat(target.originalTarget.traccarInfo.longitude);
     }
     // Opción 5: traccarInfo con lat/lon
     else if (target.traccarInfo?.lat && target.traccarInfo?.lon) {
-      lat = target.traccarInfo.lat;
-      lng = target.traccarInfo.lon;
+      lat = parseFloat(target.traccarInfo.lat);
+      lng = parseFloat(target.traccarInfo.lon);
     }
     
-    if (!lat || !lng) {
+    // Validar que las coordenadas sean números válidos
+    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
       
       this.messageService.add({
         severity: 'warn',
@@ -340,24 +343,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
              // Crear objeto target con la estructura esperada por el mapa
     
-    // DEBUG: Verificar qué datos tenemos disponibles ANTES de crear targetForMap
-    console.log('🔍 DEBUGGING showTargetOnMap:');
-    console.log('- target completo:', target);
-    console.log('- target.traccarInfo:', target.traccarInfo);
-    console.log('- target.traccarInfo?.geolocation:', target.traccarInfo?.geolocation);
-    console.log('- target.originalTarget?.traccarInfo?.geolocation:', target.originalTarget?.traccarInfo?.geolocation);
-    console.log('- lat/lng extraídos:', { lat, lng });
-    
     // Priorizar la geolocation completa cuando esté disponible
     let geolocationToUse;
     if (target.traccarInfo?.geolocation) {
-      console.log('✅ Usando target.traccarInfo.geolocation (COMPLETA)');
       geolocationToUse = target.traccarInfo.geolocation;
     } else if (target.originalTarget?.traccarInfo?.geolocation) {
-      console.log('✅ Usando target.originalTarget.traccarInfo.geolocation (COMPLETA)');
       geolocationToUse = target.originalTarget.traccarInfo.geolocation;
     } else {
-      console.log('⚠️ Usando coordenadas básicas como fallback');
       geolocationToUse = {
         latitude: lat,
         longitude: lng
@@ -372,13 +364,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       }
     };
 
-    // DEBUG: Verificar que la geolocation completa se esté pasando al mapa
-    console.log('🗺️ SHOWTATGETONMAP - ENVIANDO AL MAPA:');
-    console.log('- Target original:', target);
-    console.log('- Target para mapa:', targetForMap);
-    console.log('- Geolocation completa:', targetForMap.traccarInfo?.geolocation);
-    console.log('- Velocidad en geolocation:', targetForMap.traccarInfo?.geolocation?.speed);
-    console.log('- Todas las propiedades de geolocation:', targetForMap.traccarInfo?.geolocation ? Object.keys(targetForMap.traccarInfo.geolocation) : 'No hay geolocation');
+
 
     // Almacenar el target seleccionado
     this.selectedTargetForMap = targetForMap;
@@ -391,11 +377,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (!this.showMaps) {
       this.showMaps = true;
       this.status.setState('management_show_maps', { showMaps: true });
+      
+      // Solo recrear el mapa si no estaba visible antes
     }
-    
-    // SIEMPRE forzar actualización del mapa para que se centre en el nuevo target
-    // Esto es necesario tanto si el mapa estaba cerrado como si ya estaba abierto
-    this.mapsKey = Date.now();
+    // Si el mapa ya está visible, NO recrearlo, solo actualizar el target
     
     // Actualizar URL con el query parameter del target seleccionado
     this.updateUrlWithTargetId(target._id);
@@ -610,13 +595,26 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   setMapProvider(value: string) {
     const [type, theme] = value.split('-');
+    const previousProvider = this.providerType;
+    
+    console.log('Changing map provider from', previousProvider, 'to:', type, theme);
+    
     this.providerType = type as 'google' | 'mapbox';
     this.providerTheme = theme as 'light' | 'dark';
     this.status.setState('map_provider', value);
-    this.mapsKey = null;
-    setTimeout(() => {
-      this.mapsKey = Date.now();
-    }, 0);
+    
+    // Solo recrear el componente si cambió el proveedor (no solo el tema)
+    if (previousProvider !== this.providerType) {
+      console.log('Provider changed, recreating maps component');
+      // Primero destruir el componente
+      this.mapsKey = null;
+      // Luego recrearlo después de un breve delay
+      setTimeout(() => {
+        this.mapsKey = this.providerType + '-' + Date.now();
+      }, 100);
+    } else {
+      console.log('Only theme changed, no recreation needed');
+    }
   }
 
   // Método para cargar objetivos de un usuario específico
@@ -891,16 +889,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
           
           if (hasLocationChanged) {
             
-            // Solo actualizar mapsKey si es la primera selección (para centrar)
             // Para actualizaciones posteriores, el componente de mapas moverá el marcador suavemente
             if (this.shouldCenterMapOnUpdate) {
-              this.mapsKey = Date.now();
               this.shouldCenterMapOnUpdate = false; // Desactivar centrado automático después de la primera vez
-            } else {
-              // NO cambiar mapsKey para evitar recrear el marcador
-              // El cambio en selectedTargetForMap será detectado por ngOnChanges del componente de mapas
-              // y solo actualizará la posición del marcador existente
             }
+            // El cambio en selectedTargetForMap será detectado por ngOnChanges del componente de mapas
+            // y solo actualizará la posición del marcador existente
           }
         }
       }
@@ -952,16 +946,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
         
         if (hasLocationChanged) {
           
-          // Solo actualizar mapsKey si es la primera selección (para centrar)
           // Para actualizaciones posteriores, el componente de mapas moverá el marcador suavemente
           if (this.shouldCenterMapOnUpdate) {
-            this.mapsKey = Date.now();
             this.shouldCenterMapOnUpdate = false; // Desactivar centrado automático después de la primera vez
-          } else {
-            // NO cambiar mapsKey para evitar recrear el marcador
-            // El cambio en selectedTargetForMap será detectado por ngOnChanges del componente de mapas
-            // y solo actualizará la posición del marcador existente
           }
+          // El cambio en selectedTargetForMap será detectado por ngOnChanges del componente de mapas
+          // y solo actualizará la posición del marcador existente
         }
       }
     }
@@ -1069,9 +1059,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     
     // Reactivar el centrado automático para la selección desde URL
     this.shouldCenterMapOnUpdate = true;
-    
-    // Forzar actualización del mapa
-    this.mapsKey = Date.now();
   }
 
   // Métodos para manejo de datos de vehículos

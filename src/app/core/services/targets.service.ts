@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { lastValueFrom, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { CreateTargetDto, Target, UpdateTargetDto } from '../interfaces/target.interface';
+import { CreateTargetDto, Target, UpdateTargetDto, DeviceStatusResponse } from '../interfaces';
 
 @Injectable({
   providedIn: 'root'
@@ -105,6 +105,17 @@ export class TargetsService {
    */
   async getTargetsByStatus(status: 'active' | 'inactive'): Promise<Target[]> {
     const observable = this.http.get<Target[]>(`${this.apiUrl}?status=${status}`);
+    return await lastValueFrom(observable);
+  }
+
+  /**
+   * Obtiene el estado y tiempo de parada de un dispositivo
+   * @param deviceId ID del dispositivo
+   * @returns Promise con el estado del dispositivo
+   */
+  async getDeviceStatus(deviceId: string): Promise<DeviceStatusResponse> {
+    const url = `${environment.apiUrl}/reports/device/${deviceId}/status`;
+    const observable = this.http.get<DeviceStatusResponse>(url);
     return await lastValueFrom(observable);
   }
 } 

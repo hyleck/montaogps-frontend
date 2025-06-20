@@ -7,6 +7,7 @@ export * from './update-user.dto';
 export * from './server.interface';
 export * from './plan.interface'; 
 export * from './protocol.interface';
+export * from './device-status-response.interface';
 
 // Las interfaces principales están en target.interface
 export * from './target.interface';
