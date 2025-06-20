@@ -1,12 +1,16 @@
 export interface DeviceStatusResponse {
   deviceId: string;
-  status: 'online' | 'offline' | 'idle';
-  lastUpdate: string;
-  stopTime?: string; // Tiempo de parada en formato legible (ej: "2h 30m")
-  stopTimeMinutes?: number; // Tiempo de parada en minutos
-  lastPosition?: {
-    latitude: number;
-    longitude: number;
-    timestamp: string;
+  timestamp: string;
+  status: 'stopped' | 'moving';
+  isCurrentlyStopped: boolean;
+  message: string;
+  stoppedSince?: string;
+  stoppedDuration?: {
+    hours: number;
+    minutes: number;
+    seconds: number;
+    totalMinutes: number;
+    formatted: string;
   };
+  lastMovingTime?: string;
 } 

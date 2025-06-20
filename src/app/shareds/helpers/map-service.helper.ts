@@ -3,12 +3,33 @@ import mapboxgl from 'mapbox-gl';
 import { PopupBuilder } from './map-popup.helper';
 
 export class MarkerService {
-  static createMarker(map: any, provider: 'google' | 'mapbox', lat: number, lng: number, target: any, vehicleTypeGetter?: (id: string) => string) {
+  static async createMarker(
+    map: any, 
+    provider: 'google' | 'mapbox', 
+    lat: number, 
+    lng: number, 
+    target: any, 
+    vehicleTypeGetter?: (id: string) => string,
+    targetsService?: any
+  ) {
     const speedKnots = target?.traccarInfo?.geolocation?.speed || 0;
     const speedKmh = Math.round(speedKnots * 1.852);
     const status = target?.traccarInfo?.status || 'desconocido';
     const vehicleType = vehicleTypeGetter?.(target.model);
     const title = target.name;
+
+    // Obtener tiempo de parada si el vehículo está parado
+    let stopTime: string | undefined = undefined;
+    if (speedKmh === 0 && targetsService && target.api_device_id) {
+      try {
+        const deviceStatus = await targetsService.getDeviceStatus(target.api_device_id);
+        if (deviceStatus.isCurrentlyStopped && deviceStatus.stoppedDuration) {
+          stopTime = deviceStatus.stoppedDuration.formatted;
+        }
+      } catch (error) {
+        console.warn('Could not get device status:', error);
+      }
+    }
 
     if (provider === 'google') {
       const marker = new google.maps.Marker({
@@ -25,7 +46,7 @@ export class MarkerService {
       });
 
       const infoWindow = new google.maps.InfoWindow({
-        content: PopupBuilder.buildPopupHtml({ title, vehicleType, speedKmh, status }),
+        content: PopupBuilder.buildPopupHtml({ title, vehicleType, speedKmh, status, stopTime, width: 320 }),
         disableAutoPan: false,
         headerDisabled: true
       });
@@ -49,8 +70,10 @@ export class MarkerService {
       const popup = new mapboxgl.Popup({ 
         closeButton: false, 
         closeOnClick: false,
-        closeOnMove: false 
-      }).setHTML(PopupBuilder.buildPopupHtml({ title, vehicleType, speedKmh, status, width: 215 }));
+        closeOnMove: false,
+        maxWidth: '310px',
+        // Mover el popup 35px arriba del marcador
+      }).setHTML(PopupBuilder.buildPopupHtml({ title, vehicleType, speedKmh, status, stopTime, width: 280 }));
 
       marker.setPopup(popup);
       marker.togglePopup();
@@ -58,13 +81,14 @@ export class MarkerService {
     }
   }
 
-  static updatePosition({
+  static async updatePosition({
     map,
     provider,
     marker,
     target,
     lastPosition,
     vehicleTypeGetter,
+    targetsService,
     onUpdate
   }: {
     map: any;
@@ -73,6 +97,7 @@ export class MarkerService {
     target: any;
     lastPosition: { lat: number; lng: number } | null;
     vehicleTypeGetter?: (id: string) => string;
+    targetsService?: any;
     onUpdate: (pos: { lat: number; lng: number }, speed: number) => void;
   }) {
     const lat = target?.traccarInfo?.geolocation?.latitude;
@@ -82,6 +107,19 @@ export class MarkerService {
     const speedKnots = target?.traccarInfo?.geolocation?.speed || 0;
     const speedKmh = Math.round(speedKnots * 1.852);
 
+    // Obtener tiempo de parada si el vehículo está parado
+    let stopTime: string | undefined = undefined;
+    if (speedKmh === 0 && targetsService && target.api_device_id) {
+      try {
+        const deviceStatus = await targetsService.getDeviceStatus(target.api_device_id);
+        if (deviceStatus.isCurrentlyStopped && deviceStatus.stoppedDuration) {
+          stopTime = deviceStatus.stoppedDuration.formatted;
+        }
+      } catch (error) {
+        console.warn('Could not get device status in update:', error);
+      }
+    }
+
     if (provider === 'google') {
       marker.setPosition(new google.maps.LatLng(lat, lng));
       const infoWindow = marker.infoWindow;
@@ -90,7 +128,9 @@ export class MarkerService {
           title: target.name,
           vehicleType: vehicleTypeGetter?.(target.model),
           speedKmh,
-          status: target?.traccarInfo?.status || 'desconocido'
+          status: target?.traccarInfo?.status || 'desconocido',
+          stopTime,
+          width: 320
         });
         infoWindow.setContent(html);
       }
@@ -103,7 +143,8 @@ export class MarkerService {
           vehicleType: vehicleTypeGetter?.(target.model),
           speedKmh,
           status: target?.traccarInfo?.status || 'desconocido',
-          width: 215
+          stopTime,
+          width: 280
         });
         popup.setHTML(html);
       }

@@ -2,6 +2,7 @@ import { Component, OnInit, OnChanges, OnDestroy, SimpleChanges, Input } from '@
 import { ThemesService } from '../../services/themes.service';
 import { StatusService } from '../../services/status.service';
 import { SystemService, SystemSettings } from '../../../core/services/system.service';
+import { TargetsService } from '../../../core/services/targets.service';
 
 import { MapUtils } from '../../helpers/map.helper';
 import { PopupBuilder } from '../../helpers/map-popup.helper';
@@ -32,7 +33,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   constructor(
     private _theme: ThemesService,
     private _status: StatusService,
-    private systemService: SystemService
+    private systemService: SystemService,
+    private targetsService: TargetsService
   ) {}
 
   ngOnInit(): void {
@@ -53,9 +55,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       console.log('Config loaded for', this.provider, { hasKey: !!this.apiKey, hasUrl: !!this.apiUrl });
 
       MapUtils.loadMapScript(this.provider, this.apiKey, this.apiUrl)
-        .then(() => {
+        .then(async () => {
           console.log('Script loaded, initializing map...');
-          this.initializeMap();
+          await this.initializeMap();
         })
         .catch(err => {
           console.error('Error loading script:', err);
@@ -68,7 +70,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     // solo necesitamos manejar cambios de tema y target
     if (this.map && changes['theme']) {
       console.log('Theme changed to', this.theme);
-      MapThemeService.updateTheme(this.map, this.provider, this.theme, this.selectedTarget, () => this.addMarker());
+      MapThemeService.updateTheme(this.map, this.provider, this.theme, this.selectedTarget, async () => await this.addMarker());
     }
 
     if (this.map && changes['selectedTarget']) {
@@ -84,7 +86,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     this.destroyMap();
   }
 
-  private initializeMap(): void {
+  private async initializeMap(): Promise<void> {
     const mapElement = document.getElementById('map') as HTMLElement;
     const { centerLat, centerLng, zoomLevel } = MapUtils.getInitialMapCenter(this.selectedTarget);
 
@@ -92,11 +94,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     // Añadir marcador si hay target seleccionado
     if (this.hasValidTarget()) {
-      this.addMarker();
+      await this.addMarker();
     }
   }
 
-  private handleTargetChange(change: any): void {
+  private async handleTargetChange(change: any): Promise<void> {
     const prev = change.previousValue;
     const curr = change.currentValue;
 
@@ -114,10 +116,10 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     if (prev && curr && prev._id === curr._id && this.currentMarkers.length > 0) {
       // Mismo target, solo actualizar posición
-      this.updateMarkerPosition();
+      await this.updateMarkerPosition();
     } else {
       // Nuevo target o no hay marcadores, crear nuevo marcador
-      this.createNewMarker();
+      await this.createNewMarker();
     }
   }
 
@@ -133,7 +135,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
   }
 
-  private createNewMarker(): void {
+  private async createNewMarker(): Promise<void> {
     this.clearExistingMarkers();
     
     if (!this.hasValidTarget()) return;
@@ -154,10 +156,10 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     MapUtils.recenterMap(this.map, this.provider, lat, lng);
     
     // Crear el marcador
-    this.addMarker();
+    await this.addMarker();
   }
 
-  private addMarker(): void {
+  private async addMarker(): Promise<void> {
     if (!this.hasValidTarget() || !this.map) return;
 
     const rawLat = this.selectedTarget.traccarInfo.geolocation.latitude;
@@ -173,13 +175,14 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     try {
-      const marker = MarkerService.createMarker(
+      const marker = await MarkerService.createMarker(
         this.map, 
         this.provider, 
         lat, 
         lng, 
         this.selectedTarget, 
-        this.vehicleTypeGetter || undefined
+        this.vehicleTypeGetter || undefined,
+        this.targetsService
       );
       
       if (marker) {
@@ -197,16 +200,17 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private updateMarkerPosition(): void {
+  private async updateMarkerPosition(): Promise<void> {
     if (this.currentMarkers.length === 0 || !this.hasValidTarget()) return;
 
-    MarkerService.updatePosition({
+    await MarkerService.updatePosition({
       map: this.map,
       provider: this.provider,
       marker: this.currentMarkers[0],
       target: this.selectedTarget,
       lastPosition: this.lastPosition,
       vehicleTypeGetter: this.vehicleTypeGetter || undefined,
+      targetsService: this.targetsService,
       onUpdate: (pos, speed) => {
         this.lastPosition = pos;
         this.currentDisplayedSpeed = speed;
