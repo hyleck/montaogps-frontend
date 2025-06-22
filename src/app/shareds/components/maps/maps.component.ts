@@ -27,7 +27,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   apiUrl: string = '';
 
   private currentMarkers: any[] = [];
-  private animationFrameId: number | null = null;
   private lastPosition: { lat: number; lng: number } | null = null;
   private currentDisplayedSpeed: number = 0;
   private lastSpeed: number = 0;
@@ -87,12 +86,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     
     // Limpiar la bandera de procesamiento
     this.isProcessingTargetChange = false;
-    
-    // Cancelar cualquier animación en curso
-    if (this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = null;
-    }
     
     // Limpiar marcadores
     this.clearExistingMarkers();
@@ -327,19 +320,10 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   private async clearExistingMarkers(): Promise<void> {
     console.log('🧹 Limpiando marcadores existentes y cancelando procesos');
     
-    // PRIMERO: Cancelar cualquier animación en curso antes de limpiar marcadores
-    MarkerService.cancelMovements();
-    
     // Cancelar animaciones específicas de Mapbox si es necesario
     if (this.provider === 'mapbox' && this.map) {
       console.log('🛑 Deteniendo animaciones Mapbox en clearExistingMarkers');
       this.map.stop();
-    }
-    
-    // Cancelar animación local si existe
-    if (this.animationFrameId) {
-      clearTimeout(this.animationFrameId);
-      this.animationFrameId = null;
     }
     
     // Eliminar marcadores existentes con verificación

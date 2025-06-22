@@ -3,7 +3,6 @@ import mapboxgl from 'mapbox-gl';
 import { PopupBuilder } from './map-popup.helper';
 
 export class MarkerService {
-  private static animationFrameId: number | null = null;
   private static currentTargetId: string | null = null;
   private static activePromises: Set<Promise<any>> = new Set();
   private static abortController: AbortController | null = null;
@@ -369,108 +368,6 @@ export class MarkerService {
     });
   }
 
-  private static async moveToPositionWithSteps({
-    map,
-    provider,
-    marker,
-    fromLat,
-    fromLng,
-    toLat,
-    toLng,
-    fromSpeed,
-    toSpeed,
-    target,
-    vehicleTypeGetter,
-    targetsService,
-    onUpdate
-  }: {
-    map: any;
-    provider: 'google' | 'mapbox';
-    marker: any;
-    fromLat: number;
-    fromLng: number;
-    toLat: number;
-    toLng: number;
-    fromSpeed: number;
-    toSpeed: number;
-    target: any;
-    vehicleTypeGetter?: (id: string) => string;
-    targetsService?: any;
-    onUpdate: (pos: { lat: number; lng: number }, speed: number) => void;
-  }) {
-    // Cancelar cualquier movimiento anterior si existe
-    if (this.animationFrameId) {
-      clearTimeout(this.animationFrameId);
-      this.animationFrameId = null;
-    }
-
-    // Calcular la distancia para determinar el número de pasos
-    const distance = this.calculateDistance(fromLat, fromLng, toLat, toLng);
-    
-    // Configurar número de ubicaciones intermedias basado en la distancia
-    const steps = Math.max(5, Math.min(20, Math.floor(distance * 500))); // Entre 5 y 20 ubicaciones
-    const stepDelay = Math.max(800, Math.min(2000, distance * 5000)); // Entre 800ms y 2000ms por paso
-
-    // Generar ubicaciones ficticias intermedias
-    const intermediatePositions: { lat: number; lng: number }[] = [];
-    
-    for (let i = 1; i <= steps; i++) {
-      const progress = i / (steps + 1); // +1 para no incluir la posición final
-      const stepLat = fromLat + (toLat - fromLat) * progress;
-      const stepLng = fromLng + (toLng - fromLng) * progress;
-      intermediatePositions.push({ lat: stepLat, lng: stepLng });
-    }
-
-    // Agregar la posición final
-    intermediatePositions.push({ lat: toLat, lng: toLng });
-
-    console.log(`Moviendo de [${fromLat.toFixed(6)}, ${fromLng.toFixed(6)}] a [${toLat.toFixed(6)}, ${toLng.toFixed(6)}] en ${intermediatePositions.length} pasos`);
-
-    // Procesar cada ubicación intermedia paso a paso
-    let currentStepIndex = 0;
-
-    const processNextStep = async () => {
-      // Verificar si el proceso ha sido cancelado o el target cambió
-      if (this.animationFrameId === null || this.currentTargetId !== (target._id || target.id)) {
-        console.log('🛑 Animación cancelada en paso', currentStepIndex + 1);
-        return;
-      }
-
-      const currentPos = intermediatePositions[currentStepIndex];
-      const progress = (currentStepIndex + 1) / intermediatePositions.length;
-      const interpolatedSpeed = Math.round(fromSpeed + (toSpeed - fromSpeed) * progress);
-      
-      console.log(`Paso ${currentStepIndex + 1}/${intermediatePositions.length}: [${currentPos.lat.toFixed(6)}, ${currentPos.lng.toFixed(6)}] - Velocidad: ${interpolatedSpeed} km/h`);
-
-      // Actualizar marcador en la ubicación intermedia con velocidad interpolada
-      await this.updateMarkerDirectly({
-        map,
-        provider,
-        marker,
-        lat: currentPos.lat,
-        lng: currentPos.lng,
-        target,
-        speedKmh: interpolatedSpeed,
-        vehicleTypeGetter,
-        targetsService,
-        onUpdate
-      });
-
-      currentStepIndex++;
-
-      // Programar el siguiente paso
-      if (currentStepIndex < intermediatePositions.length) {
-        this.animationFrameId = setTimeout(processNextStep, stepDelay) as any;
-      } else {
-        this.animationFrameId = null;
-        console.log('Movimiento completado');
-      }
-    };
-
-    // Iniciar el proceso paso a paso
-    processNextStep();
-  }
-
   private static async updateMarkerDirectly({
     map,
     provider,
@@ -599,23 +496,6 @@ export class MarkerService {
     onUpdate({ lat, lng }, finalSpeedKmh);
   }
 
-  // Calcular distancia entre dos puntos en kilómetros usando fórmula haversine
-  private static calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-    const R = 6371; // Radio de la Tierra en km
-    const dLat = this.toRadians(lat2 - lat1);
-    const dLng = this.toRadians(lng2 - lng1);
-    const a = 
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  private static toRadians(degrees: number): number {
-    return degrees * (Math.PI / 180);
-  }
-
   static removeMarker(marker: any, provider: 'google' | 'mapbox') {
     console.log('🗑️ Removiendo marcador:', provider);
     
@@ -654,12 +534,6 @@ export class MarkerService {
   static destroyMap(map: any, provider: 'google' | 'mapbox') {
     console.log('🗑️ Destruyendo mapa:', provider);
     
-    // Cancelar cualquier movimiento en progreso
-    if (this.animationFrameId) {
-      clearTimeout(this.animationFrameId);
-      this.animationFrameId = null;
-    }
-    
     // Para Mapbox, cancelar animaciones específicas antes de destruir
     if (provider === 'mapbox' && map) {
       console.log('🛑 Cancelando animaciones Mapbox antes de destruir');
@@ -673,20 +547,11 @@ export class MarkerService {
     }
   }
 
-  static cancelMovements() {
-    if (this.animationFrameId) {
-      clearTimeout(this.animationFrameId);
-      this.animationFrameId = null;
-      console.log('🛑 Movimientos cancelados');
-    }
-  }
-
   static cancelTargetProcesses(targetId: string) {
     console.log('🛑 MarkerService cancelando procesos para target:', targetId);
     
     // Cancelar movimientos si el target coincide
     if (this.currentTargetId === targetId) {
-      this.cancelMovements();
       this.currentTargetId = null;
       console.log('✅ Procesos del target', targetId, 'cancelados en MarkerService');
     }
@@ -700,9 +565,6 @@ export class MarkerService {
     
     // Cancelar todos los procesos
     this.cancelAllProcesses();
-    
-    // Cancelar movimientos
-    this.cancelMovements();
     
     // Resetear el target actual
     this.currentTargetId = null;
