@@ -324,6 +324,7 @@ export class MarkerService {
     onUpdate: (pos: { lat: number; lng: number }, speed: number) => void;
   }) {
     const targetId = target._id || target.id;
+    console.log('🔄 MarkerService.updatePosition LLAMADO para target:', targetId);
     
     // Verificar que estamos actualizando el target correcto
     if (this.currentTargetId !== targetId) {
@@ -334,45 +335,38 @@ export class MarkerService {
     const rawLat = target.traccarInfo?.geolocation?.latitude;
     const rawLng = target.traccarInfo?.geolocation?.longitude;
     
-    if (isNaN(rawLat) || isNaN(rawLng)) return;
+    if (isNaN(rawLat) || isNaN(rawLng)) {
+      console.log('❌ updatePosition: Coordenadas inválidas:', { rawLat, rawLng });
+      return;
+    }
 
     const lat = parseFloat(rawLat);
     const lng = parseFloat(rawLng);
     const speedKnots = target?.traccarInfo?.geolocation?.speed || 0;
     const currentSpeedKmh = Math.round(speedKnots * 1.852);
     
-    // Si hay una posición anterior y es diferente, crear ubicaciones intermedias
-    if (lastPosition && (lastPosition.lat !== lat || lastPosition.lng !== lng)) {
-      await this.moveToPositionWithSteps({
-        map,
-        provider,
-        marker,
-        fromLat: lastPosition.lat,
-        fromLng: lastPosition.lng,
-        toLat: lat,
-        toLng: lng,
-        fromSpeed: lastSpeed || 0,
-        toSpeed: currentSpeedKmh,
-        target,
-        vehicleTypeGetter,
-        targetsService,
-        onUpdate
-      });
-    } else {
-      // Sin movimiento, actualizar directamente
-      await this.updateMarkerDirectly({
-        map,
-        provider,
-        marker,
-        lat,
-        lng,
-        target,
-        speedKmh: currentSpeedKmh,
-        vehicleTypeGetter,
-        targetsService,
-        onUpdate
-      });
-    }
+    console.log('📍 updatePosition: Coordenadas actuales:', { 
+      lat: lat.toFixed(6), 
+      lng: lng.toFixed(6),
+      speedKmh: currentSpeedKmh,
+      lastPosition: lastPosition ? `${lastPosition.lat.toFixed(6)}, ${lastPosition.lng.toFixed(6)}` : 'null'
+    });
+    
+    // Para actualizaciones de polling frecuentes, actualizar directamente sin animación
+    // Las animaciones se cancelan constantemente por el polling cada 10 segundos
+    console.log('📍 Actualizando marcador directamente (polling activo)');
+    await this.updateMarkerDirectly({
+      map,
+      provider,
+      marker,
+      lat,
+      lng,
+      target,
+      speedKmh: currentSpeedKmh,
+      vehicleTypeGetter,
+      targetsService,
+      onUpdate
+    });
   }
 
   private static async moveToPositionWithSteps({
@@ -502,6 +496,8 @@ export class MarkerService {
   }) {
     // Verificar que estamos actualizando el target correcto
     const targetId = target._id || target.id;
+    console.log('🔧 updateMarkerDirectly EJECUTANDO para target:', targetId, 'en coordenadas:', lat.toFixed(6), lng.toFixed(6));
+    
     if (this.currentTargetId !== targetId) {
       console.log('🛑 Cancelando updateMarkerDirectly - target cambió');
       return;
@@ -599,6 +595,7 @@ export class MarkerService {
       }
     }
 
+    console.log('✅ updateMarkerDirectly COMPLETADO - Marcador actualizado en:', lat.toFixed(6), lng.toFixed(6), 'Velocidad:', finalSpeedKmh, 'km/h');
     onUpdate({ lat, lng }, finalSpeedKmh);
   }
 
@@ -682,6 +679,20 @@ export class MarkerService {
       this.animationFrameId = null;
       console.log('🛑 Movimientos cancelados');
     }
+  }
+
+  static cancelTargetProcesses(targetId: string) {
+    console.log('🛑 MarkerService cancelando procesos para target:', targetId);
+    
+    // Cancelar movimientos si el target coincide
+    if (this.currentTargetId === targetId) {
+      this.cancelMovements();
+      this.currentTargetId = null;
+      console.log('✅ Procesos del target', targetId, 'cancelados en MarkerService');
+    }
+    
+    // Cancelar procesos activos
+    this.cancelAllProcesses();
   }
 
   static resetService() {

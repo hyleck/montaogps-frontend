@@ -66,6 +66,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // Variables para controlar estado interno
   private pollingSubscription: Subscription | null = null;
   private readonly POLLING_INTERVAL = 10000; // 10 segundos
+  
+  // Control de procesos activos por target
+  private activeTargetProcesses: Map<string, AbortController> = new Map();
+  private currentTargetId: string | null = null;
 
   
   // Cache para tipos de vehículos, marcas y modelos
@@ -301,10 +305,38 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   private clearSelectedTarget(): void {
     console.log('🧹 Limpiando target seleccionado para mapa');
+    
+    // Cancelar todos los procesos del target actual
+    if (this.currentTargetId) {
+      this.cancelAllTargetProcesses(this.currentTargetId);
+    }
+    
     this.selectedTargetForMap = null;
     this.selectedTargetStopTime = undefined; // Limpiar tiempo de parada
     this.shouldCenterMapOnUpdate = true; // Resetear para la próxima selección
+    this.currentTargetId = null; // Limpiar ID del target actual
     this.clearTargetFromUrl();
+  }
+
+  // Método para cancelar todos los procesos de un target específico
+  private cancelAllTargetProcesses(targetId: string): void {
+    console.log('🛑 Cancelando TODOS los procesos para target:', targetId);
+    
+    // Cancelar procesos HTTP específicos del target
+    const abortController = this.activeTargetProcesses.get(targetId);
+    if (abortController) {
+      console.log('🛑 Cancelando solicitudes HTTP para target:', targetId);
+      abortController.abort();
+      this.activeTargetProcesses.delete(targetId);
+    }
+    
+    // Cancelar procesos del MarkerService
+    console.log('🛑 Cancelando procesos del MarkerService para target:', targetId);
+    try {
+      MarkerService.cancelTargetProcesses(targetId);
+    } catch (error) {
+      console.warn('Error cancelando procesos del MarkerService:', error);
+    }
   }
 
   // Nuevo método para mostrar target específico en el mapa
@@ -312,30 +344,34 @@ export class ManagementComponent implements OnInit, OnDestroy {
     console.log('🎯 showTargetOnMap called for target:', target._id);
     
     // Verificar si es el mismo target que ya está seleccionado
-    if (this.selectedTargetForMap && this.selectedTargetForMap._id === target._id) {
+    if (this.currentTargetId === target._id) {
       console.log('⚠️ El mismo target ya está seleccionado, no hacer nada:', target._id);
       return;
     }
     
-    // IMPORTANTE: Si hay un target diferente, forzar limpieza completa
-    if (this.selectedTargetForMap && this.selectedTargetForMap._id !== target._id) {
-      console.log('🗑️ Limpiando target anterior completamente:', this.selectedTargetForMap._id);
+    // CANCELACIÓN COMPLETA DEL TARGET ANTERIOR
+    if (this.currentTargetId && this.currentTargetId !== target._id) {
+      console.log('🛑 CANCELANDO COMPLETAMENTE target anterior:', this.currentTargetId);
+      this.cancelAllTargetProcesses(this.currentTargetId);
       
-      // Paso 1: Limpiar inmediatamente
+      // Limpiar estado del target anterior
       this.selectedTargetForMap = null;
-      
-      // Paso 2: Dar tiempo para que el componente Maps procese la limpieza
-      setTimeout(() => {
-        console.log('🆕 Procediendo a seleccionar nuevo target después de limpieza:', target._id);
-        this.selectNewTargetForMap(target);
-      }, 100);
-    } else {
-      // No hay target anterior, proceder directamente
-      this.selectNewTargetForMap(target);
+      this.selectedTargetStopTime = undefined;
     }
+    
+    // SELECCIÓN DEL NUEVO TARGET
+    console.log('🆕 Seleccionando nuevo target:', target._id);
+    this.currentTargetId = target._id;
+    
+    // Crear AbortController para el nuevo target
+    const abortController = new AbortController();
+    this.activeTargetProcesses.set(target._id, abortController);
+    
+    // Proceder con la selección del nuevo target
+    this.selectNewTargetForMap(target, abortController);
   }
 
-  private async selectNewTargetForMap(target: any) {
+  private async selectNewTargetForMap(target: any, abortController?: AbortController) {
     console.log('🆕 Seleccionando nuevo target para mapa:', target._id);
     
     // Verificar múltiples posibles estructuras de geolocalización
@@ -408,7 +444,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.selectedTargetForMap = targetForMap;
     
     // CONSULTAR TIEMPO DE PARADA INMEDIATAMENTE
-    this.selectedTargetStopTime = await this.consultarTiempoDeParada(targetForMap);
+    this.selectedTargetStopTime = await this.consultarTiempoDeParada(targetForMap, abortController);
     
     // Reactivar el centrado automático para la nueva selección
     this.shouldCenterMapOnUpdate = true;
@@ -428,7 +464,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   // Método para consultar tiempo de parada inmediatamente
-  private async consultarTiempoDeParada(target: any): Promise<string | undefined> {
+  private async consultarTiempoDeParada(target: any, abortController?: AbortController): Promise<string | undefined> {
     // Solo consultar para dispositivos online y que tengan api_device_id
     if (!target.api_device_id) {
       console.log('⚠️ Target sin api_device_id, no se puede consultar tiempo de parada:', target._id);
@@ -672,6 +708,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
   setMapProvider(value: string) {
     const previousProvider = this.providerType;
     
+    // Obtener el target actual de la URL para reseleccionarlo después
+    const currentTargetInUrl = this.route.snapshot.queryParams['target'];
+    
     // Actualizar providerType y providerTheme basado en la selección
     if (value.startsWith('google')) {
       this.providerType = 'google';
@@ -683,16 +722,22 @@ export class ManagementComponent implements OnInit, OnDestroy {
     
     // Solo recrear el componente si cambió el proveedor (no solo el tema)
     if (previousProvider !== this.providerType) {
-      console.log('🔄 Provider changed, recreating maps component');
+      console.log('🔄 Provider changed from', previousProvider, 'to', this.providerType);
+      console.log('🎯 Target en URL a reseleccionar:', currentTargetInUrl);
+      
+      // CANCELAR COMPLETAMENTE EL TARGET ACTUAL ANTES DEL CAMBIO
+      if (this.currentTargetId) {
+        console.log('🛑 Cancelando target actual antes de cambio de proveedor:', this.currentTargetId);
+        this.cancelAllTargetProcesses(this.currentTargetId);
+        this.currentTargetId = null;
+      }
       
       // IMPORTANTE: Resetear completamente el MarkerService antes de cambiar proveedor
       MarkerService.resetService();
       
       // Limpiar el target seleccionado para forzar limpieza
-      if (this.selectedTargetForMap) {
-        console.log('🧹 Limpiando target seleccionado antes de cambiar proveedor');
-        this.selectedTargetForMap = null;
-      }
+      this.selectedTargetForMap = null;
+      this.selectedTargetStopTime = undefined;
       
       // Primero destruir el componente
       this.mapsKey = null;
@@ -704,13 +749,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
         
         // Después de recrear el componente, reseleccionar el target de la URL
         setTimeout(() => {
-          console.log('🔄 Verificando target en URL después de cambio de proveedor');
-          this.checkAndLoadTargetFromUrlDirect();
-        }, 200);
+          if (currentTargetInUrl) {
+            console.log('🔄 RESELECCIONANDO target desde URL después de cambio de proveedor:', currentTargetInUrl);
+            this.checkAndLoadTargetFromUrlDirect();
+          } else {
+            console.log('ℹ️ No hay target en URL para reseleccionar después de cambio de proveedor');
+          }
+        }, 300); // Delay mayor para asegurar que el componente esté completamente cargado
         
       }, 150);
     } else {
-      console.log('Only theme changed, no recreation needed');
+      console.log('🎨 Solo cambió el tema, no se necesita recreación');
     }
   }
 
@@ -873,14 +922,22 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   // Métodos privados para polling
   private startTargetsPolling(): void {
+    console.log('🔄 Iniciando polling de targets cada', this.POLLING_INTERVAL / 1000, 'segundos');
     
     // Crear observable que ejecuta cada 10 segundos
     this.pollingSubscription = interval(this.POLLING_INTERVAL)
       .pipe(
         // Solo ejecutar si hay un usuario seleccionado
-        filter(() => !!this.selectedUser?._id)
+        filter(() => {
+          const hasUser = !!this.selectedUser?._id;
+          if (!hasUser) {
+            console.log('⏸️ Polling pausado - no hay usuario seleccionado');
+          }
+          return hasUser;
+        })
       )
       .subscribe(() => {
+        console.log('⏰ EJECUTANDO polling de targets...');
         this.updateTargetsData();
       });
   }
@@ -931,6 +988,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private async updateSelectedTargetDetails(): Promise<void> {
     if (!this.selectedTargetForMap?._id) return;
     
+    // Verificar que el target actual siga siendo el target activo
+    if (this.currentTargetId !== this.selectedTargetForMap._id) {
+      console.log('🛑 Target cambió durante polling, cancelando actualización para:', this.selectedTargetForMap._id);
+      return;
+    }
+    
     try {
       // Usar el método específico para obtener detalles del target seleccionado
       const updatedTargetDetails = await this.targetsService.getTargetById(this.selectedTargetForMap._id);
@@ -963,6 +1026,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
           const hasLocationChanged = !oldLat || !oldLng || 
             Math.abs(lat - oldLat) > 0.0001 || Math.abs(lng - oldLng) > 0.0001;
           
+          console.log('📍 Comparando coordenadas:', {
+            oldLat: oldLat?.toFixed(6),
+            newLat: lat?.toFixed(6),
+            oldLng: oldLng?.toFixed(6),
+            newLng: lng?.toFixed(6),
+            latDiff: oldLat ? Math.abs(lat - oldLat) : 'N/A',
+            lngDiff: oldLng ? Math.abs(lng - oldLng) : 'N/A',
+            hasLocationChanged
+          });
+          
           // Crear nuevo objeto targetForMap con datos actualizados completos
           const updatedTargetForMap = {
             ...this.selectedTargetForMap,
@@ -985,6 +1058,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.selectedTargetForMap = updatedTargetForMap;
           
           if (hasLocationChanged) {
+            console.log('🚀 UBICACIÓN CAMBIÓ! Activando actualización del mapa para target:', this.selectedTargetForMap._id);
+            console.log('📍 Nueva ubicación:', { lat: lat.toFixed(6), lng: lng.toFixed(6) });
             
             // Para actualizaciones posteriores, el componente de mapas moverá el marcador suavemente
             if (this.shouldCenterMapOnUpdate) {
@@ -992,6 +1067,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
             }
             // El cambio en selectedTargetForMap será detectado por ngOnChanges del componente de mapas
             // y solo actualizará la posición del marcador existente
+          } else {
+            console.log('📍 Sin cambios de ubicación detectados para target:', this.selectedTargetForMap._id);
           }
         }
       }
@@ -1101,12 +1178,28 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const currentParams = this.route.snapshot.queryParams;
     const targetId = currentParams['target'];
     
-    console.log('🔍 Verificando target en URL (directo):', { targetId, targetsAvailable: this.targets.length });
+    console.log('🔍 Verificando target en URL (directo):', { 
+      targetId, 
+      targetsAvailable: this.targets.length,
+      currentlySelected: this.currentTargetId 
+    });
+    
+    // VALIDACIÓN IMPORTANTE: Si el target ya está seleccionado, no hacer nada
+    if (targetId && this.currentTargetId === targetId) {
+      console.log('✅ Target ya está seleccionado en el mapa, no reseleccionar:', targetId);
+      return;
+    }
     
     if (targetId && this.targets.length > 0) {
       const targetToSelect = this.targets.find(target => target._id === targetId);
       if (targetToSelect) {
         console.log('✅ Target encontrado en URL, seleccionando:', targetToSelect._id);
+        
+        // CANCELAR TARGET ANTERIOR SI ES DIFERENTE
+        if (this.currentTargetId && this.currentTargetId !== targetId) {
+          console.log('🛑 Cancelando target anterior desde URL directo:', this.currentTargetId);
+          this.cancelAllTargetProcesses(this.currentTargetId);
+        }
         
         // Activar el mapa si no está activo
         if (!this.showMaps) {
@@ -1131,21 +1224,28 @@ export class ManagementComponent implements OnInit, OnDestroy {
     console.log('🎯 selectTargetForMapWithoutUrlUpdate called for target:', target._id);
     
     // Verificar si es el mismo target que ya está seleccionado
-    if (this.selectedTargetForMap && this.selectedTargetForMap._id === target._id) {
+    if (this.currentTargetId === target._id) {
       console.log('⚠️ El mismo target ya está seleccionado desde URL, no hacer nada:', target._id);
       return;
     }
     
-    // IMPORTANTE: Limpiar el target anterior antes de seleccionar uno nuevo
-    if (this.selectedTargetForMap && this.selectedTargetForMap._id !== target._id) {
-      console.log('🗑️ Limpiando target anterior desde URL:', this.selectedTargetForMap._id);
+    // CANCELACIÓN COMPLETA DEL TARGET ANTERIOR
+    if (this.currentTargetId && this.currentTargetId !== target._id) {
+      console.log('🛑 CANCELANDO target anterior desde URL:', this.currentTargetId);
+      this.cancelAllTargetProcesses(this.currentTargetId);
       this.selectedTargetForMap = null;
+      this.selectedTargetStopTime = undefined;
     }
     
-    await this.selectTargetFromUrl(target);
+    // ESTABLECER NUEVO TARGET COMO ACTIVO
+    this.currentTargetId = target._id;
+    const abortController = new AbortController();
+    this.activeTargetProcesses.set(target._id, abortController);
+    
+    await this.selectTargetFromUrl(target, abortController);
   }
 
-  private async selectTargetFromUrl(target: any): Promise<void> {
+  private async selectTargetFromUrl(target: any, abortController?: AbortController): Promise<void> {
     console.log('🆕 Seleccionando target desde URL:', target._id);
     
     // Verificar geolocalización como en showTargetOnMap
@@ -1206,7 +1306,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.selectedTargetForMap = targetForMap;
     
     // CONSULTAR TIEMPO DE PARADA INMEDIATAMENTE
-    this.selectedTargetStopTime = await this.consultarTiempoDeParada(targetForMap);
+    this.selectedTargetStopTime = await this.consultarTiempoDeParada(targetForMap, abortController);
     
     // Reactivar el centrado automático para la selección desde URL
     this.shouldCenterMapOnUpdate = true;
@@ -1308,6 +1408,19 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Cancelar todos los procesos activos de targets
+    if (this.currentTargetId) {
+      console.log('🛑 ngOnDestroy: Cancelando procesos del target actual:', this.currentTargetId);
+      this.cancelAllTargetProcesses(this.currentTargetId);
+    }
+    
+    // Cancelar cualquier proceso activo restante
+    this.activeTargetProcesses.forEach((controller, targetId) => {
+      console.log('🛑 ngOnDestroy: Cancelando procesos restantes para target:', targetId);
+      controller.abort();
+    });
+    this.activeTargetProcesses.clear();
+    
     // Limpiar el polling cuando el componente se destruya
     if (this.pollingSubscription) {
       this.pollingSubscription.unsubscribe();
