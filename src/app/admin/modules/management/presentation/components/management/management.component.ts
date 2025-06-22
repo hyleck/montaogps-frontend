@@ -70,6 +70,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // Control de procesos activos por target
   private activeTargetProcesses: Map<string, AbortController> = new Map();
   private currentTargetId: string | null = null;
+  private isProcessingTargetFromUrl: boolean = false; // Bandera para evitar doble procesamiento
 
   
   // Cache para tipos de vehículos, marcas y modelos
@@ -315,6 +316,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.selectedTargetStopTime = undefined; // Limpiar tiempo de parada
     this.shouldCenterMapOnUpdate = true; // Resetear para la próxima selección
     this.currentTargetId = null; // Limpiar ID del target actual
+    this.isProcessingTargetFromUrl = false; // Limpiar bandera de procesamiento
     this.clearTargetFromUrl();
   }
 
@@ -800,7 +802,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Verificar si hay un target en la URL para seleccionarlo automáticamente
       // Se ejecuta después de cargar los targets para asegurar que estén disponibles
       setTimeout(() => {
-        this.checkAndLoadTargetFromUrl();
+        this.checkAndLoadTargetFromUrlDirect();
       }, 100);
       
     } catch (error) {
@@ -1153,27 +1155,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
     });
   }
 
-  private checkAndLoadTargetFromUrl(): void {
-    this.route.queryParams.subscribe(params => {
-      const targetId = params['target'];
-      if (targetId && this.targets.length > 0) {
-        const targetToSelect = this.targets.find(target => target._id === targetId);
-        if (targetToSelect) {
-          // Activar el mapa si no está activo
-          if (!this.showMaps) {
-            this.showMaps = true;
-            this.status.setState('management_show_maps', { showMaps: this.showMaps });
-          }
-          
-          // Seleccionar el target en el mapa (sin actualizar URL para evitar loop)
-          this.selectTargetForMapWithoutUrlUpdate(targetToSelect);
-        }
-      }
-    });
-  }
+
 
   // Nuevo método para verificación directa sin crear subscripción
   private checkAndLoadTargetFromUrlDirect(): void {
+    // PREVENIR DOBLE PROCESAMIENTO
+    if (this.isProcessingTargetFromUrl) {
+      console.log('⏸️ Ya procesando target desde URL, saltando ejecución...');
+      return;
+    }
+    
     // Obtener directamente los parámetros de la URL sin crear nueva subscripción
     const currentParams = this.route.snapshot.queryParams;
     const targetId = currentParams['target'];
@@ -1181,51 +1172,75 @@ export class ManagementComponent implements OnInit, OnDestroy {
     console.log('🔍 Verificando target en URL (directo):', { 
       targetId, 
       targetsAvailable: this.targets.length,
-      currentlySelected: this.currentTargetId 
+      currentlySelected: this.currentTargetId,
+      selectedTargetForMap: this.selectedTargetForMap?._id,
+      isProcessing: this.isProcessingTargetFromUrl
     });
     
-    // VALIDACIÓN IMPORTANTE: Si el target ya está seleccionado, no hacer nada
-    if (targetId && this.currentTargetId === targetId) {
+    // VALIDACIÓN MEJORADA: Verificar tanto currentTargetId como selectedTargetForMap
+    if (targetId && (this.currentTargetId === targetId || this.selectedTargetForMap?._id === targetId)) {
       console.log('✅ Target ya está seleccionado en el mapa, no reseleccionar:', targetId);
       return;
     }
     
-    if (targetId && this.targets.length > 0) {
-      const targetToSelect = this.targets.find(target => target._id === targetId);
-      if (targetToSelect) {
-        console.log('✅ Target encontrado en URL, seleccionando:', targetToSelect._id);
-        
-        // CANCELAR TARGET ANTERIOR SI ES DIFERENTE
-        if (this.currentTargetId && this.currentTargetId !== targetId) {
-          console.log('🛑 Cancelando target anterior desde URL directo:', this.currentTargetId);
-          this.cancelAllTargetProcesses(this.currentTargetId);
-        }
-        
-        // Activar el mapa si no está activo
-        if (!this.showMaps) {
-          console.log('🗺️ Activando mapa para target de URL');
-          this.showMaps = true;
-          this.status.setState('management_show_maps', { showMaps: this.showMaps });
-        }
-        
-        // Seleccionar el target en el mapa (sin actualizar URL para evitar loop)
-        this.selectTargetForMapWithoutUrlUpdate(targetToSelect);
-      } else {
-        console.log('❌ Target de URL no encontrado en lista de targets:', targetId);
-      }
-    } else if (targetId && this.targets.length === 0) {
-      console.log('⏳ Target en URL pero targets no cargados aún, esperando...');
-    } else {
+    // VALIDACIÓN ADICIONAL: Si no hay targetId en URL, no hacer nada
+    if (!targetId) {
       console.log('ℹ️ No hay target en URL para seleccionar');
+      return;
+    }
+    
+    // VALIDACIÓN: Verificar que los targets estén cargados
+    if (this.targets.length === 0) {
+      console.log('⏳ Target en URL pero targets no cargados aún, esperando...');
+      return;
+    }
+    
+    const targetToSelect = this.targets.find(target => target._id === targetId);
+    if (targetToSelect) {
+      console.log('✅ Target encontrado en URL, seleccionando:', targetToSelect._id);
+      
+      // MARCAR COMO PROCESANDO
+      this.isProcessingTargetFromUrl = true;
+      
+      // Timeout de seguridad para resetear la bandera
+      setTimeout(() => {
+        if (this.isProcessingTargetFromUrl) {
+          console.log('⚠️ Timeout de seguridad: reseteando bandera de procesamiento');
+          this.isProcessingTargetFromUrl = false;
+        }
+      }, 5000); // 5 segundos
+      
+      // CANCELAR TARGET ANTERIOR SI ES DIFERENTE
+      if (this.currentTargetId && this.currentTargetId !== targetId) {
+        console.log('🛑 Cancelando target anterior desde URL directo:', this.currentTargetId);
+        this.cancelAllTargetProcesses(this.currentTargetId);
+      }
+      
+      // Activar el mapa si no está activo
+      if (!this.showMaps) {
+        console.log('🗺️ Activando mapa para target de URL');
+        this.showMaps = true;
+        this.status.setState('management_show_maps', { showMaps: this.showMaps });
+      }
+      
+      // Seleccionar el target en el mapa (sin actualizar URL para evitar loop)
+      this.selectTargetForMapWithoutUrlUpdate(targetToSelect)
+        .finally(() => {
+          // DESMARCAR COMO PROCESANDO AL FINALIZAR
+          this.isProcessingTargetFromUrl = false;
+          console.log('✅ Finalizado procesamiento de target desde URL');
+        });
+    } else {
+      console.log('❌ Target de URL no encontrado en lista de targets:', targetId);
     }
   }
 
   private async selectTargetForMapWithoutUrlUpdate(target: any): Promise<void> {
     console.log('🎯 selectTargetForMapWithoutUrlUpdate called for target:', target._id);
     
-    // Verificar si es el mismo target que ya está seleccionado
-    if (this.currentTargetId === target._id) {
-      console.log('⚠️ El mismo target ya está seleccionado desde URL, no hacer nada:', target._id);
+    // VALIDACIÓN REFORZADA: Verificar múltiples condiciones para evitar doble selección
+    if (this.currentTargetId === target._id || this.selectedTargetForMap?._id === target._id) {
+      console.log('⚠️ El mismo target ya está seleccionado, no hacer nada:', target._id);
       return;
     }
     

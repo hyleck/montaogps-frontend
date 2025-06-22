@@ -32,6 +32,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   private currentDisplayedSpeed: number = 0;
   private lastSpeed: number = 0;
   private isFirstTimeSelection: boolean = true;
+  private isProcessingTargetChange: boolean = false;
 
   constructor(
     private _theme: ThemesService,
@@ -82,26 +83,25 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    console.log('🗑️ Destruyendo componente Maps - Iniciando limpieza completa');
+    console.log('🧹 Maps component destroyed');
     
+    // Limpiar la bandera de procesamiento
+    this.isProcessingTargetChange = false;
+    
+    // Cancelar cualquier animación en curso
     if (this.animationFrameId) {
-      clearTimeout(this.animationFrameId);
+      cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
-      console.log('🛑 Animación local cancelada');
     }
     
-    // Cancelar movimientos del MarkerService
-    MarkerService.cancelMovements();
-    console.log('🛑 Movimientos del MarkerService cancelados');
+    // Limpiar marcadores
+    this.clearExistingMarkers();
     
-    // Cancelar animaciones específicas del proveedor actual
-    if (this.provider === 'mapbox' && this.map) {
-      console.log('🛑 Deteniendo animaciones Mapbox antes de destruir');
-      this.map.stop();
-    }
-    
+    // Destruir el mapa
     this.destroyMap();
-    console.log('✅ Componente Maps destruido completamente');
+    
+    // Limpiar el servicio de marcadores
+    MarkerService.resetService();
   }
 
   private async initializeMap(): Promise<void> {
@@ -125,33 +125,52 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       currId: curr?._id, 
       hasMarkers: this.currentMarkers.length > 0,
       isFirstTime: this.isFirstTimeSelection,
+      isProcessing: this.isProcessingTargetChange,
       reason: !curr ? 'target_cleared' : (!prev ? 'initial_selection' : (prev._id !== curr._id ? 'different_target' : 'same_target_update'))
     });
 
-    if (!curr) {
-      // No hay target seleccionado, limpiar todo
-      console.log('❌ No target selected (posible cambio de proveedor), limpieza completada');
-      await this.clearExistingMarkers();
-      this.isFirstTimeSelection = true; // Reset para próxima selección
+    // PREVENIR DOBLE PROCESAMIENTO
+    if (this.isProcessingTargetChange) {
+      console.log('⏸️ Ya procesando cambio de target, saltando handleTargetChange...');
       return;
     }
 
-    if (!this.hasValidTarget()) {
-      // Target no tiene coordenadas válidas, limpiar todo
-      console.log('❌ Invalid target coordinates, limpieza completada');
-      await this.clearExistingMarkers();
-      this.isFirstTimeSelection = true; // Reset para próxima selección
-      return;
-    }
-
-    // Verificar si es el mismo target (actualización) o target diferente (selección inicial)
+    // VALIDACIÓN ADICIONAL: Si es el mismo target y ya hay marcadores, 
+    // es probable que sea una actualización desde polling o doble procesamiento
     const isSameTarget = prev && curr && prev._id === curr._id;
-
     if (isSameTarget && this.currentMarkers.length > 0 && !this.isFirstTimeSelection) {
-      // Es el mismo target y ya existe marcador - solo actualizar posición (SIN animación)
-      console.log('🔄 Mismo target detectado, actualizando posición sin animación');
+      console.log('⚠️ Mismo target con marcadores existentes - solo actualizar posición');
       await this.updateMarkerPosition();
-    } else {
+      return;
+    }
+
+    // VALIDACIÓN EXTRA: Si es el mismo target y es la primera vez, 
+    // verificar si ya hay marcadores (target ya procesado)
+    if (isSameTarget && this.currentMarkers.length > 0) {
+      console.log('⚠️ Mismo target detectado con marcadores ya creados - no reprocesar');
+      return;
+    }
+
+    // MARCAR COMO PROCESANDO
+    this.isProcessingTargetChange = true;
+
+    try {
+      if (!curr) {
+        // No hay target seleccionado, limpiar todo
+        console.log('❌ No target selected (posible cambio de proveedor), limpieza completada');
+        await this.clearExistingMarkers();
+        this.isFirstTimeSelection = true; // Reset para próxima selección
+        return;
+      }
+
+      if (!this.hasValidTarget()) {
+        // Target no tiene coordenadas válidas, limpiar todo
+        console.log('❌ Invalid target coordinates, limpieza completada');
+        await this.clearExistingMarkers();
+        this.isFirstTimeSelection = true; // Reset para próxima selección
+        return;
+      }
+
       // Es un target diferente o es la primera vez - crear nuevo marcador (CON animación)
       const isInitialSelection = !isSameTarget || this.isFirstTimeSelection;
       console.log('✅ Creando marcador:', isInitialSelection ? 'CON animación (selección inicial)' : 'SIN animación (actualización)');
@@ -178,6 +197,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
           console.log('🛑 Target cambió durante delay, cancelando creación de marcador');
         }
       }, 50); // Delay pequeño pero suficiente para asegurar limpieza
+
+    } finally {
+      // DESMARCAR COMO PROCESANDO
+      setTimeout(() => {
+        this.isProcessingTargetChange = false;
+        console.log('✅ Procesamiento de target completado en Maps component');
+      }, 100); // Delay para asegurar que el procesamiento se complete
     }
   }
 
