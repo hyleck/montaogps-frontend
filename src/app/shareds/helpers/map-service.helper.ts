@@ -177,7 +177,7 @@ export class MarkerService {
       const popupElement = document.querySelector('#custom-info-window') as HTMLElement;
       if (popupElement) {
         console.log('✅ Popup element encontrado, mostrando skeleton');
-        PopupBuilder.addStopTimeSkeletonWithAnimation(popupElement);
+        PopupBuilder.addStopTimeSkeletonWithAnimation(popupElement, speedKmh);
       } else {
         console.log('⚠️ No se encontró popup element, reintentando en 200ms...');
         // Reintentar una vez más con delay mayor
@@ -185,7 +185,7 @@ export class MarkerService {
           const retryPopupElement = document.querySelector('#custom-info-window') as HTMLElement;
           if (retryPopupElement) {
             console.log('✅ Popup element encontrado en reintento, mostrando skeleton');
-            PopupBuilder.addStopTimeSkeletonWithAnimation(retryPopupElement);
+            PopupBuilder.addStopTimeSkeletonWithAnimation(retryPopupElement, speedKmh);
           } else {
             console.log('❌ No se pudo encontrar popup element después de reintento');
           }
@@ -238,10 +238,10 @@ export class MarkerService {
         if (popupElement) {
           if (stopTime) {
             console.log('⏱️ Reemplazando skeleton con tiempo de parada:', stopTime);
-            PopupBuilder.replaceSkeletonWithStopTime(popupElement, stopTime);
+            PopupBuilder.replaceSkeletonWithStopTime(popupElement, stopTime, speedKmh);
           } else {
             console.log('🚗 Removiendo skeleton - vehículo en movimiento o sin datos');
-            PopupBuilder.replaceSkeletonWithStopTime(popupElement); // Sin parámetro = remover
+            PopupBuilder.replaceSkeletonWithStopTime(popupElement, undefined, speedKmh); // Sin parámetro = remover
           }
         }
       }

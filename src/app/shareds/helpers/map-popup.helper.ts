@@ -28,9 +28,9 @@ export class PopupBuilder {
       const statusColor = status === 'online' ? '#4CAF50' : '#F44336';
       const statusLabel = status === 'online' ? 'Conectado' : 'Desconectado';
 
-      // Solo mostrar tiempo de parada cuando existe
+      // Solo mostrar tiempo de parada cuando existe Y la velocidad es 0
       let stopTimeContent = '';
-      if (stopTime) {
+      if (stopTime && speedKmh === 0) {
         stopTimeContent = `
         <div id="stop-time-section" style="
           display: flex; 
@@ -178,7 +178,13 @@ export class PopupBuilder {
     }
 
     // Método para agregar dinámicamente la sección de tiempo de parada con animación
-    static addStopTimeWithAnimation(popupElement: HTMLElement, stopTime: string): void {
+    static addStopTimeWithAnimation(popupElement: HTMLElement, stopTime: string, speedKmh?: number): void {
+      // No mostrar tiempo de parada si la velocidad es mayor a 0
+      if (speedKmh !== undefined && speedKmh > 0) {
+        console.log('🚗 Velocidad mayor a 0 km/h, no mostrar tiempo de parada');
+        return;
+      }
+
       const contentDiv = popupElement.querySelector('#popup-content');
       if (!contentDiv) return;
 
@@ -228,7 +234,13 @@ export class PopupBuilder {
     }
 
     // Método para mostrar skeleton mientras carga el tiempo de parada
-    static addStopTimeSkeletonWithAnimation(popupElement: HTMLElement): void {
+    static addStopTimeSkeletonWithAnimation(popupElement: HTMLElement, speedKmh?: number): void {
+      // No mostrar skeleton si la velocidad es mayor a 0
+      if (speedKmh !== undefined && speedKmh > 0) {
+        console.log('🚗 Velocidad mayor a 0 km/h, no mostrar skeleton de tiempo de parada');
+        return;
+      }
+
       console.log('💀 addStopTimeSkeletonWithAnimation iniciado');
       const contentDiv = popupElement.querySelector('#popup-content');
       if (!contentDiv) {
@@ -303,15 +315,18 @@ export class PopupBuilder {
     }
 
     // Método para reemplazar skeleton con tiempo real o remover si no hay tiempo
-    static replaceSkeletonWithStopTime(popupElement: HTMLElement, stopTime?: string): void {
+    static replaceSkeletonWithStopTime(popupElement: HTMLElement, stopTime?: string, speedKmh?: number): void {
       const contentDiv = popupElement.querySelector('#popup-content');
       if (!contentDiv) return;
 
       const existingStopTime = contentDiv.querySelector('#stop-time-section');
       if (!existingStopTime) return;
 
-      // Si no hay tiempo de parada válido, remover el skeleton con animación
-      if (!stopTime) {
+      // Si no hay tiempo de parada válido O la velocidad es mayor a 0, remover el skeleton con animación
+      if (!stopTime || (speedKmh !== undefined && speedKmh > 0)) {
+        if (speedKmh !== undefined && speedKmh > 0) {
+          console.log('🚗 Velocidad mayor a 0 km/h, removiendo sección de tiempo de parada');
+        }
         const stopTimeElement = existingStopTime as HTMLElement;
         stopTimeElement.style.opacity = '0';
         stopTimeElement.style.transform = 'translateY(-10px)';
@@ -336,6 +351,27 @@ export class PopupBuilder {
         const timeSpan = existingStopTime.querySelector('span:last-child') as HTMLElement;
         if (timeSpan) {
           timeSpan.textContent = stopTime;
+        }
+      }
+    }
+
+    // Método para remover la sección de tiempo de parada cuando el vehículo empiece a moverse
+    static removeStopTimeSectionIfMoving(popupElement: HTMLElement, speedKmh: number): void {
+      if (speedKmh > 0) {
+        const contentDiv = popupElement.querySelector('#popup-content');
+        if (!contentDiv) return;
+
+        const existingStopTime = contentDiv.querySelector('#stop-time-section');
+        if (existingStopTime) {
+          console.log('🚗 Vehículo en movimiento, removiendo sección de tiempo de parada');
+          const stopTimeElement = existingStopTime as HTMLElement;
+          stopTimeElement.style.opacity = '0';
+          stopTimeElement.style.transform = 'translateY(-10px)';
+          setTimeout(() => {
+            if (stopTimeElement.parentNode) {
+              stopTimeElement.parentNode.removeChild(stopTimeElement);
+            }
+          }, 300); // Tiempo de la transición CSS
         }
       }
     }
