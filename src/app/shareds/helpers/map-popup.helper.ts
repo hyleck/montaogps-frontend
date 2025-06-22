@@ -7,6 +7,7 @@ export class PopupBuilder {
     speedKmh,
     status,
     stopTime,
+    lastLocationDate,
     width = 250,
     markerId
   }: {
@@ -15,6 +16,7 @@ export class PopupBuilder {
     speedKmh: number;
     status: 'online' | 'offline' | string;
     stopTime?: string;
+    lastLocationDate?: string;
     width?: number;
     markerId?: string;
   }): string {
@@ -25,6 +27,50 @@ export class PopupBuilder {
       const formattedSpeed = speedKmh === 0 ? 'Estacionado' : `${speedKmh} km/h`;
       const statusColor = status === 'online' ? '#4CAF50' : '#F44336';
       const statusLabel = status === 'online' ? 'Conectado' : 'Desconectado';
+
+      // Solo mostrar tiempo de parada cuando existe
+      let stopTimeContent = '';
+      if (stopTime) {
+        stopTimeContent = `
+        <div id="stop-time-section" style="
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          padding: 8px 10px;
+          background: #f8f9fa;
+          border-radius: 4px;
+          border-left: 3px solid #ff9800;
+          width: 100%;
+          box-sizing: border-box;
+          margin-top: 10px;
+        ">
+          <span style="color: #666; font-size: 12px;">⏱️ Tiempo parado</span>
+          <span style="color: #ff9800; font-weight: 600; font-size: 13px;">${stopTime}</span>
+        </div>
+        `;
+      }
+
+      // Determinar qué mostrar para la fecha de última ubicación (solo para dispositivos offline)
+      let lastLocationContent = '';
+      if (status === 'offline' && lastLocationDate) {
+        lastLocationContent = `
+        <div style="
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          padding: 8px 10px;
+          background: #fff3e0;
+          border-radius: 4px;
+          border-left: 3px solid #ff5722;
+          width: 100%;
+          box-sizing: border-box;
+          margin-top: ${stopTimeContent ? '8px' : '10px'};
+        ">
+          <span style="color: #666; font-size: 12px;">📍 Última ubicación</span>
+          <span style="color: #ff5722; font-weight: 600; font-size: 12px;">${lastLocationDate}</span>
+        </div>
+        `;
+      }
   
       return `
         <div id="custom-info-window" style="
@@ -108,7 +154,7 @@ export class PopupBuilder {
               ×
             </button>
           </div>
-          <div style="padding: 12px; box-sizing: border-box; width: 100%;">
+          <div id="popup-content" style="padding: 12px; box-sizing: border-box; width: 100%;">
             <div style="
               display: flex; 
               justify-content: space-between; 
@@ -120,29 +166,178 @@ export class PopupBuilder {
               <span style="color: #666; font-size: 13px;">Velocidad</span>
               <span style="color: #333; font-weight: 600; font-size: 18px;">${formattedSpeed}</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: ${stopTime ? '10px' : '0'};">
+            <div style="display: flex; align-items: center; gap: 8px;">
               <span style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor};"></span>
               <span style="color: #666; font-size: 13px;">${statusLabel}</span>
             </div>
-            ${stopTime ? `
-            <div style="
-              display: flex; 
-              justify-content: space-between; 
-              align-items: center; 
-              padding: 8px 10px;
-              background: #f8f9fa;
-              border-radius: 4px;
-              border-left: 3px solid #ff9800;
-              width: 100%;
-              box-sizing: border-box;
-            ">
-              <span style="color: #666; font-size: 12px;">⏱️ Tiempo parado</span>
-              <span style="color: #ff9800; font-weight: 600; font-size: 13px;">${stopTime}</span>
-            </div>
-            ` : ''}
+            ${stopTimeContent}
+            ${lastLocationContent}
           </div>
         </div>
       `;
+    }
+
+    // Método para agregar dinámicamente la sección de tiempo de parada con animación
+    static addStopTimeWithAnimation(popupElement: HTMLElement, stopTime: string): void {
+      const contentDiv = popupElement.querySelector('#popup-content');
+      if (!contentDiv) return;
+
+      // Verificar si ya existe la sección de tiempo de parada
+      const existingStopTime = contentDiv.querySelector('#stop-time-section');
+      if (existingStopTime) {
+        // Si ya existe, solo actualizar el texto
+        const timeSpan = existingStopTime.querySelector('span:last-child') as HTMLElement;
+        if (timeSpan) {
+          timeSpan.textContent = stopTime;
+        }
+        return;
+      }
+
+      // Crear la nueva sección de tiempo de parada
+      const stopTimeDiv = document.createElement('div');
+      stopTimeDiv.id = 'stop-time-section';
+      stopTimeDiv.style.cssText = `
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 8px 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border-left: 3px solid #ff9800;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 10px;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: all 0.3s ease-out;
+      `;
+
+      stopTimeDiv.innerHTML = `
+        <span style="color: #666; font-size: 12px;">⏱️ Tiempo parado</span>
+        <span style="color: #ff9800; font-weight: 600; font-size: 13px;">${stopTime}</span>
+      `;
+
+      // Agregar al contenido
+      contentDiv.appendChild(stopTimeDiv);
+
+      // Activar animación después de un breve delay
+      setTimeout(() => {
+        stopTimeDiv.style.opacity = '1';
+        stopTimeDiv.style.transform = 'translateY(0)';
+      }, 50);
+    }
+
+    // Método para mostrar skeleton mientras carga el tiempo de parada
+    static addStopTimeSkeletonWithAnimation(popupElement: HTMLElement): void {
+      console.log('💀 addStopTimeSkeletonWithAnimation iniciado');
+      const contentDiv = popupElement.querySelector('#popup-content');
+      if (!contentDiv) {
+        console.log('❌ No se encontró #popup-content');
+        return;
+      }
+      console.log('✅ #popup-content encontrado');
+
+      // Verificar si ya existe la sección (skeleton o real)
+      const existingStopTime = contentDiv.querySelector('#stop-time-section');
+      if (existingStopTime) {
+        console.log('⚠️ Ya existe #stop-time-section, saltando');
+        return;
+      }
+      console.log('✅ No existe #stop-time-section, creando skeleton');
+
+      // Crear la sección skeleton
+      const skeletonDiv = document.createElement('div');
+      skeletonDiv.id = 'stop-time-section';
+      skeletonDiv.classList.add('stop-time-skeleton');
+      skeletonDiv.style.cssText = `
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 8px 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border-left: 3px solid #ff9800;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 10px;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: all 0.3s ease-out;
+      `;
+
+      skeletonDiv.innerHTML = `
+        <span style="color: #666; font-size: 12px;">⏱️ Tiempo parado</span>
+        <div class="skeleton-text" style="
+          height: 13px;
+          width: 80px;
+          background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+          background-size: 200% 100%;
+          animation: skeleton-loading 1.5s infinite;
+          border-radius: 4px;
+        "></div>
+      `;
+
+      // Agregar estilos CSS para la animación del skeleton
+      if (!document.querySelector('#skeleton-styles')) {
+        const style = document.createElement('style');
+        style.id = 'skeleton-styles';
+        style.textContent = `
+          @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      // Agregar al contenido
+      contentDiv.appendChild(skeletonDiv);
+      console.log('✅ Skeleton agregado al DOM');
+
+      // Activar animación después de un breve delay
+      setTimeout(() => {
+        skeletonDiv.style.opacity = '1';
+        skeletonDiv.style.transform = 'translateY(0)';
+        console.log('✅ Animación de skeleton activada');
+      }, 50);
+    }
+
+    // Método para reemplazar skeleton con tiempo real o remover si no hay tiempo
+    static replaceSkeletonWithStopTime(popupElement: HTMLElement, stopTime?: string): void {
+      const contentDiv = popupElement.querySelector('#popup-content');
+      if (!contentDiv) return;
+
+      const existingStopTime = contentDiv.querySelector('#stop-time-section');
+      if (!existingStopTime) return;
+
+      // Si no hay tiempo de parada válido, remover el skeleton con animación
+      if (!stopTime) {
+        const stopTimeElement = existingStopTime as HTMLElement;
+        stopTimeElement.style.opacity = '0';
+        stopTimeElement.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+          if (stopTimeElement.parentNode) {
+            stopTimeElement.parentNode.removeChild(stopTimeElement);
+          }
+        }, 300); // Tiempo de la transición CSS
+        return;
+      }
+
+      // Si es skeleton, reemplazar con contenido real
+      if (existingStopTime.classList.contains('stop-time-skeleton')) {
+        const timeSpan = existingStopTime.querySelector('.skeleton-text');
+        if (timeSpan) {
+          // Reemplazar el skeleton con el tiempo real
+          timeSpan.outerHTML = `<span style="color: #ff9800; font-weight: 600; font-size: 13px;">${stopTime}</span>`;
+          existingStopTime.classList.remove('stop-time-skeleton');
+        }
+      } else {
+        // Si ya es contenido real, solo actualizar
+        const timeSpan = existingStopTime.querySelector('span:last-child') as HTMLElement;
+        if (timeSpan) {
+          timeSpan.textContent = stopTime;
+        }
+      }
     }
   }
   

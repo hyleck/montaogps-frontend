@@ -19,6 +19,7 @@ import { StatusService } from '@shared/services/status.service';
 import { ManagementService } from '@management/presentation/services/management.service';
 import { ScreenService } from '@management/presentation/services/screen.service';
 import { VehicleBrandsService } from '@core/services/vehicle-brands.service';
+import { MarkerService } from '@shared/helpers/map-service.helper';
 
 @Component({
     selector: 'app-management',
@@ -60,10 +61,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
   targetToEdit: any | null = null;
   selectedTargetForMap: any | null = null;
   shouldCenterMapOnUpdate: boolean = true; // Controla si el mapa debe centrarse en actualizaciones
+  selectedTargetStopTime: string | undefined = undefined; // Tiempo de parada del target seleccionado
   
-  // Polling para actualización automática
+  // Variables para controlar estado interno
   private pollingSubscription: Subscription | null = null;
   private readonly POLLING_INTERVAL = 10000; // 10 segundos
+
   
   // Cache para tipos de vehículos, marcas y modelos
   private vehicleTypes: any[] = [];
@@ -291,14 +294,49 @@ export class ManagementComponent implements OnInit, OnDestroy {
     
     // Si se está cerrando el mapa, limpiar el query parameter y target seleccionado
     if (!this.showMaps) {
-      this.selectedTargetForMap = null;
-      this.shouldCenterMapOnUpdate = true; // Resetear para la próxima selección
-      this.clearTargetFromUrl();
+      console.log('🗑️ Cerrando mapa, limpiando target seleccionado');
+      this.clearSelectedTarget();
     }
+  }
+
+  private clearSelectedTarget(): void {
+    console.log('🧹 Limpiando target seleccionado para mapa');
+    this.selectedTargetForMap = null;
+    this.selectedTargetStopTime = undefined; // Limpiar tiempo de parada
+    this.shouldCenterMapOnUpdate = true; // Resetear para la próxima selección
+    this.clearTargetFromUrl();
   }
 
   // Nuevo método para mostrar target específico en el mapa
   showTargetOnMap(target: any) {
+    console.log('🎯 showTargetOnMap called for target:', target._id);
+    
+    // Verificar si es el mismo target que ya está seleccionado
+    if (this.selectedTargetForMap && this.selectedTargetForMap._id === target._id) {
+      console.log('⚠️ El mismo target ya está seleccionado, no hacer nada:', target._id);
+      return;
+    }
+    
+    // IMPORTANTE: Si hay un target diferente, forzar limpieza completa
+    if (this.selectedTargetForMap && this.selectedTargetForMap._id !== target._id) {
+      console.log('🗑️ Limpiando target anterior completamente:', this.selectedTargetForMap._id);
+      
+      // Paso 1: Limpiar inmediatamente
+      this.selectedTargetForMap = null;
+      
+      // Paso 2: Dar tiempo para que el componente Maps procese la limpieza
+      setTimeout(() => {
+        console.log('🆕 Procediendo a seleccionar nuevo target después de limpieza:', target._id);
+        this.selectNewTargetForMap(target);
+      }, 100);
+    } else {
+      // No hay target anterior, proceder directamente
+      this.selectNewTargetForMap(target);
+    }
+  }
+
+  private async selectNewTargetForMap(target: any) {
+    console.log('🆕 Seleccionando nuevo target para mapa:', target._id);
     
     // Verificar múltiples posibles estructuras de geolocalización
     let lat = null;
@@ -332,7 +370,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     
     // Validar que las coordenadas sean números válidos
     if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-      
+      console.log('❌ Coordenadas inválidas para target:', target._id);
       this.messageService.add({
         severity: 'warn',
         summary: 'Sin ubicación',
@@ -364,10 +402,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
       }
     };
 
-
+    console.log('✅ Target preparado para mapa:', targetForMap._id, 'con coordenadas:', lat, lng);
 
     // Almacenar el target seleccionado
     this.selectedTargetForMap = targetForMap;
+    
+    // CONSULTAR TIEMPO DE PARADA INMEDIATAMENTE
+    this.selectedTargetStopTime = await this.consultarTiempoDeParada(targetForMap);
     
     // Reactivar el centrado automático para la nueva selección
     this.shouldCenterMapOnUpdate = true;
@@ -384,6 +425,41 @@ export class ManagementComponent implements OnInit, OnDestroy {
     
     // Actualizar URL con el query parameter del target seleccionado
     this.updateUrlWithTargetId(target._id);
+  }
+
+  // Método para consultar tiempo de parada inmediatamente
+  private async consultarTiempoDeParada(target: any): Promise<string | undefined> {
+    // Solo consultar para dispositivos online y que tengan api_device_id
+    if (!target.api_device_id) {
+      console.log('⚠️ Target sin api_device_id, no se puede consultar tiempo de parada:', target._id);
+      return undefined;
+    }
+
+    const status = target?.traccarInfo?.status || 'offline';
+    if (status !== 'online') {
+      console.log('⚠️ Target offline, no se consulta tiempo de parada:', target._id);
+      return undefined;
+    }
+
+    try {
+      console.log('🔄 Consultando tiempo de parada inmediatamente para device:', target.api_device_id);
+      const stopTimeResponse = await this.targetsService.getStopTime(target.api_device_id);
+      console.log('📊 Respuesta tiempo de parada inmediata:', stopTimeResponse);
+      
+      if (!stopTimeResponse.isMoving && stopTimeResponse.text && !stopTimeResponse.error) {
+        console.log('✅ Tiempo de parada obtenido inmediatamente:', stopTimeResponse.text);
+        this.selectedTargetStopTime = stopTimeResponse.text;
+        return stopTimeResponse.text;
+      } else if (stopTimeResponse.isMoving) {
+        console.log('🚗 Vehículo en movimiento (consulta inmediata)');
+      } else if (stopTimeResponse.error) {
+        console.log('❌ Error en consulta inmediata:', stopTimeResponse.error);
+      }
+    } catch (error) {
+      console.warn('Error consultando tiempo de parada inmediatamente:', error);
+    }
+    
+    return undefined;
   }
 
   // Método para navegar al usuario padre
@@ -594,24 +670,45 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   setMapProvider(value: string) {
-    const [type, theme] = value.split('-');
     const previousProvider = this.providerType;
     
-    console.log('Changing map provider from', previousProvider, 'to:', type, theme);
-    
-    this.providerType = type as 'google' | 'mapbox';
-    this.providerTheme = theme as 'light' | 'dark';
-    this.status.setState('map_provider', value);
+    // Actualizar providerType y providerTheme basado en la selección
+    if (value.startsWith('google')) {
+      this.providerType = 'google';
+      this.providerTheme = value.includes('dark') ? 'dark' : 'light';
+    } else {
+      this.providerType = 'mapbox';
+      this.providerTheme = value.includes('dark') ? 'dark' : 'light';
+    }
     
     // Solo recrear el componente si cambió el proveedor (no solo el tema)
     if (previousProvider !== this.providerType) {
-      console.log('Provider changed, recreating maps component');
+      console.log('🔄 Provider changed, recreating maps component');
+      
+      // IMPORTANTE: Resetear completamente el MarkerService antes de cambiar proveedor
+      MarkerService.resetService();
+      
+      // Limpiar el target seleccionado para forzar limpieza
+      if (this.selectedTargetForMap) {
+        console.log('🧹 Limpiando target seleccionado antes de cambiar proveedor');
+        this.selectedTargetForMap = null;
+      }
+      
       // Primero destruir el componente
       this.mapsKey = null;
-      // Luego recrearlo después de un breve delay
+      
+      // Luego recrearlo después de un breve delay para asegurar limpieza completa
       setTimeout(() => {
         this.mapsKey = this.providerType + '-' + Date.now();
-      }, 100);
+        console.log('✅ Componente Maps recreado con nueva key:', this.mapsKey);
+        
+        // Después de recrear el componente, reseleccionar el target de la URL
+        setTimeout(() => {
+          console.log('🔄 Verificando target en URL después de cambio de proveedor');
+          this.checkAndLoadTargetFromUrlDirect();
+        }, 200);
+        
+      }, 150);
     } else {
       console.log('Only theme changed, no recreation needed');
     }
@@ -983,10 +1080,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.route.queryParams.subscribe(params => {
       const targetId = params['target'];
       if (targetId && this.targets.length > 0) {
-        
         const targetToSelect = this.targets.find(target => target._id === targetId);
         if (targetToSelect) {
-          
           // Activar el mapa si no está activo
           if (!this.showMaps) {
             this.showMaps = true;
@@ -995,13 +1090,63 @@ export class ManagementComponent implements OnInit, OnDestroy {
           
           // Seleccionar el target en el mapa (sin actualizar URL para evitar loop)
           this.selectTargetForMapWithoutUrlUpdate(targetToSelect);
-        } else {
         }
       }
     });
   }
 
-  private selectTargetForMapWithoutUrlUpdate(target: any): void {
+  // Nuevo método para verificación directa sin crear subscripción
+  private checkAndLoadTargetFromUrlDirect(): void {
+    // Obtener directamente los parámetros de la URL sin crear nueva subscripción
+    const currentParams = this.route.snapshot.queryParams;
+    const targetId = currentParams['target'];
+    
+    console.log('🔍 Verificando target en URL (directo):', { targetId, targetsAvailable: this.targets.length });
+    
+    if (targetId && this.targets.length > 0) {
+      const targetToSelect = this.targets.find(target => target._id === targetId);
+      if (targetToSelect) {
+        console.log('✅ Target encontrado en URL, seleccionando:', targetToSelect._id);
+        
+        // Activar el mapa si no está activo
+        if (!this.showMaps) {
+          console.log('🗺️ Activando mapa para target de URL');
+          this.showMaps = true;
+          this.status.setState('management_show_maps', { showMaps: this.showMaps });
+        }
+        
+        // Seleccionar el target en el mapa (sin actualizar URL para evitar loop)
+        this.selectTargetForMapWithoutUrlUpdate(targetToSelect);
+      } else {
+        console.log('❌ Target de URL no encontrado en lista de targets:', targetId);
+      }
+    } else if (targetId && this.targets.length === 0) {
+      console.log('⏳ Target en URL pero targets no cargados aún, esperando...');
+    } else {
+      console.log('ℹ️ No hay target en URL para seleccionar');
+    }
+  }
+
+  private async selectTargetForMapWithoutUrlUpdate(target: any): Promise<void> {
+    console.log('🎯 selectTargetForMapWithoutUrlUpdate called for target:', target._id);
+    
+    // Verificar si es el mismo target que ya está seleccionado
+    if (this.selectedTargetForMap && this.selectedTargetForMap._id === target._id) {
+      console.log('⚠️ El mismo target ya está seleccionado desde URL, no hacer nada:', target._id);
+      return;
+    }
+    
+    // IMPORTANTE: Limpiar el target anterior antes de seleccionar uno nuevo
+    if (this.selectedTargetForMap && this.selectedTargetForMap._id !== target._id) {
+      console.log('🗑️ Limpiando target anterior desde URL:', this.selectedTargetForMap._id);
+      this.selectedTargetForMap = null;
+    }
+    
+    await this.selectTargetFromUrl(target);
+  }
+
+  private async selectTargetFromUrl(target: any): Promise<void> {
+    console.log('🆕 Seleccionando target desde URL:', target._id);
     
     // Verificar geolocalización como en showTargetOnMap
     let lat = null;
@@ -1025,6 +1170,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
 
     if (!lat || !lng) {
+      console.log('❌ Coordenadas inválidas para target desde URL:', target._id);
       return;
     }
 
@@ -1033,13 +1179,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Priorizar la geolocation completa cuando esté disponible
     let geolocationToUse;
     if (target.traccarInfo?.['geolocation']) {
-      console.log('✅ selectTargetForMapWithoutUrlUpdate - Usando target.traccarInfo.geolocation (COMPLETA)');
+      console.log('✅ selectTargetFromUrl - Usando target.traccarInfo.geolocation (COMPLETA)');
       geolocationToUse = target.traccarInfo['geolocation'];
     } else if (target.originalTarget?.traccarInfo?.['geolocation']) {
-      console.log('✅ selectTargetForMapWithoutUrlUpdate - Usando target.originalTarget.traccarInfo.geolocation (COMPLETA)');
+      console.log('✅ selectTargetFromUrl - Usando target.originalTarget.traccarInfo.geolocation (COMPLETA)');
       geolocationToUse = target.originalTarget.traccarInfo['geolocation'];
     } else {
-      console.log('⚠️ selectTargetForMapWithoutUrlUpdate - Usando coordenadas básicas como fallback');
+      console.log('⚠️ selectTargetFromUrl - Usando coordenadas básicas como fallback');
       geolocationToUse = {
         latitude: lat,
         longitude: lng
@@ -1054,8 +1200,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
       }
     };
 
+    console.log('✅ Target desde URL preparado para mapa:', targetForMap._id, 'con coordenadas:', lat, lng);
+
     // Almacenar el target seleccionado
     this.selectedTargetForMap = targetForMap;
+    
+    // CONSULTAR TIEMPO DE PARADA INMEDIATAMENTE
+    this.selectedTargetStopTime = await this.consultarTiempoDeParada(targetForMap);
     
     // Reactivar el centrado automático para la selección desde URL
     this.shouldCenterMapOnUpdate = true;

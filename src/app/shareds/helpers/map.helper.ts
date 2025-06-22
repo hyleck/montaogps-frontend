@@ -5,71 +5,71 @@ export class MapUtils {
       return mapConfig?.key && mapConfig?.url ? mapConfig : null;
     }
   
-      static loadMapScript(provider: 'google' | 'mapbox', key: string, url: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      console.log(`Loading ${provider} script...`);
-      
-      if (provider === 'google' && typeof google !== 'undefined' && google.maps) {
-        console.log('Google Maps already loaded');
-        return resolve();
-      }
-      if (provider === 'mapbox' && (window as any).mapboxgl) {
-        console.log('Mapbox already loaded');
-        return resolve();
-      }
-
-      if (!key || !url) return reject('Clave/API URL no válidas');
-
-      // Limpiar scripts anteriores del proveedor opuesto
-      MapUtils.cleanupPreviousScripts(provider);
-
-      if (provider === 'mapbox') {
-        // Asegurar que el CSS de Mapbox esté cargado
-        const existingLink = document.querySelector('link[href*="mapbox-gl.css"]');
-        if (!existingLink) {
-          console.log('Loading Mapbox CSS...');
-          const link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
-          document.head.appendChild(link);
+    static loadMapScript(provider: 'google' | 'mapbox', key: string, url: string): Promise<void> {
+      return new Promise((resolve, reject) => {
+        console.log(`Loading ${provider} script...`);
+        
+        if (provider === 'google' && typeof google !== 'undefined' && google.maps) {
+          console.log('Google Maps already loaded');
+          return resolve();
         }
-      }
+        if (provider === 'mapbox' && (window as any).mapboxgl) {
+          console.log('Mapbox already loaded');
+          return resolve();
+        }
 
-      // Verificar si el script ya existe antes de crearlo
-      const existingScript = document.querySelector(`script[src*="${provider === 'google' ? 'maps.googleapis.com' : 'mapbox-gl.js'}"]`);
-      if (existingScript) {
-        console.log(`${provider} script already exists in DOM`);
-        setTimeout(() => resolve(), 100);
-        return;
-      }
+        if (!key || !url) return reject('Clave/API URL no válidas');
 
-      const script = document.createElement('script');
-      script.src = provider === 'google' ? `${url}${key}` : `${url}?access_token=${key}`;
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        console.log(`${provider} script loaded successfully`);
-        setTimeout(() => resolve(), 200); // Mayor delay para asegurar que esté disponible
-      };
-      script.onerror = err => {
-        console.error(`Error loading ${provider} script:`, err);
-        reject(err);
-      };
-      document.head.appendChild(script);
-    });
-  }
+        // Limpiar scripts anteriores del proveedor opuesto
+        MapUtils.cleanupPreviousScripts(provider);
 
-  static cleanupPreviousScripts(currentProvider: 'google' | 'mapbox'): void {
-    // Cuando cambiamos a Google Maps, no necesitamos limpiar Mapbox porque puede coexistir
-    // Cuando cambiamos a Mapbox, no necesitamos limpiar Google Maps porque puede coexistir
-    // Solo reiniciamos las variables globales si es necesario
-    
-    if (currentProvider === 'mapbox') {
-      // Reiniciar cualquier configuración específica de Google Maps si es necesario
-    } else {
-      // Reiniciar cualquier configuración específica de Mapbox si es necesario
+        if (provider === 'mapbox') {
+          // Asegurar que el CSS de Mapbox esté cargado
+          const existingLink = document.querySelector('link[href*="mapbox-gl.css"]');
+          if (!existingLink) {
+            console.log('Loading Mapbox CSS...');
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
+            document.head.appendChild(link);
+          }
+        }
+
+        // Verificar si el script ya existe antes de crearlo
+        const existingScript = document.querySelector(`script[src*="${provider === 'google' ? 'maps.googleapis.com' : 'mapbox-gl.js'}"]`);
+        if (existingScript) {
+          console.log(`${provider} script already exists in DOM`);
+          setTimeout(() => resolve(), 100);
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = provider === 'google' ? `${url}${key}` : `${url}?access_token=${key}`;
+        script.async = true;
+        script.defer = true;
+        script.onload = () => {
+          console.log(`${provider} script loaded successfully`);
+          setTimeout(() => resolve(), 200); // Mayor delay para asegurar que esté disponible
+        };
+        script.onerror = err => {
+          console.error(`Error loading ${provider} script:`, err);
+          reject(err);
+        };
+        document.head.appendChild(script);
+      });
     }
-  }
+
+    static cleanupPreviousScripts(currentProvider: 'google' | 'mapbox'): void {
+      // Cuando cambiamos a Google Maps, no necesitamos limpiar Mapbox porque puede coexistir
+      // Cuando cambiamos a Mapbox, no necesitamos limpiar Google Maps porque puede coexistir
+      // Solo reiniciamos las variables globales si es necesario
+      
+      if (currentProvider === 'mapbox') {
+        // Reiniciar cualquier configuración específica de Google Maps si es necesario
+      } else {
+        // Reiniciar cualquier configuración específica de Mapbox si es necesario
+      }
+    }
   
     static getInitialMapCenter(selectedTarget: any) {
       const centerLat = selectedTarget?.traccarInfo?.geolocation?.latitude ?? 19.4326;
@@ -116,4 +116,4 @@ export class MapUtils {
         { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] }
       ];
     }
-  } 
+} 

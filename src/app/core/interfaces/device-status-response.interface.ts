@@ -13,4 +13,12 @@ export interface DeviceStatusResponse {
     formatted: string;
   };
   lastMovingTime?: string;
+}
+
+export interface StopTimeResponse {
+  text: string;
+  value: number;
+  diaCambio: boolean;
+  isMoving: boolean;
+  error: string | null;
 } 

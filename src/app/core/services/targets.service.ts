@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { lastValueFrom, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { CreateTargetDto, Target, UpdateTargetDto, DeviceStatusResponse } from '../interfaces';
+import { CreateTargetDto, Target, UpdateTargetDto, StopTimeResponse } from '../interfaces';
 
 @Injectable({
   providedIn: 'root'
@@ -64,9 +64,9 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
-  async getDeviceStatus(deviceId: string): Promise<DeviceStatusResponse> {
-    const url = `${environment.apiUrl}/reports/device/${deviceId}/status?days=100`;
-    const observable = this.http.get<DeviceStatusResponse>(url);
+  async getStopTime(deviceId: string): Promise<StopTimeResponse> {
+    const url = `${environment.apiUrl}/reports/device/${deviceId}/stop-time`;
+    const observable = this.http.get<StopTimeResponse>(url);
     return await lastValueFrom(observable);
   }
 } 
