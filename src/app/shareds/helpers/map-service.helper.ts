@@ -32,6 +32,13 @@ export class MarkerService {
     const targetId = target._id || target.id;
     console.log('🎯 Creando marcador para target:', targetId, 'isInitialSelection:', isInitialSelection);
     
+    // VALIDACIÓN CRÍTICA: Si ya estamos procesando el mismo target, no crear duplicados
+    if (this.currentTargetId === targetId) {
+      console.log('⚠️ PREVENCIÓN DUPLICADOS: Ya hay un marcador para este target:', targetId);
+      console.log('⚠️ Cancelando creación de marcador duplicado');
+      return null; // Evitar crear marcador duplicado
+    }
+    
     // VERIFICACIÓN ADICIONAL: Asegurar que no hay marcadores residuales en el mapa
     if (provider === 'mapbox' && map) {
       // Para Mapbox, verificar si hay marcadores existentes y removerlos
@@ -170,7 +177,8 @@ export class MarkerService {
         closeOnClick: false,
         closeOnMove: false,
         maxWidth: '310px',
-        offset: [0, -15]
+        offset: [0, -15],
+        anchor: 'bottom' // Forzar que el popup siempre aparezca ARRIBA del marcador
       }).setHTML(popupHtml);
 
       marker.setPopup(popup);

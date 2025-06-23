@@ -137,19 +137,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    // VALIDACIÓN ADICIONAL: Si es el mismo target y ya hay marcadores, 
-    // es probable que sea una actualización desde polling o doble procesamiento
+    // VALIDACIÓN PRINCIPAL: Si es el mismo target y ya hay marcadores, 
+    // SIEMPRE solo actualizar posición (sin importar isFirstTimeSelection)
     const isSameTarget = prev && curr && prev._id === curr._id;
-    if (isSameTarget && this.currentMarkers.length > 0 && !this.isFirstTimeSelection) {
-      console.log('⚠️ Mismo target con marcadores existentes - solo actualizar posición');
-      await this.updateMarkerPosition();
-      return;
-    }
-
-    // VALIDACIÓN EXTRA: Si es el mismo target y es la primera vez, 
-    // verificar si ya hay marcadores (target ya procesado)
     if (isSameTarget && this.currentMarkers.length > 0) {
-      console.log('⚠️ Mismo target detectado con marcadores ya creados - no reprocesar');
+      console.log('⚠️ Mismo target con marcadores existentes - SOLO actualizar posición');
+      console.log('📍 currentMarkers.length:', this.currentMarkers.length, 'isFirstTime:', this.isFirstTimeSelection);
+      await this.updateMarkerPosition();
       return;
     }
 
@@ -258,6 +252,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   private async addMarker(isInitialSelection: boolean = true): Promise<void> {
     if (!this.hasValidTarget() || !this.map) return;
 
+    // VALIDACIÓN CRÍTICA: Si ya hay marcadores, no crear más
+    if (this.currentMarkers.length > 0) {
+      console.log('⚠️ PREVENCIÓN DUPLICADOS: Ya existen', this.currentMarkers.length, 'marcadores para target:', this.selectedTarget._id);
+      console.log('⚠️ Cancelando creación de marcador adicional');
+      return;
+    }
+
     const rawLat = this.selectedTarget.traccarInfo.geolocation.latitude;
     const rawLng = this.selectedTarget.traccarInfo.geolocation.longitude;
     
@@ -312,11 +313,17 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
   private async updateMarkerPosition(): Promise<void> {
     if (this.currentMarkers.length === 0 || !this.hasValidTarget()) {
-      console.log('Cannot update marker position: no markers or invalid target');
+      console.log('❌ Cannot update marker position: no markers or invalid target');
+      console.log('📊 Estado actual:', {
+        currentMarkersCount: this.currentMarkers.length,
+        hasValidTarget: this.hasValidTarget(),
+        selectedTargetId: this.selectedTarget?._id
+      });
       return;
     }
 
-    console.log(`Updating marker position for target ${this.selectedTarget._id}`);
+    console.log(`🔄 Updating marker position for target ${this.selectedTarget._id}`);
+    console.log('📊 Marcadores actuales:', this.currentMarkers.length);
 
     await MarkerService.updatePosition({
       map: this.map,
