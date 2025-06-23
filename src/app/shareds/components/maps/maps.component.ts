@@ -79,6 +79,15 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     if (this.map && changes['selectedTarget']) {
       this.handleTargetChange(changes['selectedTarget']);
     }
+
+    // DEBUG: Rastrear cambios en preloadedStopTime
+    if (changes['preloadedStopTime']) {
+      console.log('🔍 DEBUG: preloadedStopTime cambió:', {
+        previousValue: changes['preloadedStopTime'].previousValue,
+        currentValue: changes['preloadedStopTime'].currentValue,
+        isFirstChange: changes['preloadedStopTime'].firstChange
+      });
+    }
   }
 
   ngOnDestroy(): void {
@@ -260,6 +269,15 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       console.error('Invalid coordinates:', { rawLat, rawLng, lat, lng });
       return;
     }
+
+    // DEBUG: Verificar valor de preloadedStopTime antes de pasar al MarkerService
+    console.log('🔍 DEBUG: addMarker llamado con:', {
+      targetId: this.selectedTarget._id,
+      isInitialSelection,
+      preloadedStopTime: this.preloadedStopTime,
+      preloadedStopTimeType: typeof this.preloadedStopTime,
+      preloadedStopTimeLength: this.preloadedStopTime?.length
+    });
 
     try {
       const marker = await MarkerService.createMarker(

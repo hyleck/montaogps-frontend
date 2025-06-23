@@ -344,6 +344,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // Nuevo método para mostrar target específico en el mapa
   showTargetOnMap(target: any) {
     console.log('🎯 showTargetOnMap called for target:', target._id);
+    console.log('🔍 DEBUG: Target completo desde lista:', target);
+    console.log('🔍 DEBUG: Target.traccarInfo:', target.traccarInfo);
+    console.log('🔍 DEBUG: Target.api_device_id:', target.api_device_id);
+    console.log('🔍 DEBUG: Target status:', target?.traccarInfo?.status);
     
     // Verificar si es el mismo target que ya está seleccionado
     if (this.currentTargetId === target._id) {
@@ -445,56 +449,92 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Almacenar el target seleccionado
     this.selectedTargetForMap = targetForMap;
     
-    // CONSULTAR TIEMPO DE PARADA INMEDIATAMENTE
-    this.selectedTargetStopTime = await this.consultarTiempoDeParada(targetForMap, abortController);
-    
     // Reactivar el centrado automático para la nueva selección
     this.shouldCenterMapOnUpdate = true;
     
-    // Activar la vista del mapa
+    // Activar la vista del mapa INMEDIATAMENTE
     // Solo cambiar el estado si no está ya activo
     if (!this.showMaps) {
+      console.log('🔍 DEBUG: Activando vista de mapa inmediatamente (sin esperar tiempo de parada)');
       this.showMaps = true;
       this.status.setState('management_show_maps', { showMaps: true });
-      
-      // Solo recrear el mapa si no estaba visible antes
     }
+    
+    // CONSULTAR TIEMPO DE PARADA EN SEGUNDO PLANO (sin bloquear)
+    console.log('🔍 DEBUG: Iniciando consulta de tiempo de parada en segundo plano, selectedTargetStopTime:', this.selectedTargetStopTime);
+    this.consultarTiempoDeParadaEnSegundoPlano(targetForMap, abortController);
     // Si el mapa ya está visible, NO recrearlo, solo actualizar el target
     
     // Actualizar URL con el query parameter del target seleccionado
     this.updateUrlWithTargetId(target._id);
   }
 
+  // Método para consultar tiempo de parada en segundo plano (sin bloquear)
+  private async consultarTiempoDeParadaEnSegundoPlano(target: any, abortController?: AbortController): Promise<void> {
+    try {
+      console.log('🔍 DEBUG: consultarTiempoDeParadaEnSegundoPlano iniciado para target:', target._id);
+      const stopTime = await this.consultarTiempoDeParada(target, abortController);
+      console.log('🔍 DEBUG: Resultado de consulta en segundo plano:', stopTime);
+      
+      // Actualizar selectedTargetStopTime con el resultado
+      this.selectedTargetStopTime = stopTime;
+      console.log('🔍 DEBUG: selectedTargetStopTime actualizado a:', this.selectedTargetStopTime);
+    } catch (error) {
+      console.warn('Error en consulta de tiempo de parada en segundo plano:', error);
+      this.selectedTargetStopTime = undefined;
+    }
+  }
+
   // Método para consultar tiempo de parada inmediatamente
   private async consultarTiempoDeParada(target: any, abortController?: AbortController): Promise<string | undefined> {
-    // Solo consultar para dispositivos online y que tengan api_device_id
-    if (!target.api_device_id) {
-      console.log('⚠️ Target sin api_device_id, no se puede consultar tiempo de parada:', target._id);
+    console.log('🔍 DEBUG: consultarTiempoDeParada iniciado para target:', target._id);
+    
+    // Determinar qué deviceId usar: api_device_id o traccarInfo.id como fallback
+    const deviceId = target.api_device_id || target.traccarInfo?.id?.toString();
+    
+    if (!deviceId) {
+      console.log('⚠️ Target sin api_device_id ni traccarInfo.id, no se puede consultar tiempo de parada:', target._id);
+      console.log('🔍 DEBUG: target data:', {
+        _id: target._id,
+        api_device_id: target.api_device_id,
+        traccar_device_id: target.traccar_device_id,
+        device_id: target.device_id,
+        traccarInfoId: target.traccarInfo?.id
+      });
       return undefined;
     }
+    
+    console.log('🔍 DEBUG: Usando deviceId para consulta:', deviceId, '(fuente:', target.api_device_id ? 'api_device_id' : 'traccarInfo.id', ')');
 
     const status = target?.traccarInfo?.status || 'offline';
+    console.log('🔍 DEBUG: status del target:', status);
+    
     if (status !== 'online') {
       console.log('⚠️ Target offline, no se consulta tiempo de parada:', target._id);
       return undefined;
     }
 
     try {
-      console.log('🔄 Consultando tiempo de parada inmediatamente para device:', target.api_device_id);
-      const stopTimeResponse = await this.targetsService.getStopTime(target.api_device_id);
-      console.log('📊 Respuesta tiempo de parada inmediata:', stopTimeResponse);
+      console.log('🔄 Consultando tiempo de parada inmediatamente para device:', deviceId);
+      const stopTimeResponse = await this.targetsService.getStopTime(deviceId);
+      console.log('📊 Respuesta tiempo de parada inmediata COMPLETA:', stopTimeResponse);
       
       if (!stopTimeResponse.isMoving && stopTimeResponse.text && !stopTimeResponse.error) {
         console.log('✅ Tiempo de parada obtenido inmediatamente:', stopTimeResponse.text);
+        console.log('🔍 DEBUG: Asignando selectedTargetStopTime:', stopTimeResponse.text);
         this.selectedTargetStopTime = stopTimeResponse.text;
         return stopTimeResponse.text;
       } else if (stopTimeResponse.isMoving) {
         console.log('🚗 Vehículo en movimiento (consulta inmediata)');
+        console.log('🔍 DEBUG: selectedTargetStopTime será undefined por isMoving=true');
+        return undefined;
       } else if (stopTimeResponse.error) {
         console.log('❌ Error en consulta inmediata:', stopTimeResponse.error);
+        return undefined;
       }
     } catch (error) {
       console.warn('Error consultando tiempo de parada inmediatamente:', error);
+      console.log('🔍 DEBUG: Error completo:', error);
     }
     
     return undefined;
@@ -1320,11 +1360,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Almacenar el target seleccionado
     this.selectedTargetForMap = targetForMap;
     
-    // CONSULTAR TIEMPO DE PARADA INMEDIATAMENTE
-    this.selectedTargetStopTime = await this.consultarTiempoDeParada(targetForMap, abortController);
-    
     // Reactivar el centrado automático para la selección desde URL
     this.shouldCenterMapOnUpdate = true;
+    
+    // CONSULTAR TIEMPO DE PARADA EN SEGUNDO PLANO (sin bloquear)
+    console.log('🔍 DEBUG: Iniciando consulta de tiempo de parada en segundo plano desde URL');
+    this.consultarTiempoDeParadaEnSegundoPlano(targetForMap, abortController);
   }
 
   // Métodos para manejo de datos de vehículos

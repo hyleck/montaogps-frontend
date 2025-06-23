@@ -18,6 +18,16 @@ export class MarkerService {
     isInitialSelection: boolean = true,
     preloadedStopTime?: string
   ) {
+    // DEBUG: Verificar todos los parámetros recibidos
+    console.log('🔍 DEBUG MarkerService.createMarker - Parámetros recibidos:', {
+      targetId: target._id || target.id,
+      isInitialSelection,
+      preloadedStopTime,
+      preloadedStopTimeType: typeof preloadedStopTime,
+      preloadedStopTimeLength: preloadedStopTime?.length,
+      hasTargetsService: !!targetsService
+    });
+
     // CANCELAR PROCESOS ANTERIORES INMEDIATAMENTE
     const targetId = target._id || target.id;
     console.log('🎯 Creando marcador para target:', targetId, 'isInitialSelection:', isInitialSelection);
@@ -168,58 +178,76 @@ export class MarkerService {
       // Agregar marcador y abrir popup inmediatamente
       marker.addTo(map);
       marker.togglePopup();
+      
+      // Verificar si el marcador está visible y centrarlo si no lo está (solo para Mapbox)
+      this.centerMapboxMarkerIfOutOfView(map, lng, lat);
     }
 
-    // Mostrar skeleton INMEDIATAMENTE cuando se selecciona el target
-    setTimeout(() => {
-      console.log('🔍 Buscando popup element para skeleton (selección de target)...');
-      const popupElement = document.querySelector('#custom-info-window') as HTMLElement;
-      if (popupElement) {
-        console.log('✅ Popup element encontrado, mostrando skeleton');
-        PopupBuilder.addStopTimeSkeletonWithAnimation(popupElement, speedKmh);
-      } else {
-        console.log('⚠️ No se encontró popup element, reintentando en 200ms...');
-        // Reintentar una vez más con delay mayor
-        setTimeout(() => {
-          const retryPopupElement = document.querySelector('#custom-info-window') as HTMLElement;
-          if (retryPopupElement) {
-            console.log('✅ Popup element encontrado en reintento, mostrando skeleton');
-            PopupBuilder.addStopTimeSkeletonWithAnimation(retryPopupElement, speedKmh);
-          } else {
-            console.log('❌ No se pudo encontrar popup element después de reintento');
-          }
-        }, 200);
-      }
-    }, 150); // Delay mínimo para que el popup se establezca
+    // Mostrar skeleton SOLO si NO hay tiempo precargado
+    if (!preloadedStopTime) {
+      setTimeout(() => {
+        console.log('🔍 Buscando popup element para skeleton (selección de target)...');
+        const popupElement = document.querySelector('#custom-info-window') as HTMLElement;
+        if (popupElement) {
+          console.log('✅ Popup element encontrado, mostrando skeleton');
+          PopupBuilder.addStopTimeSkeletonWithAnimation(popupElement, speedKmh);
+        } else {
+          console.log('⚠️ No se encontró popup element, reintentando en 200ms...');
+          // Reintentar una vez más con delay mayor
+          setTimeout(() => {
+            const retryPopupElement = document.querySelector('#custom-info-window') as HTMLElement;
+            if (retryPopupElement) {
+              console.log('✅ Popup element encontrado en reintento, mostrando skeleton');
+              PopupBuilder.addStopTimeSkeletonWithAnimation(retryPopupElement, speedKmh);
+            } else {
+              console.log('❌ No se pudo encontrar popup element después de reintento');
+            }
+          }, 200);
+        }
+      }, 150); // Delay mínimo para que el popup se establezca
+    } else {
+      console.log('⚡ Tiempo precargado disponible, saltando skeleton y agregando directamente');
+    }
 
-    // Paso 4: Consultar tiempo de parada en segundo plano - SIEMPRE
+    // Paso 4: Consultar tiempo de parada en segundo plano - USAR PRELOADED SI EXISTE
     let stopTimePromise: Promise<string | undefined>;
     
-    console.log('🔄 SIEMPRE intentando consultar tiempo de parada...');
-         console.log('📋 Target info:', {
-       mongoId: target._id || target.id,
-       api_device_id: target.api_device_id,
-       traccar_device_id: target.traccar_device_id,
-       device_id: target.device_id,
-       hasTargetsService: !!targetsService
-     });
-    
-         // Priorizar api_device_id (Traccar ID) sobre MongoDB _id
-     const deviceId = target.api_device_id || target.traccar_device_id || target.device_id || target.deviceId;
-    
-         if (targetsService && deviceId) {
-       console.log('✅ Device ID seleccionado:', deviceId, '(tipo: api_device_id)');
-       console.log('✅ Enviando solicitud tiempo de parada para device:', deviceId);
-       stopTimePromise = this.loadStopTimeInBackground(deviceId, targetsService);
-     } else {
-      console.log('❌ FALLO: No se puede consultar tiempo de parada');
-      console.log('❌ targetsService:', !!targetsService);
-      console.log('❌ deviceId encontrado:', deviceId);
-      console.log('❌ target completo:', target);
-      stopTimePromise = Promise.resolve(undefined);
+    // Si hay tiempo de parada precargado, usarlo directamente
+    if (preloadedStopTime) {
+      console.log('⚡ Usando tiempo de parada PRECARGADO:', preloadedStopTime);
+      stopTimePromise = Promise.resolve(preloadedStopTime);
+    } else {
+      console.log('🔄 No hay tiempo precargado, consultando desde cero...');
+      console.log('📋 Target info:', {
+        mongoId: target._id || target.id,
+        api_device_id: target.api_device_id,
+        traccar_device_id: target.traccar_device_id,
+        device_id: target.device_id,
+        traccarInfoId: target.traccarInfo?.id,
+        hasTargetsService: !!targetsService
+      });
+      
+      // Priorizar api_device_id (Traccar ID) sobre MongoDB _id, añadiendo traccarInfo.id como fallback
+      const deviceId = target.api_device_id || target.traccar_device_id || target.device_id || target.deviceId || target.traccarInfo?.id?.toString();
+      
+      if (targetsService && deviceId) {
+        const deviceIdSource = target.api_device_id ? 'api_device_id' : 
+                              target.traccar_device_id ? 'traccar_device_id' : 
+                              target.device_id ? 'device_id' : 
+                              target.deviceId ? 'deviceId' : 'traccarInfo.id';
+        console.log('✅ Device ID seleccionado:', deviceId, '(fuente:', deviceIdSource, ')');
+        console.log('✅ Enviando solicitud tiempo de parada para device:', deviceId);
+        stopTimePromise = this.loadStopTimeInBackground(deviceId, targetsService);
+      } else {
+        console.log('❌ FALLO: No se puede consultar tiempo de parada');
+        console.log('❌ targetsService:', !!targetsService);
+        console.log('❌ deviceId encontrado:', deviceId);
+        console.log('❌ target completo:', target);
+        stopTimePromise = Promise.resolve(undefined);
+      }
     }
 
-    // Cuando esté listo el tiempo de parada, reemplazar skeleton o removerlo
+    // Cuando esté listo el tiempo de parada, reemplazar skeleton o agregarlo directamente
     const stopTime = await stopTimePromise;
     
     // Verificar nuevamente que el target no haya cambiado
@@ -229,22 +257,34 @@ export class MarkerService {
       return marker;
     }
     
-    // Pequeño delay para que el popup se establezca completamente
+    // Para tiempo precargado, aplicar inmediatamente con delay menor
+    // Para tiempo consultado, usar delay normal para reemplazar skeleton
+    const delay = preloadedStopTime ? 50 : 100;
+    
     setTimeout(() => {
       // Verificar una vez más antes de manipular el DOM
       if (this.currentTargetId === currentTargetId) {
         const popupElement = document.querySelector('#custom-info-window') as HTMLElement;
         if (popupElement) {
           if (stopTime) {
-            console.log('⏱️ Reemplazando skeleton con tiempo de parada:', stopTime);
-            PopupBuilder.replaceSkeletonWithStopTime(popupElement, stopTime, speedKmh);
+            if (preloadedStopTime) {
+              console.log('⚡ Agregando tiempo de parada PRECARGADO directamente:', stopTime);
+              PopupBuilder.addStopTimeWithAnimation(popupElement, stopTime, speedKmh);
+            } else {
+              console.log('⏱️ Reemplazando skeleton con tiempo de parada consultado:', stopTime);
+              PopupBuilder.replaceSkeletonWithStopTime(popupElement, stopTime, speedKmh);
+            }
           } else {
-            console.log('🚗 Removiendo skeleton - vehículo en movimiento o sin datos');
-            PopupBuilder.replaceSkeletonWithStopTime(popupElement, undefined, speedKmh); // Sin parámetro = remover
+            if (preloadedStopTime) {
+              console.log('⚠️ Tiempo precargado era inválido, no mostrar nada');
+            } else {
+              console.log('🚗 Removiendo skeleton - vehículo en movimiento o sin datos');
+              PopupBuilder.replaceSkeletonWithStopTime(popupElement, undefined, speedKmh);
+            }
           }
         }
       }
-    }, 100); // Delay fijo de 100ms
+    }, delay);
 
       return marker;
   }
@@ -476,7 +516,12 @@ export class MarkerService {
         infoWindow.setContent(html);
       }
     } else {
+      // Mapbox: actualizar posición del marcador
       marker.setLngLat([lng, lat]);
+      
+      // Verificar si el marcador está visible y centrarlo si no lo está
+      this.centerMapboxMarkerIfOutOfView(map, lng, lat);
+      
       const popup = marker.getPopup();
       if (popup) {
         const html = PopupBuilder.buildPopupHtml({
@@ -580,5 +625,32 @@ export class MarkerService {
     
     // Cancelar todas las promesas activas
     this.activePromises.clear();
+  }
+
+  // Verificar si el marcador está visible en el viewport de Mapbox y centrarlo si no lo está
+  private static centerMapboxMarkerIfOutOfView(map: any, lng: number, lat: number): void {
+    if (!map || !map.getBounds) return;
+    
+    try {
+      const bounds = map.getBounds();
+      const markerPoint = { lng, lat };
+      
+      // Verificar si el marcador está dentro de los bounds actuales
+      const isVisible = bounds.contains(markerPoint);
+      
+      if (!isVisible) {
+        console.log('📍 Marcador fuera de vista, centrando mapa en:', lat.toFixed(6), lng.toFixed(6));
+        
+        // Centrar el mapa sin animación suave para evitar conflictos
+        map.jumpTo({
+          center: [lng, lat],
+          zoom: Math.max(map.getZoom(), 14) // Mantener zoom actual o usar mínimo 14
+        });
+      } else {
+        console.log('👁️ Marcador visible en viewport actual');
+      }
+    } catch (error) {
+      console.warn('Error verificando visibilidad del marcador:', error);
+    }
   }
 } 
