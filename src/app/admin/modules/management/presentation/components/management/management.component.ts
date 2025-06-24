@@ -305,19 +305,26 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private clearSelectedTarget(): void {
-    console.log('🧹 Limpiando target seleccionado para mapa');
+    console.log('🧹 LIMPIANDO COMPLETAMENTE target seleccionado para mapa');
     
-    // Cancelar todos los procesos del target actual
+    // CANCELAR TODOS LOS PROCESOS DEL TARGET ACTUAL
     if (this.currentTargetId) {
+      console.log('🛑 Cancelando COMPLETAMENTE procesos para target:', this.currentTargetId);
       this.cancelAllTargetProcesses(this.currentTargetId);
     }
     
+    // LIMPIAR COMPLETAMENTE EL ESTADO
+    console.log('🧹 Limpiando estado del target anterior');
     this.selectedTargetForMap = null;
     this.selectedTargetStopTime = undefined; // Limpiar tiempo de parada
     this.shouldCenterMapOnUpdate = true; // Resetear para la próxima selección
     this.currentTargetId = null; // Limpiar ID del target actual
     this.isProcessingTargetFromUrl = false; // Limpiar bandera de procesamiento
+    
+    // LIMPIAR URL
     this.clearTargetFromUrl();
+    
+    console.log('✅ Target anterior COMPLETAMENTE limpiado');
   }
 
   // Método para cancelar todos los procesos de un target específico
@@ -445,6 +452,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
     };
 
     console.log('✅ Target preparado para mapa:', targetForMap._id, 'con coordenadas:', lat, lng);
+    
+    // DEBUG DETALLADO PARA RASTREAR PROBLEMA DE CENTRADO
+    console.log('🔍 DEBUG MANAGEMENT: Target preparado con coordenadas exactas:', {
+      targetId: targetForMap._id,
+      lat: lat.toFixed(6),
+      lng: lng.toFixed(6),
+      geolocationCompleta: targetForMap.traccarInfo?.geolocation,
+      coordenadasOriginales: { lat, lng }
+    });
 
     // Almacenar el target seleccionado
     this.selectedTargetForMap = targetForMap;
@@ -489,6 +505,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private async consultarTiempoDeParada(target: any, abortController?: AbortController): Promise<string | undefined> {
     console.log('🔍 DEBUG: consultarTiempoDeParada iniciado para target:', target._id);
     
+    // VERIFICAR SI EL PROCESO HA SIDO CANCELADO
+    if (abortController?.signal.aborted) {
+      console.log('🛑 consultarTiempoDeParada: Proceso cancelado antes de iniciar para target:', target._id);
+      return undefined;
+    }
+    
     // Determinar qué deviceId usar: api_device_id o traccarInfo.id como fallback
     const deviceId = target.api_device_id || target.traccarInfo?.id?.toString();
     
@@ -518,6 +540,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
       console.log('🔄 Consultando tiempo de parada inmediatamente para device:', deviceId);
       const stopTimeResponse = await this.targetsService.getStopTime(deviceId);
       console.log('📊 Respuesta tiempo de parada inmediata COMPLETA:', stopTimeResponse);
+      
+      // VERIFICAR NUEVAMENTE SI EL PROCESO HA SIDO CANCELADO DESPUÉS DE LA CONSULTA
+      if (abortController?.signal.aborted) {
+        console.log('🛑 consultarTiempoDeParada: Proceso cancelado después de consulta HTTP para target:', target._id);
+        return undefined;
+      }
       
       if (!stopTimeResponse.isMoving && stopTimeResponse.text && !stopTimeResponse.error) {
         console.log('✅ Tiempo de parada obtenido inmediatamente:', stopTimeResponse.text);
@@ -1030,9 +1058,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private async updateSelectedTargetDetails(): Promise<void> {
     if (!this.selectedTargetForMap?._id) return;
     
-    // Verificar que el target actual siga siendo el target activo
+    // VERIFICACIÓN CRÍTICA: Verificar que el target actual siga siendo el target activo
     if (this.currentTargetId !== this.selectedTargetForMap._id) {
-      console.log('🛑 Target cambió durante polling, cancelando actualización para:', this.selectedTargetForMap._id);
+      console.log('🛑 POLLING CANCELADO: Target cambió durante polling');
+      console.log('🛑 Target esperado:', this.currentTargetId);
+      console.log('🛑 Target en polling:', this.selectedTargetForMap._id);
+      return;
+    }
+    
+    // VERIFICACIÓN ADICIONAL: Verificar que el proceso no haya sido cancelado
+    if (!this.activeTargetProcesses.has(this.selectedTargetForMap._id)) {
+      console.log('🛑 POLLING CANCELADO: Proceso de target ya fue cancelado');
+      console.log('🛑 Target ID:', this.selectedTargetForMap._id);
       return;
     }
     
@@ -1078,26 +1115,26 @@ export class ManagementComponent implements OnInit, OnDestroy {
             hasLocationChanged
           });
           
-          // Crear nuevo objeto targetForMap con datos actualizados completos
-          const updatedTargetForMap = {
-            ...this.selectedTargetForMap,
-            ...updatedTargetDetails, // Usar todos los datos actualizados del target específico
-            traccarInfo: {
-              ...updatedTargetDetails.traccarInfo,
-              geolocation: updatedTargetDetails.traccarInfo?.['geolocation'] || {
-                latitude: lat,
-                longitude: lng
-              }
-            }
+          // ACTUALIZAR PROPIEDADES DEL OBJETO EXISTENTE en lugar de reasignar
+          // Esto preserva la referencia del objeto y evita disparos innecesarios de ngOnChanges
+          if (!this.selectedTargetForMap.traccarInfo) {
+            this.selectedTargetForMap.traccarInfo = {};
+          }
+          
+          // Actualizar propiedades específicas preservando la estructura existente
+          Object.assign(this.selectedTargetForMap, updatedTargetDetails);
+          Object.assign(this.selectedTargetForMap.traccarInfo, updatedTargetDetails.traccarInfo);
+          this.selectedTargetForMap.traccarInfo.geolocation = updatedTargetDetails.traccarInfo?.['geolocation'] || {
+            latitude: lat,
+            longitude: lng
           };
           
           // DEBUG: Verificar que el polling preserva la geolocation completa
           console.log('🔄 POLLING updateSelectedTargetDetails:');
-          console.log('- Geolocation completa preservada:', updatedTargetForMap.traccarInfo?.geolocation);
-          console.log('- Velocidad preservada:', updatedTargetForMap.traccarInfo?.geolocation?.speed);
+          console.log('- Geolocation completa preservada:', this.selectedTargetForMap.traccarInfo?.geolocation);
+          console.log('- Velocidad preservada:', this.selectedTargetForMap.traccarInfo?.geolocation?.speed);
           
-          // Actualizar el target seleccionado
-          this.selectedTargetForMap = updatedTargetForMap;
+          // NO reasignar this.selectedTargetForMap para preservar referencia del objeto
           
           if (hasLocationChanged) {
             console.log('🚀 UBICACIÓN CAMBIÓ! Activando actualización del mapa para target:', this.selectedTargetForMap._id);
@@ -1140,25 +1177,25 @@ export class ManagementComponent implements OnInit, OnDestroy {
         const hasLocationChanged = !oldLat || !oldLng || 
           Math.abs(lat - oldLat) > 0.0001 || Math.abs(lng - oldLng) > 0.0001;
         
-        // Crear nuevo objeto targetForMap con datos actualizados
-        const updatedTargetForMap = {
-          ...this.selectedTargetForMap,
-          traccarInfo: {
-            ...updatedTarget.traccarInfo,
-            geolocation: updatedTarget.traccarInfo?.['geolocation'] || {
-              latitude: lat,
-              longitude: lng
-            }
-          }
+        // ACTUALIZAR PROPIEDADES DEL OBJETO EXISTENTE en lugar de reasignar
+        // Esto preserva la referencia del objeto y evita disparos innecesarios de ngOnChanges
+        if (!this.selectedTargetForMap.traccarInfo) {
+          this.selectedTargetForMap.traccarInfo = {};
+        }
+        
+        // Actualizar propiedades específicas preservando la estructura existente
+        Object.assign(this.selectedTargetForMap.traccarInfo, updatedTarget.traccarInfo);
+        this.selectedTargetForMap.traccarInfo.geolocation = updatedTarget.traccarInfo?.['geolocation'] || {
+          latitude: lat,
+          longitude: lng
         };
         
         // DEBUG: Verificar que el polling preserva la geolocation completa
         console.log('🔄 POLLING updateSelectedTargetLocation:');
-        console.log('- Geolocation completa preservada:', updatedTargetForMap.traccarInfo?.geolocation);
-        console.log('- Velocidad preservada:', updatedTargetForMap.traccarInfo?.geolocation?.speed);
+        console.log('- Geolocation completa preservada:', this.selectedTargetForMap.traccarInfo?.geolocation);
+        console.log('- Velocidad preservada:', this.selectedTargetForMap.traccarInfo?.geolocation?.speed);
 
-        // Actualizar el target seleccionado
-        this.selectedTargetForMap = updatedTargetForMap;
+        // NO reasignar this.selectedTargetForMap para preservar referencia del objeto
         
         if (hasLocationChanged) {
           
@@ -1464,22 +1501,37 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Cancelar todos los procesos activos de targets
+    console.log('🧹 INICIANDO LIMPIEZA COMPLETA del componente Management');
+    
+    // CANCELAR TODOS LOS PROCESOS ACTIVOS DE TARGETS
     if (this.currentTargetId) {
       console.log('🛑 ngOnDestroy: Cancelando procesos del target actual:', this.currentTargetId);
       this.cancelAllTargetProcesses(this.currentTargetId);
     }
     
-    // Cancelar cualquier proceso activo restante
-    this.activeTargetProcesses.forEach((controller, targetId) => {
-      console.log('🛑 ngOnDestroy: Cancelando procesos restantes para target:', targetId);
-      controller.abort();
-    });
-    this.activeTargetProcesses.clear();
-    
-    // Limpiar el polling cuando el componente se destruya
-    if (this.pollingSubscription) {
-      this.pollingSubscription.unsubscribe();
+    // CANCELAR CUALQUIER PROCESO ACTIVO RESTANTE
+    if (this.activeTargetProcesses.size > 0) {
+      console.log('🛑 ngOnDestroy: Cancelando', this.activeTargetProcesses.size, 'procesos restantes');
+      this.activeTargetProcesses.forEach((controller, targetId) => {
+        console.log('🛑 ngOnDestroy: Cancelando procesos restantes para target:', targetId);
+        controller.abort();
+      });
+      this.activeTargetProcesses.clear();
     }
+    
+    // LIMPIAR EL POLLING CUANDO EL COMPONENTE SE DESTRUYA
+    if (this.pollingSubscription) {
+      console.log('🛑 ngOnDestroy: Cancelando polling subscription');
+      this.pollingSubscription.unsubscribe();
+      this.pollingSubscription = null;
+    }
+    
+    // LIMPIAR ESTADO COMPLETAMENTE
+    this.selectedTargetForMap = null;
+    this.selectedTargetStopTime = undefined;
+    this.currentTargetId = null;
+    this.isProcessingTargetFromUrl = false;
+    
+    console.log('✅ LIMPIEZA COMPLETA terminada - Management component destroyed');
   }
 }

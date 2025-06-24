@@ -379,8 +379,19 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     private setupEditTarget(target: TargetDevice) {
         
+        // DEBUG: Ver qué datos llegan del backend para edición
+        console.log('🔍 DEBUG setupEditTarget: Target original recibido:', {
+            _id: target._id,
+            name: target.name,
+            ignition_sensor: target.ignition_sensor,
+            engine_shutdown: target.engine_shutdown,
+            shutdown_control: target.shutdown_control
+        });
+        
         // Rellenar el formulario con los datos del objetivo a editar
         this.target = JSON.parse(JSON.stringify(target));
+        
+        // El backend ya maneja engine_shutdown directamente, no necesita mapeo
         
         // Asegurarse de que los campos estén correctamente formateados
         // y que los valores vacíos tengan el formato adecuado para los selectores
@@ -413,17 +424,21 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.target.sim_company = '';
         }
         
-        if (!this.target.engine_shutdown) {
+        // Asegurar que engine_shutdown tenga un valor válido, preservando el existente
+        if (this.target.engine_shutdown === null || this.target.engine_shutdown === undefined) {
             this.target.engine_shutdown = '';
         }
+        console.log('🔍 DEBUG setupEditTarget: engine_shutdown cargado:', this.target.engine_shutdown);
         
         if (!this.target.installation_location || this.target.installation_location === '') {
             this.target.installation_location = '';
         }
         
-        if (!this.target.ignition_sensor || this.target.ignition_sensor === '') {
+        // Asegurar que ignition_sensor tenga un valor válido, preservando el existente
+        if (this.target.ignition_sensor === null || this.target.ignition_sensor === undefined) {
             this.target.ignition_sensor = '';
         }
+        console.log('🔍 DEBUG setupEditTarget: ignition_sensor cargado:', this.target.ignition_sensor);
         
         // Ajuste para el estado (status): en DB es boolean, en formulario puede ser string
         if (this.target.status === true || String(this.target.status) === 'true') {
@@ -639,6 +654,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     async onSubmit() {
+        // 🔍 DEBUG: Ver estado del formulario antes de validar y procesar
+        console.log('🔍 DEBUG onSubmit - Estado antes de procesar:', {
+            targetId: this.target._id,
+            engine_shutdown: this.target.engine_shutdown,
+            ignition_sensor: this.target.ignition_sensor,
+            targetCompleto: this.target
+        });
+
         // Validar los datos antes de enviar
         if (!this.validateForm()) {
             return;
@@ -650,6 +673,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             
             console.log('Datos preparados para enviar:', targetToSave);
             
+            // 🔍 DEBUG: Ver exactamente qué se va a enviar al backend para engine_shutdown
+            console.log('🔍 DEBUG - Campos específicos antes del envío:', {
+                isUpdate: !!this.target._id,
+                engine_shutdown_en_target: this.target.engine_shutdown,
+                engine_shutdown_en_payload: targetToSave.engine_shutdown,
+                ignition_sensor_en_payload: targetToSave.ignition_sensor
+            });
+            
             if (this.target._id) {
                 // Actualizar objetivo existente
                 console.log('Actualizando target existente con ID:', this.target._id);
@@ -657,8 +688,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 console.log('- sim_company que se enviará:', targetToSave.sim_company);
                 console.log('- Datos completos:', targetToSave);
                 const updatedTarget = await this.targetsService.updateTarget(this.target._id, targetToSave as UpdateTargetDto);
-                console.log('📥 RESPUESTA DEL BACKEND:');
+                console.log('📥 RESPUESTA DEL BACKEND (UPDATE):');
                 console.log('- sim_company recibido:', (updatedTarget as any).sim_company);
+                console.log('- engine_shutdown recibido:', (updatedTarget as any).engine_shutdown);
+                console.log('- ignition_sensor recibido:', (updatedTarget as any).ignition_sensor);
                 console.log('- Target completo actualizado:', updatedTarget);
                 
                 this.messageService.add({
@@ -672,7 +705,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             } else {
                 // Crear nuevo objetivo
                 const newTarget = await this.targetsService.createTarget(targetToSave as CreateTargetDto);
-                console.log('Nuevo target creado exitosamente:', newTarget);
+                console.log('📥 RESPUESTA DEL BACKEND (CREATE):');
+                console.log('- engine_shutdown recibido:', (newTarget as any).engine_shutdown);
+                console.log('- ignition_sensor recibido:', (newTarget as any).ignition_sensor);
+                console.log('- Nuevo target creado exitosamente:', newTarget);
                 
                 this.messageService.add({
                     severity: 'success',
@@ -735,7 +771,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             index: '1',
             canceled: false,
             delete: false,
-            deleted: false
+            deleted: false,
+            ignition_sensor: '', // Valor por defecto para sensor de encendido
+            engine_shutdown: '' // Valor por defecto para control de apagado
         };
     }
 
@@ -774,10 +812,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             delete targetData.target_model_id;
         }
         
-        // Mapear campos de compatibilidad si existen
-        if (targetData.engine_shutdown) {
-            targetData.shutdown_control = targetData.engine_shutdown;
-            delete targetData.engine_shutdown;
+        // NO mapear engine_shutdown - el backend ya lo espera con ese nombre
+        // Asegurar que engine_shutdown se incluya explícitamente (incluso si está vacío)
+        if (targetData.engine_shutdown === undefined || targetData.engine_shutdown === null) {
+            targetData.engine_shutdown = '';
+        }
+        
+        // Asegurar que ignition_sensor se incluya explícitamente (incluso si está vacío)
+        if (targetData.ignition_sensor === undefined || targetData.ignition_sensor === null) {
+            targetData.ignition_sensor = '';
         }
         
         // sim_company y sim_card_number ya tienen los nombres correctos, no necesitan mapeo
@@ -836,9 +879,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         targetData.status = targetData.status === 'active';
         
         // Aplicar valores por defecto para campos requeridos pero que podrían estar vacíos
-        // Excluir sim_company para que mantenga su valor original (incluido string vacío)
+        // Excluir campos que deben mantener su valor original (incluido string vacío)
+        const fieldsToPreserve = ['sim_company', 'engine_shutdown', 'ignition_sensor'];
         for (const key in defaultValues) {
-            if ((targetData[key] === undefined || targetData[key] === null || targetData[key] === '') && key !== 'sim_company') {
+            if ((targetData[key] === undefined || targetData[key] === null || targetData[key] === '') && !fieldsToPreserve.includes(key)) {
                 targetData[key] = defaultValues[key];
             }
         }
@@ -856,16 +900,32 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 name: targetData.name,
                 device_imei: targetData.device_imei,
                 sim_company: targetData.sim_company,
+                ignition_sensor: targetData.ignition_sensor,
+                engine_shutdown: targetData.engine_shutdown,
+                plan: targetData.plan,
+                status: targetData.status
+            });
+        } else {
+            console.log('Campos clave para creación:', {
+                name: targetData.name,
+                device_imei: targetData.device_imei,
+                sim_company: targetData.sim_company,
+                ignition_sensor: targetData.ignition_sensor,
+                engine_shutdown: targetData.engine_shutdown,
                 plan: targetData.plan,
                 status: targetData.status
             });
         }
         
-        // VERIFICACIÓN SIMPLE DE sim_company
-        console.log('🔍 VERIFICACIÓN SIMPLE:');
+        // VERIFICACIÓN COMPLETA DE CAMPOS CLAVE
+        console.log('🔍 VERIFICACIÓN FINAL prepareTargetData:');
         console.log('- sim_company en this.target:', this.target.sim_company);
         console.log('- sim_company en targetData:', targetData.sim_company);
-        console.log('- targetData completo:', JSON.stringify(targetData, null, 2));
+        console.log('- ignition_sensor en this.target:', this.target.ignition_sensor);
+        console.log('- ignition_sensor en targetData:', targetData.ignition_sensor);
+        console.log('- engine_shutdown en this.target:', this.target.engine_shutdown);
+        console.log('- engine_shutdown en targetData:', targetData.engine_shutdown);
+        console.log('- isUpdate:', !!this.target._id);
         
         return targetData;
     }

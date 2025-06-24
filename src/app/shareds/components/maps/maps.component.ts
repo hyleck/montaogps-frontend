@@ -277,7 +277,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       isInitialSelection,
       preloadedStopTime: this.preloadedStopTime,
       preloadedStopTimeType: typeof this.preloadedStopTime,
-      preloadedStopTimeLength: this.preloadedStopTime?.length
+      preloadedStopTimeLength: this.preloadedStopTime?.length,
+      coordenadas: { lat: lat.toFixed(6), lng: lng.toFixed(6) },
+      targetGeolocation: this.selectedTarget.traccarInfo?.geolocation
     });
 
     try {

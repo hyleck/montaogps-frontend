@@ -9,7 +9,9 @@ export class PopupBuilder {
     stopTime,
     lastLocationDate,
     width = 250,
-    markerId
+    markerId,
+    ignitionStatus,
+    target
   }: {
     title: string;
     vehicleType?: string;
@@ -19,6 +21,8 @@ export class PopupBuilder {
     lastLocationDate?: string;
     width?: number;
     markerId?: string;
+    ignitionStatus?: 'on' | 'off' | null;
+    target?: any;
   }): string {
       const vehicleTypeHtml = vehicleType && vehicleType !== 'Desconocido'
         ? `<span style="color: #9C27B0; font-size: 11px; margin-left: 4px;">(${vehicleType})</span>`
@@ -27,6 +31,38 @@ export class PopupBuilder {
       const formattedSpeed = speedKmh === 0 ? 'Estacionado' : `${speedKmh} km/h`;
       const statusColor = status === 'online' ? '#4CAF50' : '#F44336';
       const statusLabel = status === 'online' ? 'Conectado' : 'Desconectado';
+
+      // Sección de estado de ignición (solo visible si el target tiene sensor configurado)
+      // Calcular ignitionStatus rápidamente si no está disponible y tenemos target
+      if (!ignitionStatus && target) {
+        ignitionStatus = this.fastGetIgnitionStatus(target);
+      }
+      
+      let ignitionContent = '';
+      if (ignitionStatus !== null && ignitionStatus !== undefined) {
+        const isEngineOn = ignitionStatus === 'on';
+        const ignitionColor = isEngineOn ? '#4CAF50' : '#9E9E9E';
+        const ignitionIcon = isEngineOn ? '🔋' : '⚫';
+        const ignitionText = isEngineOn ? 'Encendido' : 'Apagado';
+        
+        ignitionContent = `
+        <div id="ignition-section" style="
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          padding: 8px 10px;
+          background: ${isEngineOn ? '#e8f5e8' : '#f5f5f5'};
+          border-radius: 4px;
+          border-left: 3px solid ${ignitionColor};
+          width: 100%;
+          box-sizing: border-box;
+          margin-top: 10px;
+        ">
+          <span style="color: #666; font-size: 12px;">${ignitionIcon} Motor</span>
+          <span style="color: ${ignitionColor}; font-weight: 600; font-size: 13px;">${ignitionText}</span>
+        </div>
+        `;
+      }
 
       // Solo mostrar tiempo de parada cuando existe Y la velocidad es 0
       let stopTimeContent = '';
@@ -42,7 +78,7 @@ export class PopupBuilder {
           border-left: 3px solid #ff9800;
           width: 100%;
           box-sizing: border-box;
-          margin-top: 10px;
+          margin-top: ${ignitionContent ? '8px' : '10px'};
         ">
           <span style="color: #666; font-size: 12px;">⏱️ Tiempo parado</span>
           <span style="color: #ff9800; font-weight: 600; font-size: 13px;">${stopTime}</span>
@@ -64,10 +100,58 @@ export class PopupBuilder {
           border-left: 3px solid #ff5722;
           width: 100%;
           box-sizing: border-box;
-          margin-top: ${stopTimeContent ? '8px' : '10px'};
+          margin-top: ${stopTimeContent || ignitionContent ? '8px' : '10px'};
         ">
           <span style="color: #666; font-size: 12px;">📍 Última ubicación</span>
           <span style="color: #ff5722; font-weight: 600; font-size: 12px;">${lastLocationDate}</span>
+        </div>
+        `;
+      }
+
+      // Agregar información adicional que siempre esté presente
+      const currentDate = new Date().toLocaleString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      let additionalInfoContent = `
+      <div style="
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 8px 10px;
+        background: #f0f8ff;
+        border-radius: 4px;
+        border-left: 3px solid #2196F3;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: ${lastLocationContent || stopTimeContent || ignitionContent ? '8px' : '10px'};
+      ">
+        <span style="color: #666; font-size: 12px;">📍 Última ubicación</span>
+        <span style="color: #2196F3; font-weight: 600; font-size: 12px;">${currentDate}</span>
+      </div>
+      `;
+
+      // Agregar información del vehículo si está disponible
+      if (vehicleType && vehicleType !== 'Desconocido') {
+        additionalInfoContent += `
+        <div style="
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          padding: 8px 10px;
+          background: #f3e5f5;
+          border-radius: 4px;
+          border-left: 3px solid #9C27B0;
+          width: 100%;
+          box-sizing: border-box;
+          margin-top: 8px;
+        ">
+          <span style="color: #666; font-size: 12px;">🚗 Tipo</span>
+          <span style="color: #9C27B0; font-weight: 600; font-size: 12px;">${vehicleType}</span>
         </div>
         `;
       }
@@ -170,15 +254,82 @@ export class PopupBuilder {
               <span style="width: 8px; height: 8px; border-radius: 50%; background: ${statusColor};"></span>
               <span style="color: #666; font-size: 13px;">${statusLabel}</span>
             </div>
+            
+            <!-- Botón Más información (siempre visible ya que siempre hay contenido adicional) -->
+            <div id="more-info-button" style="
+              margin-top: 12px;
+              padding: 8px 12px;
+              background: #f0f0f0;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              cursor: pointer;
+              text-align: center;
+              transition: all 0.2s ease;
+              user-select: none;
+            " 
+            onclick="
+              const button = this;
+              const detailsSection = document.getElementById('details-section');
+              const icon = document.getElementById('more-info-icon');
+              
+              if (detailsSection.style.display === 'none' || detailsSection.style.display === '') {
+                // Mostrar detalles
+                detailsSection.style.display = 'block';
+                setTimeout(() => {
+                  detailsSection.style.opacity = '1';
+                  detailsSection.style.transform = 'translateY(0)';
+                }, 10);
+                button.querySelector('span').textContent = 'Menos información';
+                icon.textContent = '▲';
+                button.style.background = '#e3f2fd';
+                button.style.borderColor = '#2196F3';
+              } else {
+                // Ocultar detalles
+                detailsSection.style.opacity = '0';
+                detailsSection.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                  detailsSection.style.display = 'none';
+                }, 300);
+                button.querySelector('span').textContent = 'Más información';
+                icon.textContent = '▼';
+                button.style.background = '#f0f0f0';
+                button.style.borderColor = '#ddd';
+              }
+            "
+            onmouseover="
+              if (this.style.background !== 'rgb(227, 242, 253)') {
+                this.style.background = '#e8e8e8';
+              }
+            "
+            onmouseout="
+              if (this.style.background !== 'rgb(227, 242, 253)') {
+                this.style.background = '#f0f0f0';
+              }
+            ">
+              <span style="color: #666; font-size: 12px; font-weight: 500;">Más información</span>
+              <span id="more-info-icon" style="color: #666; font-size: 10px; margin-left: 8px;">▼</span>
+            </div>
+            
+            <!-- Sección de detalles (inicialmente oculta) -->
+            <div id="details-section" style="
+              display: none;
+              opacity: 0;
+              transform: translateY(-10px);
+              transition: all 0.3s ease;
+              margin-top: 8px;
+            ">
+              ${ignitionContent}
             ${stopTimeContent}
             ${lastLocationContent}
+            ${additionalInfoContent}
+            </div>
           </div>
         </div>
       `;
     }
 
     // Método para agregar dinámicamente la sección de tiempo de parada con animación
-    static addStopTimeWithAnimation(popupElement: HTMLElement, stopTime: string, speedKmh?: number): void {
+    static addStopTimeWithAnimation(popupElement: HTMLElement, stopTime: string, speedKmh?: number, ignitionStatus?: 'on' | 'off' | null): void {
       // No mostrar tiempo de parada si la velocidad es mayor a 0
       if (speedKmh !== undefined && speedKmh > 0) {
         console.log('🚗 Velocidad mayor a 0 km/h, no mostrar tiempo de parada');
@@ -188,8 +339,18 @@ export class PopupBuilder {
       const contentDiv = popupElement.querySelector('#popup-content');
       if (!contentDiv) return;
 
+      // Buscar la sección de detalles donde se debe agregar la información
+      let detailsSection = contentDiv.querySelector('#details-section') as HTMLElement;
+      if (!detailsSection) {
+        console.warn('⚠️ No se encontró #details-section, usando #popup-content como fallback');
+        detailsSection = contentDiv as HTMLElement;
+      }
+
+      // PRIMERO: Agregar o actualizar la sección de ignición si está disponible
+      this.addOrUpdateIgnitionSection(detailsSection, ignitionStatus);
+
       // Verificar si ya existe la sección de tiempo de parada
-      const existingStopTime = contentDiv.querySelector('#stop-time-section');
+      const existingStopTime = detailsSection.querySelector('#stop-time-section');
       if (existingStopTime) {
         // Si ya existe, solo actualizar el texto
         const timeSpan = existingStopTime.querySelector('span:last-child') as HTMLElement;
@@ -223,13 +384,19 @@ export class PopupBuilder {
         <span style="color: #ff9800; font-weight: 600; font-size: 13px;">${stopTime}</span>
       `;
 
-      // Agregar al contenido
-      contentDiv.appendChild(stopTimeDiv);
+      // Agregar al contenido (a la sección de detalles)
+      detailsSection.appendChild(stopTimeDiv);
+
+      // Mostrar el botón "Más información" si no está visible
+      this.showMoreInfoButtonIfNeeded(popupElement);
 
       // Activar animación después de un breve delay
       setTimeout(() => {
         stopTimeDiv.style.opacity = '1';
         stopTimeDiv.style.transform = 'translateY(0)';
+        
+        // Reconfigurar eventos del botón "Más información" después de la animación
+        setTimeout(() => this.showMoreInfoButtonIfNeeded(popupElement), 10);
       }, 50);
     }
 
@@ -249,8 +416,15 @@ export class PopupBuilder {
       }
       console.log('✅ #popup-content encontrado');
 
+      // Buscar la sección de detalles donde se debe agregar la información
+      let detailsSection = contentDiv.querySelector('#details-section') as HTMLElement;
+      if (!detailsSection) {
+        console.warn('⚠️ No se encontró #details-section, usando #popup-content como fallback');
+        detailsSection = contentDiv as HTMLElement;
+      }
+
       // Verificar si ya existe la sección (skeleton o real)
-      const existingStopTime = contentDiv.querySelector('#stop-time-section');
+      const existingStopTime = detailsSection.querySelector('#stop-time-section');
       if (existingStopTime) {
         console.log('⚠️ Ya existe #stop-time-section, saltando');
         return;
@@ -302,9 +476,12 @@ export class PopupBuilder {
         document.head.appendChild(style);
       }
 
-      // Agregar al contenido
-      contentDiv.appendChild(skeletonDiv);
+      // Agregar al contenido (a la sección de detalles)
+      detailsSection.appendChild(skeletonDiv);
       console.log('✅ Skeleton agregado al DOM');
+
+      // Mostrar el botón "Más información" si no está visible
+      this.showMoreInfoButtonIfNeeded(popupElement);
 
       // Activar animación después de un breve delay
       setTimeout(() => {
@@ -315,11 +492,21 @@ export class PopupBuilder {
     }
 
     // Método para reemplazar skeleton con tiempo real o remover si no hay tiempo
-    static replaceSkeletonWithStopTime(popupElement: HTMLElement, stopTime?: string, speedKmh?: number): void {
+    static replaceSkeletonWithStopTime(popupElement: HTMLElement, stopTime?: string, speedKmh?: number, ignitionStatus?: 'on' | 'off' | null): void {
       const contentDiv = popupElement.querySelector('#popup-content');
       if (!contentDiv) return;
 
-      const existingStopTime = contentDiv.querySelector('#stop-time-section');
+      // Buscar la sección de detalles donde se debe agregar la información
+      let detailsSection = contentDiv.querySelector('#details-section') as HTMLElement;
+      if (!detailsSection) {
+        console.warn('⚠️ No se encontró #details-section, usando #popup-content como fallback');
+        detailsSection = contentDiv as HTMLElement;
+      }
+
+      // PRIMERO: Agregar o actualizar la sección de ignición si está disponible
+      this.addOrUpdateIgnitionSection(detailsSection, ignitionStatus);
+
+      const existingStopTime = detailsSection.querySelector('#stop-time-section');
       if (!existingStopTime) return;
 
       // Si no hay tiempo de parada válido O la velocidad es mayor a 0, remover el skeleton con animación
@@ -353,6 +540,9 @@ export class PopupBuilder {
           timeSpan.textContent = stopTime;
         }
       }
+      
+      // Reconfigurar eventos del botón "Más información" después de la actualización
+      setTimeout(() => this.showMoreInfoButtonIfNeeded(popupElement), 10);
     }
 
     // Método para remover la sección de tiempo de parada cuando el vehículo empiece a moverse
@@ -361,7 +551,13 @@ export class PopupBuilder {
         const contentDiv = popupElement.querySelector('#popup-content');
         if (!contentDiv) return;
 
-        const existingStopTime = contentDiv.querySelector('#stop-time-section');
+        // Buscar la sección de detalles donde se debe buscar la información
+        let detailsSection = contentDiv.querySelector('#details-section') as HTMLElement;
+        if (!detailsSection) {
+          detailsSection = contentDiv as HTMLElement;
+        }
+
+        const existingStopTime = detailsSection.querySelector('#stop-time-section');
         if (existingStopTime) {
           console.log('🚗 Vehículo en movimiento, removiendo sección de tiempo de parada');
           const stopTimeElement = existingStopTime as HTMLElement;
@@ -372,8 +568,197 @@ export class PopupBuilder {
               stopTimeElement.parentNode.removeChild(stopTimeElement);
             }
           }, 300); // Tiempo de la transición CSS
-        }
+                }
       }
+    }
+
+      // Método auxiliar para agregar o actualizar la sección de ignición (optimizado)
+  static addOrUpdateIgnitionSection(contentDiv: Element, ignitionStatus?: 'on' | 'off' | null): void {
+    console.log('🔋 DEBUG addOrUpdateIgnitionSection llamado con ignitionStatus:', ignitionStatus);
+    console.log('🔋 DEBUG contentDiv:', contentDiv ? 'existe' : 'null/undefined');
+    
+    if (ignitionStatus === null || ignitionStatus === undefined) {
+      console.log('🔋 DEBUG: ignitionStatus es null/undefined, buscando sección existente para remover');
+      // Si no hay estado de ignición, remover la sección si existe
+      const existingIgnition = contentDiv.querySelector('#ignition-section');
+      if (existingIgnition) {
+        console.log('🔋 DEBUG: Removiendo sección de ignición existente');
+        existingIgnition.remove();
+      } else {
+        console.log('🔋 DEBUG: No hay sección de ignición existente para remover');
+      }
+      return;
+    }
+
+      const isEngineOn = ignitionStatus === 'on';
+      const ignitionColor = isEngineOn ? '#4CAF50' : '#9E9E9E';
+      const ignitionIcon = isEngineOn ? '🔋' : '⚫';
+      const ignitionText = isEngineOn ? 'Encendido' : 'Apagado';
+
+      // Verificar si ya existe la sección de ignición
+      const existingIgnition = contentDiv.querySelector('#ignition-section');
+      if (existingIgnition) {
+        // Si ya existe, solo actualizar el contenido
+        const iconSpan = existingIgnition.querySelector('span:first-child') as HTMLElement;
+        const textSpan = existingIgnition.querySelector('span:last-child') as HTMLElement;
+        const ignitionDiv = existingIgnition as HTMLElement;
+        
+        if (iconSpan && textSpan && ignitionDiv) {
+          iconSpan.textContent = `${ignitionIcon} Motor`;
+          textSpan.textContent = ignitionText;
+          textSpan.style.color = ignitionColor;
+          ignitionDiv.style.background = isEngineOn ? '#e8f5e8' : '#f5f5f5';
+          ignitionDiv.style.borderLeft = `3px solid ${ignitionColor}`;
+        }
+        return;
+      }
+
+      // Crear nueva sección de ignición
+      const ignitionDiv = document.createElement('div');
+      ignitionDiv.id = 'ignition-section';
+      ignitionDiv.style.cssText = `
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        padding: 8px 10px;
+        background: ${isEngineOn ? '#e8f5e8' : '#f5f5f5'};
+        border-radius: 4px;
+        border-left: 3px solid ${ignitionColor};
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 10px;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: all 0.3s ease-out;
+      `;
+
+      ignitionDiv.innerHTML = `
+        <span style="color: #666; font-size: 12px;">${ignitionIcon} Motor</span>
+        <span style="color: ${ignitionColor}; font-weight: 600; font-size: 13px;">${ignitionText}</span>
+      `;
+
+      // Insertar la sección de ignición ANTES de la sección de tiempo de parada (si existe)
+      const stopTimeSection = contentDiv.querySelector('#stop-time-section');
+      if (stopTimeSection) {
+        contentDiv.insertBefore(ignitionDiv, stopTimeSection);
+      } else {
+        contentDiv.appendChild(ignitionDiv);
+      }
+
+            // Activar animación después de un breve delay
+      setTimeout(() => {
+        ignitionDiv.style.opacity = '1';
+        ignitionDiv.style.transform = 'translateY(0)';
+        
+        // Reconfigurar eventos del botón "Más información" después de la animación
+        const popupElement = contentDiv.closest('#custom-info-window') as HTMLElement;
+        if (popupElement) {
+          setTimeout(() => this.showMoreInfoButtonIfNeeded(popupElement), 10);
+        }
+      }, 50);
+
+      // Mostrar el botón "Más información" si no está visible (ejecución inmediata)
+      const popupElement = contentDiv.closest('#custom-info-window') as HTMLElement;
+      if (popupElement) {
+        this.showMoreInfoButtonIfNeeded(popupElement);
+      }
+     }
+
+     // Método auxiliar para mostrar el botón "Más información" - ahora siempre visible
+     static showMoreInfoButtonIfNeeded(popupElement: HTMLElement): void {
+       const moreInfoButton = popupElement.querySelector('#more-info-button') as HTMLElement;
+       
+       if (moreInfoButton) {
+         // El botón siempre debe estar visible ya que siempre hay contenido adicional
+         moreInfoButton.style.display = 'block';
+       }
+     }
+
+     // Método para preservar el estado expandido/colapsado durante actualizaciones
+     static preserveMoreInfoState(oldPopupElement: HTMLElement, newPopupHtml: string): string {
+       try {
+         const oldButton = oldPopupElement?.querySelector('#more-info-button');
+         const oldDetailsSection = oldPopupElement?.querySelector('#details-section') as HTMLElement;
+         
+         if (!oldButton || !oldDetailsSection) {
+           return newPopupHtml;
+         }
+
+         // Verificar si estaba expandido usando múltiples métodos
+         const wasExpanded = oldDetailsSection.style.display === 'block' || 
+                           oldDetailsSection.style.opacity === '1' ||
+                           oldDetailsSection.offsetHeight > 0 ||
+                           !oldDetailsSection.style.display.includes('none');
+         
+         if (wasExpanded) {
+           // Modificar el HTML nuevo para que aparezca expandido
+           let modifiedHtml = newPopupHtml;
+           
+           // Cambiar el estado inicial de la sección de detalles
+           modifiedHtml = modifiedHtml.replace(
+             /display: none;[\s]*opacity: 0;[\s]*transform: translateY\(-10px\);/,
+             'display: block; opacity: 1; transform: translateY(0);'
+           );
+           
+           // Cambiar el texto del botón
+           modifiedHtml = modifiedHtml.replace(
+             'Más información',
+             'Menos información'
+           );
+           
+           // Cambiar el ícono
+           modifiedHtml = modifiedHtml.replace(
+             '>▼<',
+             '>▲<'
+           );
+           
+           // Cambiar los estilos del botón para mostrar estado activo
+           modifiedHtml = modifiedHtml.replace(
+             'background: #f0f0f0;',
+             'background: #e3f2fd;'
+           );
+           
+           modifiedHtml = modifiedHtml.replace(
+             'border: 1px solid #ddd;',
+             'border: 1px solid #2196F3;'
+           );
+           
+           return modifiedHtml;
+         }
+         
+         return newPopupHtml;
+         
+       } catch (error) {
+         console.warn('⚠️ Error preservando estado del popup:', error);
+         return newPopupHtml;
+      }
+    }
+
+      // Método auxiliar rápido para obtener estado de ignición
+  private static fastGetIgnitionStatus(target: any): 'on' | 'off' | null {
+    // BUSCAR ignition_sensor en el target principal o en originalTarget
+    let ignitionSensor = target?.ignition_sensor;
+    if (!ignitionSensor && target?.originalTarget) {
+      ignitionSensor = target.originalTarget.ignition_sensor;
+    }
+    
+    // Solo procesar si tiene sensor configurado
+    if (ignitionSensor !== 'yes') {
+      return null;
+    }
+      
+      // Búsqueda rápida en ubicaciones conocidas
+      const ignitionValue = target?.traccarInfo?.geolocation?.attributes?.ignition ??
+                           target?.traccarInfo?.attributes?.ignition ??
+                           target?.traccarInfo?.geolocation?.ignition;
+      
+      if (ignitionValue !== undefined && ignitionValue !== null) {
+        return ignitionValue ? 'on' : 'off';
+      }
+      
+      // Inferir por velocidad como fallback
+      const speed = target?.traccarInfo?.geolocation?.speed || 0;
+      return speed > 0 ? 'on' : 'off';
     }
   }
   

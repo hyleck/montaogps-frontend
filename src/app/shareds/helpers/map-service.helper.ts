@@ -18,24 +18,24 @@ export class MarkerService {
     isInitialSelection: boolean = true,
     preloadedStopTime?: string
   ) {
-    // DEBUG: Verificar todos los parámetros recibidos
-    console.log('🔍 DEBUG MarkerService.createMarker - Parámetros recibidos:', {
-      targetId: target._id || target.id,
-      isInitialSelection,
-      preloadedStopTime,
-      preloadedStopTimeType: typeof preloadedStopTime,
-      preloadedStopTimeLength: preloadedStopTime?.length,
-      hasTargetsService: !!targetsService
-    });
+    // // DEBUG: Verificar todos los parámetros recibidos
+    // console.log('🔍 DEBUG MarkerService.createMarker - Parámetros recibidos:', {
+    //   targetId: target._id || target.id,
+    //   isInitialSelection,
+    //   preloadedStopTime,
+    //   preloadedStopTimeType: typeof preloadedStopTime,
+    //   preloadedStopTimeLength: preloadedStopTime?.length,
+    //   hasTargetsService: !!targetsService
+    // });
 
     // CANCELAR PROCESOS ANTERIORES INMEDIATAMENTE
     const targetId = target._id || target.id;
-    console.log('🎯 Creando marcador para target:', targetId, 'isInitialSelection:', isInitialSelection);
+    // console.log('🎯 Creando marcador para target:', targetId, 'isInitialSelection:', isInitialSelection);
     
     // VALIDACIÓN CRÍTICA: Si ya estamos procesando el mismo target, no crear duplicados
     if (this.currentTargetId === targetId) {
-      console.log('⚠️ PREVENCIÓN DUPLICADOS: Ya hay un marcador para este target:', targetId);
-      console.log('⚠️ Cancelando creación de marcador duplicado');
+    //   console.log('⚠️ PREVENCIÓN DUPLICADOS: Ya hay un marcador para este target:', targetId);
+    //   console.log('⚠️ Cancelando creación de marcador duplicado');
       return null; // Evitar crear marcador duplicado
     }
     
@@ -44,7 +44,7 @@ export class MarkerService {
       // Para Mapbox, verificar si hay marcadores existentes y removerlos
       const existingMarkers = map._markers || [];
       if (existingMarkers.length > 0) {
-        console.log('⚠️ Detectados', existingMarkers.length, 'marcadores residuales en Mapbox, limpiando...');
+        // console.log('⚠️ Detectados', existingMarkers.length, 'marcadores residuales en Mapbox, limpiando...');
         existingMarkers.forEach((marker: any) => {
           if (marker && marker.remove) {
             marker.remove();
@@ -55,12 +55,12 @@ export class MarkerService {
     
     // Si es un target diferente, cancelar todo lo anterior
     if (this.currentTargetId && this.currentTargetId !== targetId) {
-      console.log('🛑 Cancelando procesos del target anterior:', this.currentTargetId);
+    //   console.log('🛑 Cancelando procesos del target anterior:', this.currentTargetId);
       this.cancelAllProcesses();
       
       // Para Mapbox, también detener cualquier animación de flyTo en curso
       if (provider === 'mapbox' && map) {
-        console.log('🛑 Deteniendo animaciones Mapbox en curso');
+        // console.log('🛑 Deteniendo animaciones Mapbox en curso');
         map.stop();
       }
     }
@@ -74,6 +74,9 @@ export class MarkerService {
     const status = target?.traccarInfo?.status || 'desconocido';
     const vehicleType = vehicleTypeGetter?.(target.model);
     const title = target.name;
+    
+    // Obtener estado de ignición desde múltiples fuentes posibles
+    const ignitionStatus = this.getIgnitionStatus(target);
 
     // Extraer fecha de última ubicación para dispositivos offline
     let lastLocationDate: string | undefined = undefined;
@@ -100,20 +103,56 @@ export class MarkerService {
               hour: '2-digit',
               minute: '2-digit'
             });
-            console.log('📅 Fecha de última ubicación extraída:', lastLocationDate, 'de campo:', timestampField);
+            // console.log('📅 Fecha de última ubicación extraída:', lastLocationDate, 'de campo:', timestampField);
           }
         } catch (error) {
           console.warn('Error formateando fecha de última ubicación:', error);
         }
       } else {
-        console.log('🔍 Campos disponibles en geolocation:', Object.keys(geolocation));
+        // console.log('🔍 Campos disponibles en geolocation:', Object.keys(geolocation));
       }
     }
 
-    // Centrar el mapa en la ubicación del target sin animaciones
-    console.log('🎯 Creando marcador para target:', target._id);
+    // CENTRAR EL MAPA CON LOGS DETALLADOS PARA DEBUG
+    console.log('🎯 DEBUG CENTRADO: Creando marcador para target:', target._id);
+    console.log('🎯 DEBUG CENTRADO: Coordenadas que se usarán para centrar:', { lat: lat.toFixed(6), lng: lng.toFixed(6) });
+    console.log('🎯 DEBUG CENTRADO: Target completo:', { 
+      _id: target._id, 
+      name: target.name,
+      traccarGeolocation: target.traccarInfo?.geolocation,
+      latitude: target.traccarInfo?.geolocation?.latitude,
+      longitude: target.traccarInfo?.geolocation?.longitude
+    });
+    
     const MapUtils = (await import('./map.helper')).MapUtils;
-    MapUtils.recenterMap(map, provider, lat, lng);
+    
+    // VERIFICACIONES CRÍTICAS ANTES DE CENTRAR
+    if (isNaN(lat) || isNaN(lng)) {
+      console.error('❌ ERROR CENTRADO: Coordenadas inválidas para centrar:', { lat, lng });
+      return;
+    }
+    
+    // VERIFICACIÓN ADICIONAL: Asegurar que el target actual siga siendo el correcto
+    const currentTargetIdToCheck = target._id || target.id;
+    if (this.currentTargetId && this.currentTargetId !== currentTargetIdToCheck) {
+      console.log('🛑 CENTRADO CANCELADO: Target cambió durante creación del marcador');
+      console.log('🛑 Target esperado:', this.currentTargetId);
+      console.log('🛑 Target recibido:', currentTargetIdToCheck);
+      return;
+    }
+    
+    // RETRASAR LIGERAMENTE EL CENTRADO PARA ASEGURAR SINCRONIZACIÓN
+    setTimeout(() => {
+      // Verificar una vez más antes de centrar
+      if (this.currentTargetId && this.currentTargetId !== currentTargetIdToCheck) {
+        console.log('🛑 CENTRADO CANCELADO EN TIMEOUT: Target cambió');
+        return;
+      }
+      
+      console.log('🎯 EJECUTANDO CENTRADO del mapa en:', { lat: lat.toFixed(6), lng: lng.toFixed(6) });
+      MapUtils.recenterMap(map, provider, lat, lng);
+      console.log('✅ CENTRADO COMPLETADO para target:', target._id);
+    }, 10); // Delay mínimo de 10ms para asegurar sincronización
 
     // Crear marcador y agregarlo inmediatamente al mapa
     let marker: any;
@@ -139,7 +178,9 @@ export class MarkerService {
         speedKmh, 
         status, 
         lastLocationDate,
-        width: 320 
+        width: 320,
+        ignitionStatus,
+        target
       });
 
       const infoWindow = new google.maps.InfoWindow({
@@ -169,7 +210,9 @@ export class MarkerService {
         speedKmh, 
         status, 
         lastLocationDate,
-        width: 280 
+        width: 280,
+        ignitionStatus,
+        target
       });
 
       const popup = new mapboxgl.Popup({ 
@@ -191,41 +234,63 @@ export class MarkerService {
       this.centerMapboxMarkerIfOutOfView(map, lng, lat);
     }
 
-    // Mostrar skeleton SOLO si NO hay tiempo precargado
-    if (!preloadedStopTime) {
-      setTimeout(() => {
-        console.log('🔍 Buscando popup element para skeleton (selección de target)...');
-        const popupElement = document.querySelector('#custom-info-window') as HTMLElement;
-        if (popupElement) {
-          console.log('✅ Popup element encontrado, mostrando skeleton');
-          PopupBuilder.addStopTimeSkeletonWithAnimation(popupElement, speedKmh);
+    // AGREGAR INMEDIATAMENTE LA SECCIÓN DEL MOTOR después de crear el popup
+    setTimeout(() => {
+      console.log('🔋 DEBUG: Iniciando timeout para agregar sección del motor inmediatamente');
+      console.log('🔋 DEBUG: ignitionStatus a agregar:', ignitionStatus);
+      const popupElement = document.querySelector('#custom-info-window') as HTMLElement;
+      if (popupElement) {
+        console.log('🔋 DEBUG: popupElement encontrado');
+        // Agregar la sección del motor SIEMPRE (si aplica) en la sección de detalles
+        const contentDiv = popupElement.querySelector('#popup-content');
+        if (contentDiv) {
+          console.log('🔋 DEBUG: contentDiv encontrado');
+          const detailsSection = contentDiv.querySelector('#details-section') || contentDiv;
+          console.log('🔋 DEBUG: detailsSection encontrado:', detailsSection ? 'sí' : 'no');
+          PopupBuilder.addOrUpdateIgnitionSection(detailsSection, ignitionStatus);
         } else {
-          console.log('⚠️ No se encontró popup element, reintentando en 200ms...');
-          // Reintentar una vez más con delay mayor
-          setTimeout(() => {
-            const retryPopupElement = document.querySelector('#custom-info-window') as HTMLElement;
-            if (retryPopupElement) {
-              console.log('✅ Popup element encontrado en reintento, mostrando skeleton');
-              PopupBuilder.addStopTimeSkeletonWithAnimation(retryPopupElement, speedKmh);
-            } else {
-              console.log('❌ No se pudo encontrar popup element después de reintento');
-            }
-          }, 200);
+          console.log('🔋 DEBUG: contentDiv NO encontrado');
         }
-      }, 150); // Delay mínimo para que el popup se establezca
-    } else {
-      console.log('⚡ Tiempo precargado disponible, saltando skeleton y agregando directamente');
-    }
+        
+        // Mostrar skeleton SOLO si NO hay tiempo precargado Y la velocidad es 0
+        if (!preloadedStopTime && speedKmh === 0) {
+          // console.log('✅ Popup element encontrado, mostrando skeleton');
+          PopupBuilder.addStopTimeSkeletonWithAnimation(popupElement, speedKmh);
+        }
+      } else {
+        console.log('🔋 DEBUG: popupElement NO encontrado');
+        // console.log('⚠️ No se encontró popup element, reintentando en 200ms...');
+        // Reintentar una vez más con delay mayor
+        setTimeout(() => {
+          const retryPopupElement = document.querySelector('#custom-info-window') as HTMLElement;
+          if (retryPopupElement) {
+            // Agregar la sección del motor en el reintento
+            const retryContentDiv = retryPopupElement.querySelector('#popup-content');
+            if (retryContentDiv) {
+              const retryDetailsSection = retryContentDiv.querySelector('#details-section') || retryContentDiv;
+              PopupBuilder.addOrUpdateIgnitionSection(retryDetailsSection, ignitionStatus);
+            }
+            
+            if (!preloadedStopTime && speedKmh === 0) {
+              // console.log('✅ Popup element encontrado en reintento, mostrando skeleton');
+              PopupBuilder.addStopTimeSkeletonWithAnimation(retryPopupElement, speedKmh);
+            }
+          } else {
+            // console.log('❌ No se pudo encontrar popup element después de reintento');
+          }
+        }, 200);
+      }
+    }, 150); // Delay mínimo para que el popup se establezca
 
     // Paso 4: Consultar tiempo de parada en segundo plano - USAR PRELOADED SI EXISTE
     let stopTimePromise: Promise<string | undefined>;
     
     // Si hay tiempo de parada precargado, usarlo directamente
     if (preloadedStopTime) {
-      console.log('⚡ Usando tiempo de parada PRECARGADO:', preloadedStopTime);
+      // console.log('⚡ Usando tiempo de parada PRECARGADO:', preloadedStopTime);
       stopTimePromise = Promise.resolve(preloadedStopTime);
     } else {
-      console.log('🔄 No hay tiempo precargado, consultando desde cero...');
+      // console.log('🔄 No hay tiempo precargado, consultando desde cero...');
       console.log('📋 Target info:', {
         mongoId: target._id || target.id,
         api_device_id: target.api_device_id,
@@ -243,14 +308,14 @@ export class MarkerService {
                               target.traccar_device_id ? 'traccar_device_id' : 
                               target.device_id ? 'device_id' : 
                               target.deviceId ? 'deviceId' : 'traccarInfo.id';
-        console.log('✅ Device ID seleccionado:', deviceId, '(fuente:', deviceIdSource, ')');
-        console.log('✅ Enviando solicitud tiempo de parada para device:', deviceId);
+        // console.log('✅ Device ID seleccionado:', deviceId, '(fuente:', deviceIdSource, ')');
+        // console.log('✅ Enviando solicitud tiempo de parada para device:', deviceId);
         stopTimePromise = this.loadStopTimeInBackground(deviceId, targetsService);
       } else {
-        console.log('❌ FALLO: No se puede consultar tiempo de parada');
-        console.log('❌ targetsService:', !!targetsService);
-        console.log('❌ deviceId encontrado:', deviceId);
-        console.log('❌ target completo:', target);
+        // console.log('❌ FALLO: No se puede consultar tiempo de parada');
+        // console.log('❌ targetsService:', !!targetsService);
+        // console.log('❌ deviceId encontrado:', deviceId);
+        // console.log('❌ target completo:', target);
         stopTimePromise = Promise.resolve(undefined);
       }
     }
@@ -261,7 +326,7 @@ export class MarkerService {
     // Verificar nuevamente que el target no haya cambiado
     const currentTargetId = target._id || target.id;
     if (this.currentTargetId !== currentTargetId) {
-      console.log('🛑 Target cambió antes de procesar tiempo de parada, cancelando');
+      // console.log('🛑 Target cambió antes de procesar tiempo de parada, cancelando');
       return marker;
     }
     
@@ -276,18 +341,18 @@ export class MarkerService {
         if (popupElement) {
           if (stopTime) {
             if (preloadedStopTime) {
-              console.log('⚡ Agregando tiempo de parada PRECARGADO directamente:', stopTime);
-              PopupBuilder.addStopTimeWithAnimation(popupElement, stopTime, speedKmh);
+              // console.log('⚡ Agregando tiempo de parada PRECARGADO directamente:', stopTime);
+              PopupBuilder.addStopTimeWithAnimation(popupElement, stopTime, speedKmh, ignitionStatus);
             } else {
-              console.log('⏱️ Reemplazando skeleton con tiempo de parada consultado:', stopTime);
-              PopupBuilder.replaceSkeletonWithStopTime(popupElement, stopTime, speedKmh);
+              // console.log('⏱️ Reemplazando skeleton con tiempo de parada consultado:', stopTime);
+              PopupBuilder.replaceSkeletonWithStopTime(popupElement, stopTime, speedKmh, ignitionStatus);
             }
           } else {
             if (preloadedStopTime) {
-              console.log('⚠️ Tiempo precargado era inválido, no mostrar nada');
+              // console.log('⚠️ Tiempo precargado era inválido, no mostrar nada');
             } else {
-              console.log('🚗 Removiendo skeleton - vehículo en movimiento o sin datos');
-              PopupBuilder.replaceSkeletonWithStopTime(popupElement, undefined, speedKmh);
+              // console.log('🚗 Removiendo skeleton - vehículo en movimiento o sin datos');
+              PopupBuilder.replaceSkeletonWithStopTime(popupElement, undefined, speedKmh, ignitionStatus);
             }
           }
         }
@@ -300,41 +365,41 @@ export class MarkerService {
   // Método auxiliar para cargar tiempo de parada en segundo plano
   private static async loadStopTimeInBackground(deviceId: string, targetsService: any): Promise<string | undefined> {
     try {
-      console.log('🚀 INICIANDO consulta tiempo de parada para device:', deviceId);
-      console.log('🚀 targetsService methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(targetsService)));
+      // console.log('🚀 INICIANDO consulta tiempo de parada para device:', deviceId);
+      // console.log('🚀 targetsService methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(targetsService)));
       
       // Verificar si el proceso ha sido cancelado
       if (this.abortController?.signal.aborted) {
-        console.log('🛑 Proceso cancelado antes de cargar tiempo de parada');
+        // console.log('🛑 Proceso cancelado antes de cargar tiempo de parada');
         return undefined;
       }
       
       // Validar que el método existe
       if (!targetsService.getStopTime) {
-        console.log('❌ ERROR: método getStopTime no existe en targetsService');
+        // console.log('❌ ERROR: método getStopTime no existe en targetsService');
         return undefined;
       }
       
-      console.log('📡 ENVIANDO solicitud getStopTime...');
+      // console.log('📡 ENVIANDO solicitud getStopTime...');
       const stopTimeResponse = await targetsService.getStopTime(deviceId);
-      console.log('📨 RESPUESTA RECIBIDA de getStopTime');
+      // console.log('📨 RESPUESTA RECIBIDA de getStopTime');
       
       // Verificar nuevamente después de la operación async
       if (this.abortController?.signal.aborted) {
-        console.log('🛑 Proceso cancelado después de cargar tiempo de parada');
+        // console.log('🛑 Proceso cancelado después de cargar tiempo de parada');
         return undefined;
       }
       
-      console.log('📊 Respuesta tiempo de parada completa:', stopTimeResponse);
+      // console.log('📊 Respuesta tiempo de parada completa:', stopTimeResponse);
       
       if (!stopTimeResponse.isMoving && stopTimeResponse.text && !stopTimeResponse.error) {
-        console.log('✅ Tiempo de parada obtenido:', stopTimeResponse.text);
+        // console.log('✅ Tiempo de parada obtenido:', stopTimeResponse.text);
         return stopTimeResponse.text;
       } else if (stopTimeResponse.isMoving) {
-        console.log('🚗 Vehículo en movimiento');
+        // console.log('🚗 Vehículo en movimiento');
         return undefined; // No mostrar tiempo de parada si está en movimiento
       } else if (stopTimeResponse.error) {
-        console.log('❌ Error en respuesta:', stopTimeResponse.error);
+        // console.log('❌ Error en respuesta:', stopTimeResponse.error);
         return undefined; // No mostrar tiempo de parada si hay error
       }
     } catch (error) {
@@ -369,13 +434,13 @@ export class MarkerService {
     vehicleTypeGetter?: (id: string) => string;
     targetsService?: any;
     onUpdate: (pos: { lat: number; lng: number }, speed: number) => void;
-  }) {
+  }) {  
     const targetId = target._id || target.id;
-    console.log('🔄 MarkerService.updatePosition LLAMADO para target:', targetId);
-    
+    // console.log('🔄 MarkerService.updatePosition LLAMADO para target:', targetId);
+
     // Verificar que estamos actualizando el target correcto
     if (this.currentTargetId !== targetId) {
-      console.log('🛑 Cancelando actualización - target cambió de', targetId, 'a', this.currentTargetId);
+      // console.log('🛑 Cancelando actualización - target cambió de', targetId, 'a', this.currentTargetId);
       return;
     }
     
@@ -392,16 +457,16 @@ export class MarkerService {
     const speedKnots = target?.traccarInfo?.geolocation?.speed || 0;
     const currentSpeedKmh = Math.round(speedKnots * 1.852);
     
-    console.log('📍 updatePosition: Coordenadas actuales:', { 
-      lat: lat.toFixed(6), 
-      lng: lng.toFixed(6),
-      speedKmh: currentSpeedKmh,
-      lastPosition: lastPosition ? `${lastPosition.lat.toFixed(6)}, ${lastPosition.lng.toFixed(6)}` : 'null'
-    });
+    // console.log('📍 updatePosition: Coordenadas actuales:', { 
+    //   lat: lat.toFixed(6), 
+    //   lng: lng.toFixed(6),
+    //   speedKmh: currentSpeedKmh,
+    //   lastPosition: lastPosition ? `${lastPosition.lat.toFixed(6)}, ${lastPosition.lng.toFixed(6)}` : 'null'
+    // });
     
     // Para actualizaciones de polling frecuentes, actualizar directamente sin animación
     // Las animaciones se cancelan constantemente por el polling cada 10 segundos
-    console.log('📍 Actualizando marcador directamente (polling activo)');
+    // console.log('📍 Actualizando marcador directamente (polling activo)');
     await this.updateMarkerDirectly({
       map,
       provider,
@@ -441,10 +506,10 @@ export class MarkerService {
   }) {
     // Verificar que estamos actualizando el target correcto
     const targetId = target._id || target.id;
-    console.log('🔧 updateMarkerDirectly EJECUTANDO para target:', targetId, 'en coordenadas:', lat.toFixed(6), lng.toFixed(6));
+    // console.log('🔧 updateMarkerDirectly EJECUTANDO para target:', targetId, 'en coordenadas:', lat.toFixed(6), lng.toFixed(6));    
     
     if (this.currentTargetId !== targetId) {
-      console.log('🛑 Cancelando updateMarkerDirectly - target cambió');
+      // console.log('🛑 Cancelando updateMarkerDirectly - target cambió');
       return;
     }
     
@@ -454,6 +519,10 @@ export class MarkerService {
     })();
 
     const status = target?.traccarInfo?.status || 'desconocido';
+    
+    // Obtener estado de ignición desde múltiples fuentes posibles
+    const ignitionStatus = this.getIgnitionStatus(target);
+    console.log('🔋 DEBUG UPDATE: ignitionStatus obtenido:', ignitionStatus, 'para target:', target._id);
 
     // Extraer fecha de última ubicación para dispositivos offline
     let lastLocationDate: string | undefined = undefined;
@@ -490,17 +559,17 @@ export class MarkerService {
     let stopTime: string | undefined = undefined;
     if (targetsService && target.api_device_id && status === 'online') {
       try {
-        console.log('🔄 Actualizando tiempo de parada para device:', target.api_device_id);
+        // console.log('🔄 Actualizando tiempo de parada para device:', target.api_device_id);
         const stopTimeResponse = await targetsService.getStopTime(target.api_device_id);
-        console.log('📊 Respuesta actualización tiempo de parada:', stopTimeResponse);
+        // console.log('📊 Respuesta actualización tiempo de parada:', stopTimeResponse);
         
         if (!stopTimeResponse.isMoving && stopTimeResponse.text && !stopTimeResponse.error) {
           stopTime = stopTimeResponse.text;
-          console.log('✅ Tiempo de parada actualizado:', stopTime);
+          // console.log('✅ Tiempo de parada actualizado:', stopTime);
         } else if (stopTimeResponse.isMoving) {
-          console.log('🚗 Vehículo en movimiento durante actualización');
+          // console.log('🚗 Vehículo en movimiento durante actualización');
         } else if (stopTimeResponse.error) {
-          console.log('❌ Error en actualización:', stopTimeResponse.error);
+          // console.log('❌ Error en actualización:', stopTimeResponse.error);
         }
       } catch (error) {
         console.warn('Could not get stop time in update:', error);
@@ -512,16 +581,29 @@ export class MarkerService {
       marker.setPosition(new google.maps.LatLng(lat, lng));
       const infoWindow = marker.infoWindow;
       if (infoWindow) {
-        const html = PopupBuilder.buildPopupHtml({
+        // Obtener el elemento actual del popup para preservar el estado
+        const oldPopupElement = infoWindow.getContent();
+        
+        const newHtml = PopupBuilder.buildPopupHtml({
           title: target.name,
           vehicleType: vehicleTypeGetter?.(target.model),
           speedKmh: finalSpeedKmh,
           status,
           stopTime,
           lastLocationDate,
-          width: 320
+          width: 320,
+          ignitionStatus,
+          target
         });
-        infoWindow.setContent(html);
+        
+        // Preservar el estado del botón "Más información"
+        const preservedHtml = PopupBuilder.preserveMoreInfoState(oldPopupElement, newHtml);
+        infoWindow.setContent(preservedHtml);
+        
+        // Reconfigurar el evento del botón después de actualizar el contenido
+        setTimeout(() => {
+          PopupBuilder.showMoreInfoButtonIfNeeded(infoWindow.getContent());
+        }, 10);
       }
     } else {
       // Mapbox: actualizar posición del marcador
@@ -532,25 +614,41 @@ export class MarkerService {
       
       const popup = marker.getPopup();
       if (popup) {
-        const html = PopupBuilder.buildPopupHtml({
+        // Obtener el elemento actual del popup para preservar el estado
+        const oldPopupElement = popup._content;
+        
+        const newHtml = PopupBuilder.buildPopupHtml({
           title: target.name,
           vehicleType: vehicleTypeGetter?.(target.model),
           speedKmh: finalSpeedKmh,
           status,
           stopTime,
           lastLocationDate,
-          width: 280
+          width: 280,
+          ignitionStatus,
+          target
         });
-        popup.setHTML(html);
+        
+        // Preservar el estado del botón "Más información"
+        const preservedHtml = PopupBuilder.preserveMoreInfoState(oldPopupElement, newHtml);
+        popup.setHTML(preservedHtml);
+        
+        // Reconfigurar el evento del botón después de actualizar el contenido
+        setTimeout(() => {
+          const popupElement = popup._content;
+          if (popupElement) {
+            PopupBuilder.showMoreInfoButtonIfNeeded(popupElement);
+          }
+        }, 10);
       }
     }
 
-    console.log('✅ updateMarkerDirectly COMPLETADO - Marcador actualizado en:', lat.toFixed(6), lng.toFixed(6), 'Velocidad:', finalSpeedKmh, 'km/h');
+    // console.log('✅ updateMarkerDirectly COMPLETADO - Marcador actualizado en:', lat.toFixed(6), lng.toFixed(6), 'Velocidad:', finalSpeedKmh, 'km/h');
     onUpdate({ lat, lng }, finalSpeedKmh);
   }
 
   static removeMarker(marker: any, provider: 'google' | 'mapbox') {
-    console.log('🗑️ Removiendo marcador:', provider);
+    // console.log('🗑️ Removiendo marcador:', provider);
     
     if (provider === 'google') {
       // Cerrar InfoWindow si está abierto
@@ -558,55 +656,55 @@ export class MarkerService {
         marker.infoWindow.close();
       }
       marker.setMap(null);
-      console.log('✅ Marcador Google Maps removido');
+      // console.log('✅ Marcador Google Maps removido');
     } else {
       // Mapbox: cerrar popup si está abierto y remover marcador
       const popup = marker.getPopup();
       if (popup && popup.isOpen()) {
         popup.remove();
-        console.log('🗑️ Popup Mapbox cerrado');
+        // console.log('🗑️ Popup Mapbox cerrado');
       }
       
       // Verificar si el marcador está en el mapa antes de removerlo
       if (marker._map) {
       marker.remove();
-        console.log('✅ Marcador Mapbox removido del mapa');
+        // console.log('✅ Marcador Mapbox removido del mapa');
         
         // Verificar que efectivamente se removió
         if (!marker._map) {
-          console.log('✅ Confirmado: marcador Mapbox completamente removido');
+          // console.log('✅ Confirmado: marcador Mapbox completamente removido');
         } else {
-          console.warn('⚠️ Marcador Mapbox puede no haberse removido completamente');
+          // console.warn('⚠️ Marcador Mapbox puede no haberse removido completamente');
         }
       } else {
-        console.log('ℹ️ Marcador Mapbox ya no estaba en el mapa');
+        // console.log('ℹ️ Marcador Mapbox ya no estaba en el mapa');
       }
     }
   }
 
   static destroyMap(map: any, provider: 'google' | 'mapbox') {
-    console.log('🗑️ Destruyendo mapa:', provider);
+    // console.log('🗑️ Destruyendo mapa:', provider);
     
     // Para Mapbox, cancelar animaciones específicas antes de destruir
     if (provider === 'mapbox' && map) {
-      console.log('🛑 Cancelando animaciones Mapbox antes de destruir');
+      // console.log('🛑 Cancelando animaciones Mapbox antes de destruir');
       map.stop();
       
       // Remover el mapa completamente
       map.remove?.();
-      console.log('✅ Mapa Mapbox destruido');
+      // console.log('✅ Mapa Mapbox destruido');
     } else if (provider === 'google') {
-      console.log('✅ Mapa Google Maps limpiado');
+      // console.log('✅ Mapa Google Maps limpiado');
     }
   }
 
   static cancelTargetProcesses(targetId: string) {
-    console.log('🛑 MarkerService cancelando procesos para target:', targetId);
+    // console.log('🛑 MarkerService cancelando procesos para target:', targetId);
     
     // Cancelar movimientos si el target coincide
     if (this.currentTargetId === targetId) {
       this.currentTargetId = null;
-      console.log('✅ Procesos del target', targetId, 'cancelados en MarkerService');
+        // console.log('✅ Procesos del target', targetId, 'cancelados en MarkerService');
     }
     
     // Cancelar procesos activos
@@ -614,7 +712,7 @@ export class MarkerService {
   }
 
   static resetService() {
-    console.log('🧹 Reseteando MarkerService completamente');
+    // console.log('🧹 Reseteando MarkerService completamente');
     
     // Cancelar todos los procesos
     this.cancelAllProcesses();
@@ -622,7 +720,7 @@ export class MarkerService {
     // Resetear el target actual
     this.currentTargetId = null;
     
-    console.log('✅ MarkerService reseteado completamente');
+    // console.log('✅ MarkerService reseteado completamente');
   }
 
   private static cancelAllProcesses() {
@@ -647,7 +745,7 @@ export class MarkerService {
       const isVisible = bounds.contains(markerPoint);
       
       if (!isVisible) {
-        console.log('📍 Marcador fuera de vista, centrando mapa en:', lat.toFixed(6), lng.toFixed(6));
+        // console.log('📍 Marcador fuera de vista, centrando mapa en:', lat.toFixed(6), lng.toFixed(6));
         
         // Centrar el mapa sin animación suave para evitar conflictos
         map.jumpTo({
@@ -655,10 +753,62 @@ export class MarkerService {
           zoom: Math.max(map.getZoom(), 14) // Mantener zoom actual o usar mínimo 14
         });
       } else {
-        console.log('👁️ Marcador visible en viewport actual');
+        //  console.log('👁️ Marcador visible en viewport actual');
       }
     } catch (error) {
       console.warn('Error verificando visibilidad del marcador:', error);
+    }
+  }
+
+  // Método auxiliar para obtener el estado de ignición desde múltiples fuentes (optimizado)
+  private static getIgnitionStatus(target: any): 'on' | 'off' | null {
+    // DEBUG: Agregar logs detallados para debugging
+    console.log('🔋 DEBUG getIgnitionStatus para target:', target._id || target.id);
+    console.log('🔋 DEBUG ignition_sensor del target:', target?.ignition_sensor);
+    console.log('🔋 DEBUG target completo (claves):', target ? Object.keys(target) : 'target es null/undefined');
+    
+    // BUSCAR ignition_sensor en el target principal o en originalTarget
+    let ignitionSensor = target?.ignition_sensor;
+    if (!ignitionSensor && target?.originalTarget) {
+      console.log('🔋 DEBUG: Buscando ignition_sensor en originalTarget');
+      ignitionSensor = target.originalTarget.ignition_sensor;
+      console.log('🔋 DEBUG: ignition_sensor en originalTarget:', ignitionSensor);
+    }
+    
+    // VALIDACIÓN CRÍTICA: Solo mostrar información de ignición si el sensor está configurado en 'yes'
+    if (ignitionSensor !== 'yes') {
+      console.log('🔋 DEBUG: ignition_sensor no es "yes", retornando null. Valor actual:', ignitionSensor);
+      return null;
+    }
+    
+    try {
+      // Búsqueda rápida en múltiples ubicaciones posibles
+      const ignitionSources = [
+        target?.traccarInfo?.geolocation?.attributes?.ignition,
+        target?.traccarInfo?.attributes?.ignition,
+        target?.traccarInfo?.geolocation?.ignition
+      ];
+      
+      console.log('🔋 DEBUG ignitionSources:', ignitionSources);
+      
+      // Verificar si encontramos un valor explícito de ignición
+      for (const ignitionValue of ignitionSources) {
+        if (ignitionValue !== undefined && ignitionValue !== null) {
+          const result = ignitionValue ? 'on' : 'off';
+          console.log('🔋 DEBUG: Encontrado valor explícito de ignición:', ignitionValue, '→', result);
+          return result;
+        }
+      }
+
+      // Si no hay datos explícitos de ignición, inferir por velocidad
+      const speed = target?.traccarInfo?.geolocation?.speed || 0;
+      const result = speed > 0 ? 'on' : 'off';
+      console.log('🔋 DEBUG: Infiriendo por velocidad:', speed, '→', result);
+      return result;
+
+    } catch (error) {
+      console.warn('⚠️ Error obteniendo estado de ignición:', error);
+      return null;
     }
   }
 } 

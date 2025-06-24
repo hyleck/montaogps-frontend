@@ -97,15 +97,26 @@ export class MapUtils {
       });
     }
   
-    static recenterMap(map: any, provider: 'google' | 'mapbox', lat: number, lng: number) {
-      if (provider === 'google') {
-        map.setCenter({ lat, lng });
-        map.setZoom(16);
-      } else {
-        map.setCenter([lng, lat]);
-        map.setZoom(16);
-      }
+      static recenterMap(map: any, provider: 'google' | 'mapbox', lat: number, lng: number) {
+    console.log('🎯 MapUtils.recenterMap EJECUTADO:', {
+      provider,
+      lat: lat.toFixed(6),
+      lng: lng.toFixed(6),
+      coordsFormatted: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+    });
+    
+    if (provider === 'google') {
+      console.log('🗺️ Centrando Google Maps en:', { lat, lng });
+      map.setCenter({ lat, lng });
+      map.setZoom(16);
+    } else {
+      console.log('🗺️ Centrando Mapbox en:', [lng, lat]);
+      map.setCenter([lng, lat]);
+      map.setZoom(16);
     }
+    
+    console.log('✅ MapUtils.recenterMap COMPLETADO');
+  }
   
     static googleDarkTheme() {
       return [

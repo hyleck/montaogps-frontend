@@ -25,6 +25,7 @@ export interface Target {
     gps_model?: string | null;
     ignition_sensor?: string | null;
     shutdown_control?: string | null;
+    engine_shutdown?: string | null;
     installation_details?: string;
     status: 'active' | 'inactive' | null;
     plan?: string | null;
@@ -57,6 +58,7 @@ export interface CreateTargetDto {
     gps_model?: string | null;
     ignition_sensor?: string | null;
     shutdown_control?: string | null;
+    engine_shutdown?: string | null;
     installation_details?: string;
     status: boolean;
     canceled: boolean;
@@ -91,6 +93,7 @@ export interface UpdateTargetDto {
     gps_model?: string | null;
     ignition_sensor?: string | null;
     shutdown_control?: string | null;
+    engine_shutdown?: string | null;
     installation_details?: string;
     status?: boolean;
     canceled?: boolean;
