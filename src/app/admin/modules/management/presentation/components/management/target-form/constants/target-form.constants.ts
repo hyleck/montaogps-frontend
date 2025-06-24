@@ -6,4 +6,10 @@ export const TARGET_FORM_STYLES = [
     './styles/settings.css',
     './styles/scrollbar.css',
     './styles/dark-mode.css'
-]; 
+];
+
+export * from './target-form-data.constants';
+
+export * from './target-form-translations.constants';
+
+export * from './target-form.types'; 

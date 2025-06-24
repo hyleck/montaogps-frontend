@@ -14,6 +14,11 @@ export interface PlanPrice {
   payment_period: string | number; // Puede ser string ('monthly') o number (30) según el contexto
 }
 
+// Interfaz extendida para PlanPrice que incluye el monto original
+export interface ExtendedPlanPrice extends PlanPrice {
+  originalAmount?: number;
+}
+
 // Interfaz para comunicación interna en la UI
 export interface UIPlanPrice {
   id: string;

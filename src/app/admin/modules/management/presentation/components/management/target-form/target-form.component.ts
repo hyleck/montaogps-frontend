@@ -2,93 +2,33 @@ import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChange
 import { MessageService } from 'primeng/api';
 import { Subject, takeUntil } from 'rxjs';
 import { LangService } from '../../../../../../../shareds/services/langi18/lang.service';
-import { TARGET_FORM_STYLES } from './constants/target-form.constants';
+import { 
+  TARGET_FORM_STYLES, 
+  TARGET_FORM_TRANSLATIONS,
+  INSTALLATION_LOCATIONS,
+  SIM_CARD_TYPES,
+  FALLBACK_PLANS,
+  FALLBACK_GPS_MODELS,
+  FIELDS_TO_PRESERVE,
+  YEARS_CONFIG,
+  CUSTOM_PRICE_CONFIG,
+  SelectOption,
+  SmsMessage,
+  CustomPrice
+} from './constants/target-form.constants';
 import { CloudComponent } from 'src/app/shareds/components/cloud/cloud.component';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { ColorsService } from 'src/app/core/services/colors.service';
 import { TargetsService } from 'src/app/core/services/targets.service';
 import { PlansService } from 'src/app/core/services/plans.service';
-import { CreateTargetDto, Target, UpdateTargetDto } from 'src/app/core/interfaces/target.interface';
-import { Plan, PlanPrice } from 'src/app/core/interfaces/plan.interface';
+import { CreateTargetDto, Target, UpdateTargetDto, TargetDevice } from 'src/app/core/interfaces/target.interface';
+import { Plan, PlanPrice, ExtendedPlanPrice } from 'src/app/core/interfaces/plan.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
 import { ProtocolCommand } from 'src/app/core/interfaces/protocol.interface';
 import { ManagementService } from 'src/app/admin/modules/management/presentation/services/management.service';
 
-// Interfaz extendida para PlanPrice que incluye el monto original
-interface ExtendedPlanPrice extends PlanPrice {
-  originalAmount?: number;
-}
 
-// Interface local para el componente
-interface TargetDevice {
-  _id: string;
-  name: string;
-  device_imei: string;
-  api_device_id: string;
-  api_position_id: string;
-  description: string;
-  type: string;
-  sim_card_number: string;
-  sim_company: string;
-  target_plate_number: string;
-  target_chassis_number: string;
-  contacts: string | string[];
-  mechanic_id?: string;
-  target_brand_id: string;
-  target_model_id: string;
-  target_color: string;
-  target_year: string;
-  installation_location: string;
-  engine_shutdown?: string;
-  ignition_sensor?: string;
-  required_check?: string;
-  installation_details?: string;
-  creator_id: string;
-  activation_date: string;
-  expiration_date: string;
-  last_change_date: string;
-  status: boolean | 'active' | 'inactive';
-  canceled: boolean;
-  deleted: boolean;
-  shared?: string;
-  index: string;
-  parent_id: string;
-  user_id?: string;
-  plan: string | {
-    id_plan: string;
-    selected_price: {
-      id: string;
-      amount: number;
-      payment_period: string | number;
-    }
-  } | null;
-  // Propiedades para el estado del formulario o compatibilidad
-  selectedPrice?: {
-    id: string;
-    amount: number;
-    payment_period: string | number;
-  } | null;
-  // Campos de compatibilidad con versión anterior
-  imei?: string;
-  api_id?: string | null;
-  sim_card?: string;
-  plate?: string;
-  chassis?: string;
-  year?: string | null;
-  brand?: string | null;
-  model?: string | null;
-  color?: string;
-  installation_date?: string;
-  gps_model?: string | null;
-  shutdown_control?: string | null;
-    // Información de Traccar para estado del dispositivo
-    traccarInfo?: {
-        status: 'online' | 'offline' | string;
-    };
-  // Campos adicionales que pueden existir
-  [key: string]: any;
-}
 
 @Component({
     selector: 'app-target-form',
@@ -104,7 +44,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Flag para mostrar/ocultar la edición personalizada de precio
     isCustomPriceEditing = false;
-    customPrice: { id: string; amount: number; payment_period: string; originalAmount?: number } = { id: '', amount: 0, payment_period: 'monthly' };
+    customPrice: CustomPrice = { id: '', amount: 0, payment_period: CUSTOM_PRICE_CONFIG.DEFAULT_PAYMENT_PERIOD };
     
     // Precio original del plan, antes de cualquier personalización
     originalPlanPrice: { id: string; amount: number; payment_period: string } | null = null;
@@ -112,46 +52,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Flag para controlar la visibilidad del diálogo modal
     displayPriceDialog = false;
 
-    // Claves de traducción
-    translations = {
-        title: 'management.targetForm.title',
-        vehicleInfo: 'management.targetForm.vehicleInfo',
-        installationInfo: 'management.targetForm.installationInfo',
-        processInfo: 'management.targetForm.processInfo',
-        name: 'management.targetForm.name',
-        imei: 'management.targetForm.imei',
-        apiId: 'management.targetForm.apiId',
-        simCard: 'management.targetForm.simCard',
-        description: 'management.targetForm.description',
-        plate: 'management.targetForm.plate',
-        year: 'management.targetForm.year',
-        installationLocation: 'management.targetForm.installationLocation',
-        brand: 'management.targetForm.brand',
-        model: 'management.targetForm.model',
-        color: 'management.targetForm.color',
-        chassis: 'management.targetForm.chassis',
-        installationDate: 'management.targetForm.installationDate',
-        expirationDate: 'management.targetForm.expirationDate',
-        gpsModel: 'management.targetForm.gpsModel',
-        ignitionSensor: 'management.targetForm.ignitionSensor',
-        shutdownControl: 'management.targetForm.shutdownControl',
-        installationDetails: 'management.targetForm.installationDetails',
-        save: 'management.targetForm.save',
-        cancel: 'management.targetForm.cancel',
-        plan: 'management.targetForm.plan',
-        // SMS-related translations
-        sms: 'management.targetForm.sms',
-        smsCommands: 'management.targetForm.smsCommands',
-        messageHistory: 'management.targetForm.messageHistory',
-        deviceStatus: 'management.targetForm.deviceStatus',
-        noMessages: 'management.targetForm.noMessages',
-        selectProtocolFirst: 'management.targetForm.selectProtocolFirst',
-        noCommandsAvailable: 'management.targetForm.noCommandsAvailable',
-        commandSent: 'management.targetForm.commandSent',
-        commandExecuted: 'management.targetForm.commandExecuted',
-        sendingCommand: 'management.targetForm.sendingCommand',
-        waitingResponse: 'management.targetForm.waitingResponse'
-    };
+    // Claves de traducción importadas desde constantes
+    translations = TARGET_FORM_TRANSLATIONS;
 
     target: TargetDevice = this.getEmptyTarget();
     activeTabIndex: number = 0;
@@ -160,20 +62,20 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     isLoading: boolean = false;
     
     // Opciones para selects
-    availableBrands: { label: string, value: string }[] = [];
-    availableModels: { label: string, value: string }[] = [];
-    availableYears: { label: string, value: string }[] = [];
-    availableGpsModels: { label: string, value: string }[] = [];
-    availableLocations: { label: string, value: string }[] = [];
-    availableColors: { label: string, value: string }[] = [];
-    availableSimCardTypes: { label: string, value: string }[] = [];
-    availablePlans: { label: string, value: string }[] = [];
+    availableBrands: SelectOption[] = [];
+    availableModels: SelectOption[] = [];
+    availableYears: SelectOption[] = [];
+    availableGpsModels: SelectOption[] = [];
+    availableLocations: SelectOption[] = [];
+    availableColors: SelectOption[] = [];
+    availableSimCardTypes: SelectOption[] = [];
+    availablePlans: SelectOption[] = [];
     availablePrices: ExtendedPlanPrice[] = [];
-    filteredColors: { label: string, value: string }[] = [];
+    filteredColors: SelectOption[] = [];
     
     // Propiedades para SMS
     selectedSmsCommand: string = '';
-    smsMessages: { type: 'sent' | 'received', content: string, timestamp: Date }[] = [];
+    smsMessages: SmsMessage[] = [];
     lastSentCommand: string = '';
     
     // Protocolos y comandos dinámicos
@@ -264,9 +166,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     private async loadInitialData() {
         try {
-            // Cargar años
-            this.availableYears = Array.from({ length: 30 }, (_, i) => {
-                const year = new Date().getFullYear() - i;
+            // Cargar años usando la configuración de constantes
+            this.availableYears = Array.from({ length: YEARS_CONFIG.YEARS_TO_GENERATE }, (_, i) => {
+                const year = YEARS_CONFIG.BASE_YEAR() - i;
                 return { label: year.toString(), value: year.toString() };
             });
             
@@ -313,28 +215,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     },
                     error: (error) => {
                         console.error('Error al cargar protocolos:', error);
-                        // Fallback a modelos estáticos si hay error
-                        this.availableGpsModels = [
-                            { label: 'Modelo A', value: 'modelo_a' },
-                            { label: 'Modelo B', value: 'modelo_b' },
-                            { label: 'Modelo C', value: 'modelo_c' }
-                        ];
+                        // Usar fallback de constantes
+                        this.availableGpsModels = [...FALLBACK_GPS_MODELS];
                         this.loadedProtocols = [];
                         this.availableCommands = [];
                     }
                 });
             
-            this.availableLocations = [
-                { label: 'Interior', value: 'interior' },
-                { label: 'Exterior', value: 'exterior' },
-                { label: 'Bajo tablero', value: 'bajo_tablero' }
-            ];
-            
-            this.availableSimCardTypes = [
-                { label: 'Nacionales', value: 'nacionales' },
-                { label: 'Global-E', value: 'global-e' },
-                { label: 'Global-M', value: 'global-m' }
-            ];
+            // Usar constantes para ubicaciones y tipos de SIM
+            this.availableLocations = [...INSTALLATION_LOCATIONS];
+            this.availableSimCardTypes = [...SIM_CARD_TYPES];
             
             // Cargar planes desde el servicio
             this.plansService.getAllPlans().subscribe({
@@ -346,13 +236,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 },
                 error: (error) => {
                     console.error('Error al cargar planes:', error);
-                    // Fallback a planes estáticos si hay error
-                    this.availablePlans = [
-                        { label: 'Básico', value: 'basico' },
-                        { label: 'Estándar', value: 'estandar' },
-                        { label: 'Premium', value: 'premium' },
-                        { label: 'Empresarial', value: 'empresarial' }
-                    ];
+                    // Usar fallback de constantes
+                    this.availablePlans = [...FALLBACK_PLANS];
                 }
             });
             
@@ -880,9 +765,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         // Aplicar valores por defecto para campos requeridos pero que podrían estar vacíos
         // Excluir campos que deben mantener su valor original (incluido string vacío)
-        const fieldsToPreserve = ['sim_company', 'engine_shutdown', 'ignition_sensor'];
         for (const key in defaultValues) {
-            if ((targetData[key] === undefined || targetData[key] === null || targetData[key] === '') && !fieldsToPreserve.includes(key)) {
+            if ((targetData[key] === undefined || targetData[key] === null || targetData[key] === '') && !FIELDS_TO_PRESERVE.includes(key as any)) {
                 targetData[key] = defaultValues[key];
             }
         }
@@ -1313,9 +1197,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         } else {
             // Iniciar con valores por defecto
             this.customPrice = {
-                id: 'custom_' + new Date().getTime(),
+                id: CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX + new Date().getTime(),
                 amount: 0,
-                payment_period: 'monthly'
+                payment_period: CUSTOM_PRICE_CONFIG.DEFAULT_PAYMENT_PERIOD
             };
             this.originalPlanPrice = null;
         }
@@ -1395,7 +1279,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.availablePrices[existingIndex] = customPriceObj;
         } else {
             // Añadir el precio personalizado al inicio de la lista para que aparezca primero
-            this.availablePrices = [customPriceObj, ...this.availablePrices.filter(p => !p.id.startsWith('custom_'))];
+            this.availablePrices = [customPriceObj, ...this.availablePrices.filter(p => !p.id.startsWith(CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX))];
         }
 
         // Seleccionar el precio personalizado
