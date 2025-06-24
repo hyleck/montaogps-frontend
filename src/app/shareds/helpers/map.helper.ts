@@ -7,14 +7,14 @@ export class MapUtils {
   
     static loadMapScript(provider: 'google' | 'mapbox', key: string, url: string): Promise<void> {
       return new Promise((resolve, reject) => {
-        console.log(`Loading ${provider} script...`);
+        // console.log(`Loading ${provider} script...`);
         
         if (provider === 'google' && typeof google !== 'undefined' && google.maps) {
-          console.log('Google Maps already loaded');
+          // console.log('Google Maps already loaded');
           return resolve();
         }
         if (provider === 'mapbox' && (window as any).mapboxgl) {
-          console.log('Mapbox already loaded');
+          // console.log('Mapbox already loaded');
           return resolve();
         }
 
@@ -27,7 +27,7 @@ export class MapUtils {
           // Asegurar que el CSS de Mapbox esté cargado
           const existingLink = document.querySelector('link[href*="mapbox-gl.css"]');
           if (!existingLink) {
-            console.log('Loading Mapbox CSS...');
+            // console.log('Loading Mapbox CSS...');
             const link = document.createElement('link');
             link.rel = 'stylesheet';
             link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
@@ -38,7 +38,7 @@ export class MapUtils {
         // Verificar si el script ya existe antes de crearlo
         const existingScript = document.querySelector(`script[src*="${provider === 'google' ? 'maps.googleapis.com' : 'mapbox-gl.js'}"]`);
         if (existingScript) {
-          console.log(`${provider} script already exists in DOM`);
+          // console.log(`${provider} script already exists in DOM`);
           setTimeout(() => resolve(), 100);
           return;
         }
@@ -48,11 +48,11 @@ export class MapUtils {
         script.async = true;
         script.defer = true;
         script.onload = () => {
-          console.log(`${provider} script loaded successfully`);
+          // console.log(`${provider} script loaded successfully`);
           setTimeout(() => resolve(), 200); // Mayor delay para asegurar que esté disponible
         };
         script.onerror = err => {
-          console.error(`Error loading ${provider} script:`, err);
+          // console.error(`Error loading ${provider} script:`, err);
           reject(err);
         };
         document.head.appendChild(script);
@@ -98,24 +98,24 @@ export class MapUtils {
     }
   
       static recenterMap(map: any, provider: 'google' | 'mapbox', lat: number, lng: number) {
-    console.log('🎯 MapUtils.recenterMap EJECUTADO:', {
-      provider,
-      lat: lat.toFixed(6),
-      lng: lng.toFixed(6),
-      coordsFormatted: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
-    });
-    
+      // console.log('🎯 MapUtils.recenterMap EJECUTADO:', {
+      //   provider,
+      //   lat: lat.toFixed(6),
+      //   lng: lng.toFixed(6),
+      //   coordsFormatted: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+      // });
+
     if (provider === 'google') {
-      console.log('🗺️ Centrando Google Maps en:', { lat, lng });
+      // console.log('🗺️ Centrando Google Maps en:', { lat, lng });
       map.setCenter({ lat, lng });
       map.setZoom(16);
     } else {
-      console.log('🗺️ Centrando Mapbox en:', [lng, lat]);
+      // console.log('🗺️ Centrando Mapbox en:', [lng, lat]);
       map.setCenter([lng, lat]);
       map.setZoom(16);
     }
     
-    console.log('✅ MapUtils.recenterMap COMPLETADO');
+    // console.log('✅ MapUtils.recenterMap COMPLETADO');
   }
   
     static googleDarkTheme() {

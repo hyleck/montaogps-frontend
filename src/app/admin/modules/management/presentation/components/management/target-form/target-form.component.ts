@@ -380,13 +380,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private setupEditTarget(target: TargetDevice) {
         
         // DEBUG: Ver qué datos llegan del backend para edición
-        console.log('🔍 DEBUG setupEditTarget: Target original recibido:', {
-            _id: target._id,
-            name: target.name,
-            ignition_sensor: target.ignition_sensor,
-            engine_shutdown: target.engine_shutdown,
-            shutdown_control: target.shutdown_control
-        });
+        // console.log('🔍 DEBUG setupEditTarget: Target original recibido:', {
+        //     _id: target._id,
+        //     name: target.name,
+        //     ignition_sensor: target.ignition_sensor,
+        //     engine_shutdown: target.engine_shutdown,
+        //     shutdown_control: target.shutdown_control
+        // });  
         
         // Rellenar el formulario con los datos del objetivo a editar
         this.target = JSON.parse(JSON.stringify(target));
@@ -425,10 +425,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
         
         // Asegurar que engine_shutdown tenga un valor válido, preservando el existente
-        if (this.target.engine_shutdown === null || this.target.engine_shutdown === undefined) {
+        if (this.target.engine_shutdown === null || this.target.engine_shutdown === undefined) {    
             this.target.engine_shutdown = '';
         }
-        console.log('🔍 DEBUG setupEditTarget: engine_shutdown cargado:', this.target.engine_shutdown);
+        // console.log('🔍 DEBUG setupEditTarget: engine_shutdown cargado:', this.target.engine_shutdown);
         
         if (!this.target.installation_location || this.target.installation_location === '') {
             this.target.installation_location = '';
@@ -438,7 +438,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         if (this.target.ignition_sensor === null || this.target.ignition_sensor === undefined) {
             this.target.ignition_sensor = '';
         }
-        console.log('🔍 DEBUG setupEditTarget: ignition_sensor cargado:', this.target.ignition_sensor);
+        // console.log('🔍 DEBUG setupEditTarget: ignition_sensor cargado:', this.target.ignition_sensor);
         
         // Ajuste para el estado (status): en DB es boolean, en formulario puede ser string
         if (this.target.status === true || String(this.target.status) === 'true') {
@@ -627,16 +627,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         value: model._id
                     })).sort((a: any, b: any) => a.label.localeCompare(b.label));
                     
-                    console.log(`Cargados ${this.availableModels.length} modelos para la marca seleccionada`);
+                    // console.log(`Cargados ${this.availableModels.length} modelos para la marca seleccionada`);
                 } else {
-                    console.log('No se encontraron modelos para esta marca');
+                    // console.log('No se encontraron modelos para esta marca');
                     this.availableModels = [];
                 }
             } else {
                 // Si no hay marca seleccionada, vaciar los modelos
                 this.availableModels = [];
                 this.target.target_model_id = '';
-                console.log('No hay marca seleccionada, se han limpiado los modelos');
+                //  console.log('No hay marca seleccionada, se han limpiado los modelos');
             }
         } catch (error) {
             console.error('Error al cargar modelos:', error);
@@ -651,16 +651,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Desactivar indicador de carga si se implementa
             // this.isLoadingModels = false;
         }
-    }
+    }   
 
     async onSubmit() {
         // 🔍 DEBUG: Ver estado del formulario antes de validar y procesar
-        console.log('🔍 DEBUG onSubmit - Estado antes de procesar:', {
-            targetId: this.target._id,
-            engine_shutdown: this.target.engine_shutdown,
-            ignition_sensor: this.target.ignition_sensor,
-            targetCompleto: this.target
-        });
+        // console.log('🔍 DEBUG onSubmit - Estado antes de procesar:', {
+        //     targetId: this.target._id,
+        //     engine_shutdown: this.target.engine_shutdown,
+        //     ignition_sensor: this.target.ignition_sensor,
+        //     targetCompleto: this.target
+        // });
 
         // Validar los datos antes de enviar
         if (!this.validateForm()) {
@@ -671,28 +671,28 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.isLoading = true;
             const targetToSave = this.prepareTargetData();
             
-            console.log('Datos preparados para enviar:', targetToSave);
+            // console.log('Datos preparados para enviar:', targetToSave);
             
             // 🔍 DEBUG: Ver exactamente qué se va a enviar al backend para engine_shutdown
-            console.log('🔍 DEBUG - Campos específicos antes del envío:', {
-                isUpdate: !!this.target._id,
-                engine_shutdown_en_target: this.target.engine_shutdown,
-                engine_shutdown_en_payload: targetToSave.engine_shutdown,
-                ignition_sensor_en_payload: targetToSave.ignition_sensor
-            });
+            // console.log('🔍 DEBUG - Campos específicos antes del envío:', {
+            //     isUpdate: !!this.target._id,
+            //     engine_shutdown_en_target: this.target.engine_shutdown,
+            //     engine_shutdown_en_payload: targetToSave.engine_shutdown,
+            //     ignition_sensor_en_payload: targetToSave.ignition_sensor
+            // });
             
             if (this.target._id) {
                 // Actualizar objetivo existente
-                console.log('Actualizando target existente con ID:', this.target._id);
-                console.log('📤 ENVIANDO AL BACKEND:');
-                console.log('- sim_company que se enviará:', targetToSave.sim_company);
-                console.log('- Datos completos:', targetToSave);
+                // console.log('Actualizando target existente con ID:', this.target._id);
+                // console.log('📤 ENVIANDO AL BACKEND:');
+                // console.log('- sim_company que se enviará:', targetToSave.sim_company);
+                // console.log('- Datos completos:', targetToSave);
                 const updatedTarget = await this.targetsService.updateTarget(this.target._id, targetToSave as UpdateTargetDto);
-                console.log('📥 RESPUESTA DEL BACKEND (UPDATE):');
-                console.log('- sim_company recibido:', (updatedTarget as any).sim_company);
-                console.log('- engine_shutdown recibido:', (updatedTarget as any).engine_shutdown);
-                console.log('- ignition_sensor recibido:', (updatedTarget as any).ignition_sensor);
-                console.log('- Target completo actualizado:', updatedTarget);
+                // console.log('📥 RESPUESTA DEL BACKEND (UPDATE):');
+                // console.log('- sim_company recibido:', (updatedTarget as any).sim_company);
+                // console.log('- engine_shutdown recibido:', (updatedTarget as any).engine_shutdown);
+                // console.log('- ignition_sensor recibido:', (updatedTarget as any).ignition_sensor);
+                // console.log('- Target completo actualizado:', updatedTarget);
                 
                 this.messageService.add({
                     severity: 'success',
@@ -705,10 +705,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             } else {
                 // Crear nuevo objetivo
                 const newTarget = await this.targetsService.createTarget(targetToSave as CreateTargetDto);
-                console.log('📥 RESPUESTA DEL BACKEND (CREATE):');
-                console.log('- engine_shutdown recibido:', (newTarget as any).engine_shutdown);
-                console.log('- ignition_sensor recibido:', (newTarget as any).ignition_sensor);
-                console.log('- Nuevo target creado exitosamente:', newTarget);
+                // console.log('📥 RESPUESTA DEL BACKEND (CREATE):');
+                // console.log('- engine_shutdown recibido:', (newTarget as any).engine_shutdown);
+                // console.log('- ignition_sensor recibido:', (newTarget as any).ignition_sensor);
+                // console.log('- Nuevo target creado exitosamente:', newTarget);
                 
                 this.messageService.add({
                     severity: 'success',
@@ -758,9 +758,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
      * basados en el contexto del usuario actual u otra lógica
      */
     private getDefaultValues(): any {
-        // Obtener el ID del usuario actual de management service
+        // Obtener el ID del usuario actual de management service   
         const currentUserId = this.managementService.getCurrentUserId();
-        console.log('ID de usuario actual para parent_id:', currentUserId);
+        // console.log('ID de usuario actual para parent_id:', currentUserId);
         
         return {
             api_position_id: 'default_position_id',
@@ -842,14 +842,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         this.mapPeriodToString(targetData.selectedPrice.payment_period)
                 }
             };
-            
+
             // Debug para verificar la estructura del plan en el envío
-            console.log('Estructura del plan a enviar:', {
-                id_plan: targetData.plan.id_plan,
-                precio_id: targetData.plan.selected_price.id,
-                monto: targetData.plan.selected_price.amount,
-                periodo: targetData.plan.selected_price.payment_period
-            });
+            // console.log('Estructura del plan a enviar:', {
+            //     id_plan: targetData.plan.id_plan,
+            //     precio_id: targetData.plan.selected_price.id,
+            //     monto: targetData.plan.selected_price.amount,
+            //     periodo: targetData.plan.selected_price.payment_period
+            // });
         } else {
             targetData.plan = null;
         }
@@ -893,39 +893,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // Eliminar propiedades que no deben enviarse al backend
         delete targetData.selectedPrice;
         
-        // Para depuración, mostrar campos clave que se enviarán
-        if (this.target._id) {
-            console.log('Campos clave para actualización:', {
-                id: this.target._id,
-                name: targetData.name,
-                device_imei: targetData.device_imei,
-                sim_company: targetData.sim_company,
-                ignition_sensor: targetData.ignition_sensor,
-                engine_shutdown: targetData.engine_shutdown,
-                plan: targetData.plan,
-                status: targetData.status
-            });
-        } else {
-            console.log('Campos clave para creación:', {
-                name: targetData.name,
-                device_imei: targetData.device_imei,
-                sim_company: targetData.sim_company,
-                ignition_sensor: targetData.ignition_sensor,
-                engine_shutdown: targetData.engine_shutdown,
-                plan: targetData.plan,
-                status: targetData.status
-            });
-        }
+      
         
         // VERIFICACIÓN COMPLETA DE CAMPOS CLAVE
-        console.log('🔍 VERIFICACIÓN FINAL prepareTargetData:');
-        console.log('- sim_company en this.target:', this.target.sim_company);
-        console.log('- sim_company en targetData:', targetData.sim_company);
-        console.log('- ignition_sensor en this.target:', this.target.ignition_sensor);
-        console.log('- ignition_sensor en targetData:', targetData.ignition_sensor);
-        console.log('- engine_shutdown en this.target:', this.target.engine_shutdown);
-        console.log('- engine_shutdown en targetData:', targetData.engine_shutdown);
-        console.log('- isUpdate:', !!this.target._id);
+        // console.log('🔍 VERIFICACIÓN FINAL prepareTargetData:');
+        // console.log('- sim_company en this.target:', this.target.sim_company);
+        // console.log('- sim_company en targetData:', targetData.sim_company);
+        // console.log('- ignition_sensor en this.target:', this.target.ignition_sensor);
+        // console.log('- ignition_sensor en targetData:', targetData.ignition_sensor);
+        // console.log('- engine_shutdown en this.target:', this.target.engine_shutdown);
+        // console.log('- engine_shutdown en targetData:', targetData.engine_shutdown);
+        // console.log('- isUpdate:', !!this.target._id);
         
         return targetData;
     }
@@ -939,7 +917,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     summary: this.translate('management.targetForm.validationError'),
                     detail: this.translate('management.targetForm.requiredFieldsMissing')
                 });
-                return false;
+                return false;   
             }
         } else if (this.activeTabIndex === 1) { // Tab de instalación
             if (!this.target.device_imei || !this.target.sim_card_number || !this.target.plan || !this.target.selectedPrice) {
@@ -973,7 +951,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         // Si estamos actualizando, validamos que tengamos un ID
         if (this.target._id === '') {
-            console.log('Advertencia: Formulario en modo edición pero sin ID de target');
+            //  console.log('Advertencia: Formulario en modo edición pero sin ID de target');
         }
         
         // Validar el formato del IMEI
@@ -1290,10 +1268,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     // Método para iniciar la edición personalizada de precio
-    startCustomPriceEdit(): void {
+    startCustomPriceEdit(): void {  
         // Si ya hay un precio seleccionado, tomamos sus valores como base
         if (this.target.selectedPrice && this.target.plan) {
-            console.log('Iniciando edición de precio con ID:', this.target.selectedPrice.id);
+            // console.log('Iniciando edición de precio con ID:', this.target.selectedPrice.id);
             
             // Guardar el precio actual para edición
             this.customPrice = {
@@ -1305,12 +1283,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Cargar los precios originales del plan directamente desde el servicio
             // para asegurarnos de tener los valores originales, no los personalizados
             this.plansService.getPlanById(this.target.plan as string).subscribe({
-                next: (plan: Plan) => {
+                next: (plan: Plan) => { 
                     // Buscar el precio original por ID
                     const planOriginalPrice = plan.prices.find(price => price.id === this.target.selectedPrice?.id);
                     
-                    if (planOriginalPrice) {
-                        console.log('Precio original encontrado en plan:', planOriginalPrice);
+                    if (planOriginalPrice) {    
+                        // console.log('Precio original encontrado en plan:', planOriginalPrice);
                         
                         // Guardar el precio original para mostrarlo en el modal
                         this.originalPlanPrice = {
@@ -1321,7 +1299,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                                 this.mapPeriodToString(planOriginalPrice.payment_period)
                         };
                     } else {
-                        console.log('No se encontró el precio original en el plan');
+                        // console.log('No se encontró el precio original en el plan');
                         this.originalPlanPrice = null;
                     }
                 },
@@ -1331,7 +1309,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 }
             });
             
-            console.log('Custom price configurado:', this.customPrice);
+            // console.log('Custom price configurado:', this.customPrice);
         } else {
             // Iniciar con valores por defecto
             this.customPrice = {

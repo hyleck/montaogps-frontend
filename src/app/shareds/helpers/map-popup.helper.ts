@@ -21,7 +21,7 @@ export class PopupBuilder {
     lastLocationDate?: string;
     width?: number;
     markerId?: string;
-    ignitionStatus?: 'on' | 'off' | null;
+    ignitionStatus?: 'on' | 'off' | null;   
     target?: any;
   }): string {
       const vehicleTypeHtml = vehicleType && vehicleType !== 'Desconocido'
@@ -332,7 +332,7 @@ export class PopupBuilder {
     static addStopTimeWithAnimation(popupElement: HTMLElement, stopTime: string, speedKmh?: number, ignitionStatus?: 'on' | 'off' | null): void {
       // No mostrar tiempo de parada si la velocidad es mayor a 0
       if (speedKmh !== undefined && speedKmh > 0) {
-        console.log('🚗 Velocidad mayor a 0 km/h, no mostrar tiempo de parada');
+        // console.log('🚗 Velocidad mayor a 0 km/h, no mostrar tiempo de parada');
         return;
       }
 
@@ -342,7 +342,7 @@ export class PopupBuilder {
       // Buscar la sección de detalles donde se debe agregar la información
       let detailsSection = contentDiv.querySelector('#details-section') as HTMLElement;
       if (!detailsSection) {
-        console.warn('⚠️ No se encontró #details-section, usando #popup-content como fallback');
+        // console.warn('⚠️ No se encontró #details-section, usando #popup-content como fallback');
         detailsSection = contentDiv as HTMLElement;
       }
 
@@ -404,32 +404,32 @@ export class PopupBuilder {
     static addStopTimeSkeletonWithAnimation(popupElement: HTMLElement, speedKmh?: number): void {
       // No mostrar skeleton si la velocidad es mayor a 0
       if (speedKmh !== undefined && speedKmh > 0) {
-        console.log('🚗 Velocidad mayor a 0 km/h, no mostrar skeleton de tiempo de parada');
+        // console.log('🚗 Velocidad mayor a 0 km/h, no mostrar skeleton de tiempo de parada');
         return;
       }
 
-      console.log('💀 addStopTimeSkeletonWithAnimation iniciado');
+      // console.log('💀 addStopTimeSkeletonWithAnimation iniciado');
       const contentDiv = popupElement.querySelector('#popup-content');
       if (!contentDiv) {
-        console.log('❌ No se encontró #popup-content');
+        // console.log('❌ No se encontró #popup-content');
         return;
       }
-      console.log('✅ #popup-content encontrado');
+      // console.log('✅ #popup-content encontrado');
 
       // Buscar la sección de detalles donde se debe agregar la información
       let detailsSection = contentDiv.querySelector('#details-section') as HTMLElement;
       if (!detailsSection) {
-        console.warn('⚠️ No se encontró #details-section, usando #popup-content como fallback');
+        // console.warn('⚠️ No se encontró #details-section, usando #popup-content como fallback');
         detailsSection = contentDiv as HTMLElement;
       }
 
       // Verificar si ya existe la sección (skeleton o real)
       const existingStopTime = detailsSection.querySelector('#stop-time-section');
       if (existingStopTime) {
-        console.log('⚠️ Ya existe #stop-time-section, saltando');
+        // console.log('⚠️ Ya existe #stop-time-section, saltando');   
         return;
       }
-      console.log('✅ No existe #stop-time-section, creando skeleton');
+      // console.log('✅ No existe #stop-time-section, creando skeleton');
 
       // Crear la sección skeleton
       const skeletonDiv = document.createElement('div');
@@ -478,7 +478,7 @@ export class PopupBuilder {
 
       // Agregar al contenido (a la sección de detalles)
       detailsSection.appendChild(skeletonDiv);
-      console.log('✅ Skeleton agregado al DOM');
+      // console.log('✅ Skeleton agregado al DOM');
 
       // Mostrar el botón "Más información" si no está visible
       this.showMoreInfoButtonIfNeeded(popupElement);
@@ -487,7 +487,7 @@ export class PopupBuilder {
       setTimeout(() => {
         skeletonDiv.style.opacity = '1';
         skeletonDiv.style.transform = 'translateY(0)';
-        console.log('✅ Animación de skeleton activada');
+        // console.log('✅ Animación de skeleton activada');
       }, 50);
     }
 
@@ -499,7 +499,7 @@ export class PopupBuilder {
       // Buscar la sección de detalles donde se debe agregar la información
       let detailsSection = contentDiv.querySelector('#details-section') as HTMLElement;
       if (!detailsSection) {
-        console.warn('⚠️ No se encontró #details-section, usando #popup-content como fallback');
+        // console.warn('⚠️ No se encontró #details-section, usando #popup-content como fallback');
         detailsSection = contentDiv as HTMLElement;
       }
 
@@ -512,7 +512,7 @@ export class PopupBuilder {
       // Si no hay tiempo de parada válido O la velocidad es mayor a 0, remover el skeleton con animación
       if (!stopTime || (speedKmh !== undefined && speedKmh > 0)) {
         if (speedKmh !== undefined && speedKmh > 0) {
-          console.log('🚗 Velocidad mayor a 0 km/h, removiendo sección de tiempo de parada');
+          // console.log('🚗 Velocidad mayor a 0 km/h, removiendo sección de tiempo de parada');
         }
         const stopTimeElement = existingStopTime as HTMLElement;
         stopTimeElement.style.opacity = '0';
@@ -559,7 +559,7 @@ export class PopupBuilder {
 
         const existingStopTime = detailsSection.querySelector('#stop-time-section');
         if (existingStopTime) {
-          console.log('🚗 Vehículo en movimiento, removiendo sección de tiempo de parada');
+          // console.log('🚗 Vehículo en movimiento, removiendo sección de tiempo de parada');
           const stopTimeElement = existingStopTime as HTMLElement;
           stopTimeElement.style.opacity = '0';
           stopTimeElement.style.transform = 'translateY(-10px)';
@@ -574,18 +574,18 @@ export class PopupBuilder {
 
       // Método auxiliar para agregar o actualizar la sección de ignición (optimizado)
   static addOrUpdateIgnitionSection(contentDiv: Element, ignitionStatus?: 'on' | 'off' | null): void {
-    console.log('🔋 DEBUG addOrUpdateIgnitionSection llamado con ignitionStatus:', ignitionStatus);
-    console.log('🔋 DEBUG contentDiv:', contentDiv ? 'existe' : 'null/undefined');
+    // console.log('🔋 DEBUG addOrUpdateIgnitionSection llamado con ignitionStatus:', ignitionStatus);
+    // console.log('🔋 DEBUG contentDiv:', contentDiv ? 'existe' : 'null/undefined');
     
     if (ignitionStatus === null || ignitionStatus === undefined) {
-      console.log('🔋 DEBUG: ignitionStatus es null/undefined, buscando sección existente para remover');
+        // console.log('🔋 DEBUG: ignitionStatus es null/undefined, buscando sección existente para remover');
       // Si no hay estado de ignición, remover la sección si existe
       const existingIgnition = contentDiv.querySelector('#ignition-section');
       if (existingIgnition) {
-        console.log('🔋 DEBUG: Removiendo sección de ignición existente');
+        //  console.log('🔋 DEBUG: Removiendo sección de ignición existente');
         existingIgnition.remove();
       } else {
-        console.log('🔋 DEBUG: No hay sección de ignición existente para remover');
+        // console.log('🔋 DEBUG: No hay sección de ignición existente para remover');
       }
       return;
     }
@@ -729,10 +729,10 @@ export class PopupBuilder {
          return newPopupHtml;
          
        } catch (error) {
-         console.warn('⚠️ Error preservando estado del popup:', error);
+         //     console.warn('⚠️ Error preservando estado del popup:', error);
          return newPopupHtml;
       }
-    }
+    }   
 
       // Método auxiliar rápido para obtener estado de ignición
   private static fastGetIgnitionStatus(target: any): 'on' | 'off' | null {

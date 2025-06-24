@@ -114,15 +114,15 @@ export class MarkerService {
     }
 
     // CENTRAR EL MAPA CON LOGS DETALLADOS PARA DEBUG
-    console.log('🎯 DEBUG CENTRADO: Creando marcador para target:', target._id);
-    console.log('🎯 DEBUG CENTRADO: Coordenadas que se usarán para centrar:', { lat: lat.toFixed(6), lng: lng.toFixed(6) });
-    console.log('🎯 DEBUG CENTRADO: Target completo:', { 
-      _id: target._id, 
-      name: target.name,
-      traccarGeolocation: target.traccarInfo?.geolocation,
-      latitude: target.traccarInfo?.geolocation?.latitude,
-      longitude: target.traccarInfo?.geolocation?.longitude
-    });
+    // console.log('🎯 DEBUG CENTRADO: Creando marcador para target:', target._id);
+    // console.log('🎯 DEBUG CENTRADO: Coordenadas que se usarán para centrar:', { lat: lat.toFixed(6), lng: lng.toFixed(6) });
+    // console.log('🎯 DEBUG CENTRADO: Target completo:', { 
+    //   _id: target._id, 
+    //   name: target.name,
+    //   traccarGeolocation: target.traccarInfo?.geolocation,
+    //   latitude: target.traccarInfo?.geolocation?.latitude,
+    //   longitude: target.traccarInfo?.geolocation?.longitude
+    // });
     
     const MapUtils = (await import('./map.helper')).MapUtils;
     
@@ -133,11 +133,11 @@ export class MarkerService {
     }
     
     // VERIFICACIÓN ADICIONAL: Asegurar que el target actual siga siendo el correcto
-    const currentTargetIdToCheck = target._id || target.id;
+    const currentTargetIdToCheck = target._id || target.id; 
     if (this.currentTargetId && this.currentTargetId !== currentTargetIdToCheck) {
-      console.log('🛑 CENTRADO CANCELADO: Target cambió durante creación del marcador');
-      console.log('🛑 Target esperado:', this.currentTargetId);
-      console.log('🛑 Target recibido:', currentTargetIdToCheck);
+    //   console.log('🛑 CENTRADO CANCELADO: Target cambió durante creación del marcador');
+    //   console.log('🛑 Target esperado:', this.currentTargetId);
+    //   console.log('🛑 Target recibido:', currentTargetIdToCheck);
       return;
     }
     
@@ -145,13 +145,13 @@ export class MarkerService {
     setTimeout(() => {
       // Verificar una vez más antes de centrar
       if (this.currentTargetId && this.currentTargetId !== currentTargetIdToCheck) {
-        console.log('🛑 CENTRADO CANCELADO EN TIMEOUT: Target cambió');
+        // console.log('🛑 CENTRADO CANCELADO EN TIMEOUT: Target cambió');
         return;
       }
       
-      console.log('🎯 EJECUTANDO CENTRADO del mapa en:', { lat: lat.toFixed(6), lng: lng.toFixed(6) });
+      // console.log('🎯 EJECUTANDO CENTRADO del mapa en:', { lat: lat.toFixed(6), lng: lng.toFixed(6) });
       MapUtils.recenterMap(map, provider, lat, lng);
-      console.log('✅ CENTRADO COMPLETADO para target:', target._id);
+      // console.log('✅ CENTRADO COMPLETADO para target:', target._id);
     }, 10); // Delay mínimo de 10ms para asegurar sincronización
 
     // Crear marcador y agregarlo inmediatamente al mapa
@@ -236,20 +236,18 @@ export class MarkerService {
 
     // AGREGAR INMEDIATAMENTE LA SECCIÓN DEL MOTOR después de crear el popup
     setTimeout(() => {
-      console.log('🔋 DEBUG: Iniciando timeout para agregar sección del motor inmediatamente');
-      console.log('🔋 DEBUG: ignitionStatus a agregar:', ignitionStatus);
+      // console.log('🔋 DEBUG: Iniciando timeout para agregar sección del motor inmediatamente');
+      // console.log('🔋 DEBUG: ignitionStatus a agregar:', ignitionStatus);
       const popupElement = document.querySelector('#custom-info-window') as HTMLElement;
       if (popupElement) {
-        console.log('🔋 DEBUG: popupElement encontrado');
+        // console.log('🔋 DEBUG: popupElement encontrado');
         // Agregar la sección del motor SIEMPRE (si aplica) en la sección de detalles
         const contentDiv = popupElement.querySelector('#popup-content');
         if (contentDiv) {
-          console.log('🔋 DEBUG: contentDiv encontrado');
+          // console.log('🔋 DEBUG: contentDiv encontrado');
           const detailsSection = contentDiv.querySelector('#details-section') || contentDiv;
-          console.log('🔋 DEBUG: detailsSection encontrado:', detailsSection ? 'sí' : 'no');
+          // console.log('🔋 DEBUG: detailsSection encontrado:', detailsSection ? 'sí' : 'no');
           PopupBuilder.addOrUpdateIgnitionSection(detailsSection, ignitionStatus);
-        } else {
-          console.log('🔋 DEBUG: contentDiv NO encontrado');
         }
         
         // Mostrar skeleton SOLO si NO hay tiempo precargado Y la velocidad es 0
@@ -258,7 +256,7 @@ export class MarkerService {
           PopupBuilder.addStopTimeSkeletonWithAnimation(popupElement, speedKmh);
         }
       } else {
-        console.log('🔋 DEBUG: popupElement NO encontrado');
+        // console.log('🔋 DEBUG: popupElement NO encontrado');
         // console.log('⚠️ No se encontró popup element, reintentando en 200ms...');
         // Reintentar una vez más con delay mayor
         setTimeout(() => {
@@ -291,14 +289,14 @@ export class MarkerService {
       stopTimePromise = Promise.resolve(preloadedStopTime);
     } else {
       // console.log('🔄 No hay tiempo precargado, consultando desde cero...');
-      console.log('📋 Target info:', {
-        mongoId: target._id || target.id,
-        api_device_id: target.api_device_id,
-        traccar_device_id: target.traccar_device_id,
-        device_id: target.device_id,
-        traccarInfoId: target.traccarInfo?.id,
-        hasTargetsService: !!targetsService
-      });
+    //   console.log('📋 Target info:', {
+    //     mongoId: target._id || target.id,
+    //     api_device_id: target.api_device_id,
+    //     traccar_device_id: target.traccar_device_id,
+    //     device_id: target.device_id,
+    //     traccarInfoId: target.traccarInfo?.id,
+    //     hasTargetsService: !!targetsService
+    //   });
       
       // Priorizar api_device_id (Traccar ID) sobre MongoDB _id, añadiendo traccarInfo.id como fallback
       const deviceId = target.api_device_id || target.traccar_device_id || target.device_id || target.deviceId || target.traccarInfo?.id?.toString();
@@ -522,7 +520,7 @@ export class MarkerService {
     
     // Obtener estado de ignición desde múltiples fuentes posibles
     const ignitionStatus = this.getIgnitionStatus(target);
-    console.log('🔋 DEBUG UPDATE: ignitionStatus obtenido:', ignitionStatus, 'para target:', target._id);
+    // console.log('🔋 DEBUG UPDATE: ignitionStatus obtenido:', ignitionStatus, 'para target:', target._id);
 
     // Extraer fecha de última ubicación para dispositivos offline
     let lastLocationDate: string | undefined = undefined;
@@ -763,21 +761,21 @@ export class MarkerService {
   // Método auxiliar para obtener el estado de ignición desde múltiples fuentes (optimizado)
   private static getIgnitionStatus(target: any): 'on' | 'off' | null {
     // DEBUG: Agregar logs detallados para debugging
-    console.log('🔋 DEBUG getIgnitionStatus para target:', target._id || target.id);
-    console.log('🔋 DEBUG ignition_sensor del target:', target?.ignition_sensor);
-    console.log('🔋 DEBUG target completo (claves):', target ? Object.keys(target) : 'target es null/undefined');
+    // console.log('🔋 DEBUG getIgnitionStatus para target:', target._id || target.id);
+    // console.log('🔋 DEBUG ignition_sensor del target:', target?.ignition_sensor);
+    // console.log('🔋 DEBUG target completo (claves):', target ? Object.keys(target) : 'target es null/undefined');
     
     // BUSCAR ignition_sensor en el target principal o en originalTarget
     let ignitionSensor = target?.ignition_sensor;
     if (!ignitionSensor && target?.originalTarget) {
-      console.log('🔋 DEBUG: Buscando ignition_sensor en originalTarget');
+      // console.log('🔋 DEBUG: Buscando ignition_sensor en originalTarget');
       ignitionSensor = target.originalTarget.ignition_sensor;
-      console.log('🔋 DEBUG: ignition_sensor en originalTarget:', ignitionSensor);
+      // console.log('🔋 DEBUG: ignition_sensor en originalTarget:', ignitionSensor);
     }
     
     // VALIDACIÓN CRÍTICA: Solo mostrar información de ignición si el sensor está configurado en 'yes'
     if (ignitionSensor !== 'yes') {
-      console.log('🔋 DEBUG: ignition_sensor no es "yes", retornando null. Valor actual:', ignitionSensor);
+      // console.log('🔋 DEBUG: ignition_sensor no es "yes", retornando null. Valor actual:', ignitionSensor);
       return null;
     }
     
@@ -789,21 +787,21 @@ export class MarkerService {
         target?.traccarInfo?.geolocation?.ignition
       ];
       
-      console.log('🔋 DEBUG ignitionSources:', ignitionSources);
+      // console.log('🔋 DEBUG ignitionSources:', ignitionSources);
       
       // Verificar si encontramos un valor explícito de ignición
       for (const ignitionValue of ignitionSources) {
         if (ignitionValue !== undefined && ignitionValue !== null) {
-          const result = ignitionValue ? 'on' : 'off';
-          console.log('🔋 DEBUG: Encontrado valor explícito de ignición:', ignitionValue, '→', result);
+          const result = ignitionValue ? 'on' : 'off';  
+          // console.log('🔋 DEBUG: Encontrado valor explícito de ignición:', ignitionValue, '→', result);
           return result;
         }
       }
 
       // Si no hay datos explícitos de ignición, inferir por velocidad
       const speed = target?.traccarInfo?.geolocation?.speed || 0;
-      const result = speed > 0 ? 'on' : 'off';
-      console.log('🔋 DEBUG: Infiriendo por velocidad:', speed, '→', result);
+      const result = speed > 0 ? 'on' : 'off';  
+      // console.log('🔋 DEBUG: Infiriendo por velocidad:', speed, '→', result);
       return result;
 
     } catch (error) {

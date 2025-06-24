@@ -45,7 +45,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private initializeNewProvider(): void {
-    console.log('Initializing new provider:', this.provider);
+    // console.log('Initializing new provider:', this.provider);
     this.systemService.getAll().subscribe((systems: SystemSettings[]) => {
       const config = MapUtils.getApiConfig(systems, this.provider);
       if (!config) {
@@ -55,11 +55,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
       this.apiKey = config.key;
       this.apiUrl = config.url;
-      console.log('Config loaded for', this.provider, { hasKey: !!this.apiKey, hasUrl: !!this.apiUrl });
+      // console.log('Config loaded for', this.provider, { hasKey: !!this.apiKey, hasUrl: !!this.apiUrl });
 
       MapUtils.loadMapScript(this.provider, this.apiKey, this.apiUrl)
         .then(async () => {
-          console.log('Script loaded, initializing map...');
+          // console.log('Script loaded, initializing map...');
           await this.initializeMap();
         })
         .catch(err => {
@@ -72,7 +72,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     // Como estamos usando recreación del componente para cambios de proveedor,
     // solo necesitamos manejar cambios de tema y target
     if (this.map && changes['theme']) {
-      console.log('Theme changed to', this.theme);
+      // console.log('Theme changed to', this.theme);
       MapThemeService.updateTheme(this.map, this.provider, this.theme, this.selectedTarget, async () => await this.addMarker());
     }
 
@@ -82,16 +82,16 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     // DEBUG: Rastrear cambios en preloadedStopTime
     if (changes['preloadedStopTime']) {
-      console.log('🔍 DEBUG: preloadedStopTime cambió:', {
-        previousValue: changes['preloadedStopTime'].previousValue,
-        currentValue: changes['preloadedStopTime'].currentValue,
-        isFirstChange: changes['preloadedStopTime'].firstChange
-      });
+      // console.log('🔍 DEBUG: preloadedStopTime cambió:', {
+      //   previousValue: changes['preloadedStopTime'].previousValue,
+      //   currentValue: changes['preloadedStopTime'].currentValue,
+      //   isFirstChange: changes['preloadedStopTime'].firstChange
+      // });
     }
   }
 
   ngOnDestroy(): void {
-    console.log('🧹 Maps component destroyed');
+    // console.log('🧹 Maps component destroyed');
     
     // Limpiar la bandera de procesamiento
     this.isProcessingTargetChange = false;
@@ -102,7 +102,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     // Destruir el mapa
     this.destroyMap();
     
-    // Limpiar el servicio de marcadores
+    // Limpiar el servicio de marcadores  
     MarkerService.resetService();
   }
 
@@ -122,18 +122,18 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     const prev = change.previousValue;
     const curr = change.currentValue;
 
-    console.log('🔄 Target change detected:', { 
-      prevId: prev?._id, 
-      currId: curr?._id, 
-      hasMarkers: this.currentMarkers.length > 0,
-      isFirstTime: this.isFirstTimeSelection,
-      isProcessing: this.isProcessingTargetChange,
-      reason: !curr ? 'target_cleared' : (!prev ? 'initial_selection' : (prev._id !== curr._id ? 'different_target' : 'same_target_update'))
-    });
+      // console.log('🔄 Target change detected:', {   
+      //   prevId: prev?._id, 
+      //   currId: curr?._id, 
+      //   hasMarkers: this.currentMarkers.length > 0,
+      //   isFirstTime: this.isFirstTimeSelection,
+      //   isProcessing: this.isProcessingTargetChange,
+      //   reason: !curr ? 'target_cleared' : (!prev ? 'initial_selection' : (prev._id !== curr._id ? 'different_target' : 'same_target_update'))
+      // });
 
     // PREVENIR DOBLE PROCESAMIENTO
     if (this.isProcessingTargetChange) {
-      console.log('⏸️ Ya procesando cambio de target, saltando handleTargetChange...');
+      // console.log('⏸️ Ya procesando cambio de target, saltando handleTargetChange...');
       return;
     }
 
@@ -141,8 +141,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     // SIEMPRE solo actualizar posición (sin importar isFirstTimeSelection)
     const isSameTarget = prev && curr && prev._id === curr._id;
     if (isSameTarget && this.currentMarkers.length > 0) {
-      console.log('⚠️ Mismo target con marcadores existentes - SOLO actualizar posición');
-      console.log('📍 currentMarkers.length:', this.currentMarkers.length, 'isFirstTime:', this.isFirstTimeSelection);
+      // console.log('⚠️ Mismo target con marcadores existentes - SOLO actualizar posición');
+      // console.log('📍 currentMarkers.length:', this.currentMarkers.length, 'isFirstTime:', this.isFirstTimeSelection);
       await this.updateMarkerPosition();
       return;
     }
@@ -153,7 +153,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     try {
       if (!curr) {
         // No hay target seleccionado, limpiar todo
-        console.log('❌ No target selected (posible cambio de proveedor), limpieza completada');
+        // console.log('❌ No target selected (posible cambio de proveedor), limpieza completada');
         await this.clearExistingMarkers();
         this.isFirstTimeSelection = true; // Reset para próxima selección
         return;
@@ -161,7 +161,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
       if (!this.hasValidTarget()) {
         // Target no tiene coordenadas válidas, limpiar todo
-        console.log('❌ Invalid target coordinates, limpieza completada');
+        // console.log('❌ Invalid target coordinates, limpieza completada');
         await this.clearExistingMarkers();
         this.isFirstTimeSelection = true; // Reset para próxima selección
         return;
@@ -169,7 +169,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
       // Es un target diferente o es la primera vez - crear nuevo marcador (CON animación)
       const isInitialSelection = !isSameTarget || this.isFirstTimeSelection;
-      console.log('✅ Creando marcador:', isInitialSelection ? 'CON animación (selección inicial)' : 'SIN animación (actualización)');
+      // console.log('✅ Creando marcador:', isInitialSelection ? 'CON animación (selección inicial)' : 'SIN animación (actualización)');
       
       // Limpiar marcadores anteriores
       await this.clearExistingMarkers();
@@ -183,14 +183,14 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       setTimeout(async () => {
         // Verificar que el target no haya cambiado durante el delay
         if (this.selectedTarget && this.selectedTarget._id === curr._id) {
-          console.log('🆕 Procediendo a crear marcador después de limpieza para:', curr._id);
+          // console.log('🆕 Procediendo a crear marcador después de limpieza para:', curr._id);
           // Crear nuevo marcador
           await this.createNewMarker(isInitialSelection);
           
           // Marcar que ya no es la primera vez para este target
           this.isFirstTimeSelection = false;
         } else {
-          console.log('🛑 Target cambió durante delay, cancelando creación de marcador');
+          //  console.log('🛑 Target cambió durante delay
         }
       }, 50); // Delay pequeño pero suficiente para asegurar limpieza
 
@@ -198,7 +198,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       // DESMARCAR COMO PROCESANDO
       setTimeout(() => {
         this.isProcessingTargetChange = false;
-        console.log('✅ Procesamiento de target completado en Maps component');
+        // console.log('✅ Procesamiento de target completado en Maps component');
       }, 100); // Delay para asegurar que el procesamiento se complete
     }
   }
@@ -217,17 +217,17 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     
     if (hasValidCoordinates) {
       const status = this.selectedTarget?.traccarInfo?.status || 'desconocido';
-      console.log(`📍 Target ${this.selectedTarget._id} tiene coordenadas válidas [${lat.toFixed(6)}, ${lng.toFixed(6)}] - Estado: ${status}`);
+      // console.log(`📍 Target ${this.selectedTarget._id} tiene coordenadas válidas [${lat.toFixed(6)}, ${lng.toFixed(6)}] - Estado: ${status}`);
     }
     
     return hasValidCoordinates;
   }
 
   private async createNewMarker(isInitialSelection: boolean = true): Promise<void> {
-    console.log('🆕 Creating new marker');
+    // console.log('🆕 Creating new marker');
     
-    if (!this.hasValidTarget()) {
-      console.log('❌ No valid target, cannot create marker');
+    if (!this.hasValidTarget()) { 
+      // console.log('❌ No valid target, cannot create marker');
       return;
     }
     
@@ -243,7 +243,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
     
-    console.log(`🎯 Creating marker with animation sequence at [${lat.toFixed(6)}, ${lng.toFixed(6)}] for target ${this.selectedTarget._id}`);
+    // console.log(`🎯 Creating marker with animation sequence at [${lat.toFixed(6)}, ${lng.toFixed(6)}] for target ${this.selectedTarget._id}`);
     
     // El MarkerService ahora maneja toda la secuencia de animación
     await this.addMarker(isInitialSelection); // Es una selección inicial de target
@@ -254,8 +254,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     // VALIDACIÓN CRÍTICA: Si ya hay marcadores, no crear más
     if (this.currentMarkers.length > 0) {
-      console.log('⚠️ PREVENCIÓN DUPLICADOS: Ya existen', this.currentMarkers.length, 'marcadores para target:', this.selectedTarget._id);
-      console.log('⚠️ Cancelando creación de marcador adicional');
+      // console.log('⚠️ PREVENCIÓN DUPLICADOS: Ya existen', this.currentMarkers.length, 'marcadores para target:', this.selectedTarget._id);
+      // console.log('⚠️ Cancelando creación de marcador adicional');
       return;
     }
 
@@ -272,22 +272,22 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     // DEBUG: Verificar valor de preloadedStopTime antes de pasar al MarkerService
-    console.log('🔍 DEBUG: addMarker llamado con:', {
-      targetId: this.selectedTarget._id,
-      isInitialSelection,
-      preloadedStopTime: this.preloadedStopTime,
-      preloadedStopTimeType: typeof this.preloadedStopTime,
-      preloadedStopTimeLength: this.preloadedStopTime?.length,
-      coordenadas: { lat: lat.toFixed(6), lng: lng.toFixed(6) },
-      targetGeolocation: this.selectedTarget.traccarInfo?.geolocation
-    });
+    // console.log('🔍 DEBUG: addMarker llamado con:', {
+      // targetId: this.selectedTarget._id,
+      // isInitialSelection,
+      // preloadedStopTime: this.preloadedStopTime,
+      // preloadedStopTimeType: typeof this.preloadedStopTime,
+      // preloadedStopTimeLength: this.preloadedStopTime?.length,
+      // coordenadas: { lat: lat.toFixed(6), lng: lng.toFixed(6) },
+      // targetGeolocation: this.selectedTarget.traccarInfo?.geolocation
+    // });
 
     try {
       const marker = await MarkerService.createMarker(
         this.map, 
         this.provider, 
         lat, 
-        lng, 
+        lng,  
         this.selectedTarget, 
         this.vehicleTypeGetter || undefined,
         this.targetsService,
@@ -315,17 +315,17 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
   private async updateMarkerPosition(): Promise<void> {
     if (this.currentMarkers.length === 0 || !this.hasValidTarget()) {
-      console.log('❌ Cannot update marker position: no markers or invalid target');
-      console.log('📊 Estado actual:', {
-        currentMarkersCount: this.currentMarkers.length,
-        hasValidTarget: this.hasValidTarget(),
-        selectedTargetId: this.selectedTarget?._id
-      });
+      // console.log('❌ Cannot update marker position: no markers or invalid target');
+      // console.log('📊 Estado actual:', {
+      //   currentMarkersCount: this.currentMarkers.length,
+      //   hasValidTarget: this.hasValidTarget(),
+      //   selectedTargetId: this.selectedTarget?._id
+      // });
       return;
-    }
+    } 
 
-    console.log(`🔄 Updating marker position for target ${this.selectedTarget._id}`);
-    console.log('📊 Marcadores actuales:', this.currentMarkers.length);
+    // console.log(`🔄 Updating marker position for target ${this.selectedTarget._id}`);
+    // console.log('📊 Marcadores actuales:', this.currentMarkers.length);
 
     await MarkerService.updatePosition({
       map: this.map,
@@ -345,43 +345,37 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private async clearExistingMarkers(): Promise<void> {
-    console.log('🧹 Limpiando marcadores existentes y cancelando procesos');
+    // console.log('🧹 Limpiando marcadores existentes y cancelando procesos');
     
     // Cancelar animaciones específicas de Mapbox si es necesario
     if (this.provider === 'mapbox' && this.map) {
-      console.log('🛑 Deteniendo animaciones Mapbox en clearExistingMarkers');
+      // console.log('🛑 Deteniendo animaciones Mapbox en clearExistingMarkers');
       this.map.stop();
     }
     
     // Eliminar marcadores existentes con verificación
     if (this.currentMarkers.length > 0) {
-      console.log('🗑️ Eliminando', this.currentMarkers.length, 'marcadores');
+      // console.log('🗑️ Eliminando', this.currentMarkers.length, 'marcadores');
       
       this.currentMarkers.forEach((marker, index) => {
-        console.log(`🗑️ Removiendo marcador ${index + 1}/${this.currentMarkers.length}`);
+        // console.log(`🗑️ Removiendo marcador ${index + 1}/${this.currentMarkers.length}`);
         MarkerService.removeMarker(marker, this.provider);
       });
       
       // Limpiar el array de marcadores
     this.currentMarkers = [];
-      console.log('✅ Array de marcadores limpiado');
+      // console.log('✅ Array de marcadores limpiado');
       
-      // Verificar que efectivamente se limpiaron todos los marcadores
-      if (this.currentMarkers.length === 0) {
-        console.log('✅ Confirmado: todos los marcadores removidos');
-      } else {
-        console.warn('⚠️ Algunos marcadores pueden no haberse removido completamente');
-      }
-    } else {
-      console.log('ℹ️ No hay marcadores para limpiar');
-    }
+     
+   
+    } 
     
     // Resetear estado de posición y velocidad
     this.lastPosition = null;
     this.lastSpeed = 0;
     this.currentDisplayedSpeed = 0;
     
-    console.log('✅ Limpieza completada');
+    //  console.log('✅ Limpieza completada');
   }
 
   private destroyMap(): void {
