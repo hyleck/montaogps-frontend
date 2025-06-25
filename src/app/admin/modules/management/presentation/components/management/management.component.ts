@@ -588,6 +588,65 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.managementService.setOp('u', parentId);
   }
 
+  // Método unificado para manejar click en target (normal o Ctrl + click)
+  handleTargetClick(target: any, event: MouseEvent) {
+    console.log('🖱️ handleTargetClick llamado', { target, ctrlKey: event.ctrlKey });
+    
+    if (event.ctrlKey) {
+      // Ctrl + click: abrir en nueva pestaña
+      this.openTargetInNewTab(target);
+    } else {
+      // Click normal: mostrar en mapa
+      this.showTargetOnMap(target);
+    }
+  }
+
+  // Método para abrir target en nueva pestaña (Ctrl + click)
+  openTargetInNewTab(target: any) {
+    console.log('🔗 openTargetInNewTab llamado con Ctrl + click', { target });
+    
+    if (!target || !target._id) {
+      console.warn('Target sin _id:', target);
+      return;
+    }
+
+    // Usar el selectedUser._id ya que estamos viendo los targets de este usuario
+    if (!this.selectedUser || !this.selectedUser._id) {
+      console.warn('No hay usuario seleccionado para abrir target en nueva pestaña');
+      return;
+    }
+
+    console.log('🎯 Datos para construir URL:', {
+      selectedUserId: this.selectedUser._id,
+      targetId: target._id,
+      targetName: target.name
+    });
+
+    // Construir la URL con la estructura: /admin/management/t/{userId}?target={targetId}
+    const url = this.router.serializeUrl(
+      this.router.createUrlTree(
+        ['/admin/management', 't', this.selectedUser._id],
+        { queryParams: { target: target._id } }
+      )
+    );
+
+    console.log('🔗 Abriendo URL en nueva pestaña:', url);
+
+    // Abrir en nueva pestaña
+    const newWindow = window.open(url, '_blank');
+    
+    if (!newWindow) {
+      console.error('❌ No se pudo abrir la nueva pestaña. Puede estar bloqueado por el navegador.');
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Popup bloqueado',
+        detail: 'Por favor permite popups para abrir en nueva pestaña'
+      });
+    } else {
+      console.log('✅ Nueva pestaña abierta exitosamente');
+    }
+  }
+
   // Método para verificar si se puede navegar hacia atrás
   canNavigateBack(): boolean {
     if (!this.selectedUser) return false;
@@ -1154,64 +1213,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
       console.error('❌ Error actualizando detalles del target seleccionado:', error);
     }
   }
-
-  // private updateSelectedTargetLocation(updatedTargets: Target[]): void {
-  //   if (!this.selectedTargetForMap?._id) return;
-    
-  //   // Buscar el target actualizado que coincida con el seleccionado
-  //   const updatedTarget = updatedTargets.find(target => target._id === this.selectedTargetForMap._id);
-    
-  //   if (updatedTarget?.traccarInfo?.['geolocation']) {
-      
-  //     // Actualizar las coordenadas del target seleccionado
-  //     const lat = updatedTarget.traccarInfo['geolocation'].latitude;
-  //     const lng = updatedTarget.traccarInfo['geolocation'].longitude;
-      
-  //     if (lat && lng) {
-  //       // Verificar si las coordenadas han cambiado significativamente
-  //       const oldLat = this.selectedTargetForMap.traccarInfo?.geolocation?.latitude;
-  //       const oldLng = this.selectedTargetForMap.traccarInfo?.geolocation?.longitude;
-        
-  //       const hasLocationChanged = !oldLat || !oldLng || 
-  //         Math.abs(lat - oldLat) > 0.0001 || Math.abs(lng - oldLng) > 0.0001;
-        
-  //       // ACTUALIZAR PROPIEDADES DEL OBJETO EXISTENTE en lugar de reasignar
-  //       // Esto preserva la referencia del objeto y evita disparos innecesarios de ngOnChanges
-  //       if (!this.selectedTargetForMap.traccarInfo) {
-  //         this.selectedTargetForMap.traccarInfo = {};
-  //       }
-        
-  //       // Actualizar propiedades específicas preservando la estructura existente
-  //       Object.assign(this.selectedTargetForMap.traccarInfo, updatedTarget.traccarInfo);
-  //       this.selectedTargetForMap.traccarInfo.geolocation = updatedTarget.traccarInfo?.['geolocation'] || {
-  //         latitude: lat,
-  //         longitude: lng
-  //       };
-        
-  //       // DEBUG: Verificar que el polling preserva la geolocation completa
-  //       console.log('🔄 POLLING updateSelectedTargetLocation:');
-  //       console.log('- Geolocation completa preservada:', this.selectedTargetForMap.traccarInfo?.geolocation);
-  //       console.log('- Velocidad preservada:', this.selectedTargetForMap.traccarInfo?.geolocation?.speed);
-
-  //       // NO reasignar this.selectedTargetForMap para preservar referencia del objeto
-        
-  //       if (hasLocationChanged) {
-          
-  //         // Para actualizaciones posteriores, el componente de mapas moverá el marcador suavemente
-  //         if (this.shouldCenterMapOnUpdate) {
-  //           this.shouldCenterMapOnUpdate = false; // Desactivar centrado automático después de la primera vez
-  //         }
-  //         // El cambio en selectedTargetForMap será detectado por ngOnChanges del componente de mapas
-  //         // y solo actualizará la posición del marcador existente
-  //       }
-  //     }
-  //   }
-  // }
-
-  // @HostListener('window:resize', ['$event'])
-  // private onResize(): void {
-  //   this.screenService.checkScreenSize();
-  // }
 
   // Métodos para manejo de URL con query parameters
   private updateUrlWithTargetId(targetId: string): void {

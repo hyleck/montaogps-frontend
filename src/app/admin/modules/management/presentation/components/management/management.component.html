@@ -103,7 +103,7 @@
                                     >
                                     <ng-template pTemplate="emptymessage">
                                         <tr>
-                                            <td colspan="6" style="text-align: center; padding: 1rem;">
+                                            <td colspan="6" style="text-align: right; padding: 1rem;">
                                                 <i class="pi pi-map-marker" style="font-size: 2rem; color: #888; display: block; margin-bottom: 0.5rem;"></i>
                                                 <span>{{ 'management.noTargets' | translate }}</span>
                                             </td>
@@ -120,12 +120,14 @@
                                                 [title]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'TARGET SELECCIONADO VISTA MAPA - ID: ' + target._id : ''">
                                             
                                                 <td style="font-size: 13px!important;"> 
-                                                    <span (click)="showTargetOnMap(target)" class="management__content-table-link" 
+                                                    <span (click)="handleTargetClick(target, $event)"
+                                                          class="management__content-table-link" 
                                                           [ngClass]="{
                                                             'target-online': target.traccarStatus === 'online',
                                                             'target-offline': target.traccarStatus !== 'online',
                                                             'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id
-                                                          }">
+                                                          }"
+                                                          title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña">
                                                         <i class="pi pi-map-marker"
                                                            [ngClass]="{
                                                              'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
@@ -135,7 +137,7 @@
                                                         <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id" 
                                                            class="pi pi-eye target-map-indicator" 
                                                            title="Mostrando en mapa"></i>
-                                                    </span>   
+                                                    </span>
                                                     <span style="margin-bottom: 10px; display: block;">IMEI: {{target.imei}}</span>
                                                     
                                                     
@@ -143,7 +145,7 @@
                                                     <!-- Estado y velocidad combinados -->
                                                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
                                                         <p-tableCheckbox [value]="target" />
-                                                        <p-badge [style]="{transform: 'scale(0.8)'}" [value]="target.status" [severity]="target.status == translate.instant('management.status.online') ? 'success' : 'secondary'" />
+                                                        <!-- <p-badge [style]="{transform: 'scale(0.8)'}" [value]="target.status" [severity]="target.status == translate.instant('management.status.online') ? 'success' : 'secondary'" /> -->
                                                         <span class="device-speed-display device-speed-display--inline">
                                                             🚗 {{ getDeviceSpeed(target) }}
                                                         </span>
@@ -329,13 +331,14 @@
                                             <p-tableCheckbox [value]="target" />
                                         </td>
                                         <td>
-                                            <span (click)="showTargetOnMap(target)" class="management__content-table-link" 
+                                            <span (click)="handleTargetClick(target, $event)"
+                                                  class="management__content-table-link" 
                                                   [ngClass]="{
                                                     'target-online': target.traccarStatus === 'online',
                                                     'target-offline': target.traccarStatus !== 'online',
                                                     'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id
                                                   }"
-                                                  title="Ver en mapa">
+                                                  title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña">
                                                 <i class="pi pi-map-marker" 
                                                    [ngClass]="{
                                                      'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
@@ -348,8 +351,8 @@
                                             </span>
                                         </td>
                                         <td> 
-                                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-                                                <p-badge [value]="target.status" [severity]="target.status == translate.instant('management.status.online') ? 'success' : 'secondary'" />
+                                            <div style="display: flex; flex-direction: column; align-items: left; gap: 4px;">
+                                                <!-- <p-badge [value]="target.status" [severity]="target.status == translate.instant('management.status.online') ? 'success' : 'secondary'" /> -->
                                                 <span class="device-speed-display device-speed-display--compact">
                                                     🚗 {{ getDeviceSpeed(target) }}
                                                 </span>

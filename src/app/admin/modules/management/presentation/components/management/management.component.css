@@ -933,7 +933,7 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
 /* Display de velocidad - tema claro (solo texto) */
 .device-speed-display {
-    font-size: 11px;
+    font-size: 14px;
     color: #9ca3af;
     font-weight: 400;
     padding: 0;
@@ -952,7 +952,7 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
 /* Variante compacta para tabla (debajo del badge) */
 .device-speed-display--compact {
-    font-size: 9px;
+    font-size: 13px;
     padding: 0;
     background: none;
     border: none;
@@ -977,4 +977,6 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     background: none;
     border: none;
 }
+
+
 
