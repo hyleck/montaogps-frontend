@@ -15,7 +15,7 @@
             </div>
 
             <div class="management__user-control">
-                <div class="management__user-control-display-button">  <i (click)="showMapsToggle()" class="pi pi-window-maximize"></i></div>
+                <div class="management__user-control-display-button" *ngIf="shouldShowMapToggleButton">  <i (click)="showMapsToggle()" class="pi pi-window-maximize"></i></div>
                 <div class="management__user-control-back-button" *ngIf="canNavigateBack()">  <i (click)="goToParent()" class="pi pi-arrow-left"></i></div>
                 <div class="management__user-control-header">
                     <div class="management__user-control-icon">
@@ -103,7 +103,7 @@
                                     >
                                     <ng-template pTemplate="emptymessage">
                                         <tr>
-                                            <td colspan="6" style="text-align: right; padding: 1rem;">
+                                            <td colspan="6" style="text-align: center; padding: 1rem;">
                                                 <i class="pi pi-map-marker" style="font-size: 2rem; color: #888; display: block; margin-bottom: 0.5rem;"></i>
                                                 <span>{{ 'management.noTargets' | translate }}</span>
                                             </td>
@@ -199,7 +199,7 @@
                 [home]="home" />
             </div>
 
-            <div class="management__controls">
+            <div class="management__controls" *ngIf="shouldShowMapToggleButton">
                 <i (click)="showMapsToggle()" class="pi pi-window-minimize" [title]="translations.showMap | translate"></i>
             </div>
 

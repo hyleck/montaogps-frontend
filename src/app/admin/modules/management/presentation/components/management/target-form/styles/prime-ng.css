@@ -158,3 +158,15 @@
     color: var(--globalColorTextMuted);
     font-size: 14px;
 } 
+
+/* Responsive tabs - ocultar texto en pantallas pequeñas */
+@media (max-width: 700px) {
+  span.tab-text {
+    display: none !important;
+  }
+  
+  /* Ajustar espaciado del icono cuando no hay texto */
+  .tab-icon {
+    margin-right: 0 !important;
+  }
+}

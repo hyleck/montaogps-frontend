@@ -66,6 +66,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // Variables para controlar estado interno
   private pollingSubscription: Subscription | null = null;
   private readonly POLLING_INTERVAL = 10000; // 10 segundos
+  private readonly MOBILE_BREAKPOINT = 1120; // Ancho de pantalla para activar mapa automáticamente
+  private isMobileView: boolean = false; // Bandera para vista móvil
   
   // Control de procesos activos por target
   private activeTargetProcesses: Map<string, AbortController> = new Map();
@@ -115,6 +117,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
     this.loading = true;
     this.screenService.checkScreenSize();
+
+    // Verificar tamaño de pantalla inicial
+    this.checkScreenSize();
 
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
@@ -292,8 +297,44 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.loadVehicleData();
   }
 
+  // HostListener para detectar cambios de tamaño de ventana
+  @HostListener('window:resize', ['$event'])
+  onResize(event: any) {
+    this.checkScreenSize();
+  }
+
+  // Método para verificar el tamaño de pantalla y ajustar vista automáticamente
+  private checkScreenSize() {
+    const windowWidth = window.innerWidth;
+    const wasMobileView = this.isMobileView;
+    this.isMobileView = windowWidth < this.MOBILE_BREAKPOINT;
+    
+    // Si cambió a vista móvil y no estaba antes en modo mapa, activar mapa automáticamente
+    if (this.isMobileView && !wasMobileView && !this.showMaps) {
+      console.log(`📱 Pantalla menor a ${this.MOBILE_BREAKPOINT}px (${windowWidth}px), activando mapa automáticamente`);
+      this.showMaps = true;
+      this.status.setState('management_show_maps', { showMaps: this.showMaps });
+    }
+    
+    // Si cambió a vista desktop, permitir que el usuario controle manualmente
+    if (!this.isMobileView && wasMobileView) {
+      console.log(`🖥️ Pantalla mayor a ${this.MOBILE_BREAKPOINT}px (${windowWidth}px), vista desktop disponible`);
+    }
+  }
+
   // Métodos públicos
   showMapsToggle() {
+    // En vista móvil, no permitir ocultar el mapa
+    if (this.isMobileView && this.showMaps) {
+      console.log('📱 En vista móvil no se puede ocultar el mapa');
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Vista móvil',
+        detail: 'En pantallas pequeñas el mapa siempre está visible'
+      });
+      return;
+    }
+    
     this.showMaps = !this.showMaps;
     this.status.setState('management_show_maps', { showMaps: this.showMaps });
     
@@ -652,6 +693,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (!this.selectedUser) return false;
     // Verificar si el usuario tiene parent_id usando acceso con casting
     return !!(this.selectedUser as any).parent_id;
+  }
+
+  // Getter para verificar si se debe mostrar el botón de toggle del mapa
+  get shouldShowMapToggleButton(): boolean {
+    return !this.isMobileView; // Solo mostrar en vista desktop
   }
 
   searchUser() {

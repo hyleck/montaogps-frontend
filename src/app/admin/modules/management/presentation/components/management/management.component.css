@@ -789,6 +789,13 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   align-items: center;
   transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
 }
+
+/* Ocultar selector de proveedor de mapas en pantallas menores a 915px */
+@media (max-width: 914px) {
+  .map-provider-select-wrapper {
+    display: none !important;
+  }
+}
 .map-provider-select-wrapper select {
   border: 1px solid var(--globalColorCardBorderLight, #444);
   border-radius: 6px;
