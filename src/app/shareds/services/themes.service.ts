@@ -8,6 +8,7 @@ import { navbarPalette } from '../../admin/presentation/components/navbar/navbar
 import { userRolesPalette } from '../../admin/modules/settings/presentation/components/settings/user-roles-settings/user-roles.palette';
 import { dashboardPalette } from '../../admin/modules/dashboard/presentation/components/dashboard/dashboard.palette';
 import { colorsPalette } from '../../admin/modules/settings/presentation/components/settings/colors-settings/colors.palette';
+import { reportsPalette } from '../../admin/modules/reports/presentation/components/reports/reports.palette';
 import { StatusService } from './status.service';
 // import { applyThemeTransition } from '../../shareds/helpers/theme-transition.helper';
 
@@ -27,7 +28,8 @@ export class ThemesService {
       ...navbarPalette.light,
       ...userRolesPalette.light,
       ...dashboardPalette.light,
-      ...colorsPalette.light
+      ...colorsPalette.light,
+      ...reportsPalette.light
     },
     dark: {
       ...globalPalette.dark,
@@ -38,7 +40,8 @@ export class ThemesService {
       ...navbarPalette.dark,
       ...userRolesPalette.dark,
       ...dashboardPalette.dark,
-      ...colorsPalette.dark
+      ...colorsPalette.dark,
+      ...reportsPalette.dark
     }
   };
 

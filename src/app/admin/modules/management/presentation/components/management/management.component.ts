@@ -1220,18 +1220,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
           //   hasLocationChanged
           // });
           
-          // ACTUALIZAR PROPIEDADES DEL OBJETO EXISTENTE en lugar de reasignar
-          // Esto preserva la referencia del objeto y evita disparos innecesarios de ngOnChanges
-          if (!this.selectedTargetForMap.traccarInfo) {
-            this.selectedTargetForMap.traccarInfo = {};
-          }
-          
-          // Actualizar propiedades específicas preservando la estructura existente
-          Object.assign(this.selectedTargetForMap, updatedTargetDetails);
-          Object.assign(this.selectedTargetForMap.traccarInfo, updatedTargetDetails.traccarInfo);
-          this.selectedTargetForMap.traccarInfo.geolocation = updatedTargetDetails.traccarInfo?.['geolocation'] || {
-            latitude: lat,
-            longitude: lng
+          // CREAR NUEVA REFERENCIA - Angular necesita esto para detectar cambios
+          this.selectedTargetForMap = {
+            ...this.selectedTargetForMap,
+            ...updatedTargetDetails,
+            traccarInfo: {
+              ...this.selectedTargetForMap.traccarInfo,
+              ...updatedTargetDetails.traccarInfo,
+              geolocation: updatedTargetDetails.traccarInfo?.['geolocation'] || {
+                latitude: lat,
+                longitude: lng
+              }
+            }
           };
 
           // DEBUG: Verificar que el polling preserva la geolocation completa
@@ -1242,8 +1242,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           // NO reasignar this.selectedTargetForMap para preservar referencia del objeto
           
           if (hasLocationChanged) {
-            // console.log('🚀 UBICACIÓN CAMBIÓ! Activando actualización del mapa para target:', this.selectedTargetForMap._id);
-            // console.log('📍 Nueva ubicación:', { lat: lat.toFixed(6), lng: lng.toFixed(6) });
+            console.log('🚀 UBICACIÓN CAMBIÓ! Nueva referencia creada para Angular');
+            console.log('📍 Target:', this.selectedTargetForMap._id, 'coords:', lat.toFixed(6), lng.toFixed(6));
             
             // Para actualizaciones posteriores, el componente de mapas moverá el marcador suavemente
             if (this.shouldCenterMapOnUpdate) {

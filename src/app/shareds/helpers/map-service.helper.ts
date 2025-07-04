@@ -462,21 +462,40 @@ export class MarkerService {
     //   lastPosition: lastPosition ? `${lastPosition.lat.toFixed(6)}, ${lastPosition.lng.toFixed(6)}` : 'null'
     // });
     
-    // Para actualizaciones de polling frecuentes, actualizar directamente sin animación
-    // Las animaciones se cancelan constantemente por el polling cada 10 segundos
-    // console.log('📍 Actualizando marcador directamente (polling activo)');
-    await this.updateMarkerDirectly({
-      map,
-      provider,
-      marker,
-      lat,
-      lng,
-      target,
-      speedKmh: currentSpeedKmh,
-      vehicleTypeGetter,
-      targetsService,
-      onUpdate
-    });
+    // Verificar si necesitamos animación suave basada en la distancia
+    const shouldAnimate = lastPosition && MarkerService.shouldUseAnimation(lastPosition, { lat, lng });
+    
+    if (shouldAnimate && lastPosition) {
+      console.log('🎬 Iniciando animación suave del marcador');
+      await MarkerService.animateMarkerToPosition({
+        map,
+        provider,
+        marker,
+        fromLat: lastPosition.lat,
+        fromLng: lastPosition.lng,
+        toLat: lat,
+        toLng: lng,
+        target,
+        speedKmh: currentSpeedKmh,
+        vehicleTypeGetter,
+        targetsService,
+        onUpdate
+      });
+    } else {
+      // Actualización directa para movimientos pequeños o primera posición
+      await this.updateMarkerDirectly({
+        map,
+        provider,
+        marker,
+        lat,
+        lng,
+        target,
+        speedKmh: currentSpeedKmh,
+        vehicleTypeGetter,
+        targetsService,
+        onUpdate
+      });
+    }
   }
 
   private static async updateMarkerDirectly({
@@ -808,5 +827,211 @@ export class MarkerService {
       console.warn('⚠️ Error obteniendo estado de ignición:', error);
       return null;
     }
+  }
+
+  // Determinar si usar animación basado en la distancia del movimiento
+  private static shouldUseAnimation(fromPos: { lat: number; lng: number }, toPos: { lat: number; lng: number }): boolean {
+    const latDiff = Math.abs(toPos.lat - fromPos.lat);
+    const lngDiff = Math.abs(toPos.lng - fromPos.lng);
+    
+    // Calcular distancia aproximada en metros usando la fórmula de Haversine simplificada
+    const avgLat = (fromPos.lat + toPos.lat) / 2;
+    const latDistanceM = latDiff * 111000; // 1 grado lat ≈ 111km
+    const lngDistanceM = lngDiff * 111000 * Math.cos(avgLat * Math.PI / 180);
+    const totalDistanceM = Math.sqrt(latDistanceM * latDistanceM + lngDistanceM * lngDistanceM);
+    
+    // Animar si el movimiento es mayor a 10 metros pero menor a 1km
+    const MIN_ANIMATION_DISTANCE = 10; // metros
+    const MAX_ANIMATION_DISTANCE = 1000; // metros
+    
+    console.log(`📏 Distancia calculada: ${totalDistanceM.toFixed(1)}m - Animar: ${totalDistanceM >= MIN_ANIMATION_DISTANCE && totalDistanceM <= MAX_ANIMATION_DISTANCE}`);
+    
+    return totalDistanceM >= MIN_ANIMATION_DISTANCE && totalDistanceM <= MAX_ANIMATION_DISTANCE;
+  }
+
+  // Animar el marcador suavemente a través de posiciones intermedias
+  private static async animateMarkerToPosition({
+    map,
+    provider,
+    marker,
+    fromLat,
+    fromLng,
+    toLat,
+    toLng,
+    target,
+    speedKmh,
+    vehicleTypeGetter,
+    targetsService,
+    onUpdate
+  }: {
+    map: any;
+    provider: 'google' | 'mapbox';
+    marker: any;
+    fromLat: number;
+    fromLng: number;
+    toLat: number;
+    toLng: number;
+    target: any;
+    speedKmh?: number;
+    vehicleTypeGetter?: (id: string) => string;
+    targetsService?: any;
+    onUpdate: (pos: { lat: number; lng: number }, speed: number) => void;
+  }): Promise<void> {
+    const targetId = target._id || target.id;
+    
+    // Verificar que el target sigue siendo el correcto
+    if (MarkerService.currentTargetId !== targetId) {
+      console.log('🛑 Animación cancelada - target cambió');
+      return;
+    }
+
+    const steps = 12; // Número de pasos intermedios (más pasos = más suave)
+    const duration = 4000; // 4 segundos total (más lento)
+    const stepDuration = duration / steps;
+    
+    console.log(`🎬 Animando desde [${fromLat.toFixed(6)}, ${fromLng.toFixed(6)}] hasta [${toLat.toFixed(6)}, ${toLng.toFixed(6)}] en ${steps} pasos durante ${duration/1000}s`);
+
+    for (let i = 1; i <= steps; i++) {
+      // Verificar si el target cambió durante la animación
+      if (MarkerService.currentTargetId !== targetId) {
+        console.log('🛑 Animación interrumpida - target cambió durante animación');
+        return;
+      }
+
+      // Usar easing suave (ease-in-out) para hacer la animación más natural
+      const progress = i / steps;
+      const easedProgress = progress < 0.5 
+        ? 2 * progress * progress 
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const easedLat = fromLat + (toLat - fromLat) * easedProgress;
+      const easedLng = fromLng + (toLng - fromLng) * easedProgress;
+
+      console.log(`📍 Paso ${i}/${steps}: [${easedLat.toFixed(6)}, ${easedLng.toFixed(6)}] (progreso: ${(easedProgress * 100).toFixed(1)}%)`);
+
+      // Actualizar posición del marcador
+      if (provider === 'google') {
+        marker.setPosition(new google.maps.LatLng(easedLat, easedLng));
+      } else if (provider === 'mapbox') {
+        marker.setLngLat([easedLng, easedLat]);
+      }
+
+      // Actualizar callback en el último paso
+      if (i === steps) {
+        onUpdate({ lat: toLat, lng: toLng }, speedKmh || 0);
+        
+        // Actualizar popup en la posición final
+        await MarkerService.updateMarkerPopup({
+          provider,
+          marker,
+          target,
+          speedKmh: speedKmh || 0,
+          vehicleTypeGetter,
+          targetsService
+        });
+      }
+
+      // Esperar antes del siguiente paso (excepto en el último)
+      if (i < steps) {
+        await MarkerService.sleep(stepDuration);
+      }
+    }
+
+    console.log('✅ Animación completada');
+  }
+
+  // Actualizar solo el popup del marcador
+  private static async updateMarkerPopup({
+    provider,
+    marker,
+    target,
+    speedKmh,
+    vehicleTypeGetter,
+    targetsService
+  }: {
+    provider: 'google' | 'mapbox';
+    marker: any;
+    target: any;
+    speedKmh: number;
+    vehicleTypeGetter?: (id: string) => string;
+    targetsService?: any;
+  }): Promise<void> {
+    const status = target?.traccarInfo?.status || 'desconocido';
+    const ignitionStatus = MarkerService.getIgnitionStatus(target);
+
+    // Extraer fecha de última ubicación para dispositivos offline
+    let lastLocationDate: string | undefined = undefined;
+    if (status === 'offline' && target?.traccarInfo?.geolocation) {
+      const geolocation = target.traccarInfo.geolocation;
+      const timestampField = geolocation.serverTime || geolocation.fixTime || 
+                           geolocation.deviceTime || geolocation.timestamp ||
+                           geolocation.time || geolocation.lastUpdate;
+      
+      if (timestampField) {
+        try {
+          const date = new Date(timestampField);
+          if (!isNaN(date.getTime())) {
+            lastLocationDate = date.toLocaleString('es-ES', {
+              day: '2-digit', month: '2-digit', year: 'numeric',
+              hour: '2-digit', minute: '2-digit'
+            });
+          }
+        } catch (error) {
+          console.warn('Error formateando fecha:', error);
+        }
+      }
+    }
+
+    // Obtener tiempo de parada
+    let stopTime: string | undefined = undefined;
+    if (targetsService && target.api_device_id && status === 'online') {
+      try {
+        const stopTimeResponse = await targetsService.getStopTime(target.api_device_id);
+        if (!stopTimeResponse.isMoving && stopTimeResponse.text && !stopTimeResponse.error) {
+          stopTime = stopTimeResponse.text;
+        }
+      } catch (error) {
+        console.warn('Error obteniendo tiempo de parada:', error);
+      }
+    }
+
+    // Actualizar popup
+    if (provider === 'google') {
+      const infoWindow = marker.infoWindow;
+      if (infoWindow) {
+        const newHtml = PopupBuilder.buildPopupHtml({
+          title: target.name,
+          vehicleType: vehicleTypeGetter?.(target.model),
+          speedKmh,
+          status,
+          stopTime,
+          lastLocationDate,
+          width: 320,
+          ignitionStatus,
+          target
+        });
+        infoWindow.setContent(newHtml);
+      }
+    } else if (provider === 'mapbox') {
+      const popup = marker.getPopup();
+      if (popup) {
+        const newHtml = PopupBuilder.buildPopupHtml({
+          title: target.name,
+          vehicleType: vehicleTypeGetter?.(target.model),
+          speedKmh,
+          status,
+          stopTime,
+          lastLocationDate,
+          width: 280,
+          ignitionStatus,
+          target
+        });
+        popup.setHTML(newHtml);
+      }
+    }
+  }
+
+  // Función helper para esperar
+  private static sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 } 

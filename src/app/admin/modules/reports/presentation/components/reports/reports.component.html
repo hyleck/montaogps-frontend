@@ -1,7 +1,303 @@
-<div class="management__route">
-
-    <p-breadcrumb 
-    
-    [model]="items" 
-    [home]="home" />
+<!-- Breadcrumb -->
+<div class="reports__breadcrumb">
+  <p-breadcrumb [model]="items" [home]="home"></p-breadcrumb>
 </div>
+
+<!-- Container principal -->
+<div class="reports-container">
+
+  <!-- Contenido principal con layout de dos columnas -->
+  <div class="reports__content">
+    
+    <!-- SIDEBAR IZQUIERDA: Filtros -->
+    <div class="reports__filters-panel">
+      <!-- Header de filtros -->
+      <div class="filters__header">
+        <h2>
+          <i class="fas fa-filter"></i>
+          {{ 'reports.filters' | translate }}
+        </h2>
+      </div>
+
+      <!-- Contenido de filtros -->
+      <div class="filters__content">
+        
+        <!-- Tipo de reporte -->
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="fas fa-file-alt"></i>
+            {{ 'reports.report_type' | translate }}
+          </label>
+          <select
+            [(ngModel)]="reportFilter.reportType"
+            (change)="onReportTypeChange()"
+            class="native-select">
+            <option value="">{{ 'reports.select_report_type' | translate }}</option>
+            <option *ngFor="let type of reportTypes" [value]="type.value">
+              {{ type.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Fechas -->
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="fas fa-calendar-alt"></i>
+            {{ 'reports.date_range' | translate }}
+          </label>
+          
+          <!-- Botones de fecha rápida -->
+          <div class="quick-date-buttons">
+            <button 
+              *ngFor="let preset of quickDateRanges" 
+              type="button"
+              class="quick-date-btn"
+              (click)="onQuickDateSelect(preset)">
+              {{ preset.label }}
+            </button>
+          </div>
+          
+          <!-- Inputs de fecha -->
+          <div class="date-range-inputs">
+            <div class="date-input">
+              <label>{{ 'reports.from_date' | translate }}</label>
+              <input 
+                type="date"
+                [(ngModel)]="reportFilter.dateRange.start"
+                [max]="reportFilter.dateRange.end | date:'yyyy-MM-dd'"
+                class="native-input">
+            </div>
+      
+          </div>
+
+              <!-- Inputs de fecha -->
+              <div class="date-range-inputs">
+            
+                <div class="date-input">
+                  <label>{{ 'reports.to_date' | translate }}</label>
+                  <input 
+                    type="date"
+                    [(ngModel)]="reportFilter.dateRange.end"
+                    [min]="reportFilter.dateRange.start | date:'yyyy-MM-dd'"
+                    class="native-input">
+                </div>
+              </div>
+        </div>
+
+        <!-- Dispositivos -->
+        <!-- <div class="filter-group">
+          <label class="filter-label">
+            <i class="fas fa-car"></i>
+            {{ 'reports.devices' | translate }}
+            <span class="selected-count" *ngIf="reportFilter.selectedTargets.length > 0">
+              {{ reportFilter.selectedTargets.length }}
+            </span>
+          </label>
+          <select
+            multiple
+            [(ngModel)]="reportFilter.selectedTargets"
+            (change)="onTargetSelectionChange($event)"
+            class="native-multiselect"
+            [disabled]="loading">
+            <option *ngFor="let target of targets" [value]="target.id">
+              {{ target.name }} - {{ target.deviceId || 'Sin ID' }} ({{ getDeviceStatusText(target) }})
+            </option>
+          </select>
+          <div class="multiselect-help" *ngIf="loading">
+            Cargando dispositivos...
+          </div>
+        </div> -->
+
+        <!-- Filtros avanzados -->
+        <div class="filter-group">
+          <details class="native-accordion">
+            <summary>
+              <i class="fas fa-cog"></i>
+              {{ 'reports.advanced_filters' | translate }}
+            </summary>
+            
+            <div class="advanced-filter">
+              <!-- Filtros de velocidad -->
+              <div class="filter-row" *ngIf="shouldShowSpeedFilter()">
+                <div class="input-group">
+                  <label>{{ 'reports.min_speed' | translate }} (km/h)</label>
+                  <input 
+                    type="number"
+                    [(ngModel)]="reportFilter.speedFilter.min"
+                    min="0" 
+                    max="200"
+                    placeholder="0"
+                    class="native-input">
+                </div>
+                <div class="input-group">
+                  <label>{{ 'reports.max_speed' | translate }} (km/h)</label>
+                  <input 
+                    type="number"
+                    [(ngModel)]="reportFilter.speedFilter.max"
+                    min="0" 
+                    max="200"
+                    placeholder="200"
+                    class="native-input">
+                </div>
+              </div>
+
+              <!-- Filtros de distancia -->
+              <div class="filter-row" *ngIf="shouldShowDistanceFilter()">
+                <div class="input-group">
+                  <label>{{ 'reports.min_distance' | translate }} (km)</label>
+                  <input 
+                    type="number"
+                    [(ngModel)]="reportFilter.distanceFilter.min"
+                    min="0"
+                    step="0.1"
+                    placeholder="0"
+                    class="native-input">
+                </div>
+                <div class="input-group">
+                  <label>{{ 'reports.max_distance' | translate }} (km)</label>
+                  <input 
+                    type="number"
+                    [(ngModel)]="reportFilter.distanceFilter.max"
+                    min="0"
+                    step="0.1"
+                    placeholder="1000"
+                    class="native-input">
+                </div>
+              </div>
+
+              <!-- Filtros de tiempo de parada -->
+              <div class="filter-row" *ngIf="shouldShowStopTimeFilter()">
+                <div class="input-group">
+                  <label>{{ 'reports.min_stop_time' | translate }} (min)</label>
+                  <input 
+                    type="number"
+                    [(ngModel)]="reportFilter.stopTimeFilter.min"
+                    min="0"
+                    placeholder="5"
+                    class="native-input">
+                </div>
+                <div class="input-group">
+                  <label>{{ 'reports.max_stop_time' | translate }} (min)</label>
+                  <input 
+                    type="number"
+                    [(ngModel)]="reportFilter.stopTimeFilter.max"
+                    min="0"
+                    placeholder="1440"
+                    class="native-input">
+                </div>
+              </div>
+
+              <!-- Opciones adicionales -->
+              <div class="checkbox-group">
+                <div class="checkbox-item">
+                  <input 
+                    type="checkbox"
+                    [(ngModel)]="reportFilter.includeStops"
+                    id="includeStops"
+                    class="native-checkbox">
+                  <label for="includeStops">{{ 'reports.include_stops' | translate }}</label>
+                </div>
+                <div class="checkbox-item">
+                  <input 
+                    type="checkbox"
+                    [(ngModel)]="reportFilter.includeMovements"
+                    id="includeMovements"
+                    class="native-checkbox">
+                  <label for="includeMovements">{{ 'reports.include_movements' | translate }}</label>
+                </div>
+                <div class="checkbox-item">
+                  <input 
+                    type="checkbox"
+                    [(ngModel)]="reportFilter.groupByDate"
+                    id="groupByDate"
+                    class="native-checkbox">
+                  <label for="groupByDate">{{ 'reports.group_by_date' | translate }}</label>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Botón de generar reporte -->
+      <div class="generate-report-section">
+        <button 
+          type="button"
+          class="generate-report-btn"
+          [disabled]="reportFilter.selectedTargets.length === 0 || generatingReport"
+          (click)="generateReport()">
+          <i class="fas fa-play"></i>
+          {{ 'reports.generate_report' | translate }}
+        </button>
+        <div class="action-info">
+          <i class="fas fa-info-circle"></i>
+          <span *ngIf="reportFilter.selectedTargets.length === 0">
+            {{ 'reports.select_devices_info' | translate }}
+          </span>
+          <span *ngIf="reportFilter.selectedTargets.length > 0">
+            {{ 'reports.generation_info' | translate }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÁREA PRINCIPAL DERECHA: Mapa/Resultados -->
+    <div class="reports__main-area">
+      <!-- Header del área principal -->
+      <div class="main-area__header">
+        <h3 class="main-area__title">
+          <i class="fas fa-map-marked-alt"></i>
+          {{ 'reports.visualization' | translate }}
+        </h3>
+        <button 
+          *ngIf="!generatingReport && reportFilter.selectedTargets.length > 0"
+          type="button"
+          class="export-btn"
+          (click)="exportReport()">
+          <i class="fas fa-download"></i>
+          {{ 'reports.export' | translate }}
+        </button>
+      </div>
+
+      <!-- Contenido del área principal -->
+      <div class="main-area__content">
+        <!-- Preview cuando no hay reporte -->
+        <div class="reports__preview" *ngIf="!generatingReport && reportFilter.selectedTargets.length === 0">
+          <div class="preview-header">
+            <h3>
+              <i class="fas fa-chart-bar"></i>
+              {{ 'reports.preview_title' | translate }}
+            </h3>
+          </div>
+          <p style="color: #6b7280; margin: 0;">
+            {{ 'reports.preview_message' | translate }}
+          </p>
+        </div>
+
+        <!-- Animación de carga -->
+        <div class="reports__preview" *ngIf="generatingReport">
+          <div class="loading-animation">
+            <i class="fas fa-spinner"></i>
+            <p>{{ 'reports.generating' | translate }}</p>
+          </div>
+        </div>
+
+        <!-- Placeholder para el mapa/resultados -->
+        <div *ngIf="!generatingReport && reportFilter.selectedTargets.length > 0" style="height: 100%; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6b7280;">
+          <div style="text-align: center;">
+            <i class="fas fa-map" style="font-size: 3rem; margin-bottom: 16px; color: #3b82f6;"></i>
+            <p style="margin: 0; font-size: 1.125rem; font-weight: 500;">
+              {{ 'reports.map_placeholder' | translate }}
+            </p>
+            <p style="margin: 8px 0 0 0; font-size: 0.875rem;">
+              {{ 'reports.map_description' | translate }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Messages -->
+<p-toast position="top-right" [life]="5000"></p-toast>

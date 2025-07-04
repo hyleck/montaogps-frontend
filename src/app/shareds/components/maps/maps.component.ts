@@ -122,14 +122,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     const prev = change.previousValue;
     const curr = change.currentValue;
 
-      // console.log('🔄 Target change detected:', {   
-      //   prevId: prev?._id, 
-      //   currId: curr?._id, 
-      //   hasMarkers: this.currentMarkers.length > 0,
-      //   isFirstTime: this.isFirstTimeSelection,
-      //   isProcessing: this.isProcessingTargetChange,
-      //   reason: !curr ? 'target_cleared' : (!prev ? 'initial_selection' : (prev._id !== curr._id ? 'different_target' : 'same_target_update'))
-      // });
+      console.log('🗺️ MAPA - Angular detectó cambio!', {   
+        prevId: prev?._id, 
+        currId: curr?._id, 
+        reason: !curr ? 'target_cleared' : (!prev ? 'initial_selection' : (prev._id !== curr._id ? 'different_target' : 'same_target_update')),
+        prevCoords: prev?.traccarInfo?.geolocation ? `${prev.traccarInfo.geolocation.latitude?.toFixed(6)},${prev.traccarInfo.geolocation.longitude?.toFixed(6)}` : 'N/A',
+        currCoords: curr?.traccarInfo?.geolocation ? `${curr.traccarInfo.geolocation.latitude?.toFixed(6)},${curr.traccarInfo.geolocation.longitude?.toFixed(6)}` : 'N/A'
+      });
 
     // PREVENIR DOBLE PROCESAMIENTO
     if (this.isProcessingTargetChange) {
@@ -141,8 +140,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     // SIEMPRE solo actualizar posición (sin importar isFirstTimeSelection)
     const isSameTarget = prev && curr && prev._id === curr._id;
     if (isSameTarget && this.currentMarkers.length > 0) {
-      // console.log('⚠️ Mismo target con marcadores existentes - SOLO actualizar posición');
-      // console.log('📍 currentMarkers.length:', this.currentMarkers.length, 'isFirstTime:', this.isFirstTimeSelection);
+      console.log('🗺️ MAPA - Actualizando posición del marcador existente');
       await this.updateMarkerPosition();
       return;
     }
@@ -324,8 +322,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       return;
     } 
 
-    // console.log(`🔄 Updating marker position for target ${this.selectedTarget._id}`);
-    // console.log('📊 Marcadores actuales:', this.currentMarkers.length);
+    console.log(`🔄 MAPA - Updating marker position for target ${this.selectedTarget._id}`);
+    console.log('📊 MAPA - Coordenadas:', `${this.selectedTarget.traccarInfo.geolocation.latitude?.toFixed(6)},${this.selectedTarget.traccarInfo.geolocation.longitude?.toFixed(6)}`);
 
     await MarkerService.updatePosition({
       map: this.map,

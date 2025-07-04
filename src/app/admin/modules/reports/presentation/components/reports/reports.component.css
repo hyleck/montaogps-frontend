@@ -1,0 +1,397 @@
+/* ==================== LAYOUT SIMPLE ==================== */
+.reports-container {
+  padding: 16px;
+  background: var(--reportsBackground);
+  font-family: system-ui, sans-serif;
+}
+
+.reports__breadcrumb {
+  margin-bottom: 16px;
+}
+
+/* ==================== LAYOUT DOS COLUMNAS ==================== */
+.reports__content {
+  display: flex;
+  gap: 16px;
+}
+
+/* ==================== FILTROS (IZQUIERDA) ==================== */
+.reports__filters-panel {
+  width: 300px;
+  flex-shrink: 0;
+  background: var(--reportsFiltersPanelBackground);
+  border-radius: 8px;
+  box-shadow: var(--reportsCardShadow);
+  overflow: hidden;
+}
+
+.filters__header {
+  padding: 16px;
+  border-bottom: 1px solid var(--reportsFiltersPanelBorder);
+  background: var(--reportsFiltersPanelHeaderBackground);
+  color: var(--reportsTextWhite);
+}
+
+.filters__header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filters__content {
+  padding: 16px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.filter-group {
+  margin-bottom: 20px;
+}
+
+.filter-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: var(--reportsFilterLabelText);
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.selected-count {
+  background: var(--reportsSelectedCountBackground);
+  color: var(--reportsSelectedCountText);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Elementos nativos */
+.native-select, .native-multiselect, .native-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--reportsInputBorder);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: var(--reportsInputBackground);
+  color: var(--reportsInputText);
+}
+
+.native-select:focus, .native-multiselect:focus, .native-input:focus {
+  outline: none;
+  border-color: var(--reportsInputBorderFocus);
+  box-shadow: var(--reportsInputShadow);
+}
+
+.native-select:disabled, .native-multiselect:disabled, .native-input:disabled {
+  background: var(--reportsInputDisabled);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.native-multiselect {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.multiselect-help {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--reportsHelpText);
+  font-style: italic;
+}
+
+/* Botones de fecha rápida */
+.quick-date-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.quick-date-btn {
+  padding: 4px 8px;
+  border: 1px solid var(--reportsQuickDateButtonBorder);
+  border-radius: 4px;
+  background: var(--reportsQuickDateButton);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--reportsQuickDateButtonText);
+}
+
+.quick-date-btn:hover {
+  background: var(--reportsQuickDateButtonHover);
+  border-color: var(--reportsQuickDateButtonBorderHover);
+}
+
+.quick-date-btn:active {
+  background: var(--reportsQuickDateButtonHover);
+  opacity: 0.9;
+}
+
+/* Inputs de fecha */
+.date-range-inputs {
+  display: flex;
+  gap: 8px;
+}
+
+.date-input {
+  flex: 1;
+}
+
+.date-input label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+  color: var(--reportsHelpText);
+}
+
+/* Accordion nativo */
+.native-accordion {
+  border: 1px solid var(--reportsAccordionBorder);
+  border-radius: 6px;
+  background: var(--reportsAccordionBackground);
+}
+
+.native-accordion summary {
+  padding: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--reportsTextPrimary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.native-accordion summary:hover {
+  background: var(--reportsAccordionHeaderBackground);
+}
+
+.native-accordion[open] summary {
+  border-bottom: 1px solid var(--reportsAccordionHeaderBorder);
+  background: var(--reportsAccordionHeaderBackground);
+}
+
+.advanced-filter {
+  padding: 12px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.input-group {
+  flex: 1;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+  color: var(--reportsHelpText);
+}
+
+/* Checkboxes */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.native-checkbox {
+  width: auto;
+  margin: 0;
+  accent-color: var(--reportsCheckboxAccent);
+}
+
+.checkbox-item label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--reportsTextPrimary);
+  cursor: pointer;
+}
+
+
+
+/* Botón de generar reporte */
+.generate-report-section {
+  padding: 16px;
+  border-top: 1px solid var(--reportsFiltersPanelBorder);
+  background: var(--reportsMainAreaHeaderBackground);
+}
+
+.generate-report-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--reportsButtonPrimary);
+  color: var(--reportsTextWhite);
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: var(--reportsButtonShadow);
+}
+
+.generate-report-btn:hover:not(:disabled) {
+  background: var(--reportsButtonPrimaryHover);
+  transform: translateY(-1px);
+}
+
+.generate-report-btn:disabled {
+  background: var(--reportsButtonPrimaryDisabled);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.action-info {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--reportsHelpText);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Área principal */
+.reports__main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--reportsMainAreaBackground);
+  border-radius: 8px;
+  box-shadow: var(--reportsCardShadow);
+  overflow: hidden;
+}
+
+.main-area__header {
+  padding: 16px;
+  border-bottom: 1px solid var(--reportsMainAreaBorder);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--reportsMainAreaHeaderBackground);
+}
+
+.main-area__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--reportsTextPrimary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-btn {
+  padding: 8px 16px;
+  background: var(--reportsButtonSecondary);
+  border: 1px solid var(--reportsButtonSecondaryBorder);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--reportsButtonSecondaryText);
+  box-shadow: var(--reportsButtonShadow);
+}
+
+.export-btn:hover {
+  background: var(--reportsButtonSecondaryHover);
+  border-color: var(--reportsInputBorderFocus);
+}
+
+.main-area__content {
+  flex: 1;
+  padding: 16px;
+}
+
+.reports__preview {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--reportsTextSecondary);
+  background: var(--reportsPreviewBackground);
+  border-radius: 8px;
+  padding: 32px;
+}
+
+.preview-header h3 {
+  margin: 0 0 16px 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--reportsTextPrimary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.loading-animation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-animation i {
+  font-size: 2rem;
+  color: var(--reportsLoadingColor);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loading-animation p {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: var(--reportsTextPrimary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .reports__content {
+    flex-direction: column;
+  }
+  
+  .reports__filters-panel {
+    width: 100%;
+  }
+  
+  .date-range-inputs {
+    flex-direction: column;
+  }
+  
+  .filter-row {
+    flex-direction: column;
+  }
+}
