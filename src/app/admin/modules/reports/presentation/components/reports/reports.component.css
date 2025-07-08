@@ -19,17 +19,18 @@
 .reports__filters-panel {
   width: 300px;
   flex-shrink: 0;
-  background: var(--reportsFiltersPanelBackground);
+  background: var(--reportsCardBackground);
   border-radius: 8px;
-  box-shadow: var(--reportsCardShadow);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--reportsCardBorder);
   overflow: hidden;
 }
 
 .filters__header {
   padding: 16px;
-  border-bottom: 1px solid var(--reportsFiltersPanelBorder);
-  background: var(--reportsFiltersPanelHeaderBackground);
-  color: var(--reportsTextWhite);
+  border-bottom: 1px solid var(--reportsCardBorder);
+  background: var(--reportsButtonPrimary);
+  color: var(--reportsButtonText);
 }
 
 .filters__header h2 {
@@ -45,6 +46,7 @@
   padding: 16px;
   max-height: calc(100vh - 200px);
   overflow-y: auto;
+  background: var(--reportsFormBackground);
 }
 
 .filter-group {
@@ -55,7 +57,7 @@
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
-  color: var(--reportsFilterLabelText);
+  color: var(--reportsText);
   font-size: 0.875rem;
   display: flex;
   align-items: center;
@@ -63,8 +65,8 @@
 }
 
 .selected-count {
-  background: var(--reportsSelectedCountBackground);
-  color: var(--reportsSelectedCountText);
+  background: var(--reportsButtonPrimary);
+  color: var(--reportsButtonText);
   padding: 2px 8px;
   border-radius: 10px;
   font-size: 0.75rem;
@@ -75,22 +77,22 @@
 .native-select, .native-multiselect, .native-input {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid var(--reportsInputBorder);
+  border: 1px solid var(--reportsFormInputBorder);
   border-radius: 6px;
   font-size: 0.875rem;
   transition: border-color 0.2s, box-shadow 0.2s;
-  background: var(--reportsInputBackground);
-  color: var(--reportsInputText);
+  background: var(--reportsFormInput);
+  color: var(--reportsFormInputText);
 }
 
 .native-select:focus, .native-multiselect:focus, .native-input:focus {
   outline: none;
-  border-color: var(--reportsInputBorderFocus);
-  box-shadow: var(--reportsInputShadow);
+  border-color: var(--reportsButtonPrimary);
+  box-shadow: 0 0 0 3px rgba(189, 53, 53, 0.1);
 }
 
 .native-select:disabled, .native-multiselect:disabled, .native-input:disabled {
-  background: var(--reportsInputDisabled);
+  background: var(--reportsFormBackground);
   cursor: not-allowed;
   opacity: 0.7;
 }
@@ -103,7 +105,7 @@
 .multiselect-help {
   margin-top: 4px;
   font-size: 0.75rem;
-  color: var(--reportsHelpText);
+  color: var(--reportsSubtitle);
   font-style: italic;
 }
 
@@ -117,22 +119,22 @@
 
 .quick-date-btn {
   padding: 4px 8px;
-  border: 1px solid var(--reportsQuickDateButtonBorder);
+  border: 1px solid var(--reportsCardBorder);
   border-radius: 4px;
-  background: var(--reportsQuickDateButton);
+  background: var(--reportsFormInput);
   font-size: 0.75rem;
   cursor: pointer;
   transition: all 0.2s;
-  color: var(--reportsQuickDateButtonText);
+  color: var(--reportsFormInputText);
 }
 
 .quick-date-btn:hover {
-  background: var(--reportsQuickDateButtonHover);
-  border-color: var(--reportsQuickDateButtonBorderHover);
+  background: var(--reportsFormBackground);
+  border-color: var(--reportsCardBorderHover);
 }
 
 .quick-date-btn:active {
-  background: var(--reportsQuickDateButtonHover);
+  background: var(--reportsFormBackground);
   opacity: 0.9;
 }
 
@@ -150,21 +152,21 @@
   display: block;
   margin-bottom: 4px;
   font-size: 0.75rem;
-  color: var(--reportsHelpText);
+  color: var(--reportsSubtitle);
 }
 
 /* Accordion nativo */
 .native-accordion {
-  border: 1px solid var(--reportsAccordionBorder);
+  border: 1px solid var(--reportsCardBorder);
   border-radius: 6px;
-  background: var(--reportsAccordionBackground);
+  background: var(--reportsCardBackground);
 }
 
 .native-accordion summary {
   padding: 12px;
   cursor: pointer;
   font-weight: 500;
-  color: var(--reportsTextPrimary);
+  color: var(--reportsText);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -172,16 +174,17 @@
 }
 
 .native-accordion summary:hover {
-  background: var(--reportsAccordionHeaderBackground);
+  background: var(--reportsTableHeader);
 }
 
 .native-accordion[open] summary {
-  border-bottom: 1px solid var(--reportsAccordionHeaderBorder);
-  background: var(--reportsAccordionHeaderBackground);
+  border-bottom: 1px solid var(--reportsCardBorder);
+  background: var(--reportsTableHeader);
 }
 
 .advanced-filter {
   padding: 12px;
+  background: var(--reportsFormBackground);
 }
 
 .filter-row {
@@ -198,7 +201,7 @@
   display: block;
   margin-bottom: 4px;
   font-size: 0.75rem;
-  color: var(--reportsHelpText);
+  color: var(--reportsSubtitle);
 }
 
 /* Checkboxes */
@@ -217,30 +220,28 @@
 .native-checkbox {
   width: auto;
   margin: 0;
-  accent-color: var(--reportsCheckboxAccent);
+  accent-color: var(--reportsButtonPrimary);
 }
 
 .checkbox-item label {
   margin: 0;
   font-size: 0.875rem;
-  color: var(--reportsTextPrimary);
+  color: var(--reportsText);
   cursor: pointer;
 }
-
-
 
 /* Botón de generar reporte */
 .generate-report-section {
   padding: 16px;
-  border-top: 1px solid var(--reportsFiltersPanelBorder);
-  background: var(--reportsMainAreaHeaderBackground);
+  border-top: 1px solid var(--reportsCardBorder);
+  background: var(--reportsTableHeader);
 }
 
 .generate-report-btn {
   width: 100%;
   padding: 12px;
   background: var(--reportsButtonPrimary);
-  color: var(--reportsTextWhite);
+  color: var(--reportsButtonText);
   border: none;
   border-radius: 6px;
   font-size: 0.875rem;
@@ -251,7 +252,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: var(--reportsButtonShadow);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .generate-report-btn:hover:not(:disabled) {
@@ -260,7 +261,7 @@
 }
 
 .generate-report-btn:disabled {
-  background: var(--reportsButtonPrimaryDisabled);
+  background: var(--reportsSubtitle);
   cursor: not-allowed;
   transform: none;
 }
@@ -268,7 +269,7 @@
 .action-info {
   margin-top: 8px;
   font-size: 0.75rem;
-  color: var(--reportsHelpText);
+  color: var(--reportsSubtitle);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -279,26 +280,27 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--reportsMainAreaBackground);
+  background: var(--reportsCardBackground);
   border-radius: 8px;
-  box-shadow: var(--reportsCardShadow);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--reportsCardBorder);
   overflow: hidden;
 }
 
 .main-area__header {
   padding: 16px;
-  border-bottom: 1px solid var(--reportsMainAreaBorder);
+  border-bottom: 1px solid var(--reportsCardBorder);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--reportsMainAreaHeaderBackground);
+  background: var(--reportsTableHeader);
 }
 
 .main-area__title {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--reportsTextPrimary);
+  color: var(--reportsTitle);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -306,8 +308,8 @@
 
 .export-btn {
   padding: 8px 16px;
-  background: var(--reportsButtonSecondary);
-  border: 1px solid var(--reportsButtonSecondaryBorder);
+  background: var(--reportsFormInput);
+  border: 1px solid var(--reportsCardBorder);
   border-radius: 4px;
   font-size: 0.875rem;
   cursor: pointer;
@@ -315,18 +317,19 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--reportsButtonSecondaryText);
-  box-shadow: var(--reportsButtonShadow);
+  color: var(--reportsText);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .export-btn:hover {
-  background: var(--reportsButtonSecondaryHover);
-  border-color: var(--reportsInputBorderFocus);
+  background: var(--reportsFormBackground);
+  border-color: var(--reportsCardBorderHover);
 }
 
 .main-area__content {
   flex: 1;
   padding: 16px;
+  background: var(--reportsFormBackground);
 }
 
 .reports__preview {
@@ -336,8 +339,8 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: var(--reportsTextSecondary);
-  background: var(--reportsPreviewBackground);
+  color: var(--reportsSubtitle);
+  background: var(--reportsBackground);
   border-radius: 8px;
   padding: 32px;
 }
@@ -346,7 +349,7 @@
   margin: 0 0 16px 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: var(--reportsTextPrimary);
+  color: var(--reportsTitle);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -361,7 +364,7 @@
 
 .loading-animation i {
   font-size: 2rem;
-  color: var(--reportsLoadingColor);
+  color: var(--reportsButtonPrimary);
   animation: spin 1s linear infinite;
 }
 
@@ -374,7 +377,7 @@
   margin: 0;
   font-size: 1.125rem;
   font-weight: 500;
-  color: var(--reportsTextPrimary);
+  color: var(--reportsText);
 }
 
 /* Responsive */

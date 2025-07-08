@@ -109,11 +109,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.providerType = type as 'google' | 'mapbox';
       this.providerTheme = theme as 'light' | 'dark';
       this.mapsKey = this.providerType; // Inicializar con el proveedor
+      console.log('🗺️ Proveedor de mapa cargado desde estado:', savedProvider);
     } else {
       this.selectedMap = `mapbox-${defaultTheme}`;
       this.providerType = 'mapbox';
       this.providerTheme = defaultTheme;
       this.mapsKey = this.providerType; // Inicializar con el proveedor
+      console.log('🗺️ Usando proveedor de mapa por defecto:', this.selectedMap);
     }
     this.loading = true;
     this.screenService.checkScreenSize();
@@ -276,7 +278,23 @@ export class ManagementComponent implements OnInit, OnDestroy {
         }
       }
       if (newStatus.theme) {
-        this.currentTheme = newStatus.theme as string;
+        const newTheme = newStatus.theme as string;
+        this.currentTheme = newTheme;
+        
+        // Sincronizar automáticamente el tema del mapa con el tema global
+        const newThemeForMap = newTheme === 'dark' ? 'dark' : 'light';
+        if (this.providerTheme !== newThemeForMap) {
+          const newMapProvider = `${this.providerType}-${newThemeForMap}`;
+          console.log('🎨 Sincronizando tema del mapa con tema global:', newMapProvider);
+          this.selectedMap = newMapProvider;
+          this.providerTheme = newThemeForMap;
+          
+          // Guardar la nueva selección
+          this.status.setState('map_provider', newMapProvider);
+          
+          // No necesitamos recrear el componente porque el proveedor no cambió, solo el tema
+          console.log('🎨 Tema del mapa actualizado automáticamente');
+        }
       }
     });
 
@@ -882,6 +900,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   setMapProvider(value: string) {
     const previousProvider = this.providerType;
+    
+    // Guardar la selección en el estado inmediatamente
+    this.status.setState('map_provider', value);
+    console.log('💾 Proveedor de mapa guardado en estado:', value);
     
     // Obtener el target actual de la URL para reseleccionarlo después
     const currentTargetInUrl = this.route.snapshot.queryParams['target'];

@@ -6,6 +6,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { ReportsRoutingModule } from './reports-routing.module';
 import { ReportsComponent } from './components/reports/reports.component';
 import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
+import { MapsModule } from '../../../../shareds/components/maps/maps.module';
 
 @NgModule({
   declarations: [
@@ -16,7 +17,8 @@ import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.mod
     FormsModule,
     TranslateModule,
     ReportsRoutingModule,
-    PrimengModule
+    PrimengModule,
+    MapsModule
   ]
 })
 export class ReportsModule { }

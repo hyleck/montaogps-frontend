@@ -119,12 +119,18 @@
       "generating": "Generating report...",
       "map_placeholder": "Results Map",
       "map_description": "Generated report results will be displayed here",
+      "report_placeholder": "Report Results",
+      "report_description": "Generated report results will be displayed here",
+      "route_history_title": "Route History",
+      "positions_found": "positions found",
+      "loading_history": "Loading history...",
       "report_types": {
         "movements": "Movements Report",
         "stops": "Stops Report",
         "speed": "Speed Report",
         "fuel": "Fuel Report",
         "activity": "Activity Report",
+        "route_history": "Route History",
         "detailed": "Detailed Report"
       },
       "date_presets": {

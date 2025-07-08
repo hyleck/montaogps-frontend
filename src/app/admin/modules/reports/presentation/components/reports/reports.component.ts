@@ -4,6 +4,7 @@ import { TargetsService } from '@core/services/targets.service';
 import { TranslateService } from '@ngx-translate/core';
 import { AuthService } from '@core/services/auth.service';
 import { ThemesService } from '@shared/services/themes.service';
+import { RouteHistoryResponse, RouteHistoryPosition } from '@core/interfaces';
 
 export interface ReportFilter {
   reportType: string;
@@ -46,6 +47,10 @@ export class ReportsComponent implements OnInit {
     loading: boolean = false;
     generatingReport: boolean = false;
     
+    // Datos del historial de rutas
+    routeHistory: RouteHistoryResponse | null = null;
+    loadingRouteHistory: boolean = false;
+    
     // Filtros del reporte
     reportFilter: ReportFilter = {
       reportType: 'movements',
@@ -79,6 +84,7 @@ export class ReportsComponent implements OnInit {
       { label: 'Reporte de Velocidad', value: 'speed', icon: 'pi pi-clock' },
       { label: 'Reporte de Combustible', value: 'fuel', icon: 'pi pi-dollar' },
       { label: 'Reporte de Actividad', value: 'activity', icon: 'pi pi-chart-line' },
+      { label: 'Historial de Recorrido', value: 'route_history', icon: 'pi pi-map-marker' },
       { label: 'Reporte Detallado', value: 'detailed', icon: 'pi pi-list' }
     ];
 
@@ -157,7 +163,6 @@ export class ReportsComponent implements OnInit {
         const currentUser = this.authService.getCurrentUser();
         if (currentUser) {
           this.targets = await this.targetsService.getTargetsByUserId(currentUser.id);
-          console.log('Targets cargados para reportes:', this.targets.length);
         }
       } catch (error) {
         console.error('Error cargando targets:', error);
@@ -192,7 +197,6 @@ export class ReportsComponent implements OnInit {
           this.reportFilter.speedFilter = { min: 0, max: null };
           break;
       }
-      console.log('Tipo de reporte cambiado:', this.reportFilter.reportType);
     }
 
     validateFilters(): boolean {
@@ -215,8 +219,8 @@ export class ReportsComponent implements OnInit {
         return false;
       }
 
-      // Validar que se haya seleccionado al menos un target
-      if (this.reportFilter.selectedTargets.length === 0) {
+      // Validar que se haya seleccionado al menos un target (excepto para route_history)
+      if (this.reportFilter.reportType !== 'route_history' && this.reportFilter.selectedTargets.length === 0) {
         this.messageService.add({
           severity: 'warn',
           summary: 'Sin dispositivos',
@@ -238,8 +242,13 @@ export class ReportsComponent implements OnInit {
       try {
         console.log('Generando reporte con filtros:', this.reportFilter);
         
-        // Aquí implementarías la llamada al servicio de reportes
-        await this.simulateReportGeneration();
+        if (this.reportFilter.reportType === 'route_history') {
+          // Para historial de recorrido, cargar datos de ruta
+          await this.loadRouteHistory();
+        } else {
+          // Para otros tipos de reporte, simular generación
+          await this.simulateReportGeneration();
+        }
         
         this.messageService.add({
           severity: 'success',
@@ -262,6 +271,57 @@ export class ReportsComponent implements OnInit {
     private async simulateReportGeneration(): Promise<void> {
       // Simular tiempo de generación
       return new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    private async loadRouteHistory(): Promise<void> {
+      if (this.reportFilter.selectedTargets.length === 0 && this.targets.length === 0) {
+        throw new Error('No hay dispositivos disponibles para el historial');
+      }
+
+      this.loadingRouteHistory = true;
+      
+      try {
+        // Usar el primer target seleccionado o el primer target disponible
+        const selectedTargetId = this.reportFilter.selectedTargets.length > 0 
+          ? this.reportFilter.selectedTargets[0] 
+          : this.targets[0]._id;
+          
+        const selectedTarget = this.targets.find(t => t._id === selectedTargetId);
+        
+        // Usar api_device_id que es el ID en Traccar
+        const traccarDeviceId = selectedTarget?.api_device_id || selectedTarget?.deviceId;
+        
+        if (!traccarDeviceId) {
+          throw new Error('El dispositivo seleccionado no tiene un ID de Traccar válido');
+        }
+
+        // Convertir fechas a formato ISO string
+        const fromDate = this.reportFilter.dateRange.start?.toISOString();
+        const toDate = this.reportFilter.dateRange.end?.toISOString();
+
+        console.log('Cargando historial de rutas para dispositivo Traccar:', traccarDeviceId, {
+          fromDate,
+          toDate,
+          targetName: selectedTarget?.name
+        });
+        
+        this.routeHistory = await this.targetsService.getRouteHistory(
+          traccarDeviceId.toString(), 
+          fromDate, 
+          toDate
+        );
+        
+        console.log('Historial de rutas cargado:', {
+          totalPositions: this.routeHistory.totalPositions,
+          positionsCount: this.routeHistory.positions.length
+        });
+        
+      } catch (error) {
+        console.error('Error cargando historial de rutas:', error);
+        throw error;
+      } finally {
+        this.loadingRouteHistory = false;
+      }
     }
 
     getReportTypeName(): string {
@@ -343,7 +403,39 @@ export class ReportsComponent implements OnInit {
   }
 
   shouldShowStopTimeFilter(): boolean {
-    return ['stops', 'detailed'].includes(this.reportFilter.reportType);
+    return this.reportFilter.reportType === 'stops' || this.reportFilter.reportType === 'detailed';
+  }
+
+  shouldShowMap(): boolean {
+    return this.reportFilter.reportType === 'route_history';
+  }
+
+  getSelectedTargetForMap(): any {
+    if (this.reportFilter.selectedTargets.length === 0) {
+      return null;
+    }
+    
+    // Buscar el primer target seleccionado
+    const selectedTargetId = this.reportFilter.selectedTargets[0];
+    const target = this.targets.find(target => target._id === selectedTargetId);
+    
+    // Si hay historial de rutas cargado, agregar las posiciones al target
+    if (this.routeHistory && this.routeHistory.positions.length > 0 && target) {
+      return {
+        ...target,
+        routeHistory: this.routeHistory
+      };
+    }
+    
+    return target || null;
+  }
+
+  getRouteHistoryPositions(): RouteHistoryPosition[] {
+    return this.routeHistory?.positions || [];
+  }
+
+  hasRouteHistoryData(): boolean {
+    return !!(this.routeHistory && this.routeHistory.positions.length > 0);
   }
 
   // Método para exportar reporte (placeholder)

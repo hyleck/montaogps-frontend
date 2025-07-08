@@ -173,4 +173,27 @@ export interface TargetDevice {
   };
   // Campos adicionales que pueden existir
   [key: string]: any;
+}
+
+// Interfaces para el historial de rutas
+export interface RouteHistoryPosition {
+  id: number;
+  deviceId: number;
+  serverTime: string;
+  deviceTime: string;
+  fixTime: string;
+  latitude: number;
+  longitude: number;
+  altitude: number;
+  speed: number;
+  course: number;
+  address: string;
+  accuracy: number;
+  valid: boolean;
+  attributes: Record<string, any>;
+}
+
+export interface RouteHistoryResponse {
+  positions: RouteHistoryPosition[];
+  totalPositions: number;
 } 

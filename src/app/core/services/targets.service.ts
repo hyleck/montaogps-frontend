@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { lastValueFrom, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { CreateTargetDto, Target, UpdateTargetDto, StopTimeResponse } from '../interfaces';
+import { CreateTargetDto, Target, UpdateTargetDto, StopTimeResponse, RouteHistoryResponse } from '../interfaces';
 
 @Injectable({
   providedIn: 'root'
@@ -67,6 +67,25 @@ export class TargetsService {
   async getStopTime(deviceId: string): Promise<StopTimeResponse> {
     const url = `${environment.apiUrl}/reports/device/${deviceId}/stop-time`;
     const observable = this.http.get<StopTimeResponse>(url);
+    return await lastValueFrom(observable);
+  }
+
+  async getRouteHistory(deviceId: string, fromDate?: string, toDate?: string): Promise<RouteHistoryResponse> {
+    let url = `${environment.apiUrl}/reports/device/${deviceId}/route-history`;
+    
+    const params = new URLSearchParams();
+    if (fromDate) {
+      params.append('fromDate', fromDate);
+    }
+    if (toDate) {
+      params.append('toDate', toDate);
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`;
+    }
+    
+    const observable = this.http.get<RouteHistoryResponse>(url);
     return await lastValueFrom(observable);
   }
 } 

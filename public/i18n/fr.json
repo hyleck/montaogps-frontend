@@ -121,12 +121,18 @@
       "generating": "Génération du rapport...",
       "map_placeholder": "Carte des Résultats",
       "map_description": "Les résultats du rapport généré seront affichés ici",
+      "report_placeholder": "Résultats du Rapport",
+      "report_description": "Les résultats du rapport généré seront affichés ici",
+      "route_history_title": "Historique des Itinéraires",
+      "positions_found": "positions trouvées",
+      "loading_history": "Chargement de l'historique...",
       "report_types": {
         "movements": "Rapport de Mouvements",
         "stops": "Rapport d'Arrêts",
         "speed": "Rapport de Vitesse",
         "fuel": "Rapport de Carburant",
         "activity": "Rapport d'Activité",
+        "route_history": "Historique des Itinéraires",
         "detailed": "Rapport Détaillé"
       },
       "date_presets": {

@@ -1,7 +1,7 @@
 <!-- Breadcrumb -->
-<div class="reports__breadcrumb">
+<!-- <div class="reports__breadcrumb">
   <p-breadcrumb [model]="items" [home]="home"></p-breadcrumb>
-</div>
+</div> -->
 
 <!-- Container principal -->
 <div class="reports-container">
@@ -85,7 +85,7 @@
         </div>
 
         <!-- Dispositivos -->
-        <!-- <div class="filter-group">
+        <div class="filter-group">
           <label class="filter-label">
             <i class="fas fa-car"></i>
             {{ 'reports.devices' | translate }}
@@ -99,14 +99,14 @@
             (change)="onTargetSelectionChange($event)"
             class="native-multiselect"
             [disabled]="loading">
-            <option *ngFor="let target of targets" [value]="target.id">
+            <option *ngFor="let target of targets" [value]="target._id">
               {{ target.name }} - {{ target.deviceId || 'Sin ID' }} ({{ getDeviceStatusText(target) }})
             </option>
           </select>
           <div class="multiselect-help" *ngIf="loading">
             Cargando dispositivos...
           </div>
-        </div> -->
+        </div>
 
         <!-- Filtros avanzados -->
         <div class="filter-group">
@@ -224,17 +224,17 @@
         <button 
           type="button"
           class="generate-report-btn"
-          [disabled]="reportFilter.selectedTargets.length === 0 || generatingReport"
+          [disabled]="(reportFilter.reportType !== 'route_history' && reportFilter.selectedTargets.length === 0) || generatingReport"
           (click)="generateReport()">
           <i class="fas fa-play"></i>
           {{ 'reports.generate_report' | translate }}
         </button>
         <div class="action-info">
           <i class="fas fa-info-circle"></i>
-          <span *ngIf="reportFilter.selectedTargets.length === 0">
+          <span *ngIf="reportFilter.reportType !== 'route_history' && reportFilter.selectedTargets.length === 0">
             {{ 'reports.select_devices_info' | translate }}
           </span>
-          <span *ngIf="reportFilter.selectedTargets.length > 0">
+          <span *ngIf="reportFilter.reportType === 'route_history' || reportFilter.selectedTargets.length > 0">
             {{ 'reports.generation_info' | translate }}
           </span>
         </div>
@@ -250,7 +250,7 @@
           {{ 'reports.visualization' | translate }}
         </h3>
         <button 
-          *ngIf="!generatingReport && reportFilter.selectedTargets.length > 0"
+          *ngIf="!generatingReport && (reportFilter.reportType === 'route_history' || reportFilter.selectedTargets.length > 0)"
           type="button"
           class="export-btn"
           (click)="exportReport()">
@@ -262,7 +262,7 @@
       <!-- Contenido del área principal -->
       <div class="main-area__content">
         <!-- Preview cuando no hay reporte -->
-        <div class="reports__preview" *ngIf="!generatingReport && reportFilter.selectedTargets.length === 0">
+        <div class="reports__preview" *ngIf="!generatingReport && !shouldShowMap()">
           <div class="preview-header">
             <h3>
               <i class="fas fa-chart-bar"></i>
@@ -282,17 +282,31 @@
           </div>
         </div>
 
-        <!-- Placeholder para el mapa/resultados -->
-        <div *ngIf="!generatingReport && reportFilter.selectedTargets.length > 0" style="height: 100%; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6b7280;">
-          <div style="text-align: center;">
-            <i class="fas fa-map" style="font-size: 3rem; margin-bottom: 16px; color: #3b82f6;"></i>
-            <p style="margin: 0; font-size: 1.125rem; font-weight: 500;">
-              {{ 'reports.map_placeholder' | translate }}
-            </p>
-            <p style="margin: 8px 0 0 0; font-size: 0.875rem;">
-              {{ 'reports.map_description' | translate }}
-            </p>
+        <!-- Mapa para historial de recorrido -->
+        <div *ngIf="!generatingReport && shouldShowMap()" 
+             style="height: 100%; border-radius: 8px; overflow: hidden; position: relative;">
+          
+          <!-- Información del historial de rutas -->
+          <div *ngIf="hasRouteHistoryData()" 
+               style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 6px; font-size: 12px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="font-weight: 600; color: #374151;">📍 {{ 'reports.route_history_title' | translate }}</div>
+            <div style="color: #6b7280; margin-top: 2px;">
+              {{ routeHistory?.totalPositions || 0 }} {{ 'reports.positions_found' | translate }}
+            </div>
           </div>
+
+          <!-- Estado de carga del historial -->
+          <div *ngIf="loadingRouteHistory" 
+               style="position: absolute; top: 10px; left: 10px; background: rgba(59, 130, 246, 0.9); color: white; padding: 8px 12px; border-radius: 6px; font-size: 12px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <i class="fas fa-spinner fa-spin" style="margin-right: 6px;"></i>
+            {{ 'reports.loading_history' | translate }}
+          </div>
+
+          <app-maps 
+            [provider]="'mapbox'"
+            [theme]="'light'"
+            [selectedTarget]="getSelectedTargetForMap()">
+          </app-maps>
         </div>
       </div>
     </div>
