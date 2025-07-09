@@ -564,24 +564,7 @@ transform: scale(0.8); /* escalar */
 width: 100%;
 }
 
-.no-users-message {
-  color: var(--managementColorTextUser, #888);
-  opacity: 0.5; /* Cambiado de 0.4 para que la animación controle la opacidad */
-  display: flex;
-  flex-direction: column;
-  animation: fadeIn 0.8s ease-in-out;
-  animation-delay: 0.5s;
-  animation-fill-mode: both;
-}
-
-@keyframes fadeIn {
-  0% {
-      opacity: 0;
-  }
-  100% {
-      opacity: 0.5
-  }
-}
+/* Estilos para .no-users-message eliminados - ahora usa .no-targets-message */
 
 /* Estilos para móvil */
 @media screen and (max-width: 768px) {
@@ -984,6 +967,136 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     background: none;
     border: none;
 }
+
+/* ===================================
+   ESTILOS PARA MENSAJE "NO HAY DISPOSITIVOS/USUARIOS" - DISEÑO SUTIL
+   =================================== */
+
+.no-targets-message {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 40px 10px;
+  padding-top: 10px;
+  min-height: 250px;
+  width: 100%;
+  opacity: 0.6; /* Reducir opacidad general */
+}
+
+.no-targets-content {
+  text-align: left;
+  max-width: 400px;
+  width: 100%;
+  background: var(--managementColorBackgroundUser);
+  border-radius: 8px; /* Bordes menos pronunciados */
+  padding: 24px 20px; /* Padding reducido */
+  border: 1px solid transparent; /* Borde casi invisible */
+  box-shadow: none; /* Sin sombra para que pase desapercibido */
+  opacity: 0.7; /* Contenido más opaco */
+}
+
+.no-targets-icon {
+  margin-bottom: 12px; /* Menos espacio */
+}
+
+.no-targets-icon i {
+  font-size: 1.2rem; /* Icono más pequeño */
+  color: var(--managementColorTextUser);
+  display: block;
+  opacity: 0.4; /* Icono muy opaco */
+}
+
+.no-targets-content h3 {
+  font-size: 1rem; /* Título más pequeño */
+  font-weight: 400; /* Menos peso */
+  color: var(--managementColorTextUser);
+  margin: 0 0 6px 0;
+  line-height: 1.3;
+  opacity: 0.6; /* Título opaco */
+}
+
+.no-targets-content p {
+  font-size: 0.8rem; /* Texto más pequeño */
+  color: var(--managementColorTextUser);
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+  opacity: 0.5; /* Texto muy opaco */
+}
+
+.no-targets-content .button {
+  background: var(--managementColorTextUser);
+  color: var(--managementColorBackgroundUser);
+  border: none;
+  padding: 6px 12px; /* Botón más pequeño */
+  border-radius: 6px;
+  font-size: 0.75rem; /* Texto del botón más pequeño */
+  font-weight: 400; /* Menos peso */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  opacity: 0.6; /* Botón opaco */
+}
+
+.no-targets-content .button:hover {
+  opacity: 0.8; /* Ligero aumento en hover */
+  transform: none; /* Sin transformación */
+}
+
+.no-targets-content .button i {
+  font-size: 0.8rem; /* Icono del botón más pequeño */
+}
+
+/* Animación de entrada más sutil */
+.fade-in-message {
+  animation: fadeInSubtle 0.6s ease-out forwards;
+}
+
+@keyframes fadeInSubtle {
+  from {
+    opacity: 0;
+    transform: translateY(10px); /* Movimiento más sutil */
+  }
+  to {
+    opacity: 0.6; /* Opacidad final reducida */
+    transform: translateY(0);
+  }
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+  .no-targets-message {
+    padding: 24px 12px; /* Padding reducido */
+    min-height: 150px; /* Altura menor */
+    opacity: 0.7; /* Ligeramente más visible en móviles */
+  }
+  
+  .no-targets-content {
+    padding: 20px 16px;
+    max-width: 100%;
+  }
+  
+  .no-targets-icon i {
+    font-size: 1rem; /* Icono aún más pequeño en móvil */
+  }
+  
+  .no-targets-content h3 {
+    font-size: 0.9rem;
+  }
+  
+  .no-targets-content p {
+    font-size: 0.75rem;
+  }
+  
+  .no-targets-content .button {
+    padding: 5px 10px;
+    font-size: 0.7rem;
+  }
+}
+
+/* Tema oscuro - Ya manejado por las variables CSS de management */
 
 
 

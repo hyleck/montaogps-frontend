@@ -38,13 +38,13 @@ export class TargetsService {
   }
 
   async searchTargets(query: string, parentId?: string): Promise<Target[]> {
-    let url = `${this.apiUrl}?search=${query}`;
+    let params: any = { q: query };
     
     if (parentId) {
-      url += `&parent=${parentId}`;
+      params.parent = parentId;
     }
     
-    const observable = this.http.get<Target[]>(url);
+    const observable = this.http.get<Target[]>(`${this.apiUrl}/search`, { params });
     return await lastValueFrom(observable);
   }
 

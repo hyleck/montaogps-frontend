@@ -23,6 +23,9 @@ export class ManagementService {
   ) {}
 
   setOp(op: string, userId?: string) {
+    const previousOp = this.op;
+    const previousUserId = this.currentUserId;
+    
     this.op = op;
     
     if (userId) {
@@ -34,18 +37,45 @@ export class ManagementService {
       }
     }
     
-    const searchTerms: { [key: string]: string | undefined } = {
-      u: this.searchUsersTerm,
-      t: this.searchTargetsTerm
-    };
-    const searchParam = searchTerms[op];
+    // Solo navegar si cambió el usuario o es la primera vez que se establece la operación
+    const userChanged = previousUserId !== this.currentUserId;
+    const isFirstTime = !previousOp;
+    
+    if (userChanged || isFirstTime) {
+      console.log('🔄 Navegando: usuario cambió o primera carga');
+      
+      const searchTerms: { [key: string]: string | undefined } = {
+        u: this.searchUsersTerm,
+        t: this.searchTargetsTerm
+      };
+      const searchParam = searchTerms[op];
 
-    this.router.navigate(
-      ['admin/management', op, this.currentUserId],
-      { queryParams: { search: searchParam } }
-    ).then(() => {
-      this.setURLStatus();
-    });
+      this.router.navigate(
+        ['admin/management', op, this.currentUserId],
+        { queryParams: { search: searchParam } }
+      ).then(() => {
+        this.setURLStatus();
+      });
+    } else {
+      console.log('✅ Solo cambio de operación - actualizando URL sin recargar');
+      
+      // Solo actualizar la URL sin navegar completamente
+      const searchTerms: { [key: string]: string | undefined } = {
+        u: this.searchUsersTerm,
+        t: this.searchTargetsTerm
+      };
+      const searchParam = searchTerms[op];
+      
+      this.router.navigate(
+        ['admin/management', op, this.currentUserId],
+        { 
+          queryParams: { search: searchParam },
+          replaceUrl: true  // Reemplazar la URL actual sin agregar al historial
+        }
+      ).then(() => {
+        this.setURLStatus();
+      });
+    }
   }
 
   setURLStatus() {
@@ -72,6 +102,8 @@ export class ManagementService {
   }
 
   verifyURLStatus(params: any) {
+    const previousUserId = this.currentUserId;
+    
     this.op = params['op'];
     this.currentUserId = params['user'];
     const managementState: any = this.status.getState('management');
@@ -90,8 +122,12 @@ export class ManagementService {
       this.goDefaultRoute();
     }
 
-    if (this.currentUserId) {
+    // Solo cargar datos del usuario si cambió o no estaba cargado
+    if (this.currentUserId && (previousUserId !== this.currentUserId || !this.selectedUser)) {
+      console.log('🔄 Cargando datos del usuario desde verifyURLStatus - usuario cambió o no estaba cargado');
       this.loadUserData(this.currentUserId);
+    } else if (this.currentUserId) {
+      console.log('✅ Usuario ya cargado en verifyURLStatus - no recargando datos');
     }
 
     this.setURLStatus();

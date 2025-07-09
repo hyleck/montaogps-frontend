@@ -1,12 +1,13 @@
 // Angular imports
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Router, ActivatedRoute } from '@angular/router';
+import { Subscription, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
 // Third-party imports
 import { MenuItem, ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
-import { interval, Subscription } from 'rxjs';
-import { switchMap, filter } from 'rxjs/operators';
 
 // Application imports
 import { User, BasicUser, ExtendedUser, convertToExtendedUser } from '@core/interfaces';
@@ -14,33 +15,58 @@ import { Target } from '@core/interfaces/target.interface';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
 import { TargetsService } from '@core/services/targets.service';
-import { ThemesService } from '@shared/services/themes.service';
 import { StatusService } from '@shared/services/status.service';
 import { ManagementService } from '@management/presentation/services/management.service';
 import { ScreenService } from '@management/presentation/services/screen.service';
-import { VehicleBrandsService } from '@core/services/vehicle-brands.service';
-import { MarkerService } from '@shared/helpers/map-service.helper';
+
+// Servicios especializados
+import { MapProviderService } from '@management/presentation/services/map-provider.service';
+import { BreadcrumbService } from '@management/presentation/services/breadcrumb.service';
+import { VehicleDataService } from '@management/presentation/services/vehicle-data.service';
+import { ManagementUIService } from '@management/presentation/services/management-ui.service';
 
 @Component({
     selector: 'app-management',
     templateUrl: './management.component.html',
     styleUrls: ['./management.component.css'],
-    standalone: false
+    standalone: false,
+    animations: [
+        trigger('fadeInOut', [
+            transition(':enter', [
+                style({ opacity: 0, transform: 'translateY(-20px)' }),
+                animate('400ms ease-in-out', style({ opacity: 1, transform: 'translateY(0)' }))
+            ])
+        ])
+    ]
 })
 export class ManagementComponent implements OnInit, OnDestroy {
-  // Propiedades públicas
-  userFormDisplay: boolean = false;
-  targetFormDisplay: boolean = false;
-  loading: boolean = true;
-  items: MenuItem[] | undefined;
-  home: MenuItem | undefined;
-  currentTheme: string | undefined;
-  searchUsersTerm: string = '';
-  searchTargetsTerm: string = '';
-  showMaps: boolean = false;
+
+  // ====================================
+  // PROPIEDADES PÚBLICAS - DATOS
+  // ====================================
   selectedUser: User | undefined;
   users: User[] = [];
   userToEdit: ExtendedUser | null = null;
+  targets: Target[] = [];
+  targetsList: any[] = [];
+  targetsSelected: any[] = [];
+  targetToEdit: any | null = null;
+  selectedTargetForMap: any | null = null;
+  selectedTargetStopTime: string | undefined = undefined;
+  
+  // Estado específico de carga de targets
+  private loadingTargets: boolean = false;
+  private targetsLoadCompletedFlag: boolean = false;
+  
+  // ====================================
+  // PROPIEDADES PÚBLICAS - BÚSQUEDA
+  // ====================================
+  searchUsersTerm: string = '';
+  searchTargetsTerm: string = '';
+  
+  // ====================================
+  // PROPIEDADES PÚBLICAS - TRADUCCIONES
+  // ====================================
   translations = {
     users: 'management.users',
     targets: 'management.targets',
@@ -51,35 +77,47 @@ export class ManagementComponent implements OnInit, OnDestroy {
     showMap: 'management.showMap',
     back: 'management.back'
   };
-  targetsList: any[] = [];
-  targetsSelected: any[] = [];
-  selectedMap: string = 'mapbox-light';
-  providerType: 'google' | 'mapbox' = 'mapbox';
-  providerTheme: 'light' | 'dark' = 'light';
-  mapsKey: string | null = 'mapbox'; // Key que cambia solo cuando cambia el proveedor
-  targets: Target[] = [];
-  targetToEdit: any | null = null;
-  selectedTargetForMap: any | null = null;
-  shouldCenterMapOnUpdate: boolean = true; // Controla si el mapa debe centrarse en actualizaciones
-  selectedTargetStopTime: string | undefined = undefined; // Tiempo de parada del target seleccionado
-  
-  // Variables para controlar estado interno
-  private pollingSubscription: Subscription | null = null;
-  private readonly POLLING_INTERVAL = 10000; // 10 segundos
-  private readonly MOBILE_BREAKPOINT = 1120; // Ancho de pantalla para activar mapa automáticamente
-  private isMobileView: boolean = false; // Bandera para vista móvil
-  
-  // Control de procesos activos por target
-  private activeTargetProcesses: Map<string, AbortController> = new Map();
-  private currentTargetId: string | null = null;
-  private isProcessingTargetFromUrl: boolean = false; // Bandera para evitar doble procesamiento
 
+  // ====================================
+  // PROPIEDADES PÚBLICAS - DELEGADAS A SERVICIOS
+  // ====================================
   
-  // Cache para tipos de vehículos, marcas y modelos
-  private vehicleTypes: any[] = [];
-  private vehicleBrands: any[] = [];
-  private vehicleModels: any[] = [];
+  // UI State (delegado a ManagementUIService)
+  get loading(): boolean { return this.uiService.isLoading(); }
+  get loadingTargetsState(): boolean { return this.loadingTargets; }
+  get targetsLoadCompleted(): boolean { return this.targetsLoadCompletedFlag; }
+  get userFormDisplay(): boolean { return this.uiService.isUserFormVisible(); }
+  get targetFormDisplay(): boolean { return this.uiService.isTargetFormVisible(); }
+  get showMaps(): boolean { return this.uiService.areMapsVisible(); }
+  get isUserSearchActive(): boolean { return this.isSearchingUsers; }
+  get isTargetSearchActive(): boolean { return this.isSearchingTargets; }
 
+  // Map Provider (delegado a MapProviderService)
+  get selectedMap(): string { return this.mapProviderService.selectedMap; }
+  get providerType(): 'google' | 'mapbox' { return this.mapProviderService.providerType; }
+  get providerTheme(): 'light' | 'dark' { return this.mapProviderService.providerTheme; }
+  get mapsKey(): string | null { return this.mapProviderService.mapsKey; }
+
+  // Breadcrumb (delegado a BreadcrumbService)
+  get items(): MenuItem[] { return this.breadcrumbService.getItems(); }
+  get home(): MenuItem { return this.breadcrumbService.getHome(); }
+
+  // ====================================
+  // PROPIEDADES PRIVADAS - SUSCRIPCIONES
+  // ====================================
+  private subscriptions: Subscription[] = [];
+  
+  // ====================================
+  // PROPIEDADES PRIVADAS - BÚSQUEDA
+  // ====================================
+  private searchUsersSubject = new Subject<string>();
+  private isSearchingUsers = false;
+  private searchTargetsSubject = new Subject<string>();
+  private isSearchingTargets = false;
+
+  // ====================================
+  // CONSTRUCTOR
+  // ====================================
   constructor(
     public router: Router,
     public route: ActivatedRoute,
@@ -92,984 +130,243 @@ export class ManagementComponent implements OnInit, OnDestroy {
     public managementService: ManagementService,
     private screenService: ScreenService,
     private targetsService: TargetsService,
-    private vehicleBrandsService: VehicleBrandsService
+    // Servicios especializados
+    private mapProviderService: MapProviderService,
+    private breadcrumbService: BreadcrumbService,
+    private vehicleDataService: VehicleDataService,
+    private uiService: ManagementUIService
   ) {}
 
-  // Lifecycle hooks
+  // ====================================
+  // LIFECYCLE HOOKS
+  // ====================================
+  
   ngOnInit(): void {
-    const savedProvider = this.status.getState('map_provider');
-    let defaultTheme: 'light' | 'dark' = 'light';
-    const globalTheme = this.status.getState('theme');
-    if (globalTheme === 'dark') {
-      defaultTheme = 'dark';  
-    }
-    if (typeof savedProvider === 'string') {
-      this.selectedMap = savedProvider;
-      const [type, theme] = savedProvider.split('-');
-      this.providerType = type as 'google' | 'mapbox';
-      this.providerTheme = theme as 'light' | 'dark';
-      this.mapsKey = this.providerType; // Inicializar con el proveedor
-      console.log('🗺️ Proveedor de mapa cargado desde estado:', savedProvider);
-    } else {
-      this.selectedMap = `mapbox-${defaultTheme}`;
-      this.providerType = 'mapbox';
-      this.providerTheme = defaultTheme;
-      this.mapsKey = this.providerType; // Inicializar con el proveedor
-      console.log('🗺️ Usando proveedor de mapa por defecto:', this.selectedMap);
-    }
-    this.loading = true;
-    this.screenService.checkScreenSize();
-
-    // Verificar tamaño de pantalla inicial
-    this.checkScreenSize();
-
-    const currentUser = this.authService.getCurrentUser();
-    if (!currentUser) {
-      this.router.navigate(['auth/login']); 
-      return;
-    }
-
-    this.route.params.subscribe(params => {
-      if (params['user']) {
-        this.managementService.loadUserData(params['user'])
-          .then(user => {
-            this.selectedUser = user;
-            
-            // Llamar al nuevo método getUserPath e imprimir la respuesta
-            this.userService.getUserPath(user._id).subscribe({
-              next: (pathData) => {
-                this.updateBreadcrumbFromPath(pathData);
-              },
-              error: (error) => {
-                console.error('Error al obtener ruta del usuario:', error);
-                // En caso de error, mostrar solo el usuario actual
-                this.updateBreadcrumbFromPath([]);
-              }
-            });
-            
-            this.userService.getAll(user._id).subscribe({
-              next: (users) => {
-                this.users = users;
-                this.loading = false;
-              },
-              error: (error) => {
-                console.error('Error al cargar usuarios:', error);
-              }
-            });
-            
-            // Cargar objetivos del usuario
-            this.loadTargetsForUser(user._id);
-          })
-          .catch(() => {
-            this.loading = false;
-          });
-      } else {
-        const managementState: any = this.status.getState('management');
-        const storedUserId = managementState && managementState.url_route ? managementState.url_route[2] : null;
-        
-        if (storedUserId) {
-          this.managementService.loadUserData(storedUserId)
-            .then(user => {
-              this.selectedUser = user;
-              
-              // Llamar al nuevo método getUserPath e imprimir la respuesta
-              this.userService.getUserPath(user._id).subscribe({
-                next: (pathData) => {
-                  this.updateBreadcrumbFromPath(pathData);
-                },
-                error: (error) => {
-                  console.error('Error al obtener ruta del usuario:', error);
-                  console.error('Detalles completos del error:', {
-                    status: error.status,
-                    statusText: error.statusText,
-                    message: error.message,
-                    error: error.error,
-                    url: error.url
-                  });
-                  
-                  // Si hay error de parsing, intentar ver la respuesta raw
-                  if (error.error && typeof error.error === 'string') {
-                    console.error('Respuesta raw del servidor:', error.error);
-                  }
-                  
-                  // En caso de error, mostrar solo el usuario actual
-                  this.updateBreadcrumbFromPath([]);
-                }
-              });
-              
-              this.userService.getAll(user._id).subscribe({
-                next: (users) => {
-                  this.users = users;
-                },
-                error: (error) => {
-                  console.error('Error al cargar usuarios:', error);
-                }
-              });
-              
-              // Cargar objetivos del usuario
-              this.loadTargetsForUser(user._id);
-              
-              this.loading = false;
-            })
-            .catch(() => {
-              this.loading = false;
-            });
-        } else {
-          this.managementService.loadUserData(currentUser.id)
-            .then(user => {
-              this.selectedUser = user;
-              
-              // Llamar al nuevo método getUserPath e imprimir la respuesta
-              this.userService.getUserPath(currentUser.id).subscribe({
-                next: (pathData) => {
-                  this.updateBreadcrumbFromPath(pathData);
-                },
-                error: (error) => {
-                  console.error('Error al obtener ruta del usuario:', error);
-                  console.error('Detalles completos del error:', {
-                    status: error.status,
-                    statusText: error.statusText,
-                    message: error.message,
-                    error: error.error,
-                    url: error.url
-                  });
-                  
-                  // Si hay error de parsing, intentar ver la respuesta raw
-                  if (error.error && typeof error.error === 'string') {
-                    console.error('Respuesta raw del servidor:', error.error);
-                  }
-                  
-                  // En caso de error, mostrar solo el usuario actual
-                  this.updateBreadcrumbFromPath([]);
-                }
-              });
-              
-              this.userService.getAll(currentUser.id).subscribe({
-                next: (users) => {
-                  this.users = users;
-                },
-                error: (error) => {
-                  console.error('Error al cargar todos los usuarios:', error);
-                }
-              });
-              
-              // Cargar objetivos del usuario actual
-              this.loadTargetsForUser(currentUser.id);
-              
-              this.loading = false;
-            })
-            .catch(() => {
-              this.loading = false;
-            });
-        }
-      }
-      
-      this.managementService.verifyURLStatus(params);
-    });
-
-    this.status.statusChanges$.subscribe((newStatus) => {
-      if (newStatus.management_show_maps) {
-        const newShowMaps = newStatus.management_show_maps.showMaps as boolean;
-        this.showMaps = newShowMaps;
-        
-        // Solo limpiar selectedTargetForMap si se está cerrando el mapa desde el subscription
-        if (!this.showMaps && this.selectedTargetForMap) {
-          this.selectedTargetForMap = null;
-        }
-      }
-      if (newStatus.theme) {
-        const newTheme = newStatus.theme as string;
-        this.currentTheme = newTheme;
-        
-        // Sincronizar automáticamente el tema del mapa con el tema global
-        const newThemeForMap = newTheme === 'dark' ? 'dark' : 'light';
-        if (this.providerTheme !== newThemeForMap) {
-          const newMapProvider = `${this.providerType}-${newThemeForMap}`;
-          console.log('🎨 Sincronizando tema del mapa con tema global:', newMapProvider);
-          this.selectedMap = newMapProvider;
-          this.providerTheme = newThemeForMap;
-          
-          // Guardar la nueva selección
-          this.status.setState('map_provider', newMapProvider);
-          
-          // No necesitamos recrear el componente porque el proveedor no cambió, solo el tema
-          console.log('🎨 Tema del mapa actualizado automáticamente');
-        }
-      }
-    });
-
-    this.route.queryParams.subscribe(queryParams => {
-      if (this.managementService.getOp() === 'u') {
-        this.searchUsersTerm = queryParams['search'];
-      } else if (this.managementService.getOp() === 't') {
-        this.searchTargetsTerm = queryParams['search'];
-      }
-    });
-
-    this.home = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
-    
-    // Inicializar polling para actualización automática de targets
-    this.startTargetsPolling();
-    
-    // Cargar datos de vehículos (tipos, marcas, modelos)
-    this.loadVehicleData();
+    this.setupInitialState();
+    this.setupSubscriptions();
+    this.setupRouting();
+    this.loadInitialData();
   }
 
-  // HostListener para detectar cambios de tamaño de ventana
+  ngOnDestroy(): void {
+    this.cleanupSubscriptions();
+    
+    // Limpiar subjects
+    this.searchUsersSubject.complete();
+    this.searchTargetsSubject.complete();
+  }
+
+  // ====================================
+  // EVENT HANDLERS
+  // ====================================
+  
   @HostListener('window:resize', ['$event'])
   onResize(event: any) {
-    this.checkScreenSize();
+    this.uiService.updateScreenSize();
   }
 
-  // Método para verificar el tamaño de pantalla y ajustar vista automáticamente
-  private checkScreenSize() {
-    const windowWidth = window.innerWidth;
-    const wasMobileView = this.isMobileView;
-    this.isMobileView = windowWidth < this.MOBILE_BREAKPOINT;
-    
-    // Si cambió a vista móvil y no estaba antes en modo mapa, activar mapa automáticamente
-    if (this.isMobileView && !wasMobileView && !this.showMaps) {
-      console.log(`📱 Pantalla menor a ${this.MOBILE_BREAKPOINT}px (${windowWidth}px), activando mapa automáticamente`);
-      this.showMaps = true;
-      this.status.setState('management_show_maps', { showMaps: this.showMaps });
-    }
-    
-    // Si cambió a vista desktop, permitir que el usuario controle manualmente
-    if (!this.isMobileView && wasMobileView) {
-      console.log(`🖥️ Pantalla mayor a ${this.MOBILE_BREAKPOINT}px (${windowWidth}px), vista desktop disponible`);
-    }
-  }
-
-  // Métodos públicos
-  showMapsToggle() {
-    // En vista móvil, no permitir ocultar el mapa
-    if (this.isMobileView && this.showMaps) {
-      console.log('📱 En vista móvil no se puede ocultar el mapa');
-      this.messageService.add({
-        severity: 'info',
-        summary: 'Vista móvil',
-        detail: 'En pantallas pequeñas el mapa siempre está visible'
-      });
-      return;
-    }
-    
-    this.showMaps = !this.showMaps;
-    this.status.setState('management_show_maps', { showMaps: this.showMaps });
-    
-    // Si se está cerrando el mapa, limpiar el query parameter y target seleccionado
-    if (!this.showMaps) {
-      // console.log('🗑️ Cerrando mapa, limpiando target seleccionado');
-      this.clearSelectedTarget();
-    }
-  }
-
-  private clearSelectedTarget(): void {
-    // console.log('🧹 LIMPIANDO COMPLETAMENTE target seleccionado para mapa');
-    
-    // CANCELAR TODOS LOS PROCESOS DEL TARGET ACTUAL
-    if (this.currentTargetId) {
-      // console.log('🛑 Cancelando COMPLETAMENTE procesos para target:', this.currentTargetId);
-      this.cancelAllTargetProcesses(this.currentTargetId);
-    }
-    
-    // LIMPIAR COMPLETAMENTE EL ESTADO
-    // console.log('🧹 Limpiando estado del target anterior');
-    this.selectedTargetForMap = null;
-    this.selectedTargetStopTime = undefined; // Limpiar tiempo de parada
-    this.shouldCenterMapOnUpdate = true; // Resetear para la próxima selección
-    this.currentTargetId = null; // Limpiar ID del target actual
-    this.isProcessingTargetFromUrl = false; // Limpiar bandera de procesamiento
-    
-    // LIMPIAR URL
-    this.clearTargetFromUrl();
-    
-    // console.log('✅ Target anterior COMPLETAMENTE limpiado');
-  }
-
-  // Método para cancelar todos los procesos de un target específico
-  private cancelAllTargetProcesses(targetId: string): void {
-    // console.log('🛑 Cancelando TODOS los procesos para target:', targetId);
-    
-    // Cancelar procesos HTTP específicos del target
-    const abortController = this.activeTargetProcesses.get(targetId);
-    if (abortController) {
-      // console.log('🛑 Cancelando solicitudes HTTP para target:', targetId);
-      abortController.abort();
-      this.activeTargetProcesses.delete(targetId);
-    }
-    
-    // Cancelar procesos del MarkerService
-    // console.log('🛑 Cancelando procesos del MarkerService para target:', targetId);
-    try {
-      MarkerService.cancelTargetProcesses(targetId);
-    } catch (error) {
-        console.warn('Error cancelando procesos del MarkerService:', error);
-    }
-  }
-
-  // Nuevo método para mostrar target específico en el mapa
-  showTargetOnMap(target: any) {
-    // console.log('🎯 showTargetOnMap called for target:', target._id);
-    // console.log('🔍 DEBUG: Target completo desde lista:', target);
-    // console.log('🔍 DEBUG: Target.traccarInfo:', target.traccarInfo);
-    // console.log('🔍 DEBUG: Target.api_device_id:', target.api_device_id);
-    // console.log('🔍 DEBUG: Target status:', target?.traccarInfo?.status);
-    
-    // Verificar si es el mismo target que ya está seleccionado
-    if (this.currentTargetId === target._id) {
-      // console.log('⚠️ El mismo target ya está seleccionado, no hacer nada:', target._id);
-      return;
-    }
-    
-    // CANCELACIÓN COMPLETA DEL TARGET ANTERIOR
-    if (this.currentTargetId && this.currentTargetId !== target._id) {
-      // console.log('🛑 CANCELANDO COMPLETAMENTE target anterior:', this.currentTargetId);
-      this.cancelAllTargetProcesses(this.currentTargetId);
-      
-      // Limpiar estado del target anterior
-      this.selectedTargetForMap = null;
-      this.selectedTargetStopTime = undefined;
-    }
-    
-    // SELECCIÓN DEL NUEVO TARGET
-    // console.log('🆕 Seleccionando nuevo target:', target._id);
-    this.currentTargetId = target._id;
-    
-    // Crear AbortController para el nuevo target
-    const abortController = new AbortController();
-    this.activeTargetProcesses.set(target._id, abortController);
-    
-    // Proceder con la selección del nuevo target
-    this.selectNewTargetForMap(target, abortController);
-  }
-
-  private async selectNewTargetForMap(target: any, abortController?: AbortController) {
-    // console.log('🆕 Seleccionando nuevo target para mapa:', target._id);
-    
-    // Verificar múltiples posibles estructuras de geolocalización
-    let lat = null;
-    let lng = null;
-    
-         // Opción 1: traccarInfo.geolocation (nombres en inglés)
-     if (target.traccarInfo?.geolocation?.latitude && target.traccarInfo?.geolocation?.longitude) {
-       lat = parseFloat(target.traccarInfo.geolocation.latitude);
-       lng = parseFloat(target.traccarInfo.geolocation.longitude);
-     }
-    // Opción 2: traccarInfo directamente
-    else if (target.traccarInfo?.latitude && target.traccarInfo?.longitude) {
-      lat = parseFloat(target.traccarInfo.latitude);
-      lng = parseFloat(target.traccarInfo.longitude);
-    }
-         // Opción 3: originalTarget.traccarInfo.geolocation (nombres en inglés)
-     else if (target.originalTarget?.traccarInfo?.geolocation?.latitude && target.originalTarget?.traccarInfo?.geolocation?.longitude) {
-       lat = parseFloat(target.originalTarget.traccarInfo.geolocation.latitude);
-       lng = parseFloat(target.originalTarget.traccarInfo.geolocation.longitude);
-     }
-    // Opción 4: originalTarget.traccarInfo directamente
-    else if (target.originalTarget?.traccarInfo?.latitude && target.originalTarget?.traccarInfo?.longitude) {
-      lat = parseFloat(target.originalTarget.traccarInfo.latitude);
-      lng = parseFloat(target.originalTarget.traccarInfo.longitude);
-    }
-    // Opción 5: traccarInfo con lat/lon
-    else if (target.traccarInfo?.lat && target.traccarInfo?.lon) {
-      lat = parseFloat(target.traccarInfo.lat);
-      lng = parseFloat(target.traccarInfo.lon);
-    }
-    
-    // Validar que las coordenadas sean números válidos
-    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
-      // console.log('❌ Coordenadas inválidas para target:', target._id);
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Sin ubicación',
-        detail: 'Este dispositivo no tiene información de ubicación disponible'
-      });
-      return;
-    }
-
-             // Crear objeto target con la estructura esperada por el mapa
-    
-    // Priorizar la geolocation completa cuando esté disponible
-    let geolocationToUse;
-    if (target.traccarInfo?.geolocation) {
-      geolocationToUse = target.traccarInfo.geolocation;
-    } else if (target.originalTarget?.traccarInfo?.geolocation) {
-      geolocationToUse = target.originalTarget.traccarInfo.geolocation;
-    } else {
-      geolocationToUse = {
-        latitude: lat,
-        longitude: lng
-      };
-    }
-    
-    const targetForMap = {
-      ...target,
-      traccarInfo: {
-        ...target.traccarInfo,
-        geolocation: geolocationToUse
-      }
-    };
-
-    // console.log('✅ Target preparado para mapa:', targetForMap._id, 'con coordenadas:', lat, lng);
-    
-    // DEBUG DETALLADO PARA RASTREAR PROBLEMA DE CENTRADO
-    // console.log('🔍 DEBUG MANAGEMENT: Target preparado con coordenadas exactas:', {
-    //   targetId: targetForMap._id,
-    //   lat: lat.toFixed(6),
-    //   lng: lng.toFixed(6),
-    //   geolocationCompleta: targetForMap.traccarInfo?.geolocation,
-    //   coordenadasOriginales: { lat, lng }
-    // });
-
-    // Almacenar el target seleccionado
-    this.selectedTargetForMap = targetForMap;
-    
-    // Reactivar el centrado automático para la nueva selección
-    this.shouldCenterMapOnUpdate = true;
-    
-    // Activar la vista del mapa INMEDIATAMENTE
-    // Solo cambiar el estado si no está ya activo
-    if (!this.showMaps) {
-      // console.log('🔍 DEBUG: Activando vista de mapa inmediatamente (sin esperar tiempo de parada)');
-      this.showMaps = true;
-      this.status.setState('management_show_maps', { showMaps: true });
-    }
-    
-    // CONSULTAR TIEMPO DE PARADA EN SEGUNDO PLANO (sin bloquear)
-    // console.log('🔍 DEBUG: Iniciando consulta de tiempo de parada en segundo plano, selectedTargetStopTime:', this.selectedTargetStopTime);
-    this.consultarTiempoDeParadaEnSegundoPlano(targetForMap, abortController);
-    // Si el mapa ya está visible, NO recrearlo, solo actualizar el target
-    
-    // Actualizar URL con el query parameter del target seleccionado
-    this.updateUrlWithTargetId(target._id);
-  }
-
-  // Método para consultar tiempo de parada en segundo plano (sin bloquear)
-  private async consultarTiempoDeParadaEnSegundoPlano(target: any, abortController?: AbortController): Promise<void> {
-    try {
-      // console.log('🔍 DEBUG: consultarTiempoDeParadaEnSegundoPlano iniciado para target:', target._id);
-      const stopTime = await this.consultarTiempoDeParada(target, abortController);
-      // console.log('🔍 DEBUG: Resultado de consulta en segundo plano:', stopTime);
-      
-      // Actualizar selectedTargetStopTime con el resultado
-      this.selectedTargetStopTime = stopTime;
-      // console.log('🔍 DEBUG: selectedTargetStopTime actualizado a:', this.selectedTargetStopTime);
-    } catch (error) {
-      console.warn('Error en consulta de tiempo de parada en segundo plano:', error);
-      this.selectedTargetStopTime = undefined;
-    }
-  }
-
-  // Método para consultar tiempo de parada inmediatamente
-  private async consultarTiempoDeParada(target: any, abortController?: AbortController): Promise<string | undefined> {
-    // console.log('🔍 DEBUG: consultarTiempoDeParada iniciado para target:', target._id);
-    
-    // VERIFICAR SI EL PROCESO HA SIDO CANCELADO
-    if (abortController?.signal.aborted) {
-      // console.log('🛑 consultarTiempoDeParada: Proceso cancelado antes de iniciar para target:', target._id);
-      return undefined;
-    }
-    
-    // Determinar qué deviceId usar: api_device_id o traccarInfo.id como fallback
-    const deviceId = target.api_device_id || target.traccarInfo?.id?.toString();
-    
-    if (!deviceId) {  
-      // console.log('⚠️ Target sin api_device_id ni traccarInfo.id, no se puede consultar tiempo de parada:', target._id);
-      // console.log('🔍 DEBUG: target data:', {
-      //   _id: target._id,
-      //   api_device_id: target.api_device_id,
-      //   traccar_device_id: target.traccar_device_id,
-      //   device_id: target.device_id,
-      //   traccarInfoId: target.traccarInfo?.id
-      // });
-      return undefined;
-    }
-    
-    // console.log('🔍 DEBUG: Usando deviceId para consulta:', deviceId, '(fuente:', target.api_device_id ? 'api_device_id' : 'traccarInfo.id', ')');
-
-    const status = target?.traccarInfo?.status || 'offline';
-    // console.log('🔍 DEBUG: status del target:', status);
-    
-    if (status !== 'online') {
-      // console.log('⚠️ Target offline, no se consulta tiempo de parada:', target._id);
-      return undefined;
-    }
-
-    try {
-      // console.log('🔄 Consultando tiempo de parada inmediatamente para device:', deviceId);
-      const stopTimeResponse = await this.targetsService.getStopTime(deviceId);
-      // console.log('📊 Respuesta tiempo de parada inmediata COMPLETA:', stopTimeResponse);
-      
-      // VERIFICAR NUEVAMENTE SI EL PROCESO HA SIDO CANCELADO DESPUÉS DE LA CONSULTA
-      if (abortController?.signal.aborted) {
-        // console.log('🛑 consultarTiempoDeParada: Proceso cancelado después de consulta HTTP para target:', target._id);
-        return undefined;
-      }
-      
-      if (!stopTimeResponse.isMoving && stopTimeResponse.text && !stopTimeResponse.error) {
-        // console.log('✅ Tiempo de parada obtenido inmediatamente:', stopTimeResponse.text);
-        // console.log('🔍 DEBUG: Asignando selectedTargetStopTime:', stopTimeResponse.text);
-        this.selectedTargetStopTime = stopTimeResponse.text;
-        return stopTimeResponse.text;
-      } else if (stopTimeResponse.isMoving) {
-        // console.log('🚗 Vehículo en movimiento (consulta inmediata)');
-        // console.log('🔍 DEBUG: selectedTargetStopTime será undefined por isMoving=true');
-        return undefined;
-      } else if (stopTimeResponse.error) {
-        // console.log('❌ Error en consulta inmediata:', stopTimeResponse.error);
-        return undefined;
-      }
-    } catch (error) {
-      console.warn('Error consultando tiempo de parada inmediatamente:', error);
-      // console.log('🔍 DEBUG: Error completo:', error);
-    }
-    
-    return undefined;
-  }
-
-  // Método para navegar al usuario padre
+  // ====================================
+  // MÉTODOS PÚBLICOS - NAVEGACIÓN
+  // ====================================
+  
   goToParent() {
-    if (!this.selectedUser) return;
-
-    // Verificar si el usuario actual tiene parent_id usando acceso con casting
-    const parentId = (this.selectedUser as any).parent_id;
-    if (!parentId) {
-      return;
-    }
-
-    // Mostrar skeletons inmediatamente
-    this.loading = true;
-    
-    // Establecer el ID del padre como usuario actual
-    this.managementService.setCurrentUserId(parentId);
-    
-    // Navegar al usuario padre
-    this.managementService.setOp('u', parentId);
-  }
-
-  // Método unificado para manejar click en target (normal o Ctrl + click)
-  handleTargetClick(target: any, event: MouseEvent) {
-    console.log('🖱️ handleTargetClick llamado', { target, ctrlKey: event.ctrlKey });
-    
-    if (event.ctrlKey) {
-      // Ctrl + click: abrir en nueva pestaña
-      this.openTargetInNewTab(target);
-    } else {
-      // Click normal: mostrar en mapa
-      this.showTargetOnMap(target);
+    if (this.selectedUser) {
+        const managementState: any = this.status.getState('management');
+      this.breadcrumbService.navigateToParent(managementState);
     }
   }
 
-  // Método para abrir target en nueva pestaña (Ctrl + click)
-  openTargetInNewTab(target: any) {
-    console.log('🔗 openTargetInNewTab llamado con Ctrl + click', { target });
-    
-    if (!target || !target._id) {
-      console.warn('Target sin _id:', target);
-      return;
-    }
-
-    // Usar el selectedUser._id ya que estamos viendo los targets de este usuario
-    if (!this.selectedUser || !this.selectedUser._id) {
-      console.warn('No hay usuario seleccionado para abrir target en nueva pestaña');
-      return;
-    }
-
-    console.log('🎯 Datos para construir URL:', {
-      selectedUserId: this.selectedUser._id,
-      targetId: target._id,
-      targetName: target.name
-    });
-
-    // Construir la URL con la estructura: /admin/management/t/{userId}?target={targetId}
-    const url = this.router.serializeUrl(
-      this.router.createUrlTree(
-        ['/admin/management', 't', this.selectedUser._id],
-        { queryParams: { target: target._id } }
-      )
-    );
-
-    console.log('🔗 Abriendo URL en nueva pestaña:', url);
-
-    // Abrir en nueva pestaña
-    const newWindow = window.open(url, '_blank');
-    
-    if (!newWindow) {
-      console.error('❌ No se pudo abrir la nueva pestaña. Puede estar bloqueado por el navegador.');
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Popup bloqueado',
-        detail: 'Por favor permite popups para abrir en nueva pestaña'
-      });
-    } else {
-      console.log('✅ Nueva pestaña abierta exitosamente');
-    }
-  }
-
-  // Método para verificar si se puede navegar hacia atrás
   canNavigateBack(): boolean {
-    if (!this.selectedUser) return false;
-    // Verificar si el usuario tiene parent_id usando acceso con casting
-    return !!(this.selectedUser as any).parent_id;
-  }
-
-  // Getter para verificar si se debe mostrar el botón de toggle del mapa
-  get shouldShowMapToggleButton(): boolean {
-    return !this.isMobileView; // Solo mostrar en vista desktop
-  }
-
-  searchUser() {
-    this.managementService.setSearchUsersTerm(this.searchUsersTerm);
-    this.managementService.searchUser();
-  }
-
-  searchTargets() {
-    this.managementService.setSearchTargetsTerm(this.searchTargetsTerm);
-    // Si hay término de búsqueda, filtrar objetivos
-    if (this.searchTargetsTerm && this.searchTargetsTerm.trim() !== '') {
-      // Obtener el ID del usuario de la URL (management) como parent
-      const parentId = this.managementService.getCurrentUserId();
-      
-      this.targetsService.searchTargets(this.searchTargetsTerm, parentId)
-        .then((targets: Target[]) => {
-          this.targets = targets;
-          
-          if (targets && targets.length > 0) {
-            this.targetsList = targets.map((target: Target) => {
-              // Usar traccarInfo.status en lugar de target.status
-              const traccarStatus = target.traccarInfo?.status || 'offline';
-              const isOnline = traccarStatus === 'online';
-              
-              return {
-              name: target.name,
-                status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
-              imei: target.device_imei || target.imei, // Intentar ambos campos
-              sim: target.sim_card_number || target.sim_card, // Intentar ambos campos
-                _id: target._id,
-                traccarStatus: traccarStatus,
-                // ✅ NUEVA: Incluir toda la información del target original, especialmente traccarInfo
-                traccarInfo: target.traccarInfo, // Incluir geolocalización y otros datos de traccar
-                originalTarget: target // Incluir el target completo para casos complejos
-              };
-            });
-          } else {
-            this.targetsList = [];
-          }
-        })
-        .catch((error: any) => {
-          console.error('Error al buscar objetivos:', error);
-        });
-    } else if (this.selectedUser) {
-      // Si no hay término, recargar todos los objetivos del usuario
-      this.loadTargetsForUser(this.selectedUser._id);
-    }
+    const managementState: any = this.status.getState('management');
+    return this.breadcrumbService.canNavigateBack(managementState);
   }
 
   enterUser(user: User) {
-    if (!user || !user._id) return;
-    
-    // Mostrar skeletons inmediatamente
-    this.loading = true;
-    
-
-    
-    // Primero establecemos explícitamente el ID del usuario
-    this.managementService.setCurrentUserId(user._id);
-    
-    // Luego navegamos usando el método setOp, pasando explícitamente el ID
     this.managementService.setOp('u', user._id);
-    
-    // Cargamos los datos del usuario
-    this.managementService.loadUserData(user._id)
-      .then(loadedUser => {
-        this.selectedUser = loadedUser;
-        
-        // Llamar al getUserPath para actualizar el breadcrumb correctamente
-        this.userService.getUserPath(user._id).subscribe({
-          next: (pathData) => {
-            this.updateBreadcrumbFromPath(pathData);
-          },
-          error: (error) => {
-            console.error('Error al obtener ruta del usuario:', error);
-            // En caso de error, mostrar solo el usuario actual
-            this.updateBreadcrumbFromPath([]);
-          }
-        });
-        
-        // Cargamos la lista de usuarios
-        this.userService.getAll(user._id).subscribe({
-          next: (users) => {
-            this.users = users;
-            this.loading = false;
-          },
-          error: (error) => {
-            console.error('Error al cargar usuarios:', error);
-            this.loading = false;
-          }
-        });
-      })
-      .catch(() => {
-        this.loading = false;
-      });
   }
 
   setOp(op: string) {
+    // Obtener la operación actual antes del cambio
+    const currentOp = this.managementService.getOp();
+    const currentUserId = this.managementService.getCurrentUserId();
+    
+    // Solo actualizar la operación en el servicio, sin recargar datos
     this.managementService.setOp(op);
-  }
-
-  showUserForm() {
-    this.userToEdit = null;
-    this.userFormDisplay = true;
-  }
-
-  async showTargetForm(target?: any) {
-    // Si recibimos un target (edición), necesitamos obtener todos los detalles
-    if (target) {
-      try {
-        // Obtener los detalles completos del objetivo desde el backend
-        const targetDetails = await this.targetsService.getTargetById(target._id);
-
-        this.targetToEdit = targetDetails;
-      } catch (error) {
-        console.error('Error al obtener detalles del objetivo:', error);
-        this.messageService.add({
-          severity: 'error',
-          summary: this.translate.instant('management.error'),
-          detail: this.translate.instant('management.targetsLoadError')
-        });
+    
+    // Si cambia a targets, verificar si necesita cargar datos
+    // Solo cargar si no hay datos O si cambió el usuario desde la última carga
+    if (op === 't' && this.selectedUser) {
+      const hasNoTargets = this.targetsList.length === 0;
+      const userChanged = currentUserId !== this.selectedUser._id;
+      
+      if (hasNoTargets || userChanged) {
+        console.log('🔄 Cambiando a pestaña targets - necesita cargar datos');
+        this.targetsLoadCompletedFlag = false; // Solo aquí, cuando realmente se van a cargar datos
+        this.loadTargetsForUser(this.selectedUser._id);
+      } else {
+        console.log('✅ Targets ya cargados para este usuario - no recargando');
       }
-    } else {
-      this.targetToEdit = null;
     }
     
-    this.targetFormDisplay = true;
-  }
-
-  onHideTargetForm() {
-    this.targetToEdit = null;
-  }
-
-  onUserCreated() {
-    this.userFormDisplay = false;
-    this.userToEdit = null;
-    this.userService.getAll(this.managementService.getCurrentUserId() || '').subscribe({
-      next: (users) => {
-        this.users = users;
-      },
-      error: (error) => {
-        console.error('Error al recargar usuarios:', error);
+    // Si cambia a usuarios, verificar si necesita cargar datos
+    if (op === 'u' && this.selectedUser) {
+      const hasNoUsers = this.users.length === 0;
+      const userChanged = currentUserId !== this.selectedUser._id;
+      
+      if (hasNoUsers || userChanged) {
+        console.log('🔄 Cambiando a pestaña usuarios - necesita cargar datos');
+        this.loadUsersForUser(this.selectedUser._id);
+      } else {
+        console.log('✅ Usuarios ya cargados para este usuario - no recargando');
       }
-    });
+    }
+  }
+
+  // ====================================
+  // MÉTODOS PÚBLICOS - BÚSQUEDA
+  // ====================================
+  
+  searchUser() {
+    // Actualizar el término en el servicio de management para mantener la URL sincronizada
+    this.managementService.setSearchUsersTerm(this.searchUsersTerm);
+    this.managementService.searchUser();
+    
+    // Ejecutar búsqueda con debounce a través del subject
+    this.searchUsersSubject.next(this.searchUsersTerm);
+  }
+
+  clearUserSearch() {
+    this.searchUsersTerm = '';
+    this.managementService.setSearchUsersTerm('');
+    this.searchUsersSubject.next('');
+  }
+
+  clearTargetSearch() {
+    this.searchTargetsTerm = '';
+    this.managementService.setSearchTargetsTerm('');
+    this.searchTargetsSubject.next('');
+  }
+
+  searchTargets() {
+    // Actualizar el término en el servicio de management para mantener la URL sincronizada
+    this.managementService.setSearchTargetsTerm(this.searchTargetsTerm);
+    this.managementService.searchTargets();
+    
+    // Ejecutar búsqueda con debounce a través del subject
+    this.searchTargetsSubject.next(this.searchTargetsTerm);
+  }
+
+  // ====================================
+  // MÉTODOS PÚBLICOS - UI STATE
+  // ====================================
+  
+  showMapsToggle() {
+    this.uiService.toggleMaps();
+  }
+
+  get shouldShowMapToggleButton(): boolean {
+    return true; // Siempre mostrar el botón del mapa, independientemente de si hay targets
+  }
+
+  // ====================================
+  // MÉTODOS PÚBLICOS - MAPAS
+  // ====================================
+  
+  async setMapProvider(value: string): Promise<void> {
+    const newKey = await this.mapProviderService.changeProviderWithRecreation(value);
+    // El mapa se recreará automáticamente gracias al binding [mapsKey]
+  }
+
+  // ====================================
+  // MÉTODOS PÚBLICOS - GESTIÓN DE USUARIOS
+  // ====================================
+  
+  showUserForm() {
+    this.uiService.showUserForm();
   }
 
   editUser(user: User) {
     this.userToEdit = convertToExtendedUser(user);
-    this.userFormDisplay = true;
+    this.uiService.showUserForm();
+  }
+
+  onHideUserForm() {
+    console.log('🔄 onHideUserForm ejecutado');
+    this.uiService.hideUserForm();
+    this.userToEdit = null;
+  }
+
+  onUserCreated() {
+    this.uiService.hideUserForm();
+    this.userToEdit = null;
+    
+    if (this.selectedUser) {
+      this.loadUsersForUser(this.selectedUser._id);
+    }
   }
 
   confirmDeleteUser(user: User) {
     this.confirmationService.confirm({
-      message: this.translate.instant('management.userForm.confirmDeleteUser'),
+      message: this.translate.instant('management.confirmDeleteUser'),
       header: this.translate.instant('management.userForm.confirmDeleteHeader'),
       icon: 'pi pi-exclamation-triangle',
       acceptLabel: this.translate.instant('management.userForm.yes'),
       rejectLabel: this.translate.instant('management.userForm.no'),
       accept: () => {
-        this.userService.delete(user._id).subscribe({
-          next: () => {
-            this.users = this.users.filter(u => u._id !== user._id);
-            this.messageService.add({
-              severity: 'success',
-              summary: this.translate.instant('management.userForm.userDeleted'),
-              detail: this.translate.instant('management.userForm.userDeleted'),
-              life: 3000
-            });
-          },
-          error: (error) => {
-            this.messageService.add({
-              severity: 'error',
-              summary: this.translate.instant('management.userForm.error'),
-              detail: this.translate.instant('management.userForm.errorDelete'),
-              life: 3000
-            });
-          }
-        });
+        this.deleteUser(user);
       }
     });
   }
 
-  setMapProvider(value: string) {
-    const previousProvider = this.providerType;
-    
-    // Guardar la selección en el estado inmediatamente
-    this.status.setState('map_provider', value);
-    console.log('💾 Proveedor de mapa guardado en estado:', value);
-    
-    // Obtener el target actual de la URL para reseleccionarlo después
-    const currentTargetInUrl = this.route.snapshot.queryParams['target'];
-    
-    // Actualizar providerType y providerTheme basado en la selección
-    if (value.startsWith('google')) {
-      this.providerType = 'google';
-      this.providerTheme = value.includes('dark') ? 'dark' : 'light';
-    } else {
-      this.providerType = 'mapbox';
-      this.providerTheme = value.includes('dark') ? 'dark' : 'light';
-    }
-    
-    // Solo recrear el componente si cambió el proveedor (no solo el tema)
-    if (previousProvider !== this.providerType) {
-      console.log('🔄 Provider changed from', previousProvider, 'to', this.providerType);
-      console.log('🎯 Target en URL a reseleccionar:', currentTargetInUrl);
-      
-      // CANCELAR COMPLETAMENTE EL TARGET ACTUAL ANTES DEL CAMBIO
-      if (this.currentTargetId) {
-        console.log('🛑 Cancelando target actual antes de cambio de proveedor:', this.currentTargetId);
-        this.cancelAllTargetProcesses(this.currentTargetId);
-        this.currentTargetId = null;
-      }
-      
-      // IMPORTANTE: Resetear completamente el MarkerService antes de cambiar proveedor
-      MarkerService.resetService();
-      
-      // Limpiar el target seleccionado para forzar limpieza
-      this.selectedTargetForMap = null;
-      this.selectedTargetStopTime = undefined;
-      
-      // Primero destruir el componente
-      this.mapsKey = null;
-      
-      // Luego recrearlo después de un breve delay para asegurar limpieza completa
-      setTimeout(() => {
-        this.mapsKey = this.providerType + '-' + Date.now();  
-        // console.log('✅ Componente Maps recreado con nueva key:', this.mapsKey);
-        
-        // Después de recrear el componente, reseleccionar el target de la URL
-        setTimeout(() => {
-          if (currentTargetInUrl) {
-            // console.log('🔄 RESELECCIONANDO target desde URL después de cambio de proveedor:', currentTargetInUrl);
-            this.checkAndLoadTargetFromUrlDirect();
-          } else {
-            // console.log('ℹ️ No hay target en URL para reseleccionar después de cambio de proveedor');
-          }
-        }, 300); // Delay mayor para asegurar que el componente esté completamente cargado
-        
-      }, 150);
-    } else {
-      console.log('🎨 Solo cambió el tema, no se necesita recreación');
-    }
+  // ====================================
+  // MÉTODOS PÚBLICOS - GESTIÓN DE TARGETS
+  // ====================================
+  
+  async showTargetForm(target?: any) {
+    console.log('📝 Target recibido para editar:', target);
+    this.targetToEdit = target || null;
+    console.log('📝 targetToEdit asignado:', this.targetToEdit);
+    this.uiService.showTargetForm();
   }
 
-  // Método para cargar objetivos de un usuario específico
-  private async loadTargetsForUser(userId: string) {
-    try {
-      // Obtener el ID del usuario de la URL (management) como parent
-      const parentId = this.managementService.getCurrentUserId();
-      
-      // Pasar el ID del usuario y el parent al método del servicio
-      const targets = await this.targetsService.getTargetsByUserId(userId, parentId);
-      
-      this.targets = targets;
-      
-      // Verificar si hay datos antes de transformarlos
-      if (targets && targets.length > 0) {
-        this.targetsList = targets.map(target => {
-          // Usar traccarInfo.status en lugar de target.status
-          const traccarStatus = target.traccarInfo?.status || 'offline';
-          const isOnline = traccarStatus === 'online';
-          
-          return {
-            name: target.name,
-            status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
-            imei: target.device_imei || target.imei, // Intentar ambos campos
-            sim: target.sim_card_number || target.sim_card, // Intentar ambos campos
-            _id: target._id,
-            traccarStatus: traccarStatus, // Mantener el status original para debugging
-            // ✅ NUEVA: Incluir toda la información del target original, especialmente traccarInfo
-            traccarInfo: target.traccarInfo, // Incluir geolocalización y otros datos de traccar
-            originalTarget: target // Incluir el target completo para casos complejos
-          };
-                  });
-        } else {
-          this.targetsList = [];
-        }
-      
-      // Verificar si hay un target en la URL para seleccionarlo automáticamente
-      // Se ejecuta después de cargar los targets para asegurar que estén disponibles
-      setTimeout(() => {
-        this.checkAndLoadTargetFromUrlDirect();
-      }, 100);
-      
-    } catch (error) {
-      console.error('Error al cargar objetivos:', error);
-      this.messageService.add({
-        severity: 'error',
-        summary: this.translate.instant('management.error'),
-        detail: this.translate.instant('management.targetsLoadError')
-      });
-    }
+  onHideTargetForm() {
+    console.log('🔄 onHideTargetForm ejecutado');
+    this.uiService.hideTargetForm();
+    this.targetToEdit = null;
   }
 
   onTargetCreated() {
-    this.targetFormDisplay = false;
+    this.uiService.hideTargetForm();
     this.targetToEdit = null;
     
-    // Si existe un usuario seleccionado, recargar sus objetivos
     if (this.selectedUser) {
+      console.log('🔄 Recargando targets después de crear/editar');
       this.loadTargetsForUser(this.selectedUser._id);
     }
   }
 
-  confirmDeleteTarget(target: any) {
-    this.confirmationService.confirm({
-      message: this.translate.instant('management.confirmDeleteTarget'),
-      header: this.translate.instant('management.userForm.confirmDeleteHeader'),
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: this.translate.instant('management.userForm.yes'),
-      rejectLabel: this.translate.instant('management.userForm.no'),
-      accept: () => {
-        // Eliminar el objetivo
-        this.targetsService.deleteTarget(target._id)
-          .then(() => {
-            // Filtrar el objetivo eliminado de la lista
-            this.targets = this.targets.filter(t => t._id !== target._id);
-            this.targetsList = this.targetsList.filter(t => t._id !== target._id);
-            
-            // Mostrar mensaje de éxito
-            this.messageService.add({
-              severity: 'success',
-              summary: this.translate.instant('management.targetDeleted'),
-              detail: this.translate.instant('management.targetDeleted'),
-              life: 3000
-            });
-          })
-          .catch((error) => {
-            console.error('Error al eliminar objetivo:', error);
-            this.messageService.add({
-              severity: 'error',
-              summary: this.translate.instant('management.error'),
-              detail: this.translate.instant('management.errorDeleteTarget'),
-              life: 3000
-            });
-          });
-      }
-    });
+  handleTargetClick(target: any, event: MouseEvent) {
+    if (event.ctrlKey) {
+      this.openTargetInNewTab(target);
+    }
   }
 
-  // Método para obtener y mostrar datos de un target específico
+  openTargetInNewTab(target: any) {
+    const currentUserId = this.selectedUser?._id;
+    if (currentUserId) {
+      const url = this.router.serializeUrl(
+        this.router.createUrlTree(['/admin/management/user', currentUserId], {
+          queryParams: { target: target._id }
+        })
+      );
+      window.open(url, '_blank');
+    }
+  }
+
   async loadTargetDetails(target: any) {
     try {
-      
-      // Obtener los datos completos del target
       const targetDetails = await this.targetsService.getTargetById(target._id);
       
-      // Aquí puedes decidir qué hacer con los datos:
-      // 1. Mostrar un modal con los datos
-      // 2. Navegar a una vista de detalles
-      // 3. Actualizar alguna propiedad del componente
-      // 4. Mostrar en consola (por ahora)
-      
-      // Por ejemplo, si quieres mostrar un mensaje con algunos datos:
       this.messageService.add({
         severity: 'info',
         summary: `Datos de ${targetDetails.name}`,
@@ -1088,74 +385,310 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Método para actualizar el breadcrumb con los datos del path
-  private updateBreadcrumbFromPath(pathData: any[]): void {
-    if (!pathData || !Array.isArray(pathData) || pathData.length === 0) {
-      // Si no hay datos de path, usar solo el usuario actual
-      if (this.selectedUser) {
-        this.items = [
-          { label: `${this.selectedUser.name} ${this.selectedUser.last_name}` }
-        ];
+  confirmDeleteTarget(target: any) {
+    this.confirmationService.confirm({
+      message: this.translate.instant('management.confirmDeleteTarget'),
+      header: this.translate.instant('management.userForm.confirmDeleteHeader'),
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: this.translate.instant('management.userForm.yes'),
+      rejectLabel: this.translate.instant('management.userForm.no'),
+      accept: () => {
+        this.deleteTarget(target);
       }
-      return;
-    }
-
-    // Convertir los datos del path en elementos del breadcrumb
-    this.items = pathData.map((pathItem, index) => {
-      const isLast = index === pathData.length - 1;
-      
-      return {
-        label: pathItem.fullName,
-        // Para elementos que no son el último, agregar comando para navegar
-        command: !isLast ? () => {
-          // Navegar al usuario específico del path
-          this.managementService.setOp('u', pathItem.id);
-        } : undefined,
-        // Solo el último elemento no será clickeable
-        disabled: isLast
-      };
     });
   }
 
-  // Métodos privados para polling
-  private startTargetsPolling(): void { 
-    // console.log('🔄 Iniciando polling de targets cada', this.POLLING_INTERVAL / 1000, 'segundos');
-    
-    // Crear observable que ejecuta cada 10 segundos
-    this.pollingSubscription = interval(this.POLLING_INTERVAL)
-      .pipe(
-        // Solo ejecutar si hay un usuario seleccionado
-        filter(() => {
-          const hasUser = !!this.selectedUser?._id;
-          if (!hasUser) {
-            // console.log('⏸️ Polling pausado - no hay usuario seleccionado');
+  // ====================================
+  // MÉTODOS PÚBLICOS - DATOS DE VEHÍCULOS (DELEGADOS)
+  // ====================================
+  
+  public getVehicleTypeByModelId(modelId: string): string {
+    return this.vehicleDataService.getVehicleTypeByModelId(modelId);
+  }
+
+  public getDeviceSpeed(target: any): string {
+    return this.vehicleDataService.getDeviceSpeed(target);
+  }
+
+  public formatSpeedDisplay(speedInKmh: number): string {
+    return this.vehicleDataService.formatSpeedDisplay(speedInKmh);
+  }
+
+  // ====================================
+  // MÉTODOS PRIVADOS - INICIALIZACIÓN
+  // ====================================
+  
+  private setupInitialState(): void {
+    this.uiService.setLoading(true);
+    this.screenService.checkScreenSize();
+    this.uiService.updateScreenSize();
+  }
+
+  private setupSubscriptions(): void {
+    // Suscribirse a cambios de UI state
+    this.subscriptions.push(
+      this.uiService.uiState$.subscribe(uiState => {
+        // Reaccionar a cambios de estado si es necesario
+      })
+    );
+
+    // Suscribirse a cambios responsive
+    this.subscriptions.push(
+      this.uiService.responsiveState$.subscribe(responsiveState => {
+        this.uiService.autoShowMapsIfMobileAndHasTargets(this.targetsList.length > 0);
+      })
+    );
+
+    // Configurar búsqueda de usuarios con debounce
+    this.subscriptions.push(
+      this.searchUsersSubject.pipe(
+        debounceTime(300), // Esperar 300ms después de que el usuario deje de escribir
+        distinctUntilChanged(), // Solo buscar si el término cambió
+        switchMap(searchTerm => {
+          if (searchTerm.trim() === '') {
+            // Si no hay término de búsqueda, cargar usuarios normales
+            this.isSearchingUsers = false;
+            if (this.selectedUser) {
+              return this.userService.getAll(this.selectedUser._id);
+            }
+            return [];
+          } else {
+            // Realizar búsqueda
+            this.isSearchingUsers = true;
+            console.log('🔍 Buscando usuarios:', searchTerm);
+            return this.userService.search(searchTerm, this.selectedUser?._id);
           }
-          return hasUser;
         })
-      )
-      .subscribe(() => {
-        // console.log('⏰ EJECUTANDO polling de targets...');
-        this.updateTargetsData();
+      ).subscribe({
+        next: (users) => {
+          this.users = users;
+          console.log(`✅ ${this.isSearchingUsers ? 'Búsqueda' : 'Carga normal'} completada:`, users.length, 'usuarios');
+        },
+        error: (error) => {
+          console.error('❌ Error en búsqueda de usuarios:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error de búsqueda',
+            detail: 'No se pudieron buscar los usuarios',
+            life: 3000
+          });
+        }
+      })
+    );
+
+    // Configurar búsqueda de targets con debounce
+    this.subscriptions.push(
+      this.searchTargetsSubject.pipe(
+        debounceTime(300), // Esperar 300ms después de que el usuario deje de escribir
+        distinctUntilChanged(), // Solo buscar si el término cambió
+        switchMap(searchTerm => {
+          if (searchTerm.trim() === '') {
+            // Si no hay término de búsqueda, cargar targets normales
+            this.isSearchingTargets = false;
+            if (this.selectedUser) {
+              const parentId = this.managementService.getCurrentUserId();
+              return this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId);
+            }
+            return [];
+          } else {
+            // Realizar búsqueda
+            this.isSearchingTargets = true;
+            console.log('🔍 Buscando targets:', searchTerm);
+            const parentId = this.managementService.getCurrentUserId();
+            return this.targetsService.searchTargets(searchTerm, parentId);
+          }
+        })
+      ).subscribe({
+        next: (targets) => {
+          this.targets = targets;
+          
+          // Transformar targets para la lista
+          if (targets && targets.length > 0) {
+            this.targetsList = targets.map(target => {
+              const traccarStatus = target.traccarInfo?.status || 'offline';
+              const isOnline = traccarStatus === 'online';
+              
+              return {
+                name: target.name,
+                status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
+                imei: target.device_imei || target.imei,
+                sim: target.sim_card_number || target.sim_card,
+                _id: target._id,
+                traccarStatus: traccarStatus,
+                traccarInfo: target.traccarInfo,
+                originalTarget: target
+              };
+            });
+          } else {
+            this.targetsList = [];
+          }
+          
+          console.log(`✅ ${this.isSearchingTargets ? 'Búsqueda' : 'Carga normal'} de targets completada:`, targets.length, 'targets');
+        },
+        error: (error) => {
+          console.error('❌ Error en búsqueda de targets:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error de búsqueda',
+            detail: 'No se pudieron buscar los dispositivos',
+            life: 3000
+          });
+        }
+      })
+    );
+  }
+
+  private setupRouting(): void {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser) {
+      this.router.navigate(['auth/login']); 
+      return;
+    }
+
+    // Configurar suscripciones a parámetros de ruta
+    this.subscriptions.push(
+      this.route.params.subscribe(params => {
+        this.handleRouteParams(params, currentUser);
+      })
+    );
+
+    // Configurar suscripciones a query parameters
+    this.subscriptions.push(
+      this.route.queryParams.subscribe(queryParams => {
+        this.handleQueryParams(queryParams);
+      })
+    );
+  }
+
+  private async loadInitialData(): Promise<void> {
+    // Cargar datos de vehículos en segundo plano
+    await this.vehicleDataService.loadVehicleData();
+  }
+
+  private cleanupSubscriptions(): void {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.subscriptions = [];
+  }
+
+  // ====================================
+  // MÉTODOS PRIVADOS - ROUTING
+  // ====================================
+  
+  private handleRouteParams(params: any, currentUser: any): void {
+    const newUserId = params['user'];
+    const currentSelectedUserId = this.selectedUser?._id;
+    
+    // Solo cargar datos del usuario si realmente cambió
+    if (newUserId && newUserId !== currentSelectedUserId) {
+      console.log('🔄 Usuario cambió en ruta - cargando datos del nuevo usuario');
+      this.loadUserFromParams(newUserId);
+    } else if (!newUserId && !this.selectedUser) {
+      console.log('🔄 No hay usuario en ruta y no hay usuario seleccionado - cargando desde estado/usuario actual');
+      this.loadUserFromState(currentUser);
+    } else {
+      console.log('✅ Usuario no cambió - manteniendo datos actuales');
+    }
+    
+    this.managementService.verifyURLStatus(params);
+  }
+
+  private handleQueryParams(queryParams: any): void {
+    if (this.managementService.getOp() === 'u') {
+      this.searchUsersTerm = queryParams['search'];
+    } else if (this.managementService.getOp() === 't') {
+      this.searchTargetsTerm = queryParams['search'];
+    }
+  }
+
+  private loadUserFromParams(userId: string): void {
+    this.managementService.loadUserData(userId)
+      .then(user => {
+        this.handleUserLoaded(user);
+      })
+      .catch(() => {
+        this.uiService.setLoading(false);
       });
   }
 
-  private async updateTargetsData(): Promise<void> {
-    if (!this.selectedUser?._id) return;
+  private loadUserFromState(currentUser: any): void {
+    const managementState: any = this.status.getState('management');
+    const storedUserId = managementState?.url_route ? managementState.url_route[2] : null;
     
+    if (storedUserId) {
+      this.loadUserFromParams(storedUserId);
+    } else {
+      this.loadUserFromParams(currentUser.id);
+    }
+  }
+
+  private handleUserLoaded(user: User): void {
+    this.selectedUser = user;
+    // Limpiar datos anteriores y resetear bandera de carga completada
+    this.targetsList = [];
+    this.targets = [];
+    this.targetsLoadCompletedFlag = false;
+    this.loadUserPath(user._id);
+    this.loadUsersForUser(user._id);
+    this.loadTargetsForUser(user._id);
+  }
+
+  // ====================================
+  // MÉTODOS PRIVADOS - GESTIÓN DE DATOS
+  // ====================================
+  
+  private loadUserPath(userId: string): void {
+    this.userService.getUserPath(userId).subscribe({
+      next: (pathData) => {
+        this.breadcrumbService.updateFromUserPath(pathData, this.selectedUser);
+      },
+      error: (error) => {
+        console.error('Error al obtener ruta del usuario:', error);
+        this.breadcrumbService.updateFromUserPath([], this.selectedUser);
+      }
+    });
+  }
+
+  private loadUsersForUser(userId: string): void {
+    // Si hay un término de búsqueda activo, usar la búsqueda en lugar de cargar todos
+    if (this.searchUsersTerm && this.searchUsersTerm.trim() !== '') {
+      console.log('🔍 Hay término de búsqueda activo, ejecutando búsqueda:', this.searchUsersTerm);
+      this.searchUsersSubject.next(this.searchUsersTerm);
+    } else {
+      // Cargar todos los usuarios normalmente
+      this.userService.getAll(userId).subscribe({
+        next: (users) => {
+          this.users = users;
+          this.uiService.setLoading(false);
+        },
+        error: (error) => {
+          console.error('Error al cargar usuarios:', error);
+          this.uiService.setLoading(false);
+        }
+      });
+    }
+  }
+
+  private async loadTargetsForUser(userId: string) {
+    // Si hay un término de búsqueda activo, usar la búsqueda en lugar de cargar todos
+    if (this.searchTargetsTerm && this.searchTargetsTerm.trim() !== '') {
+      console.log('🔍 Hay término de búsqueda de targets activo, ejecutando búsqueda:', this.searchTargetsTerm);
+      this.searchTargetsSubject.next(this.searchTargetsTerm);
+      return;
+    }
+
     try {
+      // Activar estado de carga específico para targets
       
-      // Obtener el ID del usuario padre como antes
+      console.log('🔄 Iniciando carga de targets...');
+      
       const parentId = this.managementService.getCurrentUserId();
+      this.loadingTargets = true;
+      const targets = await this.targetsService.getTargetsByUserId(userId, parentId);
       
-      // Obtener datos actualizados de targets
-      const updatedTargets = await this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId);
+      this.targets = targets;
       
-      if (updatedTargets && updatedTargets.length > 0) {
-        // Actualizar el array principal de targets
-        this.targets = updatedTargets;
-        
-        // Transformar para la UI como en loadTargetsForUser
-        this.targetsList = updatedTargets.map(target => {
+      if (targets && targets.length > 0) {
+        this.targetsList = targets.map(target => {
           const traccarStatus = target.traccarInfo?.status || 'offline';
           const isOnline = traccarStatus === 'online';
           
@@ -1170,433 +703,74 @@ export class ManagementComponent implements OnInit, OnDestroy {
             originalTarget: target
           };
         });
-        
-        // Si hay un target seleccionado en el mapa, obtener sus detalles específicos
-        if (this.selectedTargetForMap?._id) {
-          await this.updateSelectedTargetDetails();
-        }
+      } else {
+        this.targetsList = [];
       }
+      
+      // Actualizar visibilidad de mapas si es necesario
+      this.uiService.autoShowMapsIfMobileAndHasTargets(this.targetsList.length > 0);
+      
+      console.log('✅ Carga de targets completada exitosamente');
       
     } catch (error) {
-      console.error('❌ Error actualizando targets:', error);
-    }
-  }
-
-  private async updateSelectedTargetDetails(): Promise<void> {
-    if (!this.selectedTargetForMap?._id) return;
-    
-    // VERIFICACIÓN CRÍTICA: Verificar que el target actual siga siendo el target activo
-    if (this.currentTargetId !== this.selectedTargetForMap._id) {
-      // console.log('🛑 POLLING CANCELADO: Target cambió durante polling');
-      // console.log('🛑 Target esperado:', this.currentTargetId);
-      // console.log('🛑 Target en polling:', this.selectedTargetForMap._id);
-      return;
-    }
-    
-    // VERIFICACIÓN ADICIONAL: Verificar que el proceso no haya sido cancelado
-    if (!this.activeTargetProcesses.has(this.selectedTargetForMap._id)) {
-      // console.log('🛑 POLLING CANCELADO: Proceso de target ya fue cancelado');
-      // console.log('🛑 Target ID:', this.selectedTargetForMap._id);
-      return;
-    }
-    
-    try {
-      // Usar el método específico para obtener detalles del target seleccionado
-      const updatedTargetDetails = await this.targetsService.getTargetById(this.selectedTargetForMap._id);
-      
-      // Console para ver los detalles completos del target
-      // console.log('🎯 DETALLES DEL TARGET ESPECÍFICO:', {
-      //   targetId: this.selectedTargetForMap._id,
-      //   targetName: updatedTargetDetails.name,
-      //   detallesCompletos: updatedTargetDetails,
-      //   traccarInfo: updatedTargetDetails.traccarInfo,
-      //   geolocation: updatedTargetDetails.traccarInfo?.['geolocation'],
-      //   geolocationAttributes: updatedTargetDetails.traccarInfo?.['geolocation']?.attributes,
-      //   geolocationSpeed: updatedTargetDetails.traccarInfo?.['geolocation']?.speed,
-      //   geolocationVelocity: updatedTargetDetails.traccarInfo?.['geolocation']?.velocity,
-      //   allGeolocationProps: updatedTargetDetails.traccarInfo?.['geolocation'] ? Object.keys(updatedTargetDetails.traccarInfo['geolocation']) : [],
-      //   status: updatedTargetDetails.traccarInfo?.status
-      // });
-      
-      if (updatedTargetDetails?.traccarInfo?.['geolocation']) {
-        
-        // Actualizar las coordenadas del target seleccionado
-        const lat = updatedTargetDetails.traccarInfo['geolocation'].latitude;
-        const lng = updatedTargetDetails.traccarInfo['geolocation'].longitude;
-        
-        if (lat && lng) {
-          // Verificar si las coordenadas han cambiado significativamente
-          const oldLat = this.selectedTargetForMap.traccarInfo?.geolocation?.latitude;
-          const oldLng = this.selectedTargetForMap.traccarInfo?.geolocation?.longitude;
-          
-          const hasLocationChanged = !oldLat || !oldLng || 
-            Math.abs(lat - oldLat) > 0.0001 || Math.abs(lng - oldLng) > 0.0001;
-          
-          // console.log('📍 Comparando coordenadas:', {
-          //   oldLat: oldLat?.toFixed(6),
-          //   newLat: lat?.toFixed(6),
-          //   oldLng: oldLng?.toFixed(6),
-          //   newLng: lng?.toFixed(6),
-          //   latDiff: oldLat ? Math.abs(lat - oldLat) : 'N/A',
-          //   lngDiff: oldLng ? Math.abs(lng - oldLng) : 'N/A',
-          //   hasLocationChanged
-          // });
-          
-          // CREAR NUEVA REFERENCIA - Angular necesita esto para detectar cambios
-          this.selectedTargetForMap = {
-            ...this.selectedTargetForMap,
-            ...updatedTargetDetails,
-            traccarInfo: {
-              ...this.selectedTargetForMap.traccarInfo,
-              ...updatedTargetDetails.traccarInfo,
-              geolocation: updatedTargetDetails.traccarInfo?.['geolocation'] || {
-                latitude: lat,
-                longitude: lng
-              }
-            }
-          };
-
-          // DEBUG: Verificar que el polling preserva la geolocation completa
-          // console.log('🔄 POLLING updateSelectedTargetDetails:');
-          // console.log('- Geolocation completa preservada:', this.selectedTargetForMap.traccarInfo?.geolocation);
-          // console.log('- Velocidad preservada:', this.selectedTargetForMap.traccarInfo?.geolocation?.speed);
-          
-          // NO reasignar this.selectedTargetForMap para preservar referencia del objeto
-          
-          if (hasLocationChanged) {
-            console.log('🚀 UBICACIÓN CAMBIÓ! Nueva referencia creada para Angular');
-            console.log('📍 Target:', this.selectedTargetForMap._id, 'coords:', lat.toFixed(6), lng.toFixed(6));
-            
-            // Para actualizaciones posteriores, el componente de mapas moverá el marcador suavemente
-            if (this.shouldCenterMapOnUpdate) {
-              this.shouldCenterMapOnUpdate = false; // Desactivar centrado automático después de la primera vez
-            }
-            // El cambio en selectedTargetForMap será detectado por ngOnChanges del componente de mapas
-            // y solo actualizará la posición del marcador existente
-          } 
-        }
-      }
-      
-    } catch (error) {
-      console.error('❌ Error actualizando detalles del target seleccionado:', error);
-    }
-  }
-
-  // Métodos para manejo de URL con query parameters
-  private updateUrlWithTargetId(targetId: string): void {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { target: targetId },
-      queryParamsHandling: 'merge'
-    });
-  }
-
-  private clearTargetFromUrl(): void {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { target: null },
-      queryParamsHandling: 'merge'
-    });
-  }
-
-
-
-  // Nuevo método para verificación directa sin crear subscripción
-  private checkAndLoadTargetFromUrlDirect(): void {
-    // PREVENIR DOBLE PROCESAMIENTO
-    if (this.isProcessingTargetFromUrl) {
-      // console.log('⏸️ Ya procesando target desde URL, saltando ejecución...');
-      return;
-    }
-    
-    // Obtener directamente los parámetros de la URL sin crear nueva subscripción
-    const currentParams = this.route.snapshot.queryParams;
-    const targetId = currentParams['target'];
-    
-    // console.log('🔍 Verificando target en URL (directo):', { 
-    //   targetId, 
-    //   targetsAvailable: this.targets.length,
-    //   currentlySelected: this.currentTargetId,
-    //   selectedTargetForMap: this.selectedTargetForMap?._id,
-    //   isProcessing: this.isProcessingTargetFromUrl
-    // });
-    
-    // VALIDACIÓN MEJORADA: Verificar tanto currentTargetId como selectedTargetForMap
-    if (targetId && (this.currentTargetId === targetId || this.selectedTargetForMap?._id === targetId)) {
-      // console.log('✅ Target ya está seleccionado en el mapa, no reseleccionar:', targetId);
-      return;
-    }
-    
-    // VALIDACIÓN ADICIONAL: Si no hay targetId en URL, no hacer nada
-    if (!targetId) {
-      // console.log('ℹ️ No hay target en URL para seleccionar');
-      return;
-    }
-    
-    // VALIDACIÓN: Verificar que los targets estén cargados
-    if (this.targets.length === 0) {
-      // console.log('⏳ Target en URL pero targets no cargados aún, esperando...');
-      return;
-    }
-    
-    const targetToSelect = this.targets.find(target => target._id === targetId);
-    if (targetToSelect) {
-      // console.log('✅ Target encontrado en URL, seleccionando:', targetToSelect._id);
-      
-      // MARCAR COMO PROCESANDO
-      this.isProcessingTargetFromUrl = true;
-      
-      // Timeout de seguridad para resetear la bandera
-      setTimeout(() => {
-        if (this.isProcessingTargetFromUrl) {
-          // console.log('⚠️ Timeout de seguridad: reseteando bandera de procesamiento');
-          this.isProcessingTargetFromUrl = false;
-        }
-      }, 5000); // 5 segundos
-      
-      // CANCELAR TARGET ANTERIOR SI ES DIFERENTE
-      if (this.currentTargetId && this.currentTargetId !== targetId) {
-        // console.log('🛑 Cancelando target anterior desde URL directo:', this.currentTargetId);
-        this.cancelAllTargetProcesses(this.currentTargetId);
-      }
-      
-      // Activar el mapa si no está activo
-      if (!this.showMaps) {
-        // console.log('🗺️ Activando mapa para target de URL');
-        this.showMaps = true;
-        this.status.setState('management_show_maps', { showMaps: this.showMaps });
-      }
-      
-      // Seleccionar el target en el mapa (sin actualizar URL para evitar loop)
-      this.selectTargetForMapWithoutUrlUpdate(targetToSelect)
-        .finally(() => {
-          // DESMARCAR COMO PROCESANDO AL FINALIZAR
-          this.isProcessingTargetFromUrl = false;
-          // console.log('✅ Finalizado procesamiento de target desde URL');
-        });
-    } 
-  }
-
-  private async selectTargetForMapWithoutUrlUpdate(target: any): Promise<void> {
-    // console.log('🎯 selectTargetForMapWithoutUrlUpdate called for target:', target._id);
-    
-    // VALIDACIÓN REFORZADA: Verificar múltiples condiciones para evitar doble selección
-    if (this.currentTargetId === target._id || this.selectedTargetForMap?._id === target._id) {
-      // console.log('⚠️ El mismo target ya está seleccionado, no hacer nada:', target._id);
-      return;
-    }
-    
-    // CANCELACIÓN COMPLETA DEL TARGET ANTERIOR
-    if (this.currentTargetId && this.currentTargetId !== target._id) {  
-      // console.log('🛑 CANCELANDO target anterior desde URL:', this.currentTargetId); 
-      this.cancelAllTargetProcesses(this.currentTargetId);
-      this.selectedTargetForMap = null;
-      this.selectedTargetStopTime = undefined;
-    }
-    
-    // ESTABLECER NUEVO TARGET COMO ACTIVO
-    this.currentTargetId = target._id;
-    const abortController = new AbortController();
-    this.activeTargetProcesses.set(target._id, abortController);
-    
-    await this.selectTargetFromUrl(target, abortController);
-  }
-
-  private async selectTargetFromUrl(target: any, abortController?: AbortController): Promise<void> {
-    // console.log('🆕 Seleccionando target desde URL:', target._id);
-    
-    // Verificar geolocalización como en showTargetOnMap
-    let lat = null;
-    let lng = null;
-    
-    if (target.traccarInfo?.geolocation?.latitude && target.traccarInfo?.geolocation?.longitude) {
-      lat = target.traccarInfo.geolocation.latitude;
-      lng = target.traccarInfo.geolocation.longitude;
-    } else if (target.traccarInfo?.latitude && target.traccarInfo?.longitude) {
-      lat = target.traccarInfo.latitude;
-      lng = target.traccarInfo.longitude;
-    } else if (target.originalTarget?.traccarInfo?.geolocation?.latitude && target.originalTarget?.traccarInfo?.geolocation?.longitude) {
-      lat = target.originalTarget.traccarInfo.geolocation.latitude;
-      lng = target.originalTarget.traccarInfo.geolocation.longitude;
-    } else if (target.originalTarget?.traccarInfo?.latitude && target.originalTarget?.traccarInfo?.longitude) {
-      lat = target.originalTarget.traccarInfo.latitude;
-      lng = target.originalTarget.traccarInfo.longitude;
-    } else if (target.traccarInfo?.lat && target.traccarInfo?.lon) {
-      lat = target.traccarInfo.lat;
-      lng = target.traccarInfo.lon;
-    }
-
-    if (!lat || !lng) {
-      // console.log('❌ Coordenadas inválidas para target desde URL:', target._id);
-      return;
-    }
-
-    // Crear objeto target con la estructura esperada por el mapa
-    
-    // Priorizar la geolocation completa cuando esté disponible
-    let geolocationToUse;
-    if (target.traccarInfo?.['geolocation']) {
-      // console.log('✅ selectTargetFromUrl - Usando target.traccarInfo.geolocation (COMPLETA)');
-      geolocationToUse = target.traccarInfo['geolocation'];
-    } else if (target.originalTarget?.traccarInfo?.['geolocation']) {
-      // console.log('✅ selectTargetFromUrl - Usando target.originalTarget.traccarInfo.geolocation (COMPLETA)');
-      geolocationToUse = target.originalTarget.traccarInfo['geolocation'];
-    } else {
-      // console.log('⚠️ selectTargetFromUrl - Usando coordenadas básicas como fallback');
-      geolocationToUse = {
-        latitude: lat,
-        longitude: lng
-      };
-    }
-    
-    const targetForMap = {
-      ...target,
-      traccarInfo: {
-        ...target.traccarInfo,
-        geolocation: geolocationToUse
-      }
-    };
-
-    // console.log('✅ Target desde URL preparado para mapa:', targetForMap._id, 'con coordenadas:', lat, lng);
-
-    // Almacenar el target seleccionado
-    this.selectedTargetForMap = targetForMap;
-    
-    // Reactivar el centrado automático para la selección desde URL
-    this.shouldCenterMapOnUpdate = true;
-    
-    // CONSULTAR TIEMPO DE PARADA EN SEGUNDO PLANO (sin bloquear)
-    //
-    this.consultarTiempoDeParadaEnSegundoPlano(targetForMap, abortController);
-  }
-
-  // Métodos para manejo de datos de vehículos
-  private async loadVehicleData(): Promise<void> {
-    try {
-      
-      // Cargar tipos de vehículos, marcas y modelos en paralelo
-      const [types, brands] = await Promise.all([
-        this.vehicleBrandsService.getAllTypes(),
-        this.vehicleBrandsService.getAllBrands()
-      ]);
-      
-      this.vehicleTypes = types || [];
-      this.vehicleBrands = brands || [];
-      
-      // Cargar todos los modelos para todas las marcas
-      if (this.vehicleBrands.length > 0) {
-        const allModels = await this.vehicleBrandsService.getAllModelsByBrand('all');
-        this.vehicleModels = allModels || [];
-      }
-      
-    } catch (error) {
-      console.error('❌ Error al cargar datos de vehículos:', error);
-    }
-  }
-
-  public getVehicleTypeByModelId(modelId: string): string {
-    if (!modelId || this.vehicleModels.length === 0) {
-      return 'Desconocido';
-    }
-    
-    // Buscar el modelo por ID
-    const model = this.vehicleModels.find(m => m._id === modelId);
-    if (!model || !model.id_tipo_vehiculo) {
-      return 'Desconocido';
-    }
-    
-    // Buscar el tipo de vehículo por ID
-    const vehicleType = this.vehicleTypes.find(t => t._id === model.id_tipo_vehiculo);
-    return vehicleType ? vehicleType.nombre : 'Desconocido';
-  }
-
-  /**
-   * Convierte velocidad de nudos a kilómetros por hora
-   * @param speedInKnots Velocidad en nudos
-   * @returns Velocidad en km/h
-   */
-  private convertKnotsToKmh(speedInKnots: number): number {
-    return Math.round(speedInKnots * 1.852);
-  }
-
-  /**
-   * Formatea la velocidad para mostrar "Estacionado" si es 0 o la velocidad en km/h
-   * @param speedInKmh Velocidad en km/h
-   * @returns String formateado de la velocidad
-   */
-  public formatSpeedDisplay(speedInKmh: number): string {
-    if (speedInKmh === 0) {
-      return this.translate.instant('common.parked') || 'Estacionado';
-    }
-    return `${speedInKmh} km/h`;
-  }
-
-  /**
-   * Obtiene la velocidad actual del dispositivo
-   * @param target Target del cual obtener la velocidad
-   * @returns Velocidad formateada como string
-   */
-  public getDeviceSpeed(target: any): string {
-    if (!target.traccarInfo || !target.traccarInfo.geolocation) {
-      return '--';
-    }
-
-    const speedInKnots = target.traccarInfo.geolocation.speed || 0;
-    const speedInKmh = this.convertKnotsToKmh(speedInKnots);
-    
-    return this.formatSpeedDisplay(speedInKmh);
-  }
-
-  private getVehicleModelName(modelId: string): string {
-    if (!modelId || this.vehicleModels.length === 0) {
-      return 'Desconocido';
-    }
-    
-    const model = this.vehicleModels.find(m => m._id === modelId);
-    return model ? model.nombre : 'Desconocido';
-  }
-
-  private getVehicleBrandName(brandId: string): string {
-    if (!brandId || this.vehicleBrands.length === 0) {
-      return 'Desconocido';
-    }
-    
-    const brand = this.vehicleBrands.find(b => b._id === brandId);
-    return brand ? brand.nombre : 'Desconocido';
-  }
-
-  ngOnDestroy(): void {
-    // console.log('🧹 INICIANDO LIMPIEZA COMPLETA del componente Management');
-    
-    // CANCELAR TODOS LOS PROCESOS ACTIVOS DE TARGETS
-    if (this.currentTargetId) {
-      // console.log('🛑 ngOnDestroy: Cancelando procesos del target actual:', this.currentTargetId);
-      this.cancelAllTargetProcesses(this.currentTargetId);
-    }
-    
-    // CANCELAR CUALQUIER PROCESO ACTIVO RESTANTE
-    if (this.activeTargetProcesses.size > 0) {
-      // console.log('🛑 ngOnDestroy: Cancelando', this.activeTargetProcesses.size, 'procesos restantes');
-      this.activeTargetProcesses.forEach((controller, targetId) => {
-        // console.log('🛑 ngOnDestroy: Cancelando procesos restantes para target:', targetId);
-        controller.abort();
+      console.error('❌ Error al cargar objetivos:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.error'),
+        detail: this.translate.instant('management.targetsLoadError')
       });
-      this.activeTargetProcesses.clear();
+    } finally {
+      // Desactivar estado de carga específico para targets
+      this.loadingTargets = false;
+      this.targetsLoadCompletedFlag = true;
+      console.log('🏁 Estado de carga de targets desactivado');
     }
-    
-    // LIMPIAR EL POLLING CUANDO EL COMPONENTE SE DESTRUYA
-    if (this.pollingSubscription) {
-      // console.log('🛑 ngOnDestroy: Cancelando polling subscription');
-      this.pollingSubscription.unsubscribe();
-      this.pollingSubscription = null;
-    }
-    
-    // LIMPIAR ESTADO COMPLETAMENTE
-    this.selectedTargetForMap = null;
-    this.selectedTargetStopTime = undefined;
-    this.currentTargetId = null;
-    this.isProcessingTargetFromUrl = false;
-    
-    // console.log('✅ LIMPIEZA COMPLETA terminada - Management component destroyed');
+  }
+
+  private deleteUser(user: User): void {
+    this.userService.delete(user._id).subscribe({
+      next: () => {
+        this.users = this.users.filter(u => u._id !== user._id);
+        this.messageService.add({
+          severity: 'success',
+          summary: this.translate.instant('management.userDeleted'),
+          detail: `${user.name} ${user.last_name}`,
+          life: 3000
+        });
+      },
+      error: (error) => {
+        console.error('Error al eliminar usuario:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: this.translate.instant('management.error'),
+          detail: this.translate.instant('management.errorDeleteUser'),
+          life: 3000
+        });
+      }
+    });
+  }
+
+  private deleteTarget(target: any): void {
+        this.targetsService.deleteTarget(target._id)
+          .then(() => {
+            this.targets = this.targets.filter(t => t._id !== target._id);
+            this.targetsList = this.targetsList.filter(t => t._id !== target._id);
+            
+            this.messageService.add({
+              severity: 'success',
+              summary: this.translate.instant('management.targetDeleted'),
+              detail: this.translate.instant('management.targetDeleted'),
+              life: 3000
+            });
+          })
+          .catch((error) => {
+            console.error('Error al eliminar objetivo:', error);
+            this.messageService.add({
+              severity: 'error',
+              summary: this.translate.instant('management.error'),
+              detail: this.translate.instant('management.errorDeleteTarget'),
+              life: 3000
+            });
+          });
   }
 }

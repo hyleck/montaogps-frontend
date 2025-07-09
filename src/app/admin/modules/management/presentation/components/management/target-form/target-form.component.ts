@@ -207,7 +207,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         if (this.pendingGpsModel && this.availableGpsModels.some(model => model.value === this.pendingGpsModel)) {
                             this.target.type = this.pendingGpsModel;
                             this.pendingGpsModel = ''; // Limpiar el pendiente
-                            console.log('GPS model asignado después de cargar protocolos:', this.target.type);
+                            console.log('✅ GPS model asignado después de cargar protocolos:', this.target.type);
                         }
                         
                         // Si hay un protocolo ya seleccionado, cargar sus comandos
@@ -265,16 +265,31 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private setupEditTarget(target: TargetDevice) {
         
         // DEBUG: Ver qué datos llegan del backend para edición
-        // console.log('🔍 DEBUG setupEditTarget: Target original recibido:', {
-        //     _id: target._id,
-        //     name: target.name,
-        //     ignition_sensor: target.ignition_sensor,
-        //     engine_shutdown: target.engine_shutdown,
-        //     shutdown_control: target.shutdown_control
-        // });  
+        console.log('🔍 DEBUG setupEditTarget: Target original recibido:', target);
+        
+        // Si el target tiene originalTarget, usar esos datos en su lugar
+        let targetData = target;
+        if ((target as any)['originalTarget']) {
+            console.log('✅ Usando originalTarget para los datos del formulario');
+            targetData = (target as any)['originalTarget'];
+        }
+        
+        console.log('🔍 Datos que se usarán para el formulario:', {
+            _id: targetData._id,
+            name: targetData.name,
+            target_plate_number: targetData.target_plate_number,
+            target_chassis_number: targetData.target_chassis_number,
+            target_color: targetData.target_color,
+            target_brand_id: targetData.target_brand_id,
+            target_model_id: targetData.target_model_id,
+            type: targetData.type,
+            plan: targetData.plan,
+            ignition_sensor: targetData.ignition_sensor,
+            engine_shutdown: targetData.engine_shutdown
+        });
         
         // Rellenar el formulario con los datos del objetivo a editar
-        this.target = JSON.parse(JSON.stringify(target));
+        this.target = JSON.parse(JSON.stringify(targetData));
         
         // El backend ya maneja engine_shutdown directamente, no necesita mapeo
         
@@ -290,6 +305,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.target.target_brand_id = this.target.target_brand_id || '';
         this.target.target_color = this.target.target_color || '';
         this.target.target_year = this.target.target_year || '';
+        
+        // DEBUG: Ver campos después de asignación
+        console.log('🔍 Campos después de asignación:', {
+            target_plate_number: this.target.target_plate_number,
+            target_chassis_number: this.target.target_chassis_number,
+            target_color: this.target.target_color,
+            device_imei: this.target.device_imei
+        });
         
         // Guardar temporalmente el ID del modelo GPS para asignarlo después de cargar protocolos
         const selectedGpsModel = this.target.type || '';
@@ -358,6 +381,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         // Cargar los modelos para la marca seleccionada
         if (this.target.target_brand_id) {
+            console.log('🚗 Cargando modelos para marca:', this.target.target_brand_id, 'Modelo a restaurar:', selectedModelId);
             // Cargar modelos según la marca seleccionada
             this.vehicleBrandsService.getAllModelsByBrand(this.target.target_brand_id)
                 .then((models: any) => {
@@ -366,13 +390,18 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         value: model._id
                     })).sort((a: any, b: any) => a.label.localeCompare(b.label));
                     
+                    console.log('🚗 Modelos cargados:', this.availableModels.length, 'modelos disponibles');
+                    
                     // Una vez cargados los modelos, establecer el modelo seleccionado
                     if (selectedModelId && this.availableModels.some(m => m.value === selectedModelId)) {
                         this.target.target_model_id = selectedModelId;
+                        console.log('✅ Modelo restaurado correctamente:', selectedModelId);
+                    } else if (selectedModelId) {
+                        console.log('❌ No se pudo restaurar el modelo:', selectedModelId, 'no está en la lista de modelos disponibles');
                     }
                 })
                 .catch(error => {
-                    console.error('Error al cargar modelos para edición:', error);
+                    console.error('❌ Error al cargar modelos para edición:', error);
                     this.availableModels = [];
                 });
         }
@@ -477,12 +506,28 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         // Asignar el GPS model después de que los protocolos se hayan cargado
         // Si ya están cargados, asignar inmediatamente, si no, se asignará en el callback de protocolos
+        console.log('📡 GPS Model a restaurar:', selectedGpsModel, 'Modelos GPS disponibles:', this.availableGpsModels.length);
         if (selectedGpsModel && this.availableGpsModels.length > 0) {
-            this.target.type = selectedGpsModel;
-            this.updateSmsCommands();
+            // Verificar que el modelo está en la lista antes de asignarlo
+            const modelExists = this.availableGpsModels.some(model => model.value === selectedGpsModel);
+            if (modelExists) {
+                this.target.type = selectedGpsModel;
+                this.updateSmsCommands();
+                console.log('✅ GPS Model restaurado correctamente:', selectedGpsModel);
+            } else {
+                console.log('❌ GPS Model no encontrado en la lista disponible:', selectedGpsModel);
+                this.target.type = '';
+            }
         } else if (selectedGpsModel) {
             // Guardar el GPS model para asignarlo cuando se carguen los protocolos
             this.pendingGpsModel = selectedGpsModel;
+            console.log('⏳ GPS Model pendiente de asignar:', selectedGpsModel);
+            
+            // Intentar asignar inmediatamente si los protocolos ya están cargados
+            // (esto puede suceder en navegaciones posteriores)
+            setTimeout(() => {
+                this.checkAndAssignPendingGpsModel();
+            }, 100);
         }
     }
 
@@ -879,14 +924,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             );
         } else {
             this.filteredColors = [...this.availableColors];
-            this.target.color = '';
+            this.target.target_color = '';
         }
         
         // No necesitamos cambiar showColorOptions ya que siempre está visible
     }
     
     selectColor(color: { label: string, value: string }) {
-        this.target.color = color.value;
+        this.target.target_color = color.value;
         this.displayColorName = color.label;
         // El selector ya está siempre visible
     }
@@ -1032,6 +1077,23 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     ngOnDestroy() {
         this.destroy$.next();
         this.destroy$.complete();
+    }
+
+    /**
+     * Verifica y asigna el GPS model pendiente si los protocolos ya están cargados
+     */
+    private checkAndAssignPendingGpsModel(): void {
+        if (this.pendingGpsModel && this.availableGpsModels.length > 0) {
+            const modelExists = this.availableGpsModels.some(model => model.value === this.pendingGpsModel);
+            if (modelExists) {
+                this.target.type = this.pendingGpsModel;
+                this.pendingGpsModel = ''; // Limpiar el pendiente
+                this.updateSmsCommands();
+                console.log('✅ GPS Model pendiente asignado correctamente:', this.target.type);
+            } else {
+                console.log('❌ GPS Model pendiente no encontrado en la lista:', this.pendingGpsModel);
+            }
+        }
     }
 
     // Método para mapear periodos de string a número

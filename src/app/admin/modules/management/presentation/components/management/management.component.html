@@ -68,9 +68,21 @@
                     <div class="management__content-body">
                         <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards management__content-cards--maps">
                             <ng-container *ngIf="!loading; else loadingSkeletonsMaps">
-                                <div *ngIf="!loading && users.length === 0" class="no-users-message">
-                                    <i class="pi pi-users" style="font-size: 2rem; color: #888; display: block; margin-bottom: 0.5rem;"></i>
-                                    <span>{{ 'management.noUsers' | translate }}</span>
+                                <div *ngIf="!loading && users.length === 0" 
+                                     class="no-targets-message fade-in-message"
+                                     [@fadeInOut]>
+                                    <div class="no-targets-content">
+                                        <div class="no-targets-icon">
+                                            <i class="pi pi-users"></i>
+                                        </div>
+                                       
+                                        <p>Aún no tienes usuarios configurados en este nivel</p>
+                                        <button (click)="showUserForm()" 
+                                                class="button button--primary">
+                                            <i class="pi pi-user-plus"></i>
+                                            <span>Agregar usuario</span>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div *ngFor="let user of users" class="management__user-card management__user-card--maps">
                                     <div class="management__user-card-title"> <strong>{{ user.name }} {{ user.last_name }}</strong> </div>
@@ -103,9 +115,22 @@
                                     >
                                     <ng-template pTemplate="emptymessage">
                                         <tr>
-                                            <td colspan="6" style="text-align: center; padding: 1rem;">
-                                                <i class="pi pi-map-marker" style="font-size: 2rem; color: #888; display: block; margin-bottom: 0.5rem;"></i>
-                                                <span>{{ 'management.noTargets' | translate }}</span>
+                                            <td colspan="6" style="padding: 0;">
+                                                <div class="no-targets-message fade-in-message" 
+                                                     [@fadeInOut] 
+                                                     style="min-height: 150px; padding: 20px 10px;">
+                                                    <div class="no-targets-content" style="text-align: center; margin: 0 auto;">
+                                                        <div class="no-targets-icon">
+                                                            <i class="pi pi-map-marker"></i>
+                                                        </div>
+                                                        <p>Aún no tienes dispositivos GPS configurados</p>
+                                                        <button (click)="showTargetForm()" 
+                                                                class="button button--primary">
+                                                            <i class="pi pi-plus"></i>
+                                                            <span>Agregar dispositivo</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     </ng-template>
@@ -267,9 +292,17 @@
                 <div class="management__content-body">
                     <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards">
                         <ng-container *ngIf="!loading; else loadingSkeletons">
-                            <div *ngIf="!loading && users.length === 0" class="no-users-message">
-                                <i class="pi pi-users" style="font-size: 2rem; color: #888; display: block; margin-bottom: 0.5rem;"></i>
-                                <span>{{ 'management.noUsers' | translate }}</span>
+                            <div *ngIf="!loading && users.length === 0" 
+                                 class="no-targets-message fade-in-message"
+                                 [@fadeInOut]>
+                                <div class="no-targets-content">
+                                    <div class="no-targets-icon">
+                                        <i class="pi pi-users"></i>
+                                    </div>
+                                    
+                                    <p>No hay usuarios configurados en este nivel</p>
+                             
+                                </div>
                             </div>
                             <div *ngFor="let user of users" class="management__user-card">
                                 <div class="management__user-card-icon"> <i class="pi pi-user"></i> </div>
@@ -298,28 +331,43 @@
 
                     <div  *ngIf="managementService.getOp() === 't'" class="management__content-table">
                       
+                        <ng-container *ngIf="!loadingTargetsState; else loadingTargetsSkeletons">
+                            <div *ngIf="targetsLoadCompleted && targetsList.length === 0" 
+                                 class="no-targets-message fade-in-message"
+                                 [@fadeInOut]>
+                                <div class="no-targets-content">
+                                    <div class="no-targets-icon">
+                                        <i class="pi pi-map-marker"></i>
+                                    </div>
+                                    <h3>No hay dispositivos disponibles</h3>
+                                    <p>Aún no tienes dispositivos GPS configurados</p>
+                                    <button (click)="showTargetForm()" 
+                                            class="button button--primary">
+                                        <i class="pi pi-plus"></i>
+                                        <span>Agregar dispositivo</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card" *ngIf="targetsList.length > 0">
+                                <p-table 
+                                    [value]="targetsList" 
+                                    [(selection)]="targetsSelected" 
+                                    dataKey="_id" 
+                                    [tableStyle]="{'min-width': '50rem'}">
+                                    <ng-template pTemplate="header" >
+                                        <tr  >
+                                            <th  style="width: 4rem"><p-tableHeaderCheckbox /></th>
+                                            <th>{{ 'management.table.name' | translate }}</th>
+                                            <th>{{ 'management.table.status' | translate }}</th>
+                                            <th>{{ 'management.table.imei' | translate }}</th>
+                                            <th>{{ 'management.table.sim' | translate }}</th>
+                                            <th>
+                                                <!-- {{ 'management.table.actions' | translate }} -->
 
-
-                        <div class="card">
-                            <p-table 
-                                [value]="targetsList" 
-                                [(selection)]="targetsSelected" 
-                                dataKey="_id" 
-                                [tableStyle]="{'min-width': '50rem'}">
-                                <ng-template pTemplate="header" >
-                                    <tr  >
-                                        <th  style="width: 4rem"><p-tableHeaderCheckbox /></th>
-                                        <th>{{ 'management.table.name' | translate }}</th>
-                                        <th>{{ 'management.table.status' | translate }}</th>
-                                        <th>{{ 'management.table.imei' | translate }}</th>
-                                        <th>{{ 'management.table.sim' | translate }}</th>
-                                        <th>
-                                            <!-- {{ 'management.table.actions' | translate }} -->
-
-                                        </th>
-                                    </tr>
-                                </ng-template>
-                                <ng-template pTemplate="body" let-target>
+                                            </th>
+                                        </tr>
+                                    </ng-template>
+                                    <ng-template pTemplate="body" let-target>
                                     <tr class="management__content-table-tr" 
                                         [ngClass]="{
                                           'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id
@@ -368,8 +416,53 @@
                                         </td>
                                     </tr>
                                 </ng-template>
-                            </p-table>
-                        </div>
+                                </p-table>
+                            </div>
+                        </ng-container>
+                        
+                        <ng-template #loadingTargetsSkeletons>
+                            <div class="card">
+                                <p-table [value]="[1,2,3,4,5]" [tableStyle]="{'min-width': '50rem'}">
+                                    <ng-template pTemplate="header">
+                                        <tr>
+                                            <th style="width: 4rem">
+                                                <p-skeleton [ngStyle]="{ 'width': '20px', 'height': '20px' }"></p-skeleton>
+                                            </th>
+                                            <th>{{ 'management.table.name' | translate }}</th>
+                                            <th>{{ 'management.table.status' | translate }}</th>
+                                            <th>{{ 'management.table.imei' | translate }}</th>
+                                            <th>{{ 'management.table.sim' | translate }}</th>
+                                            <th></th>
+                                        </tr>
+                                    </ng-template>
+                                    <ng-template pTemplate="body" let-skel>
+                                        <tr>
+                                            <td>
+                                                <p-skeleton [ngStyle]="{ 'width': '20px', 'height': '20px' }"></p-skeleton>
+                                            </td>
+                                            <td>
+                                                <p-skeleton [ngStyle]="{ 'width': '120px', 'height': '20px' }"></p-skeleton>
+                                            </td>
+                                            <td>
+                                                <p-skeleton [ngStyle]="{ 'width': '80px', 'height': '20px' }"></p-skeleton>
+                                            </td>
+                                            <td>
+                                                <p-skeleton [ngStyle]="{ 'width': '140px', 'height': '20px' }"></p-skeleton>
+                                            </td>
+                                            <td>
+                                                <p-skeleton [ngStyle]="{ 'width': '100px', 'height': '20px' }"></p-skeleton>
+                                            </td>
+                                            <td>
+                                                <div style="display: flex; gap: 8px;">
+                                                    <p-skeleton [ngStyle]="{ 'width': '32px', 'height': '32px', 'border-radius': '4px' }"></p-skeleton>
+                                                    <p-skeleton [ngStyle]="{ 'width': '32px', 'height': '32px', 'border-radius': '4px' }"></p-skeleton>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </ng-template>
+                                </p-table>
+                            </div>
+                        </ng-template>
                           
                     </div>
                 </div>
@@ -381,13 +474,11 @@
 
 <div class="card flex justify-content-center">
    
-    <p-dialog header="Configuración de objetivo" [modal]="true" [(visible)]="targetFormDisplay" (onHide)="onHideTargetForm()">
+    <p-dialog header="Configuración de objetivo" [modal]="true" [visible]="targetFormDisplay" (onHide)="onHideTargetForm()" (visibleChange)="!$event && onHideTargetForm()">
         <app-target-form [targetInput]="targetToEdit" (targetCreated)="onTargetCreated()"></app-target-form>
     </p-dialog>
 
-    <p-dialog header="Formulario de usuario" [modal]="true" [(visible)]="userFormDisplay" 
-        (onHide)="userToEdit = null"
-    >
+    <p-dialog header="Formulario de usuario" [modal]="true" [visible]="userFormDisplay" (onHide)="onHideUserForm()" (visibleChange)="!$event && onHideUserForm()">
         <app-user-form [userInput]="userToEdit" (userCreated)="onUserCreated()"></app-user-form>
     </p-dialog>
 </div>

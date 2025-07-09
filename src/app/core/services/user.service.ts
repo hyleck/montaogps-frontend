@@ -24,6 +24,14 @@ export class UserService {
     return this.http.get<User[]>(this.apiUrl, params);
   }
 
+  search(query: string, parent?: string): Observable<User[]> {
+    let params: any = { q: query };
+    if (parent) {
+      params.parent = parent;
+    }
+    return this.http.get<User[]>(`${this.apiUrl}/search`, { params });
+  }
+
   getById(id: string): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}/${id}`);
   }
