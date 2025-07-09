@@ -16,7 +16,7 @@ export class MapProviderService {
     selectedMap: 'mapbox-light',
     providerType: 'mapbox',
     providerTheme: 'light',
-    mapsKey: 'mapbox'
+    mapsKey: null
   };
 
   constructor(private status: StatusService) {
@@ -42,6 +42,10 @@ export class MapProviderService {
       this.setProvider(`mapbox-${defaultTheme}`);
       console.log('🗺️ Usando proveedor de mapa por defecto:', this.config.selectedMap);
     }
+    
+    // Generar key inicial para que el mapa se pueda mostrar
+    this.generateNewMapKey();
+    console.log('🔑 Key inicial generada:', this.config.mapsKey);
   }
 
   /**
@@ -86,15 +90,27 @@ export class MapProviderService {
    */
   changeProviderWithRecreation(value: string): Promise<string> {
     return new Promise((resolve) => {
+      console.log('🔄 Iniciando cambio de proveedor:', {
+        from: this.config.selectedMap,
+        to: value,
+        currentKey: this.config.mapsKey
+      });
+      
       this.setProvider(value);
       
       // Primero destruir el mapa actual
       this.destroyMap();
+      console.log('🗑️ Mapa destruido, mapsKey ahora es:', this.config.mapsKey);
       
       // Dar tiempo para que Angular procese la destrucción, luego recrear
       setTimeout(() => {
         const newKey = this.generateNewMapKey();
-        console.log('✅ Cambio de proveedor completado');
+        console.log('✅ Cambio de proveedor completado:', {
+          newProvider: this.config.selectedMap,
+          newKey: newKey,
+          providerType: this.config.providerType,
+          providerTheme: this.config.providerTheme
+        });
         resolve(newKey);
       }, 100);
     });

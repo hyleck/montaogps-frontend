@@ -11,7 +11,7 @@
             
 
             <div class="management__controls">
-               
+          
             </div>
 
             <div class="management__user-control">
@@ -197,7 +197,7 @@
             <div class="management__content-maps">
                 <div class="map-provider-select-wrapper"
                      [ngStyle]="{ right: providerType === 'mapbox' ? '20px' : '60px' }">
-                    <select [(ngModel)]="selectedMap" (change)="setMapProvider(selectedMap)">
+                    <select [value]="selectedMap" (change)="onMapProviderChange($event)">
                         <option value="google-light">Google Maps Claro</option>
                         <option value="google-dark">Google Maps Oscuro</option>
                         <option value="mapbox-light">Mapbox Claro</option>
@@ -205,6 +205,7 @@
                     </select>
                 </div>
                 <app-maps *ngIf="mapsKey" 
+                  [attr.data-key]="mapsKey"
                   [provider]="providerType" 
                   [theme]="providerTheme" 
                   [selectedTarget]="selectedTargetForMap" 
@@ -349,25 +350,25 @@
                                 </div>
                             </div>
                             <div class="card" *ngIf="targetsList.length > 0">
-                                <p-table 
-                                    [value]="targetsList" 
-                                    [(selection)]="targetsSelected" 
-                                    dataKey="_id" 
-                                    [tableStyle]="{'min-width': '50rem'}">
-                                    <ng-template pTemplate="header" >
-                                        <tr  >
-                                            <th  style="width: 4rem"><p-tableHeaderCheckbox /></th>
-                                            <th>{{ 'management.table.name' | translate }}</th>
-                                            <th>{{ 'management.table.status' | translate }}</th>
-                                            <th>{{ 'management.table.imei' | translate }}</th>
-                                            <th>{{ 'management.table.sim' | translate }}</th>
-                                            <th>
-                                                <!-- {{ 'management.table.actions' | translate }} -->
+                            <p-table 
+                                [value]="targetsList" 
+                                [(selection)]="targetsSelected" 
+                                dataKey="_id" 
+                                [tableStyle]="{'min-width': '50rem'}">
+                                <ng-template pTemplate="header" >
+                                    <tr  >
+                                        <th  style="width: 4rem"><p-tableHeaderCheckbox /></th>
+                                        <th>{{ 'management.table.name' | translate }}</th>
+                                        <th>{{ 'management.table.status' | translate }}</th>
+                                        <th>{{ 'management.table.imei' | translate }}</th>
+                                        <th>{{ 'management.table.sim' | translate }}</th>
+                                        <th>
+                                            <!-- {{ 'management.table.actions' | translate }} -->
 
-                                            </th>
-                                        </tr>
-                                    </ng-template>
-                                    <ng-template pTemplate="body" let-target>
+                                        </th>
+                                    </tr>
+                                </ng-template>
+                                <ng-template pTemplate="body" let-target>
                                     <tr class="management__content-table-tr" 
                                         [ngClass]="{
                                           'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id
@@ -416,8 +417,8 @@
                                         </td>
                                     </tr>
                                 </ng-template>
-                                </p-table>
-                            </div>
+                            </p-table>
+                        </div>
                         </ng-container>
                         
                         <ng-template #loadingTargetsSkeletons>

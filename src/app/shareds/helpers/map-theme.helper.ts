@@ -2,7 +2,7 @@
 import { MapUtils } from './map.helper';
 
 export class MapThemeService {
-  static updateTheme(map: any, provider: 'google' | 'mapbox', theme: 'dark' | 'light', selectedTarget: any, restoreMarkers: () => void): void {
+  static updateTheme(map: any, provider: 'google' | 'mapbox', theme: 'dark' | 'light', selectedTarget: any): void {
     if (!map) return;
 
     try {
@@ -11,7 +11,7 @@ export class MapThemeService {
       } else if (provider === 'mapbox') {
         const styleUrl = theme === 'dark' ? 'mapbox://styles/mapbox/dark-v10' : 'mapbox://styles/mapbox/light-v10';
         map.setStyle?.(styleUrl);
-        map.once('styledata', () => restoreMarkers());
+        // Ya no necesitamos restaurar marcadores
       }
     } catch (e) {
       console.error('Error actualizando tema:', e);

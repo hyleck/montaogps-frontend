@@ -1,5 +1,5 @@
 // Angular imports
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription, Subject } from 'rxjs';
@@ -63,6 +63,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   searchUsersTerm: string = '';
   searchTargetsTerm: string = '';
+  
+  // Propiedad local para el ngModel del select de mapas
+  currentMapSelection: string = 'mapbox-light';
   
   // ====================================
   // PROPIEDADES PÚBLICAS - TRADUCCIONES
@@ -134,7 +137,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private mapProviderService: MapProviderService,
     private breadcrumbService: BreadcrumbService,
     private vehicleDataService: VehicleDataService,
-    private uiService: ManagementUIService
+    private uiService: ManagementUIService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   // ====================================
@@ -142,6 +146,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   
   ngOnInit(): void {
+    // Sincronizar la selección actual con el servicio
+    this.currentMapSelection = this.mapProviderService.selectedMap;
+    
     this.setupInitialState();
     this.setupSubscriptions();
     this.setupRouting();
@@ -261,6 +268,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   
   showMapsToggle() {
+    // Si los mapas están visibles, al ocultarlos quitamos el parámetro target de la URL
+    if (this.uiService.areMapsVisible()) {
+      this.removeTargetFromUrl();
+    }
+    
     this.uiService.toggleMaps();
   }
 
@@ -272,9 +284,39 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // MÉTODOS PÚBLICOS - MAPAS
   // ====================================
   
+  onMapProviderChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const value = target.value;
+    console.log('🔄 Map provider change event:', value);
+    this.setMapProvider(value);
+  }
+  
   async setMapProvider(value: string): Promise<void> {
+    console.log('🎛️ Management: setMapProvider llamado con valor:', value);
+    console.log('🎛️ Management: Estado actual del servicio:', {
+      selectedMap: this.mapProviderService.selectedMap,
+      providerType: this.mapProviderService.providerType,
+      mapsKey: this.mapProviderService.mapsKey
+    });
+    
     const newKey = await this.mapProviderService.changeProviderWithRecreation(value);
-    // El mapa se recreará automáticamente gracias al binding [mapsKey]
+    
+    console.log('🎛️ Management: Cambio completado, nueva key:', newKey);
+    console.log('🎛️ Management: Nuevo estado del servicio:', {
+      selectedMap: this.mapProviderService.selectedMap,
+      providerType: this.mapProviderService.providerType,
+      mapsKey: this.mapProviderService.mapsKey
+    });
+    
+    // Forzar detección de cambios
+    this.cdr.detectChanges();
+    console.log('🔄 Change detection forzada');
+  }
+
+  // Método para manejar cambios del ngModel
+  onMapSelectionChange(value: string): void {
+    console.log('🔄 Map selection changed to:', value);
+    this.setMapProvider(value);
   }
 
   // ====================================
@@ -348,6 +390,39 @@ export class ManagementComponent implements OnInit, OnDestroy {
   handleTargetClick(target: any, event: MouseEvent) {
     if (event.ctrlKey) {
       this.openTargetInNewTab(target);
+    } else {
+      // Click normal: agregar el query parameter 'target' a la URL actual
+      this.addTargetToUrl(target);
+    }
+  }
+
+  private addTargetToUrl(target: any) {
+    const currentUserId = this.selectedUser?._id;
+    if (currentUserId) {
+      // Navegar a la misma ruta pero agregando el query parameter 'target'
+      this.router.navigate(
+        ['/admin/management', this.managementService.getOp(), currentUserId],
+        { 
+          queryParams: { target: target._id },
+          queryParamsHandling: 'merge' // Mantener otros query params existentes
+        }
+      );
+      console.log(`🎯 Target agregado a URL: ${target.name} (ID: ${target._id})`);
+    }
+  }
+
+  private removeTargetFromUrl() {
+    const currentUserId = this.selectedUser?._id;
+    if (currentUserId) {
+      // Navegar a la misma ruta pero quitando el query parameter 'target'
+      this.router.navigate(
+        ['/admin/management', this.managementService.getOp(), currentUserId],
+        { 
+          queryParams: { target: null },
+          queryParamsHandling: 'merge' // Mantener otros query params existentes
+        }
+      );
+      console.log('🚫 Parámetro target removido de la URL');
     }
   }
 
@@ -466,7 +541,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('❌ Error en búsqueda de usuarios:', error);
-          this.messageService.add({
+      this.messageService.add({
             severity: 'error',
             summary: 'Error de búsqueda',
             detail: 'No se pudieron buscar los usuarios',
@@ -486,7 +561,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
             // Si no hay término de búsqueda, cargar targets normales
             this.isSearchingTargets = false;
             if (this.selectedUser) {
-              const parentId = this.managementService.getCurrentUserId();
+      const parentId = this.managementService.getCurrentUserId();
               return this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId);
             }
             return [];
@@ -494,7 +569,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
             // Realizar búsqueda
             this.isSearchingTargets = true;
             console.log('🔍 Buscando targets:', searchTerm);
-            const parentId = this.managementService.getCurrentUserId();
+      const parentId = this.managementService.getCurrentUserId();
             return this.targetsService.searchTargets(searchTerm, parentId);
           }
         })
@@ -509,7 +584,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
               const isOnline = traccarStatus === 'online';
               
               return {
-                name: target.name,
+              name: target.name,
                 status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
                 imei: target.device_imei || target.imei,
                 sim: target.sim_card_number || target.sim_card,
@@ -598,6 +673,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
     } else if (this.managementService.getOp() === 't') {
       this.searchTargetsTerm = queryParams['search'];
     }
+
+    // Si hay un parámetro 'target' en la URL, mostrar automáticamente los mapas
+    if (queryParams['target']) {
+      console.log('🗺️ Parámetro target detectado en URL - mostrando mapas automáticamente:', queryParams['target']);
+      this.uiService.showMaps();
+    }
   }
 
   private loadUserFromParams(userId: string): void {
@@ -659,13 +740,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
         next: (users) => {
           this.users = users;
           this.uiService.setLoading(false);
-        },
-        error: (error) => {
+          },
+          error: (error) => {
           console.error('Error al cargar usuarios:', error);
           this.uiService.setLoading(false);
-        }
-      });
-    }
+          }
+        });
+      }
   }
 
   private async loadTargetsForUser(userId: string) {
@@ -702,10 +783,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
             traccarInfo: target.traccarInfo,
             originalTarget: target
           };
-        });
-      } else {
-        this.targetsList = [];
-      }
+                  });
+        } else {
+          this.targetsList = [];
+        }
       
       // Actualizar visibilidad de mapas si es necesario
       this.uiService.autoShowMapsIfMobileAndHasTargets(this.targetsList.length > 0);

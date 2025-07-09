@@ -52,7 +52,10 @@ export class ManagementService {
 
       this.router.navigate(
         ['admin/management', op, this.currentUserId],
-        { queryParams: { search: searchParam } }
+        { 
+          queryParams: { search: searchParam },
+          queryParamsHandling: 'merge' // Preservar otros query params como 'target'
+        }
       ).then(() => {
         this.setURLStatus();
       });
@@ -70,6 +73,7 @@ export class ManagementService {
         ['admin/management', op, this.currentUserId],
         { 
           queryParams: { search: searchParam },
+          queryParamsHandling: 'merge', // Preservar otros query params como 'target'
           replaceUrl: true  // Reemplazar la URL actual sin agregar al historial
         }
       ).then(() => {
@@ -79,8 +83,22 @@ export class ManagementService {
   }
 
   setURLStatus() {
+    // Obtener query params actuales para preservarlos
+    const currentQueryParams = this.router.routerState.root.firstChild?.snapshot.queryParams || {};
+    
+    // Preparar los nuevos query params manteniendo los existentes
+    const newQueryParams: any = {
+      ...currentQueryParams // Preservar parámetros existentes como 'target'
+    };
+    
+    // Solo agregar search si tiene valor
+    const searchTerm = this.op === 'u' ? this.searchUsersTerm : this.searchTargetsTerm;
+    if (searchTerm && searchTerm.trim()) {
+      newQueryParams.search = searchTerm;
+    }
+    
     this.status.setState('management', {
-      url_query_params: { search: this.op === 'u' ? this.searchUsersTerm : this.searchTargetsTerm },
+      url_query_params: newQueryParams,
       url_route: ['admin/management', this.op, this.currentUserId]
     });
   }
@@ -116,7 +134,10 @@ export class ManagementService {
     if (managementState.url_route && managementState.url_route[1] && !params['op'] && !params['user']) {
       this.router.navigate(
         managementState.url_route,
-        { queryParams: managementState.url_query_params }
+        { 
+          queryParams: managementState.url_query_params,
+          queryParamsHandling: 'merge' // Preservar otros query params como 'target'
+        }
       );
     } else if ((!managementState.url_route || !managementState.url_route[1]) && !params['op'] && !params['user']) {
       this.goDefaultRoute();
@@ -145,7 +166,10 @@ export class ManagementService {
   searchUser() {
     this.router.navigate(
       ['admin/management', this.op, this.currentUserId],
-      { queryParams: { search: this.searchUsersTerm } }
+      { 
+        queryParams: { search: this.searchUsersTerm },
+        queryParamsHandling: 'merge' // Preservar otros query params como 'target'
+      }
     );
     this.setURLStatus();
   }
@@ -153,7 +177,10 @@ export class ManagementService {
   searchTargets() {
     this.router.navigate(
       ['admin/management', this.op, this.currentUserId],
-      { queryParams: { search: this.searchTargetsTerm } }
+      { 
+        queryParams: { search: this.searchTargetsTerm },
+        queryParamsHandling: 'merge' // Preservar otros query params como 'target'
+      }
     );
     this.setURLStatus();
   }
