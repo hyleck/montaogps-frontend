@@ -109,9 +109,11 @@
     
                             <div class="card">
                                 <p-table 
-                                    [value]="targetsList" 
+                                    [value]="loading ? [] : targetsList" 
                                     [(selection)]="targetsSelected" 
                                     dataKey="_id" 
+                                    [loading]="loading"
+                                    loadingIcon="pi pi-spinner pi-spin"
                                     >
                                     <ng-template pTemplate="emptymessage">
                                         <tr>
@@ -134,14 +136,44 @@
                                             </td>
                                         </tr>
                                     </ng-template>
+
+                                    <!-- Template para skeleton de loading -->
+                                    <ng-template pTemplate="loadingbody">
+                                        <tr *ngFor="let skel of [1,2,3]">
+                                            <td style="font-size: 13px!important; padding: 16px;">
+                                                <!-- Skeleton para el nombre del target -->
+                                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                                    <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px', 'border-radius': '50%' }"></p-skeleton>
+                                                    <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '120px' : skel === 2 ? '150px' : '100px'), 'height': '18px' }"></p-skeleton>
+                                                </div>
+                                                
+                                                <!-- Skeleton para IMEI -->
+                                                <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '180px' : skel === 2 ? '160px' : '200px'), 'height': '14px', 'margin-bottom': '12px' }"></p-skeleton>
+                                                
+                                                <!-- Skeleton para estado y velocidad -->
+                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                    <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px' }"></p-skeleton>
+                                                    <p-skeleton [ngStyle]="{ 'width': '80px', 'height': '16px' }"></p-skeleton>
+                                                </div>
+                                            </td>
+                                            <td style="width: 1rem; padding: 16px;">
+                                                <div style="display: flex; gap: 4px;">
+                                                    <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                    <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </ng-template>
                                       
                                         <ng-template pTemplate="body" let-target>
                                             <tr class="management__content-table-tr"
                                                 [ngClass]="{
-                                                  'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id
+                                                  'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
+                                                  'target-selected-from-url': isTargetSelectedFromUrl(target._id)
                                                 }"
                                                 [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
                                                 [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
+                                                [style.box-shadow]="isTargetSelectedFromUrl(target._id) ? '0 0 10px rgba(34, 197, 94, 0.3)' : ''"
                                                 [title]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'TARGET SELECCIONADO VISTA MAPA - ID: ' + target._id : ''">
                                             
                                                 <td style="font-size: 13px!important;"> 
@@ -162,6 +194,10 @@
                                                         <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id" 
                                                            class="pi pi-eye target-map-indicator" 
                                                            title="Mostrando en mapa"></i>
+                                                        <i *ngIf="isTargetSelectedFromUrl(target._id)" 
+                                                           class="pi pi-link target-url-indicator" 
+                                                           title="Seleccionado desde URL"
+                                                           style="color: #22c55e; margin-left: 4px;"></i>
                                                     </span>
                                                     <span style="margin-bottom: 10px; display: block;">IMEI: {{target.imei}}</span>
                                                     

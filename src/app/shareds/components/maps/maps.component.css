@@ -14,3 +14,256 @@
     height: 100%;
     width: 100%;
 }
+
+/* Estilos para popups personalizados */
+::ng-deep .custom-popup {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    width: 220px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    position: relative;
+}
+
+::ng-deep .popup-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    padding: 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+::ng-deep .popup-icon {
+    width: 32px;
+    height: 32px;
+    background: rgba(34, 197, 94, 0.1);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+::ng-deep .popup-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    flex: 1;
+    line-height: 1.2;
+}
+
+::ng-deep .popup-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(34, 197, 94, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+    color: #16a34a;
+    flex-shrink: 0;
+}
+
+::ng-deep .status-dot {
+    width: 6px;
+    height: 6px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+::ng-deep .popup-content {
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+::ng-deep .popup-info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 0;
+}
+
+::ng-deep .info-icon {
+    width: 24px;
+    height: 24px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+::ng-deep .info-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+::ng-deep .expandable .info-content {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+::ng-deep .info-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+::ng-deep .info-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    font-family: 'Courier New', monospace;
+}
+
+::ng-deep .popup-footer {
+    padding: 8px 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    background: #f8fafc;
+    display: flex;
+    justify-content: flex-end;
+}
+
+::ng-deep .popup-close-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #ef4444;
+    color: #ffffff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+::ng-deep .popup-close-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Estilos para el contenido expandible */
+::ng-deep .popup-info-item.expandable {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+::ng-deep .popup-info-item.expandable:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 4px;
+}
+
+::ng-deep .expand-icon {
+    transition: transform 0.2s ease;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+::ng-deep .popup-details {
+    padding: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    margin-top: 8px;
+    background: rgba(248, 250, 252, 0.5);
+    border-radius: 4px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    max-height: 0;
+    opacity: 0;
+}
+
+::ng-deep .detail-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+   
+    font-size: 12px;
+    gap: 2px;
+}
+
+::ng-deep .detail-label {
+    font-weight: 500;
+    color: #64748b;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+::ng-deep .detail-value {
+    font-weight: 600;
+    color: #1e293b;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+}
+
+::ng-deep .popup-close-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+::ng-deep .popup-close-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2;
+}
+
+/* Ocultar botones de cerrar por defecto */
+::ng-deep .mapboxgl-popup-close-button {
+    display: none !important;
+}
+
+::ng-deep .gm-ui-hover-effect {
+    display: none !important;
+}
+
+
+
+::ng-deep .mapboxgl-popup-content {
+    padding: 0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    position: relative !important;
+    overflow: visible !important;
+}
+
+::ng-deep .mapboxgl-popup-tip {
+    border-top-color: #ffffff !important;
+}
+
+/* Estilos para Google Maps InfoWindow */
+::ng-deep .gm-style-iw-c {
+    padding: 0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+::ng-deep .gm-style-iw-d {
+    overflow: hidden !important;
+    max-height: none !important;
+}

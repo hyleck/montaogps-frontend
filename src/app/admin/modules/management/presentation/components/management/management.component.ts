@@ -53,6 +53,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   targetToEdit: any | null = null;
   selectedTargetForMap: any | null = null;
   selectedTargetStopTime: string | undefined = undefined;
+  targetIdFromUrl: string | null = null;
   
   // Estado específico de carga de targets
   private loadingTargets: boolean = false;
@@ -104,6 +105,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // Breadcrumb (delegado a BreadcrumbService)
   get items(): MenuItem[] { return this.breadcrumbService.getItems(); }
   get home(): MenuItem { return this.breadcrumbService.getHome(); }
+
+  // Target selection helpers
+  get currentTargetFromUrl(): string | null { return this.targetIdFromUrl; }
+  
+  isTargetSelectedFromUrl(targetId: string): boolean {
+    return this.targetIdFromUrl === targetId;
+  }
 
   // ====================================
   // PROPIEDADES PRIVADAS - SUSCRIPCIONES
@@ -271,6 +279,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Si los mapas están visibles, al ocultarlos quitamos el parámetro target de la URL
     if (this.uiService.areMapsVisible()) {
       this.removeTargetFromUrl();
+      this.selectedTargetForMap = null;
+      this.targetIdFromUrl = null;
     }
     
     this.uiService.toggleMaps();
@@ -674,10 +684,36 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.searchTargetsTerm = queryParams['search'];
     }
 
-    // Si hay un parámetro 'target' en la URL, mostrar automáticamente los mapas
+    // Si hay un parámetro 'target' en la URL, mostrar automáticamente los mapas y seleccionar el target
     if (queryParams['target']) {
       console.log('🗺️ Parámetro target detectado en URL - mostrando mapas automáticamente:', queryParams['target']);
       this.uiService.showMaps();
+      this.selectTargetFromUrl(queryParams['target']);
+    } else {
+      // Si no hay target en la URL, limpiar la selección
+      this.targetIdFromUrl = null;
+      this.selectedTargetForMap = null;
+    }
+  }
+
+  private selectTargetFromUrl(targetId: string): void {
+    this.targetIdFromUrl = targetId;
+    console.log('🎯 Seleccionando target desde URL:', targetId);
+    
+    // Si ya tenemos la lista de targets cargada, seleccionar inmediatamente
+    if (this.targetsList && this.targetsList.length > 0) {
+      this.findAndSelectTarget(targetId);
+    }
+    // Si no, el target se seleccionará cuando se cargue la lista en loadTargetsForUser
+  }
+
+  private findAndSelectTarget(targetId: string): void {
+    const target = this.targetsList.find(t => t._id === targetId);
+    if (target) {
+      this.selectedTargetForMap = target;
+      console.log('✅ Target seleccionado desde URL:', target.name);
+    } else {
+      console.warn('⚠️ Target no encontrado en la lista:', targetId);
     }
   }
 
@@ -790,6 +826,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
       
       // Actualizar visibilidad de mapas si es necesario
       this.uiService.autoShowMapsIfMobileAndHasTargets(this.targetsList.length > 0);
+      
+      // Si hay un target ID desde la URL, intentar seleccionarlo
+      if (this.targetIdFromUrl) {
+        this.findAndSelectTarget(this.targetIdFromUrl);
+      }
       
       console.log('✅ Carga de targets completada exitosamente');
       
