@@ -367,7 +367,7 @@ export class PopupBuilder {
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
-        padding: 8px 10px;
+    
         background: #f8f9fa;
         border-radius: 4px;
         border-left: 3px solid #ff9800;
@@ -439,7 +439,6 @@ export class PopupBuilder {
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
-        padding: 8px 10px;
         background: #f8f9fa;
         border-radius: 4px;
         border-left: 3px solid #ff9800;
@@ -620,7 +619,6 @@ export class PopupBuilder {
         display: flex; 
         justify-content: space-between; 
         align-items: center; 
-        padding: 8px 10px;
         background: ${isEngineOn ? '#e8f5e8' : '#f5f5f5'};
         border-radius: 4px;
         border-left: 3px solid ${ignitionColor};

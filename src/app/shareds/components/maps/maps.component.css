@@ -251,6 +251,17 @@
     overflow: visible !important;
 }
 
+/* Estilos específicos para Mapbox - quitar padding del contenido expandible */
+::ng-deep .mapboxgl-popup .popup-details {
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+::ng-deep .mapboxgl-popup .detail-item {
+    /* padding: 6px 0 !important; */
+    margin: 0 8px !important;
+}
+
 ::ng-deep .mapboxgl-popup-tip {
     border-top-color: #ffffff !important;
 }
