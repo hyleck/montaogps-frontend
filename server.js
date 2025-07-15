@@ -5,7 +5,7 @@ const app = express();
 const PORT = process.env.PORT || 4200;
 
 // Servir archivos estáticos de Angular
-app.use(express.static(path.join(__dirname, '/dist/montaogps-frontend')));
+app.use(express.static(path.join(__dirname, '/dist/montaogps-frontend/browser/')));
 
 // Configurar CORS optimizado para beta.montao.net
 app.use((req, res, next) => {
