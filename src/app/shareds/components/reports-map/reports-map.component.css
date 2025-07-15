@@ -1,0 +1,360 @@
+.reports-map {
+    height: 100%;
+    width: 100%;
+    position: relative;
+    background: #f8fafc;
+}
+
+.reports-map__container {
+    height: 100%;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.reports-map__map {
+    height: 100%;
+    width: 100%;
+}
+
+/* Estilos para popups personalizados de reportes */
+::ng-deep .reports-popup {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    width: 280px;
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+::ng-deep .reports-popup-header {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+::ng-deep .reports-popup-icon {
+    width: 32px;
+    height: 32px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+::ng-deep .reports-popup-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    flex: 1;
+    line-height: 1.2;
+}
+
+::ng-deep .reports-popup-content {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+::ng-deep .reports-info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+::ng-deep .reports-info-item:last-child {
+    border-bottom: none;
+}
+
+::ng-deep .reports-info-icon {
+    width: 24px;
+    height: 24px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+::ng-deep .reports-info-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+::ng-deep .reports-info-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+::ng-deep .reports-info-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    font-family: 'Courier New', monospace;
+}
+
+::ng-deep .reports-popup-footer {
+    padding: 12px 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    background: #f8fafc;
+    display: flex;
+    justify-content: center;
+}
+
+::ng-deep .reports-close-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #6b7280;
+    color: #ffffff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+::ng-deep .reports-close-btn:hover {
+    background: #4b5563;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Ocultar controles por defecto de Google Maps */
+::ng-deep .gm-ui-hover-effect {
+    display: none !important;
+}
+
+::ng-deep .gm-style-iw {
+    padding: 0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+::ng-deep .gm-style-iw-c {
+    padding: 0 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+::ng-deep .gm-style-iw-d {
+    overflow: hidden !important;
+    max-height: none !important;
+}
+
+/* Loading indicator */
+.reports-map__loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.reports-map__loading i {
+    font-size: 24px;
+    color: #3b82f6;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Controles de reproducción */
+.replay-controls {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    z-index: 1000;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.replay-controls__main {
+    display: flex;
+    gap: 6px;
+}
+
+.replay-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 6px;
+    background: #3b82f6;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.replay-btn:hover:not(:disabled) {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.replay-btn:disabled {
+    background: #d1d5db;
+    color: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.replay-btn.play {
+    background: #10b981;
+}
+
+.replay-btn.play:hover:not(:disabled) {
+    background: #059669;
+}
+
+.replay-btn.pause {
+    background: #f59e0b;
+}
+
+.replay-btn.pause:hover:not(:disabled) {
+    background: #d97706;
+}
+
+.replay-btn.stop {
+    background: #ef4444;
+}
+
+.replay-btn.stop:hover:not(:disabled) {
+    background: #dc2626;
+}
+
+.replay-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    padding-left: 12px;
+}
+
+.replay-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.progress-bar {
+    width: 120px;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    transition: width 0.3s ease;
+    border-radius: 3px;
+}
+
+.progress-text {
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+    min-width: 60px;
+}
+
+.replay-speed {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.replay-speed label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.replay-speed select {
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 12px;
+    background: white;
+    color: #374151;
+    cursor: pointer;
+}
+
+.replay-speed select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 768px) {
+    .replay-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        min-width: 200px;
+    }
+
+    .replay-info {
+        border-left: none;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        padding-left: 0;
+        padding-top: 8px;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .progress-bar {
+        width: 100%;
+    }
+} 

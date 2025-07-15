@@ -97,13 +97,13 @@ export class MapUtils {
       });
     }
   
-      static recenterMap(map: any, provider: 'google' | 'mapbox', lat: number, lng: number) {
-      // console.log('🎯 MapUtils.recenterMap EJECUTADO:', {
-      //   provider,
-      //   lat: lat.toFixed(6),
-      //   lng: lng.toFixed(6),
-      //   coordsFormatted: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
-      // });
+        static recenterMap(map: any, provider: 'google' | 'mapbox', lat: number, lng: number) {
+    // console.log('🎯 MapUtils.recenterMap EJECUTADO:', {
+    //   provider,
+    //   lat: lat.toFixed(6),
+    //   lng: lng.toFixed(6),
+    //   coordsFormatted: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+    // });
 
     if (provider === 'google') {
       // console.log('🗺️ Centrando Google Maps en:', { lat, lng });
@@ -116,6 +116,36 @@ export class MapUtils {
     }
     
     // console.log('✅ MapUtils.recenterMap COMPLETADO');
+  }
+
+  static recenterMapIfOutOfView(map: any, provider: 'google' | 'mapbox', lat: number, lng: number) {
+    if (!map) return;
+
+    if (provider === 'google') {
+      const bounds = map.getBounds();
+      
+      if (!bounds) return;
+
+      const markerLatLng = new google.maps.LatLng(lat, lng);
+      
+      // Verificar si el marcador está fuera de los límites visibles
+      if (!bounds.contains(markerLatLng)) {
+        console.log('🎯 Marcador fuera de vista, centrando mapa en Google Maps');
+        map.panTo({ lat, lng });
+      }
+    } else {
+      // Mapbox
+      const bounds = map.getBounds();
+      
+      if (!bounds) return;
+
+      // Verificar si el marcador está fuera de los límites visibles
+      if (lng < bounds.getWest() || lng > bounds.getEast() || 
+          lat < bounds.getSouth() || lat > bounds.getNorth()) {
+        console.log('🎯 Marcador fuera de vista, centrando mapa en Mapbox');
+        map.setCenter([lng, lat]);
+      }
+    }
   }
 
   static addMarker(map: any, provider: 'google' | 'mapbox', lat: number, lng: number, title: string = '', info: string = ''): any {

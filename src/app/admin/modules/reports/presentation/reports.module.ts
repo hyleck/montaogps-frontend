@@ -7,6 +7,7 @@ import { ReportsRoutingModule } from './reports-routing.module';
 import { ReportsComponent } from './components/reports/reports.component';
 import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
 import { MapsModule } from '../../../../shareds/components/maps/maps.module';
+import { ReportsMapModule } from '../../../../shareds/components/reports-map/reports-map.module';
 
 @NgModule({
   declarations: [
@@ -18,7 +19,8 @@ import { MapsModule } from '../../../../shareds/components/maps/maps.module';
     TranslateModule,
     ReportsRoutingModule,
     PrimengModule,
-    MapsModule
+    MapsModule,
+    ReportsMapModule
   ]
 })
 export class ReportsModule { }

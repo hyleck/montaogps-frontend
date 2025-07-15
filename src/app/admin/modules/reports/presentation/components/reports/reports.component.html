@@ -84,27 +84,15 @@
               </div>
         </div>
 
-        <!-- Dispositivos -->
-        <div class="filter-group">
+        <!-- Información del dispositivo (solo muestra, no editable) -->
+        <div class="filter-group" *ngIf="getSelectedTargetInfo()">
           <label class="filter-label">
-            <i class="fas fa-car"></i>
-            {{ 'reports.devices' | translate }}
-            <span class="selected-count" *ngIf="reportFilter.selectedTargets.length > 0">
-              {{ reportFilter.selectedTargets.length }}
-            </span>
+            <i class="fas fa-mobile-alt"></i>
+            Dispositivo Seleccionado
           </label>
-          <select
-            multiple
-            [(ngModel)]="reportFilter.selectedTargets"
-            (change)="onTargetSelectionChange($event)"
-            class="native-multiselect"
-            [disabled]="loading">
-            <option *ngFor="let target of targets" [value]="target._id">
-              {{ target.name }} - {{ target.deviceId || 'Sin ID' }} ({{ getDeviceStatusText(target) }})
-            </option>
-          </select>
-          <div class="multiselect-help" *ngIf="loading">
-            Cargando dispositivos...
+          <div class="target-info-display">
+            <div class="target-name">{{ getSelectedTargetInfo()?.name || getSelectedTargetInfo()?.alias }}</div>
+            <div class="target-details">IMEI: {{ getSelectedTargetInfo()?.imei || 'Sin IMEI' }}</div>
           </div>
         </div>
 
@@ -224,17 +212,14 @@
         <button 
           type="button"
           class="generate-report-btn"
-          [disabled]="(reportFilter.reportType !== 'route_history' && reportFilter.selectedTargets.length === 0) || generatingReport"
+          [disabled]="generatingReport"
           (click)="generateReport()">
           <i class="fas fa-play"></i>
           {{ 'reports.generate_report' | translate }}
         </button>
         <div class="action-info">
           <i class="fas fa-info-circle"></i>
-          <span *ngIf="reportFilter.reportType !== 'route_history' && reportFilter.selectedTargets.length === 0">
-            {{ 'reports.select_devices_info' | translate }}
-          </span>
-          <span *ngIf="reportFilter.reportType === 'route_history' || reportFilter.selectedTargets.length > 0">
+          <span>
             {{ 'reports.generation_info' | translate }}
           </span>
         </div>
@@ -250,7 +235,7 @@
           {{ 'reports.visualization' | translate }}
         </h3>
         <button 
-          *ngIf="!generatingReport && (reportFilter.reportType === 'route_history' || reportFilter.selectedTargets.length > 0)"
+          *ngIf="!generatingReport"
           type="button"
           class="export-btn"
           (click)="exportReport()">
@@ -302,11 +287,11 @@
             {{ 'reports.loading_history' | translate }}
           </div>
 
-          <app-maps 
-            [provider]="'mapbox'"
-            [theme]="'light'"
-            [selectedTarget]="getSelectedTargetForMap()">
-          </app-maps>
+          <app-reports-map 
+            [selectedTarget]="getSelectedTargetForMap()"
+            [routeHistory]="routeHistory"
+            [showRouteDetails]="true">
+          </app-reports-map>
         </div>
       </div>
     </div>

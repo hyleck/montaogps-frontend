@@ -1,0 +1,62 @@
+<div class="reports-map">
+    <!-- Controles de reproducción -->
+    <div class="replay-controls" *ngIf="routeHistory && routeHistory.positions.length > 0">
+        <div class="replay-controls__main">
+            <button 
+                class="replay-btn play" 
+                [disabled]="isReplaying && !isPaused"
+                (click)="isPaused ? resumeReplay() : startReplay()">
+                <svg *ngIf="!isReplaying || isPaused" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5,3 19,12 5,21"></polygon>
+                </svg>
+                <svg *ngIf="isReplaying && !isPaused" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+            </button>
+
+            <button 
+                class="replay-btn pause" 
+                [disabled]="!isReplaying || isPaused"
+                (click)="pauseReplay()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+            </button>
+
+            <button 
+                class="replay-btn stop" 
+                [disabled]="!isReplaying"
+                (click)="stopReplay()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="3" y="3" width="18" height="18"></rect>
+                </svg>
+            </button>
+        </div>
+
+        <div class="replay-info">
+            <div class="replay-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" [style.width.%]="getReplayProgress()"></div>
+                </div>
+                <span class="progress-text">{{currentPositionIndex}} / {{replayPositions.length}}</span>
+            </div>
+            
+            <div class="replay-speed">
+                <label>Velocidad:</label>
+                <select (change)="onSpeedChange($event)" [value]="replaySpeed">
+                    <option value="100">Muy rápida</option>
+                    <option value="300">Rápida</option>
+                    <option value="500">Normal</option>
+                    <option value="1000">Lenta</option>
+                    <option value="2000">Muy lenta</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="reports-map__container">
+        <div class="reports-map__map" id="reports-map"></div>
+    </div>
+</div> 

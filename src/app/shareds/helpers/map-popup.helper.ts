@@ -1,6 +1,11 @@
 // utils/popup-builder.ts
 
 export class PopupBuilder {
+  
+  // Hacer disponible globalmente para acceso desde componentes
+  static {
+    (window as any).PopupBuilder = PopupBuilder;
+  }
       static buildPopupHtml({
     title,
     vehicleType,
@@ -732,7 +737,95 @@ export class PopupBuilder {
       }
     }   
 
-      // Método auxiliar rápido para obtener estado de ignición
+      // Método para actualizar elementos específicos del popup sin regenerar HTML
+  static updatePopupElementsDirectly(popupElement: HTMLElement, updates: {
+    title?: string;
+    speedKmh?: number;
+    status?: 'online' | 'offline' | string;
+    stopTime?: string | null;
+    ignitionStatus?: 'on' | 'off' | null;
+  }): void {
+    try {
+      // Actualizar título
+      if (updates.title !== undefined) {
+        const titleElement = popupElement.querySelector('.popup-title, [style*="font-size: 14px"]');
+        if (titleElement) {
+          // Preservar el HTML del tipo de vehículo si existe
+          const vehicleTypeHtml = titleElement.innerHTML.match(/<span[^>]*>\([^)]+\)<\/span>/);
+          titleElement.innerHTML = updates.title + (vehicleTypeHtml ? vehicleTypeHtml[0] : '');
+        }
+      }
+
+      // Actualizar velocidad
+      if (updates.speedKmh !== undefined) {
+        const speedText = updates.speedKmh === 0 ? 'Estacionado' : `${updates.speedKmh} km/h`;
+        const speedElements = popupElement.querySelectorAll('[style*="color: #333"]');
+        speedElements.forEach(element => {
+          if (element.textContent?.includes('km/h') || element.textContent?.includes('Estacionado')) {
+            element.textContent = speedText;
+          }
+        });
+      }
+
+      // Actualizar estado
+      if (updates.status !== undefined) {
+        const statusColor = updates.status === 'online' ? '#4CAF50' : '#F44336';
+        const statusLabel = updates.status === 'online' ? 'Conectado' : 'Desconectado';
+        const statusElements = popupElement.querySelectorAll('[style*="color: #4CAF50"], [style*="color: #F44336"]');
+        statusElements.forEach(element => {
+          if (element.textContent?.includes('Conectado') || element.textContent?.includes('Desconectado')) {
+            element.textContent = statusLabel;
+            const elementStyle = element as HTMLElement;
+            elementStyle.style.color = statusColor;
+          }
+        });
+      }
+
+      // Actualizar tiempo de parada
+      if (updates.stopTime !== undefined) {
+        const stopTimeSection = popupElement.querySelector('#stop-time-section');
+        if (updates.stopTime === null) {
+          // Limpiar tiempo de parada (target nuevo)
+          if (stopTimeSection) {
+            this.removeStopTimeSectionIfMoving(popupElement, 999); // Usar velocidad alta para forzar remoción
+            console.log('🧹 Tiempo de parada limpiado (target nuevo)');
+          }
+        } else if (updates.stopTime && (updates.speedKmh === 0 || updates.speedKmh === undefined)) {
+          // Mostrar tiempo de parada si existe y la velocidad es 0 o no está definida
+          if (stopTimeSection) {
+            // Actualizar sección existente
+            const timeValue = stopTimeSection.querySelector('[style*="color: #ff9800"]');
+            if (timeValue) {
+              timeValue.textContent = updates.stopTime;
+              console.log('🕐 Tiempo de parada actualizado en sección existente:', updates.stopTime);
+            }
+          } else {
+            // Crear nueva sección de tiempo de parada
+            this.addStopTimeWithAnimation(popupElement, updates.stopTime, updates.speedKmh, updates.ignitionStatus);
+            console.log('🕐 Creada nueva sección de tiempo de parada:', updates.stopTime);
+          }
+        } else if (stopTimeSection && updates.speedKmh && updates.speedKmh > 0) {
+          // Remover sección si el vehículo está en movimiento
+          this.removeStopTimeSectionIfMoving(popupElement, updates.speedKmh);
+          console.log('🚗 Removida sección de tiempo de parada - vehículo en movimiento');
+        }
+      }
+
+      // Actualizar estado de ignición
+      if (updates.ignitionStatus !== undefined) {
+        const contentDiv = popupElement.querySelector('#popup-content');
+        if (contentDiv) {
+          this.addOrUpdateIgnitionSection(contentDiv, updates.ignitionStatus);
+        }
+      }
+
+      console.log('✅ Popup actualizado directamente sin parpadeos');
+    } catch (error) {
+      console.warn('⚠️ Error actualizando popup directamente:', error);
+    }
+  }
+
+  // Método auxiliar rápido para obtener estado de ignición
   private static fastGetIgnitionStatus(target: any): 'on' | 'off' | null {
     // BUSCAR ignition_sensor en el target principal o en originalTarget
     let ignitionSensor = target?.ignition_sensor;

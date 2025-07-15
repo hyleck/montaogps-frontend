@@ -3,7 +3,8 @@ import { RouterModule, Routes } from '@angular/router';
 import { ReportsComponent } from './components/reports/reports.component';
 
 const routes: Routes = [
-  { path: '', component: ReportsComponent } // Ruta predeterminada para mostrar el login
+  { path: '', component: ReportsComponent }, // Ruta predeterminada
+  { path: ':targetId', component: ReportsComponent } // Ruta con parámetro de target ID
 ];
 
 

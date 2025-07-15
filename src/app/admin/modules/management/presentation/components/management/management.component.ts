@@ -119,6 +119,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
   
   // ====================================
+  // PROPIEDADES PRIVADAS - POLLING
+  // ====================================
+  private pollingInterval: any = null;
+  private readonly POLLING_INTERVAL_MS = 10000; // 10 segundos
+  
+  // ====================================
   // PROPIEDADES PRIVADAS - BÚSQUEDA
   // ====================================
   private searchUsersSubject = new Subject<string>();
@@ -165,6 +171,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.cleanupSubscriptions();
+    this.stopPolling();
     
     // Limpiar subjects
     this.searchUsersSubject.complete();
@@ -403,6 +410,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
     } else {
       // Click normal: agregar el query parameter 'target' a la URL actual
       this.addTargetToUrl(target);
+      
+      // Si el target es diferente al actual, cambiar selección y actualizar polling
+      if (!this.selectedTargetForMap || this.selectedTargetForMap._id !== target._id) {
+        this.stopPolling();
+        this.selectedTargetForMap = target;
+        this.startPolling();
+        console.log('🔄 Cambiado polling a nuevo target:', target.name);
+      }
     }
   }
 
@@ -690,9 +705,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.uiService.showMaps();
       this.selectTargetFromUrl(queryParams['target']);
     } else {
-      // Si no hay target en la URL, limpiar la selección
+      // Si no hay target en la URL, limpiar la selección y detener polling
       this.targetIdFromUrl = null;
       this.selectedTargetForMap = null;
+      this.stopPolling();
+      console.log('🚫 No hay target en URL - polling detenido');
     }
   }
 
@@ -710,8 +727,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private findAndSelectTarget(targetId: string): void {
     const target = this.targetsList.find(t => t._id === targetId);
     if (target) {
+      // Detener polling anterior si existe
+      this.stopPolling();
+      
       this.selectedTargetForMap = target;
       console.log('✅ Target seleccionado desde URL:', target.name);
+      
+      // Iniciar polling para el nuevo target seleccionado
+      this.startPolling();
     } else {
       console.warn('⚠️ Target no encontrado en la lista:', targetId);
     }
@@ -870,6 +893,75 @@ export class ManagementComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  // ====================================
+  // MÉTODOS PRIVADOS - POLLING
+  // ====================================
+  
+  private startPolling(): void {
+    // Detener cualquier polling previo
+    this.stopPolling();
+    
+    // Solo iniciar polling si hay un target seleccionado
+    if (this.selectedTargetForMap) {
+      console.log('🔄 Iniciando polling para target:', this.selectedTargetForMap.name);
+      
+      this.pollingInterval = setInterval(async () => {
+        await this.updateSelectedTargetData();
+      }, this.POLLING_INTERVAL_MS);
+      
+      // Actualizar inmediatamente
+      this.updateSelectedTargetData();
+    }
+  }
+  
+  private stopPolling(): void {
+    if (this.pollingInterval) {
+      console.log('⏹️ Deteniendo polling');
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+  
+  private async updateSelectedTargetData(): Promise<void> {
+    if (!this.selectedTargetForMap) {
+      this.stopPolling();
+      return;
+    }
+    
+    try {
+      console.log('📡 Actualizando datos del target:', this.selectedTargetForMap._id);
+      
+      // Obtener información actualizada del target
+      const updatedTarget = await this.targetsService.getTargetById(this.selectedTargetForMap._id);
+      
+      // Actualizar el target seleccionado con la nueva información
+      this.selectedTargetForMap = {
+        ...this.selectedTargetForMap,
+        ...updatedTarget,
+        // Preservar información adicional que pueda tener el target local
+        traccarInfo: updatedTarget.traccarInfo || this.selectedTargetForMap.traccarInfo
+      };
+      
+      // Actualizar también en la lista de targets si existe
+      const targetIndex = this.targetsList.findIndex(t => t._id === this.selectedTargetForMap._id);
+      if (targetIndex !== -1) {
+        this.targetsList[targetIndex] = { ...this.targetsList[targetIndex], ...updatedTarget };
+      }
+      
+      // Forzar detección de cambios para actualizar la UI
+      this.cdr.detectChanges();
+      
+      console.log('✅ Target actualizado:', {
+        name: updatedTarget.name,
+        lastUpdate: new Date().toLocaleTimeString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Error actualizando target:', error);
+      // No mostrar error al usuario para evitar spam, solo log en consola
+    }
   }
 
   private deleteTarget(target: any): void {

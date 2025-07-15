@@ -150,7 +150,7 @@ export class MarkerService {
       }
       
       // console.log('🎯 EJECUTANDO CENTRADO del mapa en:', { lat: lat.toFixed(6), lng: lng.toFixed(6) });
-      MapUtils.recenterMap(map, provider, lat, lng);
+      MapUtils.recenterMapIfOutOfView(map, provider, lat, lng);
       // console.log('✅ CENTRADO COMPLETADO para target:', target._id);
     }, 10); // Delay mínimo de 10ms para asegurar sincronización
 
@@ -572,55 +572,67 @@ export class MarkerService {
       }
     }
 
-    // Obtener tiempo de parada solo para dispositivos online
+    // Obtener tiempo de parada actualizado en cada polling
     let stopTime: string | undefined = undefined;
-    if (targetsService && target.api_device_id && status === 'online') {
+    if (targetsService && target.api_device_id) {
       try {
-        // console.log('🔄 Actualizando tiempo de parada para device:', target.api_device_id);
+        console.log('🔄 Actualizando tiempo de parada para device:', target.api_device_id, '(estado:', status + ')');
         const stopTimeResponse = await targetsService.getStopTime(target.api_device_id);
-        // console.log('📊 Respuesta actualización tiempo de parada:', stopTimeResponse);
+        console.log('📊 Respuesta actualización tiempo de parada:', stopTimeResponse);
         
         if (!stopTimeResponse.isMoving && stopTimeResponse.text && !stopTimeResponse.error) {
           stopTime = stopTimeResponse.text;
-          // console.log('✅ Tiempo de parada actualizado:', stopTime);
+          console.log('✅ Tiempo de parada actualizado:', stopTime);
         } else if (stopTimeResponse.isMoving) {
-          // console.log('🚗 Vehículo en movimiento durante actualización');
+          console.log('🚗 Vehículo en movimiento durante actualización');
         } else if (stopTimeResponse.error) {
-          // console.log('❌ Error en actualización:', stopTimeResponse.error);
+          console.log('❌ Error en actualización:', stopTimeResponse.error);
         }
       } catch (error) {
-        console.warn('Could not get stop time in update:', error);
+        console.warn('❌ Error obteniendo tiempo de parada en actualización:', error);
       }
+    } else {
+      console.log('⚠️ No se puede obtener tiempo de parada - targetsService:', !!targetsService, 'api_device_id:', target.api_device_id);
     }
 
     // Actualizar posición y popup con los datos obtenidos
     if (provider === 'google') {
       marker.setPosition(new google.maps.LatLng(lat, lng));
       const infoWindow = marker.infoWindow;
-      if (infoWindow) {
-        // Obtener el elemento actual del popup para preservar el estado
-        const oldPopupElement = infoWindow.getContent();
+      if (infoWindow && infoWindow.getMap()) {
+        // Obtener el elemento actual del popup
+        const popupElement = infoWindow.getContent();
         
-        const newHtml = PopupBuilder.buildPopupHtml({
-          title: target.name,
-          vehicleType: vehicleTypeGetter?.(target.model),
-          speedKmh: finalSpeedKmh,
-          status,
-          stopTime,
-          lastLocationDate,
-          width: 320,
-          ignitionStatus,
-          target
-        });
-        
-        // Preservar el estado del botón "Más información"
-        const preservedHtml = PopupBuilder.preserveMoreInfoState(oldPopupElement, newHtml);
-        infoWindow.setContent(preservedHtml);
-        
-        // Reconfigurar el evento del botón después de actualizar el contenido
-        setTimeout(() => {
-          PopupBuilder.showMoreInfoButtonIfNeeded(infoWindow.getContent());
-        }, 10);
+        if (popupElement && popupElement.querySelector) {
+          // Actualizar elementos específicos sin regenerar HTML
+          PopupBuilder.updatePopupElementsDirectly(popupElement, {
+            title: target.name,
+            speedKmh: finalSpeedKmh,
+            status,
+            stopTime,
+            ignitionStatus
+          });
+        } else {
+          // Fallback: regenerar HTML si no se puede actualizar directamente
+          const newHtml = PopupBuilder.buildPopupHtml({
+            title: target.name,
+            vehicleType: vehicleTypeGetter?.(target.model),
+            speedKmh: finalSpeedKmh,
+            status,
+            stopTime,
+            lastLocationDate,
+            width: 320,
+            ignitionStatus,
+            target
+          });
+          
+          const preservedHtml = PopupBuilder.preserveMoreInfoState(popupElement, newHtml);
+          infoWindow.setContent(preservedHtml);
+          
+          setTimeout(() => {
+            PopupBuilder.showMoreInfoButtonIfNeeded(infoWindow.getContent());
+          }, 10);
+        }
       }
     } else {
       // Mapbox: actualizar posición del marcador
@@ -630,33 +642,43 @@ export class MarkerService {
       this.centerMapboxMarkerIfOutOfView(map, lng, lat);
       
       const popup = marker.getPopup();
-      if (popup) {
-        // Obtener el elemento actual del popup para preservar el estado
-        const oldPopupElement = popup._content;
+      if (popup && popup.isOpen()) {
+        // Obtener el elemento actual del popup
+        const popupElement = popup._content;
         
-        const newHtml = PopupBuilder.buildPopupHtml({
-          title: target.name,
-          vehicleType: vehicleTypeGetter?.(target.model),
-          speedKmh: finalSpeedKmh,
-          status,
-          stopTime,
-          lastLocationDate,
-          width: 280,
-          ignitionStatus,
-          target
-        });
-        
-        // Preservar el estado del botón "Más información"
-        const preservedHtml = PopupBuilder.preserveMoreInfoState(oldPopupElement, newHtml);
-        popup.setHTML(preservedHtml);
-        
-        // Reconfigurar el evento del botón después de actualizar el contenido
-        setTimeout(() => {
-          const popupElement = popup._content;
-          if (popupElement) {
-            PopupBuilder.showMoreInfoButtonIfNeeded(popupElement);
-          }
-        }, 10);
+        if (popupElement && popupElement.querySelector) {
+          // Actualizar elementos específicos sin regenerar HTML
+          PopupBuilder.updatePopupElementsDirectly(popupElement, {
+            title: target.name,
+            speedKmh: finalSpeedKmh,
+            status,
+            stopTime,
+            ignitionStatus
+          });
+        } else {
+          // Fallback: regenerar HTML si no se puede actualizar directamente
+          const newHtml = PopupBuilder.buildPopupHtml({
+            title: target.name,
+            vehicleType: vehicleTypeGetter?.(target.model),
+            speedKmh: finalSpeedKmh,
+            status,
+            stopTime,
+            lastLocationDate,
+            width: 280,
+            ignitionStatus,
+            target
+          });
+          
+          const preservedHtml = PopupBuilder.preserveMoreInfoState(popupElement, newHtml);
+          popup.setHTML(preservedHtml);
+          
+          setTimeout(() => {
+            const popupElement = popup._content;
+            if (popupElement) {
+              PopupBuilder.showMoreInfoButtonIfNeeded(popupElement);
+            }
+          }, 10);
+        }
       }
     }
 

@@ -3,6 +3,8 @@
   padding: 16px;
   background: var(--reportsBackground);
   font-family: system-ui, sans-serif;
+  height: calc(100vh - 50px);
+  overflow: auto;
 }
 
 .reports__breadcrumb {
@@ -95,6 +97,26 @@
   background: var(--reportsFormBackground);
   cursor: not-allowed;
   opacity: 0.7;
+}
+
+/* Target info display */
+.target-info-display {
+  background: var(--reportsFormInput);
+  border: 1px solid var(--reportsFormInputBorder);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.target-name {
+  font-weight: 600;
+  color: var(--reportsText);
+  margin-bottom: 4px;
+  font-size: 0.875rem;
+}
+
+.target-details {
+  color: var(--reportsMutedText);
+  font-size: 0.75rem;
 }
 
 .native-multiselect {

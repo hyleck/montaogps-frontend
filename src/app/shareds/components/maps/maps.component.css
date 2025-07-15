@@ -141,7 +141,27 @@
     border-top: 1px solid rgba(0, 0, 0, 0.05);
     background: #f8fafc;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+}
+
+::ng-deep .popup-history-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 6px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+::ng-deep .popup-history-btn:hover {
+    background: rgba(100, 116, 139, 0.1);
+    color: #475569;
 }
 
 ::ng-deep .popup-close-btn {

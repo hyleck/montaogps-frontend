@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { MenuItem, MessageService } from 'primeng/api';
 import { TargetsService } from '@core/services/targets.service';
 import { TranslateService } from '@ngx-translate/core';
@@ -9,8 +10,8 @@ import { RouteHistoryResponse, RouteHistoryPosition } from '@core/interfaces';
 export interface ReportFilter {
   reportType: string;
   dateRange: {
-    start: Date | null;
-    end: Date | null;
+    start: Date | string | null;
+    end: Date | string | null;
   };
   selectedTargets: any[];
   speedFilter: {
@@ -51,12 +52,15 @@ export class ReportsComponent implements OnInit {
     routeHistory: RouteHistoryResponse | null = null;
     loadingRouteHistory: boolean = false;
     
+    // Target ID específico desde la URL
+    targetIdFromUrl: string | null = null;
+    
     // Filtros del reporte
     reportFilter: ReportFilter = {
       reportType: 'movements',
       dateRange: {
-        start: new Date(Date.now() - 24 * 60 * 60 * 1000), // Ayer
-        end: new Date() // Hoy
+        start: null, // Se inicializa en ngOnInit
+        end: null // Se inicializa en ngOnInit
       },
       selectedTargets: [],
       speedFilter: {
@@ -149,11 +153,42 @@ export class ReportsComponent implements OnInit {
       private messageService: MessageService,
       private translate: TranslateService,
       private authService: AuthService,
-      private themesService: ThemesService
+      private themesService: ThemesService,
+      private route: ActivatedRoute
     ) {}
 
     ngOnInit(): void {
+      // Inicializar fechas por defecto
+      this.initializeDateRange();
+      
       this.loadTargets();
+      
+      // Capturar targetId de la URL si existe (parámetro de ruta)
+      this.route.params.subscribe(params => {
+        const targetId = params['targetId'];
+        if (targetId) {
+          console.log('📍 Target ID recibido desde parámetro de ruta:', targetId);
+          this.targetIdFromUrl = targetId; // Almacenar el target ID de la ruta
+          this.preselectTarget(targetId);
+        }
+      });
+
+      // Capturar query parameters (target y type)
+      this.route.queryParams.subscribe(queryParams => {
+        const target = queryParams['target'];
+        const type = queryParams['type'];
+        
+        if (target) {
+          console.log('📍 Target ID recibido desde query params:', target);
+          this.targetIdFromUrl = target; // Almacenar el target ID de la URL
+          this.preselectTarget(target);
+        }
+        
+        if (type) {
+          console.log('📊 Tipo de reporte recibido desde query params:', type);
+          this.preselectReportType(type);
+        }
+      });
     }
 
     private async loadTargets(): Promise<void> {
@@ -176,10 +211,104 @@ export class ReportsComponent implements OnInit {
       }
     }
 
+    private preselectTarget(targetId: string): void {
+      // Esperar a que los targets se carguen antes de preseleccionar
+      const checkTargets = () => {
+        if (this.targets.length > 0) {
+          const targetToSelect = this.targets.find(target => 
+            target._id === targetId || target.id === targetId
+          );
+          
+          if (targetToSelect) {
+            this.reportFilter.selectedTargets = [targetToSelect];
+            console.log('✅ Target preseleccionado para reportes:', targetToSelect.name || targetToSelect.alias);
+            
+            // Mostrar mensaje informativo
+            this.messageService.add({
+              severity: 'info',
+              summary: 'Target seleccionado',
+              detail: `Se ha seleccionado "${targetToSelect.name || targetToSelect.alias}" para el reporte`
+            });
+          } else {
+            console.warn('⚠️ Target no encontrado con ID:', targetId);
+          }
+        } else if (!this.loading) {
+          // Si no está cargando y no hay targets, el target no existe
+          console.warn('⚠️ No se encontraron targets o el target no existe');
+        } else {
+          // Reintentar después de un momento si aún está cargando
+          setTimeout(checkTargets, 100);
+        }
+      };
+      
+      checkTargets();
+    }
+
+    private preselectReportType(type: string): void {
+      // Mapear el tipo recibido a los tipos de reporte disponibles
+      const typeMapping: { [key: string]: string } = {
+        'history': 'route_history',
+        'movements': 'movements',
+        'stops': 'stops',
+        'speed': 'speed',
+        'fuel': 'fuel',
+        'activity': 'activity',
+        'detailed': 'detailed'
+      };
+
+      const mappedType = typeMapping[type] || type;
+      
+      // Verificar si el tipo de reporte es válido
+      const validReportType = this.reportTypes.find(rt => rt.value === mappedType);
+      
+      if (validReportType) {
+        this.reportFilter.reportType = mappedType;
+        console.log('✅ Tipo de reporte preseleccionado:', validReportType.label);
+        
+        // Llamar a la función de cambio de tipo de reporte para aplicar configuraciones específicas
+        this.onReportTypeChange();
+        
+        // Mostrar mensaje informativo
+        this.messageService.add({
+          severity: 'info',
+          summary: 'Tipo de reporte seleccionado',
+          detail: `Se ha seleccionado "${validReportType.label}"`
+        });
+      } else {
+        console.warn('⚠️ Tipo de reporte no válido:', type);
+      }
+    }
+
     onQuickDateSelect(preset: any): void {
       const range = preset.getRange();
-      this.reportFilter.dateRange = range;
-      console.log(`Fecha rápida seleccionada: ${preset.label}`, range);
+      
+      // Convertir las fechas al formato correcto para los inputs de tipo date
+      this.reportFilter.dateRange = {
+        start: this.formatDateForInput(range.start),
+        end: this.formatDateForInput(range.end)
+      };
+      
+      console.log(`Fecha rápida seleccionada: ${preset.label}`, this.reportFilter.dateRange);
+    }
+
+    private formatDateForInput(date: Date): string {
+      if (!date) return '';
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}`;
+    }
+
+    private initializeDateRange(): void {
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const today = new Date();
+      
+      this.reportFilter.dateRange = {
+        start: this.formatDateForInput(yesterday),
+        end: this.formatDateForInput(today)
+      };
     }
 
     onReportTypeChange(): void {
@@ -199,6 +328,8 @@ export class ReportsComponent implements OnInit {
       }
     }
 
+
+
     validateFilters(): boolean {
       // Validar rango de fechas
       if (!this.reportFilter.dateRange.start || !this.reportFilter.dateRange.end) {
@@ -210,7 +341,26 @@ export class ReportsComponent implements OnInit {
         return false;
       }
 
-      if (this.reportFilter.dateRange.start > this.reportFilter.dateRange.end) {
+      // Convertir a Date para comparar correctamente
+      const startDate = this.reportFilter.dateRange.start instanceof Date 
+        ? this.reportFilter.dateRange.start 
+        : new Date(this.reportFilter.dateRange.start);
+      const endDate = this.reportFilter.dateRange.end instanceof Date 
+        ? this.reportFilter.dateRange.end 
+        : new Date(this.reportFilter.dateRange.end);
+
+      // Validar que las fechas sean válidas
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Fechas inválidas',
+          detail: 'Las fechas seleccionadas no son válidas'
+        });
+        return false;
+      }
+
+      // Comparar fechas correctamente
+      if (startDate > endDate) {
         this.messageService.add({
           severity: 'warn',
           summary: 'Fechas inválidas',
@@ -219,12 +369,12 @@ export class ReportsComponent implements OnInit {
         return false;
       }
 
-      // Validar que se haya seleccionado al menos un target (excepto para route_history)
-      if (this.reportFilter.reportType !== 'route_history' && this.reportFilter.selectedTargets.length === 0) {
+      // Validar que haya un dispositivo disponible (desde URL o seleccionado)
+      if (!this.targetIdFromUrl && this.reportFilter.selectedTargets.length === 0) {
         this.messageService.add({
           severity: 'warn',
-          summary: 'Sin dispositivos',
-          detail: 'Debe seleccionar al menos un dispositivo para el reporte'
+          summary: 'Dispositivo requerido',
+          detail: 'No se encontró un dispositivo válido para generar el reporte'
         });
         return false;
       }
@@ -274,39 +424,86 @@ export class ReportsComponent implements OnInit {
     }
 
     private async loadRouteHistory(): Promise<void> {
-      if (this.reportFilter.selectedTargets.length === 0 && this.targets.length === 0) {
-        throw new Error('No hay dispositivos disponibles para el historial');
-      }
-
       this.loadingRouteHistory = true;
       
       try {
-        // Usar el primer target seleccionado o el primer target disponible
-        const selectedTargetId = this.reportFilter.selectedTargets.length > 0 
-          ? this.reportFilter.selectedTargets[0] 
-          : this.targets[0]._id;
+        let selectedTarget: any;
+        let selectedTargetId: string;
+        
+        if (this.targetIdFromUrl) {
+          // 1. Usar el target específico de la URL - traer del servicio
+          selectedTargetId = this.targetIdFromUrl;
+          console.log('🎯 Trayendo target desde URL usando servicio:', selectedTargetId);
           
-        const selectedTarget = this.targets.find(t => t._id === selectedTargetId);
+          try {
+            selectedTarget = await this.targetsService.getTargetById(selectedTargetId);
+            console.log('✅ Target obtenido del servicio:', selectedTarget.name || selectedTarget.alias);
+          } catch (error) {
+            throw new Error(`No se encontró el dispositivo con ID: ${selectedTargetId}`);
+          }
+          
+        } else if (this.reportFilter.selectedTargets.length > 0) {
+          // 2. Usar el primer target seleccionado localmente
+          selectedTargetId = this.reportFilter.selectedTargets[0]._id || this.reportFilter.selectedTargets[0];
+          selectedTarget = this.targets.find(t => t._id === selectedTargetId);
+          console.log('📋 Usando target seleccionado localmente:', selectedTargetId);
+          
+        } else if (this.targets.length > 0) {
+          // 3. Usar el primer target disponible localmente
+          selectedTarget = this.targets[0];
+          selectedTargetId = selectedTarget._id;
+          console.log('📦 Usando primer target disponible localmente:', selectedTargetId);
+          
+        } else {
+          throw new Error('No hay dispositivos disponibles para el historial');
+        }
         
-        // Usar api_device_id que es el ID en Traccar
-        const traccarDeviceId = selectedTarget?.api_device_id || selectedTarget?.deviceId;
+        if (!selectedTarget) {
+          throw new Error('No se encontró el dispositivo seleccionado');
+        }
         
-        if (!traccarDeviceId) {
-          throw new Error('El dispositivo seleccionado no tiene un ID de Traccar válido');
+        // Extraer api_device_id del target obtenido
+        const apiDeviceId = selectedTarget?.api_device_id || selectedTarget?.deviceId;
+        
+        if (!apiDeviceId) {
+          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un API Device ID válido`);
         }
 
         // Convertir fechas a formato ISO string
-        const fromDate = this.reportFilter.dateRange.start?.toISOString();
-        const toDate = this.reportFilter.dateRange.end?.toISOString();
+        let fromDate: string | undefined;
+        let toDate: string | undefined;
+        
+        if (this.reportFilter.dateRange.start) {
+          const startDate = this.reportFilter.dateRange.start instanceof Date 
+            ? this.reportFilter.dateRange.start 
+            : new Date(this.reportFilter.dateRange.start);
+          if (isNaN(startDate.getTime())) {
+            throw new Error('Fecha de inicio inválida');
+          }
+          fromDate = startDate.toISOString();
+        }
+        
+        if (this.reportFilter.dateRange.end) {
+          const endDate = this.reportFilter.dateRange.end instanceof Date 
+            ? this.reportFilter.dateRange.end 
+            : new Date(this.reportFilter.dateRange.end);
+          if (isNaN(endDate.getTime())) {
+            throw new Error('Fecha de fin inválida');
+          }
+          toDate = endDate.toISOString();
+        }
 
-        console.log('Cargando historial de rutas para dispositivo Traccar:', traccarDeviceId, {
+        console.log('🚀 Cargando historial de rutas:', {
+          targetId: selectedTargetId,
+          targetName: selectedTarget.name || selectedTarget.alias,
+          apiDeviceId,
           fromDate,
           toDate,
-          targetName: selectedTarget?.name
+          sourceUrl: !!this.targetIdFromUrl
         });
         
         this.routeHistory = await this.targetsService.getRouteHistory(
-          traccarDeviceId.toString(), 
+          apiDeviceId.toString(), 
           fromDate, 
           toDate
         );
@@ -330,11 +527,14 @@ export class ReportsComponent implements OnInit {
     }
 
     clearFilters(): void {
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const today = new Date();
+      
       this.reportFilter = {
         reportType: 'movements',
         dateRange: {
-          start: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          end: new Date()
+          start: this.formatDateForInput(yesterday),
+          end: this.formatDateForInput(today)
         },
         selectedTargets: [],
         speedFilter: { min: null, max: null },
@@ -353,11 +553,7 @@ export class ReportsComponent implements OnInit {
       });
     }
 
-  onTargetSelectionChange(event: any): void {
-    // Con select nativo, los valores seleccionados se almacenan directamente en selectedTargets
-    const selectedCount = Array.isArray(this.reportFilter.selectedTargets) ? this.reportFilter.selectedTargets.length : 0;
-    console.log('Targets seleccionados:', selectedCount);
-  }
+
 
   // Métodos auxiliares para el template
   getSelectedReportTypeIcon(): string {
@@ -380,18 +576,7 @@ export class ReportsComponent implements OnInit {
     return exportFormat?.label || 'Formato';
   }
 
-  // Métodos auxiliares para el estado de los dispositivos
-  isDeviceOnline(device: any): boolean {
-    return device.status === 'online';
-  }
 
-  isDeviceOffline(device: any): boolean {
-    return device.status === 'offline';
-  }
-
-  getDeviceStatusText(device: any): string {
-    return this.isDeviceOnline(device) ? 'Online' : 'Offline';
-  }
 
   // Métodos auxiliares para mostrar filtros según el tipo de reporte
   shouldShowSpeedFilter(): boolean {
@@ -410,24 +595,58 @@ export class ReportsComponent implements OnInit {
     return this.reportFilter.reportType === 'route_history';
   }
 
-  getSelectedTargetForMap(): any {
-    if (this.reportFilter.selectedTargets.length === 0) {
+      getSelectedTargetForMap(): any {
+      // Priorizar el target ID de la URL
+      let selectedTargetId: string | null = null;
+      
+      if (this.targetIdFromUrl) {
+        selectedTargetId = this.targetIdFromUrl;
+        console.log('🗺️ Usando target desde URL para mapa:', selectedTargetId);
+      } else if (this.reportFilter.selectedTargets.length > 0) {
+        selectedTargetId = this.reportFilter.selectedTargets[0]._id || this.reportFilter.selectedTargets[0];
+        console.log('🗺️ Usando target seleccionado para mapa:', selectedTargetId);
+      } else if (this.reportFilter.reportType === 'route_history' && this.targets.length > 0) {
+        selectedTargetId = this.targets[0]._id;
+        console.log('🗺️ Usando primer target disponible para mapa:', selectedTargetId);
+      }
+      
+      if (selectedTargetId) {
+        const target = this.targets.find(target => target._id === selectedTargetId);
+        
+        // Si hay historial de rutas cargado, agregar las posiciones al target
+        if (this.routeHistory && this.routeHistory.positions.length > 0 && target) {
+          return {
+            ...target,
+            routeHistory: this.routeHistory
+          };
+        }
+        
+        return target || null;
+      }
+      
       return null;
     }
-    
-    // Buscar el primer target seleccionado
-    const selectedTargetId = this.reportFilter.selectedTargets[0];
-    const target = this.targets.find(target => target._id === selectedTargetId);
-    
-    // Si hay historial de rutas cargado, agregar las posiciones al target
-    if (this.routeHistory && this.routeHistory.positions.length > 0 && target) {
-      return {
-        ...target,
-        routeHistory: this.routeHistory
-      };
+
+    getSelectedTargetInfo(): any {
+      // Retornar información del target seleccionado para mostrar en la interfaz
+      if (this.targetIdFromUrl) {
+        return this.targets.find(target => target._id === this.targetIdFromUrl);
+      } else if (this.reportFilter.selectedTargets.length > 0) {
+        return this.reportFilter.selectedTargets[0];
+      }
+      return null;
     }
-    
-    return target || null;
+
+  // Método auxiliar para obtener el target ID actual
+  getCurrentTargetId(): string | null {
+    if (this.targetIdFromUrl) {
+      return this.targetIdFromUrl;
+    } else if (this.reportFilter.selectedTargets.length > 0) {
+      return this.reportFilter.selectedTargets[0]._id || this.reportFilter.selectedTargets[0];
+    } else if (this.targets.length > 0) {
+      return this.targets[0]._id;
+    }
+    return null;
   }
 
   getRouteHistoryPositions(): RouteHistoryPosition[] {
