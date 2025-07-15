@@ -7,11 +7,22 @@ const PORT = process.env.PORT || 4200;
 // Servir archivos estáticos de Angular
 app.use(express.static(path.join(__dirname, '/dist/montaogps-frontend')));
 
-// Configurar CORS si es necesario
+// Configurar CORS optimizado para beta.montao.net
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const allowedOrigins = [
+    'https://beta.montao.net',
+    'http://localhost:4200',
+    'http://localhost:3000'
+  ];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin) || !origin) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
   
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
@@ -63,7 +74,14 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`🚀 MontaoGPS Frontend server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 URL: http://localhost:${PORT}`);
+  
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`🌐 Production URL: https://beta.montao.net`);
+  } else {
+    console.log(`🌐 Local URL: http://localhost:${PORT}`);
+  }
+  
+  console.log(`🏥 Health check: ${process.env.NODE_ENV === 'production' ? 'https://beta.montao.net' : `http://localhost:${PORT}`}/health`);
 });
 
 // Manejo graceful shutdown

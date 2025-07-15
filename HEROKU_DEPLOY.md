@@ -20,17 +20,17 @@ El proyecto ya está configurado para Heroku con:
 
 ## 🚀 Pasos para Desplegar
 
-### 1. Crear la aplicación en Heroku
+### 1. Conectar con la aplicación existente en Heroku
 
 ```bash
 # Iniciar sesión en Heroku
 heroku login
 
-# Crear nueva aplicación (reemplaza 'tu-app-name' con el nombre deseado)
-heroku create tu-app-name
+# Conectar con la aplicación existente (beta.montao.net)
+heroku git:remote -a montao-gps-beta
 
-# O si ya tienes un repositorio
-heroku git:remote -a tu-app-name
+# Verificar la conexión
+heroku apps:info
 ```
 
 ### 2. Configurar Variables de Entorno
@@ -101,7 +101,7 @@ heroku restart
 La aplicación incluye un endpoint de health check:
 
 ```
-GET https://tu-app-name.herokuapp.com/health
+GET https://beta.montao.net/health
 ```
 
 Respuesta:
@@ -167,12 +167,13 @@ heroku logs --tail
 4. **SPA Routing**: Todas las rutas redirigen a `index.html` para Angular Router
 5. **Content Security Policy**: Configurado para mapas de Google y Mapbox
 
-## 🌐 URLs de Ejemplo
+## 🌐 URLs de la Aplicación
 
-- **Aplicación**: `https://tu-app-name.herokuapp.com`
-- **Health Check**: `https://tu-app-name.herokuapp.com/health`
-- **Login**: `https://tu-app-name.herokuapp.com/auth/login`
-- **Dashboard**: `https://tu-app-name.herokuapp.com/admin/dashboard`
+- **Aplicación**: `https://beta.montao.net`
+- **Health Check**: `https://beta.montao.net/health`
+- **Login**: `https://beta.montao.net/auth/login`
+- **Dashboard**: `https://beta.montao.net/admin/dashboard`
+- **Reportes**: `https://beta.montao.net/admin/reports`
 
 ## 📞 Soporte
 
