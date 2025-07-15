@@ -3,10 +3,18 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
+    "start": "node server.js",
+    "build": "ng build --configuration production",
+    "dev": "ng serve",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "heroku-postbuild": "npm run build",
+    "prepare-heroku": "node prepare-heroku.js",
+    "local-prod": "npm run build && node server.js"
+  },
+  "engines": {
+    "node": "18.x",
+    "npm": "10.x"
   },
   "private": true,
   "dependencies": {
@@ -31,12 +39,15 @@
     "primeng": "^19.0.10",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
-    "zone.js": "~0.15.0"
+    "zone.js": "~0.15.0",
+    "express": "^4.18.2",
+    "path": "^0.12.7",
+    "@angular/cli": "^19.2.7",
+    "@angular/compiler-cli": "^19.2.6",
+    "typescript": "~5.5.2"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^19.2.7",
-    "@angular/cli": "^19.2.7",
-    "@angular/compiler-cli": "^19.2.6",
     "@types/google.maps": "^3.58.1",
     "@types/jasmine": "~5.1.0",
     "jasmine-core": "~5.2.0",
@@ -44,7 +55,6 @@
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
-    "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.5.2"
+    "karma-jasmine-html-reporter": "~2.1.0"
   }
 }
