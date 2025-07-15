@@ -59,7 +59,7 @@ app.get('/health', (req, res) => {
 
 // Todas las otras rutas deben devolver index.html (para SPA routing)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '/dist/montaogps-frontend/index.html'));
+  res.sendFile(path.join(__dirname, '/dist/montaogps-frontend/browser/index.html'));
 });
 
 // Manejo de errores
