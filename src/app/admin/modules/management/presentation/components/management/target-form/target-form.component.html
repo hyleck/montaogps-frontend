@@ -503,9 +503,9 @@
                                 <div class="connection-status" [class.online]="isDeviceOnline()">
                                     <div class="status-indicator"></div>
                                     <span>{{ translate(isDeviceOnline() ? 'management.status.online' : 'management.status.offline') }}</span>
-                                </div>
-                            </div>
-
+                                            </div>
+                                        </div>
+                                        
                             <!-- Layout de 2 columnas para desktop -->
                             <div class="sms-content">
                                 <!-- Columna izquierda: Comandos -->
@@ -521,10 +521,10 @@
                                                 class="command-btn"
                                                 [class.loading]="isSendingSms && selectedSmsCommand === command.name"
                                                 [disabled]="isSendingSms"
-                                                (click)="selectSmsCommand(command.name)"
+                                             (click)="selectSmsCommand(command.name)" 
                                             >
-                                                <i class="pi {{ command.icon }}"></i>
-                                                <span>{{ command.name }}</span>
+                                            <i class="pi {{ command.icon }}"></i>
+                                            <span>{{ command.name }}</span>
                                             </button>
                                         </div>
                                     </div>
@@ -557,47 +557,47 @@
                                                 <i class="pi pi-comment"></i>
                                                 <p>{{ translate('management.targetForm.noMessages') }}</p>
                                                 <small>{{ translate('management.targetForm.startConversation') }}</small>
-                                            </div>
-                                            
+                                    </div>
+                                    
                                             <div *ngFor="let message of smsMessages" class="message-wrapper">
-                                                <div class="message" [class.sent]="message.type === 'sent'" [class.received]="message.type === 'received'">
+                                            <div class="message" [class.sent]="message.type === 'sent'" [class.received]="message.type === 'received'">
                                                     <div class="message-bubble">
-                                                        <p>{{ message.content }}</p>
+                                                    <p>{{ message.content }}</p>
                                                         <div class="message-meta">
                                                             <span class="timestamp">{{ message.timestamp | date:'HH:mm' }}</span>
                                                             <i *ngIf="message.type === 'sent'" class="pi pi-check delivery-status"></i>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
                                         </div>
+                                    </div>
 
                                         <!-- Input para mensaje personalizado -->
                                         <div class="message-composer">
                                             <div class="input-container">
-                                                <textarea 
-                                                    [(ngModel)]="customSmsMessage"
-                                                    name="customSmsMessage"
+                            <textarea 
+                                [(ngModel)]="customSmsMessage"
+                                name="customSmsMessage"
                                                     placeholder="{{ translate('management.targetForm.typeMessage') }}"
                                                     class="message-input"
                                                     rows="1"
                                                     maxlength="160"
-                                                    [disabled]="isSendingSms"
+                                [disabled]="isSendingSms"
                                                     (keydown)="onEnterKeySimple($event)"
                                                     (input)="autoResizeInput($event)"
-                                                ></textarea>
+                            ></textarea>
                                                 <div class="char-counter">{{ customSmsMessage.length }}/160</div>
                                             </div>
-                                            <button 
-                                                type="button" 
+                                <button 
+                                    type="button" 
                                                 class="send-button"
                                                 [disabled]="isSendingSms || !customSmsMessage.trim()"
-                                                (click)="sendCustomMessage()"
-                                            >
-                                                <i class="pi" [ngClass]="isSendingSms ? 'pi-spin pi-spinner' : 'pi-send'"></i>
-                                            </button>
-                                        </div>
-                                    </div>
+                                    (click)="sendCustomMessage()"
+                                >
+                                    <i class="pi" [ngClass]="isSendingSms ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+                                </button>
+                        </div>
+                    </div>
                                 </div>
                             </div>
                         </div>
