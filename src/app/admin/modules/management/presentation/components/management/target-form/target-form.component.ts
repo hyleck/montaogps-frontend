@@ -77,6 +77,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     selectedSmsCommand: string = '';
     smsMessages: SmsMessage[] = [];
     lastSentCommand: string = '';
+    customSmsMessage: string = '';
+    isLoadingSmsMessages: boolean = false;
+    isSendingSms: boolean = false;
     
     // Protocolos y comandos dinámicos
     loadedProtocols: Protocol[] = [];
@@ -529,6 +532,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 this.checkAndAssignPendingGpsModel();
             }, 100);
         }
+
+        // Cargar mensajes SMS si hay SIM card configurada
+        if (this.target.sim_card_number && this.target.sim_company) {
+            setTimeout(() => {
+                this.loadSmsMessages();
+            }, 500);
+        }
     }
 
     private resetForm() {
@@ -963,63 +973,271 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }, 50);
     }
 
-    sendCommand(commandName: string): void {
+    async sendCommand(commandName: string): Promise<void> {
         // Buscar el comando en los comandos disponibles del protocolo
         const selectedCommand = this.availableCommands.find(cmd => cmd.name === commandName);
         
-        if (selectedCommand) {
-            // Mostrar mensaje de envío inmediato
-            this.messageService.add({
-                severity: 'info',
-                summary: this.translate(this.translations.commandSent),
-                detail: this.translate(this.translations.sendingCommand),
-                life: 2000
-            });
-
-            // Añadir mensaje enviado
-            this.smsMessages.push({
-                type: 'sent',
-                content: selectedCommand.value,
-                timestamp: new Date()
-            });
-            
-            // Hacer scroll hacia abajo inmediatamente después de enviar
-            this.scrollToBottom();
-            
-            // Guardar el último comando enviado
-            this.lastSentCommand = commandName;
-            
-            // Simular respuesta del dispositivo (los comandos SMS funcionan sin conexión a internet)
-            // Tiempo aleatorio de respuesta entre 3-8 segundos
-            const responseDelay = Math.floor(Math.random() * 5000) + 3000; // 3-8 segundos
-            
-            setTimeout(() => {
-                this.smsMessages.push({
-                    type: 'received',
-                    content: this.translate(this.translations.commandExecuted),
-                    timestamp: new Date()
-                });
-                
-                // Mostrar mensaje de éxito
-                this.messageService.add({
-                    severity: 'success',
-                    summary: this.translate(this.translations.commandExecuted),
-                    detail: `Comando "${selectedCommand.name}" procesado correctamente`,
-                    life: 3000
-                });
-                
-                // Hacer scroll hacia abajo después de recibir respuesta
-                this.scrollToBottom();
-            }, responseDelay);
-        } else {
-            // Mensaje de error si no se encuentra el comando
+        if (!selectedCommand) {
             console.error('Comando no encontrado:', commandName);
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
                 detail: `El comando "${commandName}" no está disponible para este protocolo`
             });
+            return;
         }
+
+        if (!this.target.sim_card_number) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Número de SIM card requerido para enviar SMS'
+            });
+            return;
+        }
+
+        const provider = this.getProviderFromSimCompany();
+        if (!provider) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Proveedor de SMS no configurado'
+            });
+            return;
+        }
+
+        await this.sendSmsMessage(selectedCommand.value, provider);
+    }
+
+    async sendCustomMessage(): Promise<void> {
+        if (!this.customSmsMessage.trim()) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Advertencia',
+                detail: 'Ingrese un mensaje para enviar'
+            });
+            return;
+        }
+
+        if (!this.target.sim_card_number) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Número de SIM card requerido para enviar SMS'
+            });
+            return;
+        }
+
+        const provider = this.getProviderFromSimCompany();
+        if (!provider) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Proveedor de SMS no configurado'
+            });
+            return;
+        }
+
+        await this.sendSmsMessage(this.customSmsMessage, provider);
+        this.customSmsMessage = ''; // Limpiar el campo después de enviar
+    }
+
+    private async sendSmsMessage(message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<void> {
+        try {
+            this.isSendingSms = true;
+
+            // Mostrar mensaje de envío
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Enviando SMS',
+                detail: 'Enviando mensaje al dispositivo...',
+                life: 2000
+            });
+
+            // Añadir mensaje enviado al chat
+            this.smsMessages.push({
+                type: 'sent',
+                content: message,
+                timestamp: new Date()
+            });
+
+            this.scrollToBottom();
+
+            // Enviar SMS real al backend
+            const response = await this.targetsService.sendSMS(this.target.sim_card_number, message, provider);
+
+            console.log('📤 Respuesta del envío SMS:', response);
+
+            // Validar que la respuesta no sea null/undefined
+            if (!response) {
+                console.warn('⚠️ Respuesta vacía del servidor');
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'SMS Enviado',
+                    detail: 'Mensaje enviado, pero no se recibió confirmación del servidor'
+                });
+                return;
+            }
+
+            // Manejar diferentes formatos de respuesta
+            const isSuccess = response.success === true || 
+                             response.status === 'success' || 
+                             response.result === 'success' ||
+                             (response.error === undefined && response.success !== false);
+
+            if (isSuccess) {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'SMS Enviado',
+                    detail: response.message || 'Mensaje enviado correctamente al dispositivo'
+                });
+            } else {
+                console.warn('⚠️ Respuesta de error del servidor:', response);
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'SMS Enviado',
+                    detail: response.message || response.error || 'Mensaje enviado, pero hubo un problema en la entrega'
+                });
+            }
+
+        } catch (error: any) {
+            console.error('❌ Error al enviar SMS:', error);
+            
+            // Remover el mensaje del chat si falló completamente
+            if (this.smsMessages.length > 0 && this.smsMessages[this.smsMessages.length - 1].content === message) {
+                this.smsMessages.pop();
+            }
+
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error al Enviar SMS',
+                detail: this.getErrorMessage(error)
+            });
+        } finally {
+            this.isSendingSms = false;
+        }
+    }
+
+    private getErrorMessage(error: any): string {
+        if (error?.error?.message) {
+            return error.error.message;
+        }
+        if (error?.message) {
+            return error.message;
+        }
+        if (typeof error === 'string') {
+            return error;
+        }
+        if (error?.status) {
+            switch (error.status) {
+                case 400: return 'Datos de SMS inválidos';
+                case 401: return 'No autorizado para enviar SMS';
+                case 403: return 'Acceso denegado al servicio SMS';
+                case 404: return 'Servicio SMS no encontrado';
+                case 500: return 'Error interno del servidor SMS';
+                default: return `Error del servidor (${error.status})`;
+            }
+        }
+        return 'Error desconocido al enviar SMS';
+    }
+
+    async loadSmsMessages(): Promise<void> {
+        if (!this.target.sim_card_number) {
+            return;
+        }
+
+        const provider = this.getProviderFromSimCompany();
+        if (!provider) {
+            return;
+        }
+
+        try {
+            this.isLoadingSmsMessages = true;
+
+            const response = await this.targetsService.getMessages(this.target.sim_card_number, provider);
+
+            console.log('📨 Respuesta completa de getMessages:', response);
+
+            // Verificar si la respuesta es un array directamente o tiene una estructura con success
+            let messages = Array.isArray(response) ? response : (response.messages || response.data || []);
+            
+            console.log('📝 Mensajes a procesar:', messages);
+
+            if (messages && Array.isArray(messages)) {
+                // Convertir mensajes del backend al formato del componente
+                this.smsMessages = messages.map((msg: any) => {
+                    // Determinar tipo de mensaje:
+                    // MT = Mobile Terminated (enviado al dispositivo) = 'sent'
+                    // MO = Mobile Originated (recibido del dispositivo) = 'received'
+                    const messageType = msg.type === 'MT' ? 'sent' : 'received';
+                    
+                    return {
+                        type: messageType,
+                        content: msg.text || msg.body || msg.message || '',
+                        timestamp: new Date(msg.fecha || msg.timestamp || msg.date_created),
+                        from: msg.from,
+                        to: msg.to,
+                        id: msg.id,
+                        read: msg.read
+                    };
+                });
+
+                // Ordenar por timestamp (más antiguos primero)
+                this.smsMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+                console.log('✅ Mensajes procesados:', this.smsMessages);
+                this.scrollToBottom();
+            } else {
+                console.log('⚠️ No se encontraron mensajes en la respuesta');
+            }
+
+        } catch (error: any) {
+            console.error('Error al cargar mensajes SMS:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudieron cargar los mensajes SMS'
+            });
+        } finally {
+            this.isLoadingSmsMessages = false;
+        }
+    }
+
+    private getProviderFromSimCompany(): 'myorion' | 'twilio' | 'emnify' | 'myorion2' | null {
+        if (!this.target.sim_company) {
+            return null;
+        }
+
+        // Mapear tipos de SIM card a proveedores
+        const providerMap: Record<string, 'myorion' | 'twilio' | 'emnify' | 'myorion2'> = {
+            'myorion': 'myorion',
+            'twilio': 'twilio',
+            'emnify': 'emnify',
+            'myorion2': 'myorion2',
+            'nacionales': 'twilio', // nacionales = twilio
+            'global-e': 'emnify', // global-e = emnify
+            'global-m': 'myorion', // global-m = myorion
+            'global-m2': 'myorion2', // global-m2 = myorion2
+            'internacionales': 'twilio' // Mantener por compatibilidad
+        };
+
+        return providerMap[this.target.sim_company.toLowerCase()] || null;
+    }
+
+    onEnterKeySimple(event: KeyboardEvent): void {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            if (!this.isSendingSms && this.customSmsMessage.trim()) {
+                this.sendCustomMessage();
+            }
+        }
+    }
+
+    autoResizeInput(event: Event): void {
+        const textarea = event.target as HTMLTextAreaElement;
+        textarea.style.height = 'auto';
+        const newHeight = Math.min(textarea.scrollHeight, 100); // Máximo 3-4 líneas
+        textarea.style.height = newHeight + 'px';
     }
 
     getCommandName(commandName: string): string {

@@ -88,4 +88,24 @@ export class TargetsService {
     const observable = this.http.get<RouteHistoryResponse>(url);
     return await lastValueFrom(observable);
   }
+
+  async sendSMS(simCardId: string, message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<any> {
+    const url = `${environment.apiUrl}/sim-card`;
+    const body = {
+      id: simCardId,
+      message: message,
+      provider: provider
+    };
+    
+    const observable = this.http.post<any>(url, body);
+    return await lastValueFrom(observable);
+  }
+
+  async getMessages(simCardId: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<any> {
+    const url = `${environment.apiUrl}/sim-card/messages/${simCardId}`;
+    const params = { provider: provider };
+    
+    const observable = this.http.get<any>(url, { params });
+    return await lastValueFrom(observable);
+  }
 } 

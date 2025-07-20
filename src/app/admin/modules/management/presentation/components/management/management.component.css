@@ -830,16 +830,44 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     box-shadow: 0 2px 8px rgba(52, 211, 153, 0.2) !important;
 }
 
-/* Nombre del target cuando está mostrándose en mapa */
-.target-showing-on-map {
+/* Nombre del target cuando está mostrándose en mapa - RESPETANDO ESTADO ONLINE/OFFLINE */
+
+/* Target seleccionado Y online - mantiene color verde intenso */
+.target-showing-on-map.target-online {
     font-weight: 600 !important;
-    color: #16a34a !important; /* Verde más intenso */
+    color: #16a34a !important; /* Verde más intenso para online seleccionado */
     text-shadow: 0 1px 2px rgba(22, 163, 74, 0.1) !important;
     transition: all 0.3s ease !important;
 }
 
-.dark .target-showing-on-map {
+.dark .target-showing-on-map.target-online {
     color: #4ade80 !important; /* Verde más brillante para tema oscuro */
+    text-shadow: 0 1px 2px rgba(74, 222, 128, 0.15) !important;
+}
+
+/* Target seleccionado Y offline - mantiene color gris pero más intenso */
+.target-showing-on-map.target-offline {
+    font-weight: 600 !important;
+    color: #6b7280 !important; /* Gris más intenso para offline seleccionado */
+    text-shadow: 0 1px 2px rgba(107, 114, 128, 0.1) !important;
+    transition: all 0.3s ease !important;
+}
+
+.dark .target-showing-on-map.target-offline {
+    color: #9ca3af !important; /* Gris más claro para tema oscuro */
+    text-shadow: 0 1px 2px rgba(156, 163, 175, 0.15) !important;
+}
+
+/* Fallback para target seleccionado sin clase específica de estado */
+.target-showing-on-map:not(.target-online):not(.target-offline) {
+    font-weight: 600 !important;
+    color: #16a34a !important; /* Verde por defecto */
+    text-shadow: 0 1px 2px rgba(22, 163, 74, 0.1) !important;
+    transition: all 0.3s ease !important;
+}
+
+.dark .target-showing-on-map:not(.target-online):not(.target-offline) {
+    color: #4ade80 !important;
     text-shadow: 0 1px 2px rgba(74, 222, 128, 0.15) !important;
 }
 

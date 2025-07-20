@@ -849,6 +849,19 @@
         "commandExecuted": "Commande exécutée avec succès",
         "sendingCommand": "Envoi de la commande SMS...",
         "waitingResponse": "En attente de la réponse de l'appareil...",
+        "typeCustomMessage": "Tapez un message personnalisé...",
+        "typeMessage": "Tapez un message...",
+        "quickCommands": "Commandes Rapides",
+        "startConversation": "Envoyez une commande ou un message pour commencer",
+        "protocolRequired": "Protocole Requis",
+        "sendMessage": "Envoyer",
+        "refreshMessages": "Actualiser les messages",
+        "clearMessage": "Effacer le message",
+        "messageHelp": "Entrée pour envoyer • Shift+Entrée pour nouvelle ligne • Échap pour effacer",
+        "sending": "Envoi en cours...",
+        "typeMessageFirst": "Tapez d'abord un message",
+        "messageTooLong": "Le message est trop long (max. 320 caractères)",
+        "sendMultipleSms": "Enverra {{count}} SMS",
         "parked": "Stationné"
       }
     }

@@ -37,6 +37,9 @@ export const TARGET_FORM_TRANSLATIONS = {
   commandExecuted: 'management.targetForm.commandExecuted',
   sendingCommand: 'management.targetForm.sendingCommand',
   waitingResponse: 'management.targetForm.waitingResponse',
+  typeCustomMessage: 'management.targetForm.typeCustomMessage',
+  sendMessage: 'management.targetForm.sendMessage',
+  refreshMessages: 'management.targetForm.refreshMessages',
   // Process related translations
   processAdded: 'management.targetForm.processAdded',
   processAddedDetail: 'management.targetForm.processAddedDetail'

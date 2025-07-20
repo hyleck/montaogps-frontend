@@ -9,6 +9,10 @@ export interface SmsMessage {
   type: 'sent' | 'received';
   content: string;
   timestamp: Date;
+  from?: string;
+  to?: string;
+  id?: number;
+  read?: boolean;
 }
 
 export interface CustomPrice {

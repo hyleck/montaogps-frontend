@@ -483,71 +483,120 @@
 
                     <p-tabPanel *ngIf="hasSimCardTypeSelected()">
                         <ng-template pTemplate="header">
-                            <i class="tab-icon pi pi-envelope"></i>
-                            <span class="tab-text">{{ getSimCardDisplayName() }} ({{ translate('management.targetForm.sms') }})</span>
+                            <i class="tab-icon pi pi-comments"></i>
+                            <span class="tab-text">{{ getSimCardDisplayName() }} SMS</span>
                         </ng-template>
-                        <div class="sms-admin">
-                            <div class="sms-admin__grid">
-                                <!-- Columna Izquierda - Lista de comandos SMS -->
-                                <div class="sms-commands" #smsCommands>
-                                    <div class="sms-commands__header">
-                                        <h3>{{ translate('management.targetForm.smsCommands') }}</h3>
+                        
+                        <div class="sms-section">
+                            <!-- Header con información del dispositivo -->
+                            <div class="sms-header">
+                                <div class="device-info">
+                                    <div class="device-name">
+                                        <i class="pi pi-mobile"></i>
+                                        <span>{{ target.name || 'Dispositivo GPS' }}</span>
                                     </div>
-                                    <div class="sms-commands__list">
-                                        <!-- Mostrar mensaje si no hay protocolo seleccionado -->
-                                        <div *ngIf="!selectedProtocol" class="no-protocol-message">
-                                            <div class="info-message">
-                                                <i class="pi pi-info-circle"></i>
-                                                <span>{{ translate('management.targetForm.selectProtocolFirst') }}</span>
-                                            </div>
+                                    <div class="sim-info">
+                                        <span class="sim-provider">{{ getSimCardDisplayName() }}</span>
+                                        <span class="sim-number">{{ target.sim_card_number || 'Sin SIM' }}</span>
+                                    </div>
+                                </div>
+                                <div class="connection-status" [class.online]="isDeviceOnline()">
+                                    <div class="status-indicator"></div>
+                                    <span>{{ translate(isDeviceOnline() ? 'management.status.online' : 'management.status.offline') }}</span>
+                                </div>
+                            </div>
+
+                            <!-- Layout de 2 columnas para desktop -->
+                            <div class="sms-content">
+                                <!-- Columna izquierda: Comandos -->
+                                <div class="sms-commands-column">
+                                    <div class="quick-commands" *ngIf="availableCommands.length > 0">
+                                        <div class="commands-header">
+                                            <h4>{{ translate('management.targetForm.quickCommands') }}</h4>
                                         </div>
-                                        
-                                        <!-- Mostrar mensaje si no hay comandos disponibles -->
-                                        <div *ngIf="selectedProtocol && availableCommands.length === 0" class="no-commands-message">
-                                            <div class="info-message">
-                                                <i class="pi pi-exclamation-triangle"></i>
-                                                <span>{{ translate('management.targetForm.noCommandsAvailable') }}</span>
-                                            </div>
+                                        <div class="commands-list">
+                                            <button 
+                                                *ngFor="let command of availableCommands" 
+                                                type="button"
+                                                class="command-btn"
+                                                [class.loading]="isSendingSms && selectedSmsCommand === command.name"
+                                                [disabled]="isSendingSms"
+                                                (click)="selectSmsCommand(command.name)"
+                                            >
+                                                <i class="pi {{ command.icon }}"></i>
+                                                <span>{{ command.name }}</span>
+                                            </button>
                                         </div>
-                                        
-                                        <!-- Lista de comandos dinámicos -->
-                                        <div *ngFor="let command of availableCommands" 
-                                             class="command-item" 
-                                             (click)="selectSmsCommand(command.name)" 
-                                             [class.active]="selectedSmsCommand === command.name">
-                                            <i class="pi {{ command.icon }}"></i>
-                                            <span>{{ command.name }}</span>
-                                        </div>
+                                    </div>
+
+                                    <!-- Estado de error si no hay protocolo -->
+                                    <div *ngIf="!selectedProtocol" class="error-state">
+                                        <i class="pi pi-info-circle"></i>
+                                        <h4>{{ translate('management.targetForm.protocolRequired') }}</h4>
+                                        <p>{{ translate('management.targetForm.selectProtocolFirst') }}</p>
                                     </div>
                                 </div>
 
-                                <!-- Columna Derecha - Chat de mensajes -->
-                                <div class="sms-chat" #smsChat>
-                                    <div class="sms-chat__header">
-                                        <h3>{{ translate('management.targetForm.messageHistory') }}</h3>
-                                        <span class="device-status" [class.online]="isDeviceOnline()">
-                                            <i class="pi" [ngClass]="isDeviceOnline() ? 'pi-circle-fill' : 'pi-circle'"></i>
-                                            {{ translate(isDeviceOnline() ? 'management.status.online' : 'management.status.offline') }}
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="sms-chat__messages" #chatMessages>
-                                        <div class="message-container" *ngFor="let message of smsMessages">
-                                            <div class="message" [class.sent]="message.type === 'sent'" [class.received]="message.type === 'received'">
-                                                <div class="message-content">
-                                                    <p>{{ message.content }}</p>
-                                                    <small class="message-time">{{ message.timestamp | date:'dd/MM/yyyy HH:mm' }}</small>
+                                <!-- Columna derecha: Chat -->
+                                <div class="sms-chat-column">
+                                    <div class="chat-container">
+                                        <div class="chat-header">
+                                            <h4>{{ translate('management.targetForm.messageHistory') }}</h4>
+                                            <button 
+                                                type="button" 
+                                                class="refresh-btn"
+                                                (click)="loadSmsMessages()"
+                                                [disabled]="isLoadingSmsMessages"
+                                            >
+                                                <i class="pi" [ngClass]="isLoadingSmsMessages ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="messages-area" #chatMessages>
+                                            <div *ngIf="smsMessages.length === 0" class="empty-state">
+                                                <i class="pi pi-comment"></i>
+                                                <p>{{ translate('management.targetForm.noMessages') }}</p>
+                                                <small>{{ translate('management.targetForm.startConversation') }}</small>
+                                            </div>
+                                            
+                                            <div *ngFor="let message of smsMessages" class="message-wrapper">
+                                                <div class="message" [class.sent]="message.type === 'sent'" [class.received]="message.type === 'received'">
+                                                    <div class="message-bubble">
+                                                        <p>{{ message.content }}</p>
+                                                        <div class="message-meta">
+                                                            <span class="timestamp">{{ message.timestamp | date:'HH:mm' }}</span>
+                                                            <i *ngIf="message.type === 'sent'" class="pi pi-check delivery-status"></i>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div class="no-messages" *ngIf="smsMessages.length === 0">
-                                            <i class="pi pi-inbox"></i>
-                                            <p>{{ translate('management.targetForm.noMessages') }}</p>
-                                        </div>
-                                    </div>
 
-                                    <div class="sms-chat__footer">
-                                        <!-- Footer limpio sin mensajes confusos -->
+                                        <!-- Input para mensaje personalizado -->
+                                        <div class="message-composer">
+                                            <div class="input-container">
+                                                <textarea 
+                                                    [(ngModel)]="customSmsMessage"
+                                                    name="customSmsMessage"
+                                                    placeholder="{{ translate('management.targetForm.typeMessage') }}"
+                                                    class="message-input"
+                                                    rows="1"
+                                                    maxlength="160"
+                                                    [disabled]="isSendingSms"
+                                                    (keydown)="onEnterKeySimple($event)"
+                                                    (input)="autoResizeInput($event)"
+                                                ></textarea>
+                                                <div class="char-counter">{{ customSmsMessage.length }}/160</div>
+                                            </div>
+                                            <button 
+                                                type="button" 
+                                                class="send-button"
+                                                [disabled]="isSendingSms || !customSmsMessage.trim()"
+                                                (click)="sendCustomMessage()"
+                                            >
+                                                <i class="pi" [ngClass]="isSendingSms ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
