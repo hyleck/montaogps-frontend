@@ -721,36 +721,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // Crear una copia del objeto target con los campos actuales
         const targetData: any = { ...this.target };
         
-        // Mapear campos del formulario a los nombres requeridos por el backend
-        if (targetData.target_plate_number) {
-            targetData.plate = targetData.target_plate_number;
-            delete targetData.target_plate_number;
-        }
+        // target_plate_number se mantiene con su nombre original
+        // El backend espera este campo tal como está
         
-        if (targetData.target_chassis_number) {
-            targetData.chassis = targetData.target_chassis_number;
-            delete targetData.target_chassis_number;
-        }
+        // target_chassis_number se mantiene con su nombre original
+        // target_color se mantiene con su nombre original  
+        // target_year se mantiene con su nombre original
+        // El backend espera estos campos tal como están
         
-        if (targetData.target_color) {
-            targetData.color = targetData.target_color;
-            delete targetData.target_color;
-        }
-        
-        if (targetData.target_year) {
-            targetData.year = targetData.target_year;
-            delete targetData.target_year;
-        }
-        
-        if (targetData.target_brand_id) {
-            targetData.brand = targetData.target_brand_id;
-            delete targetData.target_brand_id;
-        }
-        
-        if (targetData.target_model_id) {
-            targetData.model = targetData.target_model_id;
-            delete targetData.target_model_id;
-        }
+        // target_brand_id y target_model_id se mantienen con sus nombres originales
+        // El backend espera estos campos tal como están
         
         // NO mapear engine_shutdown - el backend ya lo espera con ese nombre
         // Asegurar que engine_shutdown se incluya explícitamente (incluso si está vacío)
@@ -835,14 +815,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
       
         
         // VERIFICACIÓN COMPLETA DE CAMPOS CLAVE
-        // console.log('🔍 VERIFICACIÓN FINAL prepareTargetData:');
-        // console.log('- sim_company en this.target:', this.target.sim_company);
-        // console.log('- sim_company en targetData:', targetData.sim_company);
-        // console.log('- ignition_sensor en this.target:', this.target.ignition_sensor);
-        // console.log('- ignition_sensor en targetData:', targetData.ignition_sensor);
-        // console.log('- engine_shutdown en this.target:', this.target.engine_shutdown);
-        // console.log('- engine_shutdown en targetData:', targetData.engine_shutdown);
-        // console.log('- isUpdate:', !!this.target._id);
+        console.log('🔍 VERIFICACIÓN FINAL prepareTargetData:');
+        console.log('- target_plate_number:', targetData.target_plate_number);
+        console.log('- target_chassis_number:', targetData.target_chassis_number);
+        console.log('- target_brand_id:', targetData.target_brand_id);
+        console.log('- target_model_id:', targetData.target_model_id);
+        console.log('- target_color:', targetData.target_color);
+        console.log('- target_year:', targetData.target_year);
+        console.log('- sim_company:', targetData.sim_company);
+        console.log('- isUpdate:', !!this.target._id);
+        console.log('📦 Datos completos a enviar:', targetData);
         
         return targetData;
     }
