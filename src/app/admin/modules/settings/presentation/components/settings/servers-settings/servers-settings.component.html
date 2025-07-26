@@ -21,6 +21,12 @@
                            [placeholder]="'settings.servers.url_placeholder' | translate">
                 </div>
                 <div class="form-group">
+                    <label for="ip">{{ 'settings.servers.ip' | translate }}</label>
+                    <input id="ip" type="text" [(ngModel)]="serverForm.ip" name="ip" required 
+                           [placeholder]="'settings.servers.ip_placeholder' | translate"
+                           pattern="^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$">
+                </div>
+                <div class="form-group">
                     <label for="token">{{ 'settings.servers.token' | translate }}</label>
                     <input id="token" type="text" [(ngModel)]="serverForm.token" name="token" required 
                            [placeholder]="'settings.servers.token_placeholder' | translate">

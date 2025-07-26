@@ -21,6 +21,7 @@ export class ServersSettingsComponent implements OnInit {
     name: '',
     description: '',
     url: '',
+    ip: '',
     token: '',
     months_of_storage: 12,
     device_limit: 100,
@@ -60,6 +61,7 @@ export class ServersSettingsComponent implements OnInit {
         name: this.serverForm.name,
         description: this.serverForm.description,
         url: this.serverForm.url,
+        ip: this.serverForm.ip,
         token: this.serverForm.token,
         months_of_storage: this.serverForm.months_of_storage,
         device_limit: this.serverForm.device_limit,
@@ -86,6 +88,7 @@ export class ServersSettingsComponent implements OnInit {
         name: this.serverForm.name,
         description: this.serverForm.description,
         url: this.serverForm.url,
+        ip: this.serverForm.ip,
         token: this.serverForm.token,
         months_of_storage: this.serverForm.months_of_storage,
         device_limit: this.serverForm.device_limit,
@@ -108,7 +111,10 @@ export class ServersSettingsComponent implements OnInit {
 
   editServer(server: Server) {
     this.selectedServer = server;
-    this.serverForm = {...server};
+    this.serverForm = {
+      ...server,
+      ip: server.ip || ''  // Valor por defecto si no existe el campo ip
+    };
     this.isEditing = true;
   }
 
@@ -146,6 +152,7 @@ export class ServersSettingsComponent implements OnInit {
       name: '',
       description: '',
       url: '',
+      ip: '',
       token: '',
       months_of_storage: 12,
       device_limit: 100,

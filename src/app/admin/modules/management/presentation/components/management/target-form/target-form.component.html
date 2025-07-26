@@ -172,7 +172,7 @@
                 
                                 <div class="target-form__actions">
                                     <button type="submit" [disabled]="isLoading">
-                                        <i class="pi" [ngClass]="isLoading ? 'pi-spin pi-spinner' : (target._id ? 'pi-sync' : 'pi-save')"></i>
+                                        <i class="pi" [ngClass]="isLoading ? 'pi-spinner loading-spinner' : (target._id ? 'pi-sync' : 'pi-save')"></i>
                                         {{ translate(target._id ? 'management.targetForm.update' : translations.save) }}
                                     </button>
                                 </div>
@@ -370,7 +370,7 @@
 
                                 <div class="target-form__actions">
                                     <button type="submit" [disabled]="isLoading">
-                                        <i class="pi" [ngClass]="isLoading ? 'pi-spin pi-spinner' : (target._id ? 'pi-sync' : 'pi-save')"></i>
+                                        <i class="pi" [ngClass]="isLoading ? 'pi-spinner loading-spinner' : (target._id ? 'pi-sync' : 'pi-save')"></i>
                                         {{ translate(target._id ? 'management.targetForm.update' : translations.save) }}
                                     </button>
                                 </div>
@@ -489,7 +489,7 @@
                         
                         <div class="sms-section">
                             <!-- Header con información del dispositivo -->
-                            <div class="sms-header">
+                            <!-- <div class="sms-header">
                                 <div class="device-info">
                                     <div class="device-name">
                                         <i class="pi pi-mobile"></i>
@@ -504,7 +504,7 @@
                                     <div class="status-indicator"></div>
                                     <span>{{ translate(isDeviceOnline() ? 'management.status.online' : 'management.status.offline') }}</span>
                                             </div>
-                                        </div>
+                                        </div> -->
                                         
                             <!-- Layout de 2 columnas para desktop -->
                             <div class="sms-content">
@@ -548,7 +548,7 @@
                                                 (click)="loadSmsMessages()"
                                                 [disabled]="isLoadingSmsMessages"
                                             >
-                                                <i class="pi" [ngClass]="isLoadingSmsMessages ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+                                                <i class="pi" [ngClass]="isLoadingSmsMessages ? 'pi-spinner loading-spinner' : 'pi-refresh'"></i>
                                             </button>
                                         </div>
                                         
@@ -594,7 +594,7 @@
                                                 [disabled]="isSendingSms || !customSmsMessage.trim()"
                                     (click)="sendCustomMessage()"
                                 >
-                                    <i class="pi" [ngClass]="isSendingSms ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+                                    <i class="pi" [ngClass]="isSendingSms ? 'pi-spinner loading-spinner' : 'pi-send'"></i>
                                 </button>
                         </div>
                     </div>

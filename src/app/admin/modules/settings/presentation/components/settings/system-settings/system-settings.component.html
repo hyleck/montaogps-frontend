@@ -219,7 +219,7 @@
           {{ 'settings.system.fill_test_data' | translate }}
         </button>
         <button type="submit" class="config-btn-primary" [disabled]="saving">
-          <i class="pi" [ngClass]="saving ? 'pi-spin pi-spinner' : 'pi-save'"></i> 
+                              <i class="pi" [ngClass]="saving ? 'pi-spinner loading-spinner' : 'pi-save'"></i> 
           {{ (saving ? 'settings.system.saving' : 'settings.system.save') | translate }}
         </button>
       </div>

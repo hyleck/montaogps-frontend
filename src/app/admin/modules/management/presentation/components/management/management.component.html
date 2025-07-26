@@ -107,15 +107,15 @@
     
                         <div  *ngIf="managementService.getOp() === 't'" class="management__content-table">
     
-                            <div class="card">
+                            <div class="card" >
                                 <p-table 
                                     [value]="loading ? [] : targetsList" 
                                     [(selection)]="targetsSelected" 
                                     dataKey="_id" 
                                     [loading]="loading"
-                                    loadingIcon="pi pi-spinner pi-spin"
+                                    loadingIcon="pi pi-spinner loading-spinner"
                                     >
-                                    <ng-template pTemplate="emptymessage">
+                                    <ng-template  pTemplate="emptymessage"  >
                                         <tr>
                                             <td colspan="6" style="padding: 0;">
                                                 <div class="no-targets-message fade-in-message" 
@@ -125,7 +125,11 @@
                                                         <div class="no-targets-icon">
                                                             <i class="pi pi-map-marker"></i>
                                                         </div>
-                                                        <p>Aún no tienes dispositivos GPS configurados</p>
+                                                        <div *ngIf="!showNoTargetMessage" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                                            <i class="pi pi-spinner loading-spinner" style="font-size: 1.2rem; color: #6b7280;"></i>
+                                                            <p style="margin: 0;">Cargando dispositivos GPS...</p>
+                                                        </div>
+                                                        <p *ngIf="showNoTargetMessage">No se encontraron dispositivos GPS configurados</p>
                                                         <button (click)="showTargetForm()" 
                                                                 class="button button--primary">
                                                             <i class="pi pi-plus"></i>
@@ -137,8 +141,35 @@
                                         </tr>
                                     </ng-template>
 
+                                     <ng-template pTemplate="loadingbody" >
+                                        <tr *ngFor="let skel of [1,2,3]">
+                                            <td style="font-size: 13px!important; padding: 16px;">
+                                                <!-- Skeleton para el nombre del target -->
+                                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                                    <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px', 'border-radius': '50%' }"></p-skeleton>
+                                                    <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '120px' : skel === 2 ? '150px' : '100px'), 'height': '18px' }"></p-skeleton>
+                                                </div>
+                                                
+                                                <!-- Skeleton para IMEI -->
+                                                <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '180px' : skel === 2 ? '160px' : '200px'), 'height': '14px', 'margin-bottom': '12px' }"></p-skeleton>
+                                                
+                                                <!-- Skeleton para estado y velocidad -->
+                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                    <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px' }"></p-skeleton>
+                                                    <p-skeleton [ngStyle]="{ 'width': '80px', 'height': '16px' }"></p-skeleton>
+                                                </div>
+                                            </td>
+                                            <td style="width: 1rem; padding: 16px;">
+                                                <div style="display: flex; gap: 4px;">
+                                                    <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                    <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </ng-template>
+
                                     <!-- Template para skeleton de loading -->
-                                    <ng-template pTemplate="loadingbody">
+                                    <ng-template pTemplate="loadingbody" ngIf="!showNoTargetMessage">
                                         <tr *ngFor="let skel of [1,2,3]">
                                             <td style="font-size: 13px!important; padding: 16px;">
                                                 <!-- Skeleton para el nombre del target -->

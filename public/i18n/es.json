@@ -248,6 +248,8 @@
         "description_placeholder": "Ej: Servidor principal para gestión de dispositivos GPS",
         "url": "URL",
         "url_placeholder": "Ej: https://api.montaogps.com/v1",
+        "ip": "Dirección IP",
+        "ip_placeholder": "Ej: 192.168.1.100",
         "token": "Token",
         "token_placeholder": "Ej: api_key_12345",
         "months_of_storage": "Meses de almacenamiento",

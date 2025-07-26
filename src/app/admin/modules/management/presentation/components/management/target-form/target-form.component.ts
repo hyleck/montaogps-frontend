@@ -21,8 +21,10 @@ import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.servi
 import { ColorsService } from 'src/app/core/services/colors.service';
 import { TargetsService } from 'src/app/core/services/targets.service';
 import { PlansService } from 'src/app/core/services/plans.service';
+import { ServersService } from 'src/app/core/services/servers.service';
 import { CreateTargetDto, Target, UpdateTargetDto, TargetDevice } from 'src/app/core/interfaces/target.interface';
 import { Plan, PlanPrice, ExtendedPlanPrice } from 'src/app/core/interfaces/plan.interface';
+import { Server } from 'src/app/core/interfaces/server.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
 import { ProtocolCommand } from 'src/app/core/interfaces/protocol.interface';
@@ -99,6 +101,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         private colorsService: ColorsService,
         private targetsService: TargetsService,
         private plansService: PlansService,
+        private serversService: ServersService,
         private protocolsService: ProtocolsService,
         private managementService: ManagementService
     ) {}
@@ -539,6 +542,112 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 this.loadSmsMessages();
             }, 500);
         }
+
+        // Cargar datos del servidor asociado al plan del target
+        this.loadServerDataFromPlan();
+    }
+
+    /**
+     * Obtiene la IP del servidor asociado al plan del target
+     * @returns Promise que resuelve con la IP del servidor o null si no se encuentra
+     */
+    private async getServerIpFromPlan(): Promise<string | null> {
+        // Verificar que el target tenga un plan asignado
+        if (!this.target.plan) {
+            return null;
+        }
+
+        const planId = typeof this.target.plan === 'string' ? this.target.plan : 
+                      (this.target.plan as any).id_plan || '';
+
+        if (!planId) {
+            return null;
+        }
+
+        try {
+            // Obtener datos del plan
+            const plan = await this.plansService.getPlanById(planId).toPromise();
+            
+            if (!plan || !plan.server_id) {
+                return null;
+            }
+
+            // Obtener datos del servidor
+            const server = await this.serversService.getServerById(plan.server_id).toPromise();
+            
+            return server?.ip || null;
+        } catch (error) {
+            console.error('❌ Error al obtener IP del servidor:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Carga los datos del servidor asociado al plan del target
+     * Muestra la información del plan y servidor en consola
+     */
+    private loadServerDataFromPlan(): void {
+        // Verificar que el target tenga un plan asignado
+        if (!this.target.plan) {
+            console.log('ℹ️  No hay plan asignado al target');
+            return;
+        }
+
+        const planId = typeof this.target.plan === 'string' ? this.target.plan : 
+                      (this.target.plan as any).id_plan || '';
+
+        if (!planId) {
+            console.log('ℹ️  No se pudo obtener el ID del plan');
+            return;
+        }
+
+        console.log('🔍 Cargando datos del plan y servidor para el target:', this.target.name);
+        console.log('📋 Plan ID:', planId);
+
+        // Obtener datos del plan
+        this.plansService.getPlanById(planId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (plan: Plan) => {
+                    console.log('📋 ===== DATOS DEL PLAN =====');
+                    console.log('📋 Plan:', plan);
+                    console.log('📋 Nombre del plan:', plan.plan_name);
+                    console.log('📋 Descripción:', plan.plan_description);
+                    console.log('📋 Server ID:', plan.server_id);
+                    console.log('📋 Precios:', plan.prices);
+                    console.log('📋 Características:', plan.plan_features);
+                    console.log('📋 =============================');
+
+                    // Obtener datos del servidor
+                    if (plan.server_id) {
+                        this.serversService.getServerById(plan.server_id)
+                            .pipe(takeUntil(this.destroy$))
+                            .subscribe({
+                                next: (server: Server) => {
+                                    console.log('🖥️  ===== DATOS DEL SERVIDOR =====');
+                                    console.log('🖥️  Servidor:', server);
+                                    console.log('🖥️  Nombre del servidor:', server.name);
+                                    console.log('🖥️  Descripción:', server.description);
+                                    console.log('🖥️  URL:', server.url);
+                                    console.log('🖥️  IP:', server.ip);
+                                    console.log('🖥️  Token:', server.token);
+                                    console.log('🖥️  Meses de almacenamiento:', server.months_of_storage);
+                                    console.log('🖥️  Límite de dispositivos:', server.device_limit);
+                                    console.log('🖥️  En mantenimiento:', server.maintenance);
+                                    console.log('🖥️  ================================');
+                                },
+                                error: (error) => {
+                                    console.error('❌ Error al cargar datos del servidor:', error);
+                                }
+                            });
+                    } else {
+                        console.log('ℹ️  El plan no tiene un servidor asignado');
+                    }
+                },
+                error: (error) => {
+                    console.error('❌ Error al cargar datos del plan:', error);
+                }
+            });
     }
 
     private resetForm() {
@@ -1025,8 +1134,32 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     private async sendSmsMessage(message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<void> {
+        // Procesar mensaje para reemplazar variables del servidor
+        let processedMessage = message;
+        
         try {
             this.isSendingSms = true;
+            
+            // Verificar si el mensaje contiene {{server}} y reemplazarlo por la IP del servidor
+            if (message.includes('{{server}}')) {
+                console.log('🔧 Mensaje contiene {{server}}, obteniendo IP del servidor...');
+                const serverIp = await this.getServerIpFromPlan();
+                
+                if (serverIp) {
+                    processedMessage = message.replace(/\{\{server\}\}/g, serverIp);
+                    console.log('✅ {{server}} reemplazado por IP:', serverIp);
+                    console.log('📝 Mensaje original:', message);
+                    console.log('📝 Mensaje procesado:', processedMessage);
+                } else {
+                    console.warn('⚠️ No se pudo obtener la IP del servidor, enviando mensaje sin procesar');
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Advertencia',
+                        detail: 'No se pudo obtener la IP del servidor. El mensaje se enviará sin procesar.',
+                        life: 3000
+                    });
+                }
+            }
 
             // Mostrar mensaje de envío
             this.messageService.add({
@@ -1036,17 +1169,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 life: 2000
             });
 
-            // Añadir mensaje enviado al chat
+            // Añadir mensaje enviado al chat (mostrar el mensaje procesado)
             this.smsMessages.push({
                 type: 'sent',
-                content: message,
+                content: processedMessage,
                 timestamp: new Date()
             });
 
             this.scrollToBottom();
 
-            // Enviar SMS real al backend
-            const response = await this.targetsService.sendSMS(this.target.sim_card_number, message, provider);
+            // Enviar SMS real al backend (usando el mensaje procesado)
+            const response = await this.targetsService.sendSMS(this.target.sim_card_number, processedMessage, provider);
 
             console.log('📤 Respuesta del envío SMS:', response);
 
@@ -1086,7 +1219,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             console.error('❌ Error al enviar SMS:', error);
             
             // Remover el mensaje del chat si falló completamente
-            if (this.smsMessages.length > 0 && this.smsMessages[this.smsMessages.length - 1].content === message) {
+            if (this.smsMessages.length > 0 && this.smsMessages[this.smsMessages.length - 1].content === processedMessage) {
                 this.smsMessages.pop();
             }
 

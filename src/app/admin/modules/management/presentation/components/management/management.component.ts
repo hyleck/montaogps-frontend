@@ -807,7 +807,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         });
       }
   }
-
+  showNoTargetMessage = false;
   private async loadTargetsForUser(userId: string) {
     // Si hay un término de búsqueda activo, usar la búsqueda en lugar de cargar todos
     if (this.searchTargetsTerm && this.searchTargetsTerm.trim() !== '') {
@@ -824,7 +824,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const parentId = this.managementService.getCurrentUserId();
       this.loadingTargets = true;
       const targets = await this.targetsService.getTargetsByUserId(userId, parentId);
-      
+      this.showNoTargetMessage = targets.length === 0;
       this.targets = targets;
       
       if (targets && targets.length > 0) {

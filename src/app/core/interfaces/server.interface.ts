@@ -3,6 +3,7 @@ export interface Server {
   name: string;
   description: string;
   url: string;
+  ip: string;
   token: string;
   months_of_storage: number;
   device_limit: number;
@@ -13,6 +14,7 @@ export interface CreateServerDto {
   name: string;
   description: string;
   url: string;
+  ip: string;
   token: string;
   months_of_storage: number;
   device_limit: number;
@@ -23,6 +25,7 @@ export interface UpdateServerDto {
   name?: string;
   description?: string;
   url?: string;
+  ip?: string;
   token?: string;
   months_of_storage?: number;
   device_limit?: number;
