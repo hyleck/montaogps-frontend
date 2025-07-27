@@ -15,6 +15,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   @Input() selectedTarget: any = null;
   @Input() routeHistory: RouteHistoryResponse | null = null;
   @Input() showRouteDetails: boolean = true;
+  @Input() autoStartReplay: boolean = false;
+  @Input() isStreamingMode: boolean = false;
 
   map: any;
   apiKey: string = '';
@@ -53,7 +55,29 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   ngOnChanges(changes: SimpleChanges): void {
     if (this.map && (changes['routeHistory'] || changes['selectedTarget'])) {
       console.log('🔄 Route history or target changed, updating map');
-      this.updateMapWithRouteHistory();
+      
+      // Si ya está reproduciendo, actualizar posiciones sin reiniciar la reproducción
+      if (this.isReplaying && changes['routeHistory'] && this.routeHistory) {
+        this.updateReplayPositionsWithNewData();
+      } else {
+        this.updateMapWithRouteHistory();
+      }
+    }
+    
+    // Detectar cambios en el modo streaming para logging
+    if (changes['isStreamingMode']) {
+      console.log(`🔄 Streaming mode changed: ${this.isStreamingMode}`);
+    }
+    
+    // Detectar cuando se solicita auto-inicio de reproducción
+    if (this.map && changes['autoStartReplay'] && this.autoStartReplay && 
+        this.routeHistory && this.routeHistory.positions.length > 0 && !this.isReplaying) {
+      console.log('🎬 Auto-iniciando reproducción por streaming progresivo');
+      
+      // Pequeña pausa para asegurar que el mapa esté completamente actualizado
+      setTimeout(() => {
+        this.startReplay();
+      }, 300);
     }
   }
 
@@ -524,6 +548,43 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     console.log(`⚡ Velocidad de reproducción: ${speed}ms`);
   }
 
+  /**
+   * Actualizar posiciones de reproducción con nuevos datos sin reiniciar la reproducción
+   */
+  private updateReplayPositionsWithNewData(): void {
+    if (!this.routeHistory || !this.routeHistory.positions.length) {
+      return;
+    }
+
+    console.log('🔄 Actualizando posiciones de reproducción con nuevos datos');
+    
+    // Ordenar todas las posiciones por timestamp
+    const allPositions = [...this.routeHistory.positions].sort((a, b) => 
+      new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime()
+    );
+    
+    const previousLength = this.replayPositions.length;
+    
+    // Siempre actualizar con todas las posiciones ordenadas
+    this.replayPositions = allPositions;
+    
+    if (allPositions.length > previousLength) {
+      const newPositionsCount = allPositions.length - previousLength;
+      console.log(`📈 Agregando ${newPositionsCount} nuevas posiciones a la reproducción (Total: ${allPositions.length})`);
+      
+      // Si la reproducción está activa pero había llegado al final o no tiene timeout programado, continuar
+      if (this.isReplaying && (!this.replayInterval || this.currentPositionIndex >= previousLength)) {
+        console.log('🎬 Reanudando reproducción con nuevas posiciones');
+        
+        // Si no hay timeout activo, iniciar nextPosition inmediatamente
+        if (!this.replayInterval) {
+          this.nextPosition();
+        }
+        // Si había llegado al final de las posiciones anteriores, el timeout ya se encargará de continuar
+      }
+    }
+  }
+
   onSpeedChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
     const speed = parseInt(target.value, 10);
@@ -584,12 +645,25 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private nextPosition(): void {
-    if (!this.isReplaying || this.isPaused || this.currentPositionIndex >= this.replayPositions.length) {
-      if (this.currentPositionIndex >= this.replayPositions.length) {
+    if (!this.isReplaying || this.isPaused) {
+      return;
+    }
+
+    // Si hemos llegado al final de las posiciones actuales
+    if (this.currentPositionIndex >= this.replayPositions.length) {
+      // Verificar si estamos en modo streaming (aún se están cargando más datos)
+      if (this.isStreamingMode) {
+        console.log('⏳ Esperando más datos del streaming...');
+        // Esperar un poco antes de verificar nuevamente si hay más posiciones
+        this.replayInterval = setTimeout(() => {
+          this.nextPosition();
+        }, 1000); // Esperar 1 segundo antes de verificar nuevamente
+        return;
+      } else {
         console.log('✅ Reproducción completada');
         this.stopReplay();
+        return;
       }
-      return;
     }
 
     const currentPosition = this.replayPositions[this.currentPositionIndex];

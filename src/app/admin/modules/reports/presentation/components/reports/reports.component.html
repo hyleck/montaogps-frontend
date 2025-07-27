@@ -282,15 +282,42 @@
 
           <!-- Estado de carga del historial -->
           <div *ngIf="loadingRouteHistory" 
-               style="position: absolute; top: 10px; left: 10px; background: rgba(59, 130, 246, 0.9); color: white; padding: 8px 12px; border-radius: 6px; font-size: 12px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <i class="fas fa-spinner fa-spin" style="margin-right: 6px;"></i>
-            {{ 'reports.loading_history' | translate }}
+               style="position: absolute; top: 10px; left: 10px; background: rgba(59, 130, 246, 0.9); color: white; padding: 8px 12px; border-radius: 6px; font-size: 12px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-width: 250px;">
+            <div style="display: flex; align-items: center; margin-bottom: 4px;">
+              <i class="fas fa-spinner fa-spin" style="margin-right: 6px;"></i>
+              <span *ngIf="!progressiveLoading.isActive">{{ 'reports.loading_history' | translate }}</span>
+              <span *ngIf="progressiveLoading.isActive && !progressiveLoading.isStreamingMode">{{ 'reports.loading_progressive' | translate }}</span>
+              <span *ngIf="progressiveLoading.isStreamingMode && !progressiveLoading.replayStarted">{{ 'reports.preparing_streaming' | translate }}</span>
+              <span *ngIf="progressiveLoading.isStreamingMode && progressiveLoading.replayStarted">{{ 'reports.streaming_active' | translate }}</span>
+            </div>
+            
+            <!-- Progreso detallado para carga progresiva -->
+            <div *ngIf="progressiveLoading.isActive">
+              <div style="font-size: 11px; opacity: 0.9; margin-bottom: 2px;">
+                🕒 Bloque {{ progressiveLoading.currentBlock }} de {{ progressiveLoading.totalBlocks }}
+              </div>
+              <div style="font-size: 11px; opacity: 0.8; margin-bottom: 4px;">
+                {{ progressiveLoading.currentRange }}
+              </div>
+              <div style="font-size: 11px; opacity: 0.9;">
+                📍 {{ progressiveLoading.totalPositionsLoaded }} posiciones cargadas
+              </div>
+              
+              <!-- Barra de progreso simple -->
+              <div style="width: 100%; height: 3px; background: rgba(255,255,255,0.3); border-radius: 2px; margin-top: 6px; overflow: hidden;">
+                <div style="height: 100%; background: rgba(255,255,255,0.8); border-radius: 2px; transition: width 0.3s ease;"
+                     [style.width.%]="progressiveLoading.totalBlocks > 0 ? (progressiveLoading.currentBlock / progressiveLoading.totalBlocks * 100) : 0">
+                </div>
+              </div>
+            </div>
           </div>
 
           <app-reports-map 
             [selectedTarget]="getSelectedTargetForMap()"
             [routeHistory]="routeHistory"
-            [showRouteDetails]="true">
+            [showRouteDetails]="true"
+            [autoStartReplay]="progressiveLoading.replayStarted"
+            [isStreamingMode]="progressiveLoading.isStreamingMode">
           </app-reports-map>
         </div>
       </div>

@@ -929,7 +929,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     });
     console.log('📊 Estado inicial de targets:', this.previousTargetsStatus);
   }
-
+  
   private startPolling(): void {
     // Detener cualquier polling previo
     this.stopPolling();
@@ -973,13 +973,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // 1. Actualizar target seleccionado (si existe)
       if (this.selectedTargetForMap) {
         logMessage += 'target seleccionado y ';
-        const updatedTarget = await this.targetsService.getTargetById(this.selectedTargetForMap._id);
-        
-        // Actualizar el target seleccionado con la nueva información
-        this.selectedTargetForMap = {
-          ...this.selectedTargetForMap,
-          ...updatedTarget,
-          // Preservar información adicional que pueda tener el target local
+      const updatedTarget = await this.targetsService.getTargetById(this.selectedTargetForMap._id);
+      
+      // Actualizar el target seleccionado con la nueva información
+      this.selectedTargetForMap = {
+        ...this.selectedTargetForMap,
+        ...updatedTarget,
+        // Preservar información adicional que pueda tener el target local
           traccarInfo: updatedTarget.traccarInfo || this.selectedTargetForMap.traccarInfo,
           // IMPORTANTE: Sincronizar traccarStatus para que el mapa lo detecte
           traccarStatus: updatedTarget.traccarInfo?.status || 'offline'

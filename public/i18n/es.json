@@ -124,6 +124,13 @@
       "route_history_title": "Historial de Recorrido",
       "positions_found": "posiciones encontradas",
       "loading_history": "Cargando historial...",
+      "loading_progressive": "Cargando historial día por día...",
+      "day_x_of_y": "Día {{current}} de {{total}}",
+      "positions_loaded": "posiciones cargadas",
+      "progressive_complete": "Historial cargado completamente",
+      "preparing_streaming": "Preparando streaming...",
+      "streaming_active": "🎬 Reproduciendo + Cargando",
+      "streaming_complete": "Streaming Completado",
       "report_types": {
         "movements": "Reporte de Movimientos",
         "stops": "Reporte de Paradas",

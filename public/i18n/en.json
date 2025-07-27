@@ -124,6 +124,13 @@
       "route_history_title": "Route History",
       "positions_found": "positions found",
       "loading_history": "Loading history...",
+      "loading_progressive": "Loading history day by day...",
+      "day_x_of_y": "Day {{current}} of {{total}}",
+      "positions_loaded": "positions loaded",
+      "progressive_complete": "History loaded completely",
+      "preparing_streaming": "Preparing streaming...",
+      "streaming_active": "🎬 Playing + Loading",
+      "streaming_complete": "Streaming Complete",
       "report_types": {
         "movements": "Movements Report",
         "stops": "Stops Report",

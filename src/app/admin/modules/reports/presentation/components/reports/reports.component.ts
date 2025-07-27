@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MenuItem, MessageService } from 'primeng/api';
 import { TargetsService } from '@core/services/targets.service';
@@ -51,6 +51,25 @@ export class ReportsComponent implements OnInit {
     // Datos del historial de rutas
     routeHistory: RouteHistoryResponse | null = null;
     loadingRouteHistory: boolean = false;
+    
+    // Estado de carga progresiva
+    progressiveLoading: {
+      isActive: boolean;
+      totalBlocks: number;
+      currentBlock: number;
+      currentRange: string;
+      totalPositionsLoaded: number;
+      isStreamingMode: boolean;
+      replayStarted: boolean;
+    } = {
+      isActive: false,
+      totalBlocks: 0,
+      currentBlock: 0,
+      currentRange: '',
+      totalPositionsLoaded: 0,
+      isStreamingMode: false,
+      replayStarted: false
+    };
     
     // Target ID específico desde la URL
     targetIdFromUrl: string | null = null;
@@ -154,7 +173,8 @@ export class ReportsComponent implements OnInit {
       private translate: TranslateService,
       private authService: AuthService,
       private themesService: ThemesService,
-      private route: ActivatedRoute
+      private route: ActivatedRoute,
+      private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
@@ -393,8 +413,14 @@ export class ReportsComponent implements OnInit {
         console.log('Generando reporte con filtros:', this.reportFilter);
         
         if (this.reportFilter.reportType === 'route_history') {
-          // Para historial de recorrido, cargar datos de ruta
-          await this.loadRouteHistory();
+          // Para historial de recorrido, determinar si usar carga progresiva
+          if (this.shouldUseProgressiveLoading()) {
+            console.log('🚀 Usando carga progresiva por rango de fechas extenso');
+            await this.loadRouteHistoryProgressive();
+          } else {
+            console.log('⚡ Usando carga normal por rango de fechas corto');
+            await this.loadRouteHistory();
+          }
         } else {
           // Para otros tipos de reporte, simular generación
           await this.simulateReportGeneration();
@@ -519,6 +545,248 @@ export class ReportsComponent implements OnInit {
       } finally {
         this.loadingRouteHistory = false;
       }
+    }
+
+    /**
+     * Carga progresiva del historial de rutas día por día con streaming
+     */
+    private async loadRouteHistoryProgressive(): Promise<void> {
+      this.loadingRouteHistory = true;
+      this.progressiveLoading.isActive = true;
+      this.progressiveLoading.isStreamingMode = true;
+      this.progressiveLoading.replayStarted = false;
+      this.progressiveLoading.totalPositionsLoaded = 0;
+      
+      // Inicializar historial vacío
+      this.routeHistory = {
+        positions: [],
+        totalPositions: 0
+      };
+      
+      try {
+        let selectedTarget: any;
+        let selectedTargetId: string;
+        
+        // Obtener target (misma lógica que loadRouteHistory)
+        if (this.targetIdFromUrl) {
+          selectedTargetId = this.targetIdFromUrl;
+          console.log('🎯 Trayendo target desde URL usando servicio:', selectedTargetId);
+          
+          try {
+            selectedTarget = await this.targetsService.getTargetById(selectedTargetId);
+            console.log('✅ Target obtenido del servicio:', selectedTarget.name || selectedTarget.alias);
+          } catch (error) {
+            throw new Error(`No se encontró el dispositivo con ID: ${selectedTargetId}`);
+          }
+          
+        } else if (this.reportFilter.selectedTargets.length > 0) {
+          selectedTargetId = this.reportFilter.selectedTargets[0]._id || this.reportFilter.selectedTargets[0];
+          selectedTarget = this.targets.find(t => t._id === selectedTargetId);
+          console.log('📋 Usando target seleccionado localmente:', selectedTargetId);
+          
+        } else if (this.targets.length > 0) {
+          selectedTarget = this.targets[0];
+          selectedTargetId = selectedTarget._id;
+          console.log('📦 Usando primer target disponible localmente:', selectedTargetId);
+          
+        } else {
+          throw new Error('No hay dispositivos disponibles para el historial');
+        }
+        
+        if (!selectedTarget) {
+          throw new Error('No se encontró el dispositivo seleccionado');
+        }
+        
+        const apiDeviceId = selectedTarget?.api_device_id || selectedTarget?.deviceId;
+        
+        if (!apiDeviceId) {
+          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un API Device ID válido`);
+        }
+
+        // Validar y convertir fechas
+        if (!this.reportFilter.dateRange.start || !this.reportFilter.dateRange.end) {
+          throw new Error('Se requieren fechas de inicio y fin para la carga progresiva');
+        }
+        
+        const startDate = this.reportFilter.dateRange.start instanceof Date 
+          ? this.reportFilter.dateRange.start 
+          : new Date(this.reportFilter.dateRange.start);
+        const endDate = this.reportFilter.dateRange.end instanceof Date 
+          ? this.reportFilter.dateRange.end 
+          : new Date(this.reportFilter.dateRange.end);
+          
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          throw new Error('Fechas inválidas para la carga progresiva');
+        }
+
+        // Dividir en bloques de 5 horas
+        const hourRanges = this.getHourRanges(startDate, endDate);
+        this.progressiveLoading.totalBlocks = hourRanges.length;
+        this.progressiveLoading.currentBlock = 0;
+        
+        console.log('🚀 Iniciando carga progresiva:', {
+          targetId: selectedTargetId,
+          targetName: selectedTarget.name || selectedTarget.alias,
+          apiDeviceId,
+          totalBlocks: hourRanges.length,
+          dateRange: `${startDate.toISOString()} → ${endDate.toISOString()}`
+        });
+        
+        // STREAMING MODE: Cargar primer bloque e iniciar reproducción
+        await this.loadFirstBlockAndStartReplay(hourRanges, apiDeviceId.toString());
+        
+        // CONTINUAR CARGA EN SEGUNDO PLANO: Cargar bloques restantes mientras se reproduce
+        if (hourRanges.length > 1) {
+          this.loadRemainingBlocksInBackground(hourRanges.slice(1), apiDeviceId.toString());
+        }
+        
+        console.log('🎉 Carga progresiva completada:', {
+          totalPositions: this.routeHistory.totalPositions,
+          positionsLoaded: this.routeHistory.positions.length,
+          blocksProcessed: hourRanges.length
+        });
+        
+      } catch (error) {
+        console.error('❌ Error en carga progresiva:', error);
+        
+        // Limpiar estado en caso de error
+        this.routeHistory = null;
+        this.progressiveLoading.totalPositionsLoaded = 0;
+        
+        throw error;
+      } finally {
+        this.loadingRouteHistory = false;
+        this.progressiveLoading.isActive = false;
+        this.progressiveLoading.isStreamingMode = false;
+        this.progressiveLoading.replayStarted = false;
+        this.progressiveLoading.currentBlock = 0;
+        this.progressiveLoading.currentRange = '';
+      }
+    }
+
+    /**
+     * Cargar el primer bloque de 5 horas e iniciar la reproducción inmediatamente
+     */
+    private async loadFirstBlockAndStartReplay(hourRanges: Array<{start: Date, end: Date, rangeStr: string}>, apiDeviceId: string): Promise<void> {
+      const firstHourRange = hourRanges[0];
+      this.progressiveLoading.currentBlock = 1;
+      this.progressiveLoading.currentRange = firstHourRange.rangeStr;
+      
+      console.log(`🚀 Cargando primer bloque para streaming: ${firstHourRange.rangeStr}`);
+      
+      try {
+        const firstBlockHistory = await this.targetsService.getRouteHistory(
+          apiDeviceId,
+          firstHourRange.start.toISOString(),
+          firstHourRange.end.toISOString()
+        );
+        
+        if (firstBlockHistory && firstBlockHistory.positions && firstBlockHistory.positions.length > 0) {
+          // Agregar posiciones del primer bloque creando nueva referencia
+          this.routeHistory = {
+            ...this.routeHistory!,
+            positions: [...this.routeHistory!.positions, ...firstBlockHistory.positions],
+            totalPositions: this.routeHistory!.positions.length + firstBlockHistory.positions.length
+          };
+          this.progressiveLoading.totalPositionsLoaded = this.routeHistory.positions.length;
+          
+          console.log(`✅ Primer bloque cargado: ${firstBlockHistory.positions.length} posiciones`);
+          console.log(`🎬 Iniciando reproducción automática...`);
+          
+          // Marcar que la reproducción debería iniciar automáticamente
+          this.progressiveLoading.replayStarted = true;
+          
+          // Forzar detección de cambios para que el mapa reciba los datos
+          this.cdr.detectChanges();
+          
+          // Pequeña pausa para asegurar que el mapa se actualice antes de iniciar reproducción
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+        } else {
+          console.log(`ℹ️ Primer bloque sin posiciones: ${firstHourRange.rangeStr}`);
+        }
+        
+      } catch (error) {
+        console.error(`❌ Error cargando primer bloque (${firstHourRange.rangeStr}):`, error);
+        throw error;
+      }
+    }
+
+    /**
+     * Cargar los bloques restantes en segundo plano mientras se reproduce el historial
+     */
+    private loadRemainingBlocksInBackground(remainingHourRanges: Array<{start: Date, end: Date, rangeStr: string}>, apiDeviceId: string): void {
+      console.log(`🔄 Iniciando carga en segundo plano de ${remainingHourRanges.length} bloques restantes`);
+      
+      // Usar async/await en una función separada para manejar la carga en segundo plano
+      this.processRemainingBlocksAsync(remainingHourRanges, apiDeviceId);
+    }
+
+    /**
+     * Procesar los bloques restantes de forma asíncrona
+     */
+    private async processRemainingBlocksAsync(remainingHourRanges: Array<{start: Date, end: Date, rangeStr: string}>, apiDeviceId: string): Promise<void> {
+      for (let i = 0; i < remainingHourRanges.length; i++) {
+        const hourRange = remainingHourRanges[i];
+        const blockNumber = i + 2; // +2 porque empezamos desde el segundo bloque
+        
+        this.progressiveLoading.currentBlock = blockNumber;
+        this.progressiveLoading.currentRange = hourRange.rangeStr;
+        
+        console.log(`📅 [Segundo plano] Cargando bloque ${blockNumber}/${this.progressiveLoading.totalBlocks}: ${hourRange.rangeStr}`);
+        
+        try {
+          const blockHistory = await this.targetsService.getRouteHistory(
+            apiDeviceId,
+            hourRange.start.toISOString(),
+            hourRange.end.toISOString()
+          );
+          
+          if (blockHistory && blockHistory.positions && blockHistory.positions.length > 0) {
+            // Agregar posiciones del bloque al historial total creando nueva referencia
+            this.routeHistory = {
+              ...this.routeHistory!,
+              positions: [...this.routeHistory!.positions, ...blockHistory.positions],
+              totalPositions: this.routeHistory!.positions.length + blockHistory.positions.length
+            };
+            this.progressiveLoading.totalPositionsLoaded = this.routeHistory.positions.length;
+            
+            console.log(`✅ [Segundo plano] Bloque ${blockNumber}: ${blockHistory.positions.length} posiciones agregadas (Total: ${this.routeHistory.positions.length})`);
+            
+            // Forzar detección de cambios para que el mapa reciba los nuevos datos
+            this.cdr.detectChanges();
+            
+            console.log(`🔄 Notificando mapa de nuevas ${blockHistory.positions.length} posiciones (Total actual: ${this.routeHistory.positions.length})`);
+            
+          } else {
+            console.log(`ℹ️ [Segundo plano] Bloque ${blockNumber}: Sin posiciones`);
+          }
+          
+          // Pausa más corta para bloques de 5 horas (menos tiempo que días completos)
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+        } catch (blockError) {
+          console.warn(`⚠️ [Segundo plano] Error cargando bloque ${blockNumber} (${hourRange.rangeStr}):`, blockError);
+          // Continuar con el siguiente bloque en caso de error
+        }
+      }
+      
+      console.log('🎉 Carga en segundo plano completada');
+      
+      // Finalizar estado de carga pero mantener la reproducción
+      this.progressiveLoading.isActive = false;
+      this.progressiveLoading.isStreamingMode = false;
+      this.loadingRouteHistory = false;
+      
+      // Forzar detección de cambios para que el mapa sea notificado del cambio de estado
+      this.cdr.detectChanges();
+      
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('reports.streaming_complete'),
+        detail: `${this.routeHistory!.totalPositions} ${this.translate.instant('reports.positions_loaded')} (${this.progressiveLoading.totalBlocks} bloques)`,
+        life: 5000
+      });
     }
 
     getReportTypeName(): string {
@@ -655,6 +923,85 @@ export class ReportsComponent implements OnInit {
 
   hasRouteHistoryData(): boolean {
     return !!(this.routeHistory && this.routeHistory.positions.length > 0);
+  }
+
+  /**
+   * Determina si debe usar carga progresiva basado en el rango de fechas
+   */
+  private shouldUseProgressiveLoading(): boolean {
+    if (!this.reportFilter.dateRange.start || !this.reportFilter.dateRange.end) {
+      return false;
+    }
+    
+    const startDate = this.reportFilter.dateRange.start instanceof Date 
+      ? this.reportFilter.dateRange.start 
+      : new Date(this.reportFilter.dateRange.start);
+    const endDate = this.reportFilter.dateRange.end instanceof Date 
+      ? this.reportFilter.dateRange.end 
+      : new Date(this.reportFilter.dateRange.end);
+    
+    // Calcular diferencia en horas
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+    
+    // Usar carga progresiva si es más de 5 horas (más de un bloque)
+    return diffHours > 5;
+  }
+
+  /**
+   * Divide un rango de fechas en bloques de 5 horas
+   */
+  private getHourRanges(startDate: Date, endDate: Date): Array<{start: Date, end: Date, rangeStr: string}> {
+    const blocks: Array<{start: Date, end: Date, rangeStr: string}> = [];
+    const current = new Date(startDate);
+    
+    while (current <= endDate) {
+      const blockStart = new Date(current);
+      
+      // Calcular el final del bloque (5 horas después)
+      const blockEnd = new Date(current);
+      blockEnd.setHours(blockEnd.getHours() + 5);
+      
+      // No sobrepasar la fecha final
+      if (blockEnd > endDate) {
+        blockEnd.setTime(endDate.getTime());
+      }
+      
+      // Crear string descriptivo del rango
+      const startTimeStr = blockStart.toLocaleString('es-ES', {
+        day: '2-digit',
+        month: '2-digit', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      const endTimeStr = blockEnd.toLocaleString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric', 
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      const rangeStr = `${startTimeStr} - ${endTimeStr}`;
+      
+      blocks.push({
+        start: new Date(blockStart),
+        end: new Date(blockEnd),
+        rangeStr
+      });
+      
+      // Avanzar 5 horas para el siguiente bloque
+      current.setHours(current.getHours() + 5);
+      
+      // Si hemos llegado al final del rango, salir del bucle
+      if (current >= endDate) {
+        break;
+      }
+    }
+    
+    return blocks;
   }
 
   // Método para exportar reporte (placeholder)
