@@ -124,7 +124,7 @@ export class ReportsComponent implements OnInit {
         value: 'today',
         getRange: () => ({
           start: new Date(new Date().setHours(0,0,0,0)),
-          end: new Date(new Date().setHours(23,59,59,999))
+          end: new Date(new Date().setHours(23,59,0,0))
         })
       },
       { 
@@ -134,25 +134,46 @@ export class ReportsComponent implements OnInit {
           const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
           return {
             start: new Date(yesterday.setHours(0,0,0,0)),
-            end: new Date(yesterday.setHours(23,59,59,999))
+            end: new Date(yesterday.setHours(23,59,0,0))
+          };
+        }
+      },
+      { 
+        label: 'Últimas 6 horas', 
+        value: 'last6hours',
+        getRange: () => {
+          const now = new Date();
+          const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+          return {
+            start: sixHoursAgo,
+            end: now
+          };
+        }
+      },
+      { 
+        label: 'Últimas 12 horas', 
+        value: 'last12hours',
+        getRange: () => {
+          const now = new Date();
+          const twelveHoursAgo = new Date(now.getTime() - 12 * 60 * 60 * 1000);
+          return {
+            start: twelveHoursAgo,
+            end: now
           };
         }
       },
       { 
         label: 'Últimos 7 días', 
         value: 'week',
-        getRange: () => ({
-          start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-          end: new Date()
-        })
-      },
-      { 
-        label: 'Últimos 30 días', 
-        value: 'month',
-        getRange: () => ({
-          start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-          end: new Date()
-        })
+        getRange: () => {
+          const now = new Date();
+          const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          weekAgo.setHours(0,0,0,0);
+          return {
+            start: weekAgo,
+            end: now
+          };
+        }
       },
       { 
         label: 'Este mes', 
@@ -160,8 +181,8 @@ export class ReportsComponent implements OnInit {
         getRange: () => {
           const now = new Date();
           return {
-            start: new Date(now.getFullYear(), now.getMonth(), 1),
-            end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+            start: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0),
+            end: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 0, 0)
           };
         }
       }
@@ -317,13 +338,18 @@ export class ReportsComponent implements OnInit {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
       
-      return `${year}-${month}-${day}`;
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
     }
 
     private initializeDateRange(): void {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      yesterday.setHours(0, 0, 0, 0); // Inicio a las 00:00
+      
       const today = new Date();
+      today.setHours(23, 59, 0, 0); // Final a las 23:59
       
       this.reportFilter.dateRange = {
         start: this.formatDateForInput(yesterday),
@@ -1040,7 +1066,10 @@ export class ReportsComponent implements OnInit {
 
     clearFilters(): void {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      yesterday.setHours(0, 0, 0, 0); // Inicio a las 00:00
+      
       const today = new Date();
+      today.setHours(23, 59, 0, 0); // Final a las 23:59
       
       this.reportFilter = {
         reportType: 'movements',

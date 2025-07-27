@@ -183,6 +183,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     if ((window as any).navigateToReports) {
       delete (window as any).navigateToReports;
     }
+    if ((window as any).closeCurrentMapPopup) {
+      delete (window as any).closeCurrentMapPopup;
+    }
   }
 
   private async initializeMap(): Promise<void> {
@@ -315,6 +318,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         content: initialContent
       });
 
+      // Configurar función global para cerrar popup
+      (window as any).closeCurrentMapPopup = () => {
+        if (this.currentPopup) {
+          this.currentPopup.close();
+        }
+      };
+
       // Abrir InfoWindow
       this.currentPopup.open(this.map, this.currentMarker);
 
@@ -360,6 +370,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       // Crear popup Mapbox
       this.currentPopup = new mapboxgl.Popup({ offset: 25 })
         .setHTML(initialContent);
+
+      // Configurar función global para cerrar popup
+      (window as any).closeCurrentMapPopup = () => {
+        if (this.currentPopup) {
+          this.currentPopup.remove();
+        }
+      };
 
       this.currentMarker.setPopup(this.currentPopup);
       this.currentMarker.togglePopup();
@@ -599,7 +616,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
               </svg>
               Historial
             </div>
-            <button class="popup-close-btn" onclick="this.closest('${this.provider === 'google' ? '.gm-style-iw' : '.mapboxgl-popup'}').parentElement.style.display='none'">
+            <button class="popup-close-btn" onclick="if(window.closeCurrentMapPopup) window.closeCurrentMapPopup()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>

@@ -62,9 +62,9 @@
             <div class="date-input">
               <label>{{ 'reports.from_date' | translate }}</label>
               <input 
-                type="date"
+                type="datetime-local"
                 [(ngModel)]="reportFilter.dateRange.start"
-                [max]="reportFilter.dateRange.end | date:'yyyy-MM-dd'"
+                [max]="reportFilter.dateRange.end | date:'yyyy-MM-ddTHH:mm'"
                 class="native-input">
             </div>
       
@@ -76,9 +76,9 @@
                 <div class="date-input">
                   <label>{{ 'reports.to_date' | translate }}</label>
                   <input 
-                    type="date"
+                    type="datetime-local"
                     [(ngModel)]="reportFilter.dateRange.end"
-                    [min]="reportFilter.dateRange.start | date:'yyyy-MM-dd'"
+                    [min]="reportFilter.dateRange.start | date:'yyyy-MM-ddTHH:mm'"
                     class="native-input">
                 </div>
               </div>
@@ -257,13 +257,7 @@
              style="height: 100%; border-radius: 8px; overflow: hidden; position: relative;">
           
           <!-- Información del historial de rutas -->
-          <div *ngIf="hasRouteHistoryData()" 
-               style="position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.9); padding: 8px 12px; border-radius: 6px; font-size: 12px; z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <div style="font-weight: 600; color: #374151;">📍 {{ 'reports.route_history_title' | translate }}</div>
-            <div style="color: #6b7280; margin-top: 2px;">
-              {{ routeHistory?.totalPositions || 0 }} {{ 'reports.positions_found' | translate }}
-            </div>
-          </div>
+     
 
           <!-- Estado de carga del historial -->
           <div *ngIf="loadingRouteHistory" 
@@ -297,12 +291,7 @@
             </div>
           </div>
 
-          <!-- Indicador de carga de paradas -->
-          <div *ngIf="loadingStops && reportFilter.includeStops" 
-               class="d-flex align-items-center justify-content-center mb-2 text-muted">
-            <i class="pi pi-spin pi-spinner me-2"></i>
-            <small>Cargando paradas...</small>
-          </div>
+      
 
           <app-reports-map 
             [selectedTarget]="getSelectedTargetForMap()"

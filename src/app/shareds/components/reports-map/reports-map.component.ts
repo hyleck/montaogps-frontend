@@ -114,8 +114,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       // Si cambió de streaming mode a normal y tenemos posiciones, crear marcador de fin
       if (!this.isStreamingMode && changes['isStreamingMode'].previousValue === true && 
           this.routeHistory && this.routeHistory.positions.length > 1) {
-        console.log('🔄 Streaming completado - creando marcador de fin');
-        this.createEndMarker(this.routeHistory.positions);
+        console.log('🔄 Streaming completado - no se crean marcadores de fin');
+        // createEndMarker removido por solicitud del usuario
       }
     }
     
@@ -289,68 +289,9 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
     // NO dibujamos toda la polilínea al inicio, se irá dibujando progresivamente
 
-    // Marcador de inicio (verde) - usar la primera posición con movimiento
-    if (movingPositions.length > 0) {
-      const startPos = movingPositions[0];
-      this.startMarker = new google.maps.Marker({
-        position: { lat: startPos.latitude, lng: startPos.longitude },
-        map: this.map,
-        title: 'Inicio del recorrido',
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#10b981',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        }
-      });
+    // NO crear marcadores de inicio - removido por solicitud del usuario
 
-      // InfoWindow para inicio
-      this.startMarker.addListener('click', () => {
-        const content = this.createPositionPopupContent(startPos, 'Inicio del recorrido', '#10b981');
-        this.infoWindow.setContent(content);
-        this.infoWindow.open(this.map, this.startMarker);
-        this.isReplayPopupOpen = false; // Marcar que NO es el popup de reproducción
-        
-        // Configurar función global para cerrar InfoWindow
-        (window as any).closeCurrentInfoWindow = () => {
-          if (this.infoWindow) {
-            this.infoWindow.close();
-          }
-        };
-      });
-    }
-
-    // Marcador de fin (rojo) - solo mostrar si NO estamos en modo streaming (ya se cargaron todos los datos)
-    if (movingPositions.length > 1 && !this.isStreamingMode) {
-      const endPos = movingPositions[movingPositions.length - 1];
-      this.endMarker = new google.maps.Marker({
-        position: { lat: endPos.latitude, lng: endPos.longitude },
-        map: this.map,
-        title: 'Final del recorrido',
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#ef4444',
-          fillOpacity: 1,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        }
-      });
-
-      // InfoWindow para final
-      this.endMarker.addListener('click', () => {
-        const content = this.createPositionPopupContent(endPos, 'Final del recorrido', '#ef4444');
-        this.infoWindow.setContent(content);
-        this.infoWindow.open(this.map, this.endMarker);
-        this.isReplayPopupOpen = false; // Marcar que NO es el popup de reproducción
-      });
-      
-      console.log('🔴 Marcador de fin colocado - carga completa');
-    } else if (movingPositions.length > 1 && this.isStreamingMode) {
-      console.log('⏳ Marcador de fin NO colocado - aún cargando datos en streaming');
-    }
+    // NO crear marcadores de fin - removido por solicitud del usuario
 
     // Marcadores intermedios (opcional, solo cada N posiciones para no saturar) - usar posiciones con movimiento
     if (this.showRouteDetails && movingPositions.length > 2) {
@@ -506,16 +447,32 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private clearMapElements(): void {
-    // Detener reproducción
-    this.stopReplay();
+    // Detener reproducción sin limpiar polilíneas (stopReplay ya no las limpia)
+    if (this.replayInterval) {
+      clearTimeout(this.replayInterval);
+      this.replayInterval = null;
+    }
+    
+    this.isReplaying = false;
+    this.isPaused = false;
+    this.isManuallyPaused = false;
+    this.isManuallyStop = false;
+    this.currentPositionIndex = 0;
+    this.isReplayPopupOpen = false;
 
-    // Limpiar polilínea
+    // Remover marcador de reproducción
+    if (this.replayMarker) {
+      this.replayMarker.setMap(null);
+      this.replayMarker = null;
+    }
+
+    // Limpiar polilínea principal
     if (this.routePolyline) {
       this.routePolyline.setMap(null);
       this.routePolyline = null;
     }
 
-    // Limpiar polilíneas dinámicas
+    // Limpiar polilíneas dinámicas (solo cuando se carga nuevo reporte)
     this.dynamicPolylines.forEach(polyline => {
       polyline.setMap(null);
     });
@@ -682,19 +639,14 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     this.currentPositionIndex = 0;
     this.isReplayPopupOpen = false; // Resetear estado del popup de reproducción
 
-    // Remover marcador de reproducción
-    if (this.replayMarker) {
-      this.replayMarker.setMap(null);
-      this.replayMarker = null;
-    }
+    // MANTENER marcador de reproducción en la posición donde se detuvo para análisis
+    // Cambiar estilo del marcador para indicar que se detuvo manualmente
+    this.setReplayMarkerAsStopped();
+    console.log('🎯 Marcador mantenido en posición de detención para análisis');
 
-    // Limpiar polilíneas dinámicas cuando se detiene la reproducción
-    this.dynamicPolylines.forEach(polyline => {
-      polyline.setMap(null);
-    });
-    this.dynamicPolylines = [];
-    
-    console.log('⏹️ Reproducción detenida manualmente');
+    // NO limpiar polilíneas dinámicas para permitir análisis del recorrido
+    // Las polilíneas dinámicas quedan visibles para analizar el recorrido
+    console.log('⏹️ Reproducción detenida manualmente - recorrido visible para análisis');
   }
 
   completeReplay(): void {
@@ -710,19 +662,14 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     this.currentPositionIndex = 0;
     this.isReplayPopupOpen = false;
 
-    // Remover marcador de reproducción
-    if (this.replayMarker) {
-      this.replayMarker.setMap(null);
-      this.replayMarker = null;
-    }
+    // MANTENER marcador de reproducción en la última posición para análisis
+    // Cambiar estilo del marcador para indicar que es la posición final
+    this.setReplayMarkerAsFinal();
+    console.log('🎯 Marcador mantenido en última posición para análisis');
 
-    // Limpiar polilíneas dinámicas cuando se completa la reproducción
-    this.dynamicPolylines.forEach(polyline => {
-      polyline.setMap(null);
-    });
-    this.dynamicPolylines = [];
-    
-    console.log('✅ Reproducción completada automáticamente');
+    // NO limpiar polilíneas dinámicas para permitir análisis del recorrido completo
+    // Las polilíneas dinámicas quedan visibles para analizar el recorrido
+    console.log('✅ Reproducción completada automáticamente - recorrido visible para análisis');
   }
 
   setReplaySpeed(speed: number): void {
@@ -776,10 +723,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         console.log('⏹️ Nuevas posiciones llegaron pero la reproducción fue detenida manualmente');
       }
       
-      // Si ya no estamos en streaming mode y no hay marcador de fin, crearlo
-      if (!this.isStreamingMode && !this.endMarker && allPositions.length > 1) {
-        this.createEndMarker(allPositions);
-      }
+      // No crear marcadores de fin - removido por solicitud del usuario
+      // createEndMarker removido
     }
   }
 
@@ -787,6 +732,204 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     const target = event.target as HTMLSelectElement;
     const speed = parseInt(target.value, 10);
     this.setReplaySpeed(speed);
+  }
+
+  /**
+   * Cambiar el estilo del marcador de reproducción para indicar que es la posición final
+   */
+  private setReplayMarkerAsFinal(): void {
+    if (!this.replayMarker) return;
+
+    const google = (window as any).google;
+    
+    // Cambiar el ícono para indicar que es la posición final
+    this.replayMarker.setIcon({
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 12,
+      fillColor: '#28a745', // Verde para indicar finalización exitosa
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 4,
+      anchor: new google.maps.Point(0, 0)
+    });
+    
+    // Actualizar el título
+    this.replayMarker.setTitle('Posición final del recorrido');
+    
+    // Limpiar listeners anteriores y agregar nuevo listener para mostrar contenido de posición final
+    google.maps.event.clearListeners(this.replayMarker, 'click');
+    this.replayMarker.addListener('click', () => {
+      const currentPos = this.replayPositions[this.replayPositions.length - 1];
+      if (currentPos) {
+        const content = this.createFinalPositionPopupContent(currentPos);
+        this.infoWindow.setContent(content);
+        this.infoWindow.open(this.map, this.replayMarker);
+        this.isReplayPopupOpen = false; // No es un popup de reproducción activa
+      }
+    });
+    
+    console.log('🎯 Marcador cambiado a estilo de posición final');
+  }
+
+  /**
+   * Cambiar el estilo del marcador de reproducción para indicar que se detuvo manualmente
+   */
+  private setReplayMarkerAsStopped(): void {
+    if (!this.replayMarker) return;
+
+    const google = (window as any).google;
+    
+    // Cambiar el ícono para indicar que se detuvo manualmente
+    this.replayMarker.setIcon({
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 12,
+      fillColor: '#dc3545', // Rojo para indicar detención manual
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 4,
+      anchor: new google.maps.Point(0, 0)
+    });
+    
+    // Actualizar el título
+    this.replayMarker.setTitle('Posición donde se detuvo la reproducción');
+    
+    // Limpiar listeners anteriores y agregar nuevo listener para mostrar contenido de posición detenida
+    google.maps.event.clearListeners(this.replayMarker, 'click');
+    this.replayMarker.addListener('click', () => {
+      const actualIndex = Math.max(0, this.currentPositionIndex - 1);
+      const currentPos = this.replayPositions[actualIndex];
+      if (currentPos) {
+        const content = this.createStoppedPositionPopupContent(currentPos);
+        this.infoWindow.setContent(content);
+        this.infoWindow.open(this.map, this.replayMarker);
+        this.isReplayPopupOpen = false; // No es un popup de reproducción activa
+      }
+    });
+    
+    console.log('🛑 Marcador cambiado a estilo de detención manual');
+  }
+
+  /**
+   * Crear contenido del popup para la posición final del recorrido
+   */
+  private createFinalPositionPopupContent(position: any): string {
+    const date = new Date(position.fixTime).toLocaleString('es-ES');
+    const speed = Math.round(position.speed * 1.852); // Convertir a km/h
+    
+    return `
+      <div class="reports-popup">
+        <div class="reports-popup-header" style="background: #28a745;">
+          <div class="reports-popup-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9 12l2 2 4-4"></path>
+            </svg>
+          </div>
+          <h3 class="reports-popup-title">🏁 Posición Final del Recorrido</h3>
+        </div>
+        <div class="reports-popup-content">
+          <div class="reports-info-item">
+            <div class="reports-info-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12,6 12,12 16,14"></polyline>
+              </svg>
+            </div>
+            <div class="reports-info-content">
+              <span class="reports-info-label">Fecha y hora final</span>
+              <span class="reports-info-value">${date}</span>
+            </div>
+          </div>
+          <div class="reports-info-item">
+            <div class="reports-info-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+                <path d="M12 2v10l8-8z"></path>
+                <path d="M2 12h20"></path>
+                <path d="M12 22v-10l8 8z"></path>
+              </svg>
+            </div>
+            <div class="reports-info-content">
+              <span class="reports-info-label">Velocidad final</span>
+              <span class="reports-info-value">${speed} km/h</span>
+            </div>
+          </div>
+          <div class="reports-info-item">
+            <div class="reports-info-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </div>
+            <div class="reports-info-content">
+              <span class="reports-info-label">Coordenadas</span>
+              <span class="reports-info-value">${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Crear contenido del popup para la posición donde se detuvo la reproducción
+   */
+  private createStoppedPositionPopupContent(position: any): string {
+    const date = new Date(position.fixTime).toLocaleString('es-ES');
+    const speed = Math.round(position.speed * 1.852); // Convertir a km/h
+    
+    return `
+      <div class="reports-popup">
+        <div class="reports-popup-header" style="background: #dc3545;">
+          <div class="reports-popup-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+          </div>
+          <h3 class="reports-popup-title">⏹️ Reproducción Detenida</h3>
+        </div>
+        <div class="reports-popup-content">
+          <div class="reports-info-item">
+            <div class="reports-info-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12,6 12,12 16,14"></polyline>
+              </svg>
+            </div>
+            <div class="reports-info-content">
+              <span class="reports-info-label">Fecha y hora de detención</span>
+              <span class="reports-info-value">${date}</span>
+            </div>
+          </div>
+          <div class="reports-info-item">
+            <div class="reports-info-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+                <path d="M12 2v10l8-8z"></path>
+                <path d="M2 12h20"></path>
+                <path d="M12 22v-10l8 8z"></path>
+              </svg>
+            </div>
+            <div class="reports-info-content">
+              <span class="reports-info-label">Velocidad</span>
+              <span class="reports-info-value">${speed} km/h</span>
+            </div>
+          </div>
+          <div class="reports-info-item">
+            <div class="reports-info-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </div>
+            <div class="reports-info-content">
+              <span class="reports-info-label">Coordenadas</span>
+              <span class="reports-info-value">${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   private createReplayMarker(): void {
@@ -825,48 +968,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     });
   }
 
-  private createEndMarker(allPositions: any[]): void {
-    if (!this.map || this.endMarker) return;
-    
-    // Filtrar posiciones con movimiento para obtener la última real
-    const movingPositions = allPositions.filter(pos => pos.speed > 0);
-    
-    if (movingPositions.length < 2) return;
-    
-    const google = (window as any).google;
-    const endPos = movingPositions[movingPositions.length - 1];
-    
-    this.endMarker = new google.maps.Marker({
-      position: { lat: endPos.latitude, lng: endPos.longitude },
-      map: this.map,
-      title: 'Final del recorrido',
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: '#ef4444',
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 2
-      }
-    });
-
-    // InfoWindow para final
-    this.endMarker.addListener('click', () => {
-      const content = this.createPositionPopupContent(endPos, 'Final del recorrido', '#ef4444');
-      this.infoWindow.setContent(content);
-      this.infoWindow.open(this.map, this.endMarker);
-      this.isReplayPopupOpen = false;
-      
-      // Configurar función global para cerrar InfoWindow
-      (window as any).closeCurrentInfoWindow = () => {
-        if (this.infoWindow) {
-          this.infoWindow.close();
-        }
-      };
-    });
-    
-    console.log('🔴 Marcador de fin creado tras completar streaming');
-  }
+  // Método createEndMarker removido - no se crean marcadores de fin por solicitud del usuario
 
   private updateStopMarkers(): void {
     console.log('🛑 updateStopMarkers called');
@@ -1075,7 +1177,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       const segmentPolyline = new google.maps.Polyline({
         path: segmentPath,
         geodesic: true,
-        strokeColor: '#00ff00',
+        strokeColor: '#15bb06', // Verde bosque más oscuro y profesional
         strokeOpacity: 1.0,
         strokeWeight: 4
       });
