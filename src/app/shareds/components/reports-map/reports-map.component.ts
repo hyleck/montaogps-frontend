@@ -37,6 +37,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   replayInterval: any = null;
   isReplaying: boolean = false;
   isPaused: boolean = false;
+  isManuallyPaused: boolean = false; // Trackear si fue pausado manualmente por el usuario
+  isManuallyStop: boolean = false; // Trackear si fue detenido manualmente por el usuario
   currentPositionIndex: number = 0;
   replaySpeed: number = 500; // milisegundos entre posiciones
   replayPositions: any[] = [];
@@ -56,10 +58,19 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     if (this.map && (changes['routeHistory'] || changes['selectedTarget'])) {
       console.log('🔄 Route history or target changed, updating map');
       
-      // Si ya está reproduciendo, actualizar posiciones sin reiniciar la reproducción
+      // Si ya está reproduciendo, solo actualizar posiciones
       if (this.isReplaying && changes['routeHistory'] && this.routeHistory) {
+        console.log('📈 Actualizando posiciones durante reproducción activa');
         this.updateReplayPositionsWithNewData();
-      } else {
+      } 
+      // Si había historial previo y llegan datos nuevos, solo actualizar posiciones sin reiniciar mapa
+      else if (changes['routeHistory'] && this.routeHistory && this.replayPositions.length > 0) {
+        console.log('📦 Actualizando posiciones sin reproducción activa');
+        this.updateReplayPositionsWithNewData();
+      }
+      // Solo recrear el mapa completamente si es la primera vez o cambió el target
+      else {
+        console.log('🗺️ Recreando mapa con nuevo historial');
         this.updateMapWithRouteHistory();
       }
     }
@@ -70,14 +81,21 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     }
     
     // Detectar cuando se solicita auto-inicio de reproducción
+    if (changes['autoStartReplay']) {
+      console.log(`🔄 autoStartReplay changed: ${this.autoStartReplay} | isReplaying: ${this.isReplaying} | isManuallyPaused: ${this.isManuallyPaused} | isManuallyStop: ${this.isManuallyStop}`);
+    }
+    
     if (this.map && changes['autoStartReplay'] && this.autoStartReplay && 
-        this.routeHistory && this.routeHistory.positions.length > 0 && !this.isReplaying) {
+        this.routeHistory && this.routeHistory.positions.length > 0 && !this.isReplaying &&
+        !this.isManuallyPaused && !this.isManuallyStop) {
       console.log('🎬 Auto-iniciando reproducción por streaming progresivo');
       
       // Pequeña pausa para asegurar que el mapa esté completamente actualizado
       setTimeout(() => {
         this.startReplay();
       }, 300);
+    } else if (this.autoStartReplay && (this.isManuallyPaused || this.isManuallyStop)) {
+      console.log('⏸️ Auto-inicio cancelado - el usuario pausó/detuvo manualmente');
     }
   }
 
@@ -304,10 +322,15 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
     console.log('✅ Route history updated on map');
 
-    // Iniciar reproducción automáticamente después de un breve delay
-    setTimeout(() => {
-      this.startReplay();
-    }, 1000);
+    // Solo iniciar reproducción automáticamente si no fue pausada/detenida manualmente
+    if (!this.isManuallyPaused && !this.isManuallyStop) {
+      console.log('🎬 Iniciando reproducción automática del historial actualizado');
+      setTimeout(() => {
+        this.startReplay();
+      }, 1000);
+    } else {
+      console.log('⏸️ No iniciando reproducción automática - el usuario la pausó/detuvo manualmente');
+    }
   }
 
   private setupPopupCloseListener(): void {
@@ -492,6 +515,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     this.currentPositionIndex = 0;
     this.isReplaying = true;
     this.isPaused = false;
+    this.isManuallyPaused = false; // Limpiar estado manual
+    this.isManuallyStop = false; // Limpiar estado manual
 
     // Crear marcador de reproducción
     this.createReplayMarker();
@@ -501,33 +526,58 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   pauseReplay(): void {
+    if (!this.isReplaying) {
+      console.log('⚠️ No se puede pausar: no hay reproducción activa');
+      return;
+    }
+    
     if (this.replayInterval) {
       clearTimeout(this.replayInterval);
       this.replayInterval = null;
+      console.log('🔄 Cancelando timeout de reproducción activo');
     }
+    
     this.isPaused = true;
-    console.log('⏸️ Reproducción pausada');
+    this.isManuallyPaused = true; // Marcar que fue pausado manualmente
+    console.log('⏸️ Reproducción pausada manualmente (streaming mode:', this.isStreamingMode, ')');
   }
 
   resumeReplay(): void {
-    if (this.isReplaying && this.isPaused) {
-      this.isPaused = false;
-      this.nextPosition();
-      console.log('▶️ Reproducción reanudada');
+    if (!this.isReplaying) {
+      console.log('⚠️ No se puede reanudar: no hay reproducción activa');
+      return;
     }
+    
+    if (!this.isPaused) {
+      console.log('⚠️ La reproducción no está pausada');
+      return;
+    }
+    
+    this.isPaused = false;
+    this.isManuallyPaused = false; // Limpiar el estado manual al reanudar
+    console.log('▶️ Reproducción reanudada manualmente (streaming mode:', this.isStreamingMode, ')');
+    
+    // Continuar con la siguiente posición
+    this.nextPosition();
   }
 
-  stopReplay(): void {
+    stopReplay(): void {
     if (this.replayInterval) {
       clearTimeout(this.replayInterval);
       this.replayInterval = null;
     }
     
+    // Verificar si se está deteniendo mientras está en reproducción (manual)
+    // vs detención automática al completar la reproducción
+    const wasManuallyStop = this.isReplaying;
+    
     this.isReplaying = false;
     this.isPaused = false;
+    this.isManuallyPaused = false;
+    this.isManuallyStop = wasManuallyStop; // Marcar si fue detenido manualmente
     this.currentPositionIndex = 0;
     this.isReplayPopupOpen = false; // Resetear estado del popup de reproducción
-    
+
     // Remover marcador de reproducción
     if (this.replayMarker) {
       this.replayMarker.setMap(null);
@@ -540,7 +590,35 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     });
     this.dynamicPolylines = [];
     
-    console.log('⏹️ Reproducción detenida');
+    console.log('⏹️ Reproducción detenida manualmente');
+  }
+
+  completeReplay(): void {
+    if (this.replayInterval) {
+      clearTimeout(this.replayInterval);
+      this.replayInterval = null;
+    }
+    
+    this.isReplaying = false;
+    this.isPaused = false;
+    this.isManuallyPaused = false;
+    this.isManuallyStop = false; // NO marcar como manual ya que se completó automáticamente
+    this.currentPositionIndex = 0;
+    this.isReplayPopupOpen = false;
+
+    // Remover marcador de reproducción
+    if (this.replayMarker) {
+      this.replayMarker.setMap(null);
+      this.replayMarker = null;
+    }
+
+    // Limpiar polilíneas dinámicas cuando se completa la reproducción
+    this.dynamicPolylines.forEach(polyline => {
+      polyline.setMap(null);
+    });
+    this.dynamicPolylines = [];
+    
+    console.log('✅ Reproducción completada automáticamente');
   }
 
   setReplaySpeed(speed: number): void {
@@ -572,15 +650,24 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       const newPositionsCount = allPositions.length - previousLength;
       console.log(`📈 Agregando ${newPositionsCount} nuevas posiciones a la reproducción (Total: ${allPositions.length})`);
       
-      // Si la reproducción está activa pero había llegado al final o no tiene timeout programado, continuar
-      if (this.isReplaying && (!this.replayInterval || this.currentPositionIndex >= previousLength)) {
-        console.log('🎬 Reanudando reproducción con nuevas posiciones');
+      // Solo reanudar automáticamente si:
+      // 1. La reproducción está activa
+      // 2. NO está pausada
+      // 3. NO fue pausada/detenida manualmente por el usuario
+      // 4. Había llegado al final de las posiciones o no hay timeout activo
+      if (this.isReplaying && !this.isPaused && !this.isManuallyPaused && !this.isManuallyStop && 
+          (!this.replayInterval || this.currentPositionIndex >= previousLength)) {
+        console.log('🎬 Reanudando reproducción automáticamente con nuevas posiciones');
         
         // Si no hay timeout activo, iniciar nextPosition inmediatamente
         if (!this.replayInterval) {
           this.nextPosition();
         }
         // Si había llegado al final de las posiciones anteriores, el timeout ya se encargará de continuar
+      } else if (this.isPaused || this.isManuallyPaused) {
+        console.log('⏸️ Nuevas posiciones llegaron pero la reproducción está pausada manualmente');
+      } else if (this.isManuallyStop) {
+        console.log('⏹️ Nuevas posiciones llegaron pero la reproducción fue detenida manualmente');
       }
     }
   }
@@ -646,6 +733,9 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
   private nextPosition(): void {
     if (!this.isReplaying || this.isPaused) {
+      if (this.isPaused) {
+        console.log('⏸️ nextPosition cancelado: reproducción pausada');
+      }
       return;
     }
 
@@ -656,12 +746,17 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         console.log('⏳ Esperando más datos del streaming...');
         // Esperar un poco antes de verificar nuevamente si hay más posiciones
         this.replayInterval = setTimeout(() => {
+          // Verificar nuevamente el estado antes de continuar
+          if (!this.isReplaying || this.isPaused) {
+            console.log('🔄 Cancelando espera de streaming debido a pausa/stop');
+            return;
+          }
           this.nextPosition();
         }, 1000); // Esperar 1 segundo antes de verificar nuevamente
         return;
       } else {
-        console.log('✅ Reproducción completada');
-        this.stopReplay();
+        console.log('✅ Reproducción completada automáticamente');
+        this.completeReplay();
         return;
       }
     }
@@ -709,6 +804,11 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
     // Programar siguiente posición
     this.replayInterval = setTimeout(() => {
+      // Verificar estado antes de continuar
+      if (!this.isReplaying || this.isPaused) {
+        console.log('🔄 Cancelando timeout normal debido a pausa/stop');
+        return;
+      }
       this.nextPosition();
     }, this.replaySpeed);
   }

@@ -702,6 +702,10 @@ export class ReportsComponent implements OnInit {
           // Pequeña pausa para asegurar que el mapa se actualice antes de iniciar reproducción
           await new Promise(resolve => setTimeout(resolve, 500));
           
+          // Resetear la bandera después de que se haya usado
+          this.progressiveLoading.replayStarted = false;
+          this.cdr.detectChanges();
+          
         } else {
           console.log(`ℹ️ Primer bloque sin posiciones: ${firstHourRange.rangeStr}`);
         }
