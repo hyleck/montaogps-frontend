@@ -14,6 +14,8 @@ import { MapUtils } from '../../helpers/map.helper';
 export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   @Input() selectedTarget: any = null;
   @Input() routeHistory: RouteHistoryResponse | null = null;
+  @Input() stops: any[] = [];
+  @Input() showStops: boolean = true;
   @Input() showRouteDetails: boolean = true;
   @Input() autoStartReplay: boolean = false;
   @Input() isStreamingMode: boolean = false;
@@ -29,6 +31,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   startMarker: any = null;
   endMarker: any = null;
   routeMarkers: any[] = [];
+  stopMarkers: any[] = []; // Marcadores de paradas
   infoWindow: any = null;
   private popupCloseListener: any = null;
 
@@ -51,6 +54,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
   ngOnInit(): void {
     console.log('🆕 Reports Map component initialized');
+    console.log('🛑 Initial stops data:', this.stops?.length || 0);
     this.initializeMap();
   }
 
@@ -74,10 +78,45 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         this.updateMapWithRouteHistory();
       }
     }
+
+    // Detectar cambios en las paradas o en el flag showStops
+    if (changes['stops'] || changes['showStops']) {
+      console.log('🛑 Stops or showStops input changed');
+      if (changes['stops']) {
+        console.log('🛑 Stops - Previous value:', changes['stops'].previousValue);
+        console.log('🛑 Stops - Current value:', changes['stops'].currentValue);
+      }
+      if (changes['showStops']) {
+        console.log('🛑 ShowStops changed:', changes['showStops'].previousValue, '→', changes['showStops'].currentValue);
+      }
+      console.log('🛑 Map available:', !!this.map);
+      console.log('🛑 ShowStops enabled:', this.showStops);
+      
+      if (this.map) {
+        console.log('🛑 Updating stop markers based on new settings');
+        this.updateStopMarkers();
+      } else {
+        console.log('🛑 Map not ready yet, will update stops when map is available');
+        // Reintentar cuando el mapa esté listo
+        setTimeout(() => {
+          if (this.map) {
+            console.log('🛑 Reintentando actualizar paradas después de que el mapa esté listo');
+            this.updateStopMarkers();
+          }
+        }, 1000);
+      }
+    }
     
-    // Detectar cambios en el modo streaming para logging
+    // Detectar cambios en el modo streaming para logging y crear marcador de fin
     if (changes['isStreamingMode']) {
       console.log(`🔄 Streaming mode changed: ${this.isStreamingMode}`);
+      
+      // Si cambió de streaming mode a normal y tenemos posiciones, crear marcador de fin
+      if (!this.isStreamingMode && changes['isStreamingMode'].previousValue === true && 
+          this.routeHistory && this.routeHistory.positions.length > 1) {
+        console.log('🔄 Streaming completado - creando marcador de fin');
+        this.createEndMarker(this.routeHistory.positions);
+      }
     }
     
     // Detectar cuando se solicita auto-inicio de reproducción
@@ -223,19 +262,36 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     this.clearMapElements();
 
     const google = (window as any).google;
-    const positions = this.routeHistory.positions;
+    
+    // Filtrar posiciones con velocidad 0 para mostrar solo el recorrido real
+    const movingPositions = this.routeHistory.positions.filter(pos => pos.speed > 0);
+    const allPositions = this.routeHistory.positions;
+    
+    console.log(`🎯 Posiciones para visualización: ${allPositions.length} totales → ${movingPositions.length} con movimiento`);
 
-    // Crear el path de la ruta
-    const routePath = positions.map(pos => ({
+    // Verificar si hay posiciones con movimiento para mostrar
+    if (movingPositions.length === 0) {
+      console.log('⚠️ No hay posiciones con movimiento para mostrar en el mapa');
+      // Aún crear marcadores con todas las posiciones si no hay movimiento
+      const routePath = allPositions.map(pos => ({
+        lat: pos.latitude,
+        lng: pos.longitude
+      }));
+      this.fitMapToRoute(routePath);
+      return;
+    }
+
+    // Crear el path de la ruta solo con posiciones que tienen movimiento
+    const routePath = movingPositions.map(pos => ({
       lat: pos.latitude,
       lng: pos.longitude
     }));
 
     // NO dibujamos toda la polilínea al inicio, se irá dibujando progresivamente
 
-    // Marcador de inicio (verde)
-    if (positions.length > 0) {
-      const startPos = positions[0];
+    // Marcador de inicio (verde) - usar la primera posición con movimiento
+    if (movingPositions.length > 0) {
+      const startPos = movingPositions[0];
       this.startMarker = new google.maps.Marker({
         position: { lat: startPos.latitude, lng: startPos.longitude },
         map: this.map,
@@ -256,12 +312,19 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         this.infoWindow.setContent(content);
         this.infoWindow.open(this.map, this.startMarker);
         this.isReplayPopupOpen = false; // Marcar que NO es el popup de reproducción
+        
+        // Configurar función global para cerrar InfoWindow
+        (window as any).closeCurrentInfoWindow = () => {
+          if (this.infoWindow) {
+            this.infoWindow.close();
+          }
+        };
       });
     }
 
-    // Marcador de fin (rojo)
-    if (positions.length > 1) {
-      const endPos = positions[positions.length - 1];
+    // Marcador de fin (rojo) - solo mostrar si NO estamos en modo streaming (ya se cargaron todos los datos)
+    if (movingPositions.length > 1 && !this.isStreamingMode) {
+      const endPos = movingPositions[movingPositions.length - 1];
       this.endMarker = new google.maps.Marker({
         position: { lat: endPos.latitude, lng: endPos.longitude },
         map: this.map,
@@ -283,14 +346,18 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         this.infoWindow.open(this.map, this.endMarker);
         this.isReplayPopupOpen = false; // Marcar que NO es el popup de reproducción
       });
+      
+      console.log('🔴 Marcador de fin colocado - carga completa');
+    } else if (movingPositions.length > 1 && this.isStreamingMode) {
+      console.log('⏳ Marcador de fin NO colocado - aún cargando datos en streaming');
     }
 
-    // Marcadores intermedios (opcional, solo cada N posiciones para no saturar)
-    if (this.showRouteDetails && positions.length > 2) {
-      const step = Math.max(1, Math.floor(positions.length / 10)); // Máximo 10 marcadores intermedios
+    // Marcadores intermedios (opcional, solo cada N posiciones para no saturar) - usar posiciones con movimiento
+    if (this.showRouteDetails && movingPositions.length > 2) {
+      const step = Math.max(1, Math.floor(movingPositions.length / 10)); // Máximo 10 marcadores intermedios
       
-      for (let i = step; i < positions.length - 1; i += step) {
-        const pos = positions[i];
+      for (let i = step; i < movingPositions.length - 1; i += step) {
+        const pos = movingPositions[i];
         const marker = new google.maps.Marker({
           position: { lat: pos.latitude, lng: pos.longitude },
           map: this.map,
@@ -321,6 +388,17 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     this.fitMapToRoute(routePath);
 
     console.log('✅ Route history updated on map');
+
+    // Actualizar marcadores de paradas si hay datos y están habilitadas
+    if (this.showStops && this.stops && this.stops.length > 0) {
+      console.log('🛑 Actualizando marcadores de paradas desde updateMapWithRouteHistory');
+      this.updateStopMarkers();
+    } else if (!this.showStops) {
+      console.log('🛑 Paradas deshabilitadas por filtro en updateMapWithRouteHistory');
+      this.clearStopMarkers(); // Asegurar que se limpien si están deshabilitadas
+    } else {
+      console.log('🛑 No hay paradas para actualizar en updateMapWithRouteHistory');
+    }
 
     // Solo iniciar reproducción automáticamente si no fue pausada/detenida manualmente
     if (!this.isManuallyPaused && !this.isManuallyStop) {
@@ -460,6 +538,9 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     });
     this.routeMarkers = [];
 
+    // Limpiar marcadores de paradas
+    this.clearStopMarkers();
+
     // Cerrar InfoWindow
     if (this.infoWindow) {
       this.infoWindow.close();
@@ -507,10 +588,33 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     });
     this.dynamicPolylines = [];
 
-    // Preparar datos de reproducción
-    this.replayPositions = [...this.routeHistory.positions].sort((a, b) => 
-      new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime()
-    );
+    // Preparar datos de reproducción - filtrar posiciones con velocidad 0
+    const allPositions = [...this.routeHistory.positions]
+      .filter(position => position.speed > 0) // Ignorar posiciones con velocidad 0
+      .sort((a, b) => new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime());
+    
+    this.replayPositions = allPositions;
+    
+    console.log(`🎬 Preparando reproducción: ${this.routeHistory.positions.length} posiciones totales → ${allPositions.length} posiciones con movimiento (sin velocidad 0)`);
+    
+    // Verificar si hay suficientes posiciones para reproducir
+    if (allPositions.length === 0) {
+      console.log('⚠️ No hay posiciones con movimiento para reproducir (todas tienen velocidad 0)');
+      // Mostrar mensaje al usuario si es posible
+      if ((window as any).showToast) {
+        (window as any).showToast('warning', 'Sin movimiento', 'Todas las posiciones tienen velocidad 0, no hay recorrido para reproducir');
+      }
+      return;
+    }
+    
+    if (allPositions.length < 2) {
+      console.log('⚠️ Solo hay una posición con movimiento, no es suficiente para una reproducción');
+      // Mostrar mensaje al usuario si es posible
+      if ((window as any).showToast) {
+        (window as any).showToast('warning', 'Datos insuficientes', 'Solo hay una posición con movimiento, se requieren al menos 2 para la reproducción');
+      }
+      return;
+    }
     
     this.currentPositionIndex = 0;
     this.isReplaying = true;
@@ -636,10 +740,12 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
     console.log('🔄 Actualizando posiciones de reproducción con nuevos datos');
     
-    // Ordenar todas las posiciones por timestamp
-    const allPositions = [...this.routeHistory.positions].sort((a, b) => 
-      new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime()
-    );
+    // Filtrar posiciones con velocidad 0 y ordenar por timestamp
+    const allPositions = [...this.routeHistory.positions]
+      .filter(position => position.speed > 0) // Ignorar posiciones con velocidad 0
+      .sort((a, b) => new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime());
+    
+    console.log(`📊 Posiciones filtradas: ${this.routeHistory.positions.length} totales → ${allPositions.length} con movimiento (sin velocidad 0)`);
     
     const previousLength = this.replayPositions.length;
     
@@ -668,6 +774,11 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         console.log('⏸️ Nuevas posiciones llegaron pero la reproducción está pausada manualmente');
       } else if (this.isManuallyStop) {
         console.log('⏹️ Nuevas posiciones llegaron pero la reproducción fue detenida manualmente');
+      }
+      
+      // Si ya no estamos en streaming mode y no hay marcador de fin, crearlo
+      if (!this.isStreamingMode && !this.endMarker && allPositions.length > 1) {
+        this.createEndMarker(allPositions);
       }
     }
   }
@@ -712,6 +823,179 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         this.isReplayPopupOpen = true; // Marcar que el popup de reproducción está abierto
       }
     });
+  }
+
+  private createEndMarker(allPositions: any[]): void {
+    if (!this.map || this.endMarker) return;
+    
+    // Filtrar posiciones con movimiento para obtener la última real
+    const movingPositions = allPositions.filter(pos => pos.speed > 0);
+    
+    if (movingPositions.length < 2) return;
+    
+    const google = (window as any).google;
+    const endPos = movingPositions[movingPositions.length - 1];
+    
+    this.endMarker = new google.maps.Marker({
+      position: { lat: endPos.latitude, lng: endPos.longitude },
+      map: this.map,
+      title: 'Final del recorrido',
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 8,
+        fillColor: '#ef4444',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2
+      }
+    });
+
+    // InfoWindow para final
+    this.endMarker.addListener('click', () => {
+      const content = this.createPositionPopupContent(endPos, 'Final del recorrido', '#ef4444');
+      this.infoWindow.setContent(content);
+      this.infoWindow.open(this.map, this.endMarker);
+      this.isReplayPopupOpen = false;
+      
+      // Configurar función global para cerrar InfoWindow
+      (window as any).closeCurrentInfoWindow = () => {
+        if (this.infoWindow) {
+          this.infoWindow.close();
+        }
+      };
+    });
+    
+    console.log('🔴 Marcador de fin creado tras completar streaming');
+  }
+
+  private updateStopMarkers(): void {
+    console.log('🛑 updateStopMarkers called');
+    console.log('🛑 Map exists:', !!this.map);
+    console.log('🛑 ShowStops enabled:', this.showStops);
+    console.log('🛑 Stops data:', this.stops);
+    console.log('🛑 Stops length:', this.stops?.length);
+
+    if (!this.map) {
+      console.log('🛑 No map available, skipping stop markers');
+      return;
+    }
+
+    // Limpiar marcadores de paradas existentes
+    this.clearStopMarkers();
+
+    // Si showStops está deshabilitado, no crear marcadores
+    if (!this.showStops) {
+      console.log('🛑 Paradas deshabilitadas por filtro - no se mostrarán marcadores');
+      return;
+    }
+
+    if (!this.stops || this.stops.length === 0) {
+      console.log('🛑 No hay paradas para mostrar - stops array is empty or undefined');
+      return;
+    }
+
+    console.log(`🛑 Creando ${this.stops.length} marcadores de paradas`);
+
+    const google = (window as any).google;
+
+    this.stops.forEach((stop, index) => {
+      // Crear marcador para la parada (más pequeño)
+      const stopMarker = new google.maps.Marker({
+        position: { lat: stop.latitude, lng: stop.longitude },
+        map: this.map,
+        title: `Parada ${index + 1} - ${stop.durationText}`,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 6, // Reducido de 10 a 6 para ser más pequeño
+          fillColor: stop.ignitionOff ? '#ff6b35' : '#fbbf24', // Naranja si motor apagado, amarillo si encendido
+          fillOpacity: 0.9,
+          strokeColor: '#ffffff',
+          strokeWeight: 2
+        },
+        zIndex: 1000 + index // Para que estén por encima de otros marcadores
+      });
+
+      // InfoWindow para la parada
+      stopMarker.addListener('click', () => {
+        const content = this.createStopPopupContent(stop, index + 1);
+        this.infoWindow.setContent(content);
+        this.infoWindow.open(this.map, stopMarker);
+        this.isReplayPopupOpen = false;
+        
+        // Configurar función global para cerrar InfoWindow desde el botón
+        (window as any).closeCurrentInfoWindow = () => {
+          if (this.infoWindow) {
+            this.infoWindow.close();
+          }
+        };
+      });
+
+      this.stopMarkers.push(stopMarker);
+    });
+
+    console.log(`✅ Creados ${this.stopMarkers.length} marcadores de paradas`);
+  }
+
+  private clearStopMarkers(): void {
+    this.stopMarkers.forEach(marker => {
+      if (marker) {
+        marker.setMap(null);
+      }
+    });
+    this.stopMarkers = [];
+  }
+
+  private createStopPopupContent(stop: any, stopNumber: number): string {
+    const startTime = new Date(stop.startTime).toLocaleString('es-ES');
+    const endTime = new Date(stop.endTime).toLocaleString('es-ES');
+    
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 300px; padding: 10px; color: #000;">
+        <div style="background: ${stop.ignitionOff ? '#ff6b35' : '#fbbf24'}; color: #fff; padding: 8px; margin: -10px -10px 10px -10px; border-radius: 4px 4px 0 0; position: relative;">
+          <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; color: #fff;">
+            🛑 Parada #${stopNumber}
+          </h3>
+          <button onclick="if(window.closeCurrentInfoWindow) window.closeCurrentInfoWindow();" 
+                  style="position: absolute; top: 4px; right: 8px; background: rgba(0,0,0,0.2); border: none; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;" 
+                  title="Cerrar">
+            ×
+          </button>
+        </div>
+        
+        <div style="margin-bottom: 8px; color: #000;">
+          <strong>⏱️ Duración:</strong> ${stop.durationText}
+        </div>
+        
+        <div style="margin-bottom: 8px; color: #000;">
+          <strong>🕐 Inicio:</strong><br/>
+          <span style="font-size: 12px; color: #333;">${startTime}</span>
+        </div>
+        
+        <div style="margin-bottom: 8px; color: #000;">
+          <strong>🕑 Fin:</strong><br/>
+          <span style="font-size: 12px; color: #333;">${endTime}</span>
+        </div>
+        
+        <div style="margin-bottom: 8px; color: #000;">
+          <strong>🔧 Motor:</strong> ${stop.ignitionOff ? '🔴 Apagado' : '🟢 Encendido'}
+        </div>
+        
+        <div style="margin-bottom: 8px; color: #000;">
+          <strong>📍 Posiciones:</strong> ${stop.positionCount}
+        </div>
+        
+        ${stop.address !== 'Dirección no disponible' ? `
+          <div style="margin-bottom: 8px; color: #000;">
+            <strong>📍 Dirección:</strong><br/>
+            <span style="font-size: 12px; color: #333;">${stop.address}</span>
+          </div>
+        ` : ''}
+        
+        <div style="font-size: 10px; color: #666; border-top: 1px solid #eee; padding-top: 6px; margin-top: 8px;">
+          Lat: ${stop.latitude.toFixed(6)}, Lng: ${stop.longitude.toFixed(6)}
+        </div>
+      </div>
+    `;
   }
 
   private centerIfMarkerOutOfView(position: { lat: number; lng: number }): void {

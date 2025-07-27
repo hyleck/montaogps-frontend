@@ -27,8 +27,6 @@ export interface ReportFilter {
     max: number | null; // minutos
   };
   includeStops: boolean;
-  includeMovements: boolean;
-  groupByDate: boolean;
   exportFormat: string;
 }
 
@@ -51,6 +49,10 @@ export class ReportsComponent implements OnInit {
     // Datos del historial de rutas
     routeHistory: RouteHistoryResponse | null = null;
     loadingRouteHistory: boolean = false;
+    
+    // Datos de paradas
+    stops: any[] = [];
+    loadingStops: boolean = false;
     
     // Estado de carga progresiva
     progressiveLoading: {
@@ -95,8 +97,6 @@ export class ReportsComponent implements OnInit {
         max: null
       },
       includeStops: true,
-      includeMovements: true,
-      groupByDate: false,
       exportFormat: 'pdf'
     };
 
@@ -335,11 +335,9 @@ export class ReportsComponent implements OnInit {
       // Resetear ciertos filtros según el tipo de reporte
       switch (this.reportFilter.reportType) {
         case 'stops':
-          this.reportFilter.includeMovements = false;
           this.reportFilter.includeStops = true;
           break;
         case 'movements':
-          this.reportFilter.includeMovements = true;
           this.reportFilter.includeStops = false;
           break;
         case 'speed':
@@ -421,15 +419,37 @@ export class ReportsComponent implements OnInit {
             console.log('⚡ Usando carga normal por rango de fechas corto');
             await this.loadRouteHistory();
           }
+          
+          // Cargar paradas de manera diferida (no bloquear el primer lote)
+          if (this.reportFilter.includeStops) {
+            console.log('🛑 Programando carga diferida de paradas...');
+            this.loadStopsDeferred();
+          } else {
+            console.log('🛑 Paradas deshabilitadas en filtros - omitiendo carga');
+            this.stops = []; // Limpiar paradas existentes
+            this.cdr.detectChanges(); // Forzar actualización
+          }
+          
         } else {
           // Para otros tipos de reporte, simular generación
           await this.simulateReportGeneration();
         }
         
+        let reportDetail = `Reporte de ${this.getReportTypeName()} generado exitosamente`;
+        
+        // Agregar información de paradas si es un reporte de historial
+        if (this.reportFilter.reportType === 'route_history') {
+          if (this.reportFilter.includeStops) {
+            reportDetail += ` (paradas cargando en segundo plano...)`;
+          } else {
+            reportDetail += ` (paradas no incluidas)`;
+          }
+        }
+        
         this.messageService.add({
           severity: 'success',
           summary: 'Reporte generado',
-          detail: `Reporte de ${this.getReportTypeName()} generado exitosamente`
+          detail: reportDetail
         });
         
       } catch (error) {
@@ -544,6 +564,221 @@ export class ReportsComponent implements OnInit {
         throw error;
       } finally {
         this.loadingRouteHistory = false;
+      }
+    }
+
+    /**
+     * Maneja el cambio del checkbox "Incluir paradas" en tiempo real
+     */
+    onIncludeStopsChange(includeStops: boolean): void {
+      console.log('🛑 Checkbox incluir paradas cambió a:', includeStops);
+      
+      // Si hay un reporte ya generado, actualizar las paradas en tiempo real
+      if (this.routeHistory && this.routeHistory.positions && this.routeHistory.positions.length > 0) {
+                 if (includeStops) {
+           // Activado: cargar paradas si no están ya cargadas
+           if (this.stops.length === 0 && !this.loadingStops) {
+             console.log('🛑 Activando paradas - cargando desde backend...');
+             this.messageService.add({
+               severity: 'info',
+               summary: 'Cargando paradas',
+               detail: 'Paradas cargando en segundo plano...',
+               life: 2000
+             });
+             this.loadStopsDeferred();
+           } else if (this.stops.length > 0) {
+             console.log('🛑 Activando paradas - ya están cargadas, solo mostrando...');
+             // Las paradas ya están cargadas, solo necesitamos forzar la actualización
+             this.cdr.detectChanges();
+             
+             // Mostrar mensaje informativo
+             this.messageService.add({
+               severity: 'success',
+               summary: 'Paradas mostradas',
+               detail: `${this.stops.length} paradas mostradas en el mapa`,
+               life: 2000
+             });
+           } else if (this.loadingStops) {
+             console.log('🛑 Activando paradas - ya se están cargando...');
+             this.messageService.add({
+               severity: 'info',
+               summary: 'Cargando paradas',
+               detail: 'Las paradas ya se están cargando...',
+               life: 2000
+             });
+           }
+        } else {
+          // Desactivado: ocultar paradas (no eliminar los datos, solo ocultar)
+          console.log('🛑 Desactivando paradas - ocultando del mapa...');
+          this.cdr.detectChanges();
+          
+          // Mostrar mensaje informativo
+          this.messageService.add({
+            severity: 'info',
+            summary: 'Paradas ocultas',
+            detail: 'Las paradas han sido ocultadas del mapa',
+            life: 2000
+          });
+        }
+      } else {
+        // No hay reporte generado aún
+        console.log('🛑 Checkbox cambió pero no hay reporte generado aún');
+      }
+    }
+
+    /**
+     * Cargar paradas de manera diferida para no bloquear el primer lote de historial
+     */
+    private loadStopsDeferred(): void {
+      console.log('🛑 Iniciando carga diferida de paradas en 1000ms...');
+      
+      // Programar la carga después de un delay para permitir que el primer lote se renderice completamente
+      setTimeout(async () => {
+        if (this.reportFilter.includeStops) {
+          console.log('🛑 Ejecutando carga diferida de paradas...');
+          await this.loadStops();
+        } else {
+          console.log('🛑 Carga diferida cancelada - paradas deshabilitadas');
+        }
+      }, 1000);
+    }
+
+    /**
+     * Cargar paradas del dispositivo
+     */
+    private async loadStops(): Promise<void> {
+      this.loadingStops = true;
+      
+      try {
+        let selectedTarget: any;
+        let selectedTargetId: string;
+        
+        if (this.targetIdFromUrl) {
+          // 1. Usar el target específico de la URL - traer del servicio
+          selectedTargetId = this.targetIdFromUrl;
+          console.log('🎯 Trayendo target desde URL usando servicio para paradas:', selectedTargetId);
+          
+          try {
+            selectedTarget = await this.targetsService.getTargetById(selectedTargetId);
+            console.log('✅ Target obtenido del servicio para paradas:', selectedTarget.name || selectedTarget.alias);
+          } catch (error) {
+            throw new Error(`No se encontró el dispositivo con ID: ${selectedTargetId}`);
+          }
+          
+        } else if (this.reportFilter.selectedTargets.length > 0) {
+          // 2. Usar el primer target seleccionado localmente
+          selectedTargetId = this.reportFilter.selectedTargets[0]._id || this.reportFilter.selectedTargets[0];
+          selectedTarget = this.targets.find(t => t._id === selectedTargetId);
+          console.log('📋 Usando target seleccionado localmente para paradas:', selectedTargetId);
+          
+        } else if (this.targets.length > 0) {
+          // 3. Usar el primer target disponible localmente
+          selectedTarget = this.targets[0];
+          selectedTargetId = selectedTarget._id;
+          console.log('📦 Usando primer target disponible localmente para paradas:', selectedTargetId);
+          
+        } else {
+          throw new Error('No hay dispositivos disponibles para cargar paradas');
+        }
+        
+        if (!selectedTarget) {
+          throw new Error('No se encontró el dispositivo seleccionado para paradas');
+        }
+        
+        // Extraer api_device_id del target obtenido
+        const apiDeviceId = selectedTarget?.api_device_id || selectedTarget?.deviceId;
+        
+        if (!apiDeviceId) {
+          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un API Device ID válido para paradas`);
+        }
+
+        // Convertir fechas a formato ISO string - REQUERIDAS
+        if (!this.reportFilter.dateRange.start || !this.reportFilter.dateRange.end) {
+          throw new Error('Las fechas de inicio y fin son requeridas para obtener paradas');
+        }
+
+        const startDate = this.reportFilter.dateRange.start instanceof Date 
+          ? this.reportFilter.dateRange.start 
+          : new Date(this.reportFilter.dateRange.start);
+        if (isNaN(startDate.getTime())) {
+          throw new Error('Fecha de inicio inválida para paradas');
+        }
+        const fromDate = startDate.toISOString();
+        
+        const endDate = this.reportFilter.dateRange.end instanceof Date 
+          ? this.reportFilter.dateRange.end 
+          : new Date(this.reportFilter.dateRange.end);
+        if (isNaN(endDate.getTime())) {
+          throw new Error('Fecha de fin inválida para paradas');
+        }
+        const toDate = endDate.toISOString();
+
+        // Obtener duración mínima de parada desde los filtros - OPCIONAL
+        const minStopDuration = this.reportFilter.stopTimeFilter.min || undefined;
+
+        console.log('🚀 Cargando paradas:', {
+          targetId: selectedTargetId,
+          targetName: selectedTarget.name || selectedTarget.alias,
+          apiDeviceId,
+          fromDate,
+          toDate,
+          minStopDuration: minStopDuration || 'no especificado (usar default del backend)',
+          sourceUrl: !!this.targetIdFromUrl
+        });
+        
+        const stopsResponse = await this.targetsService.getStops(
+          apiDeviceId.toString(), 
+          fromDate, 
+          toDate,
+          minStopDuration
+        );
+        
+        // Extraer las paradas del objeto de respuesta
+        this.stops = stopsResponse?.stops || [];
+        
+        console.log('🛑 Respuesta completa del backend:', stopsResponse);
+        console.log('🛑 Paradas extraídas:', this.stops);
+        console.log('🛑 Paradas cargadas:', {
+          totalStops: this.stops.length,
+          totalStopDuration: stopsResponse?.totalStopDurationText || 'N/A',
+          minStopDurationUsed: minStopDuration || 'default del backend',
+          stopsArray: this.stops
+        });
+        
+        // Log adicional para verificar la estructura
+        if (this.stops.length > 0) {
+          console.log('📋 Estructura de una parada (ejemplo):', this.stops[0]);
+        }
+
+        // Forzar detección de cambios para que el mapa reciba las paradas
+        this.cdr.detectChanges();
+        console.log('🔄 Forzando detección de cambios para paradas');
+        
+        // Mostrar notificación de paradas cargadas
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Paradas cargadas',
+          detail: `${this.stops.length} paradas encontradas y mostradas en el mapa`,
+          life: 3000
+        });
+        
+        // Verificar si las paradas se están pasando correctamente al mapa
+        setTimeout(() => {
+          console.log('🔍 Verificando estado después de la detección de cambios:');
+          console.log('🔍 this.stops en componente padre:', this.stops);
+          console.log('🔍 this.stops.length:', this.stops.length);
+        }, 100);
+        
+      } catch (error) {
+        console.error('Error cargando paradas:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Error al cargar las paradas. Intente nuevamente.'
+        });
+        throw error;
+      } finally {
+        this.loadingStops = false;
       }
     }
 
@@ -785,12 +1020,17 @@ export class ReportsComponent implements OnInit {
       // Forzar detección de cambios para que el mapa sea notificado del cambio de estado
       this.cdr.detectChanges();
       
-      this.messageService.add({
-        severity: 'success',
-        summary: this.translate.instant('reports.streaming_complete'),
-        detail: `${this.routeHistory!.totalPositions} ${this.translate.instant('reports.positions_loaded')} (${this.progressiveLoading.totalBlocks} bloques)`,
-        life: 5000
-      });
+              // Calcular estadísticas de filtrado por velocidad
+        const totalPositions = this.routeHistory!.totalPositions;
+        const movingPositions = this.routeHistory!.positions.filter(pos => pos.speed > 0).length;
+        const stoppedPositions = totalPositions - movingPositions;
+        
+        this.messageService.add({
+          severity: 'success',
+          summary: this.translate.instant('reports.streaming_complete'),
+          detail: `${totalPositions} posiciones cargadas (${this.progressiveLoading.totalBlocks} bloques). ${movingPositions} con movimiento, ${stoppedPositions} detenidas (velocidad 0)`,
+          life: 8000
+        });
     }
 
     getReportTypeName(): string {
@@ -813,10 +1053,12 @@ export class ReportsComponent implements OnInit {
         distanceFilter: { min: null, max: null },
         stopTimeFilter: { min: null, max: null },
         includeStops: true,
-        includeMovements: true,
-        groupByDate: false,
         exportFormat: 'pdf'
       };
+      
+      // Limpiar datos cargados
+      this.routeHistory = null;
+      this.stops = [];
       
       this.messageService.add({
         severity: 'info',

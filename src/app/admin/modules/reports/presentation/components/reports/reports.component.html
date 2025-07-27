@@ -96,8 +96,8 @@
           </div>
         </div>
 
-        <!-- Filtros avanzados -->
-        <div class="filter-group">
+        <!-- Filtros avanzados - Solo para historial de recorrido -->
+        <div class="filter-group" *ngIf="reportFilter.reportType === 'route_history'">
           <details class="native-accordion">
             <summary>
               <i class="fas fa-cog"></i>
@@ -181,25 +181,10 @@
                   <input 
                     type="checkbox"
                     [(ngModel)]="reportFilter.includeStops"
+                    (ngModelChange)="onIncludeStopsChange($event)"
                     id="includeStops"
                     class="native-checkbox">
                   <label for="includeStops">{{ 'reports.include_stops' | translate }}</label>
-                </div>
-                <div class="checkbox-item">
-                  <input 
-                    type="checkbox"
-                    [(ngModel)]="reportFilter.includeMovements"
-                    id="includeMovements"
-                    class="native-checkbox">
-                  <label for="includeMovements">{{ 'reports.include_movements' | translate }}</label>
-                </div>
-                <div class="checkbox-item">
-                  <input 
-                    type="checkbox"
-                    [(ngModel)]="reportFilter.groupByDate"
-                    id="groupByDate"
-                    class="native-checkbox">
-                  <label for="groupByDate">{{ 'reports.group_by_date' | translate }}</label>
                 </div>
               </div>
             </div>
@@ -312,9 +297,18 @@
             </div>
           </div>
 
+          <!-- Indicador de carga de paradas -->
+          <div *ngIf="loadingStops && reportFilter.includeStops" 
+               class="d-flex align-items-center justify-content-center mb-2 text-muted">
+            <i class="pi pi-spin pi-spinner me-2"></i>
+            <small>Cargando paradas...</small>
+          </div>
+
           <app-reports-map 
             [selectedTarget]="getSelectedTargetForMap()"
             [routeHistory]="routeHistory"
+            [stops]="stops"
+            [showStops]="reportFilter.includeStops"
             [showRouteDetails]="true"
             [autoStartReplay]="progressiveLoading.replayStarted"
             [isStreamingMode]="progressiveLoading.isStreamingMode">
