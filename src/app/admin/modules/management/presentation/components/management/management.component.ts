@@ -124,6 +124,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private pollingInterval: any = null;
   private readonly POLLING_INTERVAL_MS = 10000; // 10 segundos
   
+  // Estado para seguimiento de cambios de status de targets
+  // (integrado en el polling principal de 10s, no requiere polling separado)
+  private previousTargetsStatus: Map<string, string> = new Map(); // targetId -> status
+  
   // ====================================
   // PROPIEDADES PRIVADAS - BÚSQUEDA
   // ====================================
@@ -167,11 +171,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.setupSubscriptions();
     this.setupRouting();
     this.loadInitialData();
+    // Nota: El status polling ahora está integrado en el polling principal de 10s
   }
 
   ngOnDestroy(): void {
     this.cleanupSubscriptions();
     this.stopPolling();
+    // Nota: El status polling ahora está integrado en el polling principal
     
     // Limpiar subjects
     this.searchUsersSubject.complete();
@@ -624,6 +630,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
           }
           
           console.log(`✅ ${this.isSearchingTargets ? 'Búsqueda' : 'Carga normal'} de targets completada:`, targets.length, 'targets');
+          
+          // Actualizar estado de polling después de búsqueda/carga
+          this.initializePreviousTargetsStatus();
+          
+          // Iniciar polling si hay targets y aún no está activo
+          if (targets.length > 0 && !this.pollingInterval) {
+            this.startPolling();
+          }
         },
         error: (error) => {
           console.error('❌ Error en búsqueda de targets:', error);
@@ -850,6 +864,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Actualizar visibilidad de mapas si es necesario
       this.uiService.autoShowMapsIfMobileAndHasTargets(this.targetsList.length > 0);
       
+      // Reinicializar el estado de polling de status después de cargar targets
+      this.initializePreviousTargetsStatus();
+      
+      // Iniciar polling de status si hay targets cargados
+      if (this.targetsList.length > 0) {
+        this.startPolling();
+      }
+      
       // Si hay un target ID desde la URL, intentar seleccionarlo
       if (this.targetIdFromUrl) {
         this.findAndSelectTarget(this.targetIdFromUrl);
@@ -899,13 +921,26 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // MÉTODOS PRIVADOS - POLLING
   // ====================================
   
+    private initializePreviousTargetsStatus(): void {
+    // Inicializar el mapa con el status actual de todos los targets
+    this.previousTargetsStatus.clear();
+    this.targetsList.forEach(target => {
+      this.previousTargetsStatus.set(target._id, target.traccarStatus || 'offline');
+    });
+    console.log('📊 Estado inicial de targets:', this.previousTargetsStatus);
+  }
+
   private startPolling(): void {
     // Detener cualquier polling previo
     this.stopPolling();
     
-    // Solo iniciar polling si hay un target seleccionado
-    if (this.selectedTargetForMap) {
-      console.log('🔄 Iniciando polling para target:', this.selectedTargetForMap.name);
+    // Iniciar polling si hay un target seleccionado O si hay targets cargados (para actualizar status)
+    if (this.selectedTargetForMap || (this.selectedUser && this.targetsList.length > 0)) {
+      const pollingType = this.selectedTargetForMap ? 
+        `target ${this.selectedTargetForMap.name} y status de todos` : 
+        'status de todos los targets';
+      
+      console.log('🔄 Iniciando polling para:', pollingType);
       
       this.pollingInterval = setInterval(async () => {
         await this.updateSelectedTargetData();
@@ -925,41 +960,172 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
   
   private async updateSelectedTargetData(): Promise<void> {
-    if (!this.selectedTargetForMap) {
+    // Si no hay usuario seleccionado o targets cargados, detener polling
+    if (!this.selectedUser || this.targetsList.length === 0) {
       this.stopPolling();
       return;
     }
     
     try {
-      console.log('📡 Actualizando datos del target:', this.selectedTargetForMap._id);
+      let logMessage = '📡 Actualizando ';
+      let selectedTargetName = '';
       
-      // Obtener información actualizada del target
-      const updatedTarget = await this.targetsService.getTargetById(this.selectedTargetForMap._id);
-      
-      // Actualizar el target seleccionado con la nueva información
-      this.selectedTargetForMap = {
-        ...this.selectedTargetForMap,
-        ...updatedTarget,
-        // Preservar información adicional que pueda tener el target local
-        traccarInfo: updatedTarget.traccarInfo || this.selectedTargetForMap.traccarInfo
-      };
-      
-      // Actualizar también en la lista de targets si existe
-      const targetIndex = this.targetsList.findIndex(t => t._id === this.selectedTargetForMap._id);
-      if (targetIndex !== -1) {
-        this.targetsList[targetIndex] = { ...this.targetsList[targetIndex], ...updatedTarget };
+      // 1. Actualizar target seleccionado (si existe)
+      if (this.selectedTargetForMap) {
+        logMessage += 'target seleccionado y ';
+        const updatedTarget = await this.targetsService.getTargetById(this.selectedTargetForMap._id);
+        
+        // Actualizar el target seleccionado con la nueva información
+        this.selectedTargetForMap = {
+          ...this.selectedTargetForMap,
+          ...updatedTarget,
+          // Preservar información adicional que pueda tener el target local
+          traccarInfo: updatedTarget.traccarInfo || this.selectedTargetForMap.traccarInfo,
+          // IMPORTANTE: Sincronizar traccarStatus para que el mapa lo detecte
+          traccarStatus: updatedTarget.traccarInfo?.status || 'offline'
+        };
+        
+        selectedTargetName = updatedTarget.name;
       }
+      
+      logMessage += 'status de todos los targets';
+      console.log(logMessage);
+      
+      // 2. Actualizar status de TODOS los targets
+      await this.updateAllTargetsStatusInPolling();
       
       // Forzar detección de cambios para actualizar la UI
       this.cdr.detectChanges();
       
-      console.log('✅ Target actualizado:', {
-        name: updatedTarget.name,
+      // Timeout adicional para asegurar que el mapa detecte los cambios en selectedTarget
+      setTimeout(() => {
+        this.cdr.detectChanges();
+      }, 50);
+      
+      const summary: any = {
         lastUpdate: new Date().toLocaleTimeString()
-      });
+      };
+      
+      if (selectedTargetName) {
+        summary.selectedTarget = selectedTargetName;
+      }
+      
+      console.log('✅ Polling completado:', summary);
       
     } catch (error) {
-      console.error('❌ Error actualizando target:', error);
+      console.error('❌ Error en polling:', error);
+      // No mostrar error al usuario para evitar spam, solo log en consola
+    }
+  }
+
+  private async updateAllTargetsStatusInPolling(): Promise<void> {
+    // Solo ejecutar si hay un usuario seleccionado y targets cargados
+    if (!this.selectedUser || this.targetsList.length === 0) {
+      return;
+    }
+
+    try {
+      // Obtener la lista actualizada de targets
+      const parentId = this.managementService.getCurrentUserId();
+      const updatedTargets = await this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId);
+      
+      let statusChanges: string[] = [];
+      let offlineChangesDetected = 0;
+      
+      // Comparar con el estado anterior y actualizar los que cambiaron
+      updatedTargets.forEach(updatedTarget => {
+        const targetId = updatedTarget._id;
+        const newStatus = updatedTarget.traccarInfo?.status || 'offline';
+        const previousStatus = this.previousTargetsStatus.get(targetId);
+        
+        // Detectar cualquier cambio de status
+        if (previousStatus && previousStatus !== newStatus) {
+          const changeMessage = `${updatedTarget.name}: ${previousStatus} → ${newStatus}`;
+          statusChanges.push(changeMessage);
+          
+          // Especialmente importante: cambios a offline
+          if (newStatus === 'offline') {
+            console.log(`📴 Target ${updatedTarget.name} cambió a OFFLINE (era ${previousStatus})`);
+            offlineChangesDetected++;
+          } else if (previousStatus === 'offline' && newStatus === 'online') {
+            console.log(`📶 Target ${updatedTarget.name} cambió a ONLINE`);
+            
+            // Mostrar mensaje cuando un target pasa a online
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Dispositivo Conectado',
+              detail: `${updatedTarget.name} ahora está en línea`,
+              life: 5000
+            });
+          }
+          
+          // Actualizar en la lista de targets
+          const targetIndex = this.targetsList.findIndex(t => t._id === targetId);
+          if (targetIndex !== -1) {
+            const isOnline = newStatus === 'online';
+            this.targetsList[targetIndex] = {
+              ...this.targetsList[targetIndex],
+              status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
+              traccarStatus: newStatus,
+              traccarInfo: updatedTarget.traccarInfo,
+              originalTarget: updatedTarget
+            };
+          }
+          
+          // Actualizar también en la lista de targets originales
+          const originalTargetIndex = this.targets.findIndex(t => t._id === targetId);
+          if (originalTargetIndex !== -1) {
+            this.targets[originalTargetIndex] = updatedTarget;
+          }
+          
+          // IMPORTANTE: Actualizar selectedTargetForMap si este target es el que está seleccionado
+          if (this.selectedTargetForMap && this.selectedTargetForMap._id === targetId) {
+            console.log(`🗺️ Actualizando status del target seleccionado en mapa: ${updatedTarget.name} → ${newStatus}`);
+            
+            const previousTraccarStatus = this.selectedTargetForMap.traccarStatus;
+            this.selectedTargetForMap = {
+              ...this.selectedTargetForMap,
+              ...updatedTarget,
+              // Preservar información adicional que pueda tener el target local
+              traccarInfo: updatedTarget.traccarInfo,
+              // IMPORTANTE: Establecer traccarStatus para que el mapa lo detecte
+              traccarStatus: newStatus
+            };
+            
+            console.log(`🎯 selectedTargetForMap actualizado:`, {
+              name: this.selectedTargetForMap.name,
+              previousStatus: previousTraccarStatus,
+              newTraccarStatus: this.selectedTargetForMap.traccarStatus,
+              traccarInfoStatus: this.selectedTargetForMap.traccarInfo?.status
+            });
+          }
+        }
+        
+        // Actualizar el estado anterior
+        this.previousTargetsStatus.set(targetId, newStatus);
+      });
+      
+             // Log de resultados (solo si hay cambios para evitar spam)
+       if (statusChanges.length > 0) {
+         console.log(`🔄 ${statusChanges.length} cambios de status en polling:`);
+         statusChanges.forEach(change => console.log(`  - ${change}`));
+         
+         if (offlineChangesDetected > 0) {
+           console.log(`🔴 ${offlineChangesDetected} targets cambiaron a OFFLINE`);
+         }
+         
+         // Log del target seleccionado actual para verificar
+         if (this.selectedTargetForMap) {
+           console.log(`🗺️ Target seleccionado en mapa:`, {
+             name: this.selectedTargetForMap.name,
+             traccarStatus: this.selectedTargetForMap.traccarInfo?.status,
+             localTraccarStatus: this.selectedTargetForMap.traccarStatus
+           });
+         }
+       }
+      
+    } catch (error) {
+      console.error('❌ Error actualizando status en polling:', error);
       // No mostrar error al usuario para evitar spam, solo log en consola
     }
   }
