@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { MenuItem, MessageService } from 'primeng/api';
 import { TargetsService } from '@core/services/targets.service';
+import { ProtocolsService } from '@core/services/protocols.service';
 import { TranslateService } from '@ngx-translate/core';
 import { AuthService } from '@core/services/auth.service';
 import { ThemesService } from '@shared/services/themes.service';
@@ -53,6 +54,9 @@ export class ReportsComponent implements OnInit {
     // Datos de paradas
     stops: any[] = [];
     loadingStops: boolean = false;
+    
+    // Protocolo del target seleccionado
+    targetProtocol: any = null;
     
     // Estado de carga progresiva
     progressiveLoading: {
@@ -190,6 +194,7 @@ export class ReportsComponent implements OnInit {
 
     constructor(
       private targetsService: TargetsService,
+      private protocolsService: ProtocolsService,
       private messageService: MessageService,
       private translate: TranslateService,
       private authService: AuthService,
@@ -344,6 +349,33 @@ export class ReportsComponent implements OnInit {
       return `${year}-${month}-${day}T${hours}:${minutes}`;
     }
 
+    /**
+     * Convierte una fecha del input datetime-local a UTC explícitamente
+     * Trata la hora local como si fuera UTC (sin conversión de zona horaria)
+     */
+    private convertLocalDateTimeToUTC(dateTimeLocalString: string): string {
+      if (!dateTimeLocalString) return '';
+      
+      // Parsear el string datetime-local
+      const [datePart, timePart] = dateTimeLocalString.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      const [hours, minutes] = timePart.split(':').map(Number);
+      
+      // Crear fecha UTC directamente con los valores locales
+      // Esto trata la hora ingresada como UTC sin conversión de zona horaria
+      const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
+      
+      console.log(`🔄 Conversión datetime-local → UTC:`, {
+        input: dateTimeLocalString,
+        parsedValues: { year, month, day, hours, minutes },
+        utcOutput: utcDate.toISOString(),
+        localDate: new Date(dateTimeLocalString).toISOString(),
+        isExplicitUTC: true
+      });
+      
+      return utcDate.toISOString();
+    }
+
     private initializeDateRange(): void {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
       yesterday.setHours(0, 0, 0, 0); // Inicio a las 00:00
@@ -385,7 +417,7 @@ export class ReportsComponent implements OnInit {
         return false;
       }
 
-      // Convertir a Date para comparar correctamente
+      // Convertir a Date para comparar correctamente (usando hora local para validación)
       const startDate = this.reportFilter.dateRange.start instanceof Date 
         ? this.reportFilter.dateRange.start 
         : new Date(this.reportFilter.dateRange.start);
@@ -432,6 +464,9 @@ export class ReportsComponent implements OnInit {
       }
 
       this.generatingReport = true;
+      
+      // Limpiar protocolo anterior para forzar nueva consulta
+      this.targetProtocol = null;
       
       try {
         console.log('Generando reporte con filtros:', this.reportFilter);
@@ -495,6 +530,116 @@ export class ReportsComponent implements OnInit {
       return new Promise(resolve => setTimeout(resolve, 2000));
     }
 
+    /**
+     * Ajusta las fechas del filtro sumando el utcOffset del protocolo antes de enviar al backend
+     * Esto compensa la diferencia horaria para que el servidor consulte el rango correcto
+     */
+    private adjustDatesWithProtocolOffset(fromDate: string | undefined, toDate: string | undefined): { fromDate: string | undefined, toDate: string | undefined } {
+      if (!this.targetProtocol || this.targetProtocol.utcOffset === undefined || this.targetProtocol.utcOffset === null) {
+        console.log('📅 Sin protocolo o sin utcOffset - fechas sin ajustar:', {
+          fromDate,
+          toDate,
+          protocol: this.targetProtocol?.name || 'sin protocolo'
+        });
+        return { fromDate, toDate };
+      }
+
+      const offsetHours = this.targetProtocol.utcOffset;
+      let adjustedFromDate = fromDate;
+      let adjustedToDate = toDate;
+
+      if (fromDate) {
+        const fromDateObj = new Date(fromDate);
+        fromDateObj.setHours(fromDateObj.getHours() + offsetHours);
+        adjustedFromDate = fromDateObj.toISOString();
+      }
+
+      if (toDate) {
+        const toDateObj = new Date(toDate);
+        toDateObj.setHours(toDateObj.getHours() + offsetHours);
+        adjustedToDate = toDateObj.toISOString();
+      }
+
+      console.log('📅 Fechas ajustadas con utcOffset del protocolo:', {
+        protocolName: this.targetProtocol.name,
+        utcOffset: offsetHours,
+        timezone: `GMT${offsetHours >= 0 ? '+' : ''}${offsetHours}`,
+        original: { fromDate, toDate },
+        adjusted: { fromDate: adjustedFromDate, toDate: adjustedToDate },
+        note: 'Fechas enviadas al backend compensadas con zona horaria del protocolo'
+      });
+
+      return { 
+        fromDate: adjustedFromDate, 
+        toDate: adjustedToDate 
+      };
+    }
+
+    /**
+     * Consulta el protocolo asociado al target usando su propiedad type
+     */
+    private async loadTargetProtocol(target: any): Promise<void> {
+      try {
+        // El ID del protocolo está en la propiedad 'type' del target
+        const protocolId = target?.type;
+        
+        if (!protocolId) {
+          console.log('PROTO ⚠️ Target no tiene protocolo asignado:', {
+            targetId: target._id,
+            targetName: target.name || target.alias,
+            type: target.type
+          });
+          return;
+        }
+
+        console.log('PROTO 🔍 Consultando protocolo del target:', {
+          targetId: target._id,
+          targetName: target.name || target.alias,
+          protocolId: protocolId
+        });
+
+        // Consultar el protocolo por ID
+        const protocol = await this.protocolsService.getProtocolById(protocolId).toPromise();
+        
+        if (!protocol) {
+          console.log('PROTO ⚠️ No se pudo obtener el protocolo:', protocolId);
+          return;
+        }
+        
+        console.log('PROTO ✅ Protocolo obtenido:', {
+          protocolId: protocol._id,
+          protocolName: protocol.name,
+          description: protocol.description,
+          port: protocol.port,
+          utcOffset: protocol.utcOffset,
+          image: protocol.img,
+          commandsCount: protocol.commands.length,
+          fullProtocol: protocol
+        });
+
+        // Almacenar el protocolo para usar en el componente del mapa
+        this.targetProtocol = protocol;
+
+        // Si el protocolo tiene configuración de UTC offset
+        if (protocol.utcOffset !== undefined && protocol.utcOffset !== null) {
+          console.log('PROTO 🌍 Protocolo tiene configuración de zona horaria:', {
+            utcOffset: protocol.utcOffset,
+            timezone: `GMT${protocol.utcOffset >= 0 ? '+' : ''}${protocol.utcOffset}`,
+            note: 'Este offset será usado en el mapa para ajustar timestamps'
+          });
+        } else {
+          console.log('PROTO ⚠️ Protocolo sin configuración de zona horaria, usando valor por defecto');
+        }
+
+      } catch (error) {
+        console.error('PROTO ❌ Error al consultar protocolo:', {
+          protocolId: target?.type,
+          targetId: target._id,
+          error: error
+        });
+      }
+    }
+
     private async loadRouteHistory(): Promise<void> {
       this.loadingRouteHistory = true;
       
@@ -534,6 +679,9 @@ export class ReportsComponent implements OnInit {
           throw new Error('No se encontró el dispositivo seleccionado');
         }
         
+        // Consultar protocolo del target usando su propiedad 'type'
+        await this.loadTargetProtocol(selectedTarget);
+        
         // Extraer api_device_id del target obtenido
         const apiDeviceId = selectedTarget?.api_device_id || selectedTarget?.deviceId;
         
@@ -541,43 +689,47 @@ export class ReportsComponent implements OnInit {
           throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un API Device ID válido`);
         }
 
-        // Convertir fechas a formato ISO string
+        // Convertir fechas a formato UTC explícitamente
         let fromDate: string | undefined;
         let toDate: string | undefined;
         
         if (this.reportFilter.dateRange.start) {
-          const startDate = this.reportFilter.dateRange.start instanceof Date 
-            ? this.reportFilter.dateRange.start 
-            : new Date(this.reportFilter.dateRange.start);
-          if (isNaN(startDate.getTime())) {
-            throw new Error('Fecha de inicio inválida');
+          if (this.reportFilter.dateRange.start instanceof Date) {
+            fromDate = this.reportFilter.dateRange.start.toISOString();
+          } else {
+            fromDate = this.convertLocalDateTimeToUTC(this.reportFilter.dateRange.start);
           }
-          fromDate = startDate.toISOString();
         }
         
         if (this.reportFilter.dateRange.end) {
-          const endDate = this.reportFilter.dateRange.end instanceof Date 
-            ? this.reportFilter.dateRange.end 
-            : new Date(this.reportFilter.dateRange.end);
-          if (isNaN(endDate.getTime())) {
-            throw new Error('Fecha de fin inválida');
+          if (this.reportFilter.dateRange.end instanceof Date) {
+            toDate = this.reportFilter.dateRange.end.toISOString();
+          } else {
+            toDate = this.convertLocalDateTimeToUTC(this.reportFilter.dateRange.end);
           }
-          toDate = endDate.toISOString();
         }
 
+        // Ajustar fechas con el utcOffset del protocolo antes de enviar al backend
+        const adjustedDates = this.adjustDatesWithProtocolOffset(fromDate, toDate);
+        
         console.log('🚀 Cargando historial de rutas:', {
           targetId: selectedTargetId,
           targetName: selectedTarget.name || selectedTarget.alias,
           apiDeviceId,
-          fromDate,
-          toDate,
-          sourceUrl: !!this.targetIdFromUrl
+          originalDates: { fromDate, toDate },
+          adjustedDates: adjustedDates,
+          sourceUrl: !!this.targetIdFromUrl,
+          note: 'Fechas ajustadas con utcOffset del protocolo antes de envío'
         });
+        
+        if (!adjustedDates.fromDate || !adjustedDates.toDate) {
+          throw new Error('Las fechas de inicio y fin son requeridas para cargar historial');
+        }
         
         this.routeHistory = await this.targetsService.getRouteHistory(
           apiDeviceId.toString(), 
-          fromDate, 
-          toDate
+          adjustedDates.fromDate, 
+          adjustedDates.toDate
         );
         
         console.log('Historial de rutas cargado:', {
@@ -621,7 +773,7 @@ export class ReportsComponent implements OnInit {
              this.messageService.add({
                severity: 'success',
                summary: 'Paradas mostradas',
-               detail: `${this.stops.length} paradas mostradas en el mapa`,
+               detail: `paradas mostradas en el mapa`,
                life: 2000
              });
            } else if (this.loadingStops) {
@@ -711,6 +863,9 @@ export class ReportsComponent implements OnInit {
           throw new Error('No se encontró el dispositivo seleccionado para paradas');
         }
         
+        // Consultar protocolo del target usando su propiedad 'type'
+        await this.loadTargetProtocol(selectedTarget);
+        
         // Extraer api_device_id del target obtenido
         const apiDeviceId = selectedTarget?.api_device_id || selectedTarget?.deviceId;
         
@@ -718,44 +873,51 @@ export class ReportsComponent implements OnInit {
           throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un API Device ID válido para paradas`);
         }
 
-        // Convertir fechas a formato ISO string - REQUERIDAS
+        // Convertir fechas a formato UTC explícitamente - REQUERIDAS
         if (!this.reportFilter.dateRange.start || !this.reportFilter.dateRange.end) {
           throw new Error('Las fechas de inicio y fin son requeridas para obtener paradas');
         }
 
-        const startDate = this.reportFilter.dateRange.start instanceof Date 
-          ? this.reportFilter.dateRange.start 
-          : new Date(this.reportFilter.dateRange.start);
-        if (isNaN(startDate.getTime())) {
-          throw new Error('Fecha de inicio inválida para paradas');
+        let fromDate: string;
+        let toDate: string;
+
+        if (this.reportFilter.dateRange.start instanceof Date) {
+          fromDate = this.reportFilter.dateRange.start.toISOString();
+        } else {
+          fromDate = this.convertLocalDateTimeToUTC(this.reportFilter.dateRange.start);
         }
-        const fromDate = startDate.toISOString();
         
-        const endDate = this.reportFilter.dateRange.end instanceof Date 
-          ? this.reportFilter.dateRange.end 
-          : new Date(this.reportFilter.dateRange.end);
-        if (isNaN(endDate.getTime())) {
-          throw new Error('Fecha de fin inválida para paradas');
+        if (this.reportFilter.dateRange.end instanceof Date) {
+          toDate = this.reportFilter.dateRange.end.toISOString();
+        } else {
+          toDate = this.convertLocalDateTimeToUTC(this.reportFilter.dateRange.end);
         }
-        const toDate = endDate.toISOString();
 
         // Obtener duración mínima de parada desde los filtros - OPCIONAL
         const minStopDuration = this.reportFilter.stopTimeFilter.min || undefined;
 
+        // Ajustar fechas con el utcOffset del protocolo antes de enviar al backend
+        const adjustedDates = this.adjustDatesWithProtocolOffset(fromDate, toDate);
+        
         console.log('🚀 Cargando paradas:', {
           targetId: selectedTargetId,
           targetName: selectedTarget.name || selectedTarget.alias,
           apiDeviceId,
-          fromDate,
-          toDate,
+          originalDates: { fromDate, toDate },
+          adjustedDates: adjustedDates,
           minStopDuration: minStopDuration || 'no especificado (usar default del backend)',
-          sourceUrl: !!this.targetIdFromUrl
+          sourceUrl: !!this.targetIdFromUrl,
+          note: 'Fechas ajustadas con utcOffset del protocolo antes de envío'
         });
+        
+        if (!adjustedDates.fromDate || !adjustedDates.toDate) {
+          throw new Error('Las fechas de inicio y fin son requeridas para cargar paradas');
+        }
         
         const stopsResponse = await this.targetsService.getStops(
           apiDeviceId.toString(), 
-          fromDate, 
-          toDate,
+          adjustedDates.fromDate, 
+          adjustedDates.toDate,
           minStopDuration
         );
         
@@ -858,6 +1020,9 @@ export class ReportsComponent implements OnInit {
           throw new Error('No se encontró el dispositivo seleccionado');
         }
         
+        // Consultar protocolo del target usando su propiedad 'type'
+        await this.loadTargetProtocol(selectedTarget);
+        
         const apiDeviceId = selectedTarget?.api_device_id || selectedTarget?.deviceId;
         
         if (!apiDeviceId) {
@@ -935,11 +1100,21 @@ export class ReportsComponent implements OnInit {
       
       console.log(`🚀 Cargando primer bloque para streaming: ${firstHourRange.rangeStr}`);
       
+      // Ajustar fechas del bloque con el utcOffset del protocolo
+      const adjustedDates = this.adjustDatesWithProtocolOffset(
+        firstHourRange.start.toISOString(),
+        firstHourRange.end.toISOString()
+      );
+      
+      if (!adjustedDates.fromDate || !adjustedDates.toDate) {
+        throw new Error('Error ajustando fechas del primer bloque');
+      }
+      
       try {
         const firstBlockHistory = await this.targetsService.getRouteHistory(
           apiDeviceId,
-          firstHourRange.start.toISOString(),
-          firstHourRange.end.toISOString()
+          adjustedDates.fromDate,
+          adjustedDates.toDate
         );
         
         if (firstBlockHistory && firstBlockHistory.positions && firstBlockHistory.positions.length > 0) {
@@ -1000,11 +1175,22 @@ export class ReportsComponent implements OnInit {
         
         console.log(`📅 [Segundo plano] Cargando bloque ${blockNumber}/${this.progressiveLoading.totalBlocks}: ${hourRange.rangeStr}`);
         
+        // Ajustar fechas del bloque con el utcOffset del protocolo
+        const adjustedDates = this.adjustDatesWithProtocolOffset(
+          hourRange.start.toISOString(),
+          hourRange.end.toISOString()
+        );
+        
+        if (!adjustedDates.fromDate || !adjustedDates.toDate) {
+          console.error(`❌ Error ajustando fechas del bloque ${blockNumber}`);
+          continue;
+        }
+        
         try {
           const blockHistory = await this.targetsService.getRouteHistory(
             apiDeviceId,
-            hourRange.start.toISOString(),
-            hourRange.end.toISOString()
+            adjustedDates.fromDate,
+            adjustedDates.toDate
           );
           
           if (blockHistory && blockHistory.positions && blockHistory.positions.length > 0) {

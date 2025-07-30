@@ -19,6 +19,17 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   @Input() showRouteDetails: boolean = true;
   @Input() autoStartReplay: boolean = false;
   @Input() isStreamingMode: boolean = false;
+  @Input() targetProtocol: any = null;
+
+  // Configuración de zona horaria para los labels de marcadores
+  // NOTA: Este valor se usa solo como FALLBACK si el protocolo no tiene utcOffset configurado
+  // El sistema prioriza: 1º targetProtocol.utcOffset, 2º esta variable por defecto
+  // Ejemplos de uso:
+  // GMT-6 (CST): hoursToSubtract = 6
+  // GMT-5 (EST): hoursToSubtract = 5  
+  // GMT-3 (ART): hoursToSubtract = 3
+  // GMT+1 (CET): hoursToSubtract = -1 (para sumar una hora)
+  private hoursToSubtract: number = 8; // Valor por defecto mantenido por el usuario
 
   map: any;
   apiKey: string = '';
@@ -135,6 +146,33 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       }, 300);
     } else if (this.autoStartReplay && (this.isManuallyPaused || this.isManuallyStop)) {
       console.log('⏸️ Auto-inicio cancelado - el usuario pausó/detuvo manualmente');
+    }
+    
+    // Detectar cambios en el protocolo del target
+    if (changes['targetProtocol']) {
+      const previous = changes['targetProtocol'].previousValue;
+      const current = changes['targetProtocol'].currentValue;
+      
+      console.log('PROTO 🔄 Protocolo del target cambió:', {
+        previousProtocol: previous ? {
+          name: previous.name,
+          utcOffset: previous.utcOffset
+        } : 'sin protocolo',
+        currentProtocol: current ? {
+          name: current.name,
+          utcOffset: current.utcOffset
+        } : 'sin protocolo',
+        willAffectTimestamps: current?.utcOffset !== undefined
+      });
+      
+      if (current && current.utcOffset !== undefined) {
+        console.log('PROTO ✅ Nuevo protocolo con zona horaria configurada:', {
+          protocolName: current.name,
+          utcOffset: current.utcOffset,
+          timezone: `GMT${current.utcOffset >= 0 ? '+' : ''}${current.utcOffset}`,
+          note: 'Se usará este offset para ajustar timestamps en labels'
+        });
+      }
     }
   }
 
@@ -372,7 +410,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private createPositionPopupContent(position: any, title: string, color: string): string {
-    const date = new Date(position.fixTime).toLocaleString('es-ES');
+    const date = this.formatDateForPopup(position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
     
     return `
@@ -735,6 +773,78 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   /**
+   * Ajustar fecha usando el utcOffset del protocolo del target o valor por defecto
+   */
+  private adjustDateForDisplay(date: Date): Date {
+    const adjustedDate = new Date(date);
+    
+    // Usar utcOffset del protocolo si está disponible, sino usar hoursToSubtract por defecto
+    let offsetToUse = this.hoursToSubtract; // Valor por defecto
+    let offsetSource = 'variable por defecto';
+    
+    if (this.targetProtocol && this.targetProtocol.utcOffset !== undefined && this.targetProtocol.utcOffset !== null) {
+      offsetToUse = this.targetProtocol.utcOffset;
+      offsetSource = `protocolo ${this.targetProtocol.name}`;
+    }
+    
+    adjustedDate.setHours(adjustedDate.getHours() - offsetToUse);
+    
+    console.log(`🕐 Ajuste de hora aplicado: -${offsetToUse} horas`, {
+      originalUTC: date.toISOString(),
+      adjustedLocal: adjustedDate.toLocaleString('es-ES', { hour12: true }),
+      offsetApplied: offsetToUse,
+      offsetSource: offsetSource,
+      protocolInfo: this.targetProtocol ? {
+        protocolName: this.targetProtocol.name,
+        protocolUtcOffset: this.targetProtocol.utcOffset
+      } : 'sin protocolo'
+    });
+    
+    return adjustedDate;
+  }
+
+  /**
+   * Formatear fecha para mostrar en popups con formato 12 horas y ajuste de zona horaria
+   */
+  private formatDateForPopup(dateString: string): string {
+    const originalDate = new Date(dateString);
+    const adjustedDate = this.adjustDateForDisplay(originalDate);
+    
+    return adjustedDate.toLocaleString('es-ES', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+  }
+
+  /**
+   * Configurar la cantidad de horas a restar para mostrar en zona horaria local
+   * NOTA: Solo se usa si no hay protocolo con utcOffset configurado
+   * @param hours Número de horas a restar (puede ser positivo o negativo)
+   */
+  public setTimezoneOffset(hours: number): void {
+    this.hoursToSubtract = hours;
+    console.log(`🌍 Configuración manual de zona horaria actualizada: -${hours} horas`, {
+      note: 'Se usará solo si el protocolo no tiene utcOffset configurado',
+      protocolOverride: this.targetProtocol?.utcOffset !== undefined ? 
+        `Protocolo tiene utcOffset: ${this.targetProtocol.utcOffset}` : 
+        'Sin protocolo o sin utcOffset'
+    });
+  }
+
+  /**
+   * Obtener la configuración actual de zona horaria
+   * @returns Número de horas que se están restando
+   */
+  public getTimezoneOffset(): number {
+    return this.hoursToSubtract;
+  }
+
+  /**
    * Cambiar el estilo del marcador de reproducción para indicar que es la posición final
    */
   private setReplayMarkerAsFinal(): void {
@@ -813,7 +923,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
    * Crear contenido del popup para la posición final del recorrido
    */
   private createFinalPositionPopupContent(position: any): string {
-    const date = new Date(position.fixTime).toLocaleString('es-ES');
+    const date = this.formatDateForPopup(position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
     
     return `
@@ -874,7 +984,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
    * Crear contenido del popup para la posición donde se detuvo la reproducción
    */
   private createStoppedPositionPopupContent(position: any): string {
-    const date = new Date(position.fixTime).toLocaleString('es-ES');
+    const date = this.formatDateForPopup(position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
     
     return `
@@ -1048,8 +1158,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private createStopPopupContent(stop: any, stopNumber: number): string {
-    const startTime = new Date(stop.startTime).toLocaleString('es-ES');
-    const endTime = new Date(stop.endTime).toLocaleString('es-ES');
+    const startTime = this.formatDateForPopup(stop.startTime);
+    const endTime = this.formatDateForPopup(stop.endTime);
     
     return `
       <div style="font-family: Arial, sans-serif; max-width: 300px; padding: 10px; color: #000;">
@@ -1200,7 +1310,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private createReplayPopupContent(position: any, positionNumber: number): string {
-    const date = new Date(position.fixTime).toLocaleString('es-ES');
+    const date = this.formatDateForPopup(position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
     
     return `

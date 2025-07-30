@@ -10,6 +10,7 @@ export interface Protocol {
   description: string;
   port: number;
   img: string;
+  utcOffset?: number; // Diferencia UTC en horas (ej: -6, -5, +1)
   commands: ProtocolCommand[];
 }
 
@@ -18,6 +19,7 @@ export interface CreateProtocolDto {
   description: string;
   port: number;
   img: string;
+  utcOffset?: number; // Diferencia UTC en horas (ej: -6, -5, +1)
   commands: ProtocolCommand[];
 }
 
@@ -26,5 +28,6 @@ export interface UpdateProtocolDto {
   description?: string;
   port?: number;
   img?: string;
+  utcOffset?: number; // Diferencia UTC en horas (ej: -6, -5, +1)
   commands?: ProtocolCommand[];
 } 
