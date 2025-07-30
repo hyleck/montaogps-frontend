@@ -468,9 +468,11 @@ grid-template-rows: 100%;
 padding-top: 10px;
 padding-right: 0;
 }
+/* Comentado: ahora la visibilidad se controla desde Angular
 .management__content-maps{
   display: none;
 }
+*/
 
 .management__route {
   display: none;
@@ -1152,5 +1154,77 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
 /* Tema oscuro - Ya manejado por las variables CSS de management */
 
+/* ====================================
+   ESTILOS MÓVILES
+   ==================================== */
 
+.mobile-back-button {
+  position: absolute;
+  top: none;
+  bottom: 10px;
+  left: 10px;
+  z-index: 999999;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobile-back-button button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.mobile-back-button button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+  color: #f0f0f0;
+}
+
+.mobile-back-button button i {
+  font-size: 16px;
+  color: #ffffff;
+}
+
+/* Tema oscuro para el botón móvil */
+.dark .mobile-back-button {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dark .mobile-back-button button {
+  color: #f1f5f9;
+}
+
+.dark .mobile-back-button button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.dark .mobile-back-button button i {
+  color: #f1f5f9;
+}
+
+/* Media query para asegurar que solo se aplique en móvil */
+@media (max-width: 760px) {
+  .mobile-back-button {
+    display: block;
+  }
+}
+
+@media (min-width: 761px) {
+  .mobile-back-button {
+    display: none !important;
+  }
+}
 

@@ -96,6 +96,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   get isUserSearchActive(): boolean { return this.isSearchingUsers; }
   get isTargetSearchActive(): boolean { return this.isSearchingTargets; }
 
+  // Mobile/responsive state
+  isMobileView: boolean = false;
+  showMobileMapFullscreen: boolean = false;
+
   // Map Provider (delegado a MapProviderService)
   get selectedMap(): string { return this.mapProviderService.selectedMap; }
   get providerType(): 'google' | 'mapbox' { return this.mapProviderService.providerType; }
@@ -167,6 +171,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Sincronizar la selección actual con el servicio
     this.currentMapSelection = this.mapProviderService.selectedMap;
     
+    this.checkMobileView();
     this.setupInitialState();
     this.setupSubscriptions();
     this.setupRouting();
@@ -191,7 +196,53 @@ export class ManagementComponent implements OnInit, OnDestroy {
   @HostListener('window:resize', ['$event'])
   onResize(event: any) {
     this.uiService.updateScreenSize();
+    this.checkMobileView();
   }
+
+  private checkMobileView(): void {
+    const previousMobileView = this.isMobileView;
+    this.isMobileView = window.innerWidth <= 760; // Cambio a 760px para coincidir con CSS
+    
+    // Si cambió de escritorio a móvil, ocultar el mapa full screen
+    if (!previousMobileView && this.isMobileView) {
+      this.showMobileMapFullscreen = false;
+    }
+    
+    // Si cambió de móvil a escritorio y hay target seleccionado, asegurar que maps esté visible
+    if (previousMobileView && !this.isMobileView && this.selectedTargetForMap && !this.uiService.areMapsVisible()) {
+      this.uiService.toggleMaps();
+      console.log('📱 Cambiando a escritorio con target seleccionado - activando mapas');
+    }
+    
+    console.log('📱 Vista móvil:', this.isMobileView ? 'ACTIVADA' : 'DESACTIVADA', `(${window.innerWidth}px)`);
+  }
+
+  hideMobileMapFullscreen(): void {
+    this.showMobileMapFullscreen = false;
+    
+    // IMPORTANTE: Mantener showMaps en true para que el mapa siga disponible
+    // Solo cambiar el estado de pantalla completa, no ocultar los mapas completamente
+    
+    this.cdr.detectChanges(); // Forzar detección de cambios
+    console.log('📱 Volviendo a lista desde mapa móvil:', {
+      showMaps: this.showMaps,
+      showMobileMapFullscreen: this.showMobileMapFullscreen,
+      areMapsVisible: this.uiService.areMapsVisible(),
+      mapDisplayStyle: this.mapDisplayStyle
+    });
+  }
+
+  get mapDisplayStyle(): string {
+    // En móvil: mostrar solo si está en modo pantalla completa
+    // En escritorio: siempre mostrar
+    if (this.isMobileView) {
+      return this.showMobileMapFullscreen ? 'block' : 'none';
+    } else {
+      return 'block'; // En escritorio siempre visible
+    }
+  }
+
+  window = window; // Para acceder a window desde el template
 
   // ====================================
   // MÉTODOS PÚBLICOS - NAVEGACIÓN
@@ -423,6 +474,26 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.selectedTargetForMap = target;
         this.startPolling();
         console.log('🔄 Cambiado polling a nuevo target:', target.name);
+      }
+
+      // En vista móvil, mostrar el mapa en pantalla completa
+      if (this.isMobileView) {
+        // Asegurar que los mapas estén visibles
+        if (!this.uiService.areMapsVisible()) {
+          this.uiService.toggleMaps();
+          console.log('📱 Activando vista de mapas para móvil');
+        }
+        
+        this.showMobileMapFullscreen = true;
+        this.cdr.detectChanges(); // Forzar detección de cambios
+        console.log('📱 Activando mapa pantalla completa para móvil:', {
+          target: target.name,
+          showMaps: this.showMaps,
+          showMobileMapFullscreen: this.showMobileMapFullscreen,
+          areMapsVisible: this.uiService.areMapsVisible()
+        });
+        
+
       }
     }
   }
@@ -800,6 +871,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
       console.log('🗺️ Parámetro target detectado en URL - mostrando mapas automáticamente:', queryParams['target']);
       this.uiService.showMaps();
       this.selectTargetFromUrl(queryParams['target']);
+      
+      // Si estamos en móvil, activar también el mapa en pantalla completa
+      if (this.isMobileView) {
+        this.showMobileMapFullscreen = true;
+        console.log('📱 Target desde URL en móvil - activando mapa pantalla completa');
+      }
     } else {
       // Si no hay target en la URL, limpiar la selección y detener polling
       this.targetIdFromUrl = null;

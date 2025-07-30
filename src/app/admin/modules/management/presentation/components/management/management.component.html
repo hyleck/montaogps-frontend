@@ -37,7 +37,8 @@
                     </div>
                 </div>
                 <div class="management__user-control-content">
-                    <div class="management__content management__content--maps">
+                    <div class="management__content management__content--maps" 
+                         [ngStyle]="{ 'display': isMobileView && showMobileMapFullscreen ? 'none' : 'block' }">
 
                         <div *ngIf="managementService.getOp() === 'u'" class="management__search">
                             <div  class="management__input-search">
@@ -99,7 +100,6 @@
                                     <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton>
                                     <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton>
                                     <div class="management__user-card-controls">
-                                        <!-- Opciones removidas, solo barra -->
                                     </div>
                                 </div>
                             </ng-template>
@@ -274,8 +274,19 @@
                     </div>
                 </div>
                 </div>
-           </div>
-            <div class="management__content-maps">
+           </div>  
+            <div class="management__content-maps" 
+                 [style.display]="mapDisplayStyle"
+                 [style.width.px]="isMobileView && showMobileMapFullscreen ? window.innerWidth : null"
+                 [style.height.px]="isMobileView && showMobileMapFullscreen ? window.innerHeight : null"
+                 [style.position]="isMobileView && showMobileMapFullscreen ? 'fixed' : 'relative'"
+                 [style.top.px]="isMobileView && showMobileMapFullscreen ? 0 : null"
+                 [style.left.px]="isMobileView && showMobileMapFullscreen ? 0 : null"
+                 [style.z-index]="isMobileView && showMobileMapFullscreen ? 9998 : null">
+                
+                <!-- Botón de regreso para móvil -->
+             
+                
                 <div class="map-provider-select-wrapper"
                      [ngStyle]="{ right: providerType === 'mapbox' ? '20px' : '60px' }">
                     <select [value]="selectedMap" (change)="onMapProviderChange($event)">
@@ -293,6 +304,12 @@
                   [vehicleTypeGetter]="getVehicleTypeByModelId.bind(this)"
                   [preloadedStopTime]="selectedTargetStopTime">
                 </app-maps>
+            </div>
+            <div *ngIf="isMobileView && showMobileMapFullscreen" class="mobile-back-button">
+                <button (click)="hideMobileMapFullscreen()" class="button button--primary-flat">
+                    <i class="pi pi-arrow-left"></i>
+                    <span>Volver a la lista</span>
+                </button>
             </div>
         </div>
 
