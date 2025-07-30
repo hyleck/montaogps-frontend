@@ -200,7 +200,8 @@
                                             <tr class="management__content-table-tr"
                                                 [ngClass]="{
                                                   'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
-                                                  'target-selected-from-url': isTargetSelectedFromUrl(target._id)
+                                                  'target-selected-from-url': isTargetSelectedFromUrl(target._id),
+                                                  'external-user-target': shouldShowParentUserButton(target)
                                                 }"
                                                 [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
                                                 [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
@@ -248,7 +249,20 @@
                                                 <td style="width: 1rem">
                                                     <div style="transform: scale(0.8)" class="management__user-table-controls management__user-table-controls--maps">
                                                         <button (click)="showTargetForm(target)" class="button button--primary-flat" title="Editar objetivo"> <i class="pi pi-pen-to-square" ></i> </button>
-                                                        <button class="button button--primary-flat-icon" title="Eliminar objetivo" (click)="confirmDeleteTarget(target)"> <i class="pi pi-times-circle" ></i> </button>
+                                                        <button 
+                                                            *ngIf="!shouldShowParentUserButton(target)"
+                                                            class="button button--primary-flat-icon" 
+                                                            title="Eliminar objetivo" 
+                                                            (click)="confirmDeleteTarget(target)"> 
+                                                            <i class="pi pi-times-circle" ></i> 
+                                                        </button>
+                                                        <button 
+                                                            *ngIf="shouldShowParentUserButton(target)"
+                                                            class="button button--primary-flat-icon" 
+                                                            title="Abrir usuario propietario (nueva pestaña)" 
+                                                            (click)="navigateToParentUser(target)"> 
+                                                            <i class="pi pi-user" ></i> 
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -438,7 +452,8 @@
                                 <ng-template pTemplate="body" let-target>
                                     <tr class="management__content-table-tr" 
                                         [ngClass]="{
-                                          'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id
+                                          'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
+                                          'external-user-target': shouldShowParentUserButton(target)
                                         }"
                                         [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
                                         [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
@@ -479,7 +494,20 @@
                                         <td>
                                             <div class="management__user-table-controls">
                                                 <button class="button button--primary-flat" (click)="showTargetForm(target)" title="Editar objetivo"> <i class="pi pi-pen-to-square" ></i> </button>
-                                                <button class="button button--primary-flat-icon" title="Eliminar objetivo" (click)="confirmDeleteTarget(target)"> <i class="pi pi-times-circle" ></i> </button>
+                                                <button 
+                                                    *ngIf="!shouldShowParentUserButton(target)"
+                                                    class="button button--primary-flat-icon" 
+                                                    title="Eliminar objetivo" 
+                                                    (click)="confirmDeleteTarget(target)"> 
+                                                    <i class="pi pi-times-circle" ></i> 
+                                                </button>
+                                                <button 
+                                                    *ngIf="shouldShowParentUserButton(target)"
+                                                    class="button button--primary-flat-icon" 
+                                                    title="Abrir usuario propietario (nueva pestaña)" 
+                                                    (click)="navigateToParentUser(target)"> 
+                                                    <i class="pi pi-user" ></i> 
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>

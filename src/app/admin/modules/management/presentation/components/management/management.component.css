@@ -858,6 +858,32 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     text-shadow: 0 1px 2px rgba(156, 163, 175, 0.15) !important;
 }
 
+/* ================================
+   ESTILOS PARA TARGETS DE USUARIOS EXTERNOS
+   ================================ */
+
+/* Fila completa del target de usuario externo - SOLO COLORES */
+.external-user-target {
+    background-color: rgba(249, 115, 22, 0.05) !important;
+    border-left: 3px solid rgba(249, 115, 22, 0.6) !important;
+}
+
+  .dark .external-user-target {
+      background-color: rgba(251, 146, 60, 0.08) !important;
+      border-left: 3px solid rgba(251, 146, 60, 0.7) !important;
+  }
+
+  /* Estilo específico para el icono del botón de usuario externo */
+  .external-user-target .button--primary-flat-icon .pi-user {
+      color: #f97316 !important; /* Naranja para diferenciar del botón eliminar */
+  }
+
+  .dark .external-user-target .button--primary-flat-icon .pi-user {
+      color: #fb923c !important; /* Naranja más claro para tema oscuro */
+  }
+
+
+
 /* Fallback para target seleccionado sin clase específica de estado */
 .target-showing-on-map:not(.target-online):not(.target-offline) {
     font-weight: 600 !important;

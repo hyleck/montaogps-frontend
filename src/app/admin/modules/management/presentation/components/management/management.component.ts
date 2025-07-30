@@ -504,6 +504,88 @@ export class ManagementComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Cambia la URL para navegar al usuario padre del target
+   * @param target Target con parent_id diferente al usuario actual
+   */
+  navigateToParentUser(target: any) {
+    // Buscar parent_id en el target principal o en originalTarget
+    const originalTarget = target.originalTarget || target;
+    const parentId = target.parent_id || target.parentId || target.user_id ||
+                    originalTarget.parent_id || originalTarget.parentId || originalTarget.user_id;
+    
+    if (parentId) {
+      // Obtener el parámetro 'op' actual para mantenerlo en la navegación
+      const currentOp = this.route.snapshot.params['op'] || 't';
+      
+      // Construir la URL completa con parámetros de consulta actuales
+      const currentQueryParams = this.route.snapshot.queryParams;
+      const queryString = new URLSearchParams(currentQueryParams).toString();
+      const newUrl = `/admin/management/${currentOp}/${parentId}${queryString ? '?' + queryString : ''}`;
+      
+      console.log('👤 Abriendo usuario padre en nueva pestaña:', {
+        targetName: target.name || target.alias,
+        currentUserId: this.getCurrentUserId(),
+        parentId: parentId,
+        currentOp: currentOp,
+        newUrl: newUrl,
+        foundIn: target.parent_id ? 'target.parent_id' : 
+                target.parentId ? 'target.parentId' : 
+                target.user_id ? 'target.user_id' :
+                originalTarget.parent_id ? 'originalTarget.parent_id' :
+                originalTarget.parentId ? 'originalTarget.parentId' : 'originalTarget.user_id'
+      });
+      
+      // Abrir en nueva pestaña manteniendo todos los parámetros
+      window.open(newUrl, '_blank');
+    } else {
+      console.error('❌ No se encontró parent_id/parentId/user_id en el target ni en originalTarget:', {
+        target: target,
+        originalTarget: originalTarget
+      });
+    }
+  }
+
+  /**
+   * Obtiene el ID del usuario actual desde la URL
+   * @returns El ID del usuario actual o null si no existe
+   */
+  getCurrentUserId(): string | null {
+    // El routing es /:op/:user, así que 'user' es el segundo parámetro
+    const userId = this.route.snapshot.params['user'];
+    
+    // Log simplificado para debugging
+    console.log('🔍 getCurrentUserId:', userId || this.selectedUser?._id);
+    
+    // Si no hay userId en params, intentar desde selectedUser
+    return userId || this.selectedUser?._id || null;
+  }
+
+  /**
+   * Verifica si el target pertenece a un usuario diferente al actual
+   * @param target Target a verificar
+   * @returns true si el parent_id es diferente al usuario actual
+   */
+  shouldShowParentUserButton(target: any): boolean {
+    const currentUserId = this.getCurrentUserId();
+    
+    // Buscar parent_id en el target principal o en originalTarget
+    const originalTarget = target.originalTarget || target;
+    const targetParentId = target.parent_id || target.parentId || target.user_id ||
+                          originalTarget.parent_id || originalTarget.parentId || originalTarget.user_id;
+    
+    // Log simplificado para debugging cuando sea necesario
+    if (targetParentId && targetParentId !== currentUserId) {
+      console.log('👤 Target de otro usuario detectado:', {
+        targetName: target.name || target.alias || target._id,
+        targetParentId: targetParentId,
+        currentUserId: currentUserId
+      });
+    }
+    
+    return !!(targetParentId && currentUserId && targetParentId !== currentUserId);
+  }
+
   // ====================================
   // MÉTODOS PÚBLICOS - DATOS DE VEHÍCULOS (DELEGADOS)
   // ====================================
