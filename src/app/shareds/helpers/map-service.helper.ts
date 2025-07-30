@@ -574,10 +574,11 @@ export class MarkerService {
 
     // Obtener tiempo de parada actualizado en cada polling
     let stopTime: string | undefined = undefined;
-    if (targetsService && target.api_device_id) {
+    const deviceImei = target.device_imei || target.imei;
+    if (targetsService && deviceImei) {
       try {
-        console.log('🔄 Actualizando tiempo de parada para device:', target.api_device_id, '(estado:', status + ')');
-        const stopTimeResponse = await targetsService.getStopTime(target.api_device_id);
+        console.log('🔄 Actualizando tiempo de parada para device:', deviceImei, '(estado:', status + ')');
+        const stopTimeResponse = await targetsService.getStopTime(deviceImei);
         console.log('📊 Respuesta actualización tiempo de parada:', stopTimeResponse);
         
         if (!stopTimeResponse.isMoving && stopTimeResponse.text && !stopTimeResponse.error) {
@@ -1005,9 +1006,10 @@ export class MarkerService {
 
     // Obtener tiempo de parada
     let stopTime: string | undefined = undefined;
-    if (targetsService && target.api_device_id && status === 'online') {
+    const deviceImei = target.device_imei || target.imei;
+    if (targetsService && deviceImei && status === 'online') {
       try {
-        const stopTimeResponse = await targetsService.getStopTime(target.api_device_id);
+        const stopTimeResponse = await targetsService.getStopTime(deviceImei);
         if (!stopTimeResponse.isMoving && stopTimeResponse.text && !stopTimeResponse.error) {
           stopTime = stopTimeResponse.text;
         }

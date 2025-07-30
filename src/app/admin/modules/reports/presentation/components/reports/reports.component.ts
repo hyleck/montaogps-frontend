@@ -682,11 +682,11 @@ export class ReportsComponent implements OnInit {
         // Consultar protocolo del target usando su propiedad 'type'
         await this.loadTargetProtocol(selectedTarget);
         
-        // Extraer api_device_id del target obtenido
-        const apiDeviceId = selectedTarget?.api_device_id || selectedTarget?.deviceId;
+        // Extraer device_imei del target obtenido
+        const deviceImei = selectedTarget?.device_imei || selectedTarget?.imei;
         
-        if (!apiDeviceId) {
-          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un API Device ID válido`);
+        if (!deviceImei) {
+          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un IMEI válido`);
         }
 
         // Convertir fechas a formato UTC explícitamente
@@ -715,7 +715,7 @@ export class ReportsComponent implements OnInit {
         console.log('🚀 Cargando historial de rutas:', {
           targetId: selectedTargetId,
           targetName: selectedTarget.name || selectedTarget.alias,
-          apiDeviceId,
+          deviceImei,
           originalDates: { fromDate, toDate },
           adjustedDates: adjustedDates,
           sourceUrl: !!this.targetIdFromUrl,
@@ -727,7 +727,7 @@ export class ReportsComponent implements OnInit {
         }
         
         this.routeHistory = await this.targetsService.getRouteHistory(
-          apiDeviceId.toString(), 
+          deviceImei, 
           adjustedDates.fromDate, 
           adjustedDates.toDate
         );
@@ -866,11 +866,11 @@ export class ReportsComponent implements OnInit {
         // Consultar protocolo del target usando su propiedad 'type'
         await this.loadTargetProtocol(selectedTarget);
         
-        // Extraer api_device_id del target obtenido
-        const apiDeviceId = selectedTarget?.api_device_id || selectedTarget?.deviceId;
+        // Extraer device_imei del target obtenido
+        const deviceImei = selectedTarget?.device_imei || selectedTarget?.imei;
         
-        if (!apiDeviceId) {
-          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un API Device ID válido para paradas`);
+        if (!deviceImei) {
+          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un IMEI válido para paradas`);
         }
 
         // Convertir fechas a formato UTC explícitamente - REQUERIDAS
@@ -902,7 +902,7 @@ export class ReportsComponent implements OnInit {
         console.log('🚀 Cargando paradas:', {
           targetId: selectedTargetId,
           targetName: selectedTarget.name || selectedTarget.alias,
-          apiDeviceId,
+          deviceImei,
           originalDates: { fromDate, toDate },
           adjustedDates: adjustedDates,
           minStopDuration: minStopDuration || 'no especificado (usar default del backend)',
@@ -915,7 +915,7 @@ export class ReportsComponent implements OnInit {
         }
         
         const stopsResponse = await this.targetsService.getStops(
-          apiDeviceId.toString(), 
+          deviceImei, 
           adjustedDates.fromDate, 
           adjustedDates.toDate,
           minStopDuration
@@ -1023,10 +1023,10 @@ export class ReportsComponent implements OnInit {
         // Consultar protocolo del target usando su propiedad 'type'
         await this.loadTargetProtocol(selectedTarget);
         
-        const apiDeviceId = selectedTarget?.api_device_id || selectedTarget?.deviceId;
+        const deviceImei = selectedTarget?.device_imei || selectedTarget?.imei;
         
-        if (!apiDeviceId) {
-          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un API Device ID válido`);
+        if (!deviceImei) {
+          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un IMEI válido`);
         }
 
         // Validar y convertir fechas
@@ -1053,17 +1053,17 @@ export class ReportsComponent implements OnInit {
         console.log('🚀 Iniciando carga progresiva:', {
           targetId: selectedTargetId,
           targetName: selectedTarget.name || selectedTarget.alias,
-          apiDeviceId,
+          deviceImei,
           totalBlocks: hourRanges.length,
           dateRange: `${startDate.toISOString()} → ${endDate.toISOString()}`
         });
         
         // STREAMING MODE: Cargar primer bloque e iniciar reproducción
-        await this.loadFirstBlockAndStartReplay(hourRanges, apiDeviceId.toString());
+        await this.loadFirstBlockAndStartReplay(hourRanges, deviceImei);
         
         // CONTINUAR CARGA EN SEGUNDO PLANO: Cargar bloques restantes mientras se reproduce
         if (hourRanges.length > 1) {
-          this.loadRemainingBlocksInBackground(hourRanges.slice(1), apiDeviceId.toString());
+          this.loadRemainingBlocksInBackground(hourRanges.slice(1), deviceImei);
         }
         
         console.log('🎉 Carga progresiva completada:', {
@@ -1093,7 +1093,7 @@ export class ReportsComponent implements OnInit {
     /**
      * Cargar el primer bloque de 5 horas e iniciar la reproducción inmediatamente
      */
-    private async loadFirstBlockAndStartReplay(hourRanges: Array<{start: Date, end: Date, rangeStr: string}>, apiDeviceId: string): Promise<void> {
+    private async loadFirstBlockAndStartReplay(hourRanges: Array<{start: Date, end: Date, rangeStr: string}>, deviceImei: string): Promise<void> {
       const firstHourRange = hourRanges[0];
       this.progressiveLoading.currentBlock = 1;
       this.progressiveLoading.currentRange = firstHourRange.rangeStr;
@@ -1112,7 +1112,7 @@ export class ReportsComponent implements OnInit {
       
       try {
         const firstBlockHistory = await this.targetsService.getRouteHistory(
-          apiDeviceId,
+          deviceImei,
           adjustedDates.fromDate,
           adjustedDates.toDate
         );
@@ -1155,17 +1155,17 @@ export class ReportsComponent implements OnInit {
     /**
      * Cargar los bloques restantes en segundo plano mientras se reproduce el historial
      */
-    private loadRemainingBlocksInBackground(remainingHourRanges: Array<{start: Date, end: Date, rangeStr: string}>, apiDeviceId: string): void {
+    private loadRemainingBlocksInBackground(remainingHourRanges: Array<{start: Date, end: Date, rangeStr: string}>, deviceImei: string): void {
       console.log(`🔄 Iniciando carga en segundo plano de ${remainingHourRanges.length} bloques restantes`);
       
       // Usar async/await en una función separada para manejar la carga en segundo plano
-      this.processRemainingBlocksAsync(remainingHourRanges, apiDeviceId);
+      this.processRemainingBlocksAsync(remainingHourRanges, deviceImei);
     }
 
     /**
      * Procesar los bloques restantes de forma asíncrona
      */
-    private async processRemainingBlocksAsync(remainingHourRanges: Array<{start: Date, end: Date, rangeStr: string}>, apiDeviceId: string): Promise<void> {
+    private async processRemainingBlocksAsync(remainingHourRanges: Array<{start: Date, end: Date, rangeStr: string}>, deviceImei: string): Promise<void> {
       for (let i = 0; i < remainingHourRanges.length; i++) {
         const hourRange = remainingHourRanges[i];
         const blockNumber = i + 2; // +2 porque empezamos desde el segundo bloque
@@ -1188,7 +1188,7 @@ export class ReportsComponent implements OnInit {
         
         try {
           const blockHistory = await this.targetsService.getRouteHistory(
-            apiDeviceId,
+            deviceImei,
             adjustedDates.fromDate,
             adjustedDates.toDate
           );

@@ -419,7 +419,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private async updateMarkerWithStopTime(isInitialRequest: boolean = false): Promise<void> {
-    const deviceId = this.selectedTarget?.api_device_id || this.selectedTarget?.originalTarget?.api_device_id;
+    const deviceId = this.selectedTarget?.device_imei || this.selectedTarget?.imei || this.selectedTarget?.originalTarget?.device_imei || this.selectedTarget?.originalTarget?.imei;
     if (!deviceId || !this.currentMarker) {
       console.log('⚠️ No se puede obtener tiempo de parada - deviceId:', deviceId, 'currentMarker:', !!this.currentMarker);
       return;
