@@ -13,6 +13,7 @@ import { ColorsSettingsComponent } from './components/settings/colors-settings/c
 import { VehicleBrandsSettingsComponent } from './components/settings/vehicle-brands-settings/vehicle-brands-settings.component';
 import { VehicleModelsSettingsComponent } from './components/settings/vehicle-models-settings/vehicle-models-settings.component';
 import { ProtocolsSettingsComponent } from './components/settings/protocols-settings/protocols-settings.component';
+import { HistorialesSettingsComponent } from './components/settings/historiales-settings/historiales-settings.component';
 
 @NgModule({
   declarations: [
@@ -24,7 +25,8 @@ import { ProtocolsSettingsComponent } from './components/settings/protocols-sett
     ColorsSettingsComponent,
     VehicleBrandsSettingsComponent,
     VehicleModelsSettingsComponent,
-    ProtocolsSettingsComponent
+    ProtocolsSettingsComponent,
+    HistorialesSettingsComponent
   ],
   imports: [
     CommonModule,

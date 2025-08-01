@@ -237,6 +237,105 @@
         "title": "Colors",
         "description": "Colors configuration"
       },
+      "historiales": {
+        "title": "History",
+        "description": "GPS device history analysis and management",
+        "form": {
+          "title": "Analysis Configuration",
+          "from_date": "Start Date",
+          "to_date": "End Date",
+          "select_date": "Select date",
+          "interval_hours": "Hour Interval",
+          "select_interval": "Select interval"
+        },
+        "actions": {
+          "analyze_all": "Analyze All Devices",
+          "cancel_analysis": "Cancel Analysis",
+          "clear_results": "Clear Results",
+          "reload_devices": "Reload Devices"
+        },
+        "devices": {
+          "title": "Available Devices List",
+          "name": "Name",
+          "imei": "IMEI",
+          "api_id": "API ID",
+          "status": "Status"
+        },
+        "results": {
+          "analysis_summary": "Analysis Summary",
+          "individual_analysis": "Individual Analysis",
+          "total_devices": "Total Devices",
+          "successful_devices": "Successful Devices",
+          "failed_devices": "Failed Devices",
+          "total_positions": "Total Positions",
+          "processing_time": "Processing Time",
+          "device_details": "Device Details",
+          "device": "Device",
+          "imei": "IMEI",
+          "positions": "Positions",
+          "time": "Time",
+          "status": "Status",
+          "total_hours": "Total Hours",
+          "expected_chunks": "Expected Chunks",
+          "error": "Error"
+        },
+                  "messages": {
+            "devices_loaded": "Devices loaded",
+            "devices_loaded_detail": "{{count}} devices loaded successfully",
+            "error": "Error",
+            "error_loading_devices": "Could not load devices",
+            "error_analysis": "Error in mass analysis",
+            "error_analysis_individual": "Error in individual analysis",
+            "error_cancel": "Error canceling analysis",
+            "warning": "Warning",
+            "select_device_first": "You must select a device first",
+            "confirm_analyze_all": "Are you sure you want to analyze all devices? This operation may take several minutes.",
+            "confirm_header": "Confirm Analysis",
+            "confirm_cancel": "Are you sure you want to cancel the ongoing analysis? All current progress will be lost.",
+            "confirm_cancel_header": "Confirm Cancellation",
+            "analysis_completed": "Analysis Completed",
+            "analysis_cancelled": "Analysis Cancelled",
+            "analysis_in_progress": "Analysis in Progress",
+            "analysis_in_progress_detail": "Ongoing analysis detected: {{progress}}% completed ({{devices}}/{{total}} devices)",
+            "analysis_already_running": "There is already an analysis in progress. Please wait for it to finish or cancel it before starting a new one.",
+            "analysis_all_detail": "Analysis completed: {{successful}}/{{total}} successful devices, {{positions}} positions found",
+            "analysis_individual_detail": "Analysis of {{device}} completed: {{positions}} positions found",
+            "loading_devices": "Loading device list...",
+            "no_devices": "No devices available",
+            "no_devices_detail": "No devices found in the system to analyze",
+            "analysis_completed_final": "Analysis Completed Successfully!",
+            "analysis_completed_final_detail": "The history analysis has finished. You can run a new analysis whenever you want.",
+            "analysis_failed": "Analysis Failed",
+            "analysis_failed_detail": "The analysis could not be completed due to an error. Please try again.",
+            "analysis_cancelled_final": "Analysis Cancelled",
+            "analysis_cancelled_final_detail": "The analysis was cancelled successfully. You can start a new analysis.",
+            "final_summary": "Final Summary",
+            "final_summary_detail": "✅ {{devices}}/{{total}} devices processed | 📍 {{positions}} positions found | ⏱️ Total time: {{time}}"
+          },
+          "progress": {
+            "title": "Analysis Progress",
+            "overall": "Overall Progress",
+            "devices_completed": "Devices Completed",
+            "devices_failed": "Devices Failed",
+            "positions_found": "Positions Found",
+            "elapsed_time": "Elapsed Time",
+            "device_details": "Progress by Device",
+            "block": "Block",
+            "positions": "Positions",
+            "status": {
+              "running": "Running",
+              "completed": "Completed",
+              "failed": "Failed",
+              "cancelled": "Cancelled"
+            },
+            "device_status": {
+              "pending": "Pending",
+              "running": "Processing",
+              "completed": "Completed",
+              "failed": "Error"
+            }
+          }
+      },
       "disabled": "Disabled",
       "dialogs": {
         "roles": "Roles Management",
@@ -246,7 +345,8 @@
         "colors": "Colors Management",
         "brands": "Brands Management",
         "models": "Models Management",
-        "protocols": "Protocols Management"
+        "protocols": "Protocols Management",
+        "historiales": "History Management"
       },
       "servers": {
         "servers_list": "Servers list",

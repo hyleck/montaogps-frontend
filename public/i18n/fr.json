@@ -183,6 +183,105 @@
         "title": "Couleurs",
         "description": "Configuration des couleurs"
       },
+      "historiales": {
+        "title": "Historiques",
+        "description": "Analyse et gestion des historiques des appareils GPS",
+        "form": {
+          "title": "Configuration de l'Analyse",
+          "from_date": "Date de Début",
+          "to_date": "Date de Fin",
+          "select_date": "Sélectionner une date",
+          "interval_hours": "Intervalle d'Heures",
+          "select_interval": "Sélectionner un intervalle"
+        },
+        "actions": {
+          "analyze_all": "Analyser Tous les Appareils",
+          "cancel_analysis": "Annuler l'Analyse",
+          "clear_results": "Effacer les Résultats",
+          "reload_devices": "Recharger les Appareils"
+        },
+        "devices": {
+          "title": "Liste des Appareils Disponibles",
+          "name": "Nom",
+          "imei": "IMEI",
+          "api_id": "API ID",
+          "status": "Statut"
+        },
+        "results": {
+          "analysis_summary": "Résumé de l'Analyse",
+          "individual_analysis": "Analyse Individuelle",
+          "total_devices": "Total des Appareils",
+          "successful_devices": "Appareils Réussis",
+          "failed_devices": "Appareils Échoués",
+          "total_positions": "Total des Positions",
+          "processing_time": "Temps de Traitement",
+          "device_details": "Détails par Appareil",
+          "device": "Appareil",
+          "imei": "IMEI",
+          "positions": "Positions",
+          "time": "Temps",
+          "status": "Statut",
+          "total_hours": "Total d'Heures",
+          "expected_chunks": "Chunks Attendus",
+          "error": "Erreur"
+        },
+        "messages": {
+          "devices_loaded": "Appareils chargés",
+          "devices_loaded_detail": "{{count}} appareils chargés avec succès",
+          "error": "Erreur",
+          "error_loading_devices": "Impossible de charger les appareils",
+          "error_analysis": "Erreur dans l'analyse de masse",
+          "error_analysis_individual": "Erreur dans l'analyse individuelle",
+          "error_cancel": "Erreur lors de l'annulation de l'analyse",
+          "warning": "Avertissement",
+          "select_device_first": "Vous devez d'abord sélectionner un appareil",
+          "confirm_analyze_all": "Êtes-vous sûr de vouloir analyser tous les appareils? Cette opération peut prendre plusieurs minutes.",
+          "confirm_header": "Confirmer l'Analyse",
+          "confirm_cancel": "Êtes-vous sûr de vouloir annuler l'analyse en cours? Tout le progrès actuel sera perdu.",
+          "confirm_cancel_header": "Confirmer l'Annulation",
+          "analysis_completed": "Analyse Terminée",
+          "analysis_cancelled": "Analyse Annulée",
+          "analysis_in_progress": "Analyse en Cours",
+          "analysis_in_progress_detail": "Analyse en cours détectée: {{progress}}% terminé ({{devices}}/{{total}} appareils)",
+          "analysis_already_running": "Il y a déjà une analyse en cours. Veuillez attendre qu'elle se termine ou l'annuler avant d'en commencer une nouvelle.",
+          "analysis_all_detail": "Analyse terminée: {{successful}}/{{total}} appareils réussis, {{positions}} positions trouvées",
+          "analysis_individual_detail": "Analyse de {{device}} terminée: {{positions}} positions trouvées",
+                      "loading_devices": "Chargement de la liste des appareils...",
+            "no_devices": "Aucun appareil disponible",
+            "no_devices_detail": "Aucun appareil trouvé dans le système à analyser",
+            "analysis_completed_final": "Analyse Terminée avec Succès !",
+            "analysis_completed_final_detail": "L'analyse de l'historique est terminée. Vous pouvez exécuter une nouvelle analyse quand vous le souhaitez.",
+            "analysis_failed": "Analyse Échouée",
+            "analysis_failed_detail": "L'analyse n'a pas pu être terminée en raison d'une erreur. Veuillez réessayer.",
+            "analysis_cancelled_final": "Analyse Annulée",
+            "analysis_cancelled_final_detail": "L'analyse a été annulée avec succès. Vous pouvez commencer une nouvelle analyse.",
+            "final_summary": "Résumé Final",
+            "final_summary_detail": "✅ {{devices}}/{{total}} appareils traités | 📍 {{positions}} positions trouvées | ⏱️ Temps total : {{time}}"
+          },
+        "progress": {
+          "title": "Progrès de l'Analyse",
+          "overall": "Progrès Global",
+          "devices_completed": "Appareils Terminés",
+          "devices_failed": "Appareils Échoués",
+          "positions_found": "Positions Trouvées",
+          "elapsed_time": "Temps Écoulé",
+          "device_details": "Progrès par Appareil",
+          "block": "Bloc",
+          "positions": "Positions",
+          "status": {
+            "running": "En Cours",
+            "completed": "Terminé",
+            "failed": "Échoué",
+            "cancelled": "Annulé"
+          },
+          "device_status": {
+            "pending": "En Attente",
+            "running": "En Traitement",
+            "completed": "Terminé",
+            "failed": "Erreur"
+          }
+        }
+      },
       "disabled": "Non disponible",
       "dialogs": {
         "roles": "Gestion des Rôles",
@@ -192,7 +291,8 @@
         "colors": "Gestion des Couleurs",
         "brands": "Gestion des Marques",
         "models": "Gestion des Modèles",
-        "protocols": "Gestion des Protocoles"
+        "protocols": "Gestion des Protocoles",
+        "historiales": "Gestion des Historiques"
       },
       "servers": {
         "servers_list": "Liste des serveurs",

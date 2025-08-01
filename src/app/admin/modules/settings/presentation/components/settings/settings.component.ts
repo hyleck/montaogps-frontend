@@ -1,8 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { MenuItem } from 'primeng/api';
 import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { StatusService } from '@shared/services/status.service';
+import { HistorialesService } from '@core/services/historiales.service';
+import { interval, Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-settings',
@@ -10,7 +12,7 @@ import { StatusService } from '@shared/services/status.service';
     styleUrl: './settings.component.css',
     standalone: false
 })
-export class SettingsComponent implements OnInit {
+export class SettingsComponent implements OnInit, OnDestroy {
     items: MenuItem[] = [];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
     RolesFormDisplay: boolean = false;
@@ -21,6 +23,11 @@ export class SettingsComponent implements OnInit {
     VehicleBrandsSettingsDisplay: boolean = false;
     VehicleModelsSettingsDisplay: boolean = false;
     ProtocolsSettingsDisplay: boolean = false;
+    HistorialesSettingsDisplay: boolean = false;
+
+    // Estado del análisis de historiales
+    isHistorialesAnalysisRunning: boolean = false;
+    historialStatusSubscription: Subscription | null = null;
 
     settingsCards = [
         {
@@ -86,13 +93,20 @@ export class SettingsComponent implements OnInit {
             action: () => this.VehicleModelsSettingsDisplay = true,
             descriptionKey: 'settings.models.description',
             disabled: false
+        },
+        {
+            titleKey: 'settings.historiales.title',
+            icon: 'pi pi-history',
+            action: () => this.HistorialesSettingsDisplay = true,
+            descriptionKey: 'settings.historiales.description'
         }
     ];
 
     constructor(
         private router: Router,
         private translate: TranslateService,
-        private statusService: StatusService
+        private statusService: StatusService,
+        private historialesService: HistorialesService
     ) {
         this.initializeBreadcrumb();
     }
@@ -101,6 +115,57 @@ export class SettingsComponent implements OnInit {
         // Actualizar breadcrumb cuando cambie el idioma
         this.translate.onLangChange.subscribe(() => {
             this.initializeBreadcrumb();
+        });
+        
+        // Iniciar monitoreo del estado de historiales
+        this.startHistorialesStatusMonitoring();
+    }
+
+    ngOnDestroy(): void {
+        this.stopHistorialesStatusMonitoring();
+    }
+
+    /**
+     * Iniciar monitoreo del estado de análisis de historiales
+     */
+    private startHistorialesStatusMonitoring(): void {
+        // Verificar inmediatamente
+        this.checkHistorialesStatus();
+        
+        // Verificar cada 5 segundos
+        this.historialStatusSubscription = interval(5000).subscribe(() => {
+            this.checkHistorialesStatus();
+        });
+    }
+
+    /**
+     * Detener monitoreo del estado de análisis
+     */
+    private stopHistorialesStatusMonitoring(): void {
+        if (this.historialStatusSubscription) {
+            this.historialStatusSubscription.unsubscribe();
+            this.historialStatusSubscription = null;
+        }
+    }
+
+    /**
+     * Verificar si hay un análisis de historiales en progreso
+     */
+    private checkHistorialesStatus(): void {
+        this.historialesService.getCurrentProgress().subscribe({
+            next: (response) => {
+                if (response.success && response.progress) {
+                    // Hay un análisis activo si el estado es 'running'
+                    this.isHistorialesAnalysisRunning = response.progress.status === 'running';
+                } else {
+                    // No hay análisis en progreso
+                    this.isHistorialesAnalysisRunning = false;
+                }
+            },
+            error: () => {
+                // No hay análisis en progreso o error de conexión
+                this.isHistorialesAnalysisRunning = false;
+            }
         });
     }
 
@@ -121,5 +186,12 @@ export class SettingsComponent implements OnInit {
         } else if (action) {
             action();
         }
+    }
+
+    /**
+     * Verificar si es la tarjeta de historiales
+     */
+    isHistorialesCard(card: any): boolean {
+        return card.titleKey === 'settings.historiales.title';
     }
 }
