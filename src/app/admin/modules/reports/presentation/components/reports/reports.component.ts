@@ -28,6 +28,7 @@ export interface ReportFilter {
     max: number | null; // minutos
   };
   includeStops: boolean;
+  minStopDurationFilter: number; // minutos: 1, 5, o 20
   exportFormat: string;
 }
 
@@ -51,9 +52,8 @@ export class ReportsComponent implements OnInit {
     routeHistory: RouteHistoryResponse | null = null;
     loadingRouteHistory: boolean = false;
     
-    // Datos de paradas
+    // Datos de paradas (solo para compatibilidad con el template - las paradas reales se calculan automáticamente en el mapa)
     stops: any[] = [];
-    loadingStops: boolean = false;
     
     // Protocolo del target seleccionado
     targetProtocol: any = null;
@@ -101,6 +101,7 @@ export class ReportsComponent implements OnInit {
         max: null
       },
       includeStops: true,
+      minStopDurationFilter: 20, // Valor por defecto: 20 minutos
       exportFormat: 'pdf'
     };
 
@@ -213,7 +214,6 @@ export class ReportsComponent implements OnInit {
       this.route.params.subscribe(params => {
         const targetId = params['targetId'];
         if (targetId) {
-          console.log('📍 Target ID recibido desde parámetro de ruta:', targetId);
           this.targetIdFromUrl = targetId; // Almacenar el target ID de la ruta
           this.preselectTarget(targetId);
         }
@@ -225,13 +225,11 @@ export class ReportsComponent implements OnInit {
         const type = queryParams['type'];
         
         if (target) {
-          console.log('📍 Target ID recibido desde query params:', target);
           this.targetIdFromUrl = target; // Almacenar el target ID de la URL
           this.preselectTarget(target);
         }
         
         if (type) {
-          console.log('📊 Tipo de reporte recibido desde query params:', type);
           this.preselectReportType(type);
         }
       });
@@ -267,7 +265,6 @@ export class ReportsComponent implements OnInit {
           
           if (targetToSelect) {
             this.reportFilter.selectedTargets = [targetToSelect];
-            console.log('✅ Target preseleccionado para reportes:', targetToSelect.name || targetToSelect.alias);
             
             // Mostrar mensaje informativo
             this.messageService.add({
@@ -309,7 +306,6 @@ export class ReportsComponent implements OnInit {
       
       if (validReportType) {
         this.reportFilter.reportType = mappedType;
-        console.log('✅ Tipo de reporte preseleccionado:', validReportType.label);
         
         // Llamar a la función de cambio de tipo de reporte para aplicar configuraciones específicas
         this.onReportTypeChange();
@@ -334,7 +330,6 @@ export class ReportsComponent implements OnInit {
         end: this.formatDateForInput(range.end)
       };
       
-      console.log(`Fecha rápida seleccionada: ${preset.label}`, this.reportFilter.dateRange);
     }
 
     private formatDateForInput(date: Date): string {
@@ -469,27 +464,17 @@ export class ReportsComponent implements OnInit {
       this.targetProtocol = null;
       
       try {
-        console.log('Generando reporte con filtros:', this.reportFilter);
         
         if (this.reportFilter.reportType === 'route_history') {
           // Para historial de recorrido, determinar si usar carga progresiva
           if (this.shouldUseProgressiveLoading()) {
-            console.log('🚀 Usando carga progresiva por rango de fechas extenso');
             await this.loadRouteHistoryProgressive();
           } else {
-            console.log('⚡ Usando carga normal por rango de fechas corto');
             await this.loadRouteHistory();
           }
           
-          // Cargar paradas de manera diferida (no bloquear el primer lote)
-          if (this.reportFilter.includeStops) {
-            console.log('🛑 Programando carga diferida de paradas...');
-            this.loadStopsDeferred();
-          } else {
-            console.log('🛑 Paradas deshabilitadas en filtros - omitiendo carga');
-            this.stops = []; // Limpiar paradas existentes
-            this.cdr.detectChanges(); // Forzar actualización
-          }
+          // Las paradas ahora se calculan automáticamente en el mapa a partir de velocidades 0
+          this.stops = []; // Limpiar paradas del backend
           
         } else {
           // Para otros tipos de reporte, simular generación
@@ -560,14 +545,7 @@ export class ReportsComponent implements OnInit {
         adjustedToDate = toDateObj.toISOString();
       }
 
-      console.log('📅 Fechas ajustadas con utcOffset del protocolo:', {
-        protocolName: this.targetProtocol.name,
-        utcOffset: offsetHours,
-        timezone: `GMT${offsetHours >= 0 ? '+' : ''}${offsetHours}`,
-        original: { fromDate, toDate },
-        adjusted: { fromDate: adjustedFromDate, toDate: adjustedToDate },
-        note: 'Fechas enviadas al backend compensadas con zona horaria del protocolo'
-      });
+   
 
       return { 
         fromDate: adjustedFromDate, 
@@ -592,11 +570,7 @@ export class ReportsComponent implements OnInit {
           return;
         }
 
-        console.log('PROTO 🔍 Consultando protocolo del target:', {
-          targetId: target._id,
-          targetName: target.name || target.alias,
-          protocolId: protocolId
-        });
+       
 
         // Consultar el protocolo por ID
         const protocol = await this.protocolsService.getProtocolById(protocolId).toPromise();
@@ -605,31 +579,12 @@ export class ReportsComponent implements OnInit {
           console.log('PROTO ⚠️ No se pudo obtener el protocolo:', protocolId);
           return;
         }
-        
-        console.log('PROTO ✅ Protocolo obtenido:', {
-          protocolId: protocol._id,
-          protocolName: protocol.name,
-          description: protocol.description,
-          port: protocol.port,
-          utcOffset: protocol.utcOffset,
-          image: protocol.img,
-          commandsCount: protocol.commands.length,
-          fullProtocol: protocol
-        });
+      
 
         // Almacenar el protocolo para usar en el componente del mapa
         this.targetProtocol = protocol;
 
-        // Si el protocolo tiene configuración de UTC offset
-        if (protocol.utcOffset !== undefined && protocol.utcOffset !== null) {
-          console.log('PROTO 🌍 Protocolo tiene configuración de zona horaria:', {
-            utcOffset: protocol.utcOffset,
-            timezone: `GMT${protocol.utcOffset >= 0 ? '+' : ''}${protocol.utcOffset}`,
-            note: 'Este offset será usado en el mapa para ajustar timestamps'
-          });
-        } else {
-          console.log('PROTO ⚠️ Protocolo sin configuración de zona horaria, usando valor por defecto');
-        }
+     
 
       } catch (error) {
         console.error('PROTO ❌ Error al consultar protocolo:', {
@@ -650,11 +605,9 @@ export class ReportsComponent implements OnInit {
         if (this.targetIdFromUrl) {
           // 1. Usar el target específico de la URL - traer del servicio
           selectedTargetId = this.targetIdFromUrl;
-          console.log('🎯 Trayendo target desde URL usando servicio:', selectedTargetId);
           
           try {
             selectedTarget = await this.targetsService.getTargetById(selectedTargetId);
-            console.log('✅ Target obtenido del servicio:', selectedTarget.name || selectedTarget.alias);
           } catch (error) {
             throw new Error(`No se encontró el dispositivo con ID: ${selectedTargetId}`);
           }
@@ -663,13 +616,11 @@ export class ReportsComponent implements OnInit {
           // 2. Usar el primer target seleccionado localmente
           selectedTargetId = this.reportFilter.selectedTargets[0]._id || this.reportFilter.selectedTargets[0];
           selectedTarget = this.targets.find(t => t._id === selectedTargetId);
-          console.log('📋 Usando target seleccionado localmente:', selectedTargetId);
           
         } else if (this.targets.length > 0) {
           // 3. Usar el primer target disponible localmente
           selectedTarget = this.targets[0];
           selectedTargetId = selectedTarget._id;
-          console.log('📦 Usando primer target disponible localmente:', selectedTargetId);
           
         } else {
           throw new Error('No hay dispositivos disponibles para el historial');
@@ -712,15 +663,7 @@ export class ReportsComponent implements OnInit {
         // Ajustar fechas con el utcOffset del protocolo antes de enviar al backend
         const adjustedDates = this.adjustDatesWithProtocolOffset(fromDate, toDate);
         
-        console.log('🚀 Cargando historial de rutas:', {
-          targetId: selectedTargetId,
-          targetName: selectedTarget.name || selectedTarget.alias,
-          deviceImei,
-          originalDates: { fromDate, toDate },
-          adjustedDates: adjustedDates,
-          sourceUrl: !!this.targetIdFromUrl,
-          note: 'Fechas ajustadas con utcOffset del protocolo antes de envío'
-        });
+    
         
         if (!adjustedDates.fromDate || !adjustedDates.toDate) {
           throw new Error('Las fechas de inicio y fin son requeridas para cargar historial');
@@ -749,224 +692,53 @@ export class ReportsComponent implements OnInit {
      * Maneja el cambio del checkbox "Incluir paradas" en tiempo real
      */
     onIncludeStopsChange(includeStops: boolean): void {
-      console.log('🛑 Checkbox incluir paradas cambió a:', includeStops);
       
-      // Si hay un reporte ya generado, actualizar las paradas en tiempo real
-      if (this.routeHistory && this.routeHistory.positions && this.routeHistory.positions.length > 0) {
+      // Las paradas ahora se calculan automáticamente en el mapa
                  if (includeStops) {
-           // Activado: cargar paradas si no están ya cargadas
-           if (this.stops.length === 0 && !this.loadingStops) {
-             console.log('🛑 Activando paradas - cargando desde backend...');
              this.messageService.add({
                severity: 'info',
-               summary: 'Cargando paradas',
-               detail: 'Paradas cargando en segundo plano...',
-               life: 2000
-             });
-             this.loadStopsDeferred();
-           } else if (this.stops.length > 0) {
-             console.log('🛑 Activando paradas - ya están cargadas, solo mostrando...');
-             // Las paradas ya están cargadas, solo necesitamos forzar la actualización
-             this.cdr.detectChanges();
-             
-             // Mostrar mensaje informativo
-             this.messageService.add({
-               severity: 'success',
-               summary: 'Paradas mostradas',
-               detail: `paradas mostradas en el mapa`,
-               life: 2000
-             });
-           } else if (this.loadingStops) {
-             console.log('🛑 Activando paradas - ya se están cargando...');
-             this.messageService.add({
-               severity: 'info',
-               summary: 'Cargando paradas',
-               detail: 'Las paradas ya se están cargando...',
-               life: 2000
-             });
-           }
+          summary: 'Paradas habilitadas',
+          detail: 'Las paradas se calcularán automáticamente a partir de posiciones con velocidad 0',
+          life: 3000
+        });
         } else {
-          // Desactivado: ocultar paradas (no eliminar los datos, solo ocultar)
-          console.log('🛑 Desactivando paradas - ocultando del mapa...');
-          this.cdr.detectChanges();
-          
-          // Mostrar mensaje informativo
           this.messageService.add({
             severity: 'info',
             summary: 'Paradas ocultas',
             detail: 'Las paradas han sido ocultadas del mapa',
             life: 2000
           });
-        }
-      } else {
-        // No hay reporte generado aún
-        console.log('🛑 Checkbox cambió pero no hay reporte generado aún');
       }
+      
+      // Forzar actualización del mapa
+      this.cdr.detectChanges();
     }
 
-    /**
-     * Cargar paradas de manera diferida para no bloquear el primer lote de historial
-     */
-    private loadStopsDeferred(): void {
-      console.log('🛑 Iniciando carga diferida de paradas en 1000ms...');
-      
-      // Programar la carga después de un delay para permitir que el primer lote se renderice completamente
-      setTimeout(async () => {
-        if (this.reportFilter.includeStops) {
-          console.log('🛑 Ejecutando carga diferida de paradas...');
-          await this.loadStops();
-        } else {
-          console.log('🛑 Carga diferida cancelada - paradas deshabilitadas');
-        }
-      }, 1000);
-    }
+
+
+
+
 
     /**
-     * Cargar paradas del dispositivo
+     * Maneja el cambio del filtro de duración mínima de paradas
      */
-    private async loadStops(): Promise<void> {
-      this.loadingStops = true;
+    onMinStopDurationChange(minDuration: number): void {
       
-      try {
-        let selectedTarget: any;
-        let selectedTargetId: string;
+      // Convertir a número por si viene como string del select
+      this.reportFilter.minStopDurationFilter = Number(minDuration);
+      
+      // Si hay un reporte ya generado y las paradas están habilitadas, actualizar en tiempo real
+      if (this.routeHistory && this.routeHistory.positions && this.routeHistory.positions.length > 0 && this.reportFilter.includeStops) {
         
-        if (this.targetIdFromUrl) {
-          // 1. Usar el target específico de la URL - traer del servicio
-          selectedTargetId = this.targetIdFromUrl;
-          console.log('🎯 Trayendo target desde URL usando servicio para paradas:', selectedTargetId);
-          
-          try {
-            selectedTarget = await this.targetsService.getTargetById(selectedTargetId);
-            console.log('✅ Target obtenido del servicio para paradas:', selectedTarget.name || selectedTarget.alias);
-          } catch (error) {
-            throw new Error(`No se encontró el dispositivo con ID: ${selectedTargetId}`);
-          }
-          
-        } else if (this.reportFilter.selectedTargets.length > 0) {
-          // 2. Usar el primer target seleccionado localmente
-          selectedTargetId = this.reportFilter.selectedTargets[0]._id || this.reportFilter.selectedTargets[0];
-          selectedTarget = this.targets.find(t => t._id === selectedTargetId);
-          console.log('📋 Usando target seleccionado localmente para paradas:', selectedTargetId);
-          
-        } else if (this.targets.length > 0) {
-          // 3. Usar el primer target disponible localmente
-          selectedTarget = this.targets[0];
-          selectedTargetId = selectedTarget._id;
-          console.log('📦 Usando primer target disponible localmente para paradas:', selectedTargetId);
-          
-        } else {
-          throw new Error('No hay dispositivos disponibles para cargar paradas');
-        }
-        
-        if (!selectedTarget) {
-          throw new Error('No se encontró el dispositivo seleccionado para paradas');
-        }
-        
-        // Consultar protocolo del target usando su propiedad 'type'
-        await this.loadTargetProtocol(selectedTarget);
-        
-        // Extraer device_imei del target obtenido
-        const deviceImei = selectedTarget?.device_imei || selectedTarget?.imei;
-        
-        if (!deviceImei) {
-          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un IMEI válido para paradas`);
-        }
-
-        // Convertir fechas a formato UTC explícitamente - REQUERIDAS
-        if (!this.reportFilter.dateRange.start || !this.reportFilter.dateRange.end) {
-          throw new Error('Las fechas de inicio y fin son requeridas para obtener paradas');
-        }
-
-        let fromDate: string;
-        let toDate: string;
-
-        if (this.reportFilter.dateRange.start instanceof Date) {
-          fromDate = this.reportFilter.dateRange.start.toISOString();
-        } else {
-          fromDate = this.convertLocalDateTimeToUTC(this.reportFilter.dateRange.start);
-        }
-        
-        if (this.reportFilter.dateRange.end instanceof Date) {
-          toDate = this.reportFilter.dateRange.end.toISOString();
-        } else {
-          toDate = this.convertLocalDateTimeToUTC(this.reportFilter.dateRange.end);
-        }
-
-        // Obtener duración mínima de parada desde los filtros - OPCIONAL
-        const minStopDuration = this.reportFilter.stopTimeFilter.min || undefined;
-
-        // Ajustar fechas con el utcOffset del protocolo antes de enviar al backend
-        const adjustedDates = this.adjustDatesWithProtocolOffset(fromDate, toDate);
-        
-        console.log('🚀 Cargando paradas:', {
-          targetId: selectedTargetId,
-          targetName: selectedTarget.name || selectedTarget.alias,
-          deviceImei,
-          originalDates: { fromDate, toDate },
-          adjustedDates: adjustedDates,
-          minStopDuration: minStopDuration || 'no especificado (usar default del backend)',
-          sourceUrl: !!this.targetIdFromUrl,
-          note: 'Fechas ajustadas con utcOffset del protocolo antes de envío'
-        });
-        
-        if (!adjustedDates.fromDate || !adjustedDates.toDate) {
-          throw new Error('Las fechas de inicio y fin son requeridas para cargar paradas');
-        }
-        
-        const stopsResponse = await this.targetsService.getStops(
-          deviceImei, 
-          adjustedDates.fromDate, 
-          adjustedDates.toDate,
-          minStopDuration
-        );
-        
-        // Extraer las paradas del objeto de respuesta
-        this.stops = stopsResponse?.stops || [];
-        
-        console.log('🛑 Respuesta completa del backend:', stopsResponse);
-        console.log('🛑 Paradas extraídas:', this.stops);
-        console.log('🛑 Paradas cargadas:', {
-          totalStops: this.stops.length,
-          totalStopDuration: stopsResponse?.totalStopDurationText || 'N/A',
-          minStopDurationUsed: minStopDuration || 'default del backend',
-          stopsArray: this.stops
-        });
-        
-        // Log adicional para verificar la estructura
-        if (this.stops.length > 0) {
-          console.log('📋 Estructura de una parada (ejemplo):', this.stops[0]);
-        }
-
-        // Forzar detección de cambios para que el mapa reciba las paradas
-        this.cdr.detectChanges();
-        console.log('🔄 Forzando detección de cambios para paradas');
-        
-        // Mostrar notificación de paradas cargadas
         this.messageService.add({
-          severity: 'success',
-          summary: 'Paradas cargadas',
-          detail: `${this.stops.length} paradas encontradas y mostradas en el mapa`,
+          severity: 'info',
+          summary: 'Filtro actualizado',
+          detail: `Mostrando paradas de ${minDuration} minuto${minDuration > 1 ? 's' : ''} en adelante`,
           life: 3000
         });
         
-        // Verificar si las paradas se están pasando correctamente al mapa
-        setTimeout(() => {
-          console.log('🔍 Verificando estado después de la detección de cambios:');
-          console.log('🔍 this.stops en componente padre:', this.stops);
-          console.log('🔍 this.stops.length:', this.stops.length);
-        }, 100);
-        
-      } catch (error) {
-        console.error('Error cargando paradas:', error);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Error al cargar las paradas. Intente nuevamente.'
-        });
-        throw error;
-      } finally {
-        this.loadingStops = false;
+        // Forzar actualización del mapa (que recalculará las paradas con el nuevo filtro)
+        this.cdr.detectChanges();
       }
     }
 
@@ -993,11 +765,9 @@ export class ReportsComponent implements OnInit {
         // Obtener target (misma lógica que loadRouteHistory)
         if (this.targetIdFromUrl) {
           selectedTargetId = this.targetIdFromUrl;
-          console.log('🎯 Trayendo target desde URL usando servicio:', selectedTargetId);
           
           try {
             selectedTarget = await this.targetsService.getTargetById(selectedTargetId);
-            console.log('✅ Target obtenido del servicio:', selectedTarget.name || selectedTarget.alias);
           } catch (error) {
             throw new Error(`No se encontró el dispositivo con ID: ${selectedTargetId}`);
           }
@@ -1005,12 +775,10 @@ export class ReportsComponent implements OnInit {
         } else if (this.reportFilter.selectedTargets.length > 0) {
           selectedTargetId = this.reportFilter.selectedTargets[0]._id || this.reportFilter.selectedTargets[0];
           selectedTarget = this.targets.find(t => t._id === selectedTargetId);
-          console.log('📋 Usando target seleccionado localmente:', selectedTargetId);
           
         } else if (this.targets.length > 0) {
           selectedTarget = this.targets[0];
           selectedTargetId = selectedTarget._id;
-          console.log('📦 Usando primer target disponible localmente:', selectedTargetId);
           
         } else {
           throw new Error('No hay dispositivos disponibles para el historial');
@@ -1050,13 +818,7 @@ export class ReportsComponent implements OnInit {
         this.progressiveLoading.totalBlocks = hourRanges.length;
         this.progressiveLoading.currentBlock = 0;
         
-        console.log('🚀 Iniciando carga progresiva:', {
-          targetId: selectedTargetId,
-          targetName: selectedTarget.name || selectedTarget.alias,
-          deviceImei,
-          totalBlocks: hourRanges.length,
-          dateRange: `${startDate.toISOString()} → ${endDate.toISOString()}`
-        });
+     
         
         // STREAMING MODE: Cargar primer bloque e iniciar reproducción
         await this.loadFirstBlockAndStartReplay(hourRanges, deviceImei);
@@ -1066,11 +828,7 @@ export class ReportsComponent implements OnInit {
           this.loadRemainingBlocksInBackground(hourRanges.slice(1), deviceImei);
         }
         
-        console.log('🎉 Carga progresiva completada:', {
-          totalPositions: this.routeHistory.totalPositions,
-          positionsLoaded: this.routeHistory.positions.length,
-          blocksProcessed: hourRanges.length
-        });
+   
         
       } catch (error) {
         console.error('❌ Error en carga progresiva:', error);
@@ -1098,7 +856,6 @@ export class ReportsComponent implements OnInit {
       this.progressiveLoading.currentBlock = 1;
       this.progressiveLoading.currentRange = firstHourRange.rangeStr;
       
-      console.log(`🚀 Cargando primer bloque para streaming: ${firstHourRange.rangeStr}`);
       
       // Ajustar fechas del bloque con el utcOffset del protocolo
       const adjustedDates = this.adjustDatesWithProtocolOffset(
@@ -1126,9 +883,7 @@ export class ReportsComponent implements OnInit {
           };
           this.progressiveLoading.totalPositionsLoaded = this.routeHistory.positions.length;
           
-          console.log(`✅ Primer bloque cargado: ${firstBlockHistory.positions.length} posiciones`);
-          console.log(`🎬 Iniciando reproducción automática...`);
-          
+       
           // Marcar que la reproducción debería iniciar automáticamente
           this.progressiveLoading.replayStarted = true;
           
@@ -1143,7 +898,6 @@ export class ReportsComponent implements OnInit {
           this.cdr.detectChanges();
           
         } else {
-          console.log(`ℹ️ Primer bloque sin posiciones: ${firstHourRange.rangeStr}`);
         }
         
       } catch (error) {
@@ -1156,7 +910,6 @@ export class ReportsComponent implements OnInit {
      * Cargar los bloques restantes en segundo plano mientras se reproduce el historial
      */
     private loadRemainingBlocksInBackground(remainingHourRanges: Array<{start: Date, end: Date, rangeStr: string}>, deviceImei: string): void {
-      console.log(`🔄 Iniciando carga en segundo plano de ${remainingHourRanges.length} bloques restantes`);
       
       // Usar async/await en una función separada para manejar la carga en segundo plano
       this.processRemainingBlocksAsync(remainingHourRanges, deviceImei);
@@ -1173,7 +926,6 @@ export class ReportsComponent implements OnInit {
         this.progressiveLoading.currentBlock = blockNumber;
         this.progressiveLoading.currentRange = hourRange.rangeStr;
         
-        console.log(`📅 [Segundo plano] Cargando bloque ${blockNumber}/${this.progressiveLoading.totalBlocks}: ${hourRange.rangeStr}`);
         
         // Ajustar fechas del bloque con el utcOffset del protocolo
         const adjustedDates = this.adjustDatesWithProtocolOffset(
@@ -1202,15 +954,12 @@ export class ReportsComponent implements OnInit {
             };
             this.progressiveLoading.totalPositionsLoaded = this.routeHistory.positions.length;
             
-            console.log(`✅ [Segundo plano] Bloque ${blockNumber}: ${blockHistory.positions.length} posiciones agregadas (Total: ${this.routeHistory.positions.length})`);
             
             // Forzar detección de cambios para que el mapa reciba los nuevos datos
             this.cdr.detectChanges();
             
-            console.log(`🔄 Notificando mapa de nuevas ${blockHistory.positions.length} posiciones (Total actual: ${this.routeHistory.positions.length})`);
             
           } else {
-            console.log(`ℹ️ [Segundo plano] Bloque ${blockNumber}: Sin posiciones`);
           }
           
           // Pausa más corta para bloques de 5 horas (menos tiempo que días completos)
@@ -1222,7 +971,6 @@ export class ReportsComponent implements OnInit {
         }
       }
       
-      console.log('🎉 Carga en segundo plano completada');
       
       // Finalizar estado de carga pero mantener la reproducción
       this.progressiveLoading.isActive = false;
@@ -1268,6 +1016,7 @@ export class ReportsComponent implements OnInit {
         distanceFilter: { min: null, max: null },
         stopTimeFilter: { min: null, max: null },
         includeStops: true,
+        minStopDurationFilter: 20,
         exportFormat: 'pdf'
       };
       
@@ -1330,13 +1079,10 @@ export class ReportsComponent implements OnInit {
       
       if (this.targetIdFromUrl) {
         selectedTargetId = this.targetIdFromUrl;
-        console.log('🗺️ Usando target desde URL para mapa:', selectedTargetId);
       } else if (this.reportFilter.selectedTargets.length > 0) {
         selectedTargetId = this.reportFilter.selectedTargets[0]._id || this.reportFilter.selectedTargets[0];
-        console.log('🗺️ Usando target seleccionado para mapa:', selectedTargetId);
       } else if (this.reportFilter.reportType === 'route_history' && this.targets.length > 0) {
         selectedTargetId = this.targets[0]._id;
-        console.log('🗺️ Usando primer target disponible para mapa:', selectedTargetId);
       }
       
       if (selectedTargetId) {

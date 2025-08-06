@@ -190,6 +190,7 @@ export interface RouteHistoryPosition {
   address: string;
   accuracy: number;
   valid: boolean;
+  dbfrom: string;
   attributes: Record<string, any>;
 }
 

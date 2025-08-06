@@ -38,9 +38,11 @@
         <div class="replay-info">
             <div class="replay-progress">
                 <div class="progress-bar">
-                    <div class="progress-fill" [style.width.%]="getReplayProgress()"></div>
+                    <div class="progress-fill" 
+                         [style.width.%]="getReplayProgress()"
+                         [style.background-color]="getProgressBarColor()"></div>
                 </div>
-                <span class="progress-text">{{currentPositionIndex}} / {{replayPositions.length}}</span>
+                <span class="progress-text" [style.color]="getProgressBarColor()">{{currentPositionIndex}} / {{replayPositions.length}}</span>
             </div>
             
             <div class="replay-speed">

@@ -16,6 +16,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   @Input() routeHistory: RouteHistoryResponse | null = null;
   @Input() stops: any[] = [];
   @Input() showStops: boolean = true;
+  @Input() minStopDuration: number = 20; // Duración mínima en minutos para mostrar paradas
   @Input() showRouteDetails: boolean = true;
   @Input() autoStartReplay: boolean = false;
   @Input() isStreamingMode: boolean = false;
@@ -42,7 +43,14 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   startMarker: any = null;
   endMarker: any = null;
   routeMarkers: any[] = [];
-  stopMarkers: any[] = []; // Marcadores de paradas
+  stopMarkers: any[] = []; // Marcadores de paradas del backend
+  calculatedStopMarkers: any[] = []; // Marcadores de paradas calculadas localmente
+  calculatedStops: any[] = []; // Paradas detectadas a partir de posiciones con velocidad 0
+  
+  // Estado para actualización incremental de paradas
+  private lastProcessedPositionIndex: number = -1;
+  private currentActiveStop: any = null; // Parada en curso de ser detectada
+  
   infoWindow: any = null;
   private popupCloseListener: any = null;
 
@@ -64,55 +72,58 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   ) {}
 
   ngOnInit(): void {
-    console.log('🆕 Reports Map component initialized');
-    console.log('🛑 Initial stops data:', this.stops?.length || 0);
     this.initializeMap();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (this.map && (changes['routeHistory'] || changes['selectedTarget'])) {
-      console.log('🔄 Route history or target changed, updating map');
+
       
       // Si ya está reproduciendo, solo actualizar posiciones
       if (this.isReplaying && changes['routeHistory'] && this.routeHistory) {
-        console.log('📈 Actualizando posiciones durante reproducción activa');
+    
         this.updateReplayPositionsWithNewData();
       } 
       // Si había historial previo y llegan datos nuevos, solo actualizar posiciones sin reiniciar mapa
       else if (changes['routeHistory'] && this.routeHistory && this.replayPositions.length > 0) {
-        console.log('📦 Actualizando posiciones sin reproducción activa');
         this.updateReplayPositionsWithNewData();
       }
       // Solo recrear el mapa completamente si es la primera vez o cambió el target
       else {
-        console.log('🗺️ Recreando mapa con nuevo historial');
         this.updateMapWithRouteHistory();
       }
     }
 
-    // Detectar cambios en las paradas o en el flag showStops
-    if (changes['stops'] || changes['showStops']) {
-      console.log('🛑 Stops or showStops input changed');
+    // Detectar cambios en las paradas, en el flag showStops, o en la duración mínima
+    if (changes['stops'] || changes['showStops'] || changes['minStopDuration']) {
       if (changes['stops']) {
-        console.log('🛑 Stops - Previous value:', changes['stops'].previousValue);
-        console.log('🛑 Stops - Current value:', changes['stops'].currentValue);
       }
       if (changes['showStops']) {
-        console.log('🛑 ShowStops changed:', changes['showStops'].previousValue, '→', changes['showStops'].currentValue);
       }
-      console.log('🛑 Map available:', !!this.map);
-      console.log('🛑 ShowStops enabled:', this.showStops);
+      if (changes['minStopDuration']) {
+      }
       
       if (this.map) {
-        console.log('🛑 Updating stop markers based on new settings');
-        this.updateStopMarkers();
+        this.updateStopMarkers(); // Paradas del backend (ya no se usan)
+        
+        // Si cambió la duración mínima y tenemos posiciones, recalcular paradas
+        if (changes['minStopDuration'] && this.routeHistory && this.routeHistory.positions && this.routeHistory.positions.length > 0) {
+          this.detectStopsFromStaticPositions(this.routeHistory.positions);
+        }
+        
+        this.updateCalculatedStopMarkers(); // Paradas calculadas automáticamente ✅
       } else {
-        console.log('🛑 Map not ready yet, will update stops when map is available');
         // Reintentar cuando el mapa esté listo
         setTimeout(() => {
           if (this.map) {
-            console.log('🛑 Reintentando actualizar paradas después de que el mapa esté listo');
-            this.updateStopMarkers();
+            this.updateStopMarkers(); // Paradas del backend (ya no se usan)
+            
+            // Si cambió la duración mínima y tenemos posiciones, recalcular paradas
+            if (changes['minStopDuration'] && this.routeHistory && this.routeHistory.positions && this.routeHistory.positions.length > 0) {
+              this.detectStopsFromStaticPositions(this.routeHistory.positions);
+            }
+            
+            this.updateCalculatedStopMarkers(); // Paradas calculadas automáticamente ✅
           }
         }, 1000);
       }
@@ -120,32 +131,27 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     
     // Detectar cambios en el modo streaming para logging y crear marcador de fin
     if (changes['isStreamingMode']) {
-      console.log(`🔄 Streaming mode changed: ${this.isStreamingMode}`);
       
       // Si cambió de streaming mode a normal y tenemos posiciones, crear marcador de fin
       if (!this.isStreamingMode && changes['isStreamingMode'].previousValue === true && 
           this.routeHistory && this.routeHistory.positions.length > 1) {
-        console.log('🔄 Streaming completado - no se crean marcadores de fin');
         // createEndMarker removido por solicitud del usuario
       }
     }
     
     // Detectar cuando se solicita auto-inicio de reproducción
     if (changes['autoStartReplay']) {
-      console.log(`🔄 autoStartReplay changed: ${this.autoStartReplay} | isReplaying: ${this.isReplaying} | isManuallyPaused: ${this.isManuallyPaused} | isManuallyStop: ${this.isManuallyStop}`);
     }
     
     if (this.map && changes['autoStartReplay'] && this.autoStartReplay && 
         this.routeHistory && this.routeHistory.positions.length > 0 && !this.isReplaying &&
         !this.isManuallyPaused && !this.isManuallyStop) {
-      console.log('🎬 Auto-iniciando reproducción por streaming progresivo');
       
       // Pequeña pausa para asegurar que el mapa esté completamente actualizado
       setTimeout(() => {
         this.startReplay();
       }, 300);
     } else if (this.autoStartReplay && (this.isManuallyPaused || this.isManuallyStop)) {
-      console.log('⏸️ Auto-inicio cancelado - el usuario pausó/detuvo manualmente');
     }
     
     // Detectar cambios en el protocolo del target
@@ -153,31 +159,15 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       const previous = changes['targetProtocol'].previousValue;
       const current = changes['targetProtocol'].currentValue;
       
-      console.log('PROTO 🔄 Protocolo del target cambió:', {
-        previousProtocol: previous ? {
-          name: previous.name,
-          utcOffset: previous.utcOffset
-        } : 'sin protocolo',
-        currentProtocol: current ? {
-          name: current.name,
-          utcOffset: current.utcOffset
-        } : 'sin protocolo',
-        willAffectTimestamps: current?.utcOffset !== undefined
-      });
+    
       
       if (current && current.utcOffset !== undefined) {
-        console.log('PROTO ✅ Nuevo protocolo con zona horaria configurada:', {
-          protocolName: current.name,
-          utcOffset: current.utcOffset,
-          timezone: `GMT${current.utcOffset >= 0 ? '+' : ''}${current.utcOffset}`,
-          note: 'Se usará este offset para ajustar timestamps en labels'
-        });
+    
       }
     }
   }
 
   ngOnDestroy(): void {
-    console.log('🧹 Reports Map component destroyed');
     
     // Limpiar listener del botón de cerrar
     if (this.popupCloseListener) {
@@ -189,7 +179,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private initializeMap(): void {
-    console.log('🗺️ Initializing Google Maps for reports...');
     
     this.systemService.getAll().subscribe((systems: SystemSettings[]) => {
       const config = MapUtils.getApiConfig(systems, this.provider);
@@ -200,14 +189,10 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
       this.apiKey = config.key;
       this.apiUrl = config.url;
-      console.log('📦 Google Maps config loaded', { 
-        hasKey: !!this.apiKey, 
-        hasUrl: !!this.apiUrl 
-      });
+     
 
       MapUtils.loadMapScript(this.provider, this.apiKey, this.apiUrl)
         .then(() => {
-          console.log('📜 Google Maps script loaded, creating map...');
           this.createGoogleMap();
         })
         .catch(err => {
@@ -238,11 +223,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       zoomLevel = 12;
     }
 
-    console.log('📍 Creating map at coordinates:', {
-      centerLat: centerLat.toFixed(6),
-      centerLng: centerLng.toFixed(6),
-      zoomLevel
-    });
+   
 
     const google = (window as any).google;
     
@@ -277,7 +258,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     // Configurar listener para cerrar popup
     this.setupPopupCloseListener();
 
-    console.log('✅ Google Maps created successfully');
     
     // Si ya hay datos de ruta, mostrarlos
     if (this.routeHistory) {
@@ -291,11 +271,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
-    console.log('🛣️ Updating map with route history:', {
-      totalPositions: this.routeHistory.totalPositions,
-      positionsCount: this.routeHistory.positions.length
-    });
-
+  
     // Limpiar elementos existentes
     this.clearMapElements();
 
@@ -305,11 +281,16 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     const movingPositions = this.routeHistory.positions.filter(pos => pos.speed > 0);
     const allPositions = this.routeHistory.positions;
     
-    console.log(`🎯 Posiciones para visualización: ${allPositions.length} totales → ${movingPositions.length} con movimiento`);
+
+    // Reinicializar estado incremental para nuevo reporte
+    this.lastProcessedPositionIndex = -1;
+    this.currentActiveStop = null;
+    
+    // Detectar paradas a partir de posiciones con velocidad 0
+    this.detectStopsFromStaticPositions(allPositions);
 
     // Verificar si hay posiciones con movimiento para mostrar
     if (movingPositions.length === 0) {
-      console.log('⚠️ No hay posiciones con movimiento para mostrar en el mapa');
       // Aún crear marcadores con todas las posiciones si no hay movimiento
       const routePath = allPositions.map(pos => ({
         lat: pos.latitude,
@@ -366,27 +347,22 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     // Ajustar la vista del mapa para mostrar toda la ruta
     this.fitMapToRoute(routePath);
 
-    console.log('✅ Route history updated on map');
+
 
     // Actualizar marcadores de paradas si hay datos y están habilitadas
     if (this.showStops && this.stops && this.stops.length > 0) {
-      console.log('🛑 Actualizando marcadores de paradas desde updateMapWithRouteHistory');
       this.updateStopMarkers();
     } else if (!this.showStops) {
-      console.log('🛑 Paradas deshabilitadas por filtro en updateMapWithRouteHistory');
       this.clearStopMarkers(); // Asegurar que se limpien si están deshabilitadas
     } else {
-      console.log('🛑 No hay paradas para actualizar en updateMapWithRouteHistory');
     }
 
     // Solo iniciar reproducción automáticamente si no fue pausada/detenida manualmente
     if (!this.isManuallyPaused && !this.isManuallyStop) {
-      console.log('🎬 Iniciando reproducción automática del historial actualizado');
       setTimeout(() => {
         this.startReplay();
       }, 1000);
     } else {
-      console.log('⏸️ No iniciando reproducción automática - el usuario la pausó/detuvo manualmente');
     }
   }
 
@@ -533,8 +509,15 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     });
     this.routeMarkers = [];
 
-    // Limpiar marcadores de paradas
+    // Limpiar marcadores de paradas del backend
     this.clearStopMarkers();
+
+    // Limpiar marcadores de paradas calculadas
+    this.clearCalculatedStopMarkers();
+
+    // Reinicializar estado incremental
+    this.lastProcessedPositionIndex = -1;
+    this.currentActiveStop = null;
 
     // Cerrar InfoWindow
     if (this.infoWindow) {
@@ -543,7 +526,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private destroyMap(): void {
-    console.log('🧹 Destroying reports map');
     
     // Detener reproducción si está activa
     this.stopReplay();
@@ -564,18 +546,17 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       mapElement.innerHTML = '';
       mapElement.className = '';
       mapElement.style.cssText = '';
-      console.log('✅ Reports map container cleaned');
     }
   }
 
   // Métodos de control de reproducción
   startReplay(): void {
     if (!this.routeHistory || !this.routeHistory.positions.length) {
-      console.log('⚠️ No hay datos de ruta para reproducir');
+
       return;
     }
 
-    console.log('🎬 Iniciando reproducción del recorrido');
+
     
     // Limpiar polilíneas dinámicas de reproducciones anteriores
     this.dynamicPolylines.forEach(polyline => {
@@ -583,18 +564,20 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     });
     this.dynamicPolylines = [];
 
-    // Preparar datos de reproducción - filtrar posiciones con velocidad 0
-    const allPositions = [...this.routeHistory.positions]
-      .filter(position => position.speed > 0) // Ignorar posiciones con velocidad 0
+    // Preparar datos de reproducción - incluir paradas como puntos especiales
+    const movingPositions = [...this.routeHistory.positions]
+      .filter(position => position.speed > 0)
       .sort((a, b) => new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime());
     
-    this.replayPositions = allPositions;
+    // Crear secuencia combinada: movimiento + paradas en orden cronológico
+    const combinedSequence = this.createReplaySequenceWithStops(movingPositions);
     
-    console.log(`🎬 Preparando reproducción: ${this.routeHistory.positions.length} posiciones totales → ${allPositions.length} posiciones con movimiento (sin velocidad 0)`);
+    this.replayPositions = combinedSequence;
+    
     
     // Verificar si hay suficientes posiciones para reproducir
-    if (allPositions.length === 0) {
-      console.log('⚠️ No hay posiciones con movimiento para reproducir (todas tienen velocidad 0)');
+    if (combinedSequence.length === 0) {
+      console.log('⚠️ No hay posiciones con movimento para reproducir (todas tienen velocidad 0)');
       // Mostrar mensaje al usuario si es posible
       if ((window as any).showToast) {
         (window as any).showToast('warning', 'Sin movimiento', 'Todas las posiciones tienen velocidad 0, no hay recorrido para reproducir');
@@ -602,7 +585,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
     
-    if (allPositions.length < 2) {
+    if (combinedSequence.length < 2) {
       console.log('⚠️ Solo hay una posición con movimiento, no es suficiente para una reproducción');
       // Mostrar mensaje al usuario si es posible
       if ((window as any).showToast) {
@@ -680,11 +663,9 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     // MANTENER marcador de reproducción en la posición donde se detuvo para análisis
     // Cambiar estilo del marcador para indicar que se detuvo manualmente
     this.setReplayMarkerAsStopped();
-    console.log('🎯 Marcador mantenido en posición de detención para análisis');
 
     // NO limpiar polilíneas dinámicas para permitir análisis del recorrido
     // Las polilíneas dinámicas quedan visibles para analizar el recorrido
-    console.log('⏹️ Reproducción detenida manualmente - recorrido visible para análisis');
   }
 
   completeReplay(): void {
@@ -712,7 +693,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
   setReplaySpeed(speed: number): void {
     this.replaySpeed = speed;
-    console.log(`⚡ Velocidad de reproducción: ${speed}ms`);
   }
 
   /**
@@ -723,23 +703,35 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       return;
     }
 
-    console.log('🔄 Actualizando posiciones de reproducción con nuevos datos');
+
+    
+    // Usar actualización incremental de paradas (más eficiente)
+    const previousStopsCount = this.calculatedStops.length;
+    this.updateStopsIncrementally(this.routeHistory.positions);
+    
+    const newStopsCount = this.calculatedStops.length;
+    if (newStopsCount !== previousStopsCount) {
+  
+    }
     
     // Filtrar posiciones con velocidad 0 y ordenar por timestamp
     const allPositions = [...this.routeHistory.positions]
       .filter(position => position.speed > 0) // Ignorar posiciones con velocidad 0
       .sort((a, b) => new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime());
     
-    console.log(`📊 Posiciones filtradas: ${this.routeHistory.positions.length} totales → ${allPositions.length} con movimiento (sin velocidad 0)`);
+
     
     const previousLength = this.replayPositions.length;
     
-    // Siempre actualizar con todas las posiciones ordenadas
-    this.replayPositions = allPositions;
+    // Crear secuencia combinada: movimiento + paradas en orden cronológico
+    const combinedSequence = this.createReplaySequenceWithStops(allPositions);
     
-    if (allPositions.length > previousLength) {
-      const newPositionsCount = allPositions.length - previousLength;
-      console.log(`📈 Agregando ${newPositionsCount} nuevas posiciones a la reproducción (Total: ${allPositions.length})`);
+    // Siempre actualizar con la secuencia combinada ordenada
+    this.replayPositions = combinedSequence;
+    
+    if (combinedSequence.length > previousLength) {
+      const newPositionsCount = combinedSequence.length - previousLength;
+      
       
       // Solo reanudar automáticamente si:
       // 1. La reproducción está activa
@@ -1045,8 +1037,17 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private createReplayMarker(): void {
     if (!this.map || !this.replayPositions.length) return;
 
+    // Limpiar marcador de reproducción anterior si existe
+    if (this.replayMarker) {
+      this.replayMarker.setMap(null);
+      this.replayMarker = null;
+    }
+
     const google = (window as any).google;
     const firstPosition = this.replayPositions[0];
+
+    // Determinar color basado en dbfrom de la primera posición (ahora siempre será movimiento)
+    const markerColor = this.getMarkerColorByDbfrom(firstPosition.dbfrom);
 
     this.replayMarker = new google.maps.Marker({
       position: { lat: firstPosition.latitude, lng: firstPosition.longitude },
@@ -1055,7 +1056,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
         scale: 10,
-        fillColor: '#ff6b35',
+        fillColor: markerColor,
         fillOpacity: 1,
         strokeColor: '#ffffff',
         strokeWeight: 3,
@@ -1081,71 +1082,16 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   // Método createEndMarker removido - no se crean marcadores de fin por solicitud del usuario
 
   private updateStopMarkers(): void {
-    console.log('🛑 updateStopMarkers called');
-    console.log('🛑 Map exists:', !!this.map);
-    console.log('🛑 ShowStops enabled:', this.showStops);
-    console.log('🛑 Stops data:', this.stops);
-    console.log('🛑 Stops length:', this.stops?.length);
 
     if (!this.map) {
       console.log('🛑 No map available, skipping stop markers');
       return;
     }
 
-    // Limpiar marcadores de paradas existentes
+    // Limpiar marcadores de paradas del backend (ya no se usan)
     this.clearStopMarkers();
-
-    // Si showStops está deshabilitado, no crear marcadores
-    if (!this.showStops) {
-      console.log('🛑 Paradas deshabilitadas por filtro - no se mostrarán marcadores');
-      return;
-    }
-
-    if (!this.stops || this.stops.length === 0) {
-      console.log('🛑 No hay paradas para mostrar - stops array is empty or undefined');
-      return;
-    }
-
-    console.log(`🛑 Creando ${this.stops.length} marcadores de paradas`);
-
-    const google = (window as any).google;
-
-    this.stops.forEach((stop, index) => {
-      // Crear marcador para la parada (más pequeño)
-      const stopMarker = new google.maps.Marker({
-        position: { lat: stop.latitude, lng: stop.longitude },
-        map: this.map,
-        title: `Parada ${index + 1} - ${stop.durationText}`,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 6, // Reducido de 10 a 6 para ser más pequeño
-          fillColor: stop.ignitionOff ? '#ff6b35' : '#fbbf24', // Naranja si motor apagado, amarillo si encendido
-          fillOpacity: 0.9,
-          strokeColor: '#ffffff',
-          strokeWeight: 2
-        },
-        zIndex: 1000 + index // Para que estén por encima de otros marcadores
-      });
-
-      // InfoWindow para la parada
-      stopMarker.addListener('click', () => {
-        const content = this.createStopPopupContent(stop, index + 1);
-        this.infoWindow.setContent(content);
-        this.infoWindow.open(this.map, stopMarker);
-        this.isReplayPopupOpen = false;
-        
-        // Configurar función global para cerrar InfoWindow desde el botón
-        (window as any).closeCurrentInfoWindow = () => {
-          if (this.infoWindow) {
-            this.infoWindow.close();
-          }
-        };
-      });
-
-      this.stopMarkers.push(stopMarker);
-    });
-
-    console.log(`✅ Creados ${this.stopMarkers.length} marcadores de paradas`);
+    
+    // Las paradas calculadas automáticamente se manejan en updateCalculatedStopMarkers()
   }
 
   private clearStopMarkers(): void {
@@ -1264,6 +1210,9 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       const newLatLng = { lat: currentPosition.latitude, lng: currentPosition.longitude };
       this.replayMarker.setPosition(newLatLng);
       
+      // Cambiar estilo del marcador según el tipo de posición
+      this.updateReplayMarkerStyle(currentPosition);
+      
       // Actualizar el popup solo si es el popup del marcador de reproducción
       if (this.infoWindow && this.infoWindow.getMap() && this.isReplayPopupOpen) {
         const content = this.createReplayPopupContent(currentPosition, this.currentPositionIndex + 1);
@@ -1284,10 +1233,13 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         { lat: currentPosition.latitude, lng: currentPosition.longitude }
       ];
 
+      // Determinar color basado en dbfrom de la posición actual
+      const strokeColor = this.getMarkerColorByDbfrom(currentPosition.dbfrom);
+      
       const segmentPolyline = new google.maps.Polyline({
         path: segmentPath,
         geodesic: true,
-        strokeColor: '#15bb06', // Verde bosque más oscuro y profesional
+        strokeColor: strokeColor, // Color dinámico basado en dbfrom
         strokeOpacity: 1.0,
         strokeWeight: 4
       });
@@ -1302,14 +1254,77 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     this.replayInterval = setTimeout(() => {
       // Verificar estado antes de continuar
       if (!this.isReplaying || this.isPaused) {
-        console.log('🔄 Cancelando timeout normal debido a pausa/stop');
         return;
       }
       this.nextPosition();
     }, this.replaySpeed);
   }
 
+  /**
+   * Actualizar el estilo del marcador de replay según el tipo de posición
+   */
+  private updateReplayMarkerStyle(position: any): void {
+    if (!this.replayMarker) return;
+
+    const google = (window as any).google;
+    
+    if (position.type === 'stop') {
+      // Estilo para paradas: púrpura para distinguir
+      this.replayMarker.setIcon({
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 14,
+        fillColor: position.isStopStart ? '#8b5cf6' : '#6d28d9', // Púrpura más oscuro para fin de parada
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 3,
+        anchor: new google.maps.Point(0, 0)
+      });
+      
+      this.replayMarker.setTitle(position.isStopStart ? 
+        `Inicio de parada - ${position.stopData.durationText}` : 
+        `Fin de parada - ${position.stopData.durationText}`
+      );
+    } else {
+      // Determinar color basado en dbfrom
+      const markerColor = this.getMarkerColorByDbfrom(position.dbfrom);
+      
+      // Estilo normal para movimiento: color dinámico basado en dbfrom
+      this.replayMarker.setIcon({
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: markerColor,
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+        anchor: new google.maps.Point(0, 0)
+      });
+      
+      this.replayMarker.setTitle(`Reproduciendo posición ${this.currentPositionIndex + 1}`);
+    }
+  }
+
+  /**
+   * Obtener color del marcador basado en el valor de dbfrom
+   */
+  private getMarkerColorByDbfrom(dbfrom: string): string {
+    if (dbfrom === 'mongodb') {
+      return '#10b981'; // Verde para MongoDB
+    } else {
+      return '#22c55e'; // Verde diferente para otros orígenes
+    }
+  }
+
   private createReplayPopupContent(position: any, positionNumber: number): string {
+    if (position.type === 'stop') {
+      // Contenido especial para paradas
+      return this.createStopReplayPopupContent(position, positionNumber);
+    } else {
+      // Contenido normal para movimiento
+      return this.createMovementReplayPopupContent(position, positionNumber);
+    }
+  }
+
+  private createMovementReplayPopupContent(position: any, positionNumber: number): string {
     const date = this.formatDateForPopup(position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
     
@@ -1321,7 +1336,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
               <polygon points="5,3 19,12 5,21"></polygon>
             </svg>
           </div>
-          <h3 class="reports-popup-title">Reproduciendo - Posición ${positionNumber}</h3>
+          <h3 class="reports-popup-title">🚗 Reproduciendo - Posición ${positionNumber}</h3>
         </div>
         <div class="reports-popup-content">
           <div class="reports-info-item">
@@ -1374,14 +1389,657 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     `;
   }
 
+  private createStopReplayPopupContent(position: any, positionNumber: number): string {
+    const date = this.formatDateForPopup(position.fixTime);
+    const stopData = position.stopData;
+    const isStart = position.isStopStart;
+    
+    const startTime = this.formatDateForPopup(stopData.startTime);
+    const endTime = this.formatDateForPopup(stopData.endTime);
+    
+    return `
+      <div class="reports-popup">
+        <div class="reports-popup-header" style="background: ${isStart ? '#8b5cf6' : '#6d28d9'};">
+          <div class="reports-popup-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+              <rect x="6" y="4" width="4" height="16"></rect>
+              <rect x="14" y="4" width="4" height="16"></rect>
+            </svg>
+          </div>
+          <h3 class="reports-popup-title">
+            ${isStart ? '🛑 Inicio de Parada' : '✅ Fin de Parada'} ${stopData.stopNumber}
+          </h3>
+        </div>
+        <div class="reports-popup-content">
+          <div class="reports-info-item">
+            <div class="reports-info-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12,6 12,12 16,14"></polyline>
+              </svg>
+            </div>
+            <div class="reports-info-content">
+              <span class="reports-info-label">${isStart ? 'Inicio' : 'Fin'} de parada</span>
+              <span class="reports-info-value">${date}</span>
+            </div>
+          </div>
+          <div class="reports-info-item">
+            <div class="reports-info-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M12 1v6m0 6v6"></path>
+                <path d="m21 12-6-6-6 6-6-6"></path>
+              </svg>
+            </div>
+            <div class="reports-info-content">
+              <span class="reports-info-label">Duración total</span>
+              <span class="reports-info-value">${stopData.durationText}</span>
+            </div>
+          </div>
+          <div class="reports-info-item">
+            <div class="reports-info-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
+                <path d="M9 11H7l5-5 5 5h-2v8h-6v-8z"></path>
+              </svg>
+            </div>
+            <div class="reports-info-content">
+              <span class="reports-info-label">Progreso</span>
+              <span class="reports-info-value">${positionNumber} de ${this.replayPositions.length}</span>
+            </div>
+          </div>
+        </div>
+        <div style="background: #f3f4f6; padding: 8px; margin: 10px -10px -10px -10px; border-radius: 0 0 4px 4px; font-size: 11px; color: #666;">
+          <strong>Rango de parada:</strong><br>
+          📅 ${startTime}<br>
+          📅 ${endTime}<br>
+          📊 ${stopData.positions.length} posiciones detectadas
+        </div>
+        <div class="reports-popup-footer">
+          <button class="reports-close-btn" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+            Cerrar
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
   // Getters para el template
   getReplayProgress(): number {
     if (!this.replayPositions.length) return 0;
     return Math.round((this.currentPositionIndex / this.replayPositions.length) * 100);
   }
 
+  getProgressBarColor(): string {
+    // Obtener la posición actual para determinar el color
+    if (!this.replayPositions.length || this.currentPositionIndex <= 0) {
+      return '#22c55e'; // Verde diferente por defecto
+    }
+
+    const currentPosition = this.replayPositions[this.currentPositionIndex - 1];
+    
+    // Verificar si dbfrom es 'mongodb'
+    if (currentPosition && currentPosition.dbfrom === 'mongodb') {
+      return '#10b981'; // Verde para MongoDB
+    } else {
+      return '#22c55e'; // Verde diferente para otros orígenes
+    }
+  }
+
   getCurrentPositionInfo(): any {
     if (!this.isReplaying || this.currentPositionIndex <= 0) return null;
     return this.replayPositions[this.currentPositionIndex - 1];
+  }
+
+  /**
+   * Crear secuencia de reproducción que incluye movimientos y paradas en orden cronológico
+   */
+  private createReplaySequenceWithStops(movingPositions: any[]): any[] {
+    const sequence: any[] = [];
+    
+    if (!movingPositions || movingPositions.length === 0) {
+      return sequence;
+    }
+
+    // Si las paradas están deshabilitadas por filtro, devolver solo posiciones de movimiento
+    if (!this.showStops) {
+      return movingPositions.map(pos => ({ ...pos, type: 'movement' }));
+    }
+
+    // Si no hay paradas calculadas, devolver solo las posiciones de movimiento
+    if (!this.calculatedStops || this.calculatedStops.length === 0) {
+      return movingPositions.map(pos => ({ ...pos, type: 'movement' }));
+    }
+
+    // Combinar posiciones de movimiento con paradas en orden cronológico
+    let movingIndex = 0;
+    let stopIndex = 0;
+
+    while (movingIndex < movingPositions.length || stopIndex < this.calculatedStops.length) {
+      const currentMoving = movingPositions[movingIndex];
+      const currentStop = this.calculatedStops[stopIndex];
+
+      // Si ya no hay más movimientos, agregar paradas restantes
+      if (!currentMoving && currentStop) {
+        sequence.push({
+          ...currentStop.startPosition,
+          type: 'stop',
+          stopData: currentStop,
+          isStopStart: true
+        });
+        sequence.push({
+          ...currentStop.endPosition,
+          type: 'stop',
+          stopData: currentStop,
+          isStopEnd: true
+        });
+        stopIndex++;
+        continue;
+      }
+
+      // Si ya no hay más paradas, agregar movimientos restantes
+      if (!currentStop && currentMoving) {
+        sequence.push({ ...currentMoving, type: 'movement' });
+        movingIndex++;
+        continue;
+      }
+
+      // Comparar timestamps para decidir qué agregar primero
+      const movingTime = new Date(currentMoving.fixTime).getTime();
+      const stopStartTime = new Date(currentStop.startTime).getTime();
+
+      if (movingTime <= stopStartTime) {
+        // Agregar posición de movimiento
+        sequence.push({ ...currentMoving, type: 'movement' });
+        movingIndex++;
+      } else {
+        // Agregar parada (inicio y fin)
+        sequence.push({
+          ...currentStop.startPosition,
+          type: 'stop',
+          stopData: currentStop,
+          isStopStart: true
+        });
+        sequence.push({
+          ...currentStop.endPosition,
+          type: 'stop',
+          stopData: currentStop,
+          isStopEnd: true
+        });
+        stopIndex++;
+      }
+    }
+
+    
+    // Asegurar que la reproducción siempre comience con una posición de movimiento
+    // Filtrar las paradas que aparezcan al inicio de la secuencia
+    while (sequence.length > 0 && sequence[0].type === 'stop') {
+      sequence.shift(); // Remover el primer elemento si es una parada
+    }
+    
+    if (sequence.length > 0) {
+    }
+    
+    return sequence;
+  }
+
+  /**
+   * Actualizar paradas de forma incremental procesando solo nuevas posiciones
+   */
+  private updateStopsIncrementally(allPositions: any[]): void {
+    if (!allPositions || allPositions.length === 0) {
+      return;
+    }
+
+    // Ordenar posiciones por timestamp
+    const sortedPositions = [...allPositions].sort((a, b) => 
+      new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime()
+    );
+
+    const MIN_STOP_DURATION_MS = this.minStopDuration * 60000;
+    const MAX_DISTANCE_METERS = 50;
+
+    // Procesar solo posiciones nuevas desde la última vez
+    const startIndex = Math.max(0, this.lastProcessedPositionIndex + 1);
+    const newPositions = sortedPositions.slice(startIndex);
+
+    if (newPositions.length === 0) {
+      return;
+    }
+
+
+    let stopsUpdated = false;
+
+    for (let i = 0; i < newPositions.length; i++) {
+      const position = newPositions[i];
+      const hasMovement = position.speed > 0;
+
+      if (!hasMovement) {
+        // Posición sin movimiento (velocidad 0)
+        if (!this.currentActiveStop) {
+          // Inicio de una nueva parada
+          this.currentActiveStop = {
+            startPosition: position,
+            endPosition: position,
+            startTime: position.fixTime,
+            endTime: position.fixTime,
+            latitude: position.latitude,
+            longitude: position.longitude,
+            positions: [position],
+            ignitionOff: false
+          };
+        } else {
+          // Verificar si continúa la parada actual
+          const distance = this.calculateDistance(
+            this.currentActiveStop.latitude, this.currentActiveStop.longitude,
+            position.latitude, position.longitude
+          );
+
+          if (distance <= MAX_DISTANCE_METERS) {
+            // Continúa la misma parada
+            this.currentActiveStop.endPosition = position;
+            this.currentActiveStop.endTime = position.fixTime;
+            this.currentActiveStop.positions.push(position);
+          } else {
+            // Nueva parada (muy lejos de la anterior) - finalizar la anterior
+            this.finalizeActiveStopIfValid(MIN_STOP_DURATION_MS);
+            stopsUpdated = true;
+
+            // Iniciar nueva parada
+            this.currentActiveStop = {
+              startPosition: position,
+              endPosition: position,
+              startTime: position.fixTime,
+              endTime: position.fixTime,
+              latitude: position.latitude,
+              longitude: position.longitude,
+              positions: [position],
+              ignitionOff: false
+            };
+
+          }
+        }
+      } else {
+        // Posición con movimiento - finalizar parada si existe
+        if (this.currentActiveStop) {
+          this.finalizeActiveStopIfValid(MIN_STOP_DURATION_MS);
+          stopsUpdated = true;
+          this.currentActiveStop = null;
+    
+        }
+      }
+    }
+
+    // Actualizar índice de última posición procesada
+    this.lastProcessedPositionIndex = sortedPositions.length - 1;
+
+    // Solo actualizar marcadores si hubo cambios
+    if (stopsUpdated) {
+  
+      this.updateCalculatedStopMarkers();
+    } else {
+
+    }
+  }
+
+  /**
+   * Finalizar parada activa si cumple con los requisitos de duración
+   */
+  private finalizeActiveStopIfValid(minDurationMs: number): void {
+    if (!this.currentActiveStop) return;
+
+    const stopDuration = new Date(this.currentActiveStop.endTime).getTime() - 
+                        new Date(this.currentActiveStop.startTime).getTime();
+    
+    if (stopDuration >= minDurationMs) {
+      this.finalizeCalculatedStop(this.currentActiveStop, this.calculatedStops.length + 1);
+      this.calculatedStops.push(this.currentActiveStop);
+
+    } else {
+
+    }
+  }
+
+  /**
+   * Detectar paradas a partir de secuencias de posiciones con velocidad 0 (método completo para inicialización)
+   */
+  private detectStopsFromStaticPositions(allPositions: any[]): void {
+    if (!allPositions || allPositions.length === 0) {
+      console.log('🛑 No hay posiciones para analizar paradas');
+      return;
+    }
+
+    // Limpiar paradas calculadas anteriores
+    this.clearCalculatedStopMarkers();
+    this.calculatedStops = [];
+
+    // Ordenar posiciones por timestamp para asegurar secuencia correcta
+    const sortedPositions = [...allPositions].sort((a, b) => 
+      new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime()
+    );
+
+    const stops: any[] = [];
+    let currentStop: any = null;
+    const MIN_STOP_DURATION_MS = this.minStopDuration * 60000; // Convertir minutos a milisegundos
+    const MAX_DISTANCE_METERS = 50; // Máxima distancia entre posiciones para considerar la misma parada
+
+
+
+    for (let i = 0; i < sortedPositions.length; i++) {
+      const position = sortedPositions[i];
+      const hasMovement = position.speed > 0;
+
+      if (!hasMovement) {
+        // Posición sin movimiento (velocidad 0)
+        if (!currentStop) {
+          // Inicio de una nueva parada
+          currentStop = {
+            startPosition: position,
+            endPosition: position,
+            startTime: position.fixTime,
+            endTime: position.fixTime,
+            latitude: position.latitude,
+            longitude: position.longitude,
+            positions: [position],
+            ignitionOff: false // Por ahora asumir que el motor está encendido
+          };
+        } else {
+          // Verificar si esta posición está cerca de la parada actual
+          const distance = this.calculateDistance(
+            currentStop.latitude, currentStop.longitude,
+            position.latitude, position.longitude
+          );
+
+          if (distance <= MAX_DISTANCE_METERS) {
+            // Continúa la misma parada
+            currentStop.endPosition = position;
+            currentStop.endTime = position.fixTime;
+            currentStop.positions.push(position);
+          } else {
+            // Nueva parada (muy lejos de la anterior)
+            // Finalizar parada actual si cumple requisitos
+            if (currentStop) {
+              const stopDuration = new Date(currentStop.endTime).getTime() - new Date(currentStop.startTime).getTime();
+              if (stopDuration >= MIN_STOP_DURATION_MS) {
+                this.finalizeCalculatedStop(currentStop, stops.length + 1);
+                stops.push(currentStop);
+              }
+            }
+
+            // Iniciar nueva parada
+            currentStop = {
+              startPosition: position,
+              endPosition: position,
+              startTime: position.fixTime,
+              endTime: position.fixTime,
+              latitude: position.latitude,
+              longitude: position.longitude,
+              positions: [position],
+              ignitionOff: false
+            };
+          }
+        }
+      } else {
+        // Posición con movimiento - finalizar parada si existe
+        if (currentStop) {
+          const stopDuration = new Date(currentStop.endTime).getTime() - new Date(currentStop.startTime).getTime();
+          if (stopDuration >= MIN_STOP_DURATION_MS) {
+            this.finalizeCalculatedStop(currentStop, stops.length + 1);
+            stops.push(currentStop);
+          }
+          currentStop = null;
+        }
+      }
+    }
+
+    // Finalizar última parada si existe
+    if (currentStop) {
+      const stopDuration = new Date(currentStop.endTime).getTime() - new Date(currentStop.startTime).getTime();
+      if (stopDuration >= MIN_STOP_DURATION_MS) {
+        this.finalizeCalculatedStop(currentStop, stops.length + 1);
+        stops.push(currentStop);
+      }
+    }
+
+    this.calculatedStops = stops;
+
+    // Actualizar índice procesado para futuras actualizaciones incrementales
+    this.lastProcessedPositionIndex = sortedPositions.length - 1;
+
+    // Crear marcadores para las paradas detectadas
+    this.updateCalculatedStopMarkers();
+  }
+
+  /**
+   * Finalizar y calcular datos de una parada detectada
+   */
+  private finalizeCalculatedStop(stop: any, stopNumber: number): void {
+    const startTime = new Date(stop.startTime);
+    const endTime = new Date(stop.endTime);
+    const durationMs = endTime.getTime() - startTime.getTime();
+
+    // Calcular duración en formato legible
+    const hours = Math.floor(durationMs / (1000 * 60 * 60));
+    const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((durationMs % (1000 * 60)) / 1000);
+
+    let durationText = '';
+    if (hours > 0) {
+      durationText = `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      durationText = `${minutes}m ${seconds}s`;
+    } else {
+      durationText = `${seconds}s`;
+    }
+
+    // Agregar datos calculados al objeto de parada
+    stop.durationMs = durationMs;
+    stop.durationText = durationText;
+    stop.stopNumber = stopNumber;
+    stop.isCalculated = true; // Marcar como parada calculada localmente
+    stop.address = stop.startPosition.address || 'Dirección no disponible';
+
+  }
+
+  /**
+   * Calcular distancia entre dos coordenadas en metros
+   */
+  private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371e3; // Radio de la Tierra en metros
+    const φ1 = lat1 * Math.PI / 180;
+    const φ2 = lat2 * Math.PI / 180;
+    const Δφ = (lat2 - lat1) * Math.PI / 180;
+    const Δλ = (lng2 - lng1) * Math.PI / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; // Distancia en metros
+  }
+
+  /**
+   * Crear marcadores para las paradas calculadas localmente
+   */
+  private updateCalculatedStopMarkers(): void {
+    if (!this.map) {
+      return;
+    }
+
+    // Verificar si las paradas están habilitadas por el filtro
+    if (!this.showStops) {
+      this.clearCalculatedStopMarkers();
+      return;
+    }
+
+    if (!this.calculatedStops || this.calculatedStops.length === 0) {
+      this.clearCalculatedStopMarkers();
+      return;
+    }
+
+    // Actualización inteligente sin pestañeo
+    this.updateMarkersIncrementally();
+  }
+
+  /**
+   * Actualizar marcadores de forma incremental sin pestañeo
+   */
+  private updateMarkersIncrementally(): void {
+    const google = (window as any).google;
+    const existingMarkersCount = this.calculatedStopMarkers.length;
+    const requiredMarkersCount = this.calculatedStops.length;
+
+
+
+    // Caso 1: Agregar nuevos marcadores (más paradas que marcadores)
+    if (requiredMarkersCount > existingMarkersCount) {
+      const newMarkersNeeded = requiredMarkersCount - existingMarkersCount;
+
+
+      for (let i = existingMarkersCount; i < requiredMarkersCount; i++) {
+        const stop = this.calculatedStops[i];
+        const stopMarker = this.createStopMarker(stop, i);
+        this.calculatedStopMarkers.push(stopMarker);
+      }
+    }
+    // Caso 2: Eliminar marcadores sobrantes (menos paradas que marcadores)
+    else if (requiredMarkersCount < existingMarkersCount) {
+      const markersToRemove = existingMarkersCount - requiredMarkersCount;
+
+
+      // Eliminar marcadores del final
+      for (let i = existingMarkersCount - 1; i >= requiredMarkersCount; i--) {
+        const marker = this.calculatedStopMarkers[i];
+        if (marker) {
+          marker.setMap(null);
+        }
+      }
+      // Recortar array
+      this.calculatedStopMarkers = this.calculatedStopMarkers.slice(0, requiredMarkersCount);
+    }
+
+    // Caso 3: Actualizar marcadores existentes (mantener posiciones actualizadas)
+    for (let i = 0; i < Math.min(existingMarkersCount, requiredMarkersCount); i++) {
+      const stop = this.calculatedStops[i];
+      const marker = this.calculatedStopMarkers[i];
+      
+      if (marker && stop) {
+        // Actualizar posición y título sin recrear el marcador
+        const newPosition = { lat: stop.latitude, lng: stop.longitude };
+        const newTitle = `Parada Detectada ${stop.stopNumber} - ${stop.durationText}`;
+        
+        marker.setPosition(newPosition);
+        marker.setTitle(newTitle);
+      }
+    }
+
+
+  }
+
+  /**
+   * Crear un marcador para una parada específica
+   */
+  private createStopMarker(stop: any, index: number): any {
+    const google = (window as any).google;
+    
+    const stopMarker = new google.maps.Marker({
+      position: { lat: stop.latitude, lng: stop.longitude },
+      map: this.map,
+      title: `Parada Detectada ${stop.stopNumber} - ${stop.durationText}`,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 8,
+        fillColor: '#8b5cf6',
+        fillOpacity: 0.9,
+        strokeColor: '#ffffff',
+        strokeWeight: 2
+      },
+      zIndex: 900 + index
+    });
+
+    // InfoWindow para la parada calculada
+    stopMarker.addListener('click', () => {
+      const content = this.createCalculatedStopPopupContent(stop);
+      this.infoWindow.setContent(content);
+      this.infoWindow.open(this.map, stopMarker);
+      this.isReplayPopupOpen = false;
+      
+      // Configurar función global para cerrar InfoWindow desde el botón
+      (window as any).closeCurrentInfoWindow = () => {
+        if (this.infoWindow) {
+          this.infoWindow.close();
+        }
+      };
+    });
+
+    return stopMarker;
+  }
+
+  /**
+   * Limpiar marcadores de paradas calculadas
+   */
+  private clearCalculatedStopMarkers(): void {
+    this.calculatedStopMarkers.forEach(marker => {
+      if (marker) {
+        marker.setMap(null);
+      }
+    });
+    this.calculatedStopMarkers = [];
+  }
+
+  /**
+   * Crear contenido del popup para paradas calculadas
+   */
+  private createCalculatedStopPopupContent(stop: any): string {
+    const startTime = this.formatDateForPopup(stop.startTime);
+    const endTime = this.formatDateForPopup(stop.endTime);
+    
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 300px; padding: 10px; color: #000;">
+        <div style="background: #8b5cf6; color: #fff; padding: 8px; margin: -10px -10px 10px -10px; border-radius: 4px 4px 0 0; position: relative;">
+          <h3 style="margin: 0; font-size: 14px; font-weight: 600;">
+            🔍 Parada Detectada ${stop.stopNumber}
+          </h3>
+          <div style="position: absolute; top: 50%; right: 8px; transform: translateY(-50%); background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 10px; font-size: 11px; font-weight: 500;">
+            CALCULADA
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 8px;">
+          <strong style="color: #8b5cf6;">⏱️ Duración:</strong> ${stop.durationText}
+        </div>
+        
+        <div style="margin-bottom: 8px;">
+          <strong style="color: #666;">📍 Dirección:</strong><br>
+          <span style="font-size: 12px; color: #888;">${stop.address}</span>
+        </div>
+        
+        <div style="margin-bottom: 8px;">
+          <strong style="color: #666;">🕐 Inicio:</strong><br>
+          <span style="font-size: 12px;">${startTime}</span>
+        </div>
+        
+        <div style="margin-bottom: 8px;">
+          <strong style="color: #666;">🕐 Fin:</strong><br>
+          <span style="font-size: 12px;">${endTime}</span>
+        </div>
+        
+        <div style="margin-bottom: 8px;">
+          <strong style="color: #666;">📊 Posiciones:</strong> ${stop.positions.length}
+        </div>
+        
+        <div style="background: #f3f4f6; padding: 6px; border-radius: 4px; font-size: 11px; color: #666; margin-top: 8px;">
+          💡 Esta parada fue detectada automáticamente a partir de posiciones con velocidad 0
+        </div>
+        
+        <button onclick="closeCurrentInfoWindow()" style="background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 8px; width: 100%;">
+          Cerrar
+        </button>
+      </div>
+    `;
   }
 } 

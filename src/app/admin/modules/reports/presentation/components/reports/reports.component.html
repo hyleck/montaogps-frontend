@@ -187,6 +187,25 @@
                   <label for="includeStops">{{ 'reports.include_stops' | translate }}</label>
                 </div>
               </div>
+
+              <!-- Filtro de duración mínima de paradas -->
+              <div class="filter-row" *ngIf="reportFilter.includeStops">
+                <div class="input-group">
+                  <label>{{ 'reports.min_stop_duration_filter' | translate }}</label>
+                  <select 
+                    [(ngModel)]="reportFilter.minStopDurationFilter"
+                    (ngModelChange)="onMinStopDurationChange($event)"
+                    class="native-select">
+                    <option value="1">{{ 'reports.min_stop_1_minute' | translate }}</option>
+                    <option value="5">{{ 'reports.min_stop_5_minutes' | translate }}</option>
+                    <option value="20">{{ 'reports.min_stop_20_minutes' | translate }}</option>
+                    <option value="60">{{ 'reports.min_stop_1_hour' | translate }}</option>
+                    <option value="300">{{ 'reports.min_stop_5_hours' | translate }}</option>
+                    <option value="600">{{ 'reports.min_stop_10_hours' | translate }}</option>
+                    <option value="1440">{{ 'reports.min_stop_1_day' | translate }}</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </details>
         </div>
@@ -298,6 +317,7 @@
             [routeHistory]="routeHistory"
             [stops]="stops"
             [showStops]="reportFilter.includeStops"
+            [minStopDuration]="reportFilter.minStopDurationFilter"
             [showRouteDetails]="true"
             [autoStartReplay]="progressiveLoading.replayStarted"
             [isStreamingMode]="progressiveLoading.isStreamingMode"

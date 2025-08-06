@@ -89,37 +89,7 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
-  async getStops(deviceId: string, fromDate: string, toDate: string, minStopDuration?: number): Promise<any> {
-    // Validar parámetros requeridos
-    if (!deviceId) {
-      throw new Error('deviceId es requerido para obtener paradas');
-    }
-    if (!fromDate) {
-      throw new Error('fromDate es requerido para obtener paradas');
-    }
-    if (!toDate) {
-      throw new Error('toDate es requerido para obtener paradas');
-    }
 
-    let url = `${environment.apiUrl}/reports/device/${deviceId}/stops`;
-    
-    const params = new URLSearchParams();
-    // Parámetros requeridos
-    params.append('fromDate', fromDate);
-    params.append('toDate', toDate);
-    
-    // Parámetro opcional - solo agregar si se proporciona
-    if (minStopDuration !== undefined && minStopDuration !== null) {
-      params.append('minStopDuration', minStopDuration.toString());
-    }
-    
-    url += `?${params.toString()}`;
-    
-    console.log('🛑 Llamando API de paradas:', url);
-    
-    const observable = this.http.get<any>(url);
-    return await lastValueFrom(observable);
-  }
 
   async sendSMS(simCardId: string, message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<any> {
     const url = `${environment.apiUrl}/sim-card`;
