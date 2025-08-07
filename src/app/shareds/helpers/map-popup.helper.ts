@@ -788,7 +788,6 @@ export class PopupBuilder {
           // Limpiar tiempo de parada (target nuevo)
           if (stopTimeSection) {
             this.removeStopTimeSectionIfMoving(popupElement, 999); // Usar velocidad alta para forzar remoción
-            console.log('🧹 Tiempo de parada limpiado (target nuevo)');
           }
         } else if (updates.stopTime && (updates.speedKmh === 0 || updates.speedKmh === undefined)) {
           // Mostrar tiempo de parada si existe y la velocidad es 0 o no está definida
@@ -797,17 +796,14 @@ export class PopupBuilder {
             const timeValue = stopTimeSection.querySelector('[style*="color: #ff9800"]');
             if (timeValue) {
               timeValue.textContent = updates.stopTime;
-              console.log('🕐 Tiempo de parada actualizado en sección existente:', updates.stopTime);
             }
           } else {
             // Crear nueva sección de tiempo de parada
             this.addStopTimeWithAnimation(popupElement, updates.stopTime, updates.speedKmh, updates.ignitionStatus);
-            console.log('🕐 Creada nueva sección de tiempo de parada:', updates.stopTime);
           }
         } else if (stopTimeSection && updates.speedKmh && updates.speedKmh > 0) {
           // Remover sección si el vehículo está en movimiento
           this.removeStopTimeSectionIfMoving(popupElement, updates.speedKmh);
-          console.log('🚗 Removida sección de tiempo de parada - vehículo en movimiento');
         }
       }
 
@@ -819,7 +815,6 @@ export class PopupBuilder {
         }
       }
 
-      console.log('✅ Popup actualizado directamente sin parpadeos');
     } catch (error) {
       console.warn('⚠️ Error actualizando popup directamente:', error);
     }

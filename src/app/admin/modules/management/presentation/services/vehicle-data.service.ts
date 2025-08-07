@@ -39,7 +39,6 @@ export class VehicleDataService {
    */
   async loadVehicleData(): Promise<void> {
     try {
-      console.log('🚗 Cargando datos de vehículos...');
       
       // Cargar tipos de vehículos, marcas y modelos en paralelo
       const [types, brands] = await Promise.all([
@@ -50,21 +49,16 @@ export class VehicleDataService {
       this.vehicleTypes = types || [];
       this.vehicleBrands = brands || [];
       
-      console.log('📊 Tipos y marcas cargados:', {
-        types: this.vehicleTypes.length,
-        brands: this.vehicleBrands.length
-      });
+ 
       
       // Cargar todos los modelos para todas las marcas
       if (this.vehicleBrands.length > 0) {
         const allModels = await this.vehicleBrandsService.getAllModelsByBrand('all');
         this.vehicleModels = allModels || [];
         
-        console.log('🏎️ Modelos cargados:', this.vehicleModels.length);
       }
       
       this.isDataLoaded = true;
-      console.log('✅ Datos de vehículos cargados completamente');
       
     } catch (error) {
       console.error('❌ Error al cargar datos de vehículos:', error);

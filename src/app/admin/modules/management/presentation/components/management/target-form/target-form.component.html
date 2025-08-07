@@ -308,6 +308,7 @@
                                                 name="plan"
                                                 id="plan"
                                                 required
+                                                [disabled]="isEditMode"
                                                 (change)="onPlanChange()"
                                             >
                                                 <option [ngValue]="''">{{ translate('management.targetForm.selectPlan') }}</option>
@@ -321,7 +322,7 @@
                                         <div class="target-form__field" *ngIf="target.plan">
                                             <label for="price">
                                                 {{ translate('management.targetForm.selectPrice') }} <span class="required-label">(Requerido)</span>
-                                                <i class="pi pi-pencil edit-price-icon" (click)="startCustomPriceEdit()" style="color: var(--globalColorPrimaryInmutable); cursor: pointer; margin-left: 5px; font-size: 0.8rem; opacity: 0.7;"></i>
+                                                <i *ngIf="!isEditMode" class="pi pi-pencil edit-price-icon" (click)="startCustomPriceEdit()" style="color: var(--globalColorPrimaryInmutable); cursor: pointer; margin-left: 5px; font-size: 0.8rem; opacity: 0.7;"></i>
                                             </label>
                                             <div class="price-selector-container">
                                                 <select
@@ -329,6 +330,7 @@
                                                     name="price"
                                                     id="price"
                                                     required
+                                                    [disabled]="isEditMode"
                                                     [compareWith]="comparePrices"
                                                     (ngModelChange)="onPriceChange()"
                                                     class="price-select"
@@ -352,6 +354,8 @@
                                                 name="installation_date"
                                                 type="date"
                                                 id="installation_date"
+                                                [readonly]="isEditMode"
+                                                [disabled]="isEditMode"
                                             >
                                         </div>
                             
@@ -362,6 +366,8 @@
                                                 name="expiration_date"
                                         type="date" 
                                                 id="expiration_date"
+                                                [readonly]="isEditMode"
+                                                [disabled]="isEditMode"
                                     >
                                 </div>
                 
@@ -392,9 +398,11 @@
                                 <div class="target-form__field">
                                                 <label for="process_type">{{ translate('management.targetForm.processType') }}</label>
                                                 <select
+                                                    [(ngModel)]="processForm.type"
                                                     name="process_type"
                                                     id="process_type"
                                                 >
+                                                    <option value="">{{ translate('management.targetForm.selectProcessType') }}</option>
                                                     <option value="installation">{{ translate('management.targetForm.processTypeInstallation') }}</option>
                                                     <option value="maintenance">{{ translate('management.targetForm.processTypeMaintenance') }}</option>
                                                     <option value="replacement">{{ translate('management.targetForm.processTypeReplacement') }}</option>
@@ -405,22 +413,11 @@
                                 <div class="target-form__field">
                                                 <label for="process_date">{{ translate('management.targetForm.processDate') }}</label>
                                                 <input
+                                                    [(ngModel)]="processForm.registrationDate"
                                                     type="date"
                                                     id="process_date"
                                                     name="process_date"
                                                 >
-                                </div>
-                            
-                                <div class="target-form__field">
-                                                <label for="technician">{{ translate('management.targetForm.technician') }}</label>
-                                                <select
-                                                    name="technician"
-                                                    id="technician"
-                                                >
-                                                    <option value="">Técnico 1</option>
-                                                    <option value="">Técnico 2</option>
-                                                    <option value="">Técnico 3</option>
-                                    </select>
                                 </div>
 
                                             <!-- Botón para agregar proceso (con el estilo del botón de agregar campos) -->
@@ -437,6 +434,7 @@
                                             <div class="target-form__field full-height-field">
                                                 <label for="process_notes">{{ translate('management.targetForm.processNotes') }}</label>
                                                 <textarea 
+                                                    [(ngModel)]="processForm.description"
                                                     name="process_notes"
                                                     id="process_notes"
                                                     placeholder="Describa el proceso realizado" 
@@ -448,26 +446,127 @@
                             </form>
                         </div>
                         <div class="process__logs">
-                                <p-accordion>
-                                <p-accordionTab header="Instalación - 02/05/24">
-                                    <p>
-                                        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-                                        consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                                    </p>
-                                </p-accordionTab>
-                                <p-accordionTab header="Cambio de GPS - 02/05/24">
-                                    <p>
-                                        Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim
-                                        ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Consectetur, adipisci velit, sed quia non numquam eius modi.
-                                    </p>
-                                </p-accordionTab>
-                                <p-accordionTab header="Chequeo - 02/05/24">
-                                    <p>
-                                        At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa
-                                        qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus.
-                                    </p>
-                                </p-accordionTab>
-                            </p-accordion>
+                            <div class="process-list-header">
+                                <h3>Historial de Procesos</h3>
+                                <p-progressSpinner 
+                                    *ngIf="isLoadingProcesses" 
+                                    [style]="{'width': '20px', 'height': '20px'}"
+                                    strokeWidth="4">
+                                </p-progressSpinner>
+                            </div>
+
+                            <!-- Lista de procesos -->
+                            <div class="process-list" *ngIf="!isLoadingProcesses">
+                                <div 
+                                    *ngFor="let process of processList; let i = index" 
+                                    class="process-item"
+                                    [class.expanded]="process.expanded"
+                                >
+                                    <!-- Header clickeable del proceso -->
+                                    <div 
+                                        class="process-header" 
+                                        (click)="toggleProcessExpansion(i)"
+                                    >
+                                        <div class="process-left">
+                                            <div class="process-icon">
+                                                <i [class]="getProcessIcon(process.type)"></i>
+                                            </div>
+                                            <div class="process-info">
+                                                <div class="process-type">
+                                                    <span class="type-name">{{ getProcessTypeName(process.type) }}</span>
+                                                    <span class="process-status" [class]="getProcessStatusClass(process.type)">
+                                                        {{ getProcessStatusText(process.type) }}
+                                                    </span>
+                                                </div>
+                                                <div class="process-meta">
+                                                    <span class="process-date">
+                                                        <i class="pi pi-calendar"></i>
+                                                        {{ formatDate(process.registrationDate) }}
+                                                    </span>
+                                                    <span class="process-ref">
+                                                        <i class="pi pi-tag"></i>
+                                                        {{ process.reference }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="process-toggle">
+                                            <i class="pi" 
+                                               [class.pi-chevron-down]="!process.expanded"
+                                               [class.pi-chevron-up]="process.expanded">
+                                            </i>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Contenido desplegable -->
+                                    <div class="process-content" [@slideInOut]="process.expanded ? 'in' : 'out'">
+                                        <div class="process-details-grid">
+                                            <!-- Descripción -->
+                                            <div class="detail-card" *ngIf="process.description">
+                                                <div class="detail-header">
+                                                    <i class="pi pi-file-edit"></i>
+                                                    <span>Descripción del Proceso</span>
+                                                </div>
+                                                <div class="detail-content">
+                                                    <p>{{ process.description }}</p>
+                                                </div>
+                                            </div>
+
+                                            <!-- Información del dispositivo -->
+                                            <div class="detail-card">
+                                                <div class="detail-header">
+                                                    <i class="pi pi-mobile"></i>
+                                                    <span>Información del Dispositivo</span>
+                                                </div>
+                                                <div class="detail-content">
+                                                    <div class="detail-row" *ngIf="process.target?.name">
+                                                        <span class="label">Nombre:</span>
+                                                        <span class="value">{{ process.target.name }}</span>
+                                                    </div>
+                                                    <div class="detail-row">
+                                                        <span class="label">IMEI:</span>
+                                                        <span class="value">{{ process.target.device_imei }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Información técnica -->
+                                            <div class="detail-card">
+                                                <div class="detail-header">
+                                                    <i class="pi pi-cog"></i>
+                                                    <span>Detalles Técnicos</span>
+                                                </div>
+                                                <div class="detail-content">
+                                                    <div class="detail-row">
+                                                        <span class="label">ID del Proceso:</span>
+                                                        <span class="value technical">{{ process._id }}</span>
+                                                    </div>
+                                                    <div class="detail-row">
+                                                        <span class="label">Creado por:</span>
+                                                        <span class="value">{{ process.creator }}</span>
+                                                    </div>
+                                                    <div class="detail-row" *ngIf="process.createdAt">
+                                                        <span class="label">Fecha de registro:</span>
+                                                        <span class="value">{{ formatDateTime(process.createdAt) }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Mensaje cuando no hay procesos -->
+                                <div class="no-processes" *ngIf="processList.length === 0">
+                                    <div class="no-processes-icon">
+                                        <i class="pi pi-info-circle"></i>
+                                    </div>
+                                    <div class="no-processes-content">
+                                        <h4>Sin Procesos Registrados</h4>
+                                        <p>No hay procesos registrados para este dispositivo. Los procesos aparecerán aquí una vez que sean creados.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                       </div>
                     </p-tabPanel>

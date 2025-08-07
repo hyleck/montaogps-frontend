@@ -130,7 +130,6 @@ export class MapUtils {
       
       // Verificar si el marcador está fuera de los límites visibles
       if (!bounds.contains(markerLatLng)) {
-        console.log('🎯 Marcador fuera de vista, centrando mapa en Google Maps');
         map.panTo({ lat, lng });
       }
     } else {
@@ -142,14 +141,12 @@ export class MapUtils {
       // Verificar si el marcador está fuera de los límites visibles
       if (lng < bounds.getWest() || lng > bounds.getEast() || 
           lat < bounds.getSouth() || lat > bounds.getNorth()) {
-        console.log('🎯 Marcador fuera de vista, centrando mapa en Mapbox');
         map.setCenter([lng, lat]);
       }
     }
   }
 
   static addMarker(map: any, provider: 'google' | 'mapbox', lat: number, lng: number, title: string = '', info: string = ''): any {
-    console.log('📍 Agregando marcador:', { provider, lat, lng, title });
     
     if (provider === 'google') {
       const marker = new google.maps.Marker({
@@ -362,7 +359,6 @@ export class MapUtils {
   static removeMarker(marker: any, provider: 'google' | 'mapbox'): void {
     if (!marker) return;
     
-    console.log('🗑️ Removiendo marcador:', provider);
     
     if (provider === 'google') {
       marker.setMap(null);
@@ -372,7 +368,6 @@ export class MapUtils {
   }
 
   static removeAllMarkers(markers: any[], provider: 'google' | 'mapbox'): void {
-    console.log('🗑️ Removiendo todos los marcadores:', markers.length);
     
     markers.forEach(marker => {
       MapUtils.removeMarker(marker, provider);

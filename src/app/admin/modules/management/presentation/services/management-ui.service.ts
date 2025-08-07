@@ -92,7 +92,6 @@ export class ManagementUIService {
    * Oculta el formulario de usuario
    */
   hideUserForm(): void {
-    console.log('🚫 UIService: hideUserForm ejecutado');
     this.updateUIState({ userFormDisplay: false });
   }
 
@@ -121,7 +120,6 @@ export class ManagementUIService {
    * Oculta el formulario de target
    */
   hideTargetForm(): void {
-    console.log('🚫 UIService: hideTargetForm ejecutado');
     this.updateUIState({ targetFormDisplay: false });
   }
 

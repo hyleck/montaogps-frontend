@@ -37,33 +37,25 @@ export class MapProviderService {
     
     if (typeof savedProvider === 'string') {
       this.setProvider(savedProvider);
-      console.log('🗺️ Proveedor de mapa cargado desde estado:', savedProvider);
     } else {
       this.setProvider(`mapbox-${defaultTheme}`);
-      console.log('🗺️ Usando proveedor de mapa por defecto:', this.config.selectedMap);
     }
     
     // Generar key inicial para que el mapa se pueda mostrar
     this.generateNewMapKey();
-    console.log('🔑 Key inicial generada:', this.config.mapsKey);
   }
 
   /**
    * Establece el proveedor de mapa y actualiza la configuración
    */
   setProvider(value: string): void {
-    console.log('🗺️ Iniciando cambio de proveedor de mapa:', value);
     
     this.config.selectedMap = value;
     const [type, theme] = value.split('-');
     this.config.providerType = type as 'google' | 'mapbox';
     this.config.providerTheme = theme as 'light' | 'dark';
     
-    console.log('🔧 Configuración actualizada:', {
-      selectedMap: this.config.selectedMap,
-      providerType: this.config.providerType,
-      providerTheme: this.config.providerTheme
-    });
+  
     
     // Guardar la selección en el estado
     this.status.setState('map_provider', value);
@@ -74,7 +66,6 @@ export class MapProviderService {
    */
   generateNewMapKey(): string {
     this.config.mapsKey = `${this.config.providerType}-${Date.now()}`;
-    console.log('🔑 Nueva key para recrear mapa:', this.config.mapsKey);
     return this.config.mapsKey;
   }
 
@@ -90,27 +81,17 @@ export class MapProviderService {
    */
   changeProviderWithRecreation(value: string): Promise<string> {
     return new Promise((resolve) => {
-      console.log('🔄 Iniciando cambio de proveedor:', {
-        from: this.config.selectedMap,
-        to: value,
-        currentKey: this.config.mapsKey
-      });
+     
       
       this.setProvider(value);
       
       // Primero destruir el mapa actual
       this.destroyMap();
-      console.log('🗑️ Mapa destruido, mapsKey ahora es:', this.config.mapsKey);
       
       // Dar tiempo para que Angular procese la destrucción, luego recrear
       setTimeout(() => {
         const newKey = this.generateNewMapKey();
-        console.log('✅ Cambio de proveedor completado:', {
-          newProvider: this.config.selectedMap,
-          newKey: newKey,
-          providerType: this.config.providerType,
-          providerTheme: this.config.providerTheme
-        });
+    
         resolve(newKey);
       }, 100);
     });

@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { lastValueFrom, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { CreateTargetDto, Target, UpdateTargetDto, StopTimeResponse, RouteHistoryResponse } from '../interfaces';
+import { CreateTargetDto, Target, UpdateTargetDto, StopTimeResponse, RouteHistoryResponse, CreateProcessDto, ProcessResponse } from '../interfaces';
 
 @Injectable({
   providedIn: 'root'
@@ -108,6 +108,18 @@ export class TargetsService {
     const params = { provider: provider };
     
     const observable = this.http.get<any>(url, { params });
+    return await lastValueFrom(observable);
+  }
+
+  async createProcess(processData: CreateProcessDto): Promise<ProcessResponse> {
+    const url = `${environment.apiUrl}/process`;
+    const observable = this.http.post<ProcessResponse>(url, processData);
+    return await lastValueFrom(observable);
+  }
+
+  async getProcessesByReference(reference: string): Promise<ProcessResponse[]> {
+    const url = `${environment.apiUrl}/process/by-reference/${reference}`;
+    const observable = this.http.get<ProcessResponse[]>(url);
     return await lastValueFrom(observable);
   }
 } 

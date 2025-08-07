@@ -466,7 +466,6 @@ export class MarkerService {
     const shouldAnimate = lastPosition && MarkerService.shouldUseAnimation(lastPosition, { lat, lng });
     
     if (shouldAnimate && lastPosition) {
-      console.log('🎬 Iniciando animación suave del marcador');
       await MarkerService.animateMarkerToPosition({
         map,
         provider,
@@ -904,7 +903,6 @@ export class MarkerService {
     
     // Verificar que el target sigue siendo el correcto
     if (MarkerService.currentTargetId !== targetId) {
-      console.log('🛑 Animación cancelada - target cambió');
       return;
     }
 
@@ -912,12 +910,10 @@ export class MarkerService {
     const duration = 4000; // 4 segundos total (más lento)
     const stepDuration = duration / steps;
     
-    console.log(`🎬 Animando desde [${fromLat.toFixed(6)}, ${fromLng.toFixed(6)}] hasta [${toLat.toFixed(6)}, ${toLng.toFixed(6)}] en ${steps} pasos durante ${duration/1000}s`);
 
     for (let i = 1; i <= steps; i++) {
       // Verificar si el target cambió durante la animación
       if (MarkerService.currentTargetId !== targetId) {
-        console.log('🛑 Animación interrumpida - target cambió durante animación');
         return;
       }
 
@@ -929,7 +925,6 @@ export class MarkerService {
       const easedLat = fromLat + (toLat - fromLat) * easedProgress;
       const easedLng = fromLng + (toLng - fromLng) * easedProgress;
 
-      console.log(`📍 Paso ${i}/${steps}: [${easedLat.toFixed(6)}, ${easedLng.toFixed(6)}] (progreso: ${(easedProgress * 100).toFixed(1)}%)`);
 
       // Actualizar posición del marcador
       if (provider === 'google') {
@@ -959,7 +954,6 @@ export class MarkerService {
       }
     }
 
-    console.log('✅ Animación completada');
   }
 
   // Actualizar solo el popup del marcador

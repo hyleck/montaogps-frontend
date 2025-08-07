@@ -1,4 +1,5 @@
 import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 import { MessageService } from 'primeng/api';
 import { Subject, takeUntil } from 'rxjs';
 import { LangService } from '../../../../../../../shareds/services/langi18/lang.service';
@@ -22,13 +23,14 @@ import { ColorsService } from 'src/app/core/services/colors.service';
 import { TargetsService } from 'src/app/core/services/targets.service';
 import { PlansService } from 'src/app/core/services/plans.service';
 import { ServersService } from 'src/app/core/services/servers.service';
-import { CreateTargetDto, Target, UpdateTargetDto, TargetDevice } from 'src/app/core/interfaces/target.interface';
+import { CreateTargetDto, Target, UpdateTargetDto, TargetDevice, CreateProcessDto, ProcessResponse } from 'src/app/core/interfaces/target.interface';
 import { Plan, PlanPrice, ExtendedPlanPrice } from 'src/app/core/interfaces/plan.interface';
 import { Server } from 'src/app/core/interfaces/server.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
 import { ProtocolCommand } from 'src/app/core/interfaces/protocol.interface';
 import { ManagementService } from 'src/app/admin/modules/management/presentation/services/management.service';
+import { AuthService } from 'src/app/core/services/auth.service';
 
 
 
@@ -36,7 +38,14 @@ import { ManagementService } from 'src/app/admin/modules/management/presentation
     selector: 'app-target-form',
     templateUrl: './target-form.component.html',
     styleUrls: TARGET_FORM_STYLES,
-    standalone: false
+    standalone: false,
+    animations: [
+        trigger('slideInOut', [
+            state('in', style({ height: '*', opacity: 1 })),
+            state('out', style({ height: '0px', opacity: 0, overflow: 'hidden' })),
+            transition('in <=> out', animate('300ms ease-in-out'))
+        ])
+    ]
 })
 export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterViewInit {
     private destroy$ = new Subject<void>();
@@ -63,6 +72,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     showColorOptions: boolean = true;
     isLoading: boolean = false;
     
+    // Flag para determinar si estamos editando un target existente
+    get isEditMode(): boolean {
+        return !!(this.target && this.target._id && this.target._id.trim());
+    }
+    
     // Opciones para selects
     availableBrands: SelectOption[] = [];
     availableModels: SelectOption[] = [];
@@ -86,6 +100,25 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Protocolos y comandos dinámicos
     loadedProtocols: Protocol[] = [];
     availableCommands: ProtocolCommand[] = [];
+    
+    // Propiedades para formulario de procesos
+    processForm = {
+        type: '',
+        registrationDate: '',
+        description: ''
+    };
+    
+    // Mapeo de tipos de proceso a números
+    private processTypeMap: { [key: string]: number } = {
+        'installation': 1,
+        'maintenance': 2,
+        'replacement': 3,
+        'check': 4
+    };
+
+    // Lista de procesos del target actual
+    processList: ProcessResponse[] = [];
+    isLoadingProcesses: boolean = false;
     selectedProtocol: Protocol | null = null;
     pendingGpsModel: string = ''; // GPS model a asignar después de cargar protocolos
     
@@ -103,25 +136,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         private plansService: PlansService,
         private serversService: ServersService,
         private protocolsService: ProtocolsService,
-        private managementService: ManagementService
+        private managementService: ManagementService,
+        private authService: AuthService
     ) {}
-
-    // Método para manejar el envío del formulario de procesos
-    onSubmitProcess(): void {
-        // Aquí puedes implementar la lógica para guardar el proceso
-        // Por ahora, mostraremos un mensaje de éxito
-        this.messageService.add({
-            severity: 'success',
-            summary: this.translate('management.targetForm.processAdded'),
-            detail: this.translate('management.targetForm.processAddedDetail')
-        });
-        
-        // Aquí podrías limpiar el formulario o hacer otras acciones después de agregar el proceso
-        const processForm = document.getElementById('process_notes') as HTMLTextAreaElement;
-        if (processForm) {
-            processForm.value = '';
-        }
-    }
 
     private getEmptyTarget(): TargetDevice {
         return {
@@ -213,7 +230,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         if (this.pendingGpsModel && this.availableGpsModels.some(model => model.value === this.pendingGpsModel)) {
                             this.target.type = this.pendingGpsModel;
                             this.pendingGpsModel = ''; // Limpiar el pendiente
-                            console.log('✅ GPS model asignado después de cargar protocolos:', this.target.type);
                         }
                         
                         // Si hay un protocolo ya seleccionado, cargar sus comandos
@@ -271,28 +287,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private setupEditTarget(target: TargetDevice) {
         
         // DEBUG: Ver qué datos llegan del backend para edición
-        console.log('🔍 DEBUG setupEditTarget: Target original recibido:', target);
         
         // Si el target tiene originalTarget, usar esos datos en su lugar
         let targetData = target;
         if ((target as any)['originalTarget']) {
-            console.log('✅ Usando originalTarget para los datos del formulario');
             targetData = (target as any)['originalTarget'];
         }
         
-        console.log('🔍 Datos que se usarán para el formulario:', {
-            _id: targetData._id,
-            name: targetData.name,
-            target_plate_number: targetData.target_plate_number,
-            target_chassis_number: targetData.target_chassis_number,
-            target_color: targetData.target_color,
-            target_brand_id: targetData.target_brand_id,
-            target_model_id: targetData.target_model_id,
-            type: targetData.type,
-            plan: targetData.plan,
-            ignition_sensor: targetData.ignition_sensor,
-            engine_shutdown: targetData.engine_shutdown
-        });
+      
         
         // Rellenar el formulario con los datos del objetivo a editar
         this.target = JSON.parse(JSON.stringify(targetData));
@@ -312,13 +314,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.target.target_color = this.target.target_color || '';
         this.target.target_year = this.target.target_year || '';
         
-        // DEBUG: Ver campos después de asignación
-        console.log('🔍 Campos después de asignación:', {
-            target_plate_number: this.target.target_plate_number,
-            target_chassis_number: this.target.target_chassis_number,
-            target_color: this.target.target_color,
-            device_imei: this.target.device_imei
-        });
+      
         
         // Guardar temporalmente el ID del modelo GPS para asignarlo después de cargar protocolos
         const selectedGpsModel = this.target.type || '';
@@ -387,7 +383,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         // Cargar los modelos para la marca seleccionada
         if (this.target.target_brand_id) {
-            console.log('🚗 Cargando modelos para marca:', this.target.target_brand_id, 'Modelo a restaurar:', selectedModelId);
             // Cargar modelos según la marca seleccionada
             this.vehicleBrandsService.getAllModelsByBrand(this.target.target_brand_id)
                 .then((models: any) => {
@@ -396,14 +391,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         value: model._id
                     })).sort((a: any, b: any) => a.label.localeCompare(b.label));
                     
-                    console.log('🚗 Modelos cargados:', this.availableModels.length, 'modelos disponibles');
                     
                     // Una vez cargados los modelos, establecer el modelo seleccionado
                     if (selectedModelId && this.availableModels.some(m => m.value === selectedModelId)) {
                         this.target.target_model_id = selectedModelId;
-                        console.log('✅ Modelo restaurado correctamente:', selectedModelId);
-                    } else if (selectedModelId) {
-                        console.log('❌ No se pudo restaurar el modelo:', selectedModelId, 'no está en la lista de modelos disponibles');
                     }
                 })
                 .catch(error => {
@@ -437,7 +428,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 // Hacemos esto después de configurar selectedPrice para que no se pierda
                 this.plansService.getPlanById(this.target.plan).subscribe({
                     next: (plan: Plan) => {
-                        console.log('Plan cargado con éxito:', plan);
                         
                         // Guardar precio seleccionado actual para preservar su valor personalizado
                         const currentSelectedPrice = this.target.selectedPrice ? { ...this.target.selectedPrice } : null;
@@ -512,22 +502,18 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         // Asignar el GPS model después de que los protocolos se hayan cargado
         // Si ya están cargados, asignar inmediatamente, si no, se asignará en el callback de protocolos
-        console.log('📡 GPS Model a restaurar:', selectedGpsModel, 'Modelos GPS disponibles:', this.availableGpsModels.length);
         if (selectedGpsModel && this.availableGpsModels.length > 0) {
             // Verificar que el modelo está en la lista antes de asignarlo
             const modelExists = this.availableGpsModels.some(model => model.value === selectedGpsModel);
             if (modelExists) {
                 this.target.type = selectedGpsModel;
                 this.updateSmsCommands();
-                console.log('✅ GPS Model restaurado correctamente:', selectedGpsModel);
             } else {
-                console.log('❌ GPS Model no encontrado en la lista disponible:', selectedGpsModel);
                 this.target.type = '';
             }
         } else if (selectedGpsModel) {
             // Guardar el GPS model para asignarlo cuando se carguen los protocolos
             this.pendingGpsModel = selectedGpsModel;
-            console.log('⏳ GPS Model pendiente de asignar:', selectedGpsModel);
             
             // Intentar asignar inmediatamente si los protocolos ya están cargados
             // (esto puede suceder en navegaciones posteriores)
@@ -545,6 +531,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         // Cargar datos del servidor asociado al plan del target
         this.loadServerDataFromPlan();
+        
+        // Cargar lista de procesos del target actual
+        this.loadProcessesList();
     }
 
     /**
@@ -589,7 +578,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private loadServerDataFromPlan(): void {
         // Verificar que el target tenga un plan asignado
         if (!this.target.plan) {
-            console.log('ℹ️  No hay plan asignado al target');
             return;
         }
 
@@ -597,26 +585,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                       (this.target.plan as any).id_plan || '';
 
         if (!planId) {
-            console.log('ℹ️  No se pudo obtener el ID del plan');
             return;
         }
 
-        console.log('🔍 Cargando datos del plan y servidor para el target:', this.target.name);
-        console.log('📋 Plan ID:', planId);
 
         // Obtener datos del plan
         this.plansService.getPlanById(planId)
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (plan: Plan) => {
-                    console.log('📋 ===== DATOS DEL PLAN =====');
-                    console.log('📋 Plan:', plan);
-                    console.log('📋 Nombre del plan:', plan.plan_name);
-                    console.log('📋 Descripción:', plan.plan_description);
-                    console.log('📋 Server ID:', plan.server_id);
-                    console.log('📋 Precios:', plan.prices);
-                    console.log('📋 Características:', plan.plan_features);
-                    console.log('📋 =============================');
+                
 
                     // Obtener datos del servidor
                     if (plan.server_id) {
@@ -624,24 +602,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                             .pipe(takeUntil(this.destroy$))
                             .subscribe({
                                 next: (server: Server) => {
-                                    console.log('🖥️  ===== DATOS DEL SERVIDOR =====');
-                                    console.log('🖥️  Servidor:', server);
-                                    console.log('🖥️  Nombre del servidor:', server.name);
-                                    console.log('🖥️  Descripción:', server.description);
-                                    console.log('🖥️  URL:', server.url);
-                                    console.log('🖥️  IP:', server.ip);
-                                    console.log('🖥️  Token:', server.token);
-                                    console.log('🖥️  Meses de almacenamiento:', server.months_of_storage);
-                                    console.log('🖥️  Límite de dispositivos:', server.device_limit);
-                                    console.log('🖥️  En mantenimiento:', server.maintenance);
-                                    console.log('🖥️  ================================');
+                                 
                                 },
                                 error: (error) => {
                                     console.error('❌ Error al cargar datos del servidor:', error);
                                 }
                             });
-                    } else {
-                        console.log('ℹ️  El plan no tiene un servidor asignado');
                     }
                 },
                 error: (error) => {
@@ -784,7 +750,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 if (Array.isArray(error.error.message)) {
                     // Si hay varios mensajes de error, mostrar el primero
                     errorMessage += `: ${error.error.message[0]}`;
-                    console.log('Errores de validación del servidor:', error.error.message);
                 } else {
                     errorMessage += `: ${error.error.message}`;
                 }
@@ -923,17 +888,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
       
         
-        // VERIFICACIÓN COMPLETA DE CAMPOS CLAVE
-        console.log('🔍 VERIFICACIÓN FINAL prepareTargetData:');
-        console.log('- target_plate_number:', targetData.target_plate_number);
-        console.log('- target_chassis_number:', targetData.target_chassis_number);
-        console.log('- target_brand_id:', targetData.target_brand_id);
-        console.log('- target_model_id:', targetData.target_model_id);
-        console.log('- target_color:', targetData.target_color);
-        console.log('- target_year:', targetData.target_year);
-        console.log('- sim_company:', targetData.sim_company);
-        console.log('- isUpdate:', !!this.target._id);
-        console.log('📦 Datos completos a enviar:', targetData);
+       
         
         return targetData;
     }
@@ -1142,14 +1097,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             
             // Verificar si el mensaje contiene {{server}} y reemplazarlo por la IP del servidor
             if (message.includes('{{server}}')) {
-                console.log('🔧 Mensaje contiene {{server}}, obteniendo IP del servidor...');
                 const serverIp = await this.getServerIpFromPlan();
                 
                 if (serverIp) {
                     processedMessage = message.replace(/\{\{server\}\}/g, serverIp);
-                    console.log('✅ {{server}} reemplazado por IP:', serverIp);
-                    console.log('📝 Mensaje original:', message);
-                    console.log('📝 Mensaje procesado:', processedMessage);
                 } else {
                     console.warn('⚠️ No se pudo obtener la IP del servidor, enviando mensaje sin procesar');
                     this.messageService.add({
@@ -1181,7 +1132,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Enviar SMS real al backend (usando el mensaje procesado)
             const response = await this.targetsService.sendSMS(this.target.sim_card_number, processedMessage, provider);
 
-            console.log('📤 Respuesta del envío SMS:', response);
 
             // Validar que la respuesta no sea null/undefined
             if (!response) {
@@ -1271,12 +1221,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
             const response = await this.targetsService.getMessages(this.target.sim_card_number, provider);
 
-            console.log('📨 Respuesta completa de getMessages:', response);
 
             // Verificar si la respuesta es un array directamente o tiene una estructura con success
             let messages = Array.isArray(response) ? response : (response.messages || response.data || []);
             
-            console.log('📝 Mensajes a procesar:', messages);
 
             if (messages && Array.isArray(messages)) {
                 // Convertir mensajes del backend al formato del componente
@@ -1300,10 +1248,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 // Ordenar por timestamp (más antiguos primero)
                 this.smsMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
-                console.log('✅ Mensajes procesados:', this.smsMessages);
                 this.scrollToBottom();
-            } else {
-                console.log('⚠️ No se encontraron mensajes en la respuesta');
             }
 
         } catch (error: any) {
@@ -1422,9 +1367,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 this.target.type = this.pendingGpsModel;
                 this.pendingGpsModel = ''; // Limpiar el pendiente
                 this.updateSmsCommands();
-                console.log('✅ GPS Model pendiente asignado correctamente:', this.target.type);
-            } else {
-                console.log('❌ GPS Model pendiente no encontrado en la lista:', this.pendingGpsModel);
             }
         }
     }
@@ -1732,15 +1674,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             cleanValue = rawValue.split(': ')[1] || rawValue;
         }
         
-        console.log('DEBUG: sim_company cambió a:', {
-            valor_select_raw: rawValue,
-            valor_limpio: cleanValue,
-            target_sim_company_antes: this.target.sim_company
-        });
+      
         
         // Establecer el valor limpio
         this.target.sim_company = cleanValue;
-        console.log('ESTABLECIDO: sim_company final:', this.target.sim_company);
     }
 
     // Método para obtener el estado real del dispositivo desde traccarInfo
@@ -1766,5 +1703,196 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         // Devolver el label si se encuentra, o el valor original si no se encuentra
         return simCardType ? simCardType.label : this.target.sim_company;
+    }
+
+    // Método para enviar el formulario de proceso
+    async onSubmitProcess(): Promise<void> {
+        try {
+            // Validar que los campos requeridos estén completos
+            if (!this.processForm.type) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Campo requerido',
+                    detail: 'Debe seleccionar un tipo de proceso'
+                });
+                return;
+            }
+
+            if (!this.processForm.registrationDate) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Campo requerido',
+                    detail: 'Debe seleccionar una fecha para el proceso'
+                });
+                return;
+            }
+
+                    // Preparar los datos del proceso
+        const processData: CreateProcessDto = {
+            type: this.processTypeMap[this.processForm.type] || 1, // Convertir string a number
+            registrationDate: this.processForm.registrationDate,
+            description: this.processForm.description || '',
+            target: {
+                _id: this.target._id,
+                name: this.target.name,
+                device_imei: this.target.device_imei,
+                sim_card_number: this.target.sim_card_number
+            },
+            user: {
+                _id: this.authService.getCurrentUser()?.id || "ejemplo_user_id",
+                name: this.authService.getCurrentUser()?.name || "Usuario Ejemplo",
+                email: this.authService.getCurrentUser()?.email || "usuario@ejemplo.com"
+            },
+            reference: this.target.device_imei, // Referencia usando el IMEI del target
+            before: {
+                status: "pending",
+                lastProcess: null
+            },
+            after: {
+                status: "completed",
+                processType: this.processForm.type,
+                processDate: this.processForm.registrationDate
+            },
+            creator: this.authService.getCurrentUser()?.id || "creator_ejemplo_id"
+        };
+
+            // Enviar el proceso al servidor
+            const response = await this.targetsService.createProcess(processData);
+
+            // Mostrar mensaje de éxito
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Proceso agregado',
+                detail: `El proceso de ${this.processForm.type} ha sido registrado exitosamente`
+            });
+
+            // Limpiar el formulario
+            this.resetProcessForm();
+
+            // Recargar la lista de procesos
+            this.loadProcessesList();
+
+        } catch (error) {
+            console.error('Error al crear proceso:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo registrar el proceso. Intente nuevamente.'
+            });
+        }
+    }
+
+    // Método para limpiar el formulario de proceso
+    private resetProcessForm(): void {
+        this.processForm = {
+            type: '',
+            registrationDate: '',
+            description: ''
+        };
+    }
+
+    // Método para cargar la lista de procesos del target actual
+    async loadProcessesList(): Promise<void> {
+        if (!this.target || !this.target.device_imei) {
+            return;
+        }
+
+        try {
+            this.isLoadingProcesses = true;
+            this.processList = await this.targetsService.getProcessesByReference(this.target.device_imei);
+            
+            // Ordenar procesos por fecha de registro (más recientes primero)
+            this.processList.sort((a, b) => 
+                new Date(b.registrationDate).getTime() - new Date(a.registrationDate).getTime()
+            );
+
+            // Inicializar la propiedad expanded para cada proceso
+            this.processList.forEach(process => {
+                process.expanded = false;
+            });
+
+        } catch (error) {
+            console.error('Error al cargar procesos:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudieron cargar los procesos del dispositivo'
+            });
+        } finally {
+            this.isLoadingProcesses = false;
+        }
+    }
+
+    // Método para obtener el nombre del tipo de proceso
+    getProcessTypeName(type: number): string {
+        const typeNames: { [key: number]: string } = {
+            1: 'Instalación',
+            2: 'Mantenimiento', 
+            3: 'Reemplazo',
+            4: 'Chequeo'
+        };
+        return typeNames[type] || `Tipo ${type}`;
+    }
+
+    // Método para formatear fecha
+    formatDate(dateString: string): string {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    }
+
+    // Método para formatear fecha y hora completa
+    formatDateTime(dateString: string): string {
+        const date = new Date(dateString);
+        return date.toLocaleString('es-ES', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    // Método para alternar la expansión de un proceso
+    toggleProcessExpansion(index: number): void {
+        if (this.processList[index]) {
+            this.processList[index].expanded = !this.processList[index].expanded;
+        }
+    }
+
+    // Método para obtener el ícono según el tipo de proceso
+    getProcessIcon(type: number): string {
+        const iconMap: { [key: number]: string } = {
+            1: 'pi pi-wrench',        // Instalación
+            2: 'pi pi-cog',           // Mantenimiento
+            3: 'pi pi-refresh',       // Reemplazo
+            4: 'pi pi-check-circle'   // Chequeo
+        };
+        return iconMap[type] || 'pi pi-circle';
+    }
+
+    // Método para obtener la clase de estado del proceso
+    getProcessStatusClass(type: number): string {
+        const statusMap: { [key: number]: string } = {
+            1: 'status-installation',
+            2: 'status-maintenance',
+            3: 'status-replacement',
+            4: 'status-check'
+        };
+        return statusMap[type] || 'status-default';
+    }
+
+    // Método para obtener el texto de estado del proceso
+    getProcessStatusText(type: number): string {
+        const statusMap: { [key: number]: string } = {
+            1: 'Configuración inicial',
+            2: 'Mantenimiento preventivo',
+            3: 'Cambio de equipo',
+            4: 'Verificación de estado'
+        };
+        return statusMap[type] || 'Proceso general';
     }
 }

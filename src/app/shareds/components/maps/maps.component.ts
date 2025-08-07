@@ -38,7 +38,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    console.log('🆕 Maps component initialized with provider:', this.provider);
     this.initializeNewProvider();
     this.setupGlobalFunctions();
   }
@@ -81,7 +80,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       const stopTimeElement = popup.querySelector(`#stop-time-${popupId} .detail-value`) as HTMLElement;
       if (stopTimeElement) {
         stopTimeElement.textContent = stopTime;
-        console.log('✅ Tiempo de parada actualizado en DOM:', stopTime);
       }
     };
 
@@ -92,7 +90,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private navigateToReports(targetId: string): void {
-    console.log('🧭 Navegando a reportes con targetId:', targetId);
     // Navegar a reportes con query parameters
     this.router.navigate(['/admin/reports'], {
       queryParams: {
@@ -103,14 +100,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private initializeNewProvider(): void {
-    console.log('🚀 Initializing new provider:', this.provider);
-    console.log('🔧 Current component state:', {
-      provider: this.provider,
-      theme: this.theme,
-      hasSelectedTarget: !!this.selectedTarget,
-      mapExists: !!this.map
-    });
-
+  
     this.systemService.getAll().subscribe((systems: SystemSettings[]) => {
       const config = MapUtils.getApiConfig(systems, this.provider);
       if (!config) {
@@ -120,18 +110,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
       this.apiKey = config.key;
       this.apiUrl = config.url;
-      console.log('📦 Config loaded for', this.provider, { 
-        hasKey: !!this.apiKey, 
-        hasUrl: !!this.apiUrl,
-        keyLength: this.apiKey?.length,
-        url: this.apiUrl 
-      });
+   
 
       MapUtils.loadMapScript(this.provider, this.apiKey, this.apiUrl)
         .then(async () => {
-          console.log('📜 Script loaded successfully, initializing map...');
           await this.initializeMap();
-          console.log('✅ Map initialization completed for provider:', this.provider);
         })
         .catch(err => {
           console.error('❌ Error loading script for', this.provider, ':', err);
@@ -145,7 +128,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   ngOnChanges(changes: SimpleChanges): void {
     // Manejar cambios de proveedor (cuando se recrea el componente)
     if (changes['provider'] && !changes['provider'].firstChange) {
-      console.log('Provider changed, reinitializing map:', this.provider);
       this.destroyMap();
       setTimeout(() => {
         this.initializeNewProvider();
@@ -155,19 +137,16 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     // Solo manejar cambios de tema si el mapa ya existe
     if (this.map && changes['theme']) {
-      console.log('Theme changed to', this.theme);
       MapThemeService.updateTheme(this.map, this.provider, this.theme, this.selectedTarget);
     }
 
     // Manejar cambios en el target seleccionado
     if (changes['selectedTarget']) {
-      console.log('Selected target changed:', this.selectedTarget);
       this.updateTargetMarker();
     }
   }
 
   ngOnDestroy(): void {
-    console.log('🧹 Maps component destroyed');
     this.destroyMap();
     this.cleanupGlobalFunctions();
   }
@@ -189,7 +168,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private async initializeMap(): Promise<void> {
-    console.log('🗺️ Starting map initialization...');
     
     const mapElement = document.getElementById('map') as HTMLElement;
     if (!mapElement) {
@@ -200,19 +178,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     // Usar coordenadas por defecto si no hay target seleccionado
     const { centerLat, centerLng, zoomLevel } = MapUtils.getInitialMapCenter(this.selectedTarget);
     
-    console.log('📍 Map coordinates:', {
-      centerLat: centerLat.toFixed(6),
-      centerLng: centerLng.toFixed(6),
-      zoomLevel,
-      fromTarget: !!this.selectedTarget?.traccarInfo?.geolocation
-    });
+  
 
     try {
       // Crear mapa básico sin marcadores
       this.map = MapUtils.createMap(this.provider, mapElement, this.apiKey, this.theme, centerLat, centerLng, zoomLevel);
       
       if (this.map) {
-        console.log('✅ Mapa inicializado correctamente para provider:', this.provider);
         // Agregar marcador inicial si hay target seleccionado
         this.updateTargetMarker();
       } else {
@@ -226,7 +198,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   private updateTargetMarker(): void {
     if (!this.map) return;
 
-    console.log('🔄 Actualizando marcador para target:', this.selectedTarget?.name || 'ninguno');
 
     // Si no hay target seleccionado, remover marcador existente
     if (!this.selectedTarget?.traccarInfo?.geolocation) {
@@ -237,7 +208,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         this.currentPopupId = '';
         this.currentTargetId = null;
       }
-      console.log('ℹ️ No hay target seleccionado o no tiene geolocalización');
       return;
     }
 
@@ -245,7 +215,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     const isNewTarget = this.currentTargetId !== targetId;
 
     if (isNewTarget) {
-      console.log('🆕 Target cambió de', this.currentTargetId, 'a', targetId, '- Reiniciando marcador');
       this.currentTargetId = targetId;
       
       // Remover marcador anterior si existe para crear uno nuevo
@@ -271,15 +240,12 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     // Si el marcador no existe o es un target nuevo, crearlo
     if (!this.currentMarker || isNewTarget) {
       this.createMarkerWithPopup(lat, lng);
-      console.log('✅ Marcador creado para:', this.selectedTarget.name);
       
       // Para un target nuevo, obtener tiempo de parada desde cero
-      console.log('🔄 Solicitando tiempo de parada inicial para target nuevo');
       this.updateMarkerWithStopTime(true);
     } else {
       // Si el marcador existe y es el mismo target, solo actualizar
       this.updateExistingMarker(lat, lng);
-      console.log('🔄 Marcador actualizado para:', this.selectedTarget.name);
     }
   }
 
@@ -421,29 +387,23 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   private async updateMarkerWithStopTime(isInitialRequest: boolean = false): Promise<void> {
     const deviceId = this.selectedTarget?.device_imei || this.selectedTarget?.imei || this.selectedTarget?.originalTarget?.device_imei || this.selectedTarget?.originalTarget?.imei;
     if (!deviceId || !this.currentMarker) {
-      console.log('⚠️ No se puede obtener tiempo de parada - deviceId:', deviceId, 'currentMarker:', !!this.currentMarker);
       return;
     }
 
     try {
       const requestType = isInitialRequest ? '[INICIAL]' : '[POLLING]';
-      console.log(`🕒 ${requestType} Solicitando tiempo de parada para deviceId:`, deviceId);
       
       const stopTimeResult = await this.targetsService.getStopTime(deviceId);
-      console.log(`📊 ${requestType} Resultado del tiempo de parada:`, stopTimeResult);
 
       if (stopTimeResult && stopTimeResult.text && !stopTimeResult.isMoving) {
         // Actualizar el popup con el tiempo de parada solo si el vehículo no está en movimiento
         this.updateMarkerPopupWithStopTime(stopTimeResult.text);
-        console.log(`✅ ${requestType} Tiempo de parada actualizado en popup:`, stopTimeResult.text);
       } else if (stopTimeResult && stopTimeResult.isMoving) {
-        console.log(`🚗 ${requestType} Vehículo en movimiento, no hay tiempo de parada`);
         // Si es una solicitud inicial y el vehículo está en movimiento, limpiar cualquier tiempo previo
         if (isInitialRequest) {
           this.clearStopTimeFromPopup();
         }
       } else {
-        console.log(`ℹ️ ${requestType} No hay tiempo de parada disponible`);
         // Si es una solicitud inicial, limpiar cualquier tiempo previo
         if (isInitialRequest) {
           this.clearStopTimeFromPopup();
@@ -470,12 +430,10 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         stopTime: stopTime,
         speedKmh: speed
       });
-      console.log('✅ Tiempo de parada actualizado vía PopupBuilder:', stopTime);
     } else {
       // Fallback: usar la función global
       if ((window as any).updateStopTime) {
         (window as any).updateStopTime(this.currentPopupId, stopTime);
-        console.log('✅ Popup actualizado con tiempo de parada (fallback):', stopTime);
       } else {
         console.warn('⚠️ Función updateStopTime no disponible');
       }
@@ -494,13 +452,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       PopupBuilder.updatePopupElementsDirectly(popupElement, {
         stopTime: null // Limpiar tiempo de parada
       });
-      console.log('🧹 Tiempo de parada limpiado del popup (target nuevo)');
     } else {
       // Fallback: usar método manual
       const stopTimeSection = popupElement.querySelector('.popup-stop-time');
       if (stopTimeSection) {
         stopTimeSection.remove();
-        console.log('🧹 Tiempo de parada limpiado del popup manualmente');
       }
     }
   }
@@ -524,7 +480,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       this.updatePopupElementsManually(popupElement, title, status, speed);
     }
 
-    console.log('✅ Contenido del popup actualizado sin parpadeos');
   }
 
   private updatePopupElementsManually(popupElement: HTMLElement, title: string, status: string, speed?: number): void {
@@ -632,7 +587,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
 
   private destroyMap(): void {
-    console.log('🧹 Destroying map, provider:', this.provider);
     
     // Limpiar marcador y popup antes de destruir el mapa
     if (this.currentMarker) {
@@ -653,11 +607,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       try {
         // Destruir el mapa según el proveedor
         if (this.provider === 'mapbox' && this.map.remove) {
-          console.log('🗑️ Removing Mapbox map');
           this.map.remove();
-        } else if (this.provider === 'google') {
-          console.log('🗑️ Clearing Google map');
-          // Para Google Maps, simplemente dejamos que se limpie el contenedor
         }
       } catch (error) {
         console.warn('Error destroying map:', error);
@@ -672,7 +622,6 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       mapElement.innerHTML = '';
       mapElement.className = '';
       mapElement.style.cssText = '';
-      console.log('✅ Map container cleaned');
     }
   }
 }

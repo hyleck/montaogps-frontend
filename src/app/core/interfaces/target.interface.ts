@@ -197,4 +197,38 @@ export interface RouteHistoryPosition {
 export interface RouteHistoryResponse {
   positions: RouteHistoryPosition[];
   totalPositions: number;
+}
+
+// Interfaces para procesos de targets
+export interface CreateProcessDto {
+  type: number;
+  registrationDate: string;
+  description: string;
+  target: object;
+  user: object;
+  reference: string;
+  before: object;
+  after: object;
+  creator: string;
+}
+
+export interface ProcessResponse {
+  _id: string;
+  type: number;
+  registrationDate: string;
+  description: string;
+  reference: string;
+  target: {
+    _id: string;
+    name?: string;
+    device_imei: string;
+    [key: string]: any;
+  };
+  user: object;
+  before: object;
+  after: object;
+  creator: string;
+  createdAt?: string;
+  updatedAt?: string;
+  expanded?: boolean; // Propiedad para controlar la expansión del accordion
 } 

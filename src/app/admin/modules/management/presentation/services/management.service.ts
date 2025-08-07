@@ -42,7 +42,6 @@ export class ManagementService {
     const isFirstTime = !previousOp;
     
     if (userChanged || isFirstTime) {
-      console.log('🔄 Navegando: usuario cambió o primera carga');
       
       const searchTerms: { [key: string]: string | undefined } = {
         u: this.searchUsersTerm,
@@ -60,7 +59,6 @@ export class ManagementService {
         this.setURLStatus();
       });
     } else {
-      console.log('✅ Solo cambio de operación - actualizando URL sin recargar');
       
       // Solo actualizar la URL sin navegar completamente
       const searchTerms: { [key: string]: string | undefined } = {
@@ -145,10 +143,8 @@ export class ManagementService {
 
     // Solo cargar datos del usuario si cambió o no estaba cargado
     if (this.currentUserId && (previousUserId !== this.currentUserId || !this.selectedUser)) {
-      console.log('🔄 Cargando datos del usuario desde verifyURLStatus - usuario cambió o no estaba cargado');
       this.loadUserData(this.currentUserId);
     } else if (this.currentUserId) {
-      console.log('✅ Usuario ya cargado en verifyURLStatus - no recargando datos');
     }
 
     this.setURLStatus();
@@ -188,7 +184,6 @@ export class ManagementService {
   setCurrentUserId(userId: string) {
     if (userId) {
       this.currentUserId = userId;
-      console.log('ID de usuario actual actualizado a:', userId);
     }
   }
 

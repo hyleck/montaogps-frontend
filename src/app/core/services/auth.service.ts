@@ -44,7 +44,6 @@ export class AuthService {
           // Obtener datos completos solo para configuración inicial
           return this.userService.getById(response.user.id).pipe(
             tap(userData => {
-              console.log('Configurando ajustes del usuario');
               this.configureUserSettings(userData);
             }),
             // Devolver la respuesta original del login
@@ -96,7 +95,6 @@ export class AuthService {
         access_level_id: user.access_level_id
       };
       localStorage.setItem(this.USER_KEY, JSON.stringify(basicUserInfo));
-      console.log('Información básica del usuario guardada en localStorage:', basicUserInfo);
     } catch (error) {
       console.error('Error al guardar usuario:', error);
     }

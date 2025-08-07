@@ -105,16 +105,21 @@ export class ReportsComponent implements OnInit {
       exportFormat: 'pdf'
     };
 
-    // Opciones para los dropdowns
-    reportTypes = [
+    // Opciones base para los dropdowns (sin Historial de Recorrido)
+    private baseReportTypes = [
       { label: 'Reporte de Movimientos', value: 'movements', icon: 'pi pi-map' },
       { label: 'Reporte de Paradas', value: 'stops', icon: 'pi pi-pause' },
       { label: 'Reporte de Velocidad', value: 'speed', icon: 'pi pi-clock' },
       { label: 'Reporte de Combustible', value: 'fuel', icon: 'pi pi-dollar' },
       { label: 'Reporte de Actividad', value: 'activity', icon: 'pi pi-chart-line' },
-      { label: 'Historial de Recorrido', value: 'route_history', icon: 'pi pi-map-marker' },
       { label: 'Reporte Detallado', value: 'detailed', icon: 'pi pi-list' }
     ];
+
+    // Historial de Recorrido (solo disponible con target en URL)
+    private routeHistoryType = { label: 'Historial de Recorrido', value: 'route_history', icon: 'pi pi-map-marker' };
+
+    // Opciones dinámicas mostradas en el dropdown
+    reportTypes: any[] = [];
 
     exportFormats = [
       { label: 'PDF', value: 'pdf', icon: 'pi pi-file-pdf' },
@@ -208,6 +213,9 @@ export class ReportsComponent implements OnInit {
       // Inicializar fechas por defecto
       this.initializeDateRange();
       
+      // Inicializar tipos de reportes básicos (sin Historial de Recorrido)
+      this.updateAvailableReportTypes(false);
+      
       this.loadTargets();
       
       // Capturar targetId de la URL si existe (parámetro de ruta)
@@ -215,6 +223,7 @@ export class ReportsComponent implements OnInit {
         const targetId = params['targetId'];
         if (targetId) {
           this.targetIdFromUrl = targetId; // Almacenar el target ID de la ruta
+          this.updateAvailableReportTypes(true); // Habilitar Historial de Recorrido
           this.preselectTarget(targetId);
         }
       });
@@ -226,6 +235,7 @@ export class ReportsComponent implements OnInit {
         
         if (target) {
           this.targetIdFromUrl = target; // Almacenar el target ID de la URL
+          this.updateAvailableReportTypes(true); // Habilitar Historial de Recorrido
           this.preselectTarget(target);
         }
         
@@ -252,6 +262,24 @@ export class ReportsComponent implements OnInit {
         });
       } finally {
         this.loading = false;
+      }
+    }
+
+    /**
+     * Actualizar tipos de reportes disponibles según si hay target en URL
+     */
+    private updateAvailableReportTypes(hasTargetInUrl: boolean): void {
+      if (hasTargetInUrl) {
+        // Incluir Historial de Recorrido cuando hay target en URL
+        this.reportTypes = [...this.baseReportTypes, this.routeHistoryType];
+      } else {
+        // Solo tipos básicos sin Historial de Recorrido
+        this.reportTypes = [...this.baseReportTypes];
+        
+        // Si el tipo actual es route_history y ya no está disponible, resetear
+        if (this.reportFilter.reportType === 'route_history') {
+          this.reportFilter.reportType = 'movements'; // Cambiar a un tipo disponible
+        }
       }
     }
 
@@ -385,6 +413,17 @@ export class ReportsComponent implements OnInit {
     }
 
     onReportTypeChange(): void {
+      // Verificar si se está intentando seleccionar Historial de Recorrido sin target en URL
+      if (this.reportFilter.reportType === 'route_history' && !this.targetIdFromUrl) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Opción no disponible',
+          detail: 'El Historial de Recorrido solo está disponible cuando se accede con un dispositivo específico desde la URL'
+        });
+        this.reportFilter.reportType = 'movements'; // Resetear a un tipo válido
+        return;
+      }
+
       // Resetear ciertos filtros según el tipo de reporte
       switch (this.reportFilter.reportType) {
         case 'stops':
@@ -521,11 +560,7 @@ export class ReportsComponent implements OnInit {
      */
     private adjustDatesWithProtocolOffset(fromDate: string | undefined, toDate: string | undefined): { fromDate: string | undefined, toDate: string | undefined } {
       if (!this.targetProtocol || this.targetProtocol.utcOffset === undefined || this.targetProtocol.utcOffset === null) {
-        console.log('📅 Sin protocolo o sin utcOffset - fechas sin ajustar:', {
-          fromDate,
-          toDate,
-          protocol: this.targetProtocol?.name || 'sin protocolo'
-        });
+     
         return { fromDate, toDate };
       }
 
@@ -562,11 +597,7 @@ export class ReportsComponent implements OnInit {
         const protocolId = target?.type;
         
         if (!protocolId) {
-          console.log('PROTO ⚠️ Target no tiene protocolo asignado:', {
-            targetId: target._id,
-            targetName: target.name || target.alias,
-            type: target.type
-          });
+       
           return;
         }
 
@@ -576,10 +607,9 @@ export class ReportsComponent implements OnInit {
         const protocol = await this.protocolsService.getProtocolById(protocolId).toPromise();
         
         if (!protocol) {
-          console.log('PROTO ⚠️ No se pudo obtener el protocolo:', protocolId);
           return;
         }
-      
+        
 
         // Almacenar el protocolo para usar en el componente del mapa
         this.targetProtocol = protocol;
@@ -675,10 +705,7 @@ export class ReportsComponent implements OnInit {
           adjustedDates.toDate
         );
         
-        console.log('Historial de rutas cargado:', {
-          totalPositions: this.routeHistory.totalPositions,
-          positionsCount: this.routeHistory.positions.length
-        });
+      
         
       } catch (error) {
         console.error('Error cargando historial de rutas:', error);
@@ -883,7 +910,7 @@ export class ReportsComponent implements OnInit {
           };
           this.progressiveLoading.totalPositionsLoaded = this.routeHistory.positions.length;
           
-       
+          
           // Marcar que la reproducción debería iniciar automáticamente
           this.progressiveLoading.replayStarted = true;
           

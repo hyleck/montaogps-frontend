@@ -211,10 +211,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Si cambió de móvil a escritorio y hay target seleccionado, asegurar que maps esté visible
     if (previousMobileView && !this.isMobileView && this.selectedTargetForMap && !this.uiService.areMapsVisible()) {
       this.uiService.toggleMaps();
-      console.log('📱 Cambiando a escritorio con target seleccionado - activando mapas');
     }
     
-    console.log('📱 Vista móvil:', this.isMobileView ? 'ACTIVADA' : 'DESACTIVADA', `(${window.innerWidth}px)`);
   }
 
   hideMobileMapFullscreen(): void {
@@ -224,12 +222,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Solo cambiar el estado de pantalla completa, no ocultar los mapas completamente
     
     this.cdr.detectChanges(); // Forzar detección de cambios
-    console.log('📱 Volviendo a lista desde mapa móvil:', {
-      showMaps: this.showMaps,
-      showMobileMapFullscreen: this.showMobileMapFullscreen,
-      areMapsVisible: this.uiService.areMapsVisible(),
-      mapDisplayStyle: this.mapDisplayStyle
-    });
+  
   }
 
   get mapDisplayStyle(): string {
@@ -279,12 +272,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const userChanged = currentUserId !== this.selectedUser._id;
       
       if (hasNoTargets || userChanged) {
-        console.log('🔄 Cambiando a pestaña targets - necesita cargar datos');
         this.targetsLoadCompletedFlag = false; // Solo aquí, cuando realmente se van a cargar datos
         this.loadTargetsForUser(this.selectedUser._id);
-      } else {
-        console.log('✅ Targets ya cargados para este usuario - no recargando');
-      }
+      } 
     }
     
     // Si cambia a usuarios, verificar si necesita cargar datos
@@ -293,10 +283,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const userChanged = currentUserId !== this.selectedUser._id;
       
       if (hasNoUsers || userChanged) {
-        console.log('🔄 Cambiando a pestaña usuarios - necesita cargar datos');
         this.loadUsersForUser(this.selectedUser._id);
-      } else {
-        console.log('✅ Usuarios ya cargados para este usuario - no recargando');
       }
     }
   }
@@ -361,35 +348,22 @@ export class ManagementComponent implements OnInit, OnDestroy {
   onMapProviderChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
     const value = target.value;
-    console.log('🔄 Map provider change event:', value);
     this.setMapProvider(value);
   }
   
   async setMapProvider(value: string): Promise<void> {
-    console.log('🎛️ Management: setMapProvider llamado con valor:', value);
-    console.log('🎛️ Management: Estado actual del servicio:', {
-      selectedMap: this.mapProviderService.selectedMap,
-      providerType: this.mapProviderService.providerType,
-      mapsKey: this.mapProviderService.mapsKey
-    });
+ 
     
     const newKey = await this.mapProviderService.changeProviderWithRecreation(value);
     
-    console.log('🎛️ Management: Cambio completado, nueva key:', newKey);
-    console.log('🎛️ Management: Nuevo estado del servicio:', {
-      selectedMap: this.mapProviderService.selectedMap,
-      providerType: this.mapProviderService.providerType,
-      mapsKey: this.mapProviderService.mapsKey
-    });
+  
     
     // Forzar detección de cambios
     this.cdr.detectChanges();
-    console.log('🔄 Change detection forzada');
   }
 
   // Método para manejar cambios del ngModel
   onMapSelectionChange(value: string): void {
-    console.log('🔄 Map selection changed to:', value);
     this.setMapProvider(value);
   }
 
@@ -407,7 +381,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   onHideUserForm() {
-    console.log('🔄 onHideUserForm ejecutado');
     this.uiService.hideUserForm();
     this.userToEdit = null;
   }
@@ -439,14 +412,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   
   async showTargetForm(target?: any) {
-    console.log('📝 Target recibido para editar:', target);
     this.targetToEdit = target || null;
-    console.log('📝 targetToEdit asignado:', this.targetToEdit);
     this.uiService.showTargetForm();
   }
 
   onHideTargetForm() {
-    console.log('🔄 onHideTargetForm ejecutado');
     this.uiService.hideTargetForm();
     this.targetToEdit = null;
   }
@@ -456,7 +426,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.targetToEdit = null;
     
     if (this.selectedUser) {
-      console.log('🔄 Recargando targets después de crear/editar');
       this.loadTargetsForUser(this.selectedUser._id);
     }
   }
@@ -473,7 +442,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.stopPolling();
         this.selectedTargetForMap = target;
         this.startPolling();
-        console.log('🔄 Cambiado polling a nuevo target:', target.name);
       }
 
       // En vista móvil, mostrar el mapa en pantalla completa
@@ -481,17 +449,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
         // Asegurar que los mapas estén visibles
         if (!this.uiService.areMapsVisible()) {
           this.uiService.toggleMaps();
-          console.log('📱 Activando vista de mapas para móvil');
         }
         
         this.showMobileMapFullscreen = true;
         this.cdr.detectChanges(); // Forzar detección de cambios
-        console.log('📱 Activando mapa pantalla completa para móvil:', {
-          target: target.name,
-          showMaps: this.showMaps,
-          showMobileMapFullscreen: this.showMobileMapFullscreen,
-          areMapsVisible: this.uiService.areMapsVisible()
-        });
+     
         
 
       }
@@ -509,7 +471,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
           queryParamsHandling: 'merge' // Mantener otros query params existentes
         }
       );
-      console.log(`🎯 Target agregado a URL: ${target.name} (ID: ${target._id})`);
     }
   }
 
@@ -524,7 +485,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
           queryParamsHandling: 'merge' // Mantener otros query params existentes
         }
       );
-      console.log('🚫 Parámetro target removido de la URL');
     }
   }
 
@@ -593,19 +553,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const currentQueryParams = this.route.snapshot.queryParams;
       const queryString = new URLSearchParams(currentQueryParams).toString();
       const newUrl = `/admin/management/${currentOp}/${parentId}${queryString ? '?' + queryString : ''}`;
-      
-      console.log('👤 Abriendo usuario padre en nueva pestaña:', {
-        targetName: target.name || target.alias,
-        currentUserId: this.getCurrentUserId(),
-        parentId: parentId,
-        currentOp: currentOp,
-        newUrl: newUrl,
-        foundIn: target.parent_id ? 'target.parent_id' : 
-                target.parentId ? 'target.parentId' : 
-                target.user_id ? 'target.user_id' :
-                originalTarget.parent_id ? 'originalTarget.parent_id' :
-                originalTarget.parentId ? 'originalTarget.parentId' : 'originalTarget.user_id'
-      });
+  
       
       // Abrir en nueva pestaña manteniendo todos los parámetros
       window.open(newUrl, '_blank');
@@ -626,7 +574,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const userId = this.route.snapshot.params['user'];
     
     // Log simplificado para debugging
-    console.log('🔍 getCurrentUserId:', userId || this.selectedUser?._id);
     
     // Si no hay userId en params, intentar desde selectedUser
     return userId || this.selectedUser?._id || null;
@@ -646,13 +593,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
                           originalTarget.parent_id || originalTarget.parentId || originalTarget.user_id;
     
     // Log simplificado para debugging cuando sea necesario
-    if (targetParentId && targetParentId !== currentUserId) {
-      console.log('👤 Target de otro usuario detectado:', {
-        targetName: target.name || target.alias || target._id,
-        targetParentId: targetParentId,
-        currentUserId: currentUserId
-      });
-    }
+  
     
     return !!(targetParentId && currentUserId && targetParentId !== currentUserId);
   }
@@ -714,14 +655,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
           } else {
             // Realizar búsqueda
             this.isSearchingUsers = true;
-            console.log('🔍 Buscando usuarios:', searchTerm);
             return this.userService.search(searchTerm, this.selectedUser?._id);
           }
         })
       ).subscribe({
         next: (users) => {
           this.users = users;
-          console.log(`✅ ${this.isSearchingUsers ? 'Búsqueda' : 'Carga normal'} completada:`, users.length, 'usuarios');
         },
         error: (error) => {
           console.error('❌ Error en búsqueda de usuarios:', error);
@@ -752,7 +691,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
           } else {
             // Realizar búsqueda
             this.isSearchingTargets = true;
-            console.log('🔍 Buscando targets:', searchTerm);
       const parentId = this.managementService.getCurrentUserId();
             return this.targetsService.searchTargets(searchTerm, parentId);
           }
@@ -782,7 +720,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
             this.targetsList = [];
           }
           
-          console.log(`✅ ${this.isSearchingTargets ? 'Búsqueda' : 'Carga normal'} de targets completada:`, targets.length, 'targets');
           
           // Actualizar estado de polling después de búsqueda/carga
           this.initializePreviousTargetsStatus();
@@ -847,14 +784,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
     
     // Solo cargar datos del usuario si realmente cambió
     if (newUserId && newUserId !== currentSelectedUserId) {
-      console.log('🔄 Usuario cambió en ruta - cargando datos del nuevo usuario');
       this.loadUserFromParams(newUserId);
     } else if (!newUserId && !this.selectedUser) {
-      console.log('🔄 No hay usuario en ruta y no hay usuario seleccionado - cargando desde estado/usuario actual');
       this.loadUserFromState(currentUser);
-    } else {
-      console.log('✅ Usuario no cambió - manteniendo datos actuales');
-    }
+    } 
     
     this.managementService.verifyURLStatus(params);
   }
@@ -868,27 +801,23 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
     // Si hay un parámetro 'target' en la URL, mostrar automáticamente los mapas y seleccionar el target
     if (queryParams['target']) {
-      console.log('🗺️ Parámetro target detectado en URL - mostrando mapas automáticamente:', queryParams['target']);
       this.uiService.showMaps();
       this.selectTargetFromUrl(queryParams['target']);
       
       // Si estamos en móvil, activar también el mapa en pantalla completa
       if (this.isMobileView) {
         this.showMobileMapFullscreen = true;
-        console.log('📱 Target desde URL en móvil - activando mapa pantalla completa');
       }
     } else {
       // Si no hay target en la URL, limpiar la selección y detener polling
       this.targetIdFromUrl = null;
       this.selectedTargetForMap = null;
       this.stopPolling();
-      console.log('🚫 No hay target en URL - polling detenido');
     }
   }
 
   private selectTargetFromUrl(targetId: string): void {
     this.targetIdFromUrl = targetId;
-    console.log('🎯 Seleccionando target desde URL:', targetId);
     
     // Si ya tenemos la lista de targets cargada, seleccionar inmediatamente
     if (this.targetsList && this.targetsList.length > 0) {
@@ -904,7 +833,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.stopPolling();
       
       this.selectedTargetForMap = target;
-      console.log('✅ Target seleccionado desde URL:', target.name);
       
       // Iniciar polling para el nuevo target seleccionado
       this.startPolling();
@@ -964,7 +892,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private loadUsersForUser(userId: string): void {
     // Si hay un término de búsqueda activo, usar la búsqueda en lugar de cargar todos
     if (this.searchUsersTerm && this.searchUsersTerm.trim() !== '') {
-      console.log('🔍 Hay término de búsqueda activo, ejecutando búsqueda:', this.searchUsersTerm);
       this.searchUsersSubject.next(this.searchUsersTerm);
     } else {
       // Cargar todos los usuarios normalmente
@@ -984,7 +911,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private async loadTargetsForUser(userId: string) {
     // Si hay un término de búsqueda activo, usar la búsqueda en lugar de cargar todos
     if (this.searchTargetsTerm && this.searchTargetsTerm.trim() !== '') {
-      console.log('🔍 Hay término de búsqueda de targets activo, ejecutando búsqueda:', this.searchTargetsTerm);
       this.searchTargetsSubject.next(this.searchTargetsTerm);
       return;
     }
@@ -992,7 +918,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     try {
       // Activar estado de carga específico para targets
       
-      console.log('🔄 Iniciando carga de targets...');
       
       const parentId = this.managementService.getCurrentUserId();
       this.loadingTargets = true;
@@ -1036,7 +961,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.findAndSelectTarget(this.targetIdFromUrl);
       }
       
-      console.log('✅ Carga de targets completada exitosamente');
       
     } catch (error) {
       console.error('❌ Error al cargar objetivos:', error);
@@ -1049,7 +973,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Desactivar estado de carga específico para targets
       this.loadingTargets = false;
       this.targetsLoadCompletedFlag = true;
-      console.log('🏁 Estado de carga de targets desactivado');
     }
   }
 
@@ -1086,7 +1009,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.targetsList.forEach(target => {
       this.previousTargetsStatus.set(target._id, target.traccarStatus || 'offline');
     });
-    console.log('📊 Estado inicial de targets:', this.previousTargetsStatus);
   }
   
   private startPolling(): void {
@@ -1099,7 +1021,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
         `target ${this.selectedTargetForMap.name} y status de todos` : 
         'status de todos los targets';
       
-      console.log('🔄 Iniciando polling para:', pollingType);
       
       this.pollingInterval = setInterval(async () => {
         await this.updateSelectedTargetData();
@@ -1112,7 +1033,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
   
   private stopPolling(): void {
     if (this.pollingInterval) {
-      console.log('⏹️ Deteniendo polling');
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
     }
@@ -1148,7 +1068,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
       }
       
       logMessage += 'status de todos los targets';
-      console.log(logMessage);
       
       // 2. Actualizar status de TODOS los targets
       await this.updateAllTargetsStatusInPolling();
@@ -1169,7 +1088,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
         summary.selectedTarget = selectedTargetName;
       }
       
-      console.log('✅ Polling completado:', summary);
       
     } catch (error) {
       console.error('❌ Error en polling:', error);
@@ -1204,10 +1122,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           
           // Especialmente importante: cambios a offline
           if (newStatus === 'offline') {
-            console.log(`📴 Target ${updatedTarget.name} cambió a OFFLINE (era ${previousStatus})`);
             offlineChangesDetected++;
           } else if (previousStatus === 'offline' && newStatus === 'online') {
-            console.log(`📶 Target ${updatedTarget.name} cambió a ONLINE`);
             
             // Mostrar mensaje cuando un target pasa a online
             this.messageService.add({
@@ -1239,7 +1155,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
           
           // IMPORTANTE: Actualizar selectedTargetForMap si este target es el que está seleccionado
           if (this.selectedTargetForMap && this.selectedTargetForMap._id === targetId) {
-            console.log(`🗺️ Actualizando status del target seleccionado en mapa: ${updatedTarget.name} → ${newStatus}`);
             
             const previousTraccarStatus = this.selectedTargetForMap.traccarStatus;
             this.selectedTargetForMap = {
@@ -1251,12 +1166,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
               traccarStatus: newStatus
             };
             
-            console.log(`🎯 selectedTargetForMap actualizado:`, {
-              name: this.selectedTargetForMap.name,
-              previousStatus: previousTraccarStatus,
-              newTraccarStatus: this.selectedTargetForMap.traccarStatus,
-              traccarInfoStatus: this.selectedTargetForMap.traccarInfo?.status
-            });
+        
           }
         }
         
@@ -1265,23 +1175,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       });
       
              // Log de resultados (solo si hay cambios para evitar spam)
-       if (statusChanges.length > 0) {
-         console.log(`🔄 ${statusChanges.length} cambios de status en polling:`);
-         statusChanges.forEach(change => console.log(`  - ${change}`));
-         
-         if (offlineChangesDetected > 0) {
-           console.log(`🔴 ${offlineChangesDetected} targets cambiaron a OFFLINE`);
-         }
-         
-         // Log del target seleccionado actual para verificar
-         if (this.selectedTargetForMap) {
-           console.log(`🗺️ Target seleccionado en mapa:`, {
-             name: this.selectedTargetForMap.name,
-             traccarStatus: this.selectedTargetForMap.traccarInfo?.status,
-             localTraccarStatus: this.selectedTargetForMap.traccarStatus
-           });
-         }
-       }
+   
       
     } catch (error) {
       console.error('❌ Error actualizando status en polling:', error);
