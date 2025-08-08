@@ -68,7 +68,21 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     target: TargetDevice = this.getEmptyTarget();
     activeTabIndex: number = 0;
-    displayColorName: string = '';
+    private _displayColorName: string = '';
+    get displayColorName(): string { return this._displayColorName; }
+    set displayColorName(value: string) {
+        const normalized = (value || '').toLowerCase();
+        this._displayColorName = normalized;
+        if (normalized) {
+            this.filteredColors = this.availableColors.filter(color => 
+                color.label.toLowerCase().includes(normalized) || 
+                color.value.toLowerCase().includes(normalized)
+            );
+        } else {
+            this.filteredColors = [...this.availableColors];
+            this.target.target_color = '';
+        }
+    }
     showColorOptions: boolean = true;
     isLoading: boolean = false;
     
@@ -105,7 +119,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     processForm = {
         type: '',
         registrationDate: '',
-        description: ''
+        description: '',
+        newPlan: '',
+        newPrice: null
     };
     
     // Mapeo de tipos de proceso a números
@@ -113,12 +129,23 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         'installation': 1,
         'maintenance': 2,
         'replacement': 3,
-        'check': 4
+        'check': 4,
+        'plan_change': 5
     };
 
     // Lista de procesos del target actual
     processList: ProcessResponse[] = [];
     isLoadingProcesses: boolean = false;
+    displayProcessesDialog: boolean = false;
+    expandedProcessIndex: number | null = null;
+    // Personalización de precio para CAMBIO DE PLAN (proceso)
+    displayProcessPriceDialog = false;
+    processCustomPrice: { id: string; amount: number; payment_period: string } = {
+        id: CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX + new Date().getTime(),
+        amount: 0,
+        payment_period: CUSTOM_PRICE_CONFIG.DEFAULT_PAYMENT_PERIOD
+    };
+    processOriginalPlanPrice: { id: string; amount: number; payment_period: string } | null = null;
     selectedProtocol: Protocol | null = null;
     pendingGpsModel: string = ''; // GPS model a asignar después de cargar protocolos
     
@@ -185,6 +212,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.target = this.getEmptyTarget();
         this.activeTabIndex = 0;
         // El estado del dispositivo se obtiene desde traccarInfo.status
+        // Establecer fecha actual por defecto para el proceso
+        if (!this.processForm.registrationDate) {
+            this.processForm.registrationDate = this.getTodayInputDate();
+        }
     }
 
     private async loadInitialData() {
@@ -968,7 +999,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
     }
 
-    filterColors(event: Event) {
+    private getTodayInputDate(): string {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    filterColors(event: any) {
         const target = event.target as HTMLInputElement;
         const value = target.value.toLowerCase();
         this.displayColorName = value;
@@ -985,6 +1024,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         // No necesitamos cambiar showColorOptions ya que siempre está visible
     }
+    
+    // Removed explicit input handler in favor of ngModel setter
     
     selectColor(color: { label: string, value: string }) {
         this.target.target_color = color.value;
@@ -1727,11 +1768,48 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 return;
             }
 
-                    // Preparar los datos del proceso
+            // Validaciones específicas para cambio de plan
+            if (this.processForm.type === 'plan_change') {
+                if (!this.processForm.newPlan) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe seleccionar un nuevo plan'
+                    });
+                    return;
+                }
+
+                if (!this.processForm.newPrice) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe seleccionar un precio para el nuevo plan'
+                    });
+                    return;
+                }
+            }
+
+            // Construir detalles automáticos si aplica
+            const currentUser = this.authService.getCurrentUser();
+            const userName = currentUser?.name || currentUser?.email || 'Usuario';
+            const targetName = this.target.name || this.target.device_imei || 'dispositivo';
+            let autoDetails = '';
+            if (this.processForm.type === 'plan_change') {
+                const newPlanObj = this.availablePlans.find(p => p.value === this.processForm.newPlan);
+                const newPlanName = newPlanObj?.label || 'nuevo plan';
+                const currentPlanId = typeof this.target.plan === 'string' ? this.target.plan : (this.target.plan as any)?.id_plan || '';
+                const currentPlanObj = this.availablePlans.find(p => p.value === currentPlanId);
+                const currentPlanName = currentPlanObj?.label || 'plan actual';
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha cambiado el plan del dispositivo ${targetName} de ${currentPlanName} a ${newPlanName}${reason}.`;
+            }
+
+            // Preparar los datos del proceso
         const processData: CreateProcessDto = {
             type: this.processTypeMap[this.processForm.type] || 1, // Convertir string a number
             registrationDate: this.processForm.registrationDate,
             description: this.processForm.description || '',
+                details: autoDetails || undefined,
             target: {
                 _id: this.target._id,
                 name: this.target.name,
@@ -1758,6 +1836,130 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
             // Enviar el proceso al servidor
             const response = await this.targetsService.createProcess(processData);
+
+            // Si es un cambio de plan, actualizar el target con el nuevo plan
+            if (this.processForm.type === 'plan_change') {
+                try {
+                    // Preparar datos completos del target para la actualización
+                    const updateData: UpdateTargetDto = {
+                        name: this.target.name,
+                        device_imei: this.target.device_imei,
+                        type: this.target.type,
+                        sim_card_number: this.target.sim_card_number,
+                        sim_company: this.target.sim_company,
+                        description: this.target.description,
+                        target_plate_number: this.target.target_plate_number,
+                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
+                        target_year: this.target.target_year,
+                        installation_location: this.target.installation_location,
+                        target_brand_id: this.target.target_brand_id,
+                        target_model_id: this.target.target_model_id,
+                        target_color: this.target.target_color,
+                        target_chassis_number: this.target.target_chassis_number,
+                        activation_date: this.target.activation_date,
+                        expiration_date: this.target.expiration_date,
+                        last_change_date: new Date(),
+                        gps_model: this.target.gps_model,
+                        ignition_sensor: this.target.ignition_sensor,
+                        shutdown_control: this.target.shutdown_control,
+                        engine_shutdown: this.target.engine_shutdown,
+                        installation_details: this.target.installation_details,
+                        status: this.target.status,
+                        canceled: this.target.canceled,
+                        delete: this.target['delete'],
+                        index: this.target.index,
+                        // Estructurar el plan como objeto según requiere el backend
+                        plan: {
+                            id_plan: this.processForm.newPlan,
+                            selected_price: {
+                                id: (this.processForm.newPrice as any)?.id || '',
+                                amount: (this.processForm.newPrice as any)?.amount || 0,
+                                payment_period: (this.processForm.newPrice as any)?.payment_period || ''
+                            }
+                        },
+                        selectedPrice: this.processForm.newPrice as any,
+                        creator_id: this.target.creator_id,
+                        parent_id: this.target.parent_id,
+                        user_id: this.target.user_id
+                    };
+
+                    await this.targetsService.updateTarget(this.target._id, updateData);
+                    
+                    // Actualizar el objeto target local y UI principal
+                    this.target.plan = this.processForm.newPlan;
+                    this.target.selectedPrice = this.processForm.newPrice as any;
+
+                    // Refrescar precios del plan en el formulario real y recalcular expiración
+                    if (typeof this.target.plan === 'string' && this.target.plan) {
+                        const currentSelectedFromProcess: any = this.processForm.newPrice;
+                        this.plansService.getPlanById(this.target.plan)
+                            .pipe(takeUntil(this.destroy$))
+                            .subscribe({
+                                next: (plan: Plan) => {
+                                    this.availablePrices = plan.prices.map(price => ({
+                                        id: price.id,
+                                        amount: price.amount,
+                                        payment_period: typeof price.payment_period === 'string' ? price.payment_period : this.mapPeriodToString(price.payment_period)
+                                    }));
+
+                                    // Alinear el objeto seleccionado con la lista refrescada preservando el monto personalizado
+                                    const matched = this.availablePrices.find(p => p.id === currentSelectedFromProcess?.id);
+                                    if (matched) {
+                                        if (currentSelectedFromProcess && currentSelectedFromProcess.amount !== matched.amount) {
+                                            const custom = {
+                                                ...matched,
+                                                amount: currentSelectedFromProcess.amount,
+                                                originalAmount: matched.amount
+                                            } as any;
+                                            // Reemplazar en la lista para reflejar el personalizado
+                                            const idx = this.availablePrices.findIndex(p => p.id === matched.id);
+                                            if (idx >= 0) {
+                                                (this.availablePrices as any)[idx] = custom;
+                                            }
+                                            this.target.selectedPrice = custom;
+                                        } else {
+                                            this.target.selectedPrice = matched as any;
+                                        }
+                                    } else if (currentSelectedFromProcess) {
+                                        // No existe en plan (caso custom puro), insertarlo al inicio
+                                        const custom = {
+                                            id: currentSelectedFromProcess.id,
+                                            amount: currentSelectedFromProcess.amount,
+                                            payment_period: currentSelectedFromProcess.payment_period,
+                                            originalAmount: 0
+                                        } as any;
+                                        this.availablePrices = [custom as any, ...this.availablePrices];
+                                        this.target.selectedPrice = custom;
+                                    }
+                                    this.updateExpirationDate();
+                                },
+                                error: () => {
+                                    this.updateExpirationDate();
+                                }
+                            });
+                    } else {
+                        this.updateExpirationDate();
+                    }
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Plan actualizado',
+                        detail: 'El plan del target ha sido actualizado exitosamente'
+                    });
+                } catch (updateError) {
+                    console.error('Error al actualizar el plan del target:', updateError);
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Proceso creado con advertencia',
+                        detail: 'El proceso fue registrado pero no se pudo actualizar el plan del target'
+                    });
+
+                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
+                    this.target.plan = this.processForm.newPlan;
+                    this.target.selectedPrice = this.processForm.newPrice as any;
+                    this.updateExpirationDate();
+                }
+            }
 
             // Mostrar mensaje de éxito
             this.messageService.add({
@@ -1786,9 +1988,226 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private resetProcessForm(): void {
         this.processForm = {
             type: '',
-            registrationDate: '',
-            description: ''
+            registrationDate: this.getTodayInputDate(),
+            description: '',
+            newPlan: '',
+            newPrice: null
         };
+    }
+
+    // Método para cargar planes filtrados por el mismo servidor del plan actual
+    async loadFilteredPlansForProcess(): Promise<void> {
+        if (!this.target.plan) {
+            return;
+        }
+
+        try {
+            // Obtener el plan actual para conocer su server_id
+            const currentPlanId = typeof this.target.plan === 'string' ? this.target.plan : 
+                                (this.target.plan as any).id_plan || '';
+            
+            if (!currentPlanId) {
+                return;
+            }
+
+            // Obtener información del plan actual
+            this.plansService.getPlanById(currentPlanId).subscribe({
+                next: (currentPlan: Plan) => {
+                    // Obtener todos los planes
+                    this.plansService.getAllPlans().subscribe({
+                        next: (allPlans: Plan[]) => {
+                            // Filtrar planes que tengan el mismo server_id que el plan actual
+                            const filteredPlans = allPlans.filter(plan => 
+                                plan.server_id === currentPlan.server_id
+                            );
+
+                            // Actualizar la lista de planes disponibles para el proceso
+                            this.availablePlans = filteredPlans.map(plan => ({
+                                label: plan.plan_name,
+                                value: plan._id
+                            })).sort((a, b) => a.label.localeCompare(b.label));
+                        },
+                        error: (error) => {
+                            console.error('Error al cargar todos los planes:', error);
+                            this.messageService.add({
+                                severity: 'error',
+                                summary: 'Error',
+                                detail: 'No se pudieron cargar los planes disponibles'
+                            });
+                        }
+                    });
+                },
+                error: (error) => {
+                    console.error('Error al obtener el plan actual:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo obtener información del plan actual'
+                    });
+                }
+            });
+        } catch (error) {
+            console.error('Error al filtrar planes por servidor:', error);
+        }
+    }
+
+    // Método para manejar el cambio de plan en el proceso
+    async onProcessPlanChange() {
+        if (this.processForm.newPlan && typeof this.processForm.newPlan === 'string' && this.processForm.newPlan !== '') {
+            try {
+                // Resetear el precio seleccionado temporalmente
+                this.processForm.newPrice = null;
+                
+                // Cargar el plan completo con sus precios
+                this.plansService.getPlanById(this.processForm.newPlan).subscribe({
+                    next: (plan: Plan) => {
+                        // Asegurar que los períodos de pago sean strings
+                        this.availablePrices = plan.prices.map(price => {
+                            return {
+                                id: price.id,
+                                amount: price.amount,
+                                payment_period: typeof price.payment_period === 'string' ? 
+                                    price.payment_period : 
+                                    this.mapPeriodToString(price.payment_period)
+                            };
+                        });
+                        // Reset de personalización al cambiar de plan
+                        this.processCustomPrice = {
+                            id: CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX + new Date().getTime(),
+                            amount: 0,
+                            payment_period: CUSTOM_PRICE_CONFIG.DEFAULT_PAYMENT_PERIOD
+                        };
+                        this.processOriginalPlanPrice = null;
+                    },
+                    error: (error) => {
+                        console.error('Error al cargar los precios del plan para el proceso:', error);
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: 'No se pudieron cargar los precios del plan'
+                        });
+                        this.availablePrices = [];
+                    }
+                });
+            } catch (error) {
+                console.error('Error al cambiar de plan en el proceso:', error);
+                this.availablePrices = [];
+            }
+        } else {
+            // Si no hay plan seleccionado, vaciar los precios
+            this.availablePrices = [];
+            this.processForm.newPrice = null;
+        }
+    }
+
+    // Método para manejar el cambio de tipo de proceso
+    onProcessTypeChange(): void {
+        // Si se selecciona cambio de plan, cargar planes filtrados por servidor
+        if (this.processForm.type === 'plan_change') {
+            this.loadFilteredPlansForProcess();
+        }
+        
+        // Limpiar campos relacionados cuando se cambia el tipo
+        this.processForm.newPlan = '';
+        this.processForm.newPrice = null;
+        this.availablePrices = [];
+    }
+
+    // Método para manejar el cambio de precio en el proceso
+    onProcessPriceChange(): void {
+        // Validar que se haya seleccionado un precio válido
+        if (this.processForm.newPrice) {
+            console.log('Precio seleccionado para el proceso:', this.processForm.newPrice);
+        }
+    }
+
+    // ========= Personalización de precio en CAMBIO DE PLAN ========= //
+    startProcessCustomPriceEdit(): void {
+        if (this.processForm.newPrice && this.processForm.newPlan) {
+            // Tomar valores base del precio seleccionado actualmente
+            this.processCustomPrice = {
+                id: (this.processForm.newPrice as any).id,
+                amount: (this.processForm.newPrice as any).amount,
+                payment_period: (this.processForm.newPrice as any).payment_period
+            };
+
+            // Cargar precio original desde el plan seleccionado para mostrar en modal
+            this.plansService.getPlanById(this.processForm.newPlan).subscribe({
+                next: (plan: Plan) => {
+                    const original = plan.prices.find(p => p.id === (this.processForm.newPrice as any)?.id);
+                    if (original) {
+                        this.processOriginalPlanPrice = {
+                            id: original.id,
+                            amount: original.amount,
+                            payment_period: typeof original.payment_period === 'string' ?
+                                original.payment_period : this.mapPeriodToString(original.payment_period)
+                        };
+                    } else {
+                        this.processOriginalPlanPrice = null;
+                    }
+                },
+                error: () => {
+                    this.processOriginalPlanPrice = null;
+                }
+            });
+        } else {
+            // Si no hay precio seleccionado aún, iniciar con valores por defecto
+            this.processCustomPrice = {
+                id: CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX + new Date().getTime(),
+                amount: 0,
+                payment_period: CUSTOM_PRICE_CONFIG.DEFAULT_PAYMENT_PERIOD
+            };
+            this.processOriginalPlanPrice = null;
+        }
+
+        this.displayProcessPriceDialog = true;
+    }
+
+    applyProcessCustomPrice(): void {
+        if (!this.processCustomPrice || this.processCustomPrice.amount <= 0) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: this.translate('management.targetForm.invalidPrice')
+            });
+            return;
+        }
+
+        // Crear objeto de precio personalizado conservando el id
+        const customPriceObj: any = {
+            id: this.processCustomPrice.id,
+            amount: this.processCustomPrice.amount,
+            payment_period: this.processCustomPrice.payment_period,
+            originalAmount: this.processOriginalPlanPrice?.amount ?? (this.processForm.newPrice as any)?.originalAmount ?? 0
+        };
+
+        // Reemplazar/insertar en lista de precios actual del proceso (availablePrices en contexto del nuevo plan)
+        const existingIndex = this.availablePrices.findIndex(p => p.id === customPriceObj.id);
+        if (existingIndex >= 0) {
+            if (!(this.availablePrices[existingIndex] as any).originalAmount && this.processOriginalPlanPrice) {
+                customPriceObj.originalAmount = this.processOriginalPlanPrice.amount;
+            }
+            this.availablePrices[existingIndex] = customPriceObj;
+        } else {
+            // Insertar al inicio para mayor visibilidad; evita duplicar otros custom existentes
+            this.availablePrices = [customPriceObj, ...this.availablePrices.filter(p => !(p as any).id?.startsWith(CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX))];
+        }
+
+        // Seleccionar el precio personalizado en el formulario de proceso
+        this.processForm.newPrice = customPriceObj;
+
+        // Cerrar modal
+        this.displayProcessPriceDialog = false;
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: this.translate('management.targetForm.customPriceApplied')
+        });
+    }
+
+    cancelProcessCustomPrice(): void {
+        this.displayProcessPriceDialog = false;
     }
 
     // Método para cargar la lista de procesos del target actual
@@ -1810,6 +2229,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.processList.forEach(process => {
                 process.expanded = false;
             });
+            this.expandedProcessIndex = null;
 
         } catch (error) {
             console.error('Error al cargar procesos:', error);
@@ -1823,13 +2243,21 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
     }
 
+    // Abrir modal de historial de procesos
+    openProcessesDialog(): void {
+        this.displayProcessesDialog = true;
+        // Cargar o refrescar al abrir
+        this.loadProcessesList();
+    }
+
     // Método para obtener el nombre del tipo de proceso
     getProcessTypeName(type: number): string {
         const typeNames: { [key: number]: string } = {
             1: 'Instalación',
             2: 'Mantenimiento', 
             3: 'Reemplazo',
-            4: 'Chequeo'
+            4: 'Chequeo',
+            5: 'Cambio de Plan'
         };
         return typeNames[type] || `Tipo ${type}`;
     }
@@ -1858,9 +2286,27 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Método para alternar la expansión de un proceso
     toggleProcessExpansion(index: number): void {
-        if (this.processList[index]) {
-            this.processList[index].expanded = !this.processList[index].expanded;
+        if (!this.processList[index]) return;
+
+        // Si el mismo índice, colapsar
+        if (this.expandedProcessIndex === index) {
+            this.processList[index].expanded = false;
+            this.expandedProcessIndex = null;
+            return;
         }
+
+        // Cerrar el previamente abierto
+        if (this.expandedProcessIndex !== null && this.processList[this.expandedProcessIndex]) {
+            this.processList[this.expandedProcessIndex].expanded = false;
+        }
+
+        // Abrir el nuevo
+        this.processList[index].expanded = true;
+        this.expandedProcessIndex = index;
+    }
+
+    trackByProcess(index: number, process: ProcessResponse): string {
+        return process._id || String(index);
     }
 
     // Método para obtener el ícono según el tipo de proceso

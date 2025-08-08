@@ -440,6 +440,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Si el target es diferente al actual, cambiar selección y actualizar polling
       if (!this.selectedTargetForMap || this.selectedTargetForMap._id !== target._id) {
         this.stopPolling();
+        
+        // ✅ REINICIAR tiempo de parada cuando se cambia de target
+        this.selectedTargetStopTime = undefined;
+        
         this.selectedTargetForMap = target;
         this.startPolling();
       }
@@ -832,6 +836,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Detener polling anterior si existe
       this.stopPolling();
       
+      // ✅ REINICIAR tiempo de parada cuando se selecciona target desde URL
+      this.selectedTargetStopTime = undefined;
+      
       this.selectedTargetForMap = target;
       
       // Iniciar polling para el nuevo target seleccionado
@@ -868,6 +875,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.targetsList = [];
     this.targets = [];
     this.targetsLoadCompletedFlag = false;
+    
+    // ✅ REINICIAR tiempo de parada cuando se cambia de usuario
+    this.selectedTargetStopTime = undefined;
+    this.selectedTargetForMap = null;
+    
     this.loadUserPath(user._id);
     this.loadUsersForUser(user._id);
     this.loadTargetsForUser(user._id);

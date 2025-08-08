@@ -59,6 +59,35 @@
     margin-left: 0.25rem;
 }
 
+/* Iconos en labels (editar y ver precio original) */
+.edit-price-icon,
+.original-price-eye {
+    vertical-align: middle;
+}
+
+.original-price-eye {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-left: 6px;
+    border-radius: 50%;
+    border: 1px solid var(--globalColorBorderLight);
+    background: var(--globalColorInputBackground);
+    color: var(--managementColorTextUser);
+    opacity: 0.85;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.original-price-eye:hover {
+    border-color: var(--globalColorAccent);
+    color: var(--globalColorAccent);
+    background: var(--globalColorBackgroundLight);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
 /* Estilos para la sección de procesos */
 .process {
     display: flex;
@@ -1338,12 +1367,29 @@
     color: var(--managementColorTextUser);
 }
 
+/* Botón ver historial */
+.view-history-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--globalColorBorderLight);
+    background: var(--globalColorInputBackground);
+    color: var(--managementColorTextUser);
+    border-radius: 0.375rem;
+    cursor: pointer;
+}
+
+.view-history-btn:hover {
+    border-color: var(--globalColorAccent);
+}
+
 /* Contenedor de la lista */
 .process-list {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    max-height: 350px;
+    max-height: 60vh;
     overflow-y: auto;
 }
 
@@ -1491,11 +1537,21 @@
     background-color: rgba(107, 114, 128, 0.05);
     padding: 0.75rem;
     border-top: 1px solid var(--globalColorBorderLight);
+    will-change: height, opacity;
+}
+
+/* Estado colapsado: quitar padding/borde para evitar espacios extra con muchos ítems */
+.process-item:not(.expanded) .process-content {
+    padding: 0;
+    border-top: none;
+    height: 0;
+    opacity: 0;
+    overflow: hidden;
 }
 
 .process-details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 0.75rem;
 }
 

@@ -1,3 +1,5 @@
+import { User } from './user.interface';
+
 export interface TraccarInfo {
     status: 'online' | 'offline' | string;
     [key: string]: any; // Para otras propiedades que pueda tener traccarInfo
@@ -87,19 +89,31 @@ export interface UpdateTargetDto {
     target_model_id?: string | null;
     target_color?: string;
     target_chassis_number?: string;
-    activation_date?: Date;
-    expiration_date?: Date;
+    activation_date?: Date | string;
+    expiration_date?: Date | string;
     last_change_date?: Date;
     gps_model?: string | null;
     ignition_sensor?: string | null;
     shutdown_control?: string | null;
     engine_shutdown?: string | null;
     installation_details?: string;
-    status?: boolean;
+    status?: boolean | 'active' | 'inactive';
     canceled?: boolean;
     delete?: boolean;
     index?: string;
-    plan?: string | null;
+    plan?: string | {
+        id_plan: string;
+        selected_price: {
+            id: string;
+            amount: number;
+            payment_period: string | number;
+        }
+    } | null;
+    selectedPrice?: {
+        id: string;
+        amount: number;
+        payment_period: string | number;
+    } | null;
     creator_id?: string;
     parent_id?: string;
     user_id?: string;
@@ -204,6 +218,7 @@ export interface CreateProcessDto {
   type: number;
   registrationDate: string;
   description: string;
+  details?: string;
   target: object;
   user: object;
   reference: string;
@@ -217,6 +232,7 @@ export interface ProcessResponse {
   type: number;
   registrationDate: string;
   description: string;
+  details?: string;
   reference: string;
   target: {
     _id: string;
@@ -224,7 +240,7 @@ export interface ProcessResponse {
     device_imei: string;
     [key: string]: any;
   };
-  user: object;
+  user: User;
   before: object;
   after: object;
   creator: string;
