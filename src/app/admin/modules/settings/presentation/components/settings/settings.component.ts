@@ -24,6 +24,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     VehicleModelsSettingsDisplay: boolean = false;
     ProtocolsSettingsDisplay: boolean = false;
     HistorialesSettingsDisplay: boolean = false;
+    SectorsSettingsDisplay: boolean = false;
 
     // Estado del análisis de historiales
     isHistorialesAnalysisRunning: boolean = false;
@@ -63,9 +64,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
         {
             titleKey: 'settings.sectors.title',
             icon: 'pi pi-map',
-            route: '/admin/settings/sectors',
-            descriptionKey: 'settings.sectors.description',
-            disabled: true
+            action: () => this.SectorsSettingsDisplay = true,
+            descriptionKey: 'settings.sectors.description'
         },
         {
             titleKey: 'settings.tags.title',

@@ -23,6 +23,10 @@ export interface AffiliationTypeOption {
     value: string;
 }
 
+export interface ProvinceOption { label: string; value: string }
+export interface MunicipalityOption { label: string; value: string }
+export interface ServiceOption { id: string; i18nKey: string }
+
 export const AVAILABLE_MODULES: ModuleOption[] = [
     { value: 'users', label: 'management.userForm.modules.users' },
     { value: 'roles', label: 'management.userForm.modules.roles' },
@@ -83,6 +87,8 @@ export const AFFILIATION_TYPES: AffiliationTypeOption[] = [
     { label: 'Subcliente', value: 'subcliente' },
     { label: 'Socio', value: 'socio' },
     { label: 'Empleado', value: 'empleado' },
+    { label: 'Tecnico (empleado)', value: 'tecnico_empleado' },
+    { label: 'Tecnico (independiente)', value: 'tecnico_independiente' },
     { label: 'Otro', value: 'otro' }
 ];
 
@@ -96,3 +102,40 @@ export const USER_FORM_STYLES = [
     './styles/scrollbar.css',
     './styles/dark-mode.css'
 ]; 
+
+// Servicios técnicos (dinámicos con IDs y claves de traducción)
+export const TECHNICIAN_SERVICES: ServiceOption[] = [
+    { id: 'electricidad', i18nKey: 'management.userForm.servicesOptions.electricidad' },
+    { id: 'tren_delantero', i18nKey: 'management.userForm.servicesOptions.tren_delantero' },
+    { id: 'aire_acondicionado', i18nKey: 'management.userForm.servicesOptions.aire_acondicionado' },
+    { id: 'mecanica_diesel', i18nKey: 'management.userForm.servicesOptions.mecanica_diesel' },
+    { id: 'mecanica_motor', i18nKey: 'management.userForm.servicesOptions.mecanica_motor' },
+    { id: 'transmision_automatica', i18nKey: 'management.userForm.servicesOptions.transmision_automatica' },
+    { id: 'transmision_mecanica', i18nKey: 'management.userForm.servicesOptions.transmision_mecanica' }
+];
+
+export const PROVINCES: ProvinceOption[] = [
+    { label: 'Seleccione provincia', value: '' },
+    { label: 'Provincia A', value: 'prov_a' },
+    { label: 'Provincia B', value: 'prov_b' },
+    { label: 'Provincia C', value: 'prov_c' }
+];
+
+export const MUNICIPALITIES: Record<string, MunicipalityOption[]> = {
+    prov_a: [
+        { label: 'Seleccione municipio', value: '' },
+        { label: 'Municipio A1', value: 'mun_a1' },
+        { label: 'Municipio A2', value: 'mun_a2' }
+    ],
+    prov_b: [
+        { label: 'Seleccione municipio', value: '' },
+        { label: 'Municipio B1', value: 'mun_b1' },
+        { label: 'Municipio B2', value: 'mun_b2' }
+    ],
+    prov_c: [
+        { label: 'Seleccione municipio', value: '' },
+        { label: 'Municipio C1', value: 'mun_c1' },
+        { label: 'Municipio C2', value: 'mun_c2' }
+    ],
+    '': [{ label: 'Seleccione municipio', value: '' }]
+};

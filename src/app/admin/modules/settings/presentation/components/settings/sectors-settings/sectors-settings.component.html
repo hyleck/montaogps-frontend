@@ -1,0 +1,86 @@
+<div class="settings-container">
+  <div class="settings-section">
+    <div class="settings-grid">
+      <div class="settings-item">
+        <div class="settings-item__header">
+          <i class="pi pi-map"></i>
+          <label for="province">{{ 'management.userForm.province' | translate }}</label>
+        </div>
+        <select id="province" class="settings-dropdown" [(ngModel)]="selectedProvince" (ngModelChange)="onProvinceChange()">
+          <option value="">{{ 'management.userForm.selectAffiliation' | translate }}</option>
+          <option *ngFor="let p of provinces" [value]="p.code">{{ p.name }}</option>
+        </select>
+      </div>
+
+      <div class="settings-item">
+        <div class="settings-item__header">
+          <i class="pi pi-compass"></i>
+          <label for="municipality">{{ 'management.userForm.municipality' | translate }}</label>
+        </div>
+        <select id="municipality" class="settings-dropdown" [(ngModel)]="selectedMunicipality" (ngModelChange)="onMunicipalityChange()">
+          <option value="">{{ 'management.userForm.selectAffiliation' | translate }}</option>
+          <option *ngFor="let m of municipalities" [value]="m.code">{{ m.name }}</option>
+        </select>
+      </div>
+
+      <div class="settings-item" style="grid-column: 1 / -1;">
+        <div class="settings-item__header">
+          <i class="pi pi-sitemap"></i>
+          <label>Sectores</label>
+        </div>
+        <div class="sectors-list">
+          <div class="actions-row">
+            <button class="button-primary" (click)="openNewSectorDialog()" [disabled]="!selectedProvince || !selectedMunicipality">
+              <i class="pi pi-plus"></i>
+              Nuevo sector
+            </button>
+            <div class="search-box">
+              <i class="pi pi-search"></i>
+              <input type="text" placeholder="Buscar por nombre, código o identificador" [(ngModel)]="sectorSearch" />
+            </div>
+          </div>
+          <div class="sector-row" *ngFor="let s of filteredSectors">
+            <span class="sector-name">{{ s.name }}</span>
+            <span class="sector-code">{{ s.identifier }}</span>
+          </div>
+          <div *ngIf="!isLoading && filteredSectors.length === 0" class="empty-state">No hay sectores para esta selección</div>
+          <div *ngIf="isLoading" class="loading-state">
+            <p-progressSpinner [style]="{width: '24px', height: '24px'}"></p-progressSpinner>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p-dialog [(visible)]="sectorDialogVisible" [modal]="true" [draggable]="false" [resizable]="false" [style]="{width: '500px'}" header="{{ editingSector?.code ? 'Editar sector' : 'Nuevo sector' }}">
+  <div class="settings-grid" style="grid-template-columns: 1fr;" *ngIf="editingSector as es">
+    <div class="settings-item">
+      <div class="settings-item__header">
+        <i class="pi pi-hashtag"></i>
+        <label for="scode">Código</label>
+      </div>
+      <input id="scode" class="settings-input" type="text" [(ngModel)]="es.code" readonly>
+    </div>
+    <div class="settings-item">
+      <div class="settings-item__header">
+        <i class="pi pi-tag"></i>
+        <label for="sidentifier">Identificador</label>
+      </div>
+      <input id="sidentifier" class="settings-input" type="text" [(ngModel)]="es.identifier" readonly>
+    </div>
+    <div class="settings-item">
+      <div class="settings-item__header">
+        <i class="pi pi-pencil"></i>
+        <label for="sname">Nombre</label>
+      </div>
+      <input id="sname" class="settings-input" type="text" [(ngModel)]="es.name">
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <button class="button-secondary" type="button" (click)="sectorDialogVisible = false"><i class="pi pi-times"></i> Cancelar</button>
+    <button class="button-primary" type="button" (click)="saveSector()"><i class="pi pi-check"></i> Guardar</button>
+  </ng-template>
+</p-dialog>
+
+

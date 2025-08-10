@@ -90,6 +90,15 @@
         <app-vehicle-models-settings></app-vehicle-models-settings>
     </p-dialog>
 
+    <p-dialog [header]="'settings.sectors.title' | translate" 
+             [modal]="true" 
+             [(visible)]="SectorsSettingsDisplay"
+             [style]="{width: '80vw', maxWidth: '950px'}"
+             [contentStyle]="{overflow: 'auto'}"
+             styleClass="app-dark-dialog">
+        <app-sectors-settings></app-sectors-settings>
+    </p-dialog>
+
     <p-dialog [header]="'settings.dialogs.protocols' | translate" 
              [modal]="true" 
              [(visible)]="ProtocolsSettingsDisplay"

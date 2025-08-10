@@ -67,4 +67,30 @@ export class VehicleBrandsService {
     const observable = this.http.delete(`${this.backend}/api/models/${id}`);
     return await lastValueFrom(observable);
   }
+
+  // === Location endpoints (provinces, municipalities, sectors) ===
+  async getProvinces(): Promise<any[]> {
+    const observable = this.http.get<any[]>(`${this.backend}/api/provinces`);
+    return await lastValueFrom(observable);
+  }
+
+  async getMunicipalities(provinceCode: string): Promise<any[]> {
+    const observable = this.http.get<any[]>(`${this.backend}/api/municipalities/${provinceCode}`);
+    return await lastValueFrom(observable);
+  }
+
+  async getSectors(municipalityCode: string, provinceCode: string): Promise<any[]> {
+    const observable = this.http.get<any[]>(`${this.backend}/api/sectors/${municipalityCode}/${provinceCode}`);
+    return await lastValueFrom(observable);
+  }
+
+  async createSector(data: any): Promise<any> {
+    const observable = this.http.post(`${this.backend}/api/sectors`, data);
+    return await lastValueFrom(observable);
+  }
+
+  async updateSector(code: string, data: any): Promise<any> {
+    const observable = this.http.patch(`${this.backend}/api/sectors/${code}`, data);
+    return await lastValueFrom(observable);
+  }
 } 

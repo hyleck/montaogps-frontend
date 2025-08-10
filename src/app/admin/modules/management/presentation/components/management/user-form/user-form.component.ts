@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { UserRole, Privilege, PrivilegeAction } from '@core/interfaces/user-role.interface';
 import { ExtendedUser, UserSettings } from '@core/interfaces/user.interface';
@@ -10,6 +10,7 @@ import { UserService } from '@core/services/user.service';
 import { AuthService } from '@core/services/auth.service';
 import { PrivilegeService } from './services/privilege.service';
 import { Subject, takeUntil } from 'rxjs';
+import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 
 import { 
     AVAILABLE_MODULES, // Lista de módulos disponibles
@@ -23,7 +24,13 @@ import {
     ThemeOption, // Opciones de tema
     LanguageOption, // Opciones de idioma
     ProfileTypeOption, // Opciones de perfil
-    AffiliationTypeOption // Opciones de afiliación
+    AffiliationTypeOption, // Opciones de afiliación
+    PROVINCES,
+    MUNICIPALITIES,
+    ProvinceOption,
+    MunicipalityOption,
+    TECHNICIAN_SERVICES,
+    ServiceOption
 } from './constants/user-form.constants';
 
 @Component({
@@ -80,6 +87,16 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     selectedAffiliationType: string = this.user.affiliation_type_id;
     selectedProfileType: string = this.user.profile_type_id;
+    // Campos para técnicos
+    provinces: ProvinceOption[] = PROVINCES;
+    municipalities: MunicipalityOption[] = MUNICIPALITIES[''];
+    selectedProvince: string = '';
+    selectedMunicipality: string = '';
+    technicianServices: string[] = [];
+    technicianServicesOptions: ServiceOption[] = TECHNICIAN_SERVICES;
+    // Control programático para precargar municipio al cambiar provincia desde backend
+    private pendingMunicipality: string = '';
+    private isProgrammaticProvinceSetting: boolean = false;
 
     confirmPassword: string = '';
 
@@ -88,6 +105,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     // Agregamos una nueva propiedad para controlar si estamos inicializando el formulario de edición
     private isInitializingEditForm: boolean = false;
 
+    @ViewChild('municipalitySelect') municipalitySelectRef?: ElementRef<HTMLSelectElement>;
+
     constructor(
         private userRolesService: UserRolesService,
         private translate: TranslateService,
@@ -95,7 +114,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         private userService: UserService,
         private authService: AuthService,
         private route: ActivatedRoute,
-        private privilegeService: PrivilegeService
+        private privilegeService: PrivilegeService,
+        private brandsService: VehicleBrandsService,
+        private cdr: ChangeDetectorRef
     ) {}
 
     private getEmptyUser(): ExtendedUser {
@@ -144,6 +165,13 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.confirmPassword = '';
         this.user.password = '';
         this.activeTabIndex = 0;
+
+        // Cargar provincias desde API real (usa el mismo backend de marcas/modelos)
+        this.brandsService.getProvinces()
+            .then(list => {
+                this.provinces = [{ label: this.translate.instant('management.userForm.selectAffiliation'), value: '' }, ...list.map((p: any) => ({ label: p.name, value: String(p.code) }))];
+            })
+            .catch(() => {});
     }
 
     private resetForm() {
@@ -178,6 +206,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     private setupEditUser(user: ExtendedUser) {
+        // Logs de depuración removidos
+
         // Rellenar el formulario con los datos del usuario a editar
         this.user = JSON.parse(JSON.stringify(user));
         this.user.birth = this.formatDateToInput(user.birth);
@@ -188,6 +218,43 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         // Asignamos explícitamente los valores para el tipo de afiliación y perfil
         this.selectedAffiliationType = user.affiliation_type_id || 'cliente';
         this.selectedProfileType = user.profile_type_id || 'personal';
+
+        // Detectar si debe considerarse técnico por datos existentes aunque la afiliación venga como 'cliente'
+        const backendProvince = (user as any).province || '';
+        const backendMunicipality = (user as any).municipality || '';
+        const backendServices = (user as any).services;
+        const hasTechSignals = (!!backendProvince || !!backendMunicipality || (Array.isArray(backendServices) && backendServices.length > 0));
+        if (!this.selectedAffiliationType?.startsWith('tecnico') && hasTechSignals) {
+            this.selectedAffiliationType = 'tecnico_independiente';
+        }
+
+        // Precargar datos de técnico si aplican
+        const isTech = this.selectedAffiliationType?.startsWith('tecnico');
+        if (isTech) {
+            // Provincia y municipio desde backend
+            this.isProgrammaticProvinceSetting = true;
+            this.pendingMunicipality = backendMunicipality;
+            this.selectedProvince = backendProvince;
+            // Disparar carga de municipios de forma programática
+            if (this.selectedProvince) {
+                // Ejecutar onProvinceChange y reafirmar el valor tras render
+                this.onProvinceChange();
+                const pm = this.pendingMunicipality;
+                setTimeout(() => {
+                    if (pm) {
+                        this.selectedMunicipality = pm;
+                    }
+                }, 0);
+            }
+
+            // Servicios desde backend (array de ids)
+            this.technicianServices = Array.isArray(backendServices) ? backendServices.map((s: any) => String(s)) : [];
+        } else {
+            this.selectedProvince = '';
+            this.selectedMunicipality = '';
+            this.municipalities = MUNICIPALITIES[''];
+            this.technicianServices = [];
+        }
         
         this.confirmPassword = '';
         
@@ -214,8 +281,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                         this.user.privileges = userPrivileges;
                     }
                 }, 0);
-            } else {
-                console.warn('No se encontró el rol con ID:', roleId);
             }
         }
         
@@ -366,7 +431,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             affiliation_type_id: this.selectedAffiliationType,
             profile_type_id: this.selectedProfileType,
             department_id: 'exampleDepartmentId',
-            parent_id: parentId
+            parent_id: parentId,
+            // Campos de ubicación/servicios para técnicos
+            province: this.selectedAffiliationType?.startsWith('tecnico') ? this.selectedProvince : undefined,
+            municipality: this.selectedAffiliationType?.startsWith('tecnico') ? this.selectedMunicipality : undefined,
+            services: this.selectedAffiliationType?.startsWith('tecnico') ? (this.technicianServices || []) : []
         };
 
         if (this.userInput) {
@@ -460,6 +529,81 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         if (typeof value === 'string' || typeof value === 'boolean') {
             this.user.settings[key] = value;
         }
+        // Cuando cambia la afiliación, si es técnico mostrar sección y resetear selects
+        if (key === 'affiliation_type' && typeof value === 'string') {
+            const isTech = value === 'tecnico_empleado' || value === 'tecnico_independiente';
+            if (!isTech) {
+                this.selectedProvince = '';
+                this.selectedMunicipality = '';
+                this.municipalities = MUNICIPALITIES[''];
+                this.technicianServices = [];
+            }
+        }
+    }
+
+    onProvinceChange(): void {
+        // Logs de depuración removidos
+        if (!this.selectedProvince) {
+            this.municipalities = MUNICIPALITIES[''];
+            this.selectedMunicipality = '';
+            this.isProgrammaticProvinceSetting = false;
+            this.pendingMunicipality = '';
+            return;
+        }
+        const pending = String(this.pendingMunicipality || '');
+        this.brandsService.getMunicipalities(this.selectedProvince)
+            .then(list => {
+                const opts = list.map((m: any) => ({ label: m.name, value: String(m.code), raw: m }));
+                this.municipalities = [{ label: this.translate.instant('management.userForm.selectAffiliation'), value: '' }, ...opts.map(o => ({ label: o.label, value: o.value }))];
+                if (this.isProgrammaticProvinceSetting && pending) {
+                    // 1) Exact match
+                    let match = opts.find(o => o.value === pending)?.value;
+                    // 2) Try province+pending padded (e.g., '05' + '05' => '0505' or '0501')
+                    if (!match) {
+                        const candidate1 = `${this.selectedProvince}${pending.padStart(2,'0')}`;
+                        match = opts.find(o => o.value === candidate1)?.value;
+                    }
+                    // 3) startsWith province and endsWith pending (e.g., '0501' ends with '01')
+                    if (!match) {
+                        match = opts.find(o => o.value.startsWith(String(this.selectedProvince)) && o.value.endsWith(pending))?.value;
+                    }
+                    // 3.1) endsWith last two digits of pending (robusto en códigos largos)
+                    if (!match) {
+                        const pending2 = pending.padStart(2,'0');
+                        match = opts.find(o => o.value.slice(-2) === pending2)?.value;
+                    }
+                    // 4) label contains pending (fallback)
+                    if (!match) {
+                        match = opts.find(o => String(o.label).toLowerCase().includes(pending.toLowerCase()))?.value;
+                    }
+                    // Forzar set en microtask para asegurar actualización en el DOM de select
+                    const valueToSet = match || '';
+                    this.selectedMunicipality = valueToSet;
+                    this.cdr.detectChanges();
+                    Promise.resolve().then(() => {
+                        this.selectedMunicipality = valueToSet;
+                        this.cdr.detectChanges();
+                        // Refuerzo: setear directamente el valor del select del DOM si existe
+                        setTimeout(() => {
+                            const el = this.municipalitySelectRef?.nativeElement;
+                            if (el) {
+                                el.value = valueToSet;
+                            }
+                        }, 0);
+                    });
+                } else {
+                    this.selectedMunicipality = '';
+                }
+                // Logs de depuración removidos
+            })
+            .catch(() => {
+                this.municipalities = MUNICIPALITIES[''];
+                this.selectedMunicipality = '';
+            })
+            .finally(() => {
+                this.isProgrammaticProvinceSetting = false;
+                this.pendingMunicipality = '';
+            });
     }
 
     private formatDateToInput(dateStr: string): string {

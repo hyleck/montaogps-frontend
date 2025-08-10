@@ -913,6 +913,8 @@
             "subcliente": "Subclient",
             "socio": "Partner",
             "empleado": "Employee",
+            "tecnico_empleado": "Technician (employee)",
+            "tecnico_independiente": "Technician (independent)",
             "otro": "Other"
         },
         "role": "Role",
@@ -951,6 +953,18 @@
         "selectAffiliation": "Select affiliation type",
         "selectProfile": "Select profile type",
         "affiliationDescription": "Select the user's affiliation type",
+        "province": "Province",
+        "municipality": "Municipality",
+        "services": "Services",
+        "servicesOptions": {
+          "electricidad": "Electricity",
+          "tren_delantero": "Front suspension",
+          "aire_acondicionado": "Air conditioning",
+          "mecanica_diesel": "Diesel mechanics",
+          "mecanica_motor": "Engine mechanics",
+          "transmision_automatica": "Automatic transmission",
+          "transmision_mecanica": "Manual transmission"
+        },
         "profileDescription": "Select the user's profile type",
         "themeDescription": "Customize the application appearance",
         "languageDescription": "Select preferred language",

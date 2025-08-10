@@ -14,6 +14,7 @@ import { VehicleBrandsSettingsComponent } from './components/settings/vehicle-br
 import { VehicleModelsSettingsComponent } from './components/settings/vehicle-models-settings/vehicle-models-settings.component';
 import { ProtocolsSettingsComponent } from './components/settings/protocols-settings/protocols-settings.component';
 import { HistorialesSettingsComponent } from './components/settings/historiales-settings/historiales-settings.component';
+import { SectorsSettingsComponent } from './components/settings/sectors-settings/sectors-settings.component';
 
 @NgModule({
   declarations: [
@@ -26,7 +27,8 @@ import { HistorialesSettingsComponent } from './components/settings/historiales-
     VehicleBrandsSettingsComponent,
     VehicleModelsSettingsComponent,
     ProtocolsSettingsComponent,
-    HistorialesSettingsComponent
+    HistorialesSettingsComponent,
+    SectorsSettingsComponent
   ],
   imports: [
     CommonModule,
