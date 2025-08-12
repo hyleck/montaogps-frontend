@@ -34,7 +34,8 @@ export class UserRolesSettingsComponent implements OnInit {
     'system',
     'plans',
     'servers',
-    'protocols'
+    'protocols',
+    'inventory'
   ];
 
   // Mapeo de módulos a sus traducciones
@@ -55,7 +56,8 @@ export class UserRolesSettingsComponent implements OnInit {
     'system': 'settings.roles_settings.modules.system',
     'plans': 'settings.roles_settings.modules.plans',
     'servers': 'settings.roles_settings.modules.servers',
-    'protocols': 'settings.roles_settings.modules.protocols'
+    'protocols': 'settings.roles_settings.modules.protocols',
+    'inventory': 'settings.roles_settings.modules.inventory'
   };
 
   moduleIcons: { [key: string]: string } = {
@@ -75,7 +77,8 @@ export class UserRolesSettingsComponent implements OnInit {
     system: 'pi pi-cog',
     plans: 'pi pi-list',
     servers: 'pi pi-server',
-    protocols: 'pi pi-shield'
+    protocols: 'pi pi-shield',
+    inventory: 'pi pi-database'
   };
 
   roleForm = {
@@ -107,7 +110,23 @@ export class UserRolesSettingsComponent implements OnInit {
 
   // Método para obtener la traducción de un módulo
   getModuleTranslation(moduleKey: string): string {
-    return this.translate.instant(this.moduleTranslations[moduleKey]);
+    if (!moduleKey) {
+      return 'Sin módulo';
+    }
+    
+    const translationKey = this.moduleTranslations[moduleKey];
+    if (!translationKey) {
+      // Si no hay traducción definida, devolver el módulo capitalizado
+      return moduleKey.charAt(0).toUpperCase() + moduleKey.slice(1);
+    }
+    
+    const translation = this.translate.instant(translationKey);
+    // Si la traducción devuelve la misma clave, significa que no existe
+    if (translation === translationKey) {
+      return moduleKey.charAt(0).toUpperCase() + moduleKey.slice(1);
+    }
+    
+    return translation;
   }
 
   loadRoles() {

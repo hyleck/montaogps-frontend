@@ -87,7 +87,66 @@
       "management": "Gestion",
       "processes": "Processus",
       "reports": "Rapports",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "inventory": "Inventaire"
+    },
+    "inventory": {
+      "title": "Inventaire",
+      "package": {
+        "title": "Formulaire de Paquet",
+        "name": "Titre du Paquet",
+        "date": "Date",
+        "totalPrice": "Prix",
+        "description": "Description",
+        "save": "Sauvegarder le Paquet",
+        "clear": "Effacer",
+        "edit": "Modifier le paquet",
+        "delete": "Supprimer le paquet",
+        "confirmDelete": "Êtes-vous sûr de vouloir supprimer le paquet \"{name}\"?",
+        "created": "Paquet créé avec succès",
+        "updated": "Paquet mis à jour avec succès",
+        "deleted": "Paquet supprimé avec succès",
+        "devices": "{count} appareils",
+        "noPackages": "Aucun paquet enregistré",
+        "createFirst": "Créez votre premier paquet en utilisant le formulaire ci-dessus"
+      },
+      "device": {
+        "title": "Appareils du Paquet",
+        "add": "Ajouter un Appareil",
+        "imei": "IMEI",
+        "sim": "SIM",
+        "protocol": "Protocole",
+        "actions": "Actions",
+        "edit": "Modifier",
+        "delete": "Supprimer",
+        "save": "Sauvegarder",
+        "cancel": "Annuler",
+        "confirmDelete": "Êtes-vous sûr de vouloir supprimer l'appareil IMEI: {imei}?",
+        "created": "Appareil ajouté avec succès",
+        "updated": "Appareil mis à jour avec succès",
+        "deleted": "Appareil supprimé avec succès",
+        "noDevices": "Aucun appareil dans ce paquet",
+        "selectPackage": "Sélectionnez d'abord un paquet",
+        "completeFields": "Complétez tous les champs de l'appareil"
+      },
+      "navigation": {
+        "backToPackages": "Retour aux paquets"
+      },
+      "crud": {
+        "title": "CRUD des appareils du paquet"
+      },
+      "validation": {
+        "packageNameRequired": "Le titre du paquet est requis"
+      },
+      "loading": "Chargement...",
+      "error": {
+        "loadPackages": "Erreur lors du chargement des paquets",
+        "loadDevices": "Erreur lors du chargement des appareils du paquet",
+        "savePackage": "Impossible de sauvegarder le paquet",
+        "deletePackage": "Impossible de supprimer le paquet",
+        "saveDevice": "Impossible de sauvegarder l'appareil",
+        "deleteDevice": "Impossible de supprimer l'appareil"
+      }
     },
     "reports": {
       "title": "Générateur de Rapports",
@@ -171,7 +230,7 @@
         "title": "Étiquettes",
         "description": "Gestion des étiquettes"
       },
-      "protocols": {
+      "protocols_intro": {
         "title": "Protocoles",
         "description": "Configuration des protocoles de communication"
       },
@@ -423,7 +482,8 @@
           "system": "Système",
           "plans": "Plans",
           "servers": "Serveurs",
-          "protocols": "Protocoles"
+          "protocols": "Protocoles",
+          "inventory": "Inventaire"
         }
       },
       "cards": {
@@ -618,7 +678,7 @@
         "select_protocol": "Sélectionnez un protocole pour voir les détails",
         "type": "Type",
         "name": "Nom",
-        "description": "Description",
+        "descriptionField": "Description",
         "port": "Port",
         "utc_offset": "Décalage UTC",
         "utc_offset_placeholder": "Différence en heures (ex: -6, -5, +1)",
@@ -799,6 +859,7 @@
         "role": "Rôle",
         "selectRole": "Sélectionner un rôle",
         "privileges": "Privilèges",
+        "privilegesOf": "Privilèges de {role}",
         "of": "de",
         "selectAll": "Tout sélectionner",
         "modules": {
@@ -968,7 +1029,6 @@
         "geofenceNotifications": "Notifications de Géobarrière",
         "maintenanceNotifications": "Notifications de Maintenance",
         "reportNotifications": "Notifications de Rapports",
-        "sms": "SMS",
         "smsCommands": "Commandes SMS",
         "connectInternet": "Se connecter à Internet",
         "configureNetwork": "Configurer le réseau",
@@ -976,7 +1036,7 @@
         "googleMaps": "Google Maps",
         "messageHistory": "Messages",
         "noMessages": "Aucun message",
-        "typeMessage": "Tapez un message...",
+        "typeMessagePlaceholder": "Tapez un message...",
         "sendCommand": "Envoyer la commande",
         "lastCommand": "Dernière commande",
         "deviceStatus": "État de l'appareil",
@@ -987,7 +1047,6 @@
         "sendingCommand": "Envoi de la commande SMS...",
         "waitingResponse": "En attente de la réponse de l'appareil...",
         "typeCustomMessage": "Tapez un message personnalisé...",
-        "typeMessage": "Tapez un message...",
         "quickCommands": "Commandes Rapides",
         "startConversation": "Envoyez une commande ou un message pour commencer",
         "protocolRequired": "Protocole Requis",

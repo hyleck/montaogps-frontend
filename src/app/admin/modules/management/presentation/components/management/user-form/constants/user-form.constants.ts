@@ -44,7 +44,8 @@ export const AVAILABLE_MODULES: ModuleOption[] = [
     { value: 'system', label: 'management.userForm.modules.system' },
     { value: 'plans', label: 'management.userForm.modules.plans' },
     { value: 'servers', label: 'management.userForm.modules.servers' },
-    { value: 'protocols', label: 'management.userForm.modules.protocols' }
+    { value: 'protocols', label: 'management.userForm.modules.protocols' },
+    { value: 'inventory', label: 'management.userForm.modules.inventory' }
 ];
 
 export const MODULE_ICONS: { [key: string]: string } = {
@@ -64,7 +65,8 @@ export const MODULE_ICONS: { [key: string]: string } = {
     system: 'pi pi-server',
     plans: 'pi pi-dollar',
     servers: 'pi pi-database',
-    protocols: 'pi pi-shield'
+    protocols: 'pi pi-shield',
+    inventory: 'pi pi-database'
 };
 
 export const THEMES: ThemeOption[] = [

@@ -24,7 +24,8 @@ export class SidebarComponent implements OnInit {
     principalItems: [
       { label: '', path: '/admin/management/' , icon:'pi pi-book', badge: 0},
       { label: '', path: '/admin/follow-up', icon:'pi pi-calendar-clock',badge: 0 },
-      { label: '', path: '/admin/reports', icon:'pi pi-sliders-h',badge: 0 }
+      { label: '', path: '/admin/reports', icon:'pi pi-sliders-h',badge: 0 },
+      { label: '', path: '/admin/inventory', icon:'pi pi-database', badge: 0 },
     ],
     profileTitle: '',
     profileItems: [
@@ -75,6 +76,7 @@ export class SidebarComponent implements OnInit {
     this.sidaberOptions.principalItems[0].label = this.translate.instant('sidebar.management');
     this.sidaberOptions.principalItems[1].label = this.translate.instant('sidebar.processes');
     this.sidaberOptions.principalItems[2].label = this.translate.instant('sidebar.reports');
+    this.sidaberOptions.principalItems[3].label = this.translate.instant('sidebar.inventory');
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');

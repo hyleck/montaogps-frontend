@@ -85,7 +85,66 @@
       "management": "Gestión",
       "processes": "Procesos",
       "reports": "Reportes",
-      "settings": "Configuración"
+      "settings": "Configuración",
+      "inventory": "Inventario"
+    },
+    "inventory": {
+      "title": "Inventario",
+      "package": {
+        "title": "Formulario de paquete",
+        "name": "Título del paquete",
+        "date": "Fecha",
+        "totalPrice": "Precio",
+        "description": "Descripción",
+        "save": "Guardar Paquete",
+        "clear": "Limpiar",
+        "edit": "Editar paquete",
+        "delete": "Eliminar paquete",
+        "confirmDelete": "¿Está seguro de eliminar el paquete \"{name}\"?",
+        "created": "Paquete creado correctamente",
+        "updated": "Paquete actualizado correctamente",
+        "deleted": "Paquete eliminado correctamente",
+        "devices": "{count} dispositivos",
+        "noPackages": "No hay paquetes registrados",
+        "createFirst": "Crea tu primer paquete usando el formulario de arriba"
+      },
+      "device": {
+        "title": "Dispositivos del paquete",
+        "add": "Agregar Dispositivo",
+        "imei": "IMEI",
+        "sim": "SIM",
+        "protocol": "Protocolo",
+        "actions": "Acciones",
+        "edit": "Editar",
+        "delete": "Eliminar",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "confirmDelete": "¿Está seguro de eliminar el dispositivo IMEI: {imei}?",
+        "created": "Dispositivo agregado correctamente",
+        "updated": "Dispositivo actualizado correctamente",
+        "deleted": "Dispositivo eliminado correctamente",
+        "noDevices": "No hay dispositivos en este paquete",
+        "selectPackage": "Selecciona un paquete primero",
+        "completeFields": "Complete todos los campos del dispositivo"
+      },
+      "navigation": {
+        "backToPackages": "Volver a paquetes"
+      },
+      "crud": {
+        "title": "CRUD de los dispositivos de ese paquete"
+      },
+      "validation": {
+        "packageNameRequired": "El título del paquete es requerido"
+      },
+      "loading": "Cargando...",
+      "error": {
+        "loadPackages": "Error al cargar paquetes",
+        "loadDevices": "Error al cargar dispositivos del paquete",
+        "savePackage": "No se pudo guardar el paquete",
+        "deletePackage": "No se pudo eliminar el paquete",
+        "saveDevice": "No se pudo guardar el dispositivo",
+        "deleteDevice": "No se pudo eliminar el dispositivo"
+      }
     },
     "reports": {
       "title": "Generador de Reportes",
@@ -179,7 +238,7 @@
         "select_protocol": "Seleccione un protocolo para ver sus detalles",
         "type": "Tipo",
         "name": "Nombre",
-        "description": "Descripción",
+        "descriptionField": "Descripción",
         "port": "Puerto",
         "utc_offset": "Diferencia UTC",
         "utc_offset_placeholder": "Horas de diferencia (ej: -6, -5, +1)",
@@ -512,7 +571,8 @@
           "system": "Sistema",
           "plans": "Planes",
           "servers": "Servidores",
-          "protocols": "Protocolos"
+          "protocols": "Protocolos",
+          "inventory": "Inventario"
         },
         "creationFailed": "No se pudo crear el usuario.",
         "userCreated": "Usuario creado correctamente.",
@@ -904,7 +964,6 @@
         "googleMaps": "Google Maps",
         "messageHistory": "Mensajes",
         "noMessages": "No hay mensajes",
-        "typeMessage": "Escribe un mensaje...",
         "sendCommand": "Enviar comando",
         "lastCommand": "Último comando",
         "deviceStatus": "Estado del dispositivo",
@@ -918,7 +977,6 @@
         "sendingCommand": "Enviando comando SMS...",
         "waitingResponse": "Esperando respuesta del dispositivo...",
         "typeCustomMessage": "Escribe un mensaje personalizado...",
-        "typeMessage": "Escribe un mensaje...",
         "quickCommands": "Comandos Rápidos",
         "startConversation": "Envía un comando o mensaje para comenzar",
         "protocolRequired": "Protocolo Requerido",
@@ -965,6 +1023,7 @@
         "role": "Rol",
         "selectRole": "Seleccionar rol",
         "privileges": "Privilegios",
+        "privilegesOf": "Privilegios de {role}",
         "of": "de",
         "selectAll": "Seleccionar todo",
         "modules": {
@@ -984,7 +1043,8 @@
           "system": "Sistema",
           "plans": "Planes",
           "servers": "Servidores",
-          "protocols": "Protocolos"
+          "protocols": "Protocolos",
+          "inventory": "Inventario"
         },
         "actions": {
           "read": "Leer",

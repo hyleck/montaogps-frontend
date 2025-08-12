@@ -23,6 +23,8 @@ import { MultiSelectModule } from 'primeng/multiselect';
 import { CalendarModule } from 'primeng/calendar';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { TagModule } from 'primeng/tag';
+import { ToolbarModule } from 'primeng/toolbar';
+
 import { ConfirmationService, MessageService } from 'primeng/api';
 
 @NgModule({
@@ -50,7 +52,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     MultiSelectModule,
     CalendarModule,
     InputNumberModule,
-    TagModule
+    TagModule,
+    ToolbarModule
   ],
   exports: [
     BadgeModule,
@@ -75,7 +78,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     MultiSelectModule,
     CalendarModule,
     InputNumberModule,
-    TagModule
+    TagModule,
+    ToolbarModule
   ],
   providers: [ConfirmationService, MessageService]
 })

@@ -85,7 +85,66 @@
       "management": "Management",
       "processes": "Processes",
       "reports": "Reports",
-      "settings": "Settings"
+      "settings": "Settings",
+      "inventory": "Inventory"
+    },
+    "inventory": {
+      "title": "Inventory",
+      "package": {
+        "title": "Package Form",
+        "name": "Package Title",
+        "date": "Date",
+        "totalPrice": "Price",
+        "description": "Description",
+        "save": "Save Package",
+        "clear": "Clear",
+        "edit": "Edit package",
+        "delete": "Delete package",
+        "confirmDelete": "Are you sure you want to delete package \"{name}\"?",
+        "created": "Package created successfully",
+        "updated": "Package updated successfully",
+        "deleted": "Package deleted successfully",
+        "devices": "{count} devices",
+        "noPackages": "No packages registered",
+        "createFirst": "Create your first package using the form above"
+      },
+      "device": {
+        "title": "Package Devices",
+        "add": "Add Device",
+        "imei": "IMEI",
+        "sim": "SIM",
+        "protocol": "Protocol",
+        "actions": "Actions",
+        "edit": "Edit",
+        "delete": "Delete",
+        "save": "Save",
+        "cancel": "Cancel",
+        "confirmDelete": "Are you sure you want to delete device IMEI: {imei}?",
+        "created": "Device added successfully",
+        "updated": "Device updated successfully",
+        "deleted": "Device deleted successfully",
+        "noDevices": "No devices in this package",
+        "selectPackage": "Select a package first",
+        "completeFields": "Complete all device fields"
+      },
+      "navigation": {
+        "backToPackages": "Back to packages"
+      },
+      "crud": {
+        "title": "CRUD of package devices"
+      },
+      "validation": {
+        "packageNameRequired": "Package title is required"
+      },
+      "loading": "Loading...",
+      "error": {
+        "loadPackages": "Error loading packages",
+        "loadDevices": "Error loading package devices",
+        "savePackage": "Could not save package",
+        "deletePackage": "Could not delete package",
+        "saveDevice": "Could not save device",
+        "deleteDevice": "Could not delete device"
+      }
     },
     "reports": {
       "title": "Report Generator",
@@ -179,7 +238,7 @@
         "select_protocol": "Select a protocol to view details",
         "type": "Type",
         "name": "Name",
-        "description": "Description",
+        "descriptionField": "Description",
         "port": "Port",
         "utc_offset": "UTC Offset",
         "utc_offset_placeholder": "Hours difference (ex: -6, -5, +1)",
@@ -477,11 +536,13 @@
           "system": "System",
           "plans": "Plans",
           "servers": "Servers",
-          "protocols": "Protocols"
+          "protocols": "Protocols",
+          "inventory": "Inventory"
         },
         "role": "Role",
         "selectRole": "Select role",
-        "privileges": "Privileges",
+        "privilegesLabel": "Privileges",
+        "privilegesOf": "Privileges of {role}",
         "of": "of",
         "selectAll": "Select all"
       },
@@ -853,7 +914,6 @@
         "geofenceNotifications": "Geofence Notifications",
         "maintenanceNotifications": "Maintenance Notifications",
         "reportNotifications": "Report Notifications",
-        "sms": "SMS",
         "smsCommands": "SMS Commands",
         "connectInternet": "Connect to Internet",
         "configureNetwork": "Configure Network",
@@ -861,7 +921,7 @@
         "googleMaps": "Google Maps",
         "messageHistory": "Messages",
         "noMessages": "No messages",
-        "typeMessage": "Type a message...",
+        "typeMessagePlaceholder": "Type a message...",
         "sendCommand": "Send command",
         "lastCommand": "Last command",
         "deviceStatus": "Device status",
@@ -873,7 +933,6 @@
         "sendingCommand": "Sending SMS command...",
         "waitingResponse": "Waiting for device response...",
         "typeCustomMessage": "Type a custom message...",
-        "typeMessage": "Type a message...",
         "quickCommands": "Quick Commands",
         "startConversation": "Send a command or message to start",
         "protocolRequired": "Protocol Required",
@@ -939,7 +998,8 @@
           "system": "System",
           "plans": "Plans",
           "servers": "Servers",
-          "protocols": "Protocols"
+          "protocols": "Protocols",
+          "inventory": "Inventory"
         },
         "actions": {
           "read": "Read",
