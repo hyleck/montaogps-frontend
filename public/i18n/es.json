@@ -1018,7 +1018,8 @@
         "profileType": "Tipo de Perfil",
         "profileTypes": {
             "empresa": "Empresa",
-            "personal": "Personal"
+            "personal": "Personal",
+            "compartido": "Compartido"
         },
         "role": "Rol",
         "selectRole": "Seleccionar rol",
@@ -1057,6 +1058,12 @@
         "cancel": "Cancelar",
         "selectAffiliation": "Seleccione un tipo de afiliación",
         "selectProfile": "Seleccione un tipo de perfil",
+        "profileDescription": "Seleccione el tipo de perfil que mejor se ajuste al usuario",
+        "profileDescriptions": {
+            "empresa": "Este perfil está orientado a usuarios corporativos con acceso a funciones empresariales",
+            "personal": "Este perfil está diseñado para usuarios individuales con funciones básicas",
+            "compartido": "Este usuario estará disponible para todos los administradores"
+        },
         "affiliationDescription": "Seleccione el tipo de afiliación que mejor describa su relación con la empresa",
         "province": "Provincia",
         "municipality": "Municipio",
@@ -1070,7 +1077,6 @@
           "transmision_automatica": "Transmisión automática",
           "transmision_mecanica": "Transmisión mecánica"
         },
-        "profileDescription": "Seleccione el tipo de perfil que mejor se ajuste a sus necesidades",
         "themeDescription": "Personalice la apariencia de la aplicación",
         "languageDescription": "Seleccione el idioma preferido",
         "notificationsEnable": "Activar notificaciones del sistema",

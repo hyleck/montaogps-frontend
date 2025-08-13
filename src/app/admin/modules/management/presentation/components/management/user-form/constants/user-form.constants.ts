@@ -81,7 +81,8 @@ export const LANGUAGES: LanguageOption[] = [
 
 export const PROFILE_TYPES: ProfileTypeOption[] = [
     { label: 'Empresa', value: 'empresa' },
-    { label: 'Personal', value: 'personal' }
+    { label: 'Personal', value: 'personal' },
+    { label: 'Compartido', value: 'compartido' }
 ];
 
 export const AFFILIATION_TYPES: AffiliationTypeOption[] = [

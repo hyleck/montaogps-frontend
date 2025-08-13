@@ -965,7 +965,8 @@
         "profileType": "Profile Type",
         "profileTypes": {
             "empresa": "Business",
-            "personal": "Personal"
+            "personal": "Personal",
+            "compartido": "Shared"
         },
         "affiliationTypes": {
             "cliente": "Client",
@@ -1012,6 +1013,11 @@
         "cancel": "Cancel",
         "selectAffiliation": "Select affiliation type",
         "selectProfile": "Select profile type",
+        "profileDescriptions": {
+            "empresa": "This profile is oriented towards corporate users with access to business functions",
+            "personal": "This profile is designed for individual users with basic functions",
+            "compartido": "This user will be available to all administrators"
+        },
         "affiliationDescription": "Select the user's affiliation type",
         "province": "Province",
         "municipality": "Municipality",

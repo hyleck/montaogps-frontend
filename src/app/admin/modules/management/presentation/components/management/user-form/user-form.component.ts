@@ -85,8 +85,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     selectedLanguage: string = this.getSettingValue('language') as string;
     notificationsEnabled: boolean = this.getSettingValue('notifications') as boolean;
 
-    selectedAffiliationType: string = this.user.affiliation_type_id;
-    selectedProfileType: string = this.user.profile_type_id;
+    selectedAffiliationType: string = '';
+    selectedProfileType: string = '';
     // Campos para técnicos
     provinces: ProvinceOption[] = PROVINCES;
     municipalities: MunicipalityOption[] = MUNICIPALITIES[''];
@@ -206,8 +206,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     private setupEditUser(user: ExtendedUser) {
-        // Logs de depuración removidos
-
+        console.log(user,'holaaaaa4')
         // Rellenar el formulario con los datos del usuario a editar
         this.user = JSON.parse(JSON.stringify(user));
         this.user.birth = this.formatDateToInput(user.birth);
@@ -218,15 +217,20 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         // Asignamos explícitamente los valores para el tipo de afiliación y perfil
         this.selectedAffiliationType = user.affiliation_type_id || 'cliente';
         this.selectedProfileType = user.profile_type_id || 'personal';
+        
+        // Forzar detección de cambios
+        this.cdr.detectChanges();
+        
+
 
         // Detectar si debe considerarse técnico por datos existentes aunque la afiliación venga como 'cliente'
         const backendProvince = (user as any).province || '';
         const backendMunicipality = (user as any).municipality || '';
         const backendServices = (user as any).services;
-        const hasTechSignals = (!!backendProvince || !!backendMunicipality || (Array.isArray(backendServices) && backendServices.length > 0));
-        if (!this.selectedAffiliationType?.startsWith('tecnico') && hasTechSignals) {
-            this.selectedAffiliationType = 'tecnico_independiente';
-        }
+        // const hasTechSignals = (!!backendProvince || !!backendMunicipality || (Array.isArray(backendServices) && backendServices.length > 0));
+        // if (!this.selectedAffiliationType?.startsWith('tecnico') && hasTechSignals) {
+        //     this.selectedAffiliationType = 'tecnico_independiente';
+        // }
 
         // Precargar datos de técnico si aplican
         const isTech = this.selectedAffiliationType?.startsWith('tecnico');
@@ -416,6 +420,13 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.user.profile_type_id = this.selectedProfileType;
         this.user.settings.affiliation_type = this.selectedAffiliationType;
         this.user.settings.profile_type = this.selectedProfileType;
+        
+        // Asegurar que settings sea un objeto, no array
+        const settingsObject = {
+            ...this.user.settings,
+            profile_type: this.selectedProfileType,
+            affiliation_type: this.selectedAffiliationType
+        };
 
         // Asegurar que los privilegios modificados se incluyan en el envío
         const privileges = this.user.role?.privileges || [];
@@ -427,9 +438,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             hashdRt: 'exampleHashdRt',
             creator_id: currentUser ? currentUser.id : 'exampleCreatorId',
             privileges: privileges,
-            settings: [this.user.settings],
+            settings: [settingsObject], // Mantener como array pero con el objeto actualizado
             affiliation_type_id: this.selectedAffiliationType,
             profile_type_id: this.selectedProfileType,
+            // Enviar también en nivel raíz por si el backend lo espera ahí
+            profile_type: this.selectedProfileType,
             department_id: 'exampleDepartmentId',
             parent_id: parentId,
             // Campos de ubicación/servicios para técnicos
@@ -438,12 +451,15 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             services: this.selectedAffiliationType?.startsWith('tecnico') ? (this.technicianServices || []) : []
         };
 
+
+
         if (this.userInput) {
             // Actualizar usuario existente
             const updateUserDto = {
                 ...userToSubmit,
                 password: this.user.password || undefined
             };
+            
             this.userService.update(this.userInput._id, updateUserDto)
                 .pipe(takeUntil(this.destroy$))
                 .subscribe({
@@ -614,6 +630,19 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         const offset = date.getTimezoneOffset();
         date.setMinutes(date.getMinutes() - offset);
         return date.toISOString().slice(0, 10);
+    }
+
+    getProfileDescription(): string {
+        switch (this.selectedProfileType) {
+            case 'compartido':
+                return 'management.userForm.profileDescriptions.compartido';
+            case 'empresa':
+                return 'management.userForm.profileDescriptions.empresa';
+            case 'personal':
+                return 'management.userForm.profileDescriptions.personal';
+            default:
+                return 'management.userForm.profileDescription';
+        }
     }
 
     ngOnDestroy() {

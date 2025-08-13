@@ -20,7 +20,7 @@
 }
 
 .form-header {
-  background: var(--primaryColor);
+  background: var(--managementColorTitleUser);
   color: white;
   padding: 15px 20px;
   text-align: center;
@@ -74,8 +74,8 @@
 
 .form-input:focus {
   outline: none;
-  border-color: var(--primaryColor);
-  box-shadow: 0 0 0 2px rgba(var(--primaryColorRGB), 0.1);
+  border-color: var(--managementColorTitleUser);
+  box-shadow: 0 0 0 2px rgba(236, 67, 67, 0.1);
 }
 
 .form-input::placeholder {
@@ -138,7 +138,7 @@ textarea.form-input {
 }
 
 .list-header {
-  background: var(--primaryColor);
+  background: var(--managementColorTitleUser);
   color: white;
   padding: 15px 20px;
   text-align: center;
@@ -169,7 +169,7 @@ textarea.form-input {
 }
 
 .package-card:hover {
-  border-color: var(--primaryColor);
+  border-color: var(--managementColorTitleUser);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
@@ -214,7 +214,7 @@ textarea.form-input {
 }
 
 .info-item i {
-  color: var(--primaryColor);
+  color: var(--managementColorTitleUser);
   width: 14px;
 }
 
@@ -332,7 +332,7 @@ textarea.form-input {
   padding: 10px 16px;
   border: 1px solid var(--managementFieldsBorder);
   border-radius: 6px;
-  background: var(--primaryColor);
+  background: var(--managementColorTitleUser);
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -344,7 +344,7 @@ textarea.form-input {
 }
 
 .search-button:hover {
-  background: var(--primaryColorDark);
+  background: var(--managementColorBadgeBackground);
 }
 
 .search-button:disabled {
@@ -399,14 +399,14 @@ textarea.form-input {
 }
 
 .devices-table th {
-  background: var(--primaryColor);
+  background: var(--managementColorTitleUser);
   color: white;
   font-weight: 600;
   font-size: 14px;
 }
 
 .devices-table tbody tr:hover {
-  background: rgba(var(--primaryColorRGB), 0.05);
+  background: rgba(236, 67, 67, 0.05);
 }
 
 .devices-table td {

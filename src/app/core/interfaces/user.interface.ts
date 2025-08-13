@@ -59,13 +59,14 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
 }
 
 export function convertToExtendedUser(user: User): ExtendedUser {
+  console.log(user,'holaaaaa3')
     return {
         ...user,
         verified_email: false,
         role: null,
         status: 'active',
-        affiliation_type_id: user.settings?.[0]?.affiliation_type || 'cliente',
-        profile_type_id: user.settings?.[0]?.profile_type || 'personal',
+        affiliation_type_id: (user as any).affiliation_type_id || 'cliente',
+        profile_type_id: (user as any).profile_type_id || 'personal',
         dni: user.dni || '',
         birth: user.birth || '',
         address: user.address || '',
@@ -76,8 +77,8 @@ export function convertToExtendedUser(user: User): ExtendedUser {
             theme: user.settings?.[0]?.theme || 'light',
             language: user.settings?.[0]?.language || 'es',
             notifications: user.settings?.[0]?.notifications ?? true,
-            affiliation_type: user.settings?.[0]?.affiliation_type || 'cliente',
-            profile_type: user.settings?.[0]?.profile_type || 'personal'
+            affiliation_type: (user as any).affiliation_type_id || 'cliente',
+            profile_type: (user as any).profile_type_id || 'personal'
         }
     };
 } 

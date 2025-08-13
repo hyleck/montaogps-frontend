@@ -845,7 +845,8 @@
         "profileType": "Type de Profil",
         "profileTypes": {
             "empresa": "Entreprise",
-            "personal": "Personnel"
+            "personal": "Personnel",
+            "compartido": "Partagé"
         },
         "affiliationTypes": {
             "cliente": "Client",
@@ -892,6 +893,11 @@
         "cancel": "Annuler",
         "selectAffiliation": "Sélectionner le type d'affiliation",
         "selectProfile": "Sélectionner le type de profil",
+        "profileDescriptions": {
+            "empresa": "Ce profil est orienté vers les utilisateurs d'entreprise avec accès aux fonctions commerciales",
+            "personal": "Ce profil est conçu pour les utilisateurs individuels avec des fonctions de base",
+            "compartido": "Cet utilisateur sera disponible pour tous les administrateurs"
+        },
         "affiliationDescription": "Sélectionnez le type d'affiliation de l'utilisateur",
         "province": "Province",
         "municipality": "Municipalité",

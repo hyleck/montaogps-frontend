@@ -1804,7 +1804,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 autoDetails = `El usuario ${userName} ha cambiado el plan del dispositivo ${targetName} de ${currentPlanName} a ${newPlanName}${reason}.`;
             }
 
-            // Preparar los datos del proceso
+                    // Preparar los datos del proceso
         const processData: CreateProcessDto = {
             type: this.processTypeMap[this.processForm.type] || 1, // Convertir string a number
             registrationDate: this.processForm.registrationDate,
