@@ -630,6 +630,7 @@
         "deviceInfoMissing": "Données du dispositif GPS manquantes",
         "planRequired": "Vous devez sélectionner un plan",
         "priceRequired": "Vous devez sélectionner un prix du plan",
+        "technicianRequired": "Vous devez sélectionner un technicien",
         "validationWarning": "Avertissement de validation",
         "imeiFormatWarning": "Le format IMEI semble incorrect. Vérifiez qu'il s'agit d'un numéro valide."
       },
@@ -989,6 +990,7 @@
         "processNotes": "Notes du Processus",
         "addProcess": "Ajouter un processus",
         "processTypeInstallation": "Installation",
+        "processTypeInstallationDateChange": "Modifier la date d'installation",
         "processTypeMaintenance": "Maintenance",
         "processTypeReplacement": "Remplacement",
         "processTypeCheck": "Vérification",
@@ -1012,6 +1014,7 @@
         "selectPriceOption": "Sélectionnez un prix",
         "newPlan": "Nouveau plan compatible",
         "newPrice": "Nouveau Prix",
+        "newInstallationDate": "Nouvelle date d'installation",
         "errorLoadingModels": "Impossible de charger les modèles pour cette marque",
         "customizePriceTitle": "Personnaliser le prix",
         "amount": "Montant",

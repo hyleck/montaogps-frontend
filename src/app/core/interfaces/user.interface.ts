@@ -59,7 +59,6 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
 }
 
 export function convertToExtendedUser(user: User): ExtendedUser {
-  console.log(user,'holaaaaa3')
     return {
         ...user,
         verified_email: false,

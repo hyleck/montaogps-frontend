@@ -190,6 +190,22 @@
                                 
                                     <!-- Columna Izquierda -->
                                     <div class="target-form__column">
+                                        <!-- Select de Técnico -->
+                                        <div class="target-form__field">
+                                            <label for="technician">{{ translate('management.targetForm.technician') }} <span class="required-label">(Requerido)</span></label>
+                                            <select
+                                                [(ngModel)]="target.mechanic_id"
+                                                name="mechanic_id"
+                                                id="technician"
+                                                required
+                                            >
+                                                <option value="" [selected]="!target.mechanic_id">{{ translate('management.targetForm.selectTechnician') }}</option>
+                                                <option *ngFor="let tech of availableTechnicians" [value]="tech.value">
+                                                    {{tech.label}}
+                                                </option>
+                                            </select>
+                                        </div>
+
                                 <div class="target-form__field">
                                             <label for="imei">{{ translate(translations.imei) }} <span class="required-label">(Requerido)</span></label>
                                     <input 
@@ -409,7 +425,7 @@
                                                     (change)="onProcessTypeChange()"
                                                 >
                                                     <option value="">{{ translate('management.targetForm.selectProcessType') }}</option>
-                                                    <option value="installation">{{ translate('management.targetForm.processTypeInstallation') }}</option>
+                                                    <option value="installation">{{ translate('management.targetForm.processTypeInstallationDateChange') }}</option>
                                                     <option value="maintenance">{{ translate('management.targetForm.processTypeMaintenance') }}</option>
                                                     <option value="replacement">{{ translate('management.targetForm.processTypeReplacement') }}</option>
                                                     <option value="check">{{ translate('management.targetForm.processTypeCheck') }}</option>
@@ -438,7 +454,7 @@
                                         (change)="onProcessPlanChange()"
                                     >
                                         <option [ngValue]="''">{{ translate('management.targetForm.selectPlan') }}</option>
-                                        <option *ngFor="let plan of availablePlans" [value]="plan.value">
+                                        <option *ngFor="let plan of availablePlansForProcess" [value]="plan.value">
                                             {{plan.label}}
                                         </option>
                                     </select>
@@ -474,6 +490,18 @@
                                         pTooltip="Precio original: {{ getOriginalPriceAmount(processForm.newPrice) }}"
                                         tooltipPosition="top"
                                      ></i>
+                                </div>
+
+                                <!-- Campo específico para cambio de fecha de instalación -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'installation'">
+                                    <label for="new_installation_date">{{ translate('management.targetForm.newInstallationDate') }} <span class="required-label">(Requerido)</span></label>
+                                    <input 
+                                        [(ngModel)]="processForm.newInstallationDate"
+                                        name="new_installation_date"
+                                        type="date" 
+                                        id="new_installation_date"
+                                        required
+                                    >
                                 </div>
 
                                             <!-- Botón para agregar proceso (con el estilo del botón de agregar campos) -->

@@ -31,6 +31,8 @@ import { Protocol } from 'src/app/core/interfaces/protocol.interface';
 import { ProtocolCommand } from 'src/app/core/interfaces/protocol.interface';
 import { ManagementService } from 'src/app/admin/modules/management/presentation/services/management.service';
 import { AuthService } from 'src/app/core/services/auth.service';
+import { UserService } from 'src/app/core/services/user.service';
+import { User } from 'src/app/core/interfaces/user.interface';
 
 
 
@@ -102,6 +104,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     availablePlans: SelectOption[] = [];
     availablePrices: ExtendedPlanPrice[] = [];
     filteredColors: SelectOption[] = [];
+    availableTechnicians: SelectOption[] = [];
+    
+    // Planes específicos para procesos (separados del formulario principal)
+    availablePlansForProcess: SelectOption[] = [];
     
     // Propiedades para SMS
     selectedSmsCommand: string = '';
@@ -121,16 +127,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         registrationDate: '',
         description: '',
         newPlan: '',
-        newPrice: null
+        newPrice: null,
+        newInstallationDate: ''
     };
     
     // Mapeo de tipos de proceso a números
     private processTypeMap: { [key: string]: number } = {
-        'installation': 1,
-        'maintenance': 2,
-        'replacement': 3,
-        'check': 4,
-        'plan_change': 5
+        'installation': 2, // Modificación de fecha de instalación
+        'maintenance': 3,
+        'replacement': 4,
+        'check': 5,
+        'plan_change': 6
     };
 
     // Lista de procesos del target actual
@@ -164,7 +171,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         private serversService: ServersService,
         private protocolsService: ProtocolsService,
         private managementService: ManagementService,
-        private authService: AuthService
+        private authService: AuthService,
+        private userService: UserService
     ) {}
 
     private getEmptyTarget(): TargetDevice {
@@ -211,6 +219,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.loadInitialData();
         this.target = this.getEmptyTarget();
         this.activeTabIndex = 0;
+        
+        // Asegurar que mechanic_id esté inicializado como string vacío
+        if (this.target.mechanic_id === undefined || this.target.mechanic_id === null) {
+            this.target.mechanic_id = '';
+        }
         // El estado del dispositivo se obtiene desde traccarInfo.status
         // Establecer fecha actual por defecto para el proceso
         if (!this.processForm.registrationDate) {
@@ -291,6 +304,20 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     console.error('Error al cargar planes:', error);
                     // Usar fallback de constantes
                     this.availablePlans = [...FALLBACK_PLANS];
+                }
+            });
+
+            // Cargar técnicos desde el servicio
+            this.userService.getTechnicians().pipe(takeUntil(this.destroy$)).subscribe({
+                next: (technicians: User[]) => {
+                    this.availableTechnicians = technicians.map(tech => ({
+                        label: `${tech.name} ${tech.last_name}`.trim(),
+                        value: tech._id
+                    })).sort((a, b) => a.label.localeCompare(b.label));
+                },
+                error: (error) => {
+                    console.error('Error al cargar técnicos:', error);
+                    this.availableTechnicians = [];
                 }
             });
             
@@ -379,6 +406,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         if (this.target.ignition_sensor === null || this.target.ignition_sensor === undefined) {
             this.target.ignition_sensor = '';
         }
+        
+        // Asegurar que mechanic_id tenga un valor válido, preservando el existente
+        if (this.target.mechanic_id === null || this.target.mechanic_id === undefined) {
+            this.target.mechanic_id = '';
+        }
         // console.log('🔍 DEBUG setupEditTarget: ignition_sensor cargado:', this.target.ignition_sensor);
         
         // Ajuste para el estado (status): en DB es boolean, en formulario puede ser string
@@ -395,11 +427,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.target.expiration_date = this.formatDateToInput(this.target.expiration_date);
         }
         
-        // Formatear la fecha de instalación si existe, o usar la fecha actual si no existe
-        if (this.target.installation_date) {
+        // Formatear la fecha de instalación (usar activation_date como fuente principal)
+        if (this.target.activation_date) {
+            this.target.installation_date = this.formatDateToInput(this.target.activation_date);
+        } else if (this.target.installation_date) {
             this.target.installation_date = this.formatDateToInput(this.target.installation_date);
         } else {
-            this.target.installation_date = new Date().toISOString().substring(0, 10);
+            // Solo asignar fecha actual si estamos creando un nuevo target (no en modo edición)
+            this.target.installation_date = this.isEditMode ? '' : new Date().toISOString().substring(0, 10);
         }
         
         this.activeTabIndex = 0;
@@ -756,6 +791,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 // console.log('- ignition_sensor recibido:', (newTarget as any).ignition_sensor);
                 // console.log('- Nuevo target creado exitosamente:', newTarget);
                 
+                // Crear automáticamente un proceso de instalación para el nuevo target
+                if (newTarget && newTarget._id) {
+                    await this.createInstallationProcess(newTarget as TargetDevice);
+                }
+                
                 this.messageService.add({
                     severity: 'success',
                     summary: this.translate('management.targetForm.saveSuccess'),
@@ -887,9 +927,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // Formatear fechas
         if (targetData.activation_date) {
             targetData.activation_date = new Date(targetData.activation_date);
-        } else if (targetData.activation_date) {
-            targetData.activation_date = new Date(targetData.activation_date);
-        } else {
+        } else if (!this.isEditMode) {
+            // Solo asignar fecha actual si estamos creando un nuevo target
             targetData.activation_date = new Date();
         }
         
@@ -936,7 +975,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 return false;   
             }
         } else if (this.activeTabIndex === 1) { // Tab de instalación
-            if (!this.target.device_imei || !this.target.sim_card_number || !this.target.plan || !this.target.selectedPrice) {
+            if (!this.target.device_imei || !this.target.sim_card_number || !this.target.mechanic_id || !this.target.plan || !this.target.selectedPrice) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate('management.targetForm.validationError'),
@@ -961,6 +1000,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 severity: 'error',
                 summary: this.translate('management.targetForm.validationError'),
                 detail: this.translate('management.targetForm.priceRequired')
+            });
+            return false;
+        }
+        
+        // Validación específica para el técnico (siempre requerido)
+        if (!this.target.mechanic_id) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate('management.targetForm.validationError'),
+                detail: this.translate('management.targetForm.technicianRequired')
             });
             return false;
         }
@@ -1746,6 +1795,56 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return simCardType ? simCardType.label : this.target.sim_company;
     }
 
+    // Método para crear automáticamente un proceso de instalación
+    private async createInstallationProcess(target: TargetDevice): Promise<void> {
+        try {
+            const currentUser = this.authService.getCurrentUser();
+            const currentDate = new Date().toISOString().substring(0, 10);
+            
+            const processData: CreateProcessDto = {
+                type: 1, // Tipo 1 = instalación real automática
+                registrationDate: currentDate,
+                description: 'Proceso de instalación creado automáticamente',
+                details: `Instalación automática registrada para el dispositivo ${target.name || target.device_imei}. Técnico asignado: ${this.getTechnicianName(target.mechanic_id || '')}.`,
+                target: {
+                    _id: target._id,
+                    name: target.name,
+                    device_imei: target.device_imei,
+                    sim_card_number: target.sim_card_number
+                },
+                user: {
+                    _id: currentUser?.id || "sistema",
+                    name: currentUser?.name || "Sistema",
+                    email: currentUser?.email || "sistema@montao.net"
+                },
+                reference: target.device_imei,
+                before: {
+                    status: "pending",
+                    lastProcess: null
+                },
+                after: {
+                    status: "completed",
+                    processType: "installation",
+                    processDate: currentDate
+                },
+                creator: currentUser?.id || "sistema"
+            };
+
+            await this.targetsService.createProcess(processData);
+            console.log('✅ Proceso de instalación creado automáticamente');
+        } catch (error) {
+            console.error('❌ Error al crear proceso de instalación automático:', error);
+            // No mostramos error al usuario para no interferir con el flujo principal
+        }
+    }
+
+    // Método auxiliar para obtener el nombre del técnico
+    private getTechnicianName(mechanicId: string): string {
+        if (!mechanicId) return 'No asignado';
+        const technician = this.availableTechnicians.find(tech => tech.value === mechanicId);
+        return technician ? technician.label : 'Técnico no encontrado';
+    }
+
     // Método para enviar el formulario de proceso
     async onSubmitProcess(): Promise<void> {
         try {
@@ -1789,19 +1888,38 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 }
             }
 
+            // Validaciones específicas para cambio de fecha de instalación
+            if (this.processForm.type === 'installation') {
+                if (!this.processForm.newInstallationDate) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe seleccionar una nueva fecha de instalación'
+                    });
+                    return;
+                }
+            }
+
             // Construir detalles automáticos si aplica
             const currentUser = this.authService.getCurrentUser();
             const userName = currentUser?.name || currentUser?.email || 'Usuario';
             const targetName = this.target.name || this.target.device_imei || 'dispositivo';
             let autoDetails = '';
             if (this.processForm.type === 'plan_change') {
-                const newPlanObj = this.availablePlans.find(p => p.value === this.processForm.newPlan);
+                const newPlanObj = this.availablePlansForProcess.find(p => p.value === this.processForm.newPlan);
                 const newPlanName = newPlanObj?.label || 'nuevo plan';
                 const currentPlanId = typeof this.target.plan === 'string' ? this.target.plan : (this.target.plan as any)?.id_plan || '';
-                const currentPlanObj = this.availablePlans.find(p => p.value === currentPlanId);
+                const currentPlanObj = this.availablePlansForProcess.find(p => p.value === currentPlanId);
                 const currentPlanName = currentPlanObj?.label || 'plan actual';
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha cambiado el plan del dispositivo ${targetName} de ${currentPlanName} a ${newPlanName}${reason}.`;
+            }
+            
+            if (this.processForm.type === 'installation') {
+                const currentInstallationDate = this.target.activation_date || 'no definida';
+                const newInstallationDate = this.processForm.newInstallationDate;
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha cambiado la fecha de instalación del dispositivo ${targetName} de ${currentInstallationDate} a ${newInstallationDate}${reason}.`;
             }
 
                     // Preparar los datos del proceso
@@ -1961,6 +2079,84 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 }
             }
 
+            // Si es un cambio de fecha de instalación, actualizar el target
+            if (this.processForm.type === 'installation') {
+                try {
+                    console.log('🔍 DEBUG: Plan antes de actualizar fecha:', this.target.plan);
+                    console.log('🔍 DEBUG: Precio antes de actualizar fecha:', this.target.selectedPrice);
+                    
+                    // Preparar datos para actualizar solo la fecha de instalación
+                    const updateData: UpdateTargetDto = {
+                        name: this.target.name,
+                        device_imei: this.target.device_imei,
+                        type: this.target.type,
+                        sim_card_number: this.target.sim_card_number,
+                        sim_company: this.target.sim_company,
+                        description: this.target.description,
+                        target_plate_number: this.target.target_plate_number,
+                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
+                        target_year: this.target.target_year,
+                        installation_location: this.target.installation_location,
+                        target_brand_id: this.target.target_brand_id,
+                        target_model_id: this.target.target_model_id,
+                        target_color: this.target.target_color,
+                        target_chassis_number: this.target.target_chassis_number,
+                        mechanic_id: this.target.mechanic_id,
+                        activation_date: new Date(this.processForm.newInstallationDate), // Nueva fecha de instalación
+                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        last_change_date: new Date(),
+                        gps_model: this.target.gps_model,
+                        ignition_sensor: this.target.ignition_sensor,
+                        shutdown_control: this.target.shutdown_control,
+                        engine_shutdown: this.target.engine_shutdown,
+                        installation_details: this.target.installation_details,
+                        status: this.target.status,
+                        canceled: this.target.canceled,
+                        delete: this.target['delete'],
+                        index: this.target.index,
+                        // Estructurar el plan como objeto según requiere el backend (preservar plan y precio existentes)
+                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
+                            this.target.plan : 
+                            (this.target.plan && this.target.selectedPrice ? {
+                                id_plan: this.target.plan,
+                                selected_price: {
+                                    id: (this.target.selectedPrice as any)?.id || '',
+                                    amount: (this.target.selectedPrice as any)?.amount || 0,
+                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
+                                }
+                            } : this.target.plan),
+                        creator_id: this.target.creator_id,
+                        parent_id: this.target.parent_id,
+                        user_id: this.target.user_id
+                    };
+
+                    const response = await this.targetsService.updateTarget(this.target._id, updateData);
+                    console.log('🔍 DEBUG: Respuesta del backend después de actualizar fecha:', response);
+                    
+                    // Actualizar el objeto target local (ambos campos para consistencia)
+                    this.target.activation_date = this.formatDateToInput(this.processForm.newInstallationDate);
+                    this.target.installation_date = this.formatDateToInput(this.processForm.newInstallationDate);
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Fecha de instalación actualizada',
+                        detail: 'La fecha de instalación ha sido actualizada correctamente'
+                    });
+
+                } catch (error) {
+                    console.error('Error al actualizar la fecha de instalación:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo actualizar la fecha de instalación del target'
+                    });
+
+                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
+                    this.target.activation_date = this.formatDateToInput(this.processForm.newInstallationDate);
+                    this.target.installation_date = this.formatDateToInput(this.processForm.newInstallationDate);
+                }
+            }
+
             // Mostrar mensaje de éxito
             this.messageService.add({
                 severity: 'success',
@@ -1991,7 +2187,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             registrationDate: this.getTodayInputDate(),
             description: '',
             newPlan: '',
-            newPrice: null
+            newPrice: null,
+            newInstallationDate: ''
         };
     }
 
@@ -2021,8 +2218,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                                 plan.server_id === currentPlan.server_id
                             );
 
-                            // Actualizar la lista de planes disponibles para el proceso
-                            this.availablePlans = filteredPlans.map(plan => ({
+                            // Actualizar la lista de planes disponibles SOLO para el proceso
+                            this.availablePlansForProcess = filteredPlans.map(plan => ({
                                 label: plan.plan_name,
                                 value: plan._id
                             })).sort((a, b) => a.label.localeCompare(b.label));
@@ -2102,15 +2299,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Método para manejar el cambio de tipo de proceso
     onProcessTypeChange(): void {
-        // Si se selecciona cambio de plan, cargar planes filtrados por servidor
+        console.log('🔍 DEBUG: Cambio de tipo de proceso a:', this.processForm.type);
+        console.log('🔍 DEBUG: Precio del target ANTES del cambio:', this.target.selectedPrice);
+        
+        // Solo cargar planes filtrados si es cambio de plan, sin limpiar nada más
         if (this.processForm.type === 'plan_change') {
             this.loadFilteredPlansForProcess();
         }
         
-        // Limpiar campos relacionados cuando se cambia el tipo
-        this.processForm.newPlan = '';
-        this.processForm.newPrice = null;
-        this.availablePrices = [];
+        // TEMPORALMENTE: No limpiar campos para debugging
+        
+        console.log('🔍 DEBUG: Precio del target DESPUÉS del cambio:', this.target.selectedPrice);
     }
 
     // Método para manejar el cambio de precio en el proceso
@@ -2312,10 +2511,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Método para obtener el ícono según el tipo de proceso
     getProcessIcon(type: number): string {
         const iconMap: { [key: number]: string } = {
-            1: 'pi pi-wrench',        // Instalación
-            2: 'pi pi-cog',           // Mantenimiento
-            3: 'pi pi-refresh',       // Reemplazo
-            4: 'pi pi-check-circle'   // Chequeo
+            1: 'pi pi-wrench',        // Instalación real
+            2: 'pi pi-calendar',      // Modificación de fecha de instalación
+            3: 'pi pi-cog',           // Mantenimiento
+            4: 'pi pi-refresh',       // Reemplazo
+            5: 'pi pi-check-circle',  // Chequeo
+            6: 'pi pi-dollar'         // Cambio de plan
         };
         return iconMap[type] || 'pi pi-circle';
     }
@@ -2323,10 +2524,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Método para obtener la clase de estado del proceso
     getProcessStatusClass(type: number): string {
         const statusMap: { [key: number]: string } = {
-            1: 'status-installation',
-            2: 'status-maintenance',
-            3: 'status-replacement',
-            4: 'status-check'
+            1: 'status-installation', // Instalación real
+            2: 'status-installation-date', // Modificación de fecha de instalación
+            3: 'status-maintenance',
+            4: 'status-replacement',
+            5: 'status-check',
+            6: 'status-plan-change'
         };
         return statusMap[type] || 'status-default';
     }
@@ -2335,9 +2538,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     getProcessStatusText(type: number): string {
         const statusMap: { [key: number]: string } = {
             1: 'Configuración inicial',
-            2: 'Mantenimiento preventivo',
-            3: 'Cambio de equipo',
-            4: 'Verificación de estado'
+            2: 'Fecha de instalación modificada',
+            3: 'Mantenimiento preventivo',
+            4: 'Cambio de equipo',
+            5: 'Verificación de estado',
+            6: 'Plan modificado'
         };
         return statusMap[type] || 'Proceso general';
     }

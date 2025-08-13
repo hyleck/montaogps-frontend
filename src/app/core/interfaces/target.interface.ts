@@ -89,8 +89,10 @@ export interface UpdateTargetDto {
     target_model_id?: string | null;
     target_color?: string;
     target_chassis_number?: string;
+    mechanic_id?: string;
     activation_date?: Date | string;
     expiration_date?: Date | string;
+    installation_date?: Date | string;
     last_change_date?: Date;
     gps_model?: string | null;
     ignition_sensor?: string | null;

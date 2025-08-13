@@ -15,7 +15,7 @@
 
 .target-form__field textarea {
     height: auto;
-    min-height: 165px;
+    min-height: 105px;
     resize: none;
 }
 .target-form__field--small textarea {

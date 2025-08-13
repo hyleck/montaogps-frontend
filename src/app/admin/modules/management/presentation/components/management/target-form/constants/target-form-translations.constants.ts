@@ -22,6 +22,7 @@ export const TARGET_FORM_TRANSLATIONS = {
   ignitionSensor: 'management.targetForm.ignitionSensor',
   shutdownControl: 'management.targetForm.shutdownControl',
   installationDetails: 'management.targetForm.installationDetails',
+  technician: 'management.targetForm.technician',
   save: 'management.targetForm.save',
   cancel: 'management.targetForm.cancel',
   plan: 'management.targetForm.plan',
