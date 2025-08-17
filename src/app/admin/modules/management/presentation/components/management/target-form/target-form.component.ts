@@ -135,17 +135,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         newPlan: '',
         newPrice: null,
         newInstallationDate: '',
-        newExpirationDate: ''
+        newExpirationDate: '',
+        newRenewalDate: ''
     };
     
     // Mapeo de tipos de proceso a números
     private processTypeMap: { [key: string]: number } = {
         'installation': 2, // Modificación de fecha de instalación
         'expiration': 3, // Modificación de fecha de expiración
-        'maintenance': 4,
-        'replacement': 5,
-        'check': 6,
-        'plan_change': 7
+        'renewal': 4, // Renovación de servicio
+        'plan_change': 5 // Cambio de plan
     };
 
     // Lista de procesos del target actual
@@ -1939,6 +1938,18 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 }
             }
 
+            // Validaciones específicas para renovación de servicio
+            if (this.processForm.type === 'renewal') {
+                if (!this.processForm.newRenewalDate) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe seleccionar una nueva fecha de renovación'
+                    });
+                    return;
+                }
+            }
+
             // Construir detalles automáticos si aplica
             const currentUser = this.authService.getCurrentUser();
             const userName = currentUser?.name || currentUser?.email || 'Usuario';
@@ -1966,6 +1977,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 const newExpirationDate = this.processForm.newExpirationDate;
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha cambiado la fecha de expiración del dispositivo ${targetName} de ${currentExpirationDate} a ${newExpirationDate}${reason}.`;
+            }
+            
+            if (this.processForm.type === 'renewal') {
+                const currentExpirationDate = this.target.expiration_date || 'no definida';
+                const newRenewalDate = this.processForm.newRenewalDate;
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha renovado el servicio del dispositivo ${targetName} cambiando la fecha de expiración de ${currentExpirationDate} a ${newRenewalDate}${reason}.`;
             }
 
                     // Preparar los datos del proceso
@@ -2295,6 +2313,98 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 }
             }
 
+            // Si es una renovación de servicio, actualizar el target
+            if (this.processForm.type === 'renewal') {
+                try {
+                    console.log('🔍 DEBUG: Plan antes de renovar servicio:', this.target.plan);
+                    console.log('🔍 DEBUG: Precio antes de renovar servicio:', this.target.selectedPrice);
+                    
+                    // Preparar datos para actualizar solo la fecha de expiración (renovación)
+                    const updateData: UpdateTargetDto = {
+                        name: this.target.name,
+                        device_imei: this.target.device_imei,
+                        type: this.target.type,
+                        sim_card_number: this.target.sim_card_number,
+                        sim_company: this.target.sim_company,
+                        description: this.target.description,
+                        target_plate_number: this.target.target_plate_number,
+                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
+                        target_year: this.target.target_year,
+                        installation_location: this.target.installation_location,
+                        target_brand_id: this.target.target_brand_id,
+                        target_model_id: this.target.target_model_id,
+                        target_color: this.target.target_color,
+                        target_chassis_number: this.target.target_chassis_number,
+                        mechanic_id: this.target.mechanic_id,
+                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
+                        expiration_date: new Date(this.processForm.newRenewalDate), // Nueva fecha de renovación
+                        last_change_date: new Date(),
+                        gps_model: this.target.gps_model,
+                        ignition_sensor: this.target.ignition_sensor,
+                        shutdown_control: this.target.shutdown_control,
+                        engine_shutdown: this.target.engine_shutdown,
+                        installation_details: this.target.installation_details,
+                        status: this.target.status,
+                        canceled: this.target.canceled,
+                        delete: this.target['delete'],
+                        index: this.target.index,
+                        // Estructurar el plan como objeto según requiere el backend (preservar plan y precio existentes)
+                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
+                            this.target.plan : 
+                            (this.target.plan && this.target.selectedPrice ? {
+                                id_plan: this.target.plan,
+                                selected_price: {
+                                    id: (this.target.selectedPrice as any)?.id || '',
+                                    amount: (this.target.selectedPrice as any)?.amount || 0,
+                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
+                                }
+                            } : this.target.plan),
+                        creator_id: this.target.creator_id,
+                        parent_id: this.target.parent_id,
+                        user_id: this.target.user_id
+                    };
+
+                    const response = await this.targetsService.updateTarget(this.target._id, updateData);
+                    console.log('🔍 DEBUG: Respuesta del backend después de renovar servicio:', response);
+                    
+                    // Activar bandera para evitar recálculo automático
+                    this.skipExpirationDateRecalculation = true;
+                    
+                    // Actualizar el objeto target local
+                    this.target.expiration_date = this.formatDateToInput(this.processForm.newRenewalDate);
+                    
+                    // Desactivar bandera después de un breve delay
+                    setTimeout(() => {
+                        this.skipExpirationDateRecalculation = false;
+                    }, 100);
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Servicio renovado',
+                        detail: 'El servicio ha sido renovado correctamente'
+                    });
+
+                } catch (error) {
+                    console.error('Error al renovar el servicio:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo renovar el servicio del target'
+                    });
+
+                    // Activar bandera para evitar recálculo automático
+                    this.skipExpirationDateRecalculation = true;
+                    
+                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
+                    this.target.expiration_date = this.formatDateToInput(this.processForm.newRenewalDate);
+                    
+                    // Desactivar bandera después de un breve delay
+                    setTimeout(() => {
+                        this.skipExpirationDateRecalculation = false;
+                    }, 100);
+                }
+            }
+
             // Mostrar mensaje de éxito
             this.messageService.add({
                 severity: 'success',
@@ -2327,7 +2437,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             newPlan: '',
             newPrice: null,
             newInstallationDate: '',
-            newExpirationDate: ''
+            newExpirationDate: '',
+            newRenewalDate: ''
         };
     }
 
@@ -2459,6 +2570,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         if (this.processForm.type !== 'expiration') {
             this.processForm.newExpirationDate = '';
+        }
+        
+        if (this.processForm.type !== 'renewal') {
+            this.processForm.newRenewalDate = '';
         }
         
         console.log('🔍 DEBUG: Precio del target DESPUÉS del cambio:', this.target.selectedPrice);
@@ -2604,13 +2719,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Método para obtener el nombre del tipo de proceso
     getProcessTypeName(type: number): string {
         const typeNames: { [key: number]: string } = {
-            1: 'Instalación',
-            2: 'Mantenimiento', 
-            3: 'Reemplazo',
-            4: 'Chequeo',
-            5: 'Cambio de Plan'
+            1: 'Instalación inicial',
+            2: 'Fecha de instalación',
+            3: 'Fecha de expiración',
+            4: 'Renovación de servicio',
+            5: 'Cambio de plan',
+            6: 'Cambio de plan', // Compatibilidad con tipos anteriores
+            7: 'Cambio de plan'  // Compatibilidad con tipos anteriores
         };
-        return typeNames[type] || `Tipo ${type}`;
+        return typeNames[type] || `Proceso desconocido`;
     }
 
     // Método para formatear fecha
@@ -2665,10 +2782,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         const iconMap: { [key: number]: string } = {
             1: 'pi pi-wrench',        // Instalación real
             2: 'pi pi-calendar',      // Modificación de fecha de instalación
-            3: 'pi pi-cog',           // Mantenimiento
-            4: 'pi pi-refresh',       // Reemplazo
-            5: 'pi pi-check-circle',  // Chequeo
-            6: 'pi pi-dollar'         // Cambio de plan
+            3: 'pi pi-calendar-times', // Modificación de fecha de expiración
+            4: 'pi pi-refresh',       // Renovación de servicio
+            5: 'pi pi-dollar',        // Cambio de plan
+            6: 'pi pi-dollar',        // Cambio de plan (compatibilidad)
+            7: 'pi pi-dollar'         // Cambio de plan (compatibilidad)
         };
         return iconMap[type] || 'pi pi-circle';
     }
@@ -2679,10 +2797,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             1: 'status-installation', // Instalación real
             2: 'status-installation-date', // Modificación de fecha de instalación
             3: 'status-expiration-date', // Modificación de fecha de expiración
-            4: 'status-maintenance',
-            5: 'status-replacement',
-            6: 'status-check',
-            7: 'status-plan-change'
+            4: 'status-service-renewal', // Renovación de servicio
+            5: 'status-plan-change', // Cambio de plan
+            6: 'status-plan-change', // Cambio de plan (compatibilidad)
+            7: 'status-plan-change'  // Cambio de plan (compatibilidad)
         };
         return statusMap[type] || 'status-default';
     }
@@ -2690,14 +2808,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Método para obtener el texto de estado del proceso
     getProcessStatusText(type: number): string {
         const statusMap: { [key: number]: string } = {
-            1: 'Configuración inicial',
-            2: 'Fecha de instalación modificada',
-            3: 'Fecha de expiración modificada',
-            4: 'Mantenimiento preventivo',
-            5: 'Cambio de equipo',
-            6: 'Verificación de estado',
-            7: 'Plan modificado'
+            1: 'CONFIGURACIÓN INICIAL',
+            2: 'MODIFICADA',
+            3: 'MODIFICADA', 
+            4: 'COMPLETADA',
+            5: 'ACTUALIZADO',
+            6: 'ACTUALIZADO', // Cambio de plan (compatibilidad)
+            7: 'ACTUALIZADO'  // Cambio de plan (compatibilidad)
         };
-        return statusMap[type] || 'Proceso general';
+        return statusMap[type] || 'COMPLETADO';
     }
 }

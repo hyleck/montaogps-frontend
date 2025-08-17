@@ -427,9 +427,7 @@
                                                     <option value="">{{ translate('management.targetForm.selectProcessType') }}</option>
                                                     <option value="installation">{{ translate('management.targetForm.processTypeInstallationDateChange') }}</option>
                                                     <option value="expiration">{{ translate('management.targetForm.processTypeExpirationDateChange') }}</option>
-                                                    <option value="maintenance">{{ translate('management.targetForm.processTypeMaintenance') }}</option>
-                                                    <option value="replacement">{{ translate('management.targetForm.processTypeReplacement') }}</option>
-                                                    <option value="check">{{ translate('management.targetForm.processTypeCheck') }}</option>
+                                                    <option value="renewal">{{ translate('management.targetForm.processTypeServiceRenewal') }}</option>
                                                     <option value="plan_change">{{ translate('management.targetForm.processTypePlanChange') }}</option>
                                     </select>
                                 </div>
@@ -513,6 +511,18 @@
                                         name="new_expiration_date"
                                         type="date" 
                                         id="new_expiration_date"
+                                        required
+                                    >
+                                </div>
+
+                                <!-- Campo específico para renovación de servicio -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'renewal'">
+                                    <label for="new_renewal_date">{{ translate('management.targetForm.newExpirationDate') }} <span class="required-label">(Requerido)</span></label>
+                                    <input 
+                                        [(ngModel)]="processForm.newRenewalDate"
+                                        name="new_renewal_date"
+                                        type="date" 
+                                        id="new_renewal_date"
                                         required
                                     >
                                 </div>

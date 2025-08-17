@@ -46,6 +46,8 @@ export const TARGET_FORM_TRANSLATIONS = {
   processAddedDetail: 'management.targetForm.processAddedDetail',
   processTypeInstallationDateChange: 'management.targetForm.processTypeInstallationDateChange',
   processTypeExpirationDateChange: 'management.targetForm.processTypeExpirationDateChange',
+  processTypeServiceRenewal: 'management.targetForm.processTypeServiceRenewal',
   newInstallationDate: 'management.targetForm.newInstallationDate',
-  newExpirationDate: 'management.targetForm.newExpirationDate'
+  newExpirationDate: 'management.targetForm.newExpirationDate',
+  newRenewalDate: 'management.targetForm.newRenewalDate'
 } as const; 
