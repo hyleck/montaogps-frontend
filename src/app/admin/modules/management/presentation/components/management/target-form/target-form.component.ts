@@ -130,7 +130,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Propiedades para formulario de procesos
     processForm = {
         type: '',
-        registrationDate: '',
+        registrationDate: this.getTodayInputDate(),
         description: '',
         newPlan: '',
         newPrice: null,

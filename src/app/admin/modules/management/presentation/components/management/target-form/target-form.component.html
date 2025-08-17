@@ -432,15 +432,7 @@
                                     </select>
                                 </div>
                             
-                                <div class="target-form__field">
-                                                <label for="process_date">{{ translate('management.targetForm.processDate') }}</label>
-                                                <input
-                                                    [(ngModel)]="processForm.registrationDate"
-                                                    type="date"
-                                                    id="process_date"
-                                                    name="process_date"
-                                                >
-                                </div>
+
 
                                 <!-- Campos específicos para cambio de plan -->
                                 <div class="target-form__field" *ngIf="processForm.type === 'plan_change'">
@@ -464,31 +456,34 @@
                                     <label for="new_price">
                                         {{ translate('management.targetForm.newPrice') }} <span class="required-label">(Requerido)</span>
                                     </label>
-                                    <select
-                                        [(ngModel)]="processForm.newPrice"
-                                        name="new_price"
-                                        id="new_price"
-                                        required
-                                        [compareWith]="comparePrices"
-                                        (ngModelChange)="onProcessPriceChange()"
-                                    >
-                                        <option [ngValue]="null">{{ translate('management.targetForm.selectPriceOption') }}</option>
-                                        <option *ngFor="let price of availablePricesForProcess" [ngValue]="price">
-                                            <ng-container *ngIf="isPriceCustomized(price); else normalPrice">
-                                                {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }} ({{ translate('management.targetForm.customized') }})
-                                            </ng-container>
-                                            <ng-template #normalPrice>
-                                                {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }}
-                                            </ng-template>
-                                        </option>
-                                    </select>
-                                    <i class="pi pi-pencil edit-price-icon" *ngIf="processForm.newPlan && processForm.newPrice" style="color: var(--globalColorPrimaryInmutable); cursor: pointer; margin-left: 6px; font-size: 0.85rem; opacity: 0.8;" (click)="startProcessCustomPriceEdit()"></i>
-                                     <i 
-                                        *ngIf="processForm.newPlan && processForm.newPrice && isPriceCustomized(processForm.newPrice)"
-                                        class="pi pi-eye original-price-eye"
-                                        pTooltip="Precio original: {{ getOriginalPriceAmount(processForm.newPrice) }}"
-                                        tooltipPosition="top"
-                                     ></i>
+                                    <div class="price-input-container">
+                                        <select
+                                            [(ngModel)]="processForm.newPrice"
+                                            name="new_price"
+                                            id="new_price"
+                                            required
+                                            [compareWith]="comparePrices"
+                                            (ngModelChange)="onProcessPriceChange()"
+                                        >
+                                            <option [ngValue]="null">{{ translate('management.targetForm.selectPriceOption') }}</option>
+                                            <option *ngFor="let price of availablePricesForProcess" [ngValue]="price">
+                                                <ng-container *ngIf="isPriceCustomized(price); else normalPrice">
+                                                    {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }} ({{ translate('management.targetForm.customized') }})
+                                                </ng-container>
+                                                <ng-template #normalPrice>
+                                                    {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }}
+                                                </ng-template>
+                                            </option>
+                                        </select>
+                                        <div class="price-actions" *ngIf="processForm.newPlan && processForm.newPrice">
+                                            <i class="pi pi-pencil edit-price-icon" (click)="startProcessCustomPriceEdit()"></i>
+                                            <i *ngIf="isPriceCustomized(processForm.newPrice)"
+                                               class="pi pi-eye original-price-eye"
+                                               pTooltip="Precio original: {{ getOriginalPriceAmount(processForm.newPrice) }}"
+                                               tooltipPosition="top">
+                                            </i>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <!-- Campo específico para cambio de fecha de instalación -->

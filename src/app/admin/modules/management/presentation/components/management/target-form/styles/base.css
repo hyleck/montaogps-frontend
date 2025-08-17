@@ -59,33 +59,61 @@
     margin-left: 0.25rem;
 }
 
-/* Iconos en labels (editar y ver precio original) */
-.edit-price-icon,
-.original-price-eye {
-    vertical-align: middle;
+/* Contenedor para precio con iconos */
+.price-input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
+.price-input-container select {
+    flex: 1;
+}
+
+.price-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Iconos en labels (editar y ver precio original) */
+.edit-price-icon,
 .original-price-eye {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
-    margin-left: 6px;
-    border-radius: 50%;
-    border: 1px solid var(--globalColorBorderLight);
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+}
+
+.edit-price-icon {
     background: var(--globalColorInputBackground);
+    border: 1px solid var(--globalColorBorderLight);
+    color: var(--globalColorPrimaryInmutable);
+    opacity: 0.8;
+}
+
+.edit-price-icon:hover {
+    opacity: 1;
+    background: var(--globalColorInputBackgroundHover, var(--globalColorInputBackground));
+    transform: scale(1.05);
+}
+
+.original-price-eye {
+    background: var(--globalColorInputBackground);
+    border: 1px solid var(--globalColorBorderLight);
     color: var(--managementColorTextUser);
     opacity: 0.85;
-    transition: all 0.15s ease;
-    text-align: center;
 }
 
 .original-price-eye:hover {
-    border-color: var(--globalColorAccent);
-    color: var(--globalColorAccent);
-    background: var(--globalColorBackgroundLight);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    opacity: 1;
+    background: var(--globalColorInputBackgroundHover, var(--globalColorInputBackground));
+    transform: scale(1.05);
 }
 
 /* Estilos para la sección de procesos */
