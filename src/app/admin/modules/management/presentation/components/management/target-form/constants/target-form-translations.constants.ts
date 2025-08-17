@@ -43,5 +43,9 @@ export const TARGET_FORM_TRANSLATIONS = {
   refreshMessages: 'management.targetForm.refreshMessages',
   // Process related translations
   processAdded: 'management.targetForm.processAdded',
-  processAddedDetail: 'management.targetForm.processAddedDetail'
+  processAddedDetail: 'management.targetForm.processAddedDetail',
+  processTypeInstallationDateChange: 'management.targetForm.processTypeInstallationDateChange',
+  processTypeExpirationDateChange: 'management.targetForm.processTypeExpirationDateChange',
+  newInstallationDate: 'management.targetForm.newInstallationDate',
+  newExpirationDate: 'management.targetForm.newExpirationDate'
 } as const; 

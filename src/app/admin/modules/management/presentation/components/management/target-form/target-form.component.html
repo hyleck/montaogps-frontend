@@ -426,6 +426,7 @@
                                                 >
                                                     <option value="">{{ translate('management.targetForm.selectProcessType') }}</option>
                                                     <option value="installation">{{ translate('management.targetForm.processTypeInstallationDateChange') }}</option>
+                                                    <option value="expiration">{{ translate('management.targetForm.processTypeExpirationDateChange') }}</option>
                                                     <option value="maintenance">{{ translate('management.targetForm.processTypeMaintenance') }}</option>
                                                     <option value="replacement">{{ translate('management.targetForm.processTypeReplacement') }}</option>
                                                     <option value="check">{{ translate('management.targetForm.processTypeCheck') }}</option>
@@ -474,7 +475,7 @@
                                         (ngModelChange)="onProcessPriceChange()"
                                     >
                                         <option [ngValue]="null">{{ translate('management.targetForm.selectPriceOption') }}</option>
-                                        <option *ngFor="let price of availablePrices" [ngValue]="price">
+                                        <option *ngFor="let price of availablePricesForProcess" [ngValue]="price">
                                             <ng-container *ngIf="isPriceCustomized(price); else normalPrice">
                                                 {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }} ({{ translate('management.targetForm.customized') }})
                                             </ng-container>
@@ -500,6 +501,18 @@
                                         name="new_installation_date"
                                         type="date" 
                                         id="new_installation_date"
+                                        required
+                                    >
+                                </div>
+
+                                <!-- Campo específico para cambio de fecha de expiración -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'expiration'">
+                                    <label for="new_expiration_date">{{ translate('management.targetForm.newExpirationDate') }} <span class="required-label">(Requerido)</span></label>
+                                    <input 
+                                        [(ngModel)]="processForm.newExpirationDate"
+                                        name="new_expiration_date"
+                                        type="date" 
+                                        id="new_expiration_date"
                                         required
                                     >
                                 </div>
