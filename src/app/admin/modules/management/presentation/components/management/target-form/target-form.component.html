@@ -198,6 +198,7 @@
                                                 name="mechanic_id"
                                                 id="technician"
                                                 required
+                                                [disabled]="isEditMode"
                                             >
                                                 <option value="" [selected]="!target.mechanic_id">{{ translate('management.targetForm.selectTechnician') }}</option>
                                                 <option *ngFor="let tech of availableTechnicians" [value]="tech.value">
@@ -215,6 +216,8 @@
                                         type="text" 
                                                 id="imei" 
                                                 required
+                                                [readonly]="isEditMode"
+                                                [disabled]="isEditMode"
                                     >
                                 </div>
                             
@@ -224,6 +227,7 @@
                                                 [(ngModel)]="target.sim_company"
                                                 name="sim_company"
                                                 id="sim_company"
+                                                [disabled]="isEditMode"
                                             >
                                                 <option [ngValue]="''">{{ translate('management.targetForm.selectSimCardType') }}</option>
                                                 <option *ngFor="let simType of availableSimCardTypes" [ngValue]="simType.value">
@@ -241,6 +245,7 @@
                                         type="text" 
                                                 id="sim_card" 
                                                 required
+                                                [readonly]="isEditMode"
                                     >
                                 </div>
                             
@@ -251,6 +256,7 @@
                                                 name="type"
                                                 id="gps_model"
                                                 (change)="onGpsModelChange()"
+                                                [disabled]="isEditMode"
                                             >
                                                 <option [ngValue]="''">{{ translate('management.targetForm.selectGpsModel') }}</option>
                                                 <option *ngFor="let model of availableGpsModels" [ngValue]="model.value">
@@ -268,6 +274,8 @@
                                                 placeholder="Detalles técnicos de la instalación" 
                                                 id="installation_details"
                                                 rows="3"
+                                                [readonly]="isEditMode"
+                                                [disabled]="isEditMode"
                                             ></textarea>
                                         </div>
                                     </div>
@@ -425,10 +433,24 @@
                                                     (change)="onProcessTypeChange()"
                                                 >
                                                     <option value="">{{ translate('management.targetForm.selectProcessType') }}</option>
+                                                    
+                                                    <!-- Procesos de MODIFICACIÓN (primero) -->
                                                     <option value="installation">{{ translate('management.targetForm.processTypeInstallationDateChange') }}</option>
                                                     <option value="expiration">{{ translate('management.targetForm.processTypeExpirationDateChange') }}</option>
-                                                    <option value="renewal">{{ translate('management.targetForm.processTypeServiceRenewal') }}</option>
+                                                    <option value="technician_change">{{ translate('management.targetForm.processTypeTechnicianChange') }}</option>
+                                                    <option value="gps_model_change">{{ translate('management.targetForm.processTypeGpsModelChange') }}</option>
+                                                    <option value="imei_change">{{ translate('management.targetForm.processTypeImeiChange') }}</option>
+                                                    <option value="installation_details_change">{{ translate('management.targetForm.processTypeInstallationDetailsChange') }}</option>
                                                     <option value="plan_change">{{ translate('management.targetForm.processTypePlanChange') }}</option>
+                                                    <option value="sim_number_change">{{ translate('management.targetForm.processTypeSimNumberChange') }}</option>
+                                                    <option value="sim_type_change">{{ translate('management.targetForm.processTypeSimTypeChange') }}</option>
+                                                    
+                                                    <!-- Procesos de CAMBIO completo -->
+                                                    <option value="gps_change">{{ translate('management.targetForm.processTypeGpsChange') }}</option>
+                                                    <option value="sim_change">{{ translate('management.targetForm.processTypeSimChange') }}</option>
+                                                    
+                                                    <!-- Procesos especiales -->
+                                                    <option value="renewal">{{ translate('management.targetForm.processTypeServiceRenewal') }}</option>
                                     </select>
                                 </div>
                             
@@ -520,6 +542,164 @@
                                         id="new_renewal_date"
                                         required
                                     >
+                                </div>
+
+                                <!-- Campo específico para cambio de técnico -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'technician_change'">
+                                    <label for="new_technician">{{ translate('management.targetForm.newTechnician') }} <span class="required-label">(Requerido)</span></label>
+                                    <select 
+                                        [(ngModel)]="processForm.newTechnician"
+                                        name="new_technician"
+                                        id="new_technician"
+                                        required
+                                    >
+                                        <option value="">{{ translate('management.targetForm.selectTechnician') }}</option>
+                                        <option *ngFor="let technician of availableTechnicians" [value]="technician.value">
+                                            {{ technician.label }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Campo específico para cambio de GPS -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'gps_change'">
+                                    <label for="new_gps_imei">{{ translate('management.targetForm.newGpsImei') }} <span class="required-label">(Requerido)</span></label>
+                                    <input 
+                                        [(ngModel)]="processForm.newGpsImei"
+                                        name="new_gps_imei"
+                                        type="text" 
+                                        id="new_gps_imei"
+                                        required
+                                        placeholder="Ingrese el nuevo IMEI del GPS"
+                                    >
+                                </div>
+
+                                <!-- Campo específico para modelo de GPS -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'gps_change'">
+                                    <label for="new_gps_model">{{ translate('management.targetForm.newGpsModel') }} <span class="required-label">(Requerido)</span></label>
+                                    <select 
+                                        [(ngModel)]="processForm.newGpsModel"
+                                        name="new_gps_model"
+                                        id="new_gps_model"
+                                        required
+                                    >
+                                        <option value="">{{ translate('management.targetForm.selectGpsModel') }}</option>
+                                        <option *ngFor="let gpsModel of availableGpsModels" [value]="gpsModel.value">
+                                            {{ gpsModel.label }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Campo específico para detalles de instalación -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'gps_change'">
+                                    <label for="new_installation_details">{{ translate('management.targetForm.newInstallationDetails') }} <span class="required-label">(Requerido)</span></label>
+                                    <textarea 
+                                        [(ngModel)]="processForm.newInstallationDetails"
+                                        name="new_installation_details"
+                                        id="new_installation_details"
+                                        required
+                                        placeholder="Ingrese los nuevos detalles de instalación"
+                                        rows="3"
+                                    ></textarea>
+                                </div>
+
+                                <!-- Campo específico para modificar detalles de instalación -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'installation_details_change'">
+                                    <label for="installation_details_only">{{ translate('management.targetForm.newInstallationDetails') }} <span class="required-label">(Requerido)</span></label>
+                                    <textarea 
+                                        [(ngModel)]="processForm.newInstallationDetails"
+                                        name="installation_details_only"
+                                        id="installation_details_only"
+                                        required
+                                        placeholder="Ingrese los nuevos detalles de instalación"
+                                        rows="3"
+                                    ></textarea>
+                                </div>
+
+                                <!-- Campo específico para modificar modelo de GPS -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'gps_model_change'">
+                                    <label for="gps_model_only">{{ translate('management.targetForm.newGpsModel') }} <span class="required-label">(Requerido)</span></label>
+                                    <select 
+                                        [(ngModel)]="processForm.newGpsModel"
+                                        name="gps_model_only"
+                                        id="gps_model_only"
+                                        required
+                                    >
+                                        <option [ngValue]="''">{{ translate('management.targetForm.selectGpsModel') }}</option>
+                                        <option *ngFor="let model of availableGpsModels" [value]="model.value">
+                                            {{model.label}}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Campo específico para modificar IMEI / GPS ID -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'imei_change'">
+                                    <label for="imei_only">{{ translate('management.targetForm.newGpsImei') }} <span class="required-label">(Requerido)</span></label>
+                                    <input 
+                                        [(ngModel)]="processForm.newGpsImei"
+                                        name="imei_only"
+                                        type="text" 
+                                        id="imei_only"
+                                        required
+                                        placeholder="Ingrese el nuevo IMEI / GPS ID"
+                                    >
+                                </div>
+
+                                <!-- Campo específico para cambio de SIM card -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'sim_change'">
+                                    <label for="sim_only">{{ translate('management.targetForm.newSimCard') }} <span class="required-label">(Requerido)</span></label>
+                                    <input 
+                                        [(ngModel)]="processForm.newSimCard"
+                                        name="sim_only"
+                                        type="text" 
+                                        id="sim_only"
+                                        required
+                                        placeholder="Ingrese el nuevo número de SIM card"
+                                    >
+                                </div>
+
+                                <!-- Campo específico para tipo de SIM card -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'sim_change'">
+                                    <label for="sim_company_only">{{ translate('management.targetForm.newSimCompany') }} <span class="required-label">(Requerido)</span></label>
+                                    <select 
+                                        [(ngModel)]="processForm.newSimCompany"
+                                        name="sim_company_only"
+                                        id="sim_company_only"
+                                        required
+                                    >
+                                        <option [ngValue]="''">{{ translate('management.targetForm.selectSimCardType') }}</option>
+                                        <option *ngFor="let simType of availableSimCardTypes" [ngValue]="simType.value">
+                                            {{simType.label}}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Campo específico para solo número de SIM -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'sim_number_change'">
+                                    <label for="sim_number_only">{{ translate('management.targetForm.newSimNumber') }} <span class="required-label">(Requerido)</span></label>
+                                    <input 
+                                        [(ngModel)]="processForm.newSimNumber"
+                                        name="sim_number_only"
+                                        type="text" 
+                                        id="sim_number_only"
+                                        required
+                                        placeholder="Ingrese el nuevo número de SIM card"
+                                    >
+                                </div>
+
+                                <!-- Campo específico para solo tipo de SIM -->
+                                <div class="target-form__field" *ngIf="processForm.type === 'sim_type_change'">
+                                    <label for="sim_type_only">{{ translate('management.targetForm.newSimType') }} <span class="required-label">(Requerido)</span></label>
+                                    <select 
+                                        [(ngModel)]="processForm.newSimType"
+                                        name="sim_type_only"
+                                        id="sim_type_only"
+                                        required
+                                    >
+                                        <option [ngValue]="''">{{ translate('management.targetForm.selectSimCardType') }}</option>
+                                        <option *ngFor="let simType of availableSimCardTypes" [ngValue]="simType.value">
+                                            {{simType.label}}
+                                        </option>
+                                    </select>
                                 </div>
 
                                             <!-- Botón para agregar proceso (con el estilo del botón de agregar campos) -->

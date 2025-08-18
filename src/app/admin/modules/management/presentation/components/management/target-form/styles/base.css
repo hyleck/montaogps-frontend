@@ -59,6 +59,24 @@
     margin-left: 0.25rem;
 }
 
+/* Texto de ayuda para campos */
+.field-help-text {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.3rem;
+    font-size: 0.75rem;
+    color: var(--managementColorTextUser);
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.field-help-text i {
+    font-size: 0.8rem;
+    color: var(--globalColorPrimaryInmutable);
+    opacity: 0.8;
+}
+
 /* Contenedor para precio con iconos */
 .price-input-container {
     display: flex;
@@ -1719,4 +1737,21 @@
         align-items: flex-start;
         gap: 0.3rem;
     }
+}
+
+/* Estilos para campos readonly y disabled para que tengan la misma apariencia */
+input[readonly],
+textarea[readonly],
+select[disabled] {
+    background-color: var(--surface-100) !important;
+    color: var(--text-color-secondary) !important;
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+}
+
+/* Asegurar que los campos readonly tengan el mismo comportamiento visual */
+input[readonly]:focus,
+textarea[readonly]:focus {
+    outline: none !important;
+    box-shadow: none !important;
 } 

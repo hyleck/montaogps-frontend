@@ -100,7 +100,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     availableGpsModels: SelectOption[] = [];
     availableLocations: SelectOption[] = [];
     availableColors: SelectOption[] = [];
-    availableSimCardTypes: SelectOption[] = [];
+    availableSimCardTypes: SelectOption[] = [
+        { value: 'tigo', label: 'Tigo' },
+        { value: 'entel', label: 'Entel' },
+        { value: 'viva', label: 'Viva' },
+        { value: 'telecel', label: 'Telecel' },
+        { value: 'boliviatel', label: 'Boliviatel' },
+        { value: 'global-m2', label: 'Global M2' },
+        { value: 'other', label: 'Otro' }
+    ];
     availablePlans: SelectOption[] = [];
     availablePrices: ExtendedPlanPrice[] = [];
     filteredColors: SelectOption[] = [];
@@ -136,7 +144,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         newPrice: null,
         newInstallationDate: '',
         newExpirationDate: '',
-        newRenewalDate: ''
+        newRenewalDate: '',
+        newTechnician: '',
+        newGpsImei: '',
+        newGpsModel: '',
+        newInstallationDetails: '',
+        newSimCard: '',
+        newSimCompany: '',
+        newSimNumber: '',
+        newSimType: ''
     };
     
     // Mapeo de tipos de proceso a números
@@ -144,7 +160,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         'installation': 2, // Modificación de fecha de instalación
         'expiration': 3, // Modificación de fecha de expiración
         'renewal': 4, // Renovación de servicio
-        'plan_change': 5 // Cambio de plan
+        'plan_change': 5, // Cambio de plan
+        'technician_change': 8, // Modificar técnico
+        'gps_change': 9, // Cambio de GPS
+        'installation_details_change': 10, // Modificar detalles de instalación
+        'gps_model_change': 11, // Modificar modelo de GPS
+        'imei_change': 12, // Modificar IMEI / GPS ID
+        'sim_change': 13, // Cambio de SIM card
+        'sim_number_change': 14, // Modificar número de SIM card
+        'sim_type_change': 15 // Modificar tipo de SIM card
     };
 
     // Lista de procesos del target actual
@@ -1950,6 +1974,129 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 }
             }
 
+            // Validaciones específicas para cambio de técnico
+            if (this.processForm.type === 'technician_change') {
+                if (!this.processForm.newTechnician) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe seleccionar un nuevo técnico'
+                    });
+                    return;
+                }
+            }
+
+            // Validaciones específicas para cambio de GPS
+            if (this.processForm.type === 'gps_change') {
+                if (!this.processForm.newGpsImei || this.processForm.newGpsImei.trim() === '') {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe ingresar el nuevo IMEI del GPS'
+                    });
+                    return;
+                }
+                
+                if (!this.processForm.newGpsModel) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe seleccionar el nuevo modelo de GPS'
+                    });
+                    return;
+                }
+                
+                if (!this.processForm.newInstallationDetails || this.processForm.newInstallationDetails.trim() === '') {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe ingresar los nuevos detalles de instalación'
+                    });
+                    return;
+                }
+            }
+            
+            // Validaciones específicas para modificar detalles de instalación
+            if (this.processForm.type === 'installation_details_change') {
+                if (!this.processForm.newInstallationDetails || this.processForm.newInstallationDetails.trim() === '') {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe ingresar los nuevos detalles de instalación'
+                    });
+                    return;
+                }
+            }
+            
+            // Validaciones específicas para modificar modelo de GPS
+            if (this.processForm.type === 'gps_model_change') {
+                if (!this.processForm.newGpsModel) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe seleccionar el nuevo modelo de GPS'
+                    });
+                    return;
+                }
+            }
+            
+            // Validaciones específicas para modificar IMEI / GPS ID
+            if (this.processForm.type === 'imei_change') {
+                if (!this.processForm.newGpsImei || this.processForm.newGpsImei.trim() === '') {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe ingresar el nuevo IMEI / GPS ID'
+                    });
+                    return;
+                }
+            }
+            
+            // Validaciones específicas para cambio de SIM card
+            if (this.processForm.type === 'sim_change') {
+                if (!this.processForm.newSimCard || this.processForm.newSimCard.trim() === '') {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe ingresar el nuevo número de SIM card'
+                    });
+                    return;
+                }
+                
+                if (!this.processForm.newSimCompany || this.processForm.newSimCompany.trim() === '') {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe ingresar el tipo de SIM card'
+                    });
+                    return;
+                }
+            }
+            
+            // Validaciones específicas para modificar número de SIM card
+            if (this.processForm.type === 'sim_number_change') {
+                if (!this.processForm.newSimNumber || this.processForm.newSimNumber.trim() === '') {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe ingresar el nuevo número de SIM card'
+                    });
+                    return;
+                }
+            }
+            
+            // Validaciones específicas para modificar tipo de SIM card
+            if (this.processForm.type === 'sim_type_change') {
+                if (!this.processForm.newSimType || this.processForm.newSimType.trim() === '') {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe seleccionar el nuevo tipo de SIM card'
+                    });
+                    return;
+                }
+            }
+
             // Construir detalles automáticos si aplica
             const currentUser = this.authService.getCurrentUser();
             const userName = currentUser?.name || currentUser?.email || 'Usuario';
@@ -1985,6 +2132,76 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha renovado el servicio del dispositivo ${targetName} cambiando la fecha de expiración de ${currentExpirationDate} a ${newRenewalDate}${reason}.`;
             }
+            
+            if (this.processForm.type === 'technician_change') {
+                const currentTechnicianId = this.target.mechanic_id || '';
+                const currentTechnicianObj = this.availableTechnicians.find(t => t.value === currentTechnicianId);
+                const currentTechnicianName = currentTechnicianObj?.label || 'no asignado';
+                const newTechnicianObj = this.availableTechnicians.find(t => t.value === this.processForm.newTechnician);
+                const newTechnicianName = newTechnicianObj?.label || 'técnico seleccionado';
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha cambiado el técnico asignado al dispositivo ${targetName} de ${currentTechnicianName} a ${newTechnicianName}${reason}.`;
+            }
+            
+            if (this.processForm.type === 'gps_change') {
+                const currentImei = this.target.device_imei || 'no definido';
+                const newImei = this.processForm.newGpsImei.trim();
+                const currentGpsModelId = this.target.type || ''; // El backend usa 'type' para el modelo GPS
+                const currentGpsModelObj = this.availableGpsModels.find(g => g.value === currentGpsModelId);
+                const currentGpsModelName = currentGpsModelObj?.label || 'no definido';
+                const newGpsModelObj = this.availableGpsModels.find(g => g.value === this.processForm.newGpsModel);
+                const newGpsModelName = newGpsModelObj?.label || 'modelo seleccionado';
+                const newInstallationDetails = this.processForm.newInstallationDetails.trim();
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha realizado un cambio completo de GPS en el dispositivo ${targetName}: IMEI cambiado de ${currentImei} a ${newImei}, modelo de ${currentGpsModelName} a ${newGpsModelName}, y se actualizaron los detalles de instalación${reason}.`;
+            }
+            
+            if (this.processForm.type === 'installation_details_change') {
+                const currentDetails = this.target.installation_details || 'no definidos';
+                const newDetails = this.processForm.newInstallationDetails.trim();
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha actualizado los detalles de instalación del dispositivo ${targetName} de "${currentDetails}" a "${newDetails}"${reason}.`;
+            }
+            
+            if (this.processForm.type === 'gps_model_change') {
+                const currentGpsModelId = this.target.type || ''; // El backend usa 'type' para el modelo GPS
+                const currentGpsModelObj = this.availableGpsModels.find(g => g.value === currentGpsModelId);
+                const currentGpsModelName = currentGpsModelObj?.label || 'no definido';
+                const newGpsModelObj = this.availableGpsModels.find(g => g.value === this.processForm.newGpsModel);
+                const newGpsModelName = newGpsModelObj?.label || 'modelo seleccionado';
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha cambiado el modelo de GPS del dispositivo ${targetName} de ${currentGpsModelName} a ${newGpsModelName}${reason}.`;
+            }
+            
+            if (this.processForm.type === 'imei_change') {
+                const currentImei = this.target.device_imei || 'no definido';
+                const newImei = this.processForm.newGpsImei.trim();
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha cambiado el IMEI / GPS ID del dispositivo ${targetName} de ${currentImei} a ${newImei}${reason}.`;
+            }
+            
+            if (this.processForm.type === 'sim_change') {
+                const currentSim = this.target.sim_card_number || 'no definido';
+                const currentSimCompany = this.target.sim_company || 'no definida';
+                const newSim = this.processForm.newSimCard.trim();
+                const newSimCompany = this.processForm.newSimCompany.trim();
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha cambiado la SIM card del dispositivo ${targetName} de ${currentSim} (${currentSimCompany}) a ${newSim} (${newSimCompany})${reason}.`;
+            }
+            
+            if (this.processForm.type === 'sim_number_change') {
+                const currentSim = this.target.sim_card_number || 'no definido';
+                const newSim = this.processForm.newSimNumber.trim();
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha cambiado el número de SIM card del dispositivo ${targetName} de ${currentSim} a ${newSim}${reason}.`;
+            }
+            
+            if (this.processForm.type === 'sim_type_change') {
+                const currentSimCompany = this.target.sim_company || 'no definido';
+                const newSimCompany = this.processForm.newSimType.trim();
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha cambiado el tipo de SIM card del dispositivo ${targetName} de ${currentSimCompany} a ${newSimCompany}${reason}.`;
+            }
 
                     // Preparar los datos del proceso
         const processData: CreateProcessDto = {
@@ -2003,7 +2220,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 name: this.authService.getCurrentUser()?.name || "Usuario Ejemplo",
                 email: this.authService.getCurrentUser()?.email || "usuario@ejemplo.com"
             },
-            reference: this.target.device_imei, // Referencia usando el IMEI del target
+            reference: this.target._id, // Referencia usando el ID del target
             before: {
                 status: "pending",
                 lastProcess: null
@@ -2405,6 +2622,593 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 }
             }
 
+            // Si es un cambio de técnico, actualizar el target
+            if (this.processForm.type === 'technician_change') {
+                try {
+                    console.log('🔍 DEBUG: Técnico actual:', this.target.mechanic_id);
+                    console.log('🔍 DEBUG: Nuevo técnico:', this.processForm.newTechnician);
+                    
+                    // Preparar datos para actualizar solo el técnico
+                    const updateData: UpdateTargetDto = {
+                        name: this.target.name,
+                        device_imei: this.target.device_imei,
+                        type: this.target.type,
+                        sim_card_number: this.target.sim_card_number,
+                        sim_company: this.target.sim_company,
+                        description: this.target.description,
+                        target_plate_number: this.target.target_plate_number,
+                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
+                        target_year: this.target.target_year,
+                        installation_location: this.target.installation_location,
+                        target_brand_id: this.target.target_brand_id,
+                        target_model_id: this.target.target_model_id,
+                        target_color: this.target.target_color,
+                        target_chassis_number: this.target.target_chassis_number,
+                        mechanic_id: this.processForm.newTechnician, // Nuevo técnico
+                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        last_change_date: new Date(),
+                        gps_model: this.target.gps_model,
+                        ignition_sensor: this.target.ignition_sensor,
+                        shutdown_control: this.target.shutdown_control,
+                        engine_shutdown: this.target.engine_shutdown,
+                        installation_details: this.target.installation_details,
+                        status: this.target.status,
+                        canceled: this.target.canceled,
+                        delete: this.target['delete'],
+                        index: this.target.index,
+                        // Preservar plan y precio existentes
+                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
+                            this.target.plan : 
+                            (this.target.plan && this.target.selectedPrice ? {
+                                id_plan: this.target.plan,
+                                selected_price: {
+                                    id: (this.target.selectedPrice as any)?.id || '',
+                                    amount: (this.target.selectedPrice as any)?.amount || 0,
+                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
+                                }
+                            } : this.target.plan),
+                        creator_id: this.target.creator_id,
+                        parent_id: this.target.parent_id,
+                        user_id: this.target.user_id
+                    };
+
+                    const response = await this.targetsService.updateTarget(this.target._id, updateData);
+                    console.log('🔍 DEBUG: Respuesta del backend después de cambiar técnico:', response);
+                    
+                    // Actualizar el objeto target local
+                    this.target.mechanic_id = this.processForm.newTechnician;
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Técnico actualizado',
+                        detail: 'El técnico ha sido cambiado correctamente'
+                    });
+
+                } catch (error) {
+                    console.error('Error al actualizar el técnico:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo actualizar el técnico. El proceso se registró correctamente.'
+                    });
+                    
+                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
+                    this.target.mechanic_id = this.processForm.newTechnician;
+                }
+            }
+
+            // Si es un cambio de GPS, actualizar el target
+            if (this.processForm.type === 'gps_change') {
+                try {
+                    
+                    // Preparar datos para actualizar el IMEI, modelo GPS y detalles de instalación
+                    const updateData: UpdateTargetDto = {
+                        name: this.target.name,
+                        device_imei: this.processForm.newGpsImei.trim(), // Nuevo IMEI
+                        type: this.processForm.newGpsModel, // Nuevo modelo GPS (el backend espera 'type')
+                        sim_card_number: this.target.sim_card_number,
+                        sim_company: this.target.sim_company,
+                        description: this.target.description,
+                        target_plate_number: this.target.target_plate_number,
+                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
+                        target_year: this.target.target_year,
+                        installation_location: this.target.installation_location,
+                        target_brand_id: this.target.target_brand_id,
+                        target_model_id: this.target.target_model_id,
+                        target_color: this.target.target_color,
+                        target_chassis_number: this.target.target_chassis_number,
+                        mechanic_id: this.target.mechanic_id,
+                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        last_change_date: new Date(),
+                        gps_model: this.target.gps_model, // Mantener el valor actual de gps_model
+                        ignition_sensor: this.target.ignition_sensor,
+                        shutdown_control: this.target.shutdown_control,
+                        engine_shutdown: this.target.engine_shutdown,
+                        installation_details: this.processForm.newInstallationDetails.trim(), // Nuevos detalles de instalación
+                        status: this.target.status,
+                        canceled: this.target.canceled,
+                        delete: this.target['delete'],
+                        index: this.target.index,
+                        // Preservar plan y precio existentes
+                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
+                            this.target.plan : 
+                            (this.target.plan && this.target.selectedPrice ? {
+                                id_plan: this.target.plan,
+                                selected_price: {
+                                    id: (this.target.selectedPrice as any)?.id || '',
+                                    amount: (this.target.selectedPrice as any)?.amount || 0,
+                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
+                                }
+                            } : this.target.plan),
+                        creator_id: this.target.creator_id,
+                        parent_id: this.target.parent_id,
+                        user_id: this.target.user_id
+                    };
+
+                    const response = await this.targetsService.updateTarget(this.target._id, updateData);
+                    
+                    // Actualizar el objeto target local
+                    this.target.device_imei = this.processForm.newGpsImei.trim();
+                    this.target.type = this.processForm.newGpsModel; // El backend usa 'type' para el modelo GPS
+                    this.target.installation_details = this.processForm.newInstallationDetails.trim();
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'GPS actualizado',
+                        detail: 'El IMEI, modelo del GPS y detalles de instalación han sido actualizados correctamente'
+                    });
+
+                } catch (error) {
+                    console.error('Error al actualizar el GPS:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo actualizar el GPS. El proceso se registró correctamente.'
+                    });
+                    
+                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
+                    this.target.device_imei = this.processForm.newGpsImei.trim();
+                    this.target.type = this.processForm.newGpsModel; // El backend usa 'type' para el modelo GPS
+                    this.target.installation_details = this.processForm.newInstallationDetails.trim();
+                }
+            }
+            
+            // Si es modificar detalles de instalación, actualizar solo los detalles
+            if (this.processForm.type === 'installation_details_change') {
+                try {
+                    // Preparar datos para actualizar solo los detalles de instalación
+                    const updateData: UpdateTargetDto = {
+                        name: this.target.name,
+                        device_imei: this.target.device_imei,
+                        type: this.target.type,
+                        sim_card_number: this.target.sim_card_number,
+                        sim_company: this.target.sim_company,
+                        description: this.target.description,
+                        target_plate_number: this.target.target_plate_number,
+                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
+                        target_year: this.target.target_year,
+                        installation_location: this.target.installation_location,
+                        target_brand_id: this.target.target_brand_id,
+                        target_model_id: this.target.target_model_id,
+                        target_color: this.target.target_color,
+                        target_chassis_number: this.target.target_chassis_number,
+                        mechanic_id: this.target.mechanic_id,
+                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        last_change_date: new Date(),
+                        gps_model: this.target.gps_model,
+                        ignition_sensor: this.target.ignition_sensor,
+                        shutdown_control: this.target.shutdown_control,
+                        engine_shutdown: this.target.engine_shutdown,
+                        installation_details: this.processForm.newInstallationDetails.trim(), // Nuevos detalles de instalación
+                        status: this.target.status,
+                        canceled: this.target.canceled,
+                        delete: this.target['delete'],
+                        index: this.target.index,
+                        // Preservar plan y precio existentes
+                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
+                            this.target.plan : 
+                            (this.target.plan && this.target.selectedPrice ? {
+                                id_plan: this.target.plan,
+                                selected_price: {
+                                    id: (this.target.selectedPrice as any)?.id || '',
+                                    amount: (this.target.selectedPrice as any)?.amount || 0,
+                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
+                                }
+                            } : this.target.plan),
+                        creator_id: this.target.creator_id,
+                        parent_id: this.target.parent_id,
+                        user_id: this.target.user_id
+                    };
+
+                    const response = await this.targetsService.updateTarget(this.target._id, updateData);
+                    
+                    // Actualizar el objeto target local
+                    this.target.installation_details = this.processForm.newInstallationDetails.trim();
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Detalles actualizados',
+                        detail: 'Los detalles de instalación han sido actualizados correctamente'
+                    });
+
+                } catch (error) {
+                    console.error('Error al actualizar los detalles de instalación:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudieron actualizar los detalles de instalación. El proceso se registró correctamente.'
+                    });
+                    
+                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
+                    this.target.installation_details = this.processForm.newInstallationDetails.trim();
+                }
+            }
+            
+            // Si es modificar modelo de GPS, actualizar solo el modelo
+            if (this.processForm.type === 'gps_model_change') {
+                try {
+                    // Preparar datos para actualizar solo el modelo de GPS
+                    const updateData: UpdateTargetDto = {
+                        name: this.target.name,
+                        device_imei: this.target.device_imei,
+                        type: this.processForm.newGpsModel, // Nuevo modelo GPS (el backend espera 'type')
+                        sim_card_number: this.target.sim_card_number,
+                        sim_company: this.target.sim_company,
+                        description: this.target.description,
+                        target_plate_number: this.target.target_plate_number,
+                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
+                        target_year: this.target.target_year,
+                        installation_location: this.target.installation_location,
+                        target_brand_id: this.target.target_brand_id,
+                        target_model_id: this.target.target_model_id,
+                        target_color: this.target.target_color,
+                        target_chassis_number: this.target.target_chassis_number,
+                        mechanic_id: this.target.mechanic_id,
+                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        last_change_date: new Date(),
+                        gps_model: this.target.gps_model,
+                        ignition_sensor: this.target.ignition_sensor,
+                        shutdown_control: this.target.shutdown_control,
+                        engine_shutdown: this.target.engine_shutdown,
+                        installation_details: this.target.installation_details,
+                        status: this.target.status,
+                        canceled: this.target.canceled,
+                        delete: this.target['delete'],
+                        index: this.target.index,
+                        // Preservar plan y precio existentes
+                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
+                            this.target.plan : 
+                            (this.target.plan && this.target.selectedPrice ? {
+                                id_plan: this.target.plan,
+                                selected_price: {
+                                    id: (this.target.selectedPrice as any)?.id || '',
+                                    amount: (this.target.selectedPrice as any)?.amount || 0,
+                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
+                                }
+                            } : this.target.plan),
+                        creator_id: this.target.creator_id,
+                        parent_id: this.target.parent_id,
+                        user_id: this.target.user_id
+                    };
+
+                    const response = await this.targetsService.updateTarget(this.target._id, updateData);
+                    
+                    // Actualizar el objeto target local
+                    this.target.type = this.processForm.newGpsModel; // El backend usa 'type' para el modelo GPS
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Modelo de GPS actualizado',
+                        detail: 'El modelo del GPS ha sido actualizado correctamente'
+                    });
+
+                } catch (error) {
+                    console.error('Error al actualizar el modelo de GPS:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo actualizar el modelo de GPS. El proceso se registró correctamente.'
+                    });
+                    
+                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
+                    this.target.type = this.processForm.newGpsModel; // El backend usa 'type' para el modelo GPS
+                }
+            }
+            
+            // Si es modificar IMEI / GPS ID, actualizar solo el IMEI
+            if (this.processForm.type === 'imei_change') {
+                try {
+                    // Preparar datos para actualizar solo el IMEI / GPS ID
+                    const updateData: UpdateTargetDto = {
+                        name: this.target.name,
+                        device_imei: this.processForm.newGpsImei.trim(), // Nuevo IMEI
+                        type: this.target.type,
+                        sim_card_number: this.target.sim_card_number,
+                        sim_company: this.target.sim_company,
+                        description: this.target.description,
+                        target_plate_number: this.target.target_plate_number,
+                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
+                        target_year: this.target.target_year,
+                        installation_location: this.target.installation_location,
+                        target_brand_id: this.target.target_brand_id,
+                        target_model_id: this.target.target_model_id,
+                        target_color: this.target.target_color,
+                        target_chassis_number: this.target.target_chassis_number,
+                        mechanic_id: this.target.mechanic_id,
+                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        last_change_date: new Date(),
+                        gps_model: this.target.gps_model,
+                        ignition_sensor: this.target.ignition_sensor,
+                        shutdown_control: this.target.shutdown_control,
+                        engine_shutdown: this.target.engine_shutdown,
+                        installation_details: this.target.installation_details,
+                        status: this.target.status,
+                        canceled: this.target.canceled,
+                        delete: this.target['delete'],
+                        index: this.target.index,
+                        // Preservar plan y precio existentes
+                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
+                            this.target.plan : 
+                            (this.target.plan && this.target.selectedPrice ? {
+                                id_plan: this.target.plan,
+                                selected_price: {
+                                    id: (this.target.selectedPrice as any)?.id || '',
+                                    amount: (this.target.selectedPrice as any)?.amount || 0,
+                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
+                                }
+                            } : this.target.plan),
+                        creator_id: this.target.creator_id,
+                        parent_id: this.target.parent_id,
+                        user_id: this.target.user_id
+                    };
+
+                    const response = await this.targetsService.updateTarget(this.target._id, updateData);
+                    
+                    // Actualizar el objeto target local
+                    this.target.device_imei = this.processForm.newGpsImei.trim();
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'IMEI actualizado',
+                        detail: 'El IMEI / GPS ID ha sido actualizado correctamente'
+                    });
+
+                } catch (error) {
+                    console.error('Error al actualizar el IMEI:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo actualizar el IMEI / GPS ID. El proceso se registró correctamente.'
+                    });
+                    
+                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
+                    this.target.device_imei = this.processForm.newGpsImei.trim();
+                }
+            }
+            
+            // Si es cambio de SIM card, actualizar solo la SIM
+            if (this.processForm.type === 'sim_change') {
+                try {
+                    // Preparar datos para actualizar solo la SIM card
+                    const updateData: UpdateTargetDto = {
+                        name: this.target.name,
+                        device_imei: this.target.device_imei,
+                        type: this.target.type,
+                        sim_card_number: this.processForm.newSimCard.trim(), // Nueva SIM card
+                        sim_company: this.processForm.newSimCompany.trim(), // Nuevo tipo de SIM
+                        description: this.target.description,
+                        target_plate_number: this.target.target_plate_number,
+                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
+                        target_year: this.target.target_year,
+                        installation_location: this.target.installation_location,
+                        target_brand_id: this.target.target_brand_id,
+                        target_model_id: this.target.target_model_id,
+                        target_color: this.target.target_color,
+                        target_chassis_number: this.target.target_chassis_number,
+                        mechanic_id: this.target.mechanic_id,
+                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        last_change_date: new Date(),
+                        gps_model: this.target.gps_model,
+                        ignition_sensor: this.target.ignition_sensor,
+                        shutdown_control: this.target.shutdown_control,
+                        engine_shutdown: this.target.engine_shutdown,
+                        installation_details: this.target.installation_details,
+                        status: this.target.status,
+                        canceled: this.target.canceled,
+                        delete: this.target['delete'],
+                        index: this.target.index,
+                        // Preservar plan y precio existentes
+                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
+                            this.target.plan : 
+                            (this.target.plan && this.target.selectedPrice ? {
+                                id_plan: this.target.plan,
+                                selected_price: {
+                                    id: (this.target.selectedPrice as any)?.id || '',
+                                    amount: (this.target.selectedPrice as any)?.amount || 0,
+                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
+                                }
+                            } : this.target.plan),
+                        creator_id: this.target.creator_id,
+                        parent_id: this.target.parent_id,
+                        user_id: this.target.user_id
+                    };
+
+                    const response = await this.targetsService.updateTarget(this.target._id, updateData);
+                    
+                    // Actualizar el objeto target local
+                    this.target.sim_card_number = this.processForm.newSimCard.trim();
+                    this.target.sim_company = this.processForm.newSimCompany.trim();
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'SIM card actualizada',
+                        detail: 'La SIM card ha sido actualizada correctamente'
+                    });
+
+                } catch (error) {
+                    console.error('Error al actualizar la SIM card:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo actualizar la SIM card. El proceso se registró correctamente.'
+                    });
+                    
+                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
+                    this.target.sim_card_number = this.processForm.newSimCard.trim();
+                    this.target.sim_company = this.processForm.newSimCompany.trim();
+                }
+            }
+            
+            // Si es modificar número de SIM card, actualizar solo el número
+            if (this.processForm.type === 'sim_number_change') {
+                try {
+                    // Preparar datos para actualizar solo el número de SIM card
+                    const updateData: UpdateTargetDto = {
+                        name: this.target.name,
+                        device_imei: this.target.device_imei,
+                        type: this.target.type,
+                        sim_card_number: this.processForm.newSimNumber.trim(), // Nuevo número de SIM
+                        sim_company: this.target.sim_company, // Mantener el tipo de SIM existente
+                        description: this.target.description,
+                        target_plate_number: this.target.target_plate_number,
+                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
+                        target_year: this.target.target_year,
+                        installation_location: this.target.installation_location,
+                        target_brand_id: this.target.target_brand_id,
+                        target_model_id: this.target.target_model_id,
+                        target_color: this.target.target_color,
+                        target_chassis_number: this.target.target_chassis_number,
+                        mechanic_id: this.target.mechanic_id,
+                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        last_change_date: new Date(),
+                        gps_model: this.target.gps_model,
+                        ignition_sensor: this.target.ignition_sensor,
+                        shutdown_control: this.target.shutdown_control,
+                        engine_shutdown: this.target.engine_shutdown,
+                        installation_details: this.target.installation_details,
+                        status: this.target.status,
+                        canceled: this.target.canceled,
+                        delete: this.target['delete'],
+                        index: this.target.index,
+                        // Preservar plan y precio existentes
+                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
+                            this.target.plan : 
+                            (this.target.plan && this.target.selectedPrice ? {
+                                id_plan: this.target.plan,
+                                selected_price: {
+                                    id: (this.target.selectedPrice as any)?.id || '',
+                                    amount: (this.target.selectedPrice as any)?.amount || 0,
+                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
+                                }
+                            } : this.target.plan),
+                        creator_id: this.target.creator_id,
+                        parent_id: this.target.parent_id,
+                        user_id: this.target.user_id
+                    };
+
+                    const response = await this.targetsService.updateTarget(this.target._id, updateData);
+                    
+                    // Actualizar el objeto target local
+                    this.target.sim_card_number = this.processForm.newSimNumber.trim();
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Número de SIM actualizado',
+                        detail: 'El número de SIM card ha sido actualizado correctamente'
+                    });
+
+                } catch (error) {
+                    console.error('Error al actualizar el número de SIM:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo actualizar el número de SIM. El proceso se registró correctamente.'
+                    });
+                    
+                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
+                    this.target.sim_card_number = this.processForm.newSimNumber.trim();
+                }
+            }
+            
+            // Si es modificar tipo de SIM card, actualizar solo el tipo
+            if (this.processForm.type === 'sim_type_change') {
+                try {
+                    // Preparar datos para actualizar solo el tipo de SIM card
+                    const updateData: UpdateTargetDto = {
+                        name: this.target.name,
+                        device_imei: this.target.device_imei,
+                        type: this.target.type,
+                        sim_card_number: this.target.sim_card_number, // Mantener el número de SIM existente
+                        sim_company: this.processForm.newSimType.trim(), // Nuevo tipo de SIM
+                        description: this.target.description,
+                        target_plate_number: this.target.target_plate_number,
+                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
+                        target_year: this.target.target_year,
+                        installation_location: this.target.installation_location,
+                        target_brand_id: this.target.target_brand_id,
+                        target_model_id: this.target.target_model_id,
+                        target_color: this.target.target_color,
+                        target_chassis_number: this.target.target_chassis_number,
+                        mechanic_id: this.target.mechanic_id,
+                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        last_change_date: new Date(),
+                        gps_model: this.target.gps_model,
+                        ignition_sensor: this.target.ignition_sensor,
+                        shutdown_control: this.target.shutdown_control,
+                        engine_shutdown: this.target.engine_shutdown,
+                        installation_details: this.target.installation_details,
+                        status: this.target.status,
+                        canceled: this.target.canceled,
+                        delete: this.target['delete'],
+                        index: this.target.index,
+                        // Preservar plan y precio existentes
+                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
+                            this.target.plan : 
+                            (this.target.plan && this.target.selectedPrice ? {
+                                id_plan: this.target.plan,
+                                selected_price: {
+                                    id: (this.target.selectedPrice as any)?.id || '',
+                                    amount: (this.target.selectedPrice as any)?.amount || 0,
+                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
+                                }
+                            } : this.target.plan),
+                        creator_id: this.target.creator_id,
+                        parent_id: this.target.parent_id,
+                        user_id: this.target.user_id
+                    };
+
+                    const response = await this.targetsService.updateTarget(this.target._id, updateData);
+                    
+                    // Actualizar el objeto target local
+                    this.target.sim_company = this.processForm.newSimType.trim();
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Tipo de SIM actualizado',
+                        detail: 'El tipo de SIM card ha sido actualizado correctamente'
+                    });
+
+                } catch (error) {
+                    console.error('Error al actualizar el tipo de SIM:', error);
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: 'No se pudo actualizar el tipo de SIM. El proceso se registró correctamente.'
+                    });
+                    
+                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
+                    this.target.sim_company = this.processForm.newSimType.trim();
+                }
+            }
+
             // Mostrar mensaje de éxito
             this.messageService.add({
                 severity: 'success',
@@ -2438,7 +3242,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             newPrice: null,
             newInstallationDate: '',
             newExpirationDate: '',
-            newRenewalDate: ''
+            newRenewalDate: '',
+            newTechnician: '',
+            newGpsImei: '',
+            newGpsModel: '',
+            newInstallationDetails: '',
+            newSimCard: '',
+            newSimCompany: '',
+            newSimNumber: '',
+            newSimType: ''
         };
     }
 
@@ -2557,8 +3369,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.loadFilteredPlansForProcess();
         } else {
             // Limpiar campos específicos del cambio de plan cuando no es plan_change
-            this.processForm.newPlan = '';
-            this.processForm.newPrice = null;
+        this.processForm.newPlan = '';
+        this.processForm.newPrice = null;
             this.availablePricesForProcess = []; // Solo limpiar precios de procesos, no del formulario principal
             this.availablePlansForProcess = [];
         }
@@ -2574,6 +3386,41 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         if (this.processForm.type !== 'renewal') {
             this.processForm.newRenewalDate = '';
+        }
+        
+        if (this.processForm.type !== 'technician_change') {
+            this.processForm.newTechnician = '';
+        }
+        
+        // Limpiar IMEI solo si no es gps_change ni imei_change
+        if (this.processForm.type !== 'gps_change' && this.processForm.type !== 'imei_change') {
+            this.processForm.newGpsImei = '';
+        }
+        
+        // Limpiar modelo de GPS solo si no es gps_change ni gps_model_change
+        if (this.processForm.type !== 'gps_change' && this.processForm.type !== 'gps_model_change') {
+            this.processForm.newGpsModel = '';
+        }
+        
+        // Limpiar detalles de instalación solo si no es gps_change ni installation_details_change
+        if (this.processForm.type !== 'gps_change' && this.processForm.type !== 'installation_details_change') {
+            this.processForm.newInstallationDetails = '';
+        }
+        
+        // Limpiar SIM card solo si no es sim_change
+        if (this.processForm.type !== 'sim_change') {
+            this.processForm.newSimCard = '';
+            this.processForm.newSimCompany = '';
+        }
+        
+        // Limpiar número de SIM solo si no es sim_number_change
+        if (this.processForm.type !== 'sim_number_change') {
+            this.processForm.newSimNumber = '';
+        }
+        
+        // Limpiar tipo de SIM solo si no es sim_type_change
+        if (this.processForm.type !== 'sim_type_change') {
+            this.processForm.newSimType = '';
         }
         
         console.log('🔍 DEBUG: Precio del target DESPUÉS del cambio:', this.target.selectedPrice);
@@ -2678,13 +3525,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Método para cargar la lista de procesos del target actual
     async loadProcessesList(): Promise<void> {
-        if (!this.target || !this.target.device_imei) {
+        if (!this.target || !this.target._id) {
             return;
         }
 
         try {
             this.isLoadingProcesses = true;
-            this.processList = await this.targetsService.getProcessesByReference(this.target.device_imei);
+            this.processList = await this.targetsService.getProcessesByReference(this.target._id);
             
             // Ordenar procesos por fecha de registro (más recientes primero)
             this.processList.sort((a, b) => 
@@ -2725,7 +3572,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             4: 'Renovación de servicio',
             5: 'Cambio de plan',
             6: 'Cambio de plan', // Compatibilidad con tipos anteriores
-            7: 'Cambio de plan'  // Compatibilidad con tipos anteriores
+            7: 'Cambio de plan', // Compatibilidad con tipos anteriores
+            8: 'Cambio de técnico',
+            9: 'Cambio de GPS',
+            10: 'Detalles de instalación',
+            11: 'Modelo de GPS',
+            12: 'IMEI / GPS ID',
+            13: 'SIM card',
+            14: 'Número de SIM',
+            15: 'Tipo de SIM'
         };
         return typeNames[type] || `Proceso desconocido`;
     }
@@ -2786,7 +3641,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             4: 'pi pi-refresh',       // Renovación de servicio
             5: 'pi pi-dollar',        // Cambio de plan
             6: 'pi pi-dollar',        // Cambio de plan (compatibilidad)
-            7: 'pi pi-dollar'         // Cambio de plan (compatibilidad)
+            7: 'pi pi-dollar',        // Cambio de plan (compatibilidad)
+            8: 'pi pi-user',          // Cambio de técnico
+            9: 'pi pi-mobile',        // Cambio de GPS
+            10: 'pi pi-file-edit',    // Modificar detalles de instalación
+            11: 'pi pi-cog',          // Modificar modelo de GPS
+            12: 'pi pi-id-card',      // Modificar IMEI / GPS ID
+            13: 'pi pi-credit-card',  // Cambio de SIM card
+            14: 'pi pi-phone',        // Modificar número de SIM card
+            15: 'pi pi-sim-card'      // Modificar tipo de SIM card
         };
         return iconMap[type] || 'pi pi-circle';
     }
@@ -2800,7 +3663,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             4: 'status-service-renewal', // Renovación de servicio
             5: 'status-plan-change', // Cambio de plan
             6: 'status-plan-change', // Cambio de plan (compatibilidad)
-            7: 'status-plan-change'  // Cambio de plan (compatibilidad)
+            7: 'status-plan-change', // Cambio de plan (compatibilidad)
+            8: 'status-technician-change', // Cambio de técnico
+            9: 'status-gps-change', // Cambio de GPS
+            10: 'status-installation-details', // Modificar detalles de instalación
+            11: 'status-gps-model', // Modificar modelo de GPS
+            12: 'status-imei-change', // Modificar IMEI / GPS ID
+            13: 'status-sim-change', // Cambio de SIM card
+            14: 'status-sim-number-change', // Modificar número de SIM card
+            15: 'status-sim-type-change' // Modificar tipo de SIM card
         };
         return statusMap[type] || 'status-default';
     }
@@ -2814,7 +3685,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             4: 'COMPLETADA',
             5: 'ACTUALIZADO',
             6: 'ACTUALIZADO', // Cambio de plan (compatibilidad)
-            7: 'ACTUALIZADO'  // Cambio de plan (compatibilidad)
+            7: 'ACTUALIZADO', // Cambio de plan (compatibilidad)
+            8: 'ASIGNADO',    // Cambio de técnico
+            9: 'REEMPLAZADO', // Cambio de GPS
+            10: 'ACTUALIZADOS', // Modificar detalles de instalación
+            11: 'CAMBIADO', // Modificar modelo de GPS
+            12: 'ACTUALIZADO', // Modificar IMEI / GPS ID
+            13: 'REEMPLAZADA', // Cambio de SIM card
+            14: 'ACTUALIZADO', // Modificar número de SIM card
+            15: 'ACTUALIZADO' // Modificar tipo de SIM card
         };
         return statusMap[type] || 'COMPLETADO';
     }
