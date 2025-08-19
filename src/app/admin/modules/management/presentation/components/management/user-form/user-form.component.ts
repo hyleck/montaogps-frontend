@@ -645,6 +645,30 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
     }
 
+    /**
+     * Determina si el campo tipo de perfil debe estar desactivado
+     * Se desactiva si el perfil es 'compartido' y el usuario logueado no tiene root=true
+     */
+    isProfileTypeDisabled(): boolean {
+        // Si el perfil seleccionado es 'compartido'
+        if (this.selectedProfileType === 'compartido') {
+            // Obtener el usuario logueado
+            const loggedUser = this.authService.getCurrentUser();
+            
+            // Si no hay usuario logueado, deshabilitar por seguridad
+            if (!loggedUser) {
+                return true;
+            }
+            
+            // Verificar si el usuario logueado tiene la propiedad root=true
+            // Si no tiene root=true, deshabilitar el campo
+            return !loggedUser.root;
+        }
+        
+        // Si no es perfil compartido, permitir edición normal
+        return false;
+    }
+
     ngOnDestroy() {
         this.destroy$.next();
         this.destroy$.complete();

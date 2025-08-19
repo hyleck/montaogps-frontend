@@ -86,14 +86,21 @@ export class AuthService {
 
   private saveUser(user: BasicUser): void {
     try {
+      // Convertir root de string a boolean si es necesario
+      // Manejamos tanto string como boolean del backend
+      const userRoot = user.root as any; // Cast temporal para evitar error de TypeScript
+      const rootBoolean = userRoot === "true" || userRoot === true;
+      
       // Guardar solo la información básica del usuario
       const basicUserInfo = {
         id: user.id,
         name: user.name,
         last_name: user.last_name,
         email: user.email,
-        access_level_id: user.access_level_id
+        access_level_id: user.access_level_id,
+        root: rootBoolean
       };
+      
       localStorage.setItem(this.USER_KEY, JSON.stringify(basicUserInfo));
     } catch (error) {
       console.error('Error al guardar usuario:', error);

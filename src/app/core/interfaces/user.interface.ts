@@ -15,6 +15,7 @@ export interface BasicUser {
   last_name: string;
   email: string;
   access_level_id: AccessLevel;
+  root?: boolean;
 }
 
 export interface User {
@@ -30,6 +31,8 @@ export interface User {
   address?: string;
   photo?: string;
   settings?: UserSettings[];
+  profile_type_id?: string;
+  root?: boolean;
 }
 
 export interface UserSettings {
@@ -56,6 +59,7 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
   status: 'active' | 'inactive';
   affiliation_type_id: string;
   profile_type_id: string;
+  root?: boolean;
 }
 
 export function convertToExtendedUser(user: User): ExtendedUser {

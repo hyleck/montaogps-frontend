@@ -59,4 +59,8 @@ export class UserService {
   getTechnicians(): Observable<User[]> {
     return this.http.get<User[]>(`${this.apiUrl}/technicians`);
   }
+
+  getSharedUsers(): Observable<User[]> {
+    return this.http.get<User[]>(`${this.apiUrl}/shared`);
+  }
 }

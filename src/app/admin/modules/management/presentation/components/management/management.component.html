@@ -85,8 +85,13 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div *ngFor="let user of users" class="management__user-card management__user-card--maps">
-                                    <div class="management__user-card-title"> <strong>{{ user.name }} {{ user.last_name }}</strong> </div>
+                                <div *ngFor="let user of users" class="management__user-card management__user-card--maps" [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
+                                    <div class="management__user-card-title"> 
+                                        <strong>{{ user.name }} {{ user.last_name }}</strong>
+                                        <span *ngIf="isSharedUser(user)" class="management__shared-badge management__shared-badge--compact">
+                                            <i class="pi pi-share-alt"></i> Compartido
+                                        </span>
+                                    </div>
                                     <div class="management__user-card-subtitle"><span>{{ user.email }}</span></div>
                                     <div class="management__user-card-controls">
                                         <button (click)="enterUser(user)" class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
@@ -403,9 +408,16 @@
                              
                                 </div>
                             </div>
-                            <div *ngFor="let user of users" class="management__user-card">
-                                <div class="management__user-card-icon"> <i class="pi pi-user"></i> </div>
-                                <div class="management__user-card-title"> <strong>{{ user.name }} {{ user.last_name }}</strong> </div>
+                            <div *ngFor="let user of users" class="management__user-card" [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
+                                <div class="management__user-card-icon"> 
+                                    <i class="pi" [ngClass]="isSharedUser(user) ? 'pi-users' : 'pi-user'"></i> 
+                                </div>
+                                <div class="management__user-card-title"> 
+                                    <strong>{{ user.name }} {{ user.last_name }}</strong>
+                                    <span *ngIf="isSharedUser(user)" class="management__shared-badge">
+                                        <i class="pi pi-share-alt"></i> Compartido
+                                    </span>
+                                </div>
                                 <div class="management__user-card-subtitle"> <span>{{ user.email }}</span> </div>
                                 <div class="management__user-card-footer">{{ user.phone }}</div>
                                 <div class="management__user-card-controls">

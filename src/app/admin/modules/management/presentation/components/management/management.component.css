@@ -1228,3 +1228,222 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   }
 }
 
+/* ====================================
+   ESTILOS PARA USUARIOS COMPARTIDOS
+   ==================================== */
+
+/* Estilo especial para tarjetas de usuarios compartidos */
+.management__user-card--shared {
+  border: 1px solid var(--managementSharedUserBorder) !important;
+  background: linear-gradient(135deg, var(--managementSharedUserBackground) 0%, var(--managementSharedUserBackgroundEnd) 100%) !important;
+  box-shadow: 
+    0 4px 16px var(--managementSharedUserShadow),
+    0 1px 4px var(--managementSharedUserShadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  position: relative;
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efecto de brillo elegante para usuarios compartidos */
+.management__user-card--shared::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg, 
+    transparent 30%, 
+    var(--managementSharedUserShimmer) 50%, 
+    transparent 70%
+  );
+  pointer-events: none;
+  border-radius: inherit;
+  animation: shimmer-shared 3s ease-in-out infinite;
+  opacity: 0.8;
+}
+
+/* Borde interno sutil */
+.management__user-card--shared::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  border: 1px solid var(--managementSharedUserBorderAccent);
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* Icono especial para usuarios compartidos */
+.management__user-card--shared .management__user-card-icon {
+  background: linear-gradient(135deg, var(--managementSharedUserIconBackground), var(--managementSharedUserIconBackgroundEnd)) !important;
+  color: white !important;
+  box-shadow: 
+    0 4px 12px var(--managementSharedUserBadgeShadow),
+    0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.management__user-card--shared .management__user-card-icon::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: icon-shine 2s ease-in-out infinite;
+}
+
+.management__user-card--shared .management__user-card-icon i {
+  color: white !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* Badge de "Compartido" mejorado */
+.management__shared-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, var(--managementSharedUserBadgeBackground), var(--managementSharedUserBadgeBackgroundEnd));
+  color: white;
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: 8px;
+  box-shadow: 
+    0 3px 8px var(--managementSharedUserBadgeShadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: pulse-shared 3s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.management__shared-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  animation: badge-slide 2s ease-in-out infinite;
+}
+
+.management__shared-badge i {
+  font-size: 0.65rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Versión compacta para vista de mapas */
+.management__shared-badge--compact {
+  padding: 2px 7px;
+  font-size: 0.65rem;
+  margin-left: 6px;
+  border-radius: 10px;
+}
+
+/* Animaciones mejoradas */
+@keyframes shimmer-shared {
+  0%, 100% {
+    transform: translateX(-50%) translateY(-50%) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(-50%) translateY(-50%) rotate(180deg);
+    opacity: 1;
+  }
+}
+
+@keyframes icon-shine {
+  0%, 100% {
+    transform: translateX(-100%) translateY(-100%) rotate(45deg);
+  }
+  50% {
+    transform: translateX(100%) translateY(100%) rotate(45deg);
+  }
+}
+
+@keyframes badge-slide {
+  0%, 100% {
+    left: -100%;
+  }
+  50% {
+    left: 100%;
+  }
+}
+
+@keyframes pulse-shared {
+  0%, 100% {
+    box-shadow: 
+      0 3px 8px var(--managementSharedUserBadgeShadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 
+      0 4px 12px var(--managementSharedUserBadgeShadowPulse),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transform: scale(1.02);
+  }
+}
+
+/* Hover effect mejorado para usuarios compartidos */
+.management__user-card--shared:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 8px 30px var(--managementSharedUserShadowHover),
+    0 4px 12px var(--managementSharedUserShadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  border-color: var(--managementSharedUserBorderAccent) !important;
+}
+
+.management__user-card--shared:hover::after {
+  opacity: 0.6;
+}
+
+/* Ajustes para el título en usuarios compartidos */
+.management__user-card--shared .management__user-card-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Texto mejorado en usuarios compartidos */
+.management__user-card--shared .management__user-card-title strong {
+  color: var(--managementSharedUserTextTitle);
+  font-weight: 700;
+  position: relative;
+  z-index: 2;
+}
+
+.management__user-card--shared .management__user-card-subtitle span {
+  color: var(--managementSharedUserTextSubtitle);
+  font-weight: 500;
+  position: relative;
+  z-index: 2;
+}
+
+.management__user-card--shared .management__user-card-footer {
+  color: var(--managementSharedUserTextFooter);
+  font-weight: 500;
+  position: relative;
+  z-index: 2;
+}
+

@@ -2,7 +2,7 @@
 import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subscription, Subject } from 'rxjs';
+import { Subscription, Subject, forkJoin } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
 // Third-party imports
@@ -81,6 +81,19 @@ export class ManagementComponent implements OnInit, OnDestroy {
     showMap: 'management.showMap',
     back: 'management.back'
   };
+
+  // ====================================
+  // MÉTODOS PÚBLICOS - UTILIDADES
+  // ====================================
+  
+  /**
+   * Determina si un usuario es compartido basándose en profile_type_id
+   * @param user Usuario a verificar
+   * @returns true si el usuario es compartido
+   */
+  isSharedUser(user: User): boolean {
+    return user.profile_type_id === 'compartido';
+  }
 
   // ====================================
   // PROPIEDADES PÚBLICAS - DELEGADAS A SERVICIOS
@@ -906,18 +919,64 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (this.searchUsersTerm && this.searchUsersTerm.trim() !== '') {
       this.searchUsersSubject.next(this.searchUsersTerm);
     } else {
-      // Cargar todos los usuarios normalmente
-      this.userService.getAll(userId).subscribe({
-        next: (users) => {
-          this.users = users;
-          this.uiService.setLoading(false);
+      // Obtener el usuario logueado
+      const loggedUser = this.authService.getCurrentUser();
+      const loggedUserId = loggedUser?.id;
+      
+      // Verificar si el usuario logueado es el mismo que está en la URL
+      const shouldLoadSharedUsers = loggedUserId === userId;
+      
+      if (shouldLoadSharedUsers) {
+        // Cargar usuarios normales y compartidos en paralelo usando forkJoin
+        forkJoin({
+          normalUsers: this.userService.getAll(userId),
+          sharedUsers: this.userService.getSharedUsers()
+        }).subscribe({
+          next: ({ normalUsers, sharedUsers }) => {
+            // Unir las dos listas, eliminando duplicados por ID
+            const allUsers = [...(normalUsers || [])];
+            
+            // Agregar usuarios compartidos que no estén ya en la lista
+            (sharedUsers || []).forEach(sharedUser => {
+              if (!allUsers.find(user => user._id === sharedUser._id)) {
+                allUsers.push(sharedUser);
+              }
+            });
+
+            this.users = allUsers;
+            this.uiService.setLoading(false);
           },
           error: (error) => {
-          console.error('Error al cargar usuarios:', error);
-          this.uiService.setLoading(false);
+            console.error('Error al cargar usuarios:', error);
+            // En caso de error, intentar cargar solo usuarios normales
+            this.userService.getAll(userId).subscribe({
+              next: (users) => {
+                this.users = users;
+                this.uiService.setLoading(false);
+              },
+              error: (fallbackError) => {
+                console.error('Error al cargar usuarios (fallback):', fallbackError);
+                this.users = [];
+                this.uiService.setLoading(false);
+              }
+            });
+          }
+        });
+      } else {
+        // Solo cargar usuarios normales si no es el usuario logueado
+        this.userService.getAll(userId).subscribe({
+          next: (users) => {
+            this.users = users;
+            this.uiService.setLoading(false);
+          },
+          error: (error) => {
+            console.error('Error al cargar usuarios:', error);
+            this.users = [];
+            this.uiService.setLoading(false);
           }
         });
       }
+    }
   }
   showNoTargetMessage = false;
   private async loadTargetsForUser(userId: string) {
