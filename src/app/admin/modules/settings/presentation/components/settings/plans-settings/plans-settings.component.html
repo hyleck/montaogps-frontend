@@ -1,8 +1,18 @@
 <div class="user-roles-layout">
     
     <!-- Panel lateral izquierdo -->
-    <div class="user-roles-layout__sidebar">
-        <div class="sidebar-content">
+    <div class="user-roles-layout__sidebar" *ngIf="canCreatePlans() || canUpdatePlans()">
+        <!-- Mensaje cuando está en modo crear sin permisos -->
+        <div class="sidebar-content" *ngIf="!isEditing && !canCreatePlans() && canUpdatePlans()">
+            <div class="no-permissions-message">
+                <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem; color: var(--text-color-secondary);"></i>
+                <h3>{{ 'settings.plans.no_create_permission_title' | translate }}</h3>
+                <p>{{ 'settings.plans.no_create_permission_message' | translate }}</p>
+            </div>
+        </div>
+
+        <!-- Formulario normal cuando tiene permisos -->
+        <div class="sidebar-content" *ngIf="canCreatePlans() || (canUpdatePlans() && isEditing)">
             <h3>{{ (isEditing ? 'settings.plans.edit_plan' : 'settings.plans.new_plan') | translate }}</h3>
             <form (ngSubmit)="onSubmit()" ngNativeValidate>
                 <div class="form-group">
@@ -46,7 +56,7 @@
                                 </select>
                             </div>
                         </div>
-                        <button type="button" class="button-secondary add-price-btn" (click)="addPrice()">
+                        <button type="button" class="button-secondary add-price-btn" (click)="addPrice()" *ngIf="canCreatePlans() || canUpdatePlans()">
                             <i class="pi pi-plus"></i>
                             {{ 'settings.plans.add_price' | translate }}
                         </button>
@@ -55,7 +65,7 @@
                     <div class="prices-list" *ngIf="planForm.prices.length > 0">
                         <div class="price-item" *ngFor="let price of planForm.prices; let i = index">
                             <span>{{ price.amount }} ({{ 'settings.plans.' + price.payment_period | translate }})</span>
-                            <button type="button" class="button-action button-danger" (click)="removePrice(i)">
+                            <button type="button" class="button-action button-danger" (click)="removePrice(i)" *ngIf="canCreatePlans() || canUpdatePlans()">
                                 <i class="pi pi-trash"></i>
                             </button>
                         </div>
@@ -75,7 +85,7 @@
                             <input id="feature_description" type="text" [(ngModel)]="featureForm.description" name="feature_description" 
                                 [placeholder]="'settings.plans.feature_description_placeholder' | translate">
                         </div>
-                        <button type="button" class="button-secondary add-feature-btn" (click)="addFeature()">
+                        <button type="button" class="button-secondary add-feature-btn" (click)="addFeature()" *ngIf="canCreatePlans() || canUpdatePlans()">
                             <i class="pi pi-plus"></i>
                             {{ 'settings.plans.add_feature' | translate }}
                         </button>
@@ -86,7 +96,7 @@
                             <div class="feature-content">
                                 <div class="feature-name" title="{{ feature.description }}">{{ feature.name }}</div>
                             </div>
-                            <button type="button" class="button-action button-danger" (click)="removeFeature(i)">
+                            <button type="button" class="button-action button-danger" (click)="removeFeature(i)" *ngIf="canCreatePlans() || canUpdatePlans()">
                                 <i class="pi pi-trash"></i>
                             </button>
                         </div>
@@ -94,7 +104,8 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="button-primary">
+                    <button type="submit" class="button-primary" 
+                            *ngIf="(isEditing && canUpdatePlans()) || (!isEditing && canCreatePlans())">
                         <i class="pi pi-save"></i>
                         {{ (isEditing ? 'settings.plans.update' : 'settings.plans.create') | translate }}
                     </button>
@@ -108,7 +119,7 @@
     </div>
 
     <!-- Contenido principal -->
-    <div class="user-roles-layout__main">
+    <div class="user-roles-layout__main" [class.full-width]="!canCreatePlans() && !canUpdatePlans()">
         <div class="main-content">
             <h2>{{ 'settings.plans.plans_list' | translate }}</h2>
             
@@ -118,8 +129,17 @@
                 <p>{{ 'settings.plans.loading' | translate }}</p>
             </div>
 
+            <!-- Mensaje de sin permisos -->
+            <div *ngIf="!loading && !canReadPlans()" class="no-permissions-container">
+                <div class="no-permissions-message">
+                    <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                    <h3>{{ 'settings.plans.no_read_permission' | translate }}</h3>
+                    <p>{{ 'settings.plans.contact_admin' | translate }}</p>
+                </div>
+            </div>
+
             <!-- Tabla de planes -->
-            <div *ngIf="!loading" class="table-container">
+            <div *ngIf="!loading && canReadPlans()" class="table-container">
                 <table class="plans-table">
                     <thead>
                         <tr>
@@ -137,12 +157,17 @@
                                 </span>
                             </td>
                             <td>
-                                <button type="button" class="button-action button-success" (click)="editPlan(plan)">
+                                <button type="button" class="button-action button-success" (click)="editPlan(plan)" 
+                                        *ngIf="canUpdatePlans()">
                                     <i class="pi pi-pencil"></i>
                                 </button>
-                                <button type="button" class="button-action button-danger" (click)="deletePlan(plan)">
+                                <button type="button" class="button-action button-danger" (click)="deletePlan(plan)"
+                                        *ngIf="canDeletePlans()">
                                     <i class="pi pi-trash"></i>
                                 </button>
+                                <span *ngIf="!canUpdatePlans() && !canDeletePlans()" class="no-actions">
+                                    {{ 'settings.plans.no_permissions' | translate }}
+                                </span>
                             </td>
                         </tr>
                         <tr *ngIf="plans.length === 0">

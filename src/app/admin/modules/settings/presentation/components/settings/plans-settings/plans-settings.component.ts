@@ -3,6 +3,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
 import { PlansService } from '@core/services/plans.service';
 import { ServersService } from '@core/services/servers.service';
+import { AuthService } from '@core/services/auth.service';
 import { Plan, CreatePlanDto, UpdatePlanDto, PlanPrice, PlanFeature, ApiPlanPrice, UIPlanPrice } from '@core/interfaces/plan.interface';
 import { Server } from '@core/interfaces/server.interface';
 
@@ -62,12 +63,35 @@ export class PlansSettingsComponent implements OnInit {
     private serversService: ServersService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
-    this.loadPlans();
-    this.loadServers();
+    // Solo cargar si tiene permisos de lectura
+    if (this.canReadPlans()) {
+      this.loadPlans();
+      this.loadServers();
+    } else {
+      this.showErrorMessage('no_permissions');
+    }
+  }
+
+  // Métodos de validación de privilegios
+  canCreatePlans(): boolean {
+    return this.authService.hasPrivilege('plans', 'create');
+  }
+
+  canReadPlans(): boolean {
+    return this.authService.hasPrivilege('plans', 'read');
+  }
+
+  canUpdatePlans(): boolean {
+    return this.authService.hasPrivilege('plans', 'update');
+  }
+
+  canDeletePlans(): boolean {
+    return this.authService.hasPrivilege('plans', 'delete');
   }
 
   // Convertir el valor numérico del backend a string para la UI
@@ -119,6 +143,17 @@ export class PlansSettingsComponent implements OnInit {
   }
 
   onSubmit() {
+    // Validar privilegios antes de proceder
+    if (this.isEditing && !this.canUpdatePlans()) {
+      this.showErrorMessage('no_update_permission');
+      return;
+    }
+    
+    if (!this.isEditing && !this.canCreatePlans()) {
+      this.showErrorMessage('no_create_permission');
+      return;
+    }
+
     // Convertir los períodos de pago de string a números antes de enviar al backend
     const convertedPrices = this.planForm.prices.map(price => ({
       ...price,
@@ -194,6 +229,12 @@ export class PlansSettingsComponent implements OnInit {
   }
 
   editPlan(plan: Plan) {
+    // Validar privilegios de edición
+    if (!this.canUpdatePlans()) {
+      this.showErrorMessage('no_update_permission');
+      return;
+    }
+
     this.selectedPlan = plan;
     // Asegurarse de que todos los períodos de pago se muestren correctamente
     const uiPrices = plan.prices.map(price => {
@@ -216,6 +257,12 @@ export class PlansSettingsComponent implements OnInit {
   }
 
   deletePlan(plan: Plan) {
+    // Validar privilegios de eliminación
+    if (!this.canDeletePlans()) {
+      this.showErrorMessage('no_delete_permission');
+      return;
+    }
+
     const message = this.translate.instant('settings.plans.messages.confirm_delete').replace('{name}', plan.plan_name);
     this.confirmationService.confirm({
       message: message,

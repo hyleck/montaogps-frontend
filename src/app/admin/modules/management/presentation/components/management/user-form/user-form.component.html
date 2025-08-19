@@ -208,7 +208,7 @@
                                                     [name]="'read_' + module.value"
                                                     [binary]="true"
                                                     [inputId]="'read_' + module.value"
-                                                ></p-checkbox>
+                                                />
                                                 <label [for]="'read_' + module.value">{{ 'management.userForm.actions.read' | translate }}</label>
                                             </div>
                                             <div class="privilege-action">
@@ -218,7 +218,7 @@
                                                     [name]="'create_' + module.value"
                                                     [binary]="true"
                                                     [inputId]="'create_' + module.value"
-                                                ></p-checkbox>
+                                                />
                                                 <label [for]="'create_' + module.value">{{ 'management.userForm.actions.create' | translate }}</label>
                                             </div>
                                             <div class="privilege-action">
@@ -228,7 +228,7 @@
                                                     [name]="'update_' + module.value"
                                                     [binary]="true"
                                                     [inputId]="'update_' + module.value"
-                                                ></p-checkbox>
+                                                />
                                                 <label [for]="'update_' + module.value">{{ 'management.userForm.actions.update' | translate }}</label>
                                             </div>
                                             <div class="privilege-action">
@@ -238,7 +238,7 @@
                                                     [name]="'delete_' + module.value"
                                                     [binary]="true"
                                                     [inputId]="'delete_' + module.value"
-                                                ></p-checkbox>
+                                                />
                                                 <label [for]="'delete_' + module.value">{{ 'management.userForm.actions.delete' | translate }}</label>
                                             </div>
                                         </div>
@@ -335,7 +335,7 @@
                                                 [disabled]="isProfileTypeDisabled()"
                                             >
                                                 <option value="">{{ 'management.userForm.selectProfile' | translate }}</option>
-                                                <option *ngFor="let type of profileTypes" [value]="type.value">
+                                                <option *ngFor="let type of getAvailableProfileTypes()" [value]="type.value">
                                                     {{ 'management.userForm.profileTypes.' + type.value | translate }}
                                                 </option>
                                             </select>
@@ -387,7 +387,7 @@
                                             </div>
                                             <div class="services-grid">
                                                 <div class="services-field" *ngFor="let srv of technicianServicesOptions">
-                                                    <p-checkbox [(ngModel)]="technicianServices" [inputId]="'srv_'+srv.id" name="technician_services" [value]="srv.id"></p-checkbox>
+                                                    <p-checkbox [(ngModel)]="technicianServices" [inputId]="'srv_'+srv.id" name="technician_services" [value]="srv.id"/>
                                                     <label [for]="'srv_'+srv.id">{{ srv.i18nKey | translate }}</label>
                                                 </div>
                                             </div>
@@ -407,7 +407,7 @@
                                                     name="notifications"
                                                     [binary]="true"
                                                     class="settings-checkbox"
-                                                ></p-checkbox>
+                                                />
                                                 <span>{{ 'management.userForm.notificationsEnable' | translate }}</span>
                                             </div>
                                             <small class="settings-description">{{ 'management.userForm.notificationsDescription' | translate }}</small>

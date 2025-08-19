@@ -659,6 +659,11 @@
         "quarterly": "Quarterly",
         "status_recommended": "Recommended",
         "status_standard": "Standard",
+        "no_permissions": "No permissions",
+        "no_read_permission": "No read permissions",
+        "contact_admin": "Contact administrator to gain access to this section",
+        "no_create_permission_title": "Creation not allowed",
+        "no_create_permission_message": "You don't have permissions to create new plans. Please contact the system administrator.",
         "table": {
           "name": "Name",
           "server": "Server",
@@ -683,7 +688,11 @@
           "error_update": "Could not update plan",
           "error_delete": "Could not delete plan",
           "invalid_price": "Price must be greater than 0",
-          "invalid_feature": "Feature name is required"
+          "invalid_feature": "Feature name is required",
+          "no_permissions": "No permissions",
+          "no_create_permission": "You don't have permissions to create plans",
+          "no_update_permission": "You don't have permissions to edit plans",
+          "no_delete_permission": "You don't have permissions to delete plans"
         }
       },
       "vehicle_brands": {

@@ -16,6 +16,11 @@
     flex: 1;
 }
 
+.user-roles-layout__main.full-width {
+    width: 100%;
+    max-width: none;
+}
+
 .sidebar-content {
     background-color: var(--userRolesSidebarBackground);
     border-radius: 8px;
@@ -33,6 +38,28 @@
     color: var(--userRolesTitle);
     font-weight: 600;
     font-size: 1.1rem;
+}
+
+/* Estilos para mensaje de sin permisos */
+.no-permissions-message {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-color-secondary);
+}
+
+.no-permissions-message h3 {
+    color: var(--text-color-secondary);
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.no-permissions-message p {
+    color: var(--text-color-secondary);
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    opacity: 0.8;
 }
 
 .main-content h2 {

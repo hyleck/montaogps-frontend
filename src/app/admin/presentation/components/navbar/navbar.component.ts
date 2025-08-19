@@ -53,11 +53,13 @@ export class NavbarComponent implements OnInit {
     this.items = [
       {
         label: this.translate.instant('navbar.scheduleProcess'),
-        icon: 'pi pi-calendar-clock'
+        icon: 'pi pi-calendar-clock',
+        disabled: true
       },
       {
         label: this.translate.instant('navbar.canceled'),
-        icon: 'pi pi-trash'
+        icon: 'pi pi-trash',
+        disabled: true
       },
       {
         label: this.translate.instant('navbar.transfer'),

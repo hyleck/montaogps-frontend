@@ -173,7 +173,7 @@
 
         <div class="packages-list-section">
             <div class="list-header">
-                <h2>CRUD de los dispositivos de ese paquete</h2>
+                <h2>Listado de paquetes</h2>
             </div>
             
             <div class="packages-grid">
@@ -363,45 +363,52 @@
     styleClass="p-fluid"
 >
     <ng-template pTemplate="content">
-        <div class="field" *ngIf="selectedDevice">
-            <label for="deviceImei">IMEI</label>
-            <input 
-                type="text" 
-                id="deviceImei" 
-                [(ngModel)]="selectedDevice.imei" 
-                required 
-                autofocus
-                class="form-input"
-                placeholder="Ingrese el IMEI"
-            />
-        </div>
-        
-        <div class="field" *ngIf="selectedDevice">
-            <label for="deviceSim">SIM</label>
-            <input 
-                type="text" 
-                id="deviceSim" 
-                [(ngModel)]="selectedDevice.sim" 
-                required
-                class="form-input"
-                placeholder="Ingrese el SIM"
-            />
-        </div>
-        
-        <div class="field" *ngIf="selectedDevice">
-            <label for="deviceProtocol">Protocolo</label>
-            <select 
-                id="deviceProtocol"
-                [(ngModel)]="selectedDevice.protocol" 
-                required
-                class="form-input"
-            >
-                <option value="">Seleccionar protocolo</option>
-                <option *ngFor="let protocol of protocols" [value]="protocol.value">
-                    {{ protocol.label }}
-                </option>
-            </select>
-        </div>
+        <form (ngSubmit)="saveDevice()" #deviceForm="ngForm">
+            <div class="field" *ngIf="selectedDevice">
+                <label for="deviceImei">IMEI</label>
+                <input 
+                    type="text" 
+                    id="deviceImei" 
+                    [(ngModel)]="selectedDevice.imei" 
+                    name="imei"
+                    required 
+                    #imeiInput
+                    class="form-input"
+                    placeholder="Ingrese el IMEI"
+                />
+            </div>
+            
+            <div class="field" *ngIf="selectedDevice">
+                <label for="deviceSim">SIM</label>
+                <input 
+                    type="text" 
+                    id="deviceSim" 
+                    [(ngModel)]="selectedDevice.sim" 
+                    name="sim"
+                    class="form-input"
+                    placeholder="Ingrese el SIM (opcional)"
+                />
+            </div>
+            
+            <div class="field" *ngIf="selectedDevice">
+                <label for="deviceProtocol">Protocolo</label>
+                <select 
+                    id="deviceProtocol"
+                    [(ngModel)]="selectedDevice.protocol" 
+                    name="protocol"
+                    required
+                    class="form-input"
+                >
+                    <option value="">Seleccionar protocolo</option>
+                    <option *ngFor="let protocol of protocols" [value]="protocol.value">
+                        {{ protocol.label }}
+                    </option>
+                </select>
+            </div>
+            
+            <!-- Hidden submit button to make the form work with Enter -->
+            <button type="submit" style="display: none;"></button>
+        </form>
     </ng-template>
 
     <ng-template pTemplate="footer">

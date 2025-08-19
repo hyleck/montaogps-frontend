@@ -669,6 +669,31 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         return false;
     }
 
+    /**
+     * Obtiene los tipos de perfil disponibles según los permisos del usuario logueado
+     * Solo muestra 'compartido' si el usuario tiene root=true
+     */
+    getAvailableProfileTypes(): ProfileTypeOption[] {
+        const loggedUser = this.authService.getCurrentUser();
+        
+        // Si no hay usuario logueado, filtrar 'compartido'
+        if (!loggedUser) {
+            return this.profileTypes.filter(type => type.value !== 'compartido');
+        }
+        
+        // Verificar si tiene root=true (manejando tanto string como boolean)
+        const userRoot = loggedUser.root as any; // Cast temporal para evitar error de TypeScript
+        const hasRootPermission = userRoot === true || userRoot === "true";
+        
+        // Si no tiene permisos root, filtrar 'compartido'
+        if (!hasRootPermission) {
+            return this.profileTypes.filter(type => type.value !== 'compartido');
+        }
+        
+        // Si tiene root=true, mostrar todos los tipos incluido 'compartido'
+        return this.profileTypes;
+    }
+
     ngOnDestroy() {
         this.destroy$.next();
         this.destroy$.complete();

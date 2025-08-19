@@ -2,6 +2,8 @@
     height: calc(100vh - 120px);
     overflow-y: auto;
     padding: 0 16px;
+    filter: blur(3px);
+    pointer-events: none;
 }
 
 .dashboard-container {
@@ -18,6 +20,8 @@
 
 .breadcrumb-container {
     margin-bottom: 16px;
+    filter: blur(3px);
+    pointer-events: none;
 }
 
 .stats-container {

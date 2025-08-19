@@ -31,6 +31,12 @@ export class AuthService {
   login(email: string, password: string): Observable<any> {
     return this._httpClient.post<any>(this.LOGIN_URL, { email, password }).pipe(
       tap(response => {
+        // 🔍 DEBUG: Imprimir respuesta completa del login
+        console.log('🔍 DEBUG - RESPUESTA COMPLETA DEL LOGIN:', response);
+        if (response.user) {
+          console.log('🔍 DEBUG - USUARIO EN RESPUESTA DEL LOGIN:', response.user);
+        }
+        
         if (response.access_token) {
           this.saveToken(response.access_token);
           if (response.user) {
@@ -44,6 +50,10 @@ export class AuthService {
           // Obtener datos completos solo para configuración inicial
           return this.userService.getById(response.user.id).pipe(
             tap(userData => {
+              // 🔍 DEBUG: Imprimir usuario completo como llega del backend
+              console.log('🔍 DEBUG - USUARIO COMPLETO DEL BACKEND:', userData);
+              // Actualizar el usuario en localStorage con los privilegios completos
+              this.updateUserWithPrivileges(userData);
               this.configureUserSettings(userData);
             }),
             // Devolver la respuesta original del login
@@ -101,16 +111,48 @@ export class AuthService {
         root: rootBoolean
       };
       
+      // 🔍 DEBUG: Imprimir información del usuario que se va a guardar
+      console.log('🔍 DEBUG - GUARDANDO USUARIO:', basicUserInfo);
+      
       localStorage.setItem(this.USER_KEY, JSON.stringify(basicUserInfo));
     } catch (error) {
       console.error('Error al guardar usuario:', error);
     }
   }
 
+  private updateUserWithPrivileges(completeUserData: any): void {
+    try {
+      // Obtener el usuario actual del localStorage directamente
+      const userStr = localStorage.getItem(this.USER_KEY);
+      const currentUser = userStr ? JSON.parse(userStr) : null;
+      
+      if (!currentUser) return;
+
+      // Agregar los privilegios al usuario existente
+      const updatedUser = {
+        ...currentUser,
+        privileges: completeUserData.privileges || []
+      };
+
+      // 🔍 DEBUG: Imprimir usuario actualizado con privilegios
+      console.log('🔍 DEBUG - ACTUALIZANDO USUARIO CON PRIVILEGIOS:', updatedUser);
+
+      // Guardar el usuario actualizado en localStorage
+      localStorage.setItem(this.USER_KEY, JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Error al actualizar usuario con privilegios:', error);
+    }
+  }
+
   getCurrentUser(): BasicUser | null {
     try {
       const userStr = localStorage.getItem(this.USER_KEY);
-      return userStr ? JSON.parse(userStr) : null;
+      const user = userStr ? JSON.parse(userStr) : null;
+      
+      // 🔍 DEBUG: Imprimir toda la información del usuario logueado
+      console.log('🔍 DEBUG - USUARIO LOGUEADO COMPLETO:', user);
+      
+      return user;
     } catch (error) {
       console.error('Error al obtener usuario:', error);
       return null;
@@ -131,6 +173,26 @@ export class AuthService {
   isAuthenticated(): boolean {
     const token = this.getToken();
     return !!token && !this.isTokenExpired(token);
+  }
+
+  // Método para verificar privilegios específicos
+  hasPrivilege(module: string, action: string): boolean {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser || !currentUser.privileges) return false;
+
+    const modulePrivilege = currentUser.privileges.find(p => p.module === module);
+    if (!modulePrivilege) return false;
+
+    return modulePrivilege.actions[action as keyof typeof modulePrivilege.actions] === true;
+  }
+
+  // Método para obtener todos los privilegios de un módulo
+  getModulePrivileges(module: string): any | null {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser || !currentUser.privileges) return null;
+
+    const modulePrivilege = currentUser.privileges.find(p => p.module === module);
+    return modulePrivilege ? modulePrivilege.actions : null;
   }
 
   logout(): void {

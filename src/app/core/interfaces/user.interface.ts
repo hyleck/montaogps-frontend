@@ -1,5 +1,19 @@
 import { UserRole, Privilege } from './user-role.interface';
 
+export interface UserPrivilegeActions {
+  create: boolean;
+  read: boolean;
+  update: boolean;
+  delete: boolean;
+  _id: string;
+}
+
+export interface UserPrivilege {
+  module: string;
+  actions: UserPrivilegeActions;
+  _id: string;
+}
+
 export interface AccessLevel {
   _id: string;
   createdAt: string;
@@ -16,6 +30,7 @@ export interface BasicUser {
   email: string;
   access_level_id: AccessLevel;
   root?: boolean;
+  privileges?: UserPrivilege[];
 }
 
 export interface User {

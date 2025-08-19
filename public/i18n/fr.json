@@ -599,6 +599,11 @@
         "quarterly": "Trimestriel",
         "status_recommended": "Recommandé",
         "status_standard": "Standard",
+        "no_permissions": "Pas de permissions",
+        "no_read_permission": "Pas de permissions de lecture",
+        "contact_admin": "Contactez l'administrateur pour obtenir l'accès à cette section",
+        "no_create_permission_title": "Création non autorisée",
+        "no_create_permission_message": "Vous n'avez pas les permissions pour créer de nouveaux plans. Veuillez contacter l'administrateur système.",
         "table": {
           "name": "Nom",
           "server": "Serveur",
@@ -623,7 +628,11 @@
           "error_update": "Impossible de mettre à jour le plan",
           "error_delete": "Impossible de supprimer le plan",
           "invalid_price": "Le prix doit être supérieur à 0",
-          "invalid_feature": "Le nom de la caractéristique est requis"
+          "invalid_feature": "Le nom de la caractéristique est requis",
+          "no_permissions": "Pas de permissions",
+          "no_create_permission": "Vous n'avez pas les permissions pour créer des plans",
+          "no_update_permission": "Vous n'avez pas les permissions pour modifier des plans",
+          "no_delete_permission": "Vous n'avez pas les permissions pour supprimer des plans"
         },
         "validationError": "Erreur de validation",
         "requiredFieldsMissing": "Des champs obligatoires sont manquants",

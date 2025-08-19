@@ -692,6 +692,11 @@
         "quarterly": "Trimestral",
         "status_recommended": "Recomendado",
         "status_standard": "Estándar",
+        "no_permissions": "Sin permisos",
+        "no_read_permission": "Sin permisos de lectura",
+        "contact_admin": "Contacte al administrador para obtener acceso a esta sección",
+        "no_create_permission_title": "Creación no permitida",
+        "no_create_permission_message": "No tiene permisos para crear nuevos planes. Contacte al administrador del sistema.",
         "table": {
           "name": "Nombre",
           "server": "Servidor",
@@ -716,7 +721,11 @@
           "error_update": "No se pudo actualizar el plan",
           "error_delete": "No se pudo eliminar el plan",
           "invalid_price": "El precio debe ser mayor que 0",
-          "invalid_feature": "El nombre de la característica es requerido"
+          "invalid_feature": "El nombre de la característica es requerido",
+          "no_permissions": "Sin permisos",
+          "no_create_permission": "No tiene permisos para crear planes",
+          "no_update_permission": "No tiene permisos para editar planes",
+          "no_delete_permission": "No tiene permisos para eliminar planes"
         }
       },
       "vehicle_models": {

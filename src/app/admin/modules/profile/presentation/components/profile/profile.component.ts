@@ -138,6 +138,8 @@ export class ProfileComponent implements OnInit {
         if (currentUser && currentUser.id) {
             this.userService.getById(currentUser.id).subscribe({
                 next: (userData: any) => {
+                    // 🔍 DEBUG: Usuario completo desde perfil
+                    console.log('🔍 DEBUG - USUARIO COMPLETO EN PERFIL:', userData);
                     const updatedUser = this.processUserData(userData);
                     this.updateUserIfChanged(updatedUser);
                     this.status.setState('profile', this.user);

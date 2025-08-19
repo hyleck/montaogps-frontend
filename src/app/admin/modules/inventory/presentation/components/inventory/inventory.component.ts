@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
 import { InventoryItem, InventoryService, Package } from 'src/app/core/services/inventory.service';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
@@ -12,6 +12,8 @@ import { TranslateService } from '@ngx-translate/core';
   standalone: false,
 })
 export class InventoryComponent implements OnInit {
+  @ViewChild('imeiInput') imeiInput!: ElementRef;
+  
   items: MenuItem[] = [{ label: 'Inventario' }];
   home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
@@ -224,6 +226,13 @@ export class InventoryComponent implements OnInit {
     
     this.isEditDeviceMode = false;
     this.deviceDialogVisible = true;
+    
+    // Enfocar el campo IMEI después de que se abra el diálogo
+    setTimeout(() => {
+      if (this.imeiInput && this.imeiInput.nativeElement) {
+        this.imeiInput.nativeElement.focus();
+      }
+    }, 100);
   }
 
   editDevice(device: InventoryItem): void {
@@ -264,14 +273,7 @@ export class InventoryComponent implements OnInit {
       return;
     }
 
-    if (!this.selectedDevice.sim || this.selectedDevice.sim.trim() === '') {
-      this.messageService.add({ 
-        severity: 'warn', 
-        summary: 'Validación', 
-        detail: 'El SIM es requerido' 
-      });
-      return;
-    }
+    // SIM es opcional, no se valida
 
     if (!this.selectedDevice.protocol || this.selectedDevice.protocol === '') {
       this.messageService.add({ 
@@ -298,12 +300,12 @@ export class InventoryComponent implements OnInit {
     devicePayload.Protocol = this.selectedDevice.protocol || '';
     devicePayload.package = this.currentPackageId; // Este se mantiene en minúscula
 
-    // Validar que el payload tenga valores válidos antes de enviar
-    if (!devicePayload.IMEI || !devicePayload.SIM || !devicePayload.Protocol || !devicePayload.package) {
+    // Validar que el payload tenga valores válidos antes de enviar (SIM es opcional)
+    if (!devicePayload.IMEI || !devicePayload.Protocol || !devicePayload.package) {
       this.messageService.add({ 
         severity: 'error', 
         summary: 'Error de validación', 
-        detail: 'Faltan campos requeridos en el payload' 
+        detail: 'Faltan campos requeridos en el payload (IMEI y Protocolo son obligatorios)' 
       });
       return;
     }
@@ -319,7 +321,15 @@ export class InventoryComponent implements OnInit {
           summary: 'Éxito', 
           detail: this.isEditDeviceMode ? 'Dispositivo actualizado' : 'Dispositivo agregado' 
         });
-        this.hideDeviceDialog();
+        
+        if (this.isEditDeviceMode) {
+          // Si estamos editando, cerrar el formulario
+          this.hideDeviceDialog();
+        } else {
+          // Si estamos creando, reiniciar el formulario pero mantener el protocolo
+          this.resetFormForNewDevice();
+        }
+        
         if (this.currentPackageId) {
           this.viewPackageDevices({ _id: this.currentPackageId } as Package);
         }
@@ -378,6 +388,29 @@ export class InventoryComponent implements OnInit {
   hideDeviceDialog(): void {
     this.deviceDialogVisible = false;
     this.selectedDevice = null;
+  }
+
+  resetFormForNewDevice(): void {
+    if (!this.selectedDevice || !this.currentPackageId) return;
+    
+    // Guardar el protocolo actual
+    const currentProtocol = this.selectedDevice.protocol;
+    
+    // Reiniciar el dispositivo manteniendo solo el protocolo
+    this.selectedDevice = {
+      imei: '',
+      sim: '', 
+      protocol: currentProtocol, // Mantener el protocolo
+      package: this.currentPackageId,
+      packageId: this.currentPackageId
+    } as InventoryItem;
+    
+    // Enfocar el campo IMEI después de un breve delay para asegurar que el DOM se ha actualizado
+    setTimeout(() => {
+      if (this.imeiInput && this.imeiInput.nativeElement) {
+        this.imeiInput.nativeElement.focus();
+      }
+    }, 100);
   }
 
   getProtocolLabel(protocolData: any): string {
