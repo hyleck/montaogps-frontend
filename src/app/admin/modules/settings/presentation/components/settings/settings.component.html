@@ -9,7 +9,7 @@
 
 <!-- Tarjetas de configuración, listas de las diferentes configuraciones que se pueden hacer -->
 <div class="settings">
-    <div *ngFor="let card of settingsCards" 
+    <div *ngFor="let card of filteredSettingsCards" 
          class="settings__card" 
          [ngClass]="{'settings__card--disabled': card.disabled}"
          (click)="!card.disabled && navigateTo(card.route, card.action)">

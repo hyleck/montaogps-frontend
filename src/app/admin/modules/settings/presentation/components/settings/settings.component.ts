@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { StatusService } from '@shared/services/status.service';
 import { HistorialesService } from '@core/services/historiales.service';
+import { AuthService } from '@core/services/auth.service';
 import { interval, Subscription } from 'rxjs';
 
 @Component({
@@ -106,7 +107,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
         private router: Router,
         private translate: TranslateService,
         private statusService: StatusService,
-        private historialesService: HistorialesService
+        private historialesService: HistorialesService,
+        private authService: AuthService
     ) {
         this.initializeBreadcrumb();
     }
@@ -119,6 +121,26 @@ export class SettingsComponent implements OnInit, OnDestroy {
         
         // Iniciar monitoreo del estado de historiales
         this.startHistorialesStatusMonitoring();
+    }
+
+    // Método para verificar si tiene algún permiso en plans
+    hasAnyPlanPermission(): boolean {
+        return this.authService.hasPrivilege('plans', 'create') ||
+               this.authService.hasPrivilege('plans', 'read') ||
+               this.authService.hasPrivilege('plans', 'update') ||
+               this.authService.hasPrivilege('plans', 'delete');
+    }
+
+    // Getter para obtener las tarjetas filtradas según permisos
+    get filteredSettingsCards() {
+        return this.settingsCards.filter(card => {
+            // Si es la tarjeta de plans, verificar permisos
+            if (card.titleKey === 'settings.cards.plans.title') {
+                return this.hasAnyPlanPermission();
+            }
+            // Para otras tarjetas, mostrar siempre (por ahora)
+            return true;
+        });
     }
 
     ngOnDestroy(): void {
