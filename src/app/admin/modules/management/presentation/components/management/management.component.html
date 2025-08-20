@@ -46,10 +46,13 @@
                                 <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text" [placeholder]="translations.searchUsers | translate">
                                 
                             </div>
-                            <button (click)="showUserForm()" class="button button--primary-flat-red">
+                            <button (click)="showUserForm()" class="button button--primary-flat-red" *ngIf="canCreateUsers()">
                                 <i class="pi pi-user-plus"></i>
                                 <!-- <span class="button-text">{{ translations.newUser | translate }}</span> -->
                             </button>
+                            <div *ngIf="!canCreateUsers()" class="no-create-permission">
+                                <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                            </div>
                         </div>
     
                         <div *ngIf="managementService.getOp() === 't'" class="management__search">
@@ -95,8 +98,8 @@
                                     <div class="management__user-card-subtitle"><span>{{ user.email }}</span></div>
                                     <div class="management__user-card-controls">
                                         <button (click)="enterUser(user)" class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
-                                        <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
-                                        <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)"> <i class="pi pi-trash" ></i> </button>
+                                        <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario" *ngIf="canUpdateUsers()"> <i class="pi pi-pencil" ></i> </button>
+                                        <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers()"> <i class="pi pi-trash" ></i> </button>
                                     </div>
                                 </div>
                             </ng-container>
@@ -366,8 +369,7 @@
 
             </div>
             <div class="management__content">
-
-                    <div *ngIf="managementService.getOp() === 'u'" class="management__search">
+                    <div *ngIf="managementService.getOp() === 'u' && canReadUsers()" class="management__search">
                         <div  class="management__input-search">
                             <label for="management-search"><i class="pi pi-search"></i></label>
                             <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text" [placeholder]="translations.searchUsers | translate">
@@ -422,8 +424,8 @@
                                 <div class="management__user-card-footer">{{ user.phone }}</div>
                                 <div class="management__user-card-controls">
                                     <button (click)="enterUser(user)" class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
-                                    <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario"> <i class="pi pi-pencil" ></i> </button>
-                                    <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)"> <i class="pi pi-trash" ></i> </button>
+                                    <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario" *ngIf="canUpdateUsers()"> <i class="pi pi-pencil" ></i> </button>
+                                    <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers()"> <i class="pi pi-trash" ></i> </button>
                                 </div>
                             </div>
                         </ng-container>

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
 import { ServersService } from '@core/services/servers.service';
+import { AuthService } from '@core/services/auth.service';
 import { Server, CreateServerDto, UpdateServerDto } from '@core/interfaces/server.interface';
 
 @Component({
@@ -32,11 +33,38 @@ export class ServersSettingsComponent implements OnInit {
     private serversService: ServersService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
-    this.loadServers();
+    // Solo cargar si tiene permisos de lectura
+    if (this.canReadServers()) {
+      this.loadServers();
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.servers.no_permissions'),
+        detail: this.translate.instant('settings.servers.contact_admin')
+      });
+    }
+  }
+
+  // Métodos de validación de privilegios
+  canCreateServers(): boolean {
+    return this.authService.hasPrivilege('servers', 'create');
+  }
+
+  canReadServers(): boolean {
+    return this.authService.hasPrivilege('servers', 'read');
+  }
+
+  canUpdateServers(): boolean {
+    return this.authService.hasPrivilege('servers', 'update');
+  }
+
+  canDeleteServers(): boolean {
+    return this.authService.hasPrivilege('servers', 'delete');
   }
 
   loadServers() {
@@ -55,6 +83,25 @@ export class ServersSettingsComponent implements OnInit {
   }
 
   onSubmit() {
+    // Validar privilegios antes de proceder
+    if (this.isEditing && !this.canUpdateServers()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.servers.no_update_permission'),
+        detail: this.translate.instant('settings.servers.contact_admin')
+      });
+      return;
+    }
+    
+    if (!this.isEditing && !this.canCreateServers()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.servers.no_create_permission'),
+        detail: this.translate.instant('settings.servers.contact_admin')
+      });
+      return;
+    }
+
     if (this.isEditing && this.serverForm._id) {
       // Actualizar servidor existente
       const updateServerDto: UpdateServerDto = {
@@ -110,6 +157,16 @@ export class ServersSettingsComponent implements OnInit {
   }
 
   editServer(server: Server) {
+    // Validar permisos antes de permitir editar servidores
+    if (!this.canUpdateServers()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.servers.no_update_permission'),
+        detail: this.translate.instant('settings.servers.contact_admin')
+      });
+      return;
+    }
+
     this.selectedServer = server;
     this.serverForm = {
       ...server,
@@ -119,6 +176,16 @@ export class ServersSettingsComponent implements OnInit {
   }
 
   deleteServer(server: Server) {
+    // Validar permisos antes de permitir eliminar servidores
+    if (!this.canDeleteServers()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.servers.no_delete_permission'),
+        detail: this.translate.instant('settings.servers.contact_admin')
+      });
+      return;
+    }
+
     const message = this.translate.instant('settings.servers.messages.confirm_delete').replace('{name}', server.name);
     this.confirmationService.confirm({
       message: message,

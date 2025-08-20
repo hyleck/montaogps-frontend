@@ -119,6 +119,15 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         private cdr: ChangeDetectorRef
     ) {}
 
+    // Métodos de validación de privilegios
+    canCreateUsers(): boolean {
+        return this.authService.hasPrivilege('users', 'create');
+    }
+
+    canUpdateUsers(): boolean {
+        return this.authService.hasPrivilege('users', 'update');
+    }
+
     private getEmptyUser(): ExtendedUser {
         return {
             _id: '',
@@ -373,6 +382,25 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     onSubmit() {
+        // Validar privilegios antes de proceder
+        if (this.userInput && !this.canUpdateUsers()) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('management.users.no_update_permission'),
+                detail: this.translate.instant('management.users.contact_admin')
+            });
+            return;
+        }
+        
+        if (!this.userInput && !this.canCreateUsers()) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('management.users.no_create_permission'),
+                detail: this.translate.instant('management.users.contact_admin')
+            });
+            return;
+        }
+
         if (!this.user.role || !this.user.role._id) {
             this.messageService.add({
                 severity: 'error',

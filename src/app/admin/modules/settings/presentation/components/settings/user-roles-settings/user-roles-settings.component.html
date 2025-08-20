@@ -1,8 +1,29 @@
 <div class="user-roles-layout">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+
+    <!-- Mensaje de sin permisos -->
+    <div *ngIf="!canReadRoles()" class="no-permissions-container">
+        <div class="no-permissions-message">
+            <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+            <h3>{{ 'settings.roles.no_read_permission' | translate }}</h3>
+            <p>{{ 'settings.roles.contact_admin' | translate }}</p>
+        </div>
+    </div>
     
     <!-- Panel lateral izquierdo -->
-    <div class="user-roles-layout__sidebar">
-        <div class="sidebar-content">
+    <div class="user-roles-layout__sidebar" *ngIf="canCreateRoles() || canUpdateRoles()">
+        <!-- Mensaje cuando está en modo crear sin permisos -->
+        <div class="sidebar-content" *ngIf="!isEditing && !canCreateRoles() && canUpdateRoles()">
+            <div class="no-permissions-message">
+                <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem; color: var(--text-color-secondary);"></i>
+                <h3>{{ 'settings.roles.no_create_permission_title' | translate }}</h3>
+                <p>{{ 'settings.roles.no_create_permission_message' | translate }}</p>
+            </div>
+        </div>
+
+        <!-- Formulario normal cuando tiene permisos -->
+        <div class="sidebar-content" *ngIf="canCreateRoles() || (canUpdateRoles() && isEditing)">
             <h3>{{ (isEditing ? 'settings.roles_settings.edit_role' : 'settings.roles_settings.new_role') | translate }}</h3>
             <form (ngSubmit)="onSubmit()" ngNativeValidate>
                 <div class="form-group">
@@ -24,7 +45,9 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="button-primary">
+                    <button type="submit" class="button-primary" 
+                            [disabled]="(!canCreateRoles() && !isEditing) || (!canUpdateRoles() && isEditing)"
+                            *ngIf="canCreateRoles() || canUpdateRoles()">
                         <i class="pi pi-save"></i>
                         {{ (isEditing ? 'settings.roles_settings.update' : 'settings.roles_settings.create') | translate }}
                     </button>
@@ -32,14 +55,18 @@
                         <i class="pi pi-times"></i>
                         {{ 'settings.roles_settings.cancel' | translate }}
                     </button>
+                    <div *ngIf="!canCreateRoles() && !canUpdateRoles()" class="no-save-permission">
+                        <i class="pi pi-lock"></i>
+                        {{ 'settings.roles.no_save_permission' | translate }}
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Contenido principal -->
-    <div class="user-roles-layout__main">
-        <div class="main-content">
+    <div class="user-roles-layout__main" [ngClass]="{'full-width': !canCreateRoles() && !canUpdateRoles()}">
+        <div class="main-content" *ngIf="canReadRoles()">
             <h2>{{ 'settings.roles_settings.user_roles' | translate }}</h2>
             <p-table [value]="roles" [tableStyle]="{ 'min-width': '20rem', 'font-size': '0.875rem' }" styleClass="small-text-table">
                 <ng-template pTemplate="header">
@@ -54,12 +81,16 @@
                         <td>{{role.name}}</td>
                         <td>{{role.description}}</td>
                         <td>
-                            <button type="button" class="button-action button-success" (click)="editRole(role)">
+                            <button type="button" class="button-action button-success" (click)="editRole(role)" *ngIf="canUpdateRoles()">
                                 <i class="pi pi-pencil"></i>
                             </button>
-                            <button type="button" class="button-action button-danger" (click)="deleteRole(role)">
+                            <button type="button" class="button-action button-danger" (click)="deleteRole(role)" *ngIf="canDeleteRoles()">
                                 <i class="pi pi-trash"></i>
                             </button>
+                            <div *ngIf="!canUpdateRoles() && !canDeleteRoles()" class="no-actions-permission">
+                                <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                                <span style="font-size: 0.75rem; opacity: 0.6;">{{ 'settings.roles.no_actions_permission' | translate }}</span>
+                            </div>
                         </td>
                     </tr>
                 </ng-template>

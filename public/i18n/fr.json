@@ -220,11 +220,28 @@
     "settings": {
       "roles": {
         "title": "Rôles",
-        "description": "Gestion des rôles et permissions"
+        "description": "Gestion des rôles et permissions",
+        "no_permissions": "Pas de permissions",
+        "no_read_permission": "Pas de permissions de lecture",
+        "contact_admin": "Contactez l'administrateur pour obtenir l'accès à cette section",
+        "no_create_permission": "Pas de permissions de création",
+        "no_create_permission_title": "Pas de permissions pour créer des rôles",
+        "no_create_permission_message": "Vous n'avez pas les permissions pour créer de nouveaux rôles",
+        "no_update_permission": "Pas de permissions de mise à jour",
+        "no_delete_permission": "Pas de permissions de suppression",
+        "no_save_permission": "Pas de permissions de sauvegarde",
+        "no_actions_permission": "Pas d'actions"
       },
       "sectors": {
         "title": "Secteurs",
-        "description": "Configuration des secteurs opérationnels"
+        "description": "Configuration des secteurs opérationnels",
+        "no_permissions": "Pas de permissions",
+        "no_read_permission": "Pas de permissions de lecture",
+        "contact_admin": "Contactez l'administrateur pour obtenir l'accès à cette section",
+        "no_create_permission": "Pas de permissions de création",
+        "no_update_permission": "Pas de permissions de mise à jour",
+        "no_delete_permission": "Pas de permissions de suppression",
+        "no_save_permission": "Pas de permissions de sauvegarde"
       },
       "tags": {
         "title": "Étiquettes",
@@ -240,15 +257,41 @@
       },
       "brands": {
         "title": "Marques",
-        "description": "Configuration des marques"
+        "description": "Configuration des marques",
+        "no_permissions": "Pas de permissions",
+        "no_read_permission": "Pas de permissions de lecture",
+        "contact_admin": "Contactez l'administrateur pour obtenir l'accès à cette section",
+        "no_create_permission": "Pas de permissions de création",
+        "no_create_permission_title": "Pas de permissions pour créer des marques",
+        "no_create_permission_message": "Vous n'avez pas les permissions pour créer de nouvelles marques",
+        "no_update_permission": "Pas de permissions de mise à jour",
+        "no_delete_permission": "Pas de permissions de suppression",
+        "no_save_permission": "Pas de permissions de sauvegarde",
+        "no_actions_permission": "Pas d'actions"
       },
       "models": {
         "title": "Modèles",
-        "description": "Gestion des modèles"
+        "description": "Gestion des modèles",
+        "no_permissions": "Pas de permissions",
+        "no_read_permission": "Pas de permissions de lecture",
+        "contact_admin": "Contactez l'administrateur pour obtenir l'accès à cette section",
+        "no_create_permission": "Pas de permissions de création",
+        "no_create_permission_title": "Pas de permissions pour créer des modèles",
+        "no_create_permission_message": "Vous n'avez pas les permissions pour créer de nouveaux modèles",
+        "no_update_permission": "Pas de permissions de mise à jour",
+        "no_delete_permission": "Pas de permissions de suppression",
+        "no_save_permission": "Pas de permissions de sauvegarde",
+        "no_actions_permission": "Pas d'actions"
       },
       "colors": {
         "title": "Couleurs",
-        "description": "Configuration des couleurs"
+        "description": "Configuration des couleurs",
+        "no_permissions": "Pas de permissions",
+        "no_read_permission": "Pas de permissions de lecture",
+        "contact_admin": "Contactez l'administrateur pour obtenir l'accès à cette section",
+        "no_create_permission": "Pas de permissions de création",
+        "no_update_permission": "Pas de permissions de mise à jour",
+        "no_delete_permission": "Pas de permissions de suppression"
       },
       "historiales": {
         "title": "Historiques",
@@ -410,7 +453,16 @@
           "error_create": "Impossible de créer le serveur",
           "error_delete": "Impossible de supprimer le serveur",
           "error_loading": "Impossible de charger les serveurs"
-        }
+        },
+        "no_permissions": "Pas de permissions",
+        "no_read_permission": "Pas de permissions de lecture",
+        "contact_admin": "Contactez l'administrateur pour obtenir l'accès à cette section",
+        "no_create_permission": "Pas de permissions de création",
+        "no_update_permission": "Pas de permissions de mise à jour",
+        "no_delete_permission": "Pas de permissions de suppression",
+        "no_save_permission": "Pas de permissions de sauvegarde",
+        "no_create_permission_title": "Création non autorisée",
+        "no_create_permission_message": "Vous n'avez pas les permissions pour créer de nouveaux serveurs. Contactez l'administrateur système."
       },
       "roles_settings": {
         "edit_role": "Modifier le rôle",
@@ -563,7 +615,16 @@
         "error_create": "Erreur de création",
         "error_create_detail": "Impossible de créer la configuration du système",
         "error_upload_logo": "Erreur de téléchargement du logo",
-        "error_upload_logo_detail": "Impossible de télécharger le fichier du logo"
+        "error_upload_logo_detail": "Impossible de télécharger le fichier du logo",
+        "no_permissions": "Pas de permissions",
+        "no_read_permission": "Pas de permissions de lecture",
+        "contact_admin": "Contactez l'administrateur pour obtenir l'accès à cette section",
+        "no_create_permission": "Pas de permissions de création",
+        "no_create_permission_detail": "Vous n'avez pas les permissions pour créer la configuration système",
+        "no_update_permission": "Pas de permissions de mise à jour",
+        "no_update_permission_detail": "Vous n'avez pas les permissions pour mettre à jour la configuration système",
+        "no_save_permission": "Pas de permissions de sauvegarde",
+        "no_add_permission": "Pas de permissions d'ajout"
       },
       "plans": {
         "edit_plan": "Modifier le plan",
@@ -737,6 +798,16 @@
           "yes_delete": "Oui, supprimer",
           "no_cancel": "Non, annuler"
         },
+        "no_permissions": "Pas de permissions",
+        "no_read_permission": "Pas de permissions de lecture",
+        "contact_admin": "Contactez l'administrateur pour obtenir l'accès à cette section",
+        "no_create_permission": "Pas de permissions de création",
+        "no_create_permission_title": "Pas de permissions pour créer des protocoles",
+        "no_create_permission_message": "Vous n'avez pas les permissions pour créer de nouveaux protocoles",
+        "no_update_permission": "Pas de permissions de mise à jour",
+        "no_delete_permission": "Pas de permissions de suppression",
+        "no_save_permission": "Pas de permissions de sauvegarde",
+        "no_actions_permission": "Pas d'actions",
         "lastCommand": "Dernière commande",
         "deviceStatus": "État de l'appareil",
         "deviceOfflineMessage": "L'appareil doit être en ligne pour envoyer des commandes",
@@ -807,7 +878,15 @@
         }
     },
     "management": {
-      "users": "Utilisateurs",
+      "users": {
+        "title": "Utilisateurs",
+        "no_permissions": "Pas de permissions",
+        "no_read_permission": "Pas de permissions de lecture",
+        "no_create_permission": "Pas de permissions de création",
+        "no_update_permission": "Pas de permissions de mise à jour",
+        "no_delete_permission": "Pas de permissions de suppression",
+        "contact_admin": "Contactez l'administrateur pour obtenir l'accès"
+      },
       "targets": "Objectifs",
       "searchUsers": "Rechercher des utilisateurs",
       "searchTargets": "Rechercher des objectifs",

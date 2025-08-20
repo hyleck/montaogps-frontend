@@ -6,7 +6,16 @@
     <span>{{ 'settings.system.loading' | translate }}</span>
   </div>
   
-  <form *ngIf="!loading" (ngSubmit)="onSubmit()" class="system-settings__form" ngNativeValidate>
+  <!-- Mensaje de sin permisos -->
+  <div *ngIf="!loading && !canReadSystems()" class="no-permissions-container">
+    <div class="no-permissions-message">
+      <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+      <h3>{{ 'settings.system.no_read_permission' | translate }}</h3>
+      <p>{{ 'settings.system.contact_admin' | translate }}</p>
+    </div>
+  </div>
+
+  <form *ngIf="!loading && canReadSystems()" (ngSubmit)="onSubmit()" class="system-settings__form" ngNativeValidate>
       <div class="config-grid">
         <!-- Bloque General -->
         <div class="config-card span-2-cols general-card">
@@ -29,7 +38,8 @@
                       (change)="onLogoFileSelected($event)" 
                       name="logo" 
                       accept="image/*"
-                      class="logo-file-input" />
+                      class="logo-file-input"
+                      [disabled]="(!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && existingSystem)" />
                     <label for="logo" class="logo-upload-label input-styled">
                       <i class="pi pi-upload"></i>
                       {{ 'settings.system.upload_logo' | translate }}
@@ -49,7 +59,8 @@
                     name="company_name" 
                     required 
                     placeholder="{{ 'settings.system.company_name_placeholder' | translate }}" 
-                    class="input-styled" />
+                    class="input-styled"
+                    [readonly]="(!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && existingSystem)" />
                 </div>
                 <div class="form-group">
                   <label for="phone">{{ 'settings.system.phone' | translate }}</label>
@@ -59,7 +70,8 @@
                     [(ngModel)]="form.phone" 
                     name="phone" 
                     placeholder="{{ 'settings.system.phone_placeholder' | translate }}" 
-                    class="input-styled" />
+                    class="input-styled"
+                    [readonly]="(!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && existingSystem)" />
                 </div>
               </div>
             </div>
@@ -146,9 +158,15 @@
         <div class="config-card">
           <div class="config-card-header">
             <h3 class="config-card-title">{{ 'settings.system.contacts' | translate }}</h3>
-            <button type="button" class="config-btn-add" (click)="showContactModal()">
+            <button type="button" class="config-btn-add" (click)="showContactModal()" 
+                    [disabled]="(!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && existingSystem)"
+                    *ngIf="canCreateSystems() || canUpdateSystems()">
               <i class="pi pi-plus"></i> {{ 'settings.system.add' | translate }}
             </button>
+            <div *ngIf="!canCreateSystems() && !canUpdateSystems()" class="no-permission-add">
+              <i class="pi pi-lock"></i>
+              {{ 'settings.system.no_add_permission' | translate }}
+            </div>
           </div>
           <div class="config-card-content">
             <div class="contacts-list" *ngIf="form.contacts.length > 0">
@@ -162,12 +180,19 @@
                   <div class="contact-value">{{ c.value }} <span *ngIf="c.type">({{ c.type }})</span></div>
                 </div>
                 <div class="contact-actions">
-                  <button type="button" class="config-btn-icon" (click)="editContact(i)">
+                  <button type="button" class="config-btn-icon" (click)="editContact(i)"
+                          [disabled]="(!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && existingSystem)"
+                          *ngIf="canCreateSystems() || canUpdateSystems()">
                     <i class="pi pi-pencil"></i>
                   </button>
-                  <button type="button" class="config-btn-icon" (click)="removeContact(i)">
+                  <button type="button" class="config-btn-icon" (click)="removeContact(i)"
+                          [disabled]="(!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && existingSystem)"
+                          *ngIf="canCreateSystems() || canUpdateSystems()">
                     <i class="pi pi-trash"></i>
                   </button>
+                  <div *ngIf="!canCreateSystems() && !canUpdateSystems()" class="no-actions-permission">
+                    <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                  </div>
                 </div>
               </div>
             </div>
@@ -181,9 +206,15 @@
         <div class="config-card">
           <div class="config-card-header">
             <h3 class="config-card-title">{{ 'settings.system.downloads' | translate }}</h3>
-            <button type="button" class="config-btn-add" (click)="showDownloadModal()">
+            <button type="button" class="config-btn-add" (click)="showDownloadModal()" 
+                    [disabled]="(!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && existingSystem)"
+                    *ngIf="canCreateSystems() || canUpdateSystems()">
               <i class="pi pi-plus"></i> {{ 'settings.system.add' | translate }}
             </button>
+            <div *ngIf="!canCreateSystems() && !canUpdateSystems()" class="no-permission-add">
+              <i class="pi pi-lock"></i>
+              {{ 'settings.system.no_add_permission' | translate }}
+            </div>
           </div>
           <div class="config-card-content">
             <div class="downloads-list" *ngIf="form.downloads.length > 0">
@@ -197,12 +228,19 @@
                   <div class="download-value">{{ d.value }} <span *ngIf="d.type">({{ d.type }})</span></div>
                 </div>
                 <div class="download-actions">
-                  <button type="button" class="config-btn-icon" (click)="editDownload(j)">
+                  <button type="button" class="config-btn-icon" (click)="editDownload(j)"
+                          [disabled]="(!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && existingSystem)"
+                          *ngIf="canCreateSystems() || canUpdateSystems()">
                     <i class="pi pi-pencil"></i>
                   </button>
-                  <button type="button" class="config-btn-icon" (click)="removeDownload(j)">
+                  <button type="button" class="config-btn-icon" (click)="removeDownload(j)"
+                          [disabled]="(!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && existingSystem)"
+                          *ngIf="canCreateSystems() || canUpdateSystems()">
                     <i class="pi pi-trash"></i>
                   </button>
+                  <div *ngIf="!canCreateSystems() && !canUpdateSystems()" class="no-actions-permission">
+                    <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                  </div>
                 </div>
               </div>
             </div>
@@ -218,10 +256,16 @@
           <i class="pi pi-database"></i> 
           {{ 'settings.system.fill_test_data' | translate }}
         </button>
-        <button type="submit" class="config-btn-primary" [disabled]="saving">
-                              <i class="pi" [ngClass]="saving ? 'pi-spinner loading-spinner' : 'pi-save'"></i> 
+        <button type="submit" class="config-btn-primary" 
+                [disabled]="saving || (!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && existingSystem)"
+                *ngIf="canCreateSystems() || canUpdateSystems()">
+          <i class="pi" [ngClass]="saving ? 'pi-spinner loading-spinner' : 'pi-save'"></i> 
           {{ (saving ? 'settings.system.saving' : 'settings.system.save') | translate }}
         </button>
+        <div *ngIf="!canCreateSystems() && !canUpdateSystems()" class="no-save-permission">
+          <i class="pi pi-lock"></i>
+          {{ 'settings.system.no_save_permission' | translate }}
+        </div>
       </div>
     </form>
   

@@ -1,8 +1,19 @@
 <div class="colors-container">
+  <p-toast></p-toast>
+  <p-confirmDialog></p-confirmDialog>
 
-  <div class="colors-layout">
+  <!-- Mensaje de sin permisos -->
+  <div *ngIf="!canReadColors()" class="no-permissions-container">
+    <div class="no-permissions-message">
+      <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+      <h3>{{ 'settings.colors.no_read_permission' | translate }}</h3>
+      <p>{{ 'settings.colors.contact_admin' | translate }}</p>
+    </div>
+  </div>
+
+  <div class="colors-layout" *ngIf="canReadColors()">
     <!-- Panel lateral izquierdo con formulario -->
-    <div class="colors-layout__sidebar" *ngIf="showColorForm">
+    <div class="colors-layout__sidebar" *ngIf="showColorForm && (canCreateColors() || canUpdateColors())">
       <div class="sidebar-content">
         <h3>{{ (isEditing ? 'Editar color' : 'Nuevo color') }}</h3>
         <form (ngSubmit)="saveColor()" ngNativeValidate>
@@ -39,10 +50,14 @@
       <div class="main-content">
         <div class="main-header">
           <h2>Configuración de Colores</h2>
-          <button class="button-primary" (click)="openNewColorForm()">
+          <button class="button-primary" (click)="openNewColorForm()" *ngIf="canCreateColors()">
             <i class="pi pi-plus"></i>
             Nuevo Color
           </button>
+          <div *ngIf="!canCreateColors()" class="no-create-permission">
+            <i class="pi pi-lock"></i>
+            {{ 'settings.colors.no_create_permission' | translate }}
+          </div>
         </div>
 
         <div class="loading" *ngIf="loading">
@@ -55,12 +70,15 @@
             <div class="color-card__header">
               <div class="color-preview" [style.background-color]="color.hex"></div>
               <div class="color-actions">
-                <button class="button-icon" (click)="editColor(color)">
+                <button class="button-icon" (click)="editColor(color)" *ngIf="canUpdateColors()">
                   <i class="pi pi-pencil"></i>
                 </button>
-                <button class="button-icon" (click)="deleteColor(color)">
+                <button class="button-icon" (click)="deleteColor(color)" *ngIf="canDeleteColors()">
                   <i class="pi pi-trash"></i>
                 </button>
+                <div *ngIf="!canUpdateColors() && !canDeleteColors()" class="no-actions-permission">
+                  <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                </div>
               </div>
             </div>
             <div class="color-card__body">
@@ -72,10 +90,14 @@
 
         <div class="no-colors" *ngIf="!loading && colors.length === 0">
           <p>No hay colores configurados</p>
-          <button class="button-primary" (click)="openNewColorForm()">
+          <button class="button-primary" (click)="openNewColorForm()" *ngIf="canCreateColors()">
             <i class="pi pi-plus"></i>
             Agregar color
           </button>
+          <div *ngIf="!canCreateColors()" class="no-create-permission">
+            <i class="pi pi-lock"></i>
+            {{ 'settings.colors.no_create_permission' | translate }}
+          </div>
         </div>
       </div>
     </div>

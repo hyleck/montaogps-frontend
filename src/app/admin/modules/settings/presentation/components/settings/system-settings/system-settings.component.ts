@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { MessageService } from 'primeng/api';
 import { SystemService, SystemSettings } from '@app/core/services/system.service';
+import { AuthService } from '@core/services/auth.service';
 import { finalize } from 'rxjs/operators';
 
 interface ContactEntry {
@@ -98,11 +99,38 @@ export class SystemSettingsComponent implements OnInit {
   constructor(
     private translateService: TranslateService,
     private systemService: SystemService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
-    this.loadSystemSettings();
+    // Solo cargar si tiene permisos de lectura
+    if (this.canReadSystems()) {
+      this.loadSystemSettings();
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translateService.instant('settings.system.no_permissions'),
+        detail: this.translateService.instant('settings.system.contact_admin')
+      });
+    }
+  }
+
+  // Métodos de validación de privilegios
+  canCreateSystems(): boolean {
+    return this.authService.hasPrivilege('system', 'create');
+  }
+
+  canReadSystems(): boolean {
+    return this.authService.hasPrivilege('system', 'read');
+  }
+
+  canUpdateSystems(): boolean {
+    return this.authService.hasPrivilege('system', 'update');
+  }
+
+  canDeleteSystems(): boolean {
+    return this.authService.hasPrivilege('system', 'delete');
   }
 
   loadSystemSettings() {
@@ -168,6 +196,16 @@ export class SystemSettingsComponent implements OnInit {
 
   // Métodos para contactos
   showContactModal() {
+    // Validar permisos antes de permitir crear contactos
+    if ((!this.canCreateSystems() && !this.existingSystem) || (!this.canUpdateSystems() && this.existingSystem)) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translateService.instant('settings.system.no_add_permission'),
+        detail: this.translateService.instant('settings.system.contact_admin')
+      });
+      return;
+    }
+
     this.contactModalTitle = this.translateService.instant('settings.system.add_contact');
     this.currentContact = {
       id: this.generateId(),
@@ -182,6 +220,16 @@ export class SystemSettingsComponent implements OnInit {
   }
 
   editContact(index: number) {
+    // Validar permisos antes de permitir editar contactos
+    if ((!this.canCreateSystems() && !this.existingSystem) || (!this.canUpdateSystems() && this.existingSystem)) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translateService.instant('settings.system.no_update_permission'),
+        detail: this.translateService.instant('settings.system.contact_admin')
+      });
+      return;
+    }
+
     this.contactModalTitle = this.translateService.instant('settings.system.edit_contact');
     this.currentContact = { ...this.form.contacts[index] };
     this.editingContactIndex = index;
@@ -198,11 +246,31 @@ export class SystemSettingsComponent implements OnInit {
   }
 
   removeContact(index: number) {
+    // Validar permisos antes de permitir eliminar contactos
+    if ((!this.canCreateSystems() && !this.existingSystem) || (!this.canUpdateSystems() && this.existingSystem)) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translateService.instant('settings.system.no_update_permission'),
+        detail: this.translateService.instant('settings.system.contact_admin')
+      });
+      return;
+    }
+
     this.form.contacts.splice(index, 1);
   }
 
   // Métodos para descargas
   showDownloadModal() {
+    // Validar permisos antes de permitir crear descargas
+    if ((!this.canCreateSystems() && !this.existingSystem) || (!this.canUpdateSystems() && this.existingSystem)) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translateService.instant('settings.system.no_add_permission'),
+        detail: this.translateService.instant('settings.system.contact_admin')
+      });
+      return;
+    }
+
     this.downloadModalTitle = this.translateService.instant('settings.system.add_download');
     this.currentDownload = {
       id: this.generateId(),
@@ -217,6 +285,16 @@ export class SystemSettingsComponent implements OnInit {
   }
 
   editDownload(index: number) {
+    // Validar permisos antes de permitir editar descargas
+    if ((!this.canCreateSystems() && !this.existingSystem) || (!this.canUpdateSystems() && this.existingSystem)) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translateService.instant('settings.system.no_update_permission'),
+        detail: this.translateService.instant('settings.system.contact_admin')
+      });
+      return;
+    }
+
     this.downloadModalTitle = this.translateService.instant('settings.system.edit_download');
     this.currentDownload = { ...this.form.downloads[index] };
     this.editingDownloadIndex = index;
@@ -233,10 +311,42 @@ export class SystemSettingsComponent implements OnInit {
   }
 
   removeDownload(index: number) {
+    // Validar permisos antes de permitir eliminar descargas
+    if ((!this.canCreateSystems() && !this.existingSystem) || (!this.canUpdateSystems() && this.existingSystem)) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translateService.instant('settings.system.no_update_permission'),
+        detail: this.translateService.instant('settings.system.contact_admin')
+      });
+      return;
+    }
+
     this.form.downloads.splice(index, 1);
   }
 
   onSubmit() {
+    // Validar privilegios antes de proceder
+    const hasUpdatePermission = this.canUpdateSystems();
+    const hasCreatePermission = this.canCreateSystems();
+    
+    if (this.existingSystem && !hasUpdatePermission) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translateService.instant('settings.system.no_update_permission'),
+        detail: this.translateService.instant('settings.system.no_update_permission_detail')
+      });
+      return;
+    }
+    
+    if (!this.existingSystem && !hasCreatePermission) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translateService.instant('settings.system.no_create_permission'),
+        detail: this.translateService.instant('settings.system.no_create_permission_detail')
+      });
+      return;
+    }
+
     this.saving = true;
     
     // Primero subir el logo si hay uno nuevo

@@ -128,10 +128,18 @@ export class AuthService {
       
       if (!currentUser) return;
 
+      let privilegesToSave = completeUserData.privileges || [];
+
+      // Si el usuario es root, generar todos los privilegios automáticamente
+      if (currentUser.root === true) {
+        privilegesToSave = this.generateAllPrivileges();
+        console.log('🔍 DEBUG - USUARIO ROOT DETECTADO - GENERANDO TODOS LOS PRIVILEGIOS:', privilegesToSave);
+      }
+
       // Agregar los privilegios al usuario existente
       const updatedUser = {
         ...currentUser,
-        privileges: completeUserData.privileges || []
+        privileges: privilegesToSave
       };
 
       // 🔍 DEBUG: Imprimir usuario actualizado con privilegios
@@ -142,6 +150,38 @@ export class AuthService {
     } catch (error) {
       console.error('Error al actualizar usuario con privilegios:', error);
     }
+  }
+
+  private generateAllPrivileges(): any[] {
+    // Lista de todos los módulos disponibles en el sistema
+    const modules = [
+      'users',
+      'devices',
+      'roles', 
+      'system',
+      'protocols',
+      'plans',
+      'servers',
+      'colors',
+      'brands',
+      'models',
+      'historiales',
+      'sectors',
+      'tags'
+    ];
+
+    // Generar privilegios completos para cada módulo
+    return modules.map((module, index) => ({
+      module: module,
+      actions: {
+        create: true,
+        read: true,
+        update: true,
+        delete: true,
+        _id: `generated_action_${module}_${index}`
+      },
+      _id: `generated_privilege_${module}_${index}`
+    }));
   }
 
   getCurrentUser(): BasicUser | null {

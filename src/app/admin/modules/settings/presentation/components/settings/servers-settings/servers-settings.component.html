@@ -1,8 +1,29 @@
 <div class="user-roles-layout">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+
+    <!-- Mensaje de sin permisos -->
+    <div *ngIf="!canReadServers()" class="no-permissions-container">
+        <div class="no-permissions-message">
+            <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+            <h3>{{ 'settings.servers.no_read_permission' | translate }}</h3>
+            <p>{{ 'settings.servers.contact_admin' | translate }}</p>
+        </div>
+    </div>
     
     <!-- Panel lateral izquierdo -->
-    <div class="user-roles-layout__sidebar">
-        <div class="sidebar-content">
+    <div class="user-roles-layout__sidebar" *ngIf="canCreateServers() || canUpdateServers()">
+        <!-- Mensaje cuando está en modo crear sin permisos -->
+        <div class="sidebar-content" *ngIf="!isEditing && !canCreateServers() && canUpdateServers()">
+            <div class="no-permissions-message">
+                <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem; color: var(--text-color-secondary);"></i>
+                <h3>{{ 'settings.servers.no_create_permission_title' | translate }}</h3>
+                <p>{{ 'settings.servers.no_create_permission_message' | translate }}</p>
+            </div>
+        </div>
+
+        <!-- Formulario normal cuando tiene permisos -->
+        <div class="sidebar-content" *ngIf="canCreateServers() || (canUpdateServers() && isEditing)">
             <h3>{{ (isEditing ? 'settings.servers.edit_server' : 'settings.servers.new_server') | translate }}</h3>
             <form (ngSubmit)="onSubmit()" ngNativeValidate>
                 <div class="form-group">
@@ -49,7 +70,9 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="button-primary">
+                    <button type="submit" class="button-primary" 
+                            [disabled]="(!canCreateServers() && !isEditing) || (!canUpdateServers() && isEditing)"
+                            *ngIf="canCreateServers() || canUpdateServers()">
                         <i class="pi pi-save"></i>
                         {{ (isEditing ? 'settings.servers.update' : 'settings.servers.create') | translate }}
                     </button>
@@ -57,14 +80,18 @@
                         <i class="pi pi-times"></i>
                         {{ 'settings.servers.cancel' | translate }}
                     </button>
+                    <div *ngIf="!canCreateServers() && !canUpdateServers()" class="no-save-permission">
+                        <i class="pi pi-lock"></i>
+                        {{ 'settings.servers.no_save_permission' | translate }}
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Contenido principal -->
-    <div class="user-roles-layout__main">
-        <div class="main-content">
+    <div class="user-roles-layout__main" [ngClass]="{'full-width': !canCreateServers() && !canUpdateServers()}">
+        <div class="main-content" *ngIf="canReadServers()">
             <h2>{{ 'settings.servers.servers_list' | translate }}</h2>
             
             <!-- Spinner de carga -->
@@ -93,12 +120,15 @@
                             </span>
                         </td>
                         <td>
-                            <button type="button" class="button-action button-success" (click)="editServer(server)">
+                            <button type="button" class="button-action button-success" (click)="editServer(server)" *ngIf="canUpdateServers()">
                                 <i class="pi pi-pencil"></i>
                             </button>
-                            <button type="button" class="button-action button-danger" (click)="deleteServer(server)">
+                            <button type="button" class="button-action button-danger" (click)="deleteServer(server)" *ngIf="canDeleteServers()">
                                 <i class="pi pi-trash"></i>
                             </button>
+                            <div *ngIf="!canUpdateServers() && !canDeleteServers()" class="no-actions-permission">
+                                <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                            </div>
                         </td>
                     </tr>
                 </ng-template>

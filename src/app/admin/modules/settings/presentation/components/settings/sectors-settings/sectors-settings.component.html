@@ -1,5 +1,16 @@
 <div class="settings-container">
-  <div class="settings-section">
+  <p-toast></p-toast>
+
+  <!-- Mensaje de sin permisos -->
+  <div *ngIf="!canReadSectors()" class="no-permissions-container">
+    <div class="no-permissions-message">
+      <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+      <h3>{{ 'settings.sectors.no_read_permission' | translate }}</h3>
+      <p>{{ 'settings.sectors.contact_admin' | translate }}</p>
+    </div>
+  </div>
+
+  <div class="settings-section" *ngIf="canReadSectors()">
     <div class="settings-grid">
       <div class="settings-item">
         <div class="settings-item__header">
@@ -30,10 +41,16 @@
         </div>
         <div class="sectors-list">
           <div class="actions-row">
-            <button class="button-primary" (click)="openNewSectorDialog()" [disabled]="!selectedProvince || !selectedMunicipality">
+            <button class="button-primary" (click)="openNewSectorDialog()" 
+                    [disabled]="!selectedProvince || !selectedMunicipality"
+                    *ngIf="canCreateSectors()">
               <i class="pi pi-plus"></i>
               Nuevo sector
             </button>
+            <div *ngIf="!canCreateSectors()" class="no-create-permission">
+              <i class="pi pi-lock"></i>
+              {{ 'settings.sectors.no_create_permission' | translate }}
+            </div>
             <div class="search-box">
               <i class="pi pi-search"></i>
               <input type="text" placeholder="Buscar por nombre, código o identificador" [(ngModel)]="sectorSearch" />
@@ -42,6 +59,14 @@
           <div class="sector-row" *ngFor="let s of filteredSectors">
             <span class="sector-name">{{ s.name }}</span>
             <span class="sector-code">{{ s.identifier }}</span>
+            <div class="sector-actions">
+              <button type="button" class="button-icon" (click)="openEditSectorDialog(s)" *ngIf="canUpdateSectors()">
+                <i class="pi pi-pencil"></i>
+              </button>
+              <div *ngIf="!canUpdateSectors()" class="no-actions-permission">
+                <i class="pi pi-lock" style="opacity: 0.5;"></i>
+              </div>
+            </div>
           </div>
           <div *ngIf="!isLoading && filteredSectors.length === 0" class="empty-state">No hay sectores para esta selección</div>
           <div *ngIf="isLoading" class="loading-state">
@@ -79,7 +104,14 @@
   </div>
   <ng-template pTemplate="footer">
     <button class="button-secondary" type="button" (click)="sectorDialogVisible = false"><i class="pi pi-times"></i> Cancelar</button>
-    <button class="button-primary" type="button" (click)="saveSector()"><i class="pi pi-check"></i> Guardar</button>
+    <button class="button-primary" type="button" (click)="saveSector()" 
+            *ngIf="canCreateSectors() || canUpdateSectors()">
+      <i class="pi pi-check"></i> Guardar
+    </button>
+    <div *ngIf="!canCreateSectors() && !canUpdateSectors()" class="no-save-permission">
+      <i class="pi pi-lock"></i>
+      {{ 'settings.sectors.no_save_permission' | translate }}
+    </div>
   </ng-template>
 </p-dialog>
 

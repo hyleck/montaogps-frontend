@@ -72,7 +72,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // PROPIEDADES PÚBLICAS - TRADUCCIONES
   // ====================================
   translations = {
-    users: 'management.users',
+    users: 'management.users.title',
     targets: 'management.targets',
     searchUsers: 'management.searchUsers',
     searchTargets: 'management.searchTargets',
@@ -175,6 +175,27 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private uiService: ManagementUIService,
     private cdr: ChangeDetectorRef
   ) {}
+
+  // ====================================
+  // MÉTODOS DE VALIDACIÓN DE PRIVILEGIOS
+  // ====================================
+  
+  // Métodos de validación de privilegios para usuarios
+  canCreateUsers(): boolean {
+    return this.authService.hasPrivilege('users', 'create');
+  }
+
+  canReadUsers(): boolean {
+    return this.authService.hasPrivilege('users', 'read');
+  }
+
+  canUpdateUsers(): boolean {
+    return this.authService.hasPrivilege('users', 'update');
+  }
+
+  canDeleteUsers(): boolean {
+    return this.authService.hasPrivilege('users', 'delete');
+  }
 
   // ====================================
   // LIFECYCLE HOOKS
@@ -385,10 +406,30 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   
   showUserForm() {
+    // Validar permisos antes de permitir crear usuarios
+    if (!this.canCreateUsers()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.users.no_create_permission'),
+        detail: this.translate.instant('management.users.contact_admin')
+      });
+      return;
+    }
+
     this.uiService.showUserForm();
   }
 
   editUser(user: User) {
+    // Validar permisos antes de permitir editar usuarios
+    if (!this.canUpdateUsers()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.users.no_update_permission'),
+        detail: this.translate.instant('management.users.contact_admin')
+      });
+      return;
+    }
+
     this.userToEdit = convertToExtendedUser(user);
     this.uiService.showUserForm();
   }
@@ -408,6 +449,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   confirmDeleteUser(user: User) {
+    // Validar permisos antes de permitir eliminar usuarios
+    if (!this.canDeleteUsers()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.users.no_delete_permission'),
+        detail: this.translate.instant('management.users.contact_admin')
+      });
+      return;
+    }
+
     this.confirmationService.confirm({
       message: this.translate.instant('management.confirmDeleteUser'),
       header: this.translate.instant('management.userForm.confirmDeleteHeader'),
@@ -915,6 +966,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private loadUsersForUser(userId: string): void {
+    // Validar permisos antes de cargar usuarios
+    if (!this.canReadUsers()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.users.no_permissions'),
+        detail: this.translate.instant('management.users.contact_admin')
+      });
+      this.uiService.setLoading(false);
+      return;
+    }
+
     // Si hay un término de búsqueda activo, usar la búsqueda en lugar de cargar todos
     if (this.searchUsersTerm && this.searchUsersTerm.trim() !== '') {
       this.searchUsersSubject.next(this.searchUsersTerm);

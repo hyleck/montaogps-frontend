@@ -1,5 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
+import { AuthService } from '@core/services/auth.service';
+import { MessageService } from 'primeng/api';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-sectors-settings',
@@ -20,10 +23,41 @@ export class SectorsSettingsComponent implements OnInit {
 
   isLoading = false;
 
-  constructor(private api: VehicleBrandsService) {}
+  constructor(
+    private api: VehicleBrandsService,
+    private authService: AuthService,
+    private messageService: MessageService,
+    private translate: TranslateService
+  ) {}
 
   async ngOnInit() {
-    await this.loadProvinces();
+    // Solo cargar si tiene permisos de lectura
+    if (this.canReadSectors()) {
+      await this.loadProvinces();
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.sectors.no_permissions'),
+        detail: this.translate.instant('settings.sectors.contact_admin')
+      });
+    }
+  }
+
+  // Métodos de validación de privilegios
+  canCreateSectors(): boolean {
+    return this.authService.hasPrivilege('sectors', 'create');
+  }
+
+  canReadSectors(): boolean {
+    return this.authService.hasPrivilege('sectors', 'read');
+  }
+
+  canUpdateSectors(): boolean {
+    return this.authService.hasPrivilege('sectors', 'update');
+  }
+
+  canDeleteSectors(): boolean {
+    return this.authService.hasPrivilege('sectors', 'delete');
   }
 
   async loadProvinces() {
@@ -70,18 +104,59 @@ export class SectorsSettingsComponent implements OnInit {
   }
 
   openNewSectorDialog() {
+    // Validar permisos antes de permitir crear sectores
+    if (!this.canCreateSectors()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.sectors.no_create_permission'),
+        detail: this.translate.instant('settings.sectors.contact_admin')
+      });
+      return;
+    }
+
     const nextCode = this.generateNextSectorCode();
     this.editingSector = { code: nextCode, identifier: `S-${nextCode}`, name: '', provinceCode: this.selectedProvince, municipalityCode: this.selectedMunicipality };
     this.sectorDialogVisible = true;
   }
 
   openEditSectorDialog(sector: any) {
+    // Validar permisos antes de permitir editar sectores
+    if (!this.canUpdateSectors()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.sectors.no_update_permission'),
+        detail: this.translate.instant('settings.sectors.contact_admin')
+      });
+      return;
+    }
+
     this.editingSector = { ...sector };
     this.sectorDialogVisible = true;
   }
 
   async saveSector() {
     if (!this.editingSector) return;
+
+    // Validar privilegios antes de proceder
+    const isEditing = this.sectors.find(s => s.code === this.editingSector.code);
+    if (isEditing && !this.canUpdateSectors()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.sectors.no_update_permission'),
+        detail: this.translate.instant('settings.sectors.contact_admin')
+      });
+      return;
+    }
+    
+    if (!isEditing && !this.canCreateSectors()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.sectors.no_create_permission'),
+        detail: this.translate.instant('settings.sectors.contact_admin')
+      });
+      return;
+    }
+
     // Normalizar referencias de provincia/municipio
     this.editingSector.provinceCode = this.selectedProvince;
     this.editingSector.municipalityCode = this.selectedMunicipality;

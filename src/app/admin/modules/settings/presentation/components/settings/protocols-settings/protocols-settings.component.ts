@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
 import { ProtocolsService } from '@core/services/protocols.service';
+import { AuthService } from '@core/services/auth.service';
 import { Protocol, CreateProtocolDto, UpdateProtocolDto, ProtocolCommand } from '@core/interfaces/protocol.interface';
 
 @Component({
@@ -36,11 +37,38 @@ export class ProtocolsSettingsComponent implements OnInit {
     private protocolsService: ProtocolsService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
-    this.loadProtocols();
+    // Solo cargar si tiene permisos de lectura
+    if (this.canReadProtocols()) {
+      this.loadProtocols();
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.protocols.no_permissions'),
+        detail: this.translate.instant('settings.protocols.contact_admin')
+      });
+    }
+  }
+
+  // Métodos de validación de privilegios
+  canCreateProtocols(): boolean {
+    return this.authService.hasPrivilege('protocols', 'create');
+  }
+
+  canReadProtocols(): boolean {
+    return this.authService.hasPrivilege('protocols', 'read');
+  }
+
+  canUpdateProtocols(): boolean {
+    return this.authService.hasPrivilege('protocols', 'update');
+  }
+
+  canDeleteProtocols(): boolean {
+    return this.authService.hasPrivilege('protocols', 'delete');
   }
 
   loadProtocols(): void {
@@ -64,6 +92,16 @@ export class ProtocolsSettingsComponent implements OnInit {
   }
 
   editProtocol(protocol: Protocol): void {
+    // Validar permisos antes de permitir editar protocolos
+    if (!this.canUpdateProtocols()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.protocols.no_update_permission'),
+        detail: this.translate.instant('settings.protocols.contact_admin')
+      });
+      return;
+    }
+
     this.protocolForm = {
       _id: protocol._id,
       name: protocol.name,
@@ -77,6 +115,16 @@ export class ProtocolsSettingsComponent implements OnInit {
   }
 
   deleteProtocol(protocol: Protocol): void {
+    // Validar permisos antes de permitir eliminar protocolos
+    if (!this.canDeleteProtocols()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.protocols.no_delete_permission'),
+        detail: this.translate.instant('settings.protocols.contact_admin')
+      });
+      return;
+    }
+
     this.confirmationService.confirm({
       message: this.translate.instant('settings.protocols.confirm_delete', { name: protocol.name }),
       header: this.translate.instant('settings.protocols.delete_header'),
@@ -103,6 +151,25 @@ export class ProtocolsSettingsComponent implements OnInit {
 
   onSubmit(): void {
     if (!this.validateForm()) {
+      return;
+    }
+
+    // Validar privilegios antes de proceder
+    if (this.isEditing && !this.canUpdateProtocols()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.protocols.no_update_permission'),
+        detail: this.translate.instant('settings.protocols.contact_admin')
+      });
+      return;
+    }
+    
+    if (!this.isEditing && !this.canCreateProtocols()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.protocols.no_create_permission'),
+        detail: this.translate.instant('settings.protocols.contact_admin')
+      });
       return;
     }
 

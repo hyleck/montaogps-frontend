@@ -1,8 +1,29 @@
 <div class="user-roles-layout">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+
+    <!-- Mensaje de sin permisos -->
+    <div *ngIf="!canReadModels()" class="no-permissions-container">
+        <div class="no-permissions-message">
+            <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+            <h3>{{ 'settings.models.no_read_permission' | translate }}</h3>
+            <p>{{ 'settings.models.contact_admin' | translate }}</p>
+        </div>
+    </div>
     
     <!-- Panel lateral izquierdo -->
-    <div class="user-roles-layout__sidebar">
-        <div class="sidebar-content">
+    <div class="user-roles-layout__sidebar" *ngIf="canCreateModels() || canUpdateModels()">
+        <!-- Mensaje cuando está en modo crear sin permisos -->
+        <div class="sidebar-content" *ngIf="!isEditing && !canCreateModels() && canUpdateModels()">
+            <div class="no-permissions-message">
+                <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem; color: var(--text-color-secondary);"></i>
+                <h3>{{ 'settings.models.no_create_permission_title' | translate }}</h3>
+                <p>{{ 'settings.models.no_create_permission_message' | translate }}</p>
+            </div>
+        </div>
+
+        <!-- Formulario normal cuando tiene permisos -->
+        <div class="sidebar-content" *ngIf="canCreateModels() || (canUpdateModels() && isEditing)">
             <h3>{{ (isEditing ? 'settings.vehicle_models.edit_model' : 'settings.vehicle_models.new_model') | translate }}</h3>
             <form (ngSubmit)="saveModel()" ngNativeValidate>
                 <div class="form-group">
@@ -28,7 +49,9 @@
                 </div>
                 
                 <div class="form-actions">
-                    <button type="submit" class="button-primary">
+                    <button type="submit" class="button-primary" 
+                            [disabled]="(!canCreateModels() && !isEditing) || (!canUpdateModels() && isEditing)"
+                            *ngIf="canCreateModels() || canUpdateModels()">
                         <i class="pi pi-save"></i>
                         {{ (isEditing ? 'settings.vehicle_models.update' : 'settings.vehicle_models.create') | translate }}
                     </button>
@@ -36,14 +59,18 @@
                         <i class="pi pi-times"></i>
                         {{ 'settings.vehicle_models.cancel' | translate }}
                     </button>
+                    <div *ngIf="!canCreateModels() && !canUpdateModels()" class="no-save-permission">
+                        <i class="pi pi-lock"></i>
+                        {{ 'settings.models.no_save_permission' | translate }}
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Contenido principal -->
-    <div class="user-roles-layout__main">
-        <div class="main-content">
+    <div class="user-roles-layout__main" [ngClass]="{'full-width': !canCreateModels() && !canUpdateModels()}">
+        <div class="main-content" *ngIf="canReadModels()">
             <h2>{{ 'settings.vehicle_models.title' | translate }}</h2>
             
             <!-- Spinner de carga -->
@@ -68,12 +95,16 @@
                         <td>{{getBrandName(model.id_marca)}}</td>
                         <td>{{getVehicleTypeName(model.id_tipo_vehiculo)}}</td>
                         <td>
-                            <button type="button" class="button-action button-success" (click)="editModel(model)">
+                            <button type="button" class="button-action button-success" (click)="editModel(model)" *ngIf="canUpdateModels()">
                                 <i class="pi pi-pencil"></i>
                             </button>
-                            <button type="button" class="button-action button-danger" (click)="deleteModel(model)">
+                            <button type="button" class="button-action button-danger" (click)="deleteModel(model)" *ngIf="canDeleteModels()">
                                 <i class="pi pi-trash"></i>
                             </button>
+                            <div *ngIf="!canUpdateModels() && !canDeleteModels()" class="no-actions-permission">
+                                <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                                <span style="font-size: 0.75rem; opacity: 0.6;">{{ 'settings.models.no_actions_permission' | translate }}</span>
+                            </div>
                         </td>
                     </tr>
                 </ng-template>
@@ -86,5 +117,3 @@
         </div>
     </div>
 </div>
-
-<p-toast></p-toast>

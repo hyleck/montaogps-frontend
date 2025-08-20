@@ -3,6 +3,7 @@ import { UserRole, CreateUserRoleDto, Privilege } from '@core/interfaces/user-ro
 import { UserRolesService } from '@core/services/user-roles.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
+import { AuthService } from '@core/services/auth.service';
 
 @Component({
   selector: 'app-user-roles-settings',
@@ -101,11 +102,38 @@ export class UserRolesSettingsComponent implements OnInit {
     private userRolesService: UserRolesService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private authService: AuthService
   ) {}
 
   ngOnInit() {
-    this.loadRoles();
+    // Solo cargar si tiene permisos de lectura
+    if (this.canReadRoles()) {
+      this.loadRoles();
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.roles.no_permissions'),
+        detail: this.translate.instant('settings.roles.contact_admin')
+      });
+    }
+  }
+
+  // Métodos de validación de privilegios
+  canCreateRoles(): boolean {
+    return this.authService.hasPrivilege('roles', 'create');
+  }
+
+  canReadRoles(): boolean {
+    return this.authService.hasPrivilege('roles', 'read');
+  }
+
+  canUpdateRoles(): boolean {
+    return this.authService.hasPrivilege('roles', 'update');
+  }
+
+  canDeleteRoles(): boolean {
+    return this.authService.hasPrivilege('roles', 'delete');
   }
 
   // Método para obtener la traducción de un módulo
@@ -142,6 +170,25 @@ export class UserRolesSettingsComponent implements OnInit {
   }
 
   onSubmit() {
+    // Validar privilegios antes de proceder
+    if (this.isEditing && !this.canUpdateRoles()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.roles.no_update_permission'),
+        detail: this.translate.instant('settings.roles.contact_admin')
+      });
+      return;
+    }
+    
+    if (!this.isEditing && !this.canCreateRoles()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.roles.no_create_permission'),
+        detail: this.translate.instant('settings.roles.contact_admin')
+      });
+      return;
+    }
+
     if (this.isEditing && this.roleForm._id) {
       this.userRolesService.updateRole(this.roleForm._id, {
         name: this.roleForm.name,
@@ -185,6 +232,16 @@ export class UserRolesSettingsComponent implements OnInit {
   }
 
   editRole(role: UserRole) {
+    // Validar permisos antes de permitir editar roles
+    if (!this.canUpdateRoles()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.roles.no_update_permission'),
+        detail: this.translate.instant('settings.roles.contact_admin')
+      });
+      return;
+    }
+
     this.selectedRole = role;
     this.roleForm = {
       _id: role._id,
@@ -200,6 +257,16 @@ export class UserRolesSettingsComponent implements OnInit {
   }
 
   deleteRole(role: UserRole) {
+    // Validar permisos antes de permitir eliminar roles
+    if (!this.canDeleteRoles()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.roles.no_delete_permission'),
+        detail: this.translate.instant('settings.roles.contact_admin')
+      });
+      return;
+    }
+
     const message = this.translate.instant('settings.roles_settings.messages.confirm_delete').replace('{name}', role.name);
     this.confirmationService.confirm({
       message: message,

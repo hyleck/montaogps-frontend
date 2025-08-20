@@ -131,12 +131,118 @@ export class SettingsComponent implements OnInit, OnDestroy {
                this.authService.hasPrivilege('plans', 'delete');
     }
 
+    // Método para verificar si tiene algún permiso en system
+    hasAnySystemPermission(): boolean {
+        return this.authService.hasPrivilege('system', 'create') ||
+               this.authService.hasPrivilege('system', 'read') ||
+               this.authService.hasPrivilege('system', 'update') ||
+               this.authService.hasPrivilege('system', 'delete');
+    }
+
+    // Método para verificar si tiene algún permiso en colors
+    hasAnyColorPermission(): boolean {
+        return this.authService.hasPrivilege('colors', 'create') ||
+               this.authService.hasPrivilege('colors', 'read') ||
+               this.authService.hasPrivilege('colors', 'update') ||
+               this.authService.hasPrivilege('colors', 'delete');
+    }
+
+    // Método para verificar si tiene algún permiso en servers
+    hasAnyServerPermission(): boolean {
+        return this.authService.hasPrivilege('servers', 'create') ||
+               this.authService.hasPrivilege('servers', 'read') ||
+               this.authService.hasPrivilege('servers', 'update') ||
+               this.authService.hasPrivilege('servers', 'delete');
+    }
+
+    // Método para verificar si tiene algún permiso en sectors
+    hasAnySectorPermission(): boolean {
+        return this.authService.hasPrivilege('sectors', 'create') ||
+               this.authService.hasPrivilege('sectors', 'read') ||
+               this.authService.hasPrivilege('sectors', 'update') ||
+               this.authService.hasPrivilege('sectors', 'delete');
+    }
+
+    // Método para verificar si tiene algún permiso en protocols
+    hasAnyProtocolPermission(): boolean {
+        return this.authService.hasPrivilege('protocols', 'create') ||
+               this.authService.hasPrivilege('protocols', 'read') ||
+               this.authService.hasPrivilege('protocols', 'update') ||
+               this.authService.hasPrivilege('protocols', 'delete');
+    }
+
+    // Método para verificar si tiene algún permiso en brands
+    hasAnyBrandPermission(): boolean {
+        return this.authService.hasPrivilege('brands', 'create') ||
+               this.authService.hasPrivilege('brands', 'read') ||
+               this.authService.hasPrivilege('brands', 'update') ||
+               this.authService.hasPrivilege('brands', 'delete');
+    }
+
+    // Método para verificar si tiene algún permiso en models
+    hasAnyModelPermission(): boolean {
+        return this.authService.hasPrivilege('models', 'create') ||
+               this.authService.hasPrivilege('models', 'read') ||
+               this.authService.hasPrivilege('models', 'update') ||
+               this.authService.hasPrivilege('models', 'delete');
+    }
+
+    // Método para verificar si el usuario es root
+    isRootUser(): boolean {
+        const currentUser = this.authService.getCurrentUser();
+        return currentUser?.root === true || (currentUser?.root as any) === 'true';
+    }
+
+    // Método para verificar si tiene algún permiso en roles
+    hasAnyRolePermission(): boolean {
+        return this.authService.hasPrivilege('roles', 'create') ||
+               this.authService.hasPrivilege('roles', 'read') ||
+               this.authService.hasPrivilege('roles', 'update') ||
+               this.authService.hasPrivilege('roles', 'delete');
+    }
+
     // Getter para obtener las tarjetas filtradas según permisos
     get filteredSettingsCards() {
         return this.settingsCards.filter(card => {
+            // Si es la tarjeta de roles, verificar permisos
+            if (card.titleKey === 'settings.roles.title') {
+                return this.hasAnyRolePermission();
+            }
             // Si es la tarjeta de plans, verificar permisos
             if (card.titleKey === 'settings.cards.plans.title') {
                 return this.hasAnyPlanPermission();
+            }
+            // Si es la tarjeta de system, verificar permisos
+            if (card.titleKey === 'settings.system.title') {
+                return this.hasAnySystemPermission();
+            }
+            // Si es la tarjeta de colors, verificar permisos
+            if (card.titleKey === 'settings.colors.title') {
+                return this.hasAnyColorPermission();
+            }
+            // Si es la tarjeta de servers, verificar permisos
+            if (card.titleKey === 'settings.cards.servers.title') {
+                return this.hasAnyServerPermission();
+            }
+            // Si es la tarjeta de sectors, verificar permisos
+            if (card.titleKey === 'settings.sectors.title') {
+                return this.hasAnySectorPermission();
+            }
+            // Si es la tarjeta de protocols, verificar permisos
+            if (card.titleKey === 'settings.protocols.title') {
+                return this.hasAnyProtocolPermission();
+            }
+            // Si es la tarjeta de brands, verificar permisos
+            if (card.titleKey === 'settings.brands.title') {
+                return this.hasAnyBrandPermission();
+            }
+            // Si es la tarjeta de models, verificar permisos
+            if (card.titleKey === 'settings.models.title') {
+                return this.hasAnyModelPermission();
+            }
+            // Si es la tarjeta de historiales, verificar que sea usuario root
+            if (card.titleKey === 'settings.historiales.title') {
+                return this.isRootUser();
             }
             // Para otras tarjetas, mostrar siempre (por ahora)
             return true;

@@ -1,8 +1,29 @@
 <div class="user-roles-layout">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+
+    <!-- Mensaje de sin permisos -->
+    <div *ngIf="!canReadProtocols()" class="no-permissions-container">
+        <div class="no-permissions-message">
+            <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+            <h3>{{ 'settings.protocols.no_read_permission' | translate }}</h3>
+            <p>{{ 'settings.protocols.contact_admin' | translate }}</p>
+        </div>
+    </div>
     
     <!-- Panel lateral izquierdo con formulario -->
-    <div class="user-roles-layout__sidebar">
-        <div class="sidebar-content">
+    <div class="user-roles-layout__sidebar" *ngIf="canCreateProtocols() || canUpdateProtocols()">
+        <!-- Mensaje cuando está en modo crear sin permisos -->
+        <div class="sidebar-content" *ngIf="!isEditing && !canCreateProtocols() && canUpdateProtocols()">
+            <div class="no-permissions-message">
+                <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem; color: var(--text-color-secondary);"></i>
+                <h3>{{ 'settings.protocols.no_create_permission_title' | translate }}</h3>
+                <p>{{ 'settings.protocols.no_create_permission_message' | translate }}</p>
+            </div>
+        </div>
+
+        <!-- Formulario normal cuando tiene permisos -->
+        <div class="sidebar-content" *ngIf="canCreateProtocols() || (canUpdateProtocols() && isEditing)">
             <h3>{{ (isEditing ? 'settings.protocols.edit_title' : 'settings.protocols.create_title') | translate }}</h3>
             <form (ngSubmit)="onSubmit()" ngNativeValidate>
                 <div class="form-group">
@@ -95,7 +116,9 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="button-primary">
+                    <button type="submit" class="button-primary" 
+                            [disabled]="(!canCreateProtocols() && !isEditing) || (!canUpdateProtocols() && isEditing)"
+                            *ngIf="canCreateProtocols() || canUpdateProtocols()">
                         <i class="pi pi-save"></i>
                         {{ (isEditing ? 'settings.protocols.save' : 'settings.protocols.create') | translate }}
                     </button>
@@ -103,14 +126,18 @@
                         <i class="pi pi-times"></i>
                         {{ 'settings.protocols.cancel' | translate }}
                     </button>
+                    <div *ngIf="!canCreateProtocols() && !canUpdateProtocols()" class="no-save-permission">
+                        <i class="pi pi-lock"></i>
+                        {{ 'settings.protocols.no_save_permission' | translate }}
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Contenido principal -->
-    <div class="user-roles-layout__main">
-        <div class="main-content">
+    <div class="user-roles-layout__main" [ngClass]="{'full-width': !canCreateProtocols() && !canUpdateProtocols()}">
+        <div class="main-content" *ngIf="canReadProtocols()">
             <h2>{{ 'settings.protocols.list' | translate }}</h2>
             
             <!-- Spinner de carga -->
@@ -135,12 +162,16 @@
                         <td>{{protocol.port}}</td>
                         <td>{{protocol.commands.length}}</td>
                         <td>
-                            <button type="button" class="button-action button-success" (click)="editProtocol(protocol)">
+                            <button type="button" class="button-action button-success" (click)="editProtocol(protocol)" *ngIf="canUpdateProtocols()">
                                 <i class="pi pi-pencil"></i>
                             </button>
-                            <button type="button" class="button-action button-danger" (click)="deleteProtocol(protocol)">
+                            <button type="button" class="button-action button-danger" (click)="deleteProtocol(protocol)" *ngIf="canDeleteProtocols()">
                                 <i class="pi pi-trash"></i>
                             </button>
+                            <div *ngIf="!canUpdateProtocols() && !canDeleteProtocols()" class="no-actions-permission">
+                                <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                                <span style="font-size: 0.75rem; opacity: 0.6;">{{ 'settings.protocols.no_actions_permission' | translate }}</span>
+                            </div>
                         </td>
                     </tr>
                 </ng-template>
@@ -153,5 +184,3 @@
         </div>
     </div>
 </div>
-
-<p-toast/>

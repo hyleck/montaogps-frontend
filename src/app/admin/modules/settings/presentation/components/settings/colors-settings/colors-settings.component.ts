@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ColorsService } from 'src/app/core/services/colors.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
+import { AuthService } from '@core/services/auth.service';
 
 interface Color {
   _id?: string;
@@ -30,11 +31,38 @@ export class ColorsSettingsComponent implements OnInit {
     private colorsService: ColorsService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private authService: AuthService
   ) { }
 
   ngOnInit(): void {
-    this.loadColors();
+    // Solo cargar si tiene permisos de lectura
+    if (this.canReadColors()) {
+      this.loadColors();
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.colors.no_permissions'),
+        detail: this.translate.instant('settings.colors.contact_admin')
+      });
+    }
+  }
+
+  // Métodos de validación de privilegios
+  canCreateColors(): boolean {
+    return this.authService.hasPrivilege('colors', 'create');
+  }
+
+  canReadColors(): boolean {
+    return this.authService.hasPrivilege('colors', 'read');
+  }
+
+  canUpdateColors(): boolean {
+    return this.authService.hasPrivilege('colors', 'update');
+  }
+
+  canDeleteColors(): boolean {
+    return this.authService.hasPrivilege('colors', 'delete');
   }
 
   async loadColors() {
@@ -50,6 +78,16 @@ export class ColorsSettingsComponent implements OnInit {
   }
 
   openNewColorForm() {
+    // Validar permisos antes de permitir crear colores
+    if (!this.canCreateColors()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.colors.no_create_permission'),
+        detail: this.translate.instant('settings.colors.contact_admin')
+      });
+      return;
+    }
+
     this.isEditing = false;
     this.colorForm = {
       nombre: '',
@@ -59,6 +97,16 @@ export class ColorsSettingsComponent implements OnInit {
   }
 
   editColor(color: Color) {
+    // Validar permisos antes de permitir editar colores
+    if (!this.canUpdateColors()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.colors.no_update_permission'),
+        detail: this.translate.instant('settings.colors.contact_admin')
+      });
+      return;
+    }
+
     this.isEditing = true;
     this.selectedColor = color;
     this.colorForm = {
@@ -68,6 +116,25 @@ export class ColorsSettingsComponent implements OnInit {
   }
 
   async saveColor() {
+    // Validar privilegios antes de proceder
+    if (this.isEditing && !this.canUpdateColors()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.colors.no_update_permission'),
+        detail: this.translate.instant('settings.colors.contact_admin')
+      });
+      return;
+    }
+    
+    if (!this.isEditing && !this.canCreateColors()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.colors.no_create_permission'),
+        detail: this.translate.instant('settings.colors.contact_admin')
+      });
+      return;
+    }
+
     try {
       this.loading = true;
       if (this.isEditing && this.selectedColor?._id) {
@@ -91,6 +158,16 @@ export class ColorsSettingsComponent implements OnInit {
   }
 
   deleteColor(color: Color) {
+    // Validar permisos antes de permitir eliminar colores
+    if (!this.canDeleteColors()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.colors.no_delete_permission'),
+        detail: this.translate.instant('settings.colors.contact_admin')
+      });
+      return;
+    }
+
     if (!color._id) return;
 
     const message = `¿Está seguro que desea eliminar el color "${color.nombre}"?`;

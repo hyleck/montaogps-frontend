@@ -218,11 +218,28 @@
     "settings": {
       "roles": {
         "title": "Roles",
-        "description": "Roles and permissions management"
+        "description": "Roles and permissions management",
+        "no_permissions": "No permissions",
+        "no_read_permission": "No read permissions",
+        "contact_admin": "Contact administrator to gain access to this section",
+        "no_create_permission": "No create permissions",
+        "no_create_permission_title": "No permissions to create roles",
+        "no_create_permission_message": "You don't have permissions to create new roles",
+        "no_update_permission": "No update permissions",
+        "no_delete_permission": "No delete permissions",
+        "no_save_permission": "No save permissions",
+        "no_actions_permission": "No actions"
       },
       "sectors": {
         "title": "Sectors",
-        "description": "Operational sectors configuration"
+        "description": "Operational sectors configuration",
+        "no_permissions": "No permissions",
+        "no_read_permission": "No read permissions",
+        "contact_admin": "Contact administrator to gain access to this section",
+        "no_create_permission": "No create permissions",
+        "no_update_permission": "No update permissions",
+        "no_delete_permission": "No delete permissions",
+        "no_save_permission": "No save permissions"
       },
       "tags": {
         "title": "Tags",
@@ -286,7 +303,17 @@
           "error_delete": "Could not delete protocol",
           "yes_delete": "Yes, delete",
           "no_cancel": "No, cancel"
-        }
+        },
+        "no_permissions": "No permissions",
+        "no_read_permission": "No read permissions",
+        "contact_admin": "Contact administrator to gain access to this section",
+        "no_create_permission": "No create permissions",
+        "no_create_permission_title": "No permissions to create protocols",
+        "no_create_permission_message": "You don't have permissions to create new protocols",
+        "no_update_permission": "No update permissions",
+        "no_delete_permission": "No delete permissions",
+        "no_save_permission": "No save permissions",
+        "no_actions_permission": "No actions"
       },
       "features": {
         "title": "Features",
@@ -294,15 +321,41 @@
       },
       "brands": {
         "title": "Brands",
-        "description": "Brands configuration"
+        "description": "Brands configuration",
+        "no_permissions": "No permissions",
+        "no_read_permission": "No read permissions",
+        "contact_admin": "Contact administrator to gain access to this section",
+        "no_create_permission": "No create permissions",
+        "no_create_permission_title": "No permissions to create brands",
+        "no_create_permission_message": "You don't have permissions to create new brands",
+        "no_update_permission": "No update permissions",
+        "no_delete_permission": "No delete permissions",
+        "no_save_permission": "No save permissions",
+        "no_actions_permission": "No actions"
       },
       "models": {
         "title": "Models",
-        "description": "Models management"
+        "description": "Models management",
+        "no_permissions": "No permissions",
+        "no_read_permission": "No read permissions",
+        "contact_admin": "Contact administrator to gain access to this section",
+        "no_create_permission": "No create permissions",
+        "no_create_permission_title": "No permissions to create models",
+        "no_create_permission_message": "You don't have permissions to create new models",
+        "no_update_permission": "No update permissions",
+        "no_delete_permission": "No delete permissions",
+        "no_save_permission": "No save permissions",
+        "no_actions_permission": "No actions"
       },
       "colors": {
         "title": "Colors",
-        "description": "Colors configuration"
+        "description": "Colors configuration",
+        "no_permissions": "No permissions",
+        "no_read_permission": "No read permissions",
+        "contact_admin": "Contact administrator to gain access to this section",
+        "no_create_permission": "No create permissions",
+        "no_update_permission": "No update permissions",
+        "no_delete_permission": "No delete permissions"
       },
       "historiales": {
         "title": "History",
@@ -464,7 +517,16 @@
           "error_create": "Could not create server",
           "error_delete": "Could not delete server",
           "error_loading": "Could not load servers"
-        }
+        },
+        "no_permissions": "No permissions",
+        "no_read_permission": "No read permissions",
+        "contact_admin": "Contact administrator to gain access to this section",
+        "no_create_permission": "No create permissions",
+        "no_update_permission": "No update permissions",
+        "no_delete_permission": "No delete permissions",
+        "no_save_permission": "No save permissions",
+        "no_create_permission_title": "Creation not allowed",
+        "no_create_permission_message": "You don't have permissions to create new servers. Contact the system administrator."
       },
       "roles_settings": {
         "edit_role": "Edit role",
@@ -623,7 +685,16 @@
         "error_create": "Creation error",
         "error_create_detail": "Could not create the system configuration",
         "error_upload_logo": "Logo upload error",
-        "error_upload_logo_detail": "Could not upload the logo file"
+        "error_upload_logo_detail": "Could not upload the logo file",
+        "no_permissions": "No permissions",
+        "no_read_permission": "No read permissions",
+        "contact_admin": "Contact administrator to gain access to this section",
+        "no_create_permission": "No create permissions",
+        "no_create_permission_detail": "You don't have permissions to create system configuration",
+        "no_update_permission": "No update permissions",
+        "no_update_permission_detail": "You don't have permissions to update system configuration",
+        "no_save_permission": "No save permissions",
+        "no_add_permission": "No add permissions"
       },
       "plans": {
         "edit_plan": "Edit plan",
@@ -792,7 +863,15 @@
         }
     },
     "management": {
-      "users": "Users",
+      "users": {
+        "title": "Users",
+        "no_permissions": "No permissions",
+        "no_read_permission": "No read permissions",
+        "no_create_permission": "No create permissions",
+        "no_update_permission": "No update permissions",
+        "no_delete_permission": "No delete permissions",
+        "contact_admin": "Contact administrator to gain access"
+      },
       "targets": "Targets",
       "searchUsers": "Search users",
       "searchTargets": "Search targets",

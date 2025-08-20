@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
+import { AuthService } from '@core/services/auth.service';
 
 interface VehicleType {
   _id?: string;
@@ -44,13 +45,40 @@ export class VehicleModelsSettingsComponent implements OnInit {
     private vehicleBrandsService: VehicleBrandsService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private authService: AuthService
   ) { }
 
   ngOnInit(): void {
-    this.loadVehicleTypes();
-    this.loadBrands();
-    this.loadModels();
+    // Solo cargar si tiene permisos de lectura
+    if (this.canReadModels()) {
+      this.loadVehicleTypes();
+      this.loadBrands();
+      this.loadModels();
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.models.no_permissions'),
+        detail: this.translate.instant('settings.models.contact_admin')
+      });
+    }
+  }
+
+  // Métodos de validación de privilegios
+  canCreateModels(): boolean {
+    return this.authService.hasPrivilege('models', 'create');
+  }
+
+  canReadModels(): boolean {
+    return this.authService.hasPrivilege('models', 'read');
+  }
+
+  canUpdateModels(): boolean {
+    return this.authService.hasPrivilege('models', 'update');
+  }
+
+  canDeleteModels(): boolean {
+    return this.authService.hasPrivilege('models', 'delete');
   }
 
   async loadVehicleTypes() {
@@ -107,6 +135,16 @@ export class VehicleModelsSettingsComponent implements OnInit {
   }
 
   editModel(model: VehicleModel) {
+    // Validar permisos antes de permitir editar modelos
+    if (!this.canUpdateModels()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.models.no_update_permission'),
+        detail: this.translate.instant('settings.models.contact_admin')
+      });
+      return;
+    }
+
     this.isEditing = true;
     this.selectedModel = model;
     this.modelForm = {
@@ -115,6 +153,25 @@ export class VehicleModelsSettingsComponent implements OnInit {
   }
 
   async saveModel() {
+    // Validar privilegios antes de proceder
+    if (this.isEditing && !this.canUpdateModels()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.models.no_update_permission'),
+        detail: this.translate.instant('settings.models.contact_admin')
+      });
+      return;
+    }
+    
+    if (!this.isEditing && !this.canCreateModels()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.models.no_create_permission'),
+        detail: this.translate.instant('settings.models.contact_admin')
+      });
+      return;
+    }
+
     try {
       this.loading = true;
       if (this.isEditing && this.selectedModel?._id) {
@@ -166,6 +223,16 @@ export class VehicleModelsSettingsComponent implements OnInit {
 
   deleteModel(model: VehicleModel) {
     if (!model._id) return;
+
+    // Validar permisos antes de permitir eliminar modelos
+    if (!this.canDeleteModels()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.models.no_delete_permission'),
+        detail: this.translate.instant('settings.models.contact_admin')
+      });
+      return;
+    }
 
     this.translate.get('settings.vehicle_models.messages.confirm_delete', { name: model.nombre })
       .subscribe(message => {

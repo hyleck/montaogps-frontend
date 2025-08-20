@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
+import { AuthService } from '@core/services/auth.service';
 
 interface Brand {
   _id?: string;
@@ -33,11 +34,38 @@ export class VehicleBrandsSettingsComponent implements OnInit {
     private vehicleBrandsService: VehicleBrandsService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private authService: AuthService
   ) { }
 
   ngOnInit(): void {
-    this.loadBrands();
+    // Solo cargar si tiene permisos de lectura
+    if (this.canReadBrands()) {
+      this.loadBrands();
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.brands.no_permissions'),
+        detail: this.translate.instant('settings.brands.contact_admin')
+      });
+    }
+  }
+
+  // Métodos de validación de privilegios
+  canCreateBrands(): boolean {
+    return this.authService.hasPrivilege('brands', 'create');
+  }
+
+  canReadBrands(): boolean {
+    return this.authService.hasPrivilege('brands', 'read');
+  }
+
+  canUpdateBrands(): boolean {
+    return this.authService.hasPrivilege('brands', 'update');
+  }
+
+  canDeleteBrands(): boolean {
+    return this.authService.hasPrivilege('brands', 'delete');
   }
 
   async loadBrands() {
@@ -55,6 +83,16 @@ export class VehicleBrandsSettingsComponent implements OnInit {
   }
 
   editBrand(brand: Brand) {
+    // Validar permisos antes de permitir editar marcas
+    if (!this.canUpdateBrands()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.brands.no_update_permission'),
+        detail: this.translate.instant('settings.brands.contact_admin')
+      });
+      return;
+    }
+
     this.isEditing = true;
     this.selectedBrand = brand;
     this.brandForm = {
@@ -63,6 +101,25 @@ export class VehicleBrandsSettingsComponent implements OnInit {
   }
 
   async saveBrand() {
+    // Validar privilegios antes de proceder
+    if (this.isEditing && !this.canUpdateBrands()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.brands.no_update_permission'),
+        detail: this.translate.instant('settings.brands.contact_admin')
+      });
+      return;
+    }
+    
+    if (!this.isEditing && !this.canCreateBrands()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.brands.no_create_permission'),
+        detail: this.translate.instant('settings.brands.contact_admin')
+      });
+      return;
+    }
+
     try {
       this.loading = true;
       if (this.isEditing && this.selectedBrand?._id) {
@@ -87,6 +144,16 @@ export class VehicleBrandsSettingsComponent implements OnInit {
 
   deleteBrand(brand: Brand) {
     if (!brand._id) return;
+
+    // Validar permisos antes de permitir eliminar marcas
+    if (!this.canDeleteBrands()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('settings.brands.no_delete_permission'),
+        detail: this.translate.instant('settings.brands.contact_admin')
+      });
+      return;
+    }
 
     this.translate.get('settings.vehicle_brands.messages.confirm_delete', { name: brand.nombre })
       .subscribe(message => {

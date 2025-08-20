@@ -1,8 +1,29 @@
 <div class="user-roles-layout">
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+
+    <!-- Mensaje de sin permisos -->
+    <div *ngIf="!canReadBrands()" class="no-permissions-container">
+        <div class="no-permissions-message">
+            <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+            <h3>{{ 'settings.brands.no_read_permission' | translate }}</h3>
+            <p>{{ 'settings.brands.contact_admin' | translate }}</p>
+        </div>
+    </div>
     
     <!-- Panel lateral izquierdo -->
-    <div class="user-roles-layout__sidebar">
-        <div class="sidebar-content">
+    <div class="user-roles-layout__sidebar" *ngIf="canCreateBrands() || canUpdateBrands()">
+        <!-- Mensaje cuando está en modo crear sin permisos -->
+        <div class="sidebar-content" *ngIf="!isEditing && !canCreateBrands() && canUpdateBrands()">
+            <div class="no-permissions-message">
+                <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem; color: var(--text-color-secondary);"></i>
+                <h3>{{ 'settings.brands.no_create_permission_title' | translate }}</h3>
+                <p>{{ 'settings.brands.no_create_permission_message' | translate }}</p>
+            </div>
+        </div>
+
+        <!-- Formulario normal cuando tiene permisos -->
+        <div class="sidebar-content" *ngIf="canCreateBrands() || (canUpdateBrands() && isEditing)">
             <h3>{{ (isEditing ? 'settings.vehicle_brands.edit_brand' : 'settings.vehicle_brands.new_brand') | translate }}</h3>
             <form (ngSubmit)="saveBrand()" ngNativeValidate>
                 <div class="form-group">
@@ -12,7 +33,9 @@
                 </div>
                 
                 <div class="form-actions">
-                    <button type="submit" class="button-primary">
+                    <button type="submit" class="button-primary" 
+                            [disabled]="(!canCreateBrands() && !isEditing) || (!canUpdateBrands() && isEditing)"
+                            *ngIf="canCreateBrands() || canUpdateBrands()">
                         <i class="pi pi-save"></i>
                         {{ (isEditing ? 'settings.vehicle_brands.update' : 'settings.vehicle_brands.create') | translate }}
                     </button>
@@ -20,14 +43,18 @@
                         <i class="pi pi-times"></i>
                         {{ 'settings.vehicle_brands.cancel' | translate }}
                     </button>
+                    <div *ngIf="!canCreateBrands() && !canUpdateBrands()" class="no-save-permission">
+                        <i class="pi pi-lock"></i>
+                        {{ 'settings.brands.no_save_permission' | translate }}
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Contenido principal -->
-    <div class="user-roles-layout__main">
-        <div class="main-content">
+    <div class="user-roles-layout__main" [ngClass]="{'full-width': !canCreateBrands() && !canUpdateBrands()}">
+        <div class="main-content" *ngIf="canReadBrands()">
             <h2>{{ 'settings.vehicle_brands.title' | translate }}</h2>
             
             <!-- Spinner de carga -->
@@ -48,12 +75,16 @@
                     <tr>
                         <td>{{brand.nombre}}</td>
                         <td>
-                            <button type="button" class="button-action button-success" (click)="editBrand(brand)">
+                            <button type="button" class="button-action button-success" (click)="editBrand(brand)" *ngIf="canUpdateBrands()">
                                 <i class="pi pi-pencil"></i>
                             </button>
-                            <button type="button" class="button-action button-danger" (click)="deleteBrand(brand)">
+                            <button type="button" class="button-action button-danger" (click)="deleteBrand(brand)" *ngIf="canDeleteBrands()">
                                 <i class="pi pi-trash"></i>
                             </button>
+                            <div *ngIf="!canUpdateBrands() && !canDeleteBrands()" class="no-actions-permission">
+                                <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                                <span style="font-size: 0.75rem; opacity: 0.6;">{{ 'settings.brands.no_actions_permission' | translate }}</span>
+                            </div>
                         </td>
                     </tr>
                 </ng-template>

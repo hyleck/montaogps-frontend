@@ -218,11 +218,28 @@
     "settings": {
       "roles": {
         "title": "Roles",
-        "description": "Gestión de roles y permisos"
+        "description": "Gestión de roles y permisos",
+        "no_permissions": "Sin permisos",
+        "no_read_permission": "Sin permisos de lectura",
+        "contact_admin": "Contacte al administrador para obtener acceso a esta sección",
+        "no_create_permission": "Sin permisos para crear",
+        "no_create_permission_title": "Sin permisos para crear roles",
+        "no_create_permission_message": "No tiene permisos para crear nuevos roles",
+        "no_update_permission": "Sin permisos para actualizar",
+        "no_delete_permission": "Sin permisos para eliminar",
+        "no_save_permission": "Sin permisos para guardar",
+        "no_actions_permission": "Sin acciones"
       },
       "sectors": {
         "title": "Sectores",
-        "description": "Configuración de sectores operativos"
+        "description": "Configuración de sectores operativos",
+        "no_permissions": "Sin permisos",
+        "no_read_permission": "Sin permisos de lectura",
+        "contact_admin": "Contacte al administrador para obtener acceso a esta sección",
+        "no_create_permission": "Sin permisos para crear",
+        "no_update_permission": "Sin permisos para actualizar",
+        "no_delete_permission": "Sin permisos para eliminar",
+        "no_save_permission": "Sin permisos para guardar"
       },
       "tags": {
         "title": "Etiquetas",
@@ -286,7 +303,17 @@
           "error_delete": "No se pudo eliminar el protocolo",
           "yes_delete": "Sí, eliminar",
           "no_cancel": "No, cancelar"
-        }
+        },
+        "no_permissions": "Sin permisos",
+        "no_read_permission": "Sin permisos de lectura",
+        "contact_admin": "Contacte al administrador para obtener acceso a esta sección",
+        "no_create_permission": "Sin permisos para crear",
+        "no_create_permission_title": "Sin permisos para crear protocolos",
+        "no_create_permission_message": "No tiene permisos para crear nuevos protocolos",
+        "no_update_permission": "Sin permisos para actualizar",
+        "no_delete_permission": "Sin permisos para eliminar",
+        "no_save_permission": "Sin permisos para guardar",
+        "no_actions_permission": "Sin acciones"
       },
       "features": {
         "title": "Características",
@@ -294,15 +321,41 @@
       },
       "brands": {
         "title": "Marcas",
-        "description": "Configuración de marcas"
+        "description": "Configuración de marcas",
+        "no_permissions": "Sin permisos",
+        "no_read_permission": "Sin permisos de lectura",
+        "contact_admin": "Contacte al administrador para obtener acceso a esta sección",
+        "no_create_permission": "Sin permisos para crear",
+        "no_create_permission_title": "Sin permisos para crear marcas",
+        "no_create_permission_message": "No tiene permisos para crear nuevas marcas",
+        "no_update_permission": "Sin permisos para actualizar",
+        "no_delete_permission": "Sin permisos para eliminar",
+        "no_save_permission": "Sin permisos para guardar",
+        "no_actions_permission": "Sin acciones"
       },
       "models": {
         "title": "Modelos",
-        "description": "Gestión de modelos"
+        "description": "Gestión de modelos",
+        "no_permissions": "Sin permisos",
+        "no_read_permission": "Sin permisos de lectura",
+        "contact_admin": "Contacte al administrador para obtener acceso a esta sección",
+        "no_create_permission": "Sin permisos para crear",
+        "no_create_permission_title": "Sin permisos para crear modelos",
+        "no_create_permission_message": "No tiene permisos para crear nuevos modelos",
+        "no_update_permission": "Sin permisos para actualizar",
+        "no_delete_permission": "Sin permisos para eliminar",
+        "no_save_permission": "Sin permisos para guardar",
+        "no_actions_permission": "Sin acciones"
       },
       "colors": {
         "title": "Colores",
-        "description": "Configuración de colores"
+        "description": "Configuración de colores",
+        "no_permissions": "Sin permisos",
+        "no_read_permission": "Sin permisos de lectura",
+        "contact_admin": "Contacte al administrador para obtener acceso a esta sección",
+        "no_create_permission": "Sin permisos para crear",
+        "no_update_permission": "Sin permisos para actualizar",
+        "no_delete_permission": "Sin permisos para eliminar"
       },
       "historiales": {
         "title": "Historiales",
@@ -464,7 +517,16 @@
           "error_create": "No se pudo crear el servidor",
           "error_delete": "No se pudo eliminar el servidor",
           "error_loading": "No se pudieron cargar los servidores"
-        }
+        },
+        "no_permissions": "Sin permisos",
+        "no_read_permission": "Sin permisos de lectura",
+        "contact_admin": "Contacte al administrador para obtener acceso a esta sección",
+        "no_create_permission": "Sin permisos para crear",
+        "no_update_permission": "Sin permisos para actualizar",
+        "no_delete_permission": "Sin permisos para eliminar",
+        "no_save_permission": "Sin permisos para guardar",
+        "no_create_permission_title": "Creación no permitida",
+        "no_create_permission_message": "No tiene permisos para crear nuevos servidores. Contacte al administrador del sistema."
       },
       "vehicle_brands": {
         "title": "Configuración de Marcas",
@@ -656,7 +718,16 @@
         "error_create": "Error al crear",
         "error_create_detail": "No se pudo crear la configuración del sistema",
         "error_upload_logo": "Error al subir el logo",
-        "error_upload_logo_detail": "No se pudo subir el archivo de logo"
+        "error_upload_logo_detail": "No se pudo subir el archivo de logo",
+        "no_permissions": "Sin permisos",
+        "no_read_permission": "Sin permisos de lectura",
+        "contact_admin": "Contacte al administrador para obtener acceso a esta sección",
+        "no_create_permission": "Sin permisos para crear",
+        "no_create_permission_detail": "No tiene permisos para crear la configuración del sistema",
+        "no_update_permission": "Sin permisos para actualizar",
+        "no_update_permission_detail": "No tiene permisos para actualizar la configuración del sistema",
+        "no_save_permission": "Sin permisos para guardar",
+        "no_add_permission": "Sin permisos para agregar"
       },
       "plans": {
         "edit_plan": "Editar plan",
@@ -833,7 +904,15 @@
         }
     },
     "management": {
-      "users": "Usuarios",
+      "users": {
+        "title": "Usuarios",
+        "no_permissions": "Sin permisos",
+        "no_read_permission": "Sin permisos de lectura",
+        "no_create_permission": "Sin permisos para crear",
+        "no_update_permission": "Sin permisos para actualizar",
+        "no_delete_permission": "Sin permisos para eliminar",
+        "contact_admin": "Contacte al administrador para obtener acceso"
+      },
       "targets": "Objetivos",
       "searchUsers": "Buscar usuarios",
       "searchTargets": "Buscar objetivos",
