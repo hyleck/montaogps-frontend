@@ -28,9 +28,9 @@ import { Plan, PlanPrice, ExtendedPlanPrice } from 'src/app/core/interfaces/plan
 import { Server } from 'src/app/core/interfaces/server.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
+import { AuthService } from 'src/app/core/services/auth.service';
 import { ProtocolCommand } from 'src/app/core/interfaces/protocol.interface';
 import { ManagementService } from 'src/app/admin/modules/management/presentation/services/management.service';
-import { AuthService } from 'src/app/core/services/auth.service';
 import { UserService } from 'src/app/core/services/user.service';
 import { User } from 'src/app/core/interfaces/user.interface';
 
@@ -205,6 +205,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         private authService: AuthService,
         private userService: UserService
     ) {}
+
+    // Métodos de validación de privilegios para devices
+    canCreateDevices(): boolean {
+        return this.authService.hasPrivilege('devices', 'create');
+    }
+
+    canUpdateDevices(): boolean {
+        return this.authService.hasPrivilege('devices', 'update');
+    }
 
     private getEmptyTarget(): TargetDevice {
         return {
@@ -774,6 +783,27 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }   
 
     async onSubmit() {
+        // Validar privilegios antes de proceder
+        if (this.target._id && !this.canUpdateDevices()) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Sin permisos para actualizar',
+                detail: 'No tiene permisos para actualizar dispositivos. Contacte al administrador.',
+                life: 5000
+            });
+            return;
+        }
+        
+        if (!this.target._id && !this.canCreateDevices()) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Sin permisos para crear',
+                detail: 'No tiene permisos para crear nuevos dispositivos. Contacte al administrador.',
+                life: 5000
+            });
+            return;
+        }
+
         // 🔍 DEBUG: Ver estado del formulario antes de validar y procesar
         // console.log('🔍 DEBUG onSubmit - Estado antes de procesar:', {
         //     targetId: this.target._id,

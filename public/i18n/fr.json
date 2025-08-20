@@ -887,6 +887,15 @@
         "no_delete_permission": "Pas de permissions de suppression",
         "contact_admin": "Contactez l'administrateur pour obtenir l'accès"
       },
+      "devices": {
+        "title": "Appareils",
+        "no_permissions": "Pas de permissions",
+        "no_read_permission": "Pas de permissions de lecture",
+        "no_create_permission": "Pas de permissions de création",
+        "no_update_permission": "Pas de permissions de mise à jour",
+        "no_delete_permission": "Pas de permissions de suppression",
+        "contact_admin": "Contactez l'administrateur pour obtenir l'accès"
+      },
       "targets": "Objectifs",
       "searchUsers": "Rechercher des utilisateurs",
       "searchTargets": "Rechercher des objectifs",

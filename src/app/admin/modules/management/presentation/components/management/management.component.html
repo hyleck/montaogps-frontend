@@ -256,9 +256,9 @@
                                             
                                                 <td style="width: 1rem">
                                                     <div style="transform: scale(0.8)" class="management__user-table-controls management__user-table-controls--maps">
-                                                        <button (click)="showTargetForm(target)" class="button button--primary-flat" title="Editar objetivo"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                        <button (click)="showTargetForm(target)" class="button button--primary-flat" title="Editar objetivo" *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square" ></i> </button>
                                                         <button 
-                                                            *ngIf="!shouldShowParentUserButton(target)"
+                                                            *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices()"
                                                             class="button button--primary-flat-icon" 
                                                             title="Eliminar objetivo" 
                                                             (click)="confirmDeleteTarget(target)"> 
@@ -442,7 +442,7 @@
                         </ng-template>
                     </div>
 
-                    <div  *ngIf="managementService.getOp() === 't'" class="management__content-table">
+                    <div  *ngIf="managementService.getOp() === 't' && canReadDevices()" class="management__content-table">
                       
                         <ng-container *ngIf="!loadingTargetsState; else loadingTargetsSkeletons">
                             <div *ngIf="targetsLoadCompleted && targetsList.length === 0" 
@@ -455,10 +455,14 @@
                                     <h3>No hay dispositivos disponibles</h3>
                                     <p>Aún no tienes dispositivos GPS configurados</p>
                                     <button (click)="showTargetForm()" 
-                                            class="button button--primary">
+                                            class="button button--primary"
+                                            *ngIf="canCreateDevices()">
                                         <i class="pi pi-plus"></i>
                                         <span>Agregar dispositivo</span>
                                     </button>
+                                    <div *ngIf="!canCreateDevices()" class="no-create-permission">
+                                        <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                                    </div>
                                 </div>
                             </div>
                             <div class="card" *ngIf="targetsList.length > 0">
@@ -469,7 +473,7 @@
                                 [tableStyle]="{'min-width': '50rem'}">
                                 <ng-template pTemplate="header" >
                                     <tr  >
-                                        <th  style="width: 4rem"><p-tableHeaderCheckbox /></th>
+                                        <th  style="width: 4rem" *ngIf="canUpdateDevices()"><p-tableHeaderCheckbox /></th>
                                         <th>{{ 'management.table.name' | translate }}</th>
                                         <th>{{ 'management.table.status' | translate }}</th>
                                         <th>{{ 'management.table.imei' | translate }}</th>
@@ -489,7 +493,7 @@
                                         [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
                                         [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
                                         [title]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'TARGET SELECCIONADO - ID: ' + target._id : ''">
-                                        <td>
+                                        <td *ngIf="canUpdateDevices()">
                                             <p-tableCheckbox [value]="target" />
                                         </td>
                                         <td>
@@ -524,9 +528,9 @@
                                         <td>{{target.sim}}</td>
                                         <td>
                                             <div class="management__user-table-controls">
-                                                <button class="button button--primary-flat" (click)="showTargetForm(target)" title="Editar objetivo"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                <button class="button button--primary-flat" (click)="showTargetForm(target)" title="Editar objetivo" *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square" ></i> </button>
                                                 <button 
-                                                    *ngIf="!shouldShowParentUserButton(target)"
+                                                    *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices()"
                                                     class="button button--primary-flat-icon" 
                                                     title="Eliminar objetivo" 
                                                     (click)="confirmDeleteTarget(target)"> 

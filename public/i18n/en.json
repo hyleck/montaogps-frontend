@@ -872,6 +872,15 @@
         "no_delete_permission": "No delete permissions",
         "contact_admin": "Contact administrator to gain access"
       },
+      "devices": {
+        "title": "Devices",
+        "no_permissions": "No permissions",
+        "no_read_permission": "No read permissions",
+        "no_create_permission": "No create permissions",
+        "no_update_permission": "No update permissions",
+        "no_delete_permission": "No delete permissions",
+        "contact_admin": "Contact administrator to gain access"
+      },
       "targets": "Targets",
       "searchUsers": "Search users",
       "searchTargets": "Search targets",

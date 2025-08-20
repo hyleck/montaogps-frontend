@@ -197,6 +197,23 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return this.authService.hasPrivilege('users', 'delete');
   }
 
+  // Métodos de validación de privilegios para devices (targets)
+  canCreateDevices(): boolean {
+    return this.authService.hasPrivilege('devices', 'create');
+  }
+
+  canReadDevices(): boolean {
+    return this.authService.hasPrivilege('devices', 'read');
+  }
+
+  canUpdateDevices(): boolean {
+    return this.authService.hasPrivilege('devices', 'update');
+  }
+
+  canDeleteDevices(): boolean {
+    return this.authService.hasPrivilege('devices', 'delete');
+  }
+
   // ====================================
   // LIFECYCLE HOOKS
   // ====================================
@@ -476,6 +493,25 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   
   async showTargetForm(target?: any) {
+    // Validar permisos antes de permitir crear/editar targets
+    if (target && !this.canUpdateDevices()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.devices.no_update_permission'),
+        detail: this.translate.instant('management.devices.contact_admin')
+      });
+      return;
+    }
+    
+    if (!target && !this.canCreateDevices()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.devices.no_create_permission'),
+        detail: this.translate.instant('management.devices.contact_admin')
+      });
+      return;
+    }
+
     this.targetToEdit = target || null;
     this.uiService.showTargetForm();
   }
@@ -590,18 +626,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  confirmDeleteTarget(target: any) {
-    this.confirmationService.confirm({
-      message: this.translate.instant('management.confirmDeleteTarget'),
-      header: this.translate.instant('management.userForm.confirmDeleteHeader'),
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: this.translate.instant('management.userForm.yes'),
-      rejectLabel: this.translate.instant('management.userForm.no'),
-      accept: () => {
-        this.deleteTarget(target);
-      }
-    });
-  }
+
 
   /**
    * Cambia la URL para navegar al usuario padre del target
@@ -1042,6 +1067,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
   showNoTargetMessage = false;
   private async loadTargetsForUser(userId: string) {
+    // Validar permisos antes de cargar targets/devices
+    if (!this.canReadDevices()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.devices.no_permissions'),
+        detail: this.translate.instant('management.devices.contact_admin')
+      });
+      this.loadingTargets = false;
+      this.targetsLoadCompletedFlag = true;
+      return;
+    }
+
     // Si hay un término de búsqueda activo, usar la búsqueda en lugar de cargar todos
     if (this.searchTargetsTerm && this.searchTargetsTerm.trim() !== '') {
       this.searchTargetsSubject.next(this.searchTargetsTerm);
@@ -1314,6 +1351,29 @@ export class ManagementComponent implements OnInit, OnDestroy {
       console.error('❌ Error actualizando status en polling:', error);
       // No mostrar error al usuario para evitar spam, solo log en consola
     }
+  }
+
+  confirmDeleteTarget(target: any) {
+    // Validar permisos antes de permitir eliminar targets
+    if (!this.canDeleteDevices()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.devices.no_delete_permission'),
+        detail: this.translate.instant('management.devices.contact_admin')
+      });
+      return;
+    }
+
+    this.confirmationService.confirm({
+      message: this.translate.instant('management.confirmDeleteTarget'),
+      header: this.translate.instant('management.targetForm.confirmDeleteHeader'),
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: this.translate.instant('management.targetForm.yes'),
+      rejectLabel: this.translate.instant('management.targetForm.no'),
+      accept: () => {
+        this.deleteTarget(target);
+      }
+    });
   }
 
   private deleteTarget(target: any): void {

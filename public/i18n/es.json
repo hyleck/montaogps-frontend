@@ -913,6 +913,15 @@
         "no_delete_permission": "Sin permisos para eliminar",
         "contact_admin": "Contacte al administrador para obtener acceso"
       },
+      "devices": {
+        "title": "Dispositivos",
+        "no_permissions": "Sin permisos",
+        "no_read_permission": "Sin permisos de lectura",
+        "no_create_permission": "Sin permisos para crear",
+        "no_update_permission": "Sin permisos para actualizar",
+        "no_delete_permission": "Sin permisos para eliminar",
+        "contact_admin": "Contacte al administrador para obtener acceso"
+      },
       "targets": "Objetivos",
       "searchUsers": "Buscar usuarios",
       "searchTargets": "Buscar objetivos",
