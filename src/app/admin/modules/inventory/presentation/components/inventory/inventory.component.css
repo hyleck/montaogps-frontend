@@ -20,7 +20,7 @@
 }
 
 .form-header {
-  background: var(--managementColorTitleUser);
+  background: rgb(44, 44, 44);
   color: white;
   padding: 15px 20px;
   text-align: center;
@@ -138,7 +138,7 @@ textarea.form-input {
 }
 
 .list-header {
-  background: var(--managementColorTitleUser);
+  background: rgb(44, 44, 44);
   color: white;
   padding: 15px 20px;
   text-align: center;
