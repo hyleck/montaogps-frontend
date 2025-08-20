@@ -167,7 +167,8 @@ export class AuthService {
       'models',
       'historiales',
       'sectors',
-      'tags'
+      'tags',
+      'inventory'
     ];
 
     // Generar privilegios completos para cada módulo

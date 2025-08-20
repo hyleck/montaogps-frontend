@@ -90,6 +90,14 @@
     },
     "inventory": {
       "title": "Inventario",
+      "no_permissions": "Sin permisos",
+      "no_read_permission": "Sin permisos de lectura",
+      "no_create_permission": "Sin permisos para crear",
+      "no_update_permission": "Sin permisos para actualizar",
+      "no_delete_permission": "Sin permisos para eliminar",
+      "no_save_permission": "Sin permisos para guardar",
+      "no_actions_permission": "Sin acciones",
+      "contact_admin": "Contacte al administrador para obtener acceso",
       "package": {
         "title": "Formulario de paquete",
         "name": "Título del paquete",

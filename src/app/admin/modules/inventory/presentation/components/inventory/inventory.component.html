@@ -2,7 +2,16 @@
     <p-breadcrumb [model]="items" [home]="home" />
 </div>
 
-<div class="inventory-container">
+<!-- Mensaje de sin permisos -->
+<div *ngIf="!canReadInventory()" class="no-permissions-container">
+    <div class="no-permissions-message">
+        <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+        <h3>{{ 'inventory.no_read_permission' | translate }}</h3>
+        <p>{{ 'inventory.contact_admin' | translate }}</p>
+    </div>
+</div>
+
+<div class="inventory-container" *ngIf="canReadInventory()">
     <!-- Global Search Bar -->
     <div *ngIf="!currentPackageId" class="global-search-section">
         <div class="search-container">
@@ -66,6 +75,7 @@
                                 class="action-button edit-button"
                                 (click)="editDevice(device)"
                                 title="Editar"
+                                *ngIf="canUpdateInventory()"
                             >
                                 <i class="pi pi-pencil"></i>
                             </button>
@@ -73,6 +83,7 @@
                                 class="action-button delete-button"
                                 (click)="deleteDevice(device)"
                                 title="Eliminar"
+                                *ngIf="canDeleteInventory()"
                             >
                                 <i class="pi pi-trash"></i>
                             </button>
@@ -155,8 +166,13 @@
                             icon="pi pi-save" 
                             class="p-button-success"
                             (click)="savePackage()"
-                            [disabled]="!selectedPackage?.title"
+                            [disabled]="!selectedPackage?.title || (!canCreateInventory() && !isEditPackageMode) || (!canUpdateInventory() && isEditPackageMode)"
+                            *ngIf="canCreateInventory() || canUpdateInventory()"
                         ></button>
+                        <div *ngIf="!canCreateInventory() && !canUpdateInventory()" class="no-save-permission">
+                            <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                            <span style="font-size: 0.875rem; opacity: 0.6;">{{ 'inventory.no_save_permission' | translate }}</span>
+                        </div>
                         
                         <button 
                             pButton 
@@ -192,6 +208,7 @@
                                 class="p-button-rounded p-button-text p-button-sm"
                                 (click)="editPackage(package); $event.stopPropagation()"
                                 pTooltip="Editar paquete"
+                                *ngIf="canUpdateInventory()"
                             ></button>
                             <button 
                                 pButton 
@@ -200,6 +217,7 @@
                                 class="p-button-rounded p-button-text p-button-sm p-button-danger"
                                 (click)="deletePackage(package); $event.stopPropagation()"
                                 pTooltip="Eliminar paquete"
+                                *ngIf="canDeleteInventory()"
                             ></button>
                         </div>
                     </div>
@@ -293,7 +311,12 @@
                     icon="pi pi-plus" 
                     class="p-button-success"
                     (click)="openNewDevice()"
+                    *ngIf="canCreateInventory()"
                 ></button>
+                <div *ngIf="!canCreateInventory()" class="no-create-permission">
+                    <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                    <span style="font-size: 0.875rem; opacity: 0.6;">{{ 'inventory.no_create_permission' | translate }}</span>
+                </div>
             </ng-template>
         </p-toolbar>
 
@@ -326,6 +349,7 @@
                             class="p-button-rounded p-button-success mr-2"
                             (click)="editDevice(device)"
                             pTooltip="Editar"
+                            *ngIf="canUpdateInventory()"
                         ></button>
                         <button 
                             pButton 
@@ -334,7 +358,12 @@
                             class="p-button-rounded p-button-danger"
                             (click)="deleteDevice(device)"
                             pTooltip="Eliminar"
+                            *ngIf="canDeleteInventory()"
                         ></button>
+                        <div *ngIf="!canUpdateInventory() && !canDeleteInventory()" class="no-actions-permission">
+                            <i class="pi pi-lock" style="opacity: 0.5; font-size: 0.75rem;"></i>
+                            <span style="font-size: 0.75rem; opacity: 0.6;">{{ 'inventory.no_actions_permission' | translate }}</span>
+                        </div>
                     </td>
                 </tr>
             </ng-template>

@@ -3,6 +3,7 @@ import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
 import { InventoryItem, InventoryService, Package } from 'src/app/core/services/inventory.service';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { TranslateService } from '@ngx-translate/core';
+import { AuthService } from 'src/app/core/services/auth.service';
 
 @Component({
   selector: 'app-inventory',
@@ -48,13 +49,41 @@ export class InventoryComponent implements OnInit {
     private protocolsService: ProtocolsService,
     private messageService: MessageService,
     private confirmationService: ConfirmationService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private authService: AuthService
   ) {}
 
+  // Métodos de validación de privilegios para inventory
+  canCreateInventory(): boolean {
+    return this.authService.hasPrivilege('inventory', 'create');
+  }
+
+  canReadInventory(): boolean {
+    return this.authService.hasPrivilege('inventory', 'read');
+  }
+
+  canUpdateInventory(): boolean {
+    return this.authService.hasPrivilege('inventory', 'update');
+  }
+
+  canDeleteInventory(): boolean {
+    return this.authService.hasPrivilege('inventory', 'delete');
+  }
+
   ngOnInit(): void {
-    this.openNewPackage(); // Initialize selectedPackage
-    this.loadProtocols();
-    this.loadPackages();
+    // Solo cargar si tiene permisos de lectura
+    if (this.canReadInventory()) {
+      this.openNewPackage(); // Initialize selectedPackage
+      this.loadProtocols();
+      this.loadPackages();
+    } else {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_permissions'),
+        detail: this.translate.instant('inventory.contact_admin')
+      });
+      this.loading = false;
+    }
   }
 
   loadProtocols(): void {
@@ -103,12 +132,41 @@ export class InventoryComponent implements OnInit {
   }
 
   editPackage(pkg: Package): void {
+    // Validar permisos antes de permitir editar paquetes
+    if (!this.canUpdateInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_update_permission'),
+        detail: this.translate.instant('inventory.contact_admin')
+      });
+      return;
+    }
+
     this.selectedPackage = { ...pkg };
     this.isEditPackageMode = true;
     this.packageDialogVisible = true;
   }
 
   savePackage(): void {
+    // Validar privilegios antes de proceder
+    if (this.isEditPackageMode && !this.canUpdateInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_update_permission'),
+        detail: this.translate.instant('inventory.contact_admin')
+      });
+      return;
+    }
+    
+    if (!this.isEditPackageMode && !this.canCreateInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_create_permission'),
+        detail: this.translate.instant('inventory.contact_admin')
+      });
+      return;
+    }
+
     if (!this.selectedPackage || !this.selectedPackage.title) {
       this.messageService.add({ 
         severity: 'warn', 
@@ -143,6 +201,16 @@ export class InventoryComponent implements OnInit {
   }
 
   deletePackage(pkg: Package): void {
+    // Validar permisos antes de permitir eliminar paquetes
+    if (!this.canDeleteInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_delete_permission'),
+        detail: this.translate.instant('inventory.contact_admin')
+      });
+      return;
+    }
+
     this.confirmationService.confirm({
       message: `¿Está seguro de eliminar el paquete "${pkg.title}"?`,
       header: 'Confirmar eliminación',
@@ -206,6 +274,16 @@ export class InventoryComponent implements OnInit {
   }
 
   openNewDevice(): void {
+    // Validar permisos antes de permitir crear dispositivos
+    if (!this.canCreateInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_create_permission'),
+        detail: this.translate.instant('inventory.contact_admin')
+      });
+      return;
+    }
+
     if (!this.currentPackageId) {
       this.messageService.add({ 
         severity: 'warn', 
@@ -236,6 +314,15 @@ export class InventoryComponent implements OnInit {
   }
 
   editDevice(device: InventoryItem): void {
+    // Validar permisos antes de permitir editar dispositivos
+    if (!this.canUpdateInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_update_permission'),
+        detail: this.translate.instant('inventory.contact_admin')
+      });
+      return;
+    }
     // Normalizar los datos del dispositivo para el formulario
     this.selectedDevice = {
       _id: device._id,
@@ -254,6 +341,25 @@ export class InventoryComponent implements OnInit {
   }
 
   saveDevice(): void {
+    // Validar privilegios antes de proceder
+    if (this.isEditDeviceMode && !this.canUpdateInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_update_permission'),
+        detail: this.translate.instant('inventory.contact_admin')
+      });
+      return;
+    }
+    
+    if (!this.isEditDeviceMode && !this.canCreateInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_create_permission'),
+        detail: this.translate.instant('inventory.contact_admin')
+      });
+      return;
+    }
+
     // Validaciones específicas
     if (!this.selectedDevice) {
       this.messageService.add({ 
@@ -354,6 +460,16 @@ export class InventoryComponent implements OnInit {
   }
 
   deleteDevice(device: InventoryItem): void {
+    // Validar permisos antes de permitir eliminar dispositivos
+    if (!this.canDeleteInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_delete_permission'),
+        detail: this.translate.instant('inventory.contact_admin')
+      });
+      return;
+    }
+
     const imei = device.IMEI || device.imei || 'Sin IMEI';
     this.confirmationService.confirm({
       message: `¿Está seguro de eliminar el dispositivo IMEI: ${imei}?`,

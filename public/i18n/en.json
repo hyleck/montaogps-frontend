@@ -90,6 +90,14 @@
     },
     "inventory": {
       "title": "Inventory",
+      "no_permissions": "No permissions",
+      "no_read_permission": "No read permissions", 
+      "no_create_permission": "No create permissions",
+      "no_update_permission": "No update permissions",
+      "no_delete_permission": "No delete permissions",
+      "no_save_permission": "No save permissions",
+      "no_actions_permission": "No actions",
+      "contact_admin": "Contact administrator to gain access",
       "package": {
         "title": "Package Form",
         "name": "Package Title",
