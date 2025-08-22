@@ -228,6 +228,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.setupRouting();
     this.loadInitialData();
     // Nota: El status polling ahora está integrado en el polling principal de 10s
+
+    // Verificar si hay datos de instalación de dispositivo en sessionStorage
+    this.checkDeviceInstallationData();
   }
 
   ngOnDestroy(): void {
@@ -263,7 +266,86 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (previousMobileView && !this.isMobileView && this.selectedTargetForMap && !this.uiService.areMapsVisible()) {
       this.uiService.toggleMaps();
     }
+  }
+
+  // ====================================
+  // DEVICE INSTALLATION FROM INVENTORY
+  // ====================================
+  
+  private checkDeviceInstallationData(): void {
+    try {
+      const deviceInstallationDataStr = sessionStorage.getItem('deviceInstallationData');
+      
+      if (deviceInstallationDataStr) {
+        const deviceInstallationData = JSON.parse(deviceInstallationDataStr);
+        console.log('📦 Datos de instalación encontrados en sessionStorage:', deviceInstallationData);
+        
+        // Verificar que los datos no sean muy antiguos (máximo 1 hora)
+        const timestamp = new Date(deviceInstallationData.timestamp);
+        const now = new Date();
+        const diffInHours = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60);
+        
+        if (diffInHours > 1) {
+          console.log('⏰ Datos de instalación expirados (más de 1 hora), limpiando sessionStorage');
+          sessionStorage.removeItem('deviceInstallationData');
+          return;
+        }
+        
+        // Verificar que estamos en el usuario correcto
+        const currentUserId = this.getCurrentUserId();
+        if (currentUserId && currentUserId === deviceInstallationData.userId) {
+          console.log('✅ Usuario coincide, abriendo formulario de target automáticamente');
+          
+          // Esperar un poco para que se carguen los datos del usuario
+          setTimeout(() => {
+            this.openTargetFormWithDeviceData(deviceInstallationData);
+          }, 1000);
+        } else {
+          console.log('❌ Usuario no coincide o no está definido, manteniendo datos en sessionStorage');
+          console.log('Current User ID:', currentUserId);
+          console.log('Expected User ID:', deviceInstallationData.userId);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error al verificar datos de instalación:', error);
+      sessionStorage.removeItem('deviceInstallationData');
+    }
+  }
+
+  private openTargetFormWithDeviceData(deviceData: any): void {
+    // Cambiar a vista de targets
+    this.setOp('t');
     
+    // Esperar un poco para que se complete el cambio de vista y se carguen los datos
+    setTimeout(() => {
+      this.openTargetFormWithData(deviceData);
+    }, 1000);
+  }
+
+  private openTargetFormWithData(deviceData: any): void {
+    // Preparar datos pre-cargados para el formulario
+    const preloadedTargetData = {
+      device_imei: deviceData.imei,
+      sim_card_number: deviceData.sim,
+      type: deviceData.protocol._id, // Usar solo el _id del protocolo
+      status: 'active',
+      // Otros campos pueden ser pre-cargados según sea necesario
+    };
+    
+    console.log('🎯 Datos pre-cargados para el formulario de target:', preloadedTargetData);
+    console.log('📋 Datos del dispositivo a instalar:', {
+      imei: deviceData.imei,
+      sim: deviceData.sim,
+      protocol: deviceData.protocol,
+      protocolId: deviceData.protocol._id
+    });
+    
+    // Mostrar el formulario de target con datos pre-cargados
+    this.showTargetForm(preloadedTargetData);
+    
+    // Limpiar sessionStorage después de usar los datos
+    sessionStorage.removeItem('deviceInstallationData');
+    console.log('🧹 Datos de instalación limpiados de sessionStorage');
   }
 
   hideMobileMapFullscreen(): void {
@@ -1051,19 +1133,19 @@ export class ManagementComponent implements OnInit, OnDestroy {
         });
       } else {
         // Solo cargar usuarios normales si no es el usuario logueado
-        this.userService.getAll(userId).subscribe({
-          next: (users) => {
-            this.users = users;
-            this.uiService.setLoading(false);
+      this.userService.getAll(userId).subscribe({
+        next: (users) => {
+          this.users = users;
+          this.uiService.setLoading(false);
           },
           error: (error) => {
-            console.error('Error al cargar usuarios:', error);
+          console.error('Error al cargar usuarios:', error);
             this.users = [];
-            this.uiService.setLoading(false);
+          this.uiService.setLoading(false);
           }
         });
       }
-    }
+      }
   }
   showNoTargetMessage = false;
   private async loadTargetsForUser(userId: string) {

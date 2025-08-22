@@ -191,7 +191,6 @@ export class AuthService {
       const user = userStr ? JSON.parse(userStr) : null;
       
       // 🔍 DEBUG: Imprimir toda la información del usuario logueado
-      console.log('🔍 DEBUG - USUARIO LOGUEADO COMPLETO:', user);
       
       return user;
     } catch (error) {

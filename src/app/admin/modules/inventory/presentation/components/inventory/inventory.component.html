@@ -80,6 +80,14 @@
                                 <i class="pi pi-pencil"></i>
                             </button>
                             <button 
+                                class="action-button install-button"
+                                (click)="installDevice(device)"
+                                title="Instalar"
+                                *ngIf="canUpdateInventory()"
+                            >
+                                <i class="pi pi-cog"></i>
+                            </button>
+                            <button 
                                 class="action-button delete-button"
                                 (click)="deleteDevice(device)"
                                 title="Eliminar"
@@ -354,6 +362,15 @@
                         <button 
                             pButton 
                             pRipple 
+                            icon="pi pi-cog" 
+                            class="p-button-rounded p-button-info mr-2"
+                            (click)="installDevice(device)"
+                            pTooltip="Instalar"
+                            *ngIf="canUpdateInventory()"
+                        ></button>
+                        <button 
+                            pButton 
+                            pRipple 
                             icon="pi pi-trash" 
                             class="p-button-rounded p-button-danger"
                             (click)="deleteDevice(device)"
@@ -460,5 +477,135 @@
     </ng-template>
 </p-dialog>
 
+<!-- Diálogo para solicitar email de instalación -->
+<p-dialog 
+    header="Instalar Dispositivo" 
+    [(visible)]="installDialogVisible" 
+    [modal]="true" 
+    [closable]="true"
+    [style]="{ width: '450px' }"
+    (onHide)="cancelInstallation()"
+>
+    <div class="install-dialog-content">
+        <div class="device-info" *ngIf="deviceToInstall">
+            <h4>Dispositivo a instalar:</h4>
+            <p><strong>IMEI:</strong> {{ deviceToInstall.IMEI || deviceToInstall.imei || 'N/A' }}</p>
+            <p><strong>SIM:</strong> {{ deviceToInstall.SIM || deviceToInstall.sim || 'N/A' }}</p>
+            <p><strong>Protocolo:</strong> {{ getProtocolLabel(deviceToInstall.Protocol || deviceToInstall.protocol) }}</p>
+        </div>
+        
+        <div class="email-input-section">
+            <label for="installationEmail" class="form-label">
+                <strong>Correo electrónico del cliente: *</strong>
+            </label>
+            <input 
+                id="installationEmail"
+                type="email" 
+                pInputText 
+                [(ngModel)]="installationEmail" 
+                placeholder="Ingrese el email del cliente"
+                class="w-full"
+                [class.ng-invalid]="!installationEmail"
+                autocomplete="email"
+            />
+            <small class="help-text">
+                Se enviará una notificación de instalación a esta dirección
+            </small>
+        </div>
+    </div>
+    
+    <ng-template pTemplate="footer">
+        <button 
+            pButton 
+            pRipple 
+            label="Cancelar" 
+            icon="pi pi-times" 
+            class="p-button-text"
+            (click)="cancelInstallation()"
+        ></button>
+        <button 
+            pButton 
+            pRipple 
+            label="Confirmar Instalación" 
+            icon="pi pi-check" 
+            class="p-button-primary"
+            (click)="confirmInstallation()"
+            [disabled]="!installationEmail || !installationEmail.trim()"
+        ></button>
+    </ng-template>
+</p-dialog>
+
 <p-confirmDialog></p-confirmDialog>
 <p-toast></p-toast>
+
+<style>
+.install-dialog-content {
+    padding: 1rem 0;
+}
+
+.device-info {
+    background-color: var(--globalColorCardBackground);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid var(--globalColorPrimaryInmutable);
+    border: 1px solid var(--globalColorCardBorderLight);
+}
+
+.device-info h4 {
+    margin: 0 0 0.5rem 0;
+    color: var(--globalColorTitle);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.device-info p {
+    margin: 0.25rem 0;
+    font-size: 0.9rem;
+    color: var(--globalColorTextDark);
+}
+
+.email-input-section {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--globalColorTextDark);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.help-text {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--globalColorTextMuted);
+    font-size: 0.8rem;
+    font-style: italic;
+}
+
+#installationEmail {
+    padding: 0.75rem;
+    border: 1px solid var(--globalColorBorderInput);
+    border-radius: 4px;
+    transition: border-color 0.3s ease;
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextInput);
+}
+
+#installationEmail:focus {
+    border-color: var(--globalColorPrimaryInmutable);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
+}
+
+#installationEmail.ng-invalid:not(:focus) {
+    border-color: var(--globalColorBorderHover);
+}
+
+#installationEmail::placeholder {
+    color: var(--globalColorTextMuted);
+    opacity: 0.8;
+}
+</style>

@@ -4,6 +4,8 @@ import { InventoryItem, InventoryService, Package } from 'src/app/core/services/
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { TranslateService } from '@ngx-translate/core';
 import { AuthService } from 'src/app/core/services/auth.service';
+import { UserService } from 'src/app/core/services/user.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-inventory',
@@ -50,7 +52,9 @@ export class InventoryComponent implements OnInit {
     private messageService: MessageService,
     private confirmationService: ConfirmationService,
     private translate: TranslateService,
-    private authService: AuthService
+    private authService: AuthService,
+    private userService: UserService,
+    private router: Router
   ) {}
 
   // Métodos de validación de privilegios para inventory
@@ -457,6 +461,146 @@ export class InventoryComponent implements OnInit {
         });
       }
     });
+  }
+
+  // Variables para el diálogo de instalación
+  installDialogVisible: boolean = false;
+  deviceToInstall: InventoryItem | null = null;
+  installationEmail: string = '';
+
+  installDevice(device: InventoryItem): void {
+    // Validar permisos antes de permitir instalar dispositivos
+    if (!this.canUpdateInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_update_permission'),
+        detail: this.translate.instant('inventory.contact_admin')
+      });
+      return;
+    }
+
+    // Establecer el dispositivo a instalar y mostrar el diálogo
+    this.deviceToInstall = device;
+    this.installationEmail = '';
+    this.installDialogVisible = true;
+  }
+
+  confirmInstallation(): void {
+    if (!this.installationEmail || !this.installationEmail.trim()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Email requerido',
+        detail: 'Por favor ingrese una dirección de correo electrónico'
+      });
+      return;
+    }
+
+    // Validar formato de email básico
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.installationEmail)) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Email inválido',
+        detail: 'Por favor ingrese una dirección de correo electrónico válida'
+      });
+      return;
+    }
+
+    if (!this.deviceToInstall) {
+      console.error('❌ Error: deviceToInstall es null');
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo procesar la instalación. Intente nuevamente.'
+      });
+      return;
+    }
+
+    if (this.deviceToInstall._id) {
+      const imei = this.deviceToInstall.IMEI || this.deviceToInstall.imei || 'Sin IMEI';
+      
+      // Buscar usuario por email
+      console.log('🔍 Buscando usuario con email:', this.installationEmail);
+      
+      this.userService.search(this.installationEmail).subscribe({
+        next: (users) => {
+          console.log('📊 Resultados de búsqueda de usuarios:', users);
+          console.log('📈 Cantidad de usuarios encontrados:', users.length);
+          
+          // Filtrar usuarios que contengan exactamente el email buscado
+          const exactMatches = users.filter(user => user.email === this.installationEmail);
+          console.log('🎯 Usuarios con email exacto:', exactMatches);
+          console.log('🔢 Cantidad de coincidencias exactas:', exactMatches.length);
+          
+          if (exactMatches.length > 0) {
+            const foundUser = exactMatches[0];
+            console.log('✅ Usuario encontrado:', foundUser);
+            console.log('👤 Datos del usuario:', {
+              id: foundUser._id,
+              name: foundUser.name,
+              lastName: foundUser.last_name,
+              email: foundUser.email,
+              phone: foundUser.phone,
+              profileType: foundUser.profile_type_id,
+              accessLevel: foundUser.access_level_id
+            });
+            
+            // Guardar datos del dispositivo en sessionStorage para el formulario de target
+            // Usar aserción no nula ya que ya validamos deviceToInstall al inicio del método
+            const deviceInstallationData = {
+              imei: this.deviceToInstall!.IMEI || this.deviceToInstall!.imei || '',
+              sim: this.deviceToInstall!.SIM || this.deviceToInstall!.sim || '',
+              protocol: this.deviceToInstall!.Protocol || this.deviceToInstall!.protocol || '',
+              userId: foundUser._id,
+              timestamp: new Date().toISOString()
+            };
+            
+            sessionStorage.setItem('deviceInstallationData', JSON.stringify(deviceInstallationData));
+            console.log('💾 Datos del dispositivo guardados en sessionStorage:', deviceInstallationData);
+
+            // Procesar instalación con usuario encontrado
+            this.messageService.add({ 
+              severity: 'success', 
+              summary: 'Usuario encontrado', 
+              detail: `Navegando a management del usuario: ${foundUser.name} ${foundUser.last_name}` 
+            });
+
+            // Cerrar el diálogo antes de navegar
+            this.cancelInstallation();
+
+            // Navegar a management con el ID del usuario
+            console.log('🚀 Navegando a management con usuario ID:', foundUser._id);
+            this.router.navigate(['/admin/management/u', foundUser._id]);
+            
+            return; // Salir del método después de navegar
+          } else {
+            console.log('❌ No se encontró usuario con email exacto:', this.installationEmail);
+            console.log('💡 Sugerencia: Verificar si el email existe o crear nuevo usuario');
+            
+            this.messageService.add({
+              severity: 'warn',
+              summary: 'Usuario no encontrado',
+              detail: `No se encontró un usuario con el email ${this.installationEmail}. Verifique el correo o cree el usuario primero.`
+            });
+            return; // No proceder con la instalación
+          }
+        },
+        error: (error) => {
+          console.error('❌ Error al buscar usuario:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error de búsqueda',
+            detail: 'No se pudo buscar el usuario. Intente nuevamente.'
+          });
+        }
+      });
+    }
+  }
+
+  cancelInstallation(): void {
+    this.installDialogVisible = false;
+    this.deviceToInstall = null;
+    this.installationEmail = '';
   }
 
   deleteDevice(device: InventoryItem): void {
