@@ -2,6 +2,29 @@
    background-color: var(--managementColorBackgroundUser);
     height: calc(100vh - 110px);
     overflow: auto;
+    /* Mejoras para dispositivos móviles */
+    -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
+    scroll-behavior: smooth;
+}
+
+/* Mejoras generales para dispositivos móviles */
+@media (hover: none) and (pointer: coarse) {
+    /* Estilos específicos para dispositivos táctiles */
+    .form-group input,
+    .form-group textarea,
+    .settings-item select,
+    .change-photo-btn,
+    .remove-photo-btn,
+    .save-button {
+        min-height: 44px; /* Tamaño mínimo recomendado para touch */
+        touch-action: manipulation; /* Optimiza para touch */
+    }
+    
+    /* Mejora la experiencia de scroll en móviles */
+    .profile-container {
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
+    }
 }
 
 .profile-header {
@@ -117,6 +140,12 @@
     background-color: var(--managementColorCardBackground);
     border-bottom: 1px solid var(--managementFieldsBorder);
     padding: 0 1rem;
+    /* Mejoras para móviles */
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }
 
 :host ::ng-deep .p-tabview .p-tabview-nav li .p-tabview-nav-link {
@@ -136,7 +165,7 @@
 
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 1.5rem;
 }
 
@@ -393,34 +422,467 @@
     border-color: var(--managementColorTitleUser);
 }
 
-/* Responsive */
+/* ====================================
+   RESPONSIVE DESIGN - MOBILE ADAPTATION
+   ==================================== */
+
+/* Breakpoint principal para móviles */
 @media screen and (max-width: 768px) {
-    .profile-header {
+    /* Contenedor principal */
+    .profile-container {
+        height: calc(100vh - 80px);
+        padding: 0.5rem;
+    }
+
+    /* Breadcrumb responsive */
+    .management__route {
+        margin-bottom: 1rem;
+    }
+
+    /* Contenido del perfil */
+    .profile-content {
+        margin: 0;
+        border-radius: 8px;
+    }
+
+    /* Pestañas responsive */
+    :host ::ng-deep .p-tabview .p-tabview-nav {
+        padding: 0 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    :host ::ng-deep .p-tabview .p-tabview-nav li .p-tabview-nav-link {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        min-width: auto;
+        flex: 1;
         text-align: center;
     }
 
-    .form-grid {
-        grid-template-columns: 1fr;
+    /* Formulario responsive */
+    .profile-form {
+        padding: 1rem;
     }
 
-    .settings-grid {
-        grid-template-columns: 1fr;
+    .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+
+    .form-column {
+        margin-bottom: 1rem;
+    }
+
+    /* Campos del formulario */
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        padding: 0.8rem;
+        font-size: 16px; /* Evita zoom en iOS */
+        border-radius: 8px;
+    }
+
+    /* Botones responsive */
+    .form-actions {
+        margin-top: 1.5rem;
+        padding: 0;
+    }
+
+    .save-button {
+        width: 100%;
+        justify-content: center;
+        padding: 1rem;
+        font-size: 1rem;
+        border-radius: 8px;
+    }
+
+    /* Sección de foto responsive */
+    .profile-photo-section {
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+
+    .profile-photo {
+        width: 120px;
+        height: 120px;
+    }
+
+    /* Mejoras específicas para la sección de información personal */
+    .form-column {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-column:first-child {
+        order: -1; /* La foto va primero en móviles */
+        margin-bottom: 2rem;
+    }
+
+    .form-column:nth-child(2),
+    .form-column:nth-child(3) {
+        order: 1;
     }
 
     .photo-actions {
         flex-direction: column;
         align-items: stretch;
+        gap: 0.5rem;
+        margin-top: 1rem;
     }
 
     .change-photo-btn,
     .remove-photo-btn {
         width: 100%;
         justify-content: center;
+        padding: 0.8rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+
+    /* Configuración responsive */
+    .settings-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .settings-item {
+        padding: 1rem;
+        border-radius: 8px;
+    }
+
+    .settings-header {
+        margin-bottom: 0.8rem;
+    }
+
+    .settings-header h3 {
+        font-size: 0.95rem;
+    }
+
+    .settings-item select {
+        padding: 0.8rem;
+        font-size: 16px;
+        border-radius: 8px;
+    }
+
+    /* Toggle de notificaciones */
+    .settings-toggle {
+        margin-bottom: 0.8rem;
+    }
+
+    /* Campos de contraseña */
+    .password-fields {
+        gap: 0.8rem;
+    }
+
+    .password-fields .form-group {
+        margin-bottom: 0.8rem;
     }
 
     .password-fields .save-button {
         width: 100%;
         justify-content: center;
+        padding: 1rem;
+        border-radius: 8px;
+    }
+
+    /* Previsualización de temas */
+    .theme-preview {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .theme-box {
+        width: 120px;
+        height: 80px;
+    }
+
+    .theme-label {
+        font-size: 0.75rem;
+        padding: 3px;
+    }
+}
+
+/* Breakpoint para móviles pequeños */
+@media screen and (max-width: 480px) {
+    .profile-container {
+        padding: 0.25rem;
+    }
+
+    .profile-content {
+        margin: 0;
+    }
+
+    .profile-form {
+        padding: 0.75rem;
+    }
+
+    .settings-grid {
+        padding: 0.75rem;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .settings-item select {
+        padding: 0.7rem;
+        font-size: 16px;
+    }
+
+    .save-button {
+        padding: 0.9rem;
+        font-size: 0.95rem;
+    }
+
+    .profile-photo {
+        width: 100px;
+        height: 100px;
+    }
+
+    .change-photo-btn,
+    .remove-photo-btn {
+        padding: 0.7rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* Breakpoint para móviles muy pequeños */
+@media screen and (max-width: 360px) {
+    .profile-container {
+        padding: 0.15rem;
+    }
+
+    .profile-form {
+        padding: 0.5rem;
+    }
+
+    .settings-grid {
+        padding: 0.5rem;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .settings-item select {
+        padding: 0.6rem;
+    }
+
+    .save-button {
+        padding: 0.8rem;
+        font-size: 0.9rem;
+    }
+
+    .profile-photo {
+        width: 80px;
+        height: 80px;
+    }
+
+    .change-photo-btn,
+    .remove-photo-btn {
+        padding: 0.6rem;
+        font-size: 0.8rem;
+    }
+
+    /* Mejoras específicas para móviles muy pequeños */
+    .form-grid {
+        gap: 0.75rem;
+    }
+
+    .form-column {
+        margin-bottom: 1rem;
+    }
+
+    .form-column:first-child {
+        margin-bottom: 1.5rem;
+    }
+}
+
+/* Orientación landscape en móviles */
+@media screen and (max-width: 768px) and (orientation: landscape) {
+    .profile-container {
+        height: calc(100vh - 60px);
+        padding: 0.25rem;
+    }
+
+    .form-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.75rem;
+    }
+
+    .settings-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .profile-photo {
+        width: 80px;
+        height: 80px;
+    }
+
+    .photo-actions {
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+
+    .change-photo-btn,
+    .remove-photo-btn {
+        width: auto;
+        padding: 0.6rem 1rem;
+    }
+
+    /* Mejoras para landscape */
+    .form-column:first-child {
+        order: 0; /* Restaurar orden normal en landscape */
+        margin-bottom: 1rem;
+    }
+
+    .form-column {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Mejoras para tablets */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+    .profile-container {
+        padding: 1rem;
+    }
+
+    .form-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1.25rem;
+    }
+
+    .settings-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+    }
+
+    .profile-photo {
+        width: 130px;
+        height: 130px;
+    }
+}
+
+/* ====================================
+   MEJORAS DE ACCESIBILIDAD Y UX MOBILE
+   ==================================== */
+
+/* Indicadores visuales para campos requeridos */
+.form-group.required label::after {
+    content: ' *';
+    color: var(--globalColorBorderHover, #dc2626);
+    font-weight: bold;
+}
+
+/* Mejoras para campos de fecha en móviles */
+input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+}
+
+/* Mejoras para campos de teléfono */
+input[type="tel"] {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Mejoras para campos de email */
+input[type="email"] {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+/* Estados de focus mejorados para móviles */
+.form-group input:focus,
+.form-group textarea:focus,
+.settings-item select:focus {
+    transform: scale(1.02);
+    transition: all 0.2s ease;
+}
+
+/* Animaciones suaves para botones */
+.change-photo-btn,
+.remove-photo-btn,
+.save-button {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efectos de hover para dispositivos no táctiles */
+@media (hover: hover) {
+    .change-photo-btn:hover,
+    .remove-photo-btn:hover,
+    .save-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+}
+
+/* Efectos de active para dispositivos táctiles */
+.change-photo-btn:active,
+.remove-photo-btn:active,
+.save-button:active {
+    transform: translateY(0);
+    transition: transform 0.1s ease;
+}
+
+/* Mejoras para el scroll en dispositivos móviles */
+@media (max-width: 768px) {
+    .profile-container {
+        scroll-padding-top: 80px; /* Compensa el header sticky */
+    }
+    
+    /* Mejora la legibilidad en pantallas pequeñas */
+    .form-group label {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+    }
+    
+    /* Espaciado optimizado para móviles */
+    .form-group {
+        margin-bottom: 1.2rem;
+    }
+    
+    /* Mejora la visibilidad de los botones */
+    .save-button {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        font-weight: 600;
+    }
+
+    /* Mejoras específicas para la sección de información personal */
+    .profile-photo-section {
+        background-color: var(--managementColorBackgroundUser);
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid var(--managementFieldsBorder);
+    }
+
+    .profile-photo-container {
+        margin: 0.5rem 0;
+    }
+
+    .photo-actions {
+        margin-top: 0.75rem;
+    }
+
+    /* Mejora el espaciado entre campos */
+    .form-group + .form-group {
+        margin-top: 1rem;
     }
 }
 
