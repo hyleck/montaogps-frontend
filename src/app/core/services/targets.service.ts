@@ -159,6 +159,11 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
+  async transferTarget(targetId: string, targetUserId: string): Promise<any> {
+    const observable = this.http.patch(`${this.apiUrl}/${targetId}/transfer`, { targetUserId });
+    return await lastValueFrom(observable);
+  }
+
   /**
    * Actualiza los correos compartidos de un target
    * @param targetId ID del target

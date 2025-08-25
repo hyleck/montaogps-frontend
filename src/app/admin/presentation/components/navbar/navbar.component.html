@@ -423,6 +423,133 @@
     </ng-template>
 </p-dialog>
 
+<!-- Modal de transferir targets -->
+<p-dialog 
+    [(visible)]="transferDialogVisible" 
+    [header]="'Transferir Objetivos'" 
+    [modal]="true" 
+    [closable]="true"
+    [draggable]="false" 
+    [resizable]="false"
+    [style]="{width: '500px'}"
+    [baseZIndex]="999999"
+    [blockScroll]="true"
+    appendTo="body"
+    [dismissableMask]="false"
+    [closeOnEscape]="false">
+    
+    <ng-template pTemplate="header">
+        <div class="dialog-header">
+            <i class="pi pi-reply" style="margin-right: 8px; color: var(--globalColorAccent);"></i>
+            <span>Transferir Objetivos</span>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="content">
+        <div class="transfer-dialog-content">
+            <!-- Información de targets a transferir -->
+            <div class="targets-info">
+                <h4>
+                    <i class="pi pi-list"></i>
+                    Objetivos a transferir ({{ targetsToTransfer.length }})
+                </h4>
+                <div class="targets-list">
+                    <div *ngFor="let target of targetsToTransfer; let i = index" class="target-item">
+                        <div class="target-info">
+                            <i class="pi pi-map-marker"></i>
+                            <span class="target-name">{{ target.name }}</span>
+                            <span class="target-imei">IMEI: {{ target.imei }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buscar usuario por email -->
+            <div class="user-search-section">
+                <h4><i class="pi pi-search"></i> Buscar usuario destino</h4>
+                <div class="search-input-wrapper">
+                    <input 
+                        type="text" 
+                        [value]="transferEmailInput"
+                        (input)="onTransferEmailInputChange($event)"
+                        (keypress)="onTransferEmailInputKeypress($event)"
+                        (click)="onTransferEmailInputClick($event)"
+                        (focus)="onTransferEmailInputFocus($event)"
+                        placeholder="ejemplo@correo.com" 
+                        class="email-input" 
+                        [class.error]="transferEmailError"
+                        autocomplete="off"
+                        name="transferEmail"
+                        #transferEmailRef>
+                    <button 
+                        type="button" 
+                        class="search-btn" 
+                        (click)="searchUserForTransfer()"
+                        [disabled]="!transferEmailInput.trim() || searchingUser" 
+                        title="Buscar usuario">
+                        <i class="pi" [ngClass]="searchingUser ? 'pi-spin pi-spinner' : 'pi-search'"></i>
+                    </button>
+                </div>
+                <div *ngIf="transferEmailError" class="email-error">
+                    <i class="pi pi-exclamation-triangle"></i>
+                    <span>{{ transferEmailError }}</span>
+                </div>
+                <div class="search-instructions">
+                    <small>Ingrese el correo electrónico del usuario al que desea transferir los objetivos</small>
+                </div>
+            </div>
+
+            <!-- Usuario encontrado -->
+            <div *ngIf="foundUser" class="found-user-section">
+                <h4><i class="pi pi-user"></i> Usuario encontrado</h4>
+                <div class="user-card">
+                    <div class="user-avatar">
+                        <i class="pi pi-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name">{{ foundUser.name }} {{ foundUser.last_name }}</div>
+                        <div class="user-email">{{ foundUser.email }}</div>
+                        <div class="user-id">ID: {{ foundUser._id }}</div>
+                    </div>
+                    <div class="user-check">
+                        <i class="pi pi-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="footer">
+        <div class="modal-footer-content">
+            <!-- Indicador de transferencia -->
+            <div *ngIf="transferring" class="transferring-indicator">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Transfiriendo objetivos...</span>
+            </div>
+            
+            <!-- Botones -->
+            <div class="footer-buttons">
+                <button 
+                    type="button" 
+                    (click)="cancelTransferTargets()" 
+                    class="button button--secondary"
+                    [disabled]="transferring">
+                    <i class="pi pi-times" style="margin-right: 6px;"></i>
+                    Cancelar
+                </button>
+                <button 
+                    type="button" 
+                    (click)="confirmTransferTargets()" 
+                    class="button button--primary"
+                    [disabled]="!foundUser || transferring">
+                    <i class="pi pi-reply" style="margin-right: 6px;"></i>
+                    Transferir ({{ targetsToTransfer.length }})
+                </button>
+            </div>
+        </div>
+    </ng-template>
+</p-dialog>
+
 <!-- Modal de compartir targets -->
 <p-dialog 
     [(visible)]="shareDialogVisible" 

@@ -32,6 +32,10 @@ export class UserService {
     return this.http.get<User[]>(`${this.apiUrl}/search`, { params });
   }
 
+  getByEmail(email: string): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/by-email?email=${encodeURIComponent(email)}`);
+  }
+
   getById(id: string): Observable<User> {
     return this.http.get<User>(`${this.apiUrl}/${id}`);
   }

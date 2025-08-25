@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { ThemesService } from '../../../../shareds/services/themes.service';
 import { MenuItem, ConfirmationService, MessageService } from 'primeng/api';
 import { StatusService } from '../../../../shareds/services/status.service';
@@ -67,6 +67,18 @@ export class NavbarComponent implements OnInit, OnDestroy {
   emailInputError: string = '';
   loadingSharedEmails: boolean = false;
   autoSaving: boolean = false;
+
+  // Modal de transferir targets
+  transferDialogVisible: boolean = false;
+  transferEmailInput: string = '';
+  transferEmailError: string = '';
+  targetsToTransfer: Target[] = [];
+  foundUser: User | null = null;
+  searchingUser: boolean = false;
+  transferring: boolean = false;
+
+  // Referencias a elementos del DOM
+  @ViewChild('transferEmailRef') transferEmailRef!: ElementRef<HTMLInputElement>;
 
   // Mapeo de tipos de proceso a números
   private processTypeMap: { [key: string]: number } = {
@@ -265,25 +277,22 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Maneja la acción de transferir objetivos seleccionados
+   * Abre el modal de transferencia de targets
    */
   transferSelectedTargets() {
     const selectedTargets = this.selectionService.selectedTargetsValue;
-    console.log('🔄 Transfiriendo objetivos seleccionados:', selectedTargets);
-    console.log(`📊 Total de objetivos a transferir: ${selectedTargets.length}`);
+    this.targetsToTransfer = selectedTargets;
+    this.transferEmailInput = '';
+    this.transferEmailError = '';
+    this.foundUser = null;
+    this.searchingUser = false;
+    this.transferring = false;
+    this.transferDialogVisible = true;
     
-    // Aquí puedes implementar la lógica específica para transferir
-    // Por ejemplo: abrir un modal de selección de usuario destino, etc.
-    
-    // Por ahora, mostrar información en consola
-    selectedTargets.forEach((target, index) => {
-      console.log(`📱 Target ${index + 1} para transferir:`, {
-        id: target._id,
-        imei: target.device_imei,
-        nombre: target.name || 'Sin nombre',
-        usuario_actual: target.parent_id || 'No definido'
-      });
-    });
+    // Enfocar el input después de que el modal se abra
+    setTimeout(() => {
+      this.focusTransferEmailInput();
+    }, 300);
   }
 
   /**
@@ -485,6 +494,167 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.emailInputError = '';
     this.loadingSharedEmails = false;
     this.autoSaving = false;
+  }
+
+  /**
+   * Busca un usuario por email para transferencia
+   */
+  async searchUserForTransfer() {
+    const email = this.transferEmailInput.trim();
+    
+    // Limpiar error previo
+    this.transferEmailError = '';
+    this.foundUser = null;
+    
+    // Validaciones
+    if (!email) {
+      this.transferEmailError = 'El correo electrónico es requerido';
+      return;
+    }
+    
+    if (!this.isValidEmail(email)) {
+      this.transferEmailError = 'Por favor ingrese un correo electrónico válido';
+      return;
+    }
+    
+    try {
+      this.searchingUser = true;
+      
+      // Buscar usuario por email usando endpoint específico
+      const user = await this.userService.getByEmail(email).toPromise();
+      
+      if (!user) {
+        this.transferEmailError = 'No se encontró ningún usuario con ese correo electrónico';
+        return;
+      }
+      
+      this.foundUser = user;
+      
+    } catch (error: any) {
+      console.error('❌ Error al buscar usuario:', error);
+      
+      // Manejar diferentes tipos de error
+      if (error.status === 404) {
+        this.transferEmailError = 'No se encontró ningún usuario con ese correo electrónico';
+      } else if (error.status === 400) {
+        this.transferEmailError = 'Formato de correo electrónico inválido';
+      } else {
+        this.transferEmailError = 'Error al buscar el usuario. Intente nuevamente.';
+      }
+    } finally {
+      this.searchingUser = false;
+    }
+  }
+
+  /**
+   * Confirma la transferencia de targets al usuario encontrado
+   */
+  async confirmTransferTargets() {
+    if (!this.foundUser) {
+      this.transferEmailError = 'Debe buscar y seleccionar un usuario primero';
+      return;
+    }
+
+    try {
+      this.transferring = true;
+      
+      console.log('🔄 Transfiriendo targets:', {
+        targets: this.targetsToTransfer.map(t => t._id),
+        targetUserId: this.foundUser._id,
+        targetUserEmail: this.foundUser.email
+      });
+
+      // Transferir cada target
+      for (const target of this.targetsToTransfer) {
+        await this.targetsService.transferTarget(target._id!, this.foundUser._id);
+      }
+
+      // Mostrar mensaje de éxito
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Transferencia Exitosa',
+        detail: `${this.targetsToTransfer.length} objetivo(s) transferido(s) a ${this.foundUser.name} ${this.foundUser.last_name}`
+      });
+
+      // Cerrar modal y limpiar selección
+      this.transferDialogVisible = false;
+      this.selectionService.clearSelection();
+
+      // Notificar que los targets han sido actualizados para recargar en management
+      this.selectionService.notifyTargetsUpdated();
+
+      console.log('✅ Transferencia completada exitosamente');
+
+    } catch (error: any) {
+      console.error('❌ Error al transferir targets:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error en Transferencia',
+        detail: error.message || 'No se pudieron transferir los objetivos'
+      });
+    } finally {
+      this.transferring = false;
+    }
+  }
+
+  /**
+   * Cancela la acción de transferir
+   */
+  cancelTransferTargets() {
+    this.transferDialogVisible = false;
+    this.targetsToTransfer = [];
+    this.transferEmailInput = '';
+    this.transferEmailError = '';
+    this.foundUser = null;
+    this.searchingUser = false;
+    this.transferring = false;
+  }
+
+  /**
+   * Manejo de eventos del input de email de transferencia
+   */
+  onTransferEmailInputChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.transferEmailInput = target.value;
+  }
+
+  onTransferEmailInputKeypress(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      this.searchUserForTransfer();
+    }
+  }
+
+  onTransferEmailInputClick(event: Event) {
+    event.stopPropagation();
+    
+    // Asegurar focus
+    const target = event.target as HTMLInputElement;
+    target.focus();
+  }
+
+  onTransferEmailInputFocus(event: Event) {
+    // Posicionar cursor al final del texto
+    const target = event.target as HTMLInputElement;
+    target.setSelectionRange(target.value.length, target.value.length);
+  }
+
+  /**
+   * Enfoca el input de email de transferencia
+   */
+  focusTransferEmailInput() {
+    try {
+      if (this.transferEmailRef && this.transferEmailRef.nativeElement) {
+        const input = this.transferEmailRef.nativeElement;
+        
+        // Asegurar que el input esté habilitado y enfocado
+        input.disabled = false;
+        input.readOnly = false;
+        input.focus();
+        input.click();
+      }
+    } catch (error) {
+      console.error('Error al enfocar input de transferencia:', error);
+    }
   }
 
   /**

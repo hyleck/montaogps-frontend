@@ -989,6 +989,9 @@ body .p-dialog-mask {
   background: var(--globalColorBackground);
   color: var(--managementColorTitle);
   transition: border-color 0.2s ease;
+  pointer-events: auto !important;
+  user-select: text !important;
+  cursor: text !important;
 }
 
 .email-input:focus {
@@ -1307,6 +1310,198 @@ body .p-dialog-mask {
 }
 
 /* Footer del modal con auto-guardado */
+/* Modal de transferencia */
+.transfer-dialog-content {
+  padding: 1rem 0;
+  position: relative;
+  z-index: 10001;
+}
+
+.targets-info {
+  margin-bottom: 1.5rem;
+}
+
+.targets-info h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--managementColorTitle);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.targets-list {
+  background: var(--managementColorBackground);
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.target-item {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--managementColorBorderInput);
+}
+
+.target-item:last-child {
+  border-bottom: none;
+}
+
+.target-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.target-info i {
+  color: var(--globalColorAccent);
+  font-size: 0.9rem;
+}
+
+.target-name {
+  font-weight: 600;
+  color: var(--managementColorTitle);
+}
+
+.target-imei {
+  font-size: 0.85rem;
+  color: var(--managementColorSubtitle);
+}
+
+.user-search-section {
+  margin-bottom: 1.5rem;
+}
+
+.user-search-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--managementColorTitle);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search-input-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 10002;
+}
+
+.search-btn {
+  padding: 0.75rem;
+  background: var(--globalColorAccent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 45px;
+}
+
+.search-btn:hover:not(:disabled) {
+  background: var(--globalColorAccentHover);
+  transform: translateY(-1px);
+}
+
+.search-btn:disabled {
+  background: var(--managementColorBorderInput);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.search-instructions {
+  color: var(--managementColorSubtitle);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.found-user-section {
+  margin-bottom: 1rem;
+}
+
+.found-user-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--managementColorTitle);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(34, 197, 94, 0.05);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 8px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background: var(--globalColorAccent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  color: var(--managementColorTitle);
+  font-size: 1rem;
+}
+
+.user-email {
+  color: var(--managementColorSubtitle);
+  font-size: 0.9rem;
+}
+
+.user-id {
+  color: var(--managementColorSubtitle);
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+.user-check {
+  color: #22c55e;
+  font-size: 1.5rem;
+}
+
+.transferring-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--globalColorAccent);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.transferring-indicator i {
+  font-size: 1rem;
+}
+
+.footer-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
 .modal-footer-content {
   display: flex;
   align-items: center;
