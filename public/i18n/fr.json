@@ -40,7 +40,10 @@
       "fr": "Français"
     },
     "common": {
-      "parked": "Stationné"
+      "parked": "Stationné",
+      "loading": "Chargement",
+      "canceled": "Annulé",
+      "close": "Fermer"
     },
     "breadcrumb": {
       "dashboard": {
@@ -74,9 +77,27 @@
     "navbar": {
       "scheduleProcess": "Planifier le processus",
       "canceled": "Annulés",
-      "transfer": "Transférer",
-      "share": "Partager",
-      "myProfile": "Mon Profil",
+              "transfer": "Transférer",
+        "share": "Partager",
+        "canceledTooltip": "Voir les cibles annulées",
+        "canceledTargets": "Cibles Annulées",
+        "noCanceledTargets": "Aucune cible annulée",
+        "noCanceledTargetsMessage": "Aucune cible annulée trouvée pour cet utilisateur",
+        "searchCanceledTargets": "Rechercher des cibles annulées...",
+        "clearSearch": "Effacer la recherche",
+        "noSearchResults": "Aucun résultat",
+        "noSearchResultsMessage": "Aucune cible annulée trouvée correspondant à '{{term}}'",
+        "viewDetails": "Voir les détails",
+        "targetDetails": "Détails de la Cible",
+        "basicInformation": "Informations de Base",
+        "technicalInformation": "Informations Techniques",
+        "vehicleInformation": "Informations du Véhicule",
+        "processHistory": "Historique des Processus",
+        "lastChangeDate": "Date de Dernière Modification",
+        "createdAt": "Date de Création",
+        "processType": "Type",
+        "noProcesses": "Aucun processus enregistré pour cette cible",
+        "myProfile": "Mon Profil",
       "logout": "Déconnexion"
     },
     "sidebar": {
@@ -920,6 +941,18 @@
       "confirmDeleteTarget": "Êtes-vous sûr de vouloir supprimer cet objectif ?",
       "targetDeleted": "L'objectif a été supprimé avec succès",
       "errorDeleteTarget": "Impossible de supprimer l'objectif",
+      "cancelTarget": "Annuler l'Objectif",
+      "cancelTargetInfo": "Informations de l'objectif à annuler:",
+      "cancelReason": "Raison d'annulation",
+      "selectCancelReason": "Sélectionner une raison",
+      "cancelDescription": "Description détaillée",
+      "cancelDescriptionPlaceholder": "Décrivez la raison de l'annulation...",
+      "confirmCancelTarget": "Confirmer l'Annulation",
+      "targetCanceled": "Objectif annulé",
+      "targetCanceledDetail": "L'objectif a été annulé avec succès",
+      "errorCancelTarget": "Impossible d'annuler l'objectif",
+      "cancelTargetValidation": "Vous devez sélectionner une raison et fournir une description",
+      "validationError": "Erreur de validation",
       "error": "Erreur",
       "status": {
         "online": "En ligne",
@@ -1085,6 +1118,7 @@
         "selectProcessType": "Sélectionner un type de processus",
         "selectTechnician": "Sélectionner un technicien",
         "selectGpsModel": "Sélectionnez un modèle GPS",
+        "confirmDeleteHeader": "Confirmer la Suppression",
         "yes": "Oui",
         "no": "Non",
         "status": "Statut",

@@ -38,7 +38,10 @@
       "fr": "French"
     },
     "common": {
-      "parked": "Parked"
+      "parked": "Parked",
+      "loading": "Loading",
+      "canceled": "Canceled",
+      "close": "Close"
     },
     "breadcrumb": {
       "dashboard": {
@@ -74,6 +77,24 @@
         "canceled": "Canceled",
         "transfer": "Transfer",
         "share": "Share",
+        "canceledTooltip": "View canceled targets",
+        "canceledTargets": "Canceled Targets",
+        "noCanceledTargets": "No canceled targets",
+        "noCanceledTargetsMessage": "No canceled targets found for this user",
+        "searchCanceledTargets": "Search canceled targets...",
+        "clearSearch": "Clear search",
+        "noSearchResults": "No results",
+        "noSearchResultsMessage": "No canceled targets found matching '{{term}}'",
+        "viewDetails": "View details",
+        "targetDetails": "Target Details",
+        "basicInformation": "Basic Information",
+        "technicalInformation": "Technical Information",
+        "vehicleInformation": "Vehicle Information",
+        "processHistory": "Process History",
+        "lastChangeDate": "Last Change Date",
+        "createdAt": "Created At",
+        "processType": "Type",
+        "noProcesses": "No processes recorded for this target",
         "myProfile": "My Profile",
         "logout": "Logout"
     },
@@ -905,6 +926,18 @@
       "confirmDeleteTarget": "Are you sure you want to delete this target?",
       "targetDeleted": "The target has been successfully deleted",
       "errorDeleteTarget": "Could not delete target",
+      "cancelTarget": "Cancel Target",
+      "cancelTargetInfo": "Information of target to cancel:",
+      "cancelReason": "Cancellation reason",
+      "selectCancelReason": "Select a reason",
+      "cancelDescription": "Detailed description",
+      "cancelDescriptionPlaceholder": "Describe the reason for cancellation...",
+      "confirmCancelTarget": "Confirm Cancellation",
+      "targetCanceled": "Target canceled",
+      "targetCanceledDetail": "The target has been canceled successfully",
+      "errorCancelTarget": "Could not cancel target",
+      "cancelTargetValidation": "You must select a reason and provide a description",
+      "validationError": "Validation error",
       "error": "Error",
       "status": {
         "online": "Online",
@@ -957,6 +990,7 @@
         "selectProcessType": "Select a process type",
         "selectTechnician": "Select a technician",
         "selectGpsModel": "Select a GPS model",
+        "confirmDeleteHeader": "Confirm Deletion",
         "yes": "Yes",
         "no": "No",
         "typeCar": "Car",

@@ -37,6 +37,16 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
+  async cancelTarget(id: string, cancelData: { reason: string; description: string }): Promise<any> {
+    const observable = this.http.patch(`${this.apiUrl}/${id}/cancel`, cancelData);
+    return await lastValueFrom(observable);
+  }
+
+  async restoreTarget(id: string): Promise<any> {
+    const observable = this.http.patch(`${this.apiUrl}/${id}/restore`, {});
+    return await lastValueFrom(observable);
+  }
+
   async searchTargets(query: string, parentId?: string): Promise<Target[]> {
     let params: any = { q: query };
     
@@ -120,6 +130,37 @@ export class TargetsService {
   async getProcessesByReference(reference: string): Promise<ProcessResponse[]> {
     const url = `${environment.apiUrl}/process/by-reference/${reference}`;
     const observable = this.http.get<ProcessResponse[]>(url);
+    return await lastValueFrom(observable);
+  }
+
+  async getCanceledTargets(parentId: string): Promise<Target[]> {
+    const url = `${this.apiUrl}/canceled?parent=${parentId}`;
+    const observable = this.http.get<Target[]>(url);
+    return await lastValueFrom(observable);
+  }
+
+  async searchCanceledTargets(parentId: string, searchTerm: string): Promise<Target[]> {
+    const url = `${this.apiUrl}/canceled/search?parent=${parentId}&q=${encodeURIComponent(searchTerm)}`;
+    const observable = this.http.get<Target[]>(url);
+    return await lastValueFrom(observable);
+  }
+
+  /**
+   * Obtiene los correos compartidos de un target específico
+   * @param targetId ID del target
+   */
+  async getSharedEmails(targetId: string): Promise<{deviceId: string, deviceName: string, shared: string[]}> {
+    const observable = this.http.get<{deviceId: string, deviceName: string, shared: string[]}>(`${this.apiUrl}/${targetId}/shared`);
+    return await lastValueFrom(observable);
+  }
+
+  /**
+   * Actualiza los correos compartidos de un target
+   * @param targetId ID del target
+   * @param sharedEmails Array de correos electrónicos compartidos
+   */
+  async updateSharedUsers(targetId: string, sharedEmails: string[]): Promise<any> {
+    const observable = this.http.patch(`${this.apiUrl}/${targetId}/shared`, { shared: sharedEmails });
     return await lastValueFrom(observable);
   }
 } 

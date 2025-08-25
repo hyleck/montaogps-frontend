@@ -1447,3 +1447,224 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   z-index: 2;
 }
 
+/* =====================================
+   MODAL DE CANCELACIÓN - Diseño mejorado
+   ===================================== */
+
+/* Estilos del header del dialog */
+:host ::ng-deep .cancel-target-dialog .p-dialog-header {
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  border-bottom: 1px solid var(--globalColorBorderLight);
+  background-color: var(--globalColorCardBackground);
+}
+
+:host ::ng-deep .cancel-target-dialog .p-dialog-header .p-dialog-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--globalColorTextDark);
+}
+
+:host ::ng-deep .cancel-target-dialog .p-dialog-content {
+  padding: 1.5rem;
+  background-color: var(--globalColorCardBackground);
+}
+
+:host ::ng-deep .cancel-target-dialog .p-dialog-footer {
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--globalColorBorderLight);
+  background-color: var(--globalColorCardBackground);
+}
+
+/* Contenido del formulario usando misma estructura que target-form */
+:host ::ng-deep .cancel-target-dialog .cancel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+/* Información del target con estilo más neutro */
+:host ::ng-deep .cancel-target-dialog .target-info {
+  background-color: var(--managementColorInputSearch);
+  border-left: 4px solid var(--managementColorBorderInput);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+:host ::ng-deep .cancel-target-dialog .target-info h4 {
+  margin: 0 0 10px 0;
+  color: var(--globalColorTextDark);
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+:host ::ng-deep .cancel-target-dialog .target-info h4 i {
+  color: var(--managementColorTextUser);
+  margin-right: 8px;
+  font-size: 16px;
+  opacity: 0.7;
+}
+
+:host ::ng-deep .cancel-target-dialog .target-info p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: var(--globalColorTextDark);
+  line-height: 1.4;
+}
+
+:host ::ng-deep .cancel-target-dialog .target-info p strong {
+  color: var(--globalColorTextDark);
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+/* Grupos de formulario usando la misma estructura que target-form */
+:host ::ng-deep .cancel-target-dialog .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.8rem;
+}
+
+:host ::ng-deep .cancel-target-dialog .form-group label {
+  color: var(--managementColorTextUser);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+/* Select con altura compacta como un input normal */
+:host ::ng-deep .cancel-target-dialog select.form-select,
+:host ::ng-deep .p-dialog.cancel-target-dialog select.form-select,
+:host ::ng-deep .cancel-target-dialog .form-select,
+:host ::ng-deep .p-dialog.cancel-target-dialog .form-select {
+  background-color: var(--managementColorInputSearch) !important;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 0.25rem 0.4rem !important;
+  color: var(--managementColorTextUser) !important;
+  transition: all 0.3s ease !important;
+  width: 100% !important;
+  font-size: 0.8rem !important;
+  font-family: inherit !important;
+  height: 28px !important;
+  max-height: 28px !important;
+  min-height: 28px !important;
+  box-sizing: border-box !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
+}
+
+/* Textarea con altura mayor */
+:host ::ng-deep .cancel-target-dialog .form-control,
+:host ::ng-deep .p-dialog.cancel-target-dialog .form-control {
+  background-color: var(--managementColorInputSearch) !important;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 0.4rem 0.5rem !important;
+  color: var(--managementColorTextUser) !important;
+  transition: all 0.3s ease !important;
+  width: 100% !important;
+  font-size: 0.9rem !important;
+  font-family: inherit !important;
+  box-sizing: border-box !important;
+}
+
+:host ::ng-deep .cancel-target-dialog .form-control,
+:host ::ng-deep .p-dialog.cancel-target-dialog .form-control {
+  height: 90px !important;
+  min-height: 90px !important;
+  max-height: 90px !important;
+  resize: none !important;
+}
+
+:host ::ng-deep .cancel-target-dialog .form-select:focus,
+:host ::ng-deep .cancel-target-dialog select.form-select:focus,
+:host ::ng-deep .cancel-target-dialog .form-control:focus {
+  border-color: var(--managementColorBorderInput) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent) !important;
+}
+
+:host ::ng-deep .cancel-target-dialog .form-control::placeholder {
+  color: var(--managementColorTextUser) !important;
+  opacity: 0.6 !important;
+}
+
+/* Contador de caracteres */
+:host ::ng-deep .cancel-target-dialog .form-group small {
+  color: var(--globalColorTextMuted);
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+  text-align: right;
+}
+
+/* Botones con estilo consistente */
+.cancel-target-dialog .dialog-footer .button {
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.cancel-target-dialog .button--secondary {
+  background: var(--globalColorCardBackground);
+  color: var(--globalColorTextDark);
+  border: 1px solid var(--globalColorBorderInput);
+}
+
+.cancel-target-dialog .button--secondary:hover {
+  background: var(--globalColorBackgroundLight);
+  border-color: var(--globalColorBorderHover);
+}
+
+.cancel-target-dialog .button--danger {
+  background: var(--globalColorAccent);
+  color: var(--globalColorTextStrong);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.cancel-target-dialog .button--danger:hover:not(:disabled) {
+  background: var(--globalColorButtonBackground);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.cancel-target-dialog .button--danger:disabled {
+  background: var(--globalColorTextMuted);
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  :host ::ng-deep .cancel-target-dialog .p-dialog {
+    width: 95% !important;
+    margin: 0 auto;
+  }
+  
+  :host ::ng-deep .cancel-target-dialog .p-dialog-content {
+    padding: 1rem;
+  }
+  
+  .cancel-target-dialog .dialog-footer .button {
+    padding: 10px 16px;
+    font-size: 13px;
+    min-width: 80px;
+  }
+}
+

@@ -168,7 +168,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         'imei_change': 12, // Modificar IMEI / GPS ID
         'sim_change': 13, // Cambio de SIM card
         'sim_number_change': 14, // Modificar número de SIM card
-        'sim_type_change': 15 // Modificar tipo de SIM card
+        'sim_type_change': 15, // Modificar tipo de SIM card
+        'restoration': 16 // Restauración de target cancelado
     };
 
     // Lista de procesos del target actual
@@ -3610,7 +3611,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             12: 'IMEI / GPS ID',
             13: 'SIM card',
             14: 'Número de SIM',
-            15: 'Tipo de SIM'
+            15: 'Tipo de SIM',
+            16: 'Restauración'
         };
         return typeNames[type] || `Proceso desconocido`;
     }

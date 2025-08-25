@@ -195,3 +195,13 @@ body .p-toast .p-toast-close-button::before {
 .gm-style-iw-d{
   overflow: hidden!important;
 }
+
+
+.woot-widget-bubble{
+  display: flex!important;
+  position: absolute;
+  top: 0px;
+  margin-right: 30px;
+   right: 100px;
+   transform: scale(0.7)!important;
+ }

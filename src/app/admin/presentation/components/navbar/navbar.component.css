@@ -133,3 +133,1239 @@
   }
 }
 
+/* ====================================
+   ESTILOS PARA SELECCIÓN DE TARGETS
+   ==================================== */
+
+/* Badge que muestra el número de targets seleccionados */
+.selection-badge {
+    background-color: var(--globalColorPrimaryInmutable, #dc2626);
+    color: white;
+    border-radius: 10px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    min-width: 20px;
+    text-align: center;
+    display: inline-block;
+    line-height: 1.2;
+    vertical-align: middle;
+}
+
+/* Estilos mejorados para botones activos */
+.button:not(.button--disabled):hover .selection-badge {
+    background-color: var(--globalColorBorderHover, #991b1b);
+    transform: scale(1.05);
+    transition: all 0.2s ease;
+}
+
+/* Estilos para botones deshabilitados */
+.button--disabled .selection-badge {
+    background-color: var(--globalColorTextMuted, #9ca3af);
+}
+
+/* Animación para el badge cuando aparece */
+.selection-badge {
+    animation: badgeAppear 0.3s ease-out;
+}
+
+@keyframes badgeAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Responsive para móviles */
+@media (max-width: 768px) {
+    .selection-badge {
+        font-size: 0.7rem;
+        padding: 1px 4px;
+        margin-left: 0.3rem;
+    }
+}
+
+/* Estilos para el drawer de targets cancelados */
+:host ::ng-deep .canceled-targets-drawer {
+  background-color: var(--globalColorBackgroundMain) !important;
+}
+
+:host ::ng-deep .canceled-targets-drawer .p-drawer-header {
+  background-color: var(--managementColorBackground) !important;
+  border-bottom: 1px solid var(--managementColorBorderInput) !important;
+  color: var(--managementColorTextUser) !important;
+}
+
+:host ::ng-deep .canceled-targets-drawer .p-drawer-content {
+  background-color: var(--globalColorBackgroundMain) !important;
+  padding: 1.5rem !important;
+}
+
+.canceled-targets-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+/* Estilos para la sección de búsqueda */
+.search-section {
+  margin-bottom: 1rem;
+}
+
+.search-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--managementColorTextUser);
+  opacity: 0.6;
+  z-index: 1;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 6px;
+  background-color: var(--managementColorInputSearch);
+  color: var(--managementColorTextUser);
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--globalColorInputBorderAccent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.search-input::placeholder {
+  color: var(--managementColorTextUser);
+  opacity: 0.6;
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--managementColorTextUser);
+  opacity: 0.6;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.clear-search-btn:hover {
+  opacity: 1;
+  background-color: var(--managementColorBorderInput);
+}
+
+.search-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: var(--managementColorTextUser);
+  opacity: 0.7;
+  font-size: 0.85rem;
+}
+
+.search-loading i {
+  color: var(--globalColorAccent);
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--managementColorTextUser);
+}
+
+.loading-state p {
+  margin-top: 1rem;
+  font-size: 1rem;
+  opacity: 0.7;
+}
+
+.targets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.target-card {
+  background-color: var(--managementColorBackground);
+  border-radius: 8px;
+  padding: 1.25rem;
+  border: 1px solid var(--managementColorBorderInput);
+  transition: all 0.3s ease;
+}
+
+.target-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.target-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.target-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.target-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.restore-btn,
+.details-btn {
+  background: none;
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 6px;
+  padding: 0.5rem;
+  color: var(--managementColorTextUser);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+}
+
+.restore-btn {
+  border-color: var(--globalColorAccent);
+  color: var(--globalColorAccent);
+}
+
+.restore-btn:hover {
+  background-color: var(--globalColorAccent);
+  color: white;
+  transform: translateY(-1px);
+}
+
+.details-btn:hover {
+  background-color: var(--managementColorInputSearch);
+  border-color: var(--globalColorInputBorderAccent);
+  transform: translateY(-1px);
+}
+
+.restore-btn i,
+.details-btn i {
+  font-size: 1rem;
+}
+
+.target-header h4 {
+  margin: 0;
+  color: var(--managementColorTextUser);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.canceled-badge {
+  background-color: var(--globalColorAccent);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.target-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.target-details p {
+  margin: 0;
+  color: var(--managementColorTextUser);
+  font-size: 0.9rem;
+}
+
+.target-details strong {
+  color: var(--managementColorTextUser);
+  opacity: 0.8;
+  margin-right: 0.5rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--managementColorTextUser);
+}
+
+.empty-state h3 {
+  margin: 1rem 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.7;
+  line-height: 1.5;
+}
+
+/* Estilos para el modal de detalles del target */
+:host ::ng-deep .target-details-dialog {
+  background-color: var(--globalColorBackgroundMain) !important;
+}
+
+
+
+/* Fallback global para cualquier modal mask */
+body .p-dialog-mask {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  z-index: 1100 !important;
+}
+
+:host ::ng-deep .target-details-dialog .p-dialog,
+::ng-deep .target-details-dialog .p-dialog {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  z-index: 1101 !important;
+  position: relative !important;
+  margin: auto !important;
+}
+
+:host ::ng-deep .target-details-dialog .p-dialog-header {
+  background-color: var(--managementColorBackground) !important;
+  border-bottom: 1px solid var(--managementColorBorderInput) !important;
+  color: var(--managementColorTextUser) !important;
+}
+
+:host ::ng-deep .target-details-dialog .p-dialog-content {
+  background-color: var(--globalColorBackgroundMain) !important;
+  padding: 1.5rem !important;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+:host ::ng-deep .target-details-dialog .p-dialog-footer {
+  background-color: var(--managementColorBackground) !important;
+  border-top: 1px solid var(--managementColorBorderInput) !important;
+  padding: 1rem 1.5rem !important;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.dialog-header i {
+  color: var(--managementColorTextUser);
+  opacity: 0.8;
+}
+
+.target-details-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Header simple */
+.simple-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--managementColorBorderInput);
+}
+
+.target-name {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--managementColorTextUser);
+  margin: 0;
+}
+
+.target-status {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.status-simple {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--managementColorBackground);
+  border: 1px solid var(--managementColorBorderInput);
+  color: var(--managementColorTextSecondary);
+}
+
+.status-simple.canceled {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.status-simple.online {
+  background: #f0fdf4;
+  color: #16a34a;
+  border-color: #bbf7d0;
+}
+
+/* Layout de dos columnas */
+.two-column-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.column-left,
+.column-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Lista simple */
+.simple-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.info-group {
+  background: var(--managementColorBackground);
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.info-group h4 {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--managementColorTextSecondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--managementColorBorderInput);
+}
+
+.field {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.4rem 0;
+  gap: 1rem;
+}
+
+.field:not(:last-child) {
+  border-bottom: 1px solid var(--managementColorBorderInput);
+}
+
+.field-label {
+  font-size: 0.8rem;
+  color: var(--managementColorTextSecondary);
+  font-weight: 500;
+  min-width: 35%;
+  flex-shrink: 0;
+}
+
+.field-value {
+  color: var(--managementColorTextUser);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: right;
+  word-break: break-word;
+}
+
+.field-value.plan-value {
+  color: var(--globalColorAccent);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.target-info-section {
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 8px;
+  padding: 1.5rem;
+  background-color: var(--managementColorBackground);
+}
+
+.target-info-section h3 {
+  margin: 0 0 1rem 0;
+  color: var(--managementColorTextUser);
+  font-size: 1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--managementColorBorderInput);
+}
+
+.target-info-section h3 i {
+  color: var(--globalColorAccent);
+  opacity: 0.8;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.info-item label {
+  font-weight: 600;
+  color: var(--managementColorTextUser);
+  opacity: 0.8;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-item span {
+  color: var(--managementColorTextUser);
+  font-size: 0.95rem;
+  padding: 0.25rem 0;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: inline-block;
+  max-width: fit-content;
+}
+
+.status-badge.canceled {
+  background-color: var(--globalColorAccent);
+  color: white;
+}
+
+.status-badge.online {
+  background-color: #10b981;
+  color: white;
+}
+
+/* Estilos para la sección de procesos */
+.processes-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  justify-content: center;
+  color: var(--managementColorTextUser);
+  opacity: 0.7;
+}
+
+.processes-loading i {
+  color: var(--globalColorAccent);
+}
+
+.processes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.process-item {
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 6px;
+  padding: 1rem;
+  background-color: var(--managementColorInputSearch);
+  transition: all 0.3s ease;
+}
+
+.process-item:hover {
+  background-color: var(--managementColorBackground);
+  border-color: var(--globalColorInputBorderAccent);
+}
+
+.process-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.process-info h4 {
+  margin: 0 0 0.25rem 0;
+  color: var(--managementColorTextUser);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.process-date {
+  color: var(--managementColorTextUser);
+  opacity: 0.7;
+  font-size: 0.8rem;
+}
+
+.process-type {
+  background-color: var(--globalColorAccent);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.process-details p {
+  margin: 0.5rem 0 0 0;
+  color: var(--managementColorTextUser);
+  opacity: 0.9;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.process-user {
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--managementColorBorderInput);
+}
+
+.process-user small {
+  color: var(--managementColorTextUser);
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.no-processes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--managementColorTextUser);
+  opacity: 0.7;
+}
+
+.no-processes i {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+}
+
+.no-processes p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Responsive para el modal */
+@media (max-width: 768px) {
+  :host ::ng-deep .target-details-dialog {
+    width: 95vw !important;
+    max-width: none !important;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .simple-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+  }
+  
+  .target-name {
+    font-size: 1.2rem;
+  }
+  
+  .target-status {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .field {
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
+  }
+  
+  .field-label {
+    min-width: auto;
+    font-size: 0.75rem;
+  }
+  
+  .field-value {
+    text-align: left;
+    font-size: 0.8rem;
+  }
+  
+  .info-group {
+    padding: 0.75rem;
+  }
+  
+  .simple-list {
+    gap: 1rem;
+  }
+  
+  .two-column-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .process-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .target-info-section {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .simple-header {
+    padding: 0.5rem 0;
+  }
+  
+  .target-name {
+    font-size: 1.1rem;
+  }
+  
+  .status-simple {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.4rem;
+  }
+  
+  .info-group h4 {
+    font-size: 0.85rem;
+  }
+  
+  .field-label {
+    font-size: 0.7rem;
+  }
+  
+  .field-value {
+    font-size: 0.75rem;
+  }
+}
+
+/* ====================================
+   MODAL DE COMPARTIR TARGETS
+   ==================================== */
+
+.share-dialog-content {
+  padding: 1rem 0;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.targets-info {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--managementColorBorderInput);
+}
+
+.targets-info h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--managementColorTitle);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.targets-list-compact {
+  background: var(--managementColorBackground);
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 4px;
+  padding: 0.75rem;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.target-item-compact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--managementColorBorderInput);
+}
+
+.target-item-compact:last-child {
+  border-bottom: none;
+}
+
+.target-item-compact strong {
+  color: var(--managementColorTitle);
+  font-size: 0.9rem;
+}
+
+.target-item-compact span {
+  color: var(--managementColorTextSecondary);
+  font-size: 0.8rem;
+}
+
+/* Sección de input de emails */
+.email-input-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--managementColorBorderInput);
+}
+
+.email-input-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--managementColorTitle);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.email-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.email-input-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.email-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: var(--globalColorBackground);
+  color: var(--managementColorTitle);
+  transition: border-color 0.2s ease;
+}
+
+.email-input:focus {
+  outline: none;
+  border-color: var(--globalColorAccent);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.email-input.error {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.1);
+}
+
+.add-email-btn {
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 4px;
+  background: var(--globalColorAccent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.add-email-btn:hover:not(:disabled) {
+  background: var(--globalColorAccentDark);
+  transform: translateY(-1px);
+}
+
+.add-email-btn:disabled {
+  background: var(--managementColorTextSecondary);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.email-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #dc3545;
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  background: rgba(220, 53, 69, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(220, 53, 69, 0.2);
+}
+
+.email-instructions {
+  color: var(--managementColorTextSecondary);
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  justify-content: center;
+  color: var(--managementColorTextSecondary);
+  background: var(--managementColorBackground);
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+.search-results {
+  margin-top: 1rem;
+}
+
+.results-count {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  color: var(--managementColorTextSecondary);
+  font-weight: 500;
+}
+
+.users-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 4px;
+  padding: 0.75rem;
+  background: var(--managementColorBackground);
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 4px;
+  background: var(--globalColorBackground);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.user-item:hover {
+  border-color: var(--globalColorAccent);
+  background: var(--managementColorBackgroundHover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.user-info strong {
+  color: var(--managementColorTitle);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.user-info small {
+  color: var(--managementColorTextSecondary);
+  font-size: 0.8rem;
+}
+
+.add-user-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: var(--globalColorAccent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.add-user-btn:hover {
+  background: var(--globalColorAccentDark);
+  transform: scale(1.1);
+}
+
+.no-results, .search-instructions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  color: var(--managementColorTextSecondary);
+  background: var(--managementColorBackground);
+  border-radius: 4px;
+  margin-top: 1rem;
+}
+
+/* Estado de carga de emails compartidos */
+.loading-shared-emails {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  justify-content: center;
+  color: var(--globalColorAccent);
+  background: var(--managementColorBackground);
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 4px;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.loading-shared-emails i {
+  font-size: 1.1rem;
+}
+
+/* Sección de emails seleccionados */
+.selected-emails-section {
+  margin-top: 1.5rem;
+}
+
+.selected-emails-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--managementColorTitle);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.saving-dot {
+  color: var(--globalColorAccent);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.selected-emails-list {
+  background: var(--managementColorBackground);
+  border: 1px solid var(--managementColorBorderInput);
+  border-radius: 4px;
+  padding: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.email-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border: 1px solid var(--globalColorAccent);
+  border-radius: 4px;
+  background: var(--globalColorBackground);
+  transition: all 0.2s ease;
+}
+
+.email-item:hover {
+  background: var(--managementColorBackgroundHover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.email-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.email-content i {
+  color: var(--globalColorAccent);
+  font-size: 1rem;
+}
+
+.email-content span {
+  color: var(--managementColorTitle);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.remove-email-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #dc3545;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.remove-email-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+.email-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--managementColorBorderInput);
+}
+
+/* Estado vacío */
+.empty-emails-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--managementColorTextSecondary);
+  background: var(--managementColorBackground);
+  border-radius: 4px;
+  margin-top: 1rem;
+}
+
+.empty-emails-state p {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.empty-emails-state small {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.button--small {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+}
+
+/* Footer del modal con auto-guardado */
+.modal-footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.auto-saving-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--globalColorAccent);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.auto-saving-indicator i {
+  font-size: 1rem;
+}
+
+/* Estilos para checkboxes de PrimeNG en el modal */
+:host ::ng-deep .share-dialog-content .p-checkbox {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.5rem;
+}
+
+:host ::ng-deep .share-dialog-content .p-checkbox .p-checkbox-box {
+  width: 1rem;
+  height: 1rem;
+  border-color: var(--managementColorBorderInput);
+}
+
+:host ::ng-deep .share-dialog-content .p-checkbox:not(.p-checkbox-disabled) .p-checkbox-box:hover {
+  border-color: var(--globalColorAccent);
+}
+
+:host ::ng-deep .share-dialog-content .p-checkbox.p-checkbox-checked .p-checkbox-box {
+  background-color: var(--globalColorAccent);
+  border-color: var(--globalColorAccent);
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+  :host ::ng-deep .p-dialog.share-dialog {
+    width: 95vw !important;
+    max-width: 95vw !important;
+  }
+  
+  .share-dialog-content {
+    max-height: 60vh;
+  }
+  
+  .users-grid {
+    max-height: 200px;
+  }
+  
+  .quick-actions {
+    flex-direction: column;
+  }
+}
+

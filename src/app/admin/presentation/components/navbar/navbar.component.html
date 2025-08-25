@@ -8,17 +8,34 @@
                     <i class="pi pi-calendar-clock"></i>
                     {{ 'navbar.scheduleProcess' | translate }}
                 </button>
-                <button class="button button--flat-negative button--disabled">
+                <button 
+                    *ngIf="showCanceledButton"
+                    class="button button--flat-negative"
+                    (click)="openCanceledTargetsDrawer()"
+                    title="{{ 'navbar.canceledTooltip' | translate }}">
                     <i class="pi pi-trash"></i>
-                    {{ 'navbar.canceled' | translate }} ( 45 )
+                    {{ 'navbar.canceled' | translate }}
+                    <span *ngIf="canceledTargets.length > 0" class="selection-badge">({{ canceledTargets.length }})</span>
                 </button>
-                <button class="button button--flat-negative button--disabled">
+                <button 
+                    class="button button--flat-negative"
+                    [class.button--disabled]="!hasSelectedTargets"
+                    [disabled]="!hasSelectedTargets"
+                    (click)="hasSelectedTargets ? transferSelectedTargets() : null"
+                    [title]="hasSelectedTargets ? ('navbar.transferTooltip' | translate) + ' (' + selectedTargetsCount + ')' : ('navbar.transferDisabledTooltip' | translate)">
                     <i class="pi pi-reply"></i>
                     {{ 'navbar.transfer' | translate }}
+                    <span *ngIf="hasSelectedTargets" class="selection-badge">({{ selectedTargetsCount }})</span>
                 </button>
-                <button class="button button--flat-negative button--disabled">
+                <button 
+                    class="button button--flat-negative"
+                    [class.button--disabled]="!hasSelectedTargets"
+                    [disabled]="!hasSelectedTargets"
+                    (click)="hasSelectedTargets ? shareSelectedTargets() : null"
+                    [title]="hasSelectedTargets ? ('navbar.shareTooltip' | translate) + ' (' + selectedTargetsCount + ')' : ('navbar.shareDisabledTooltip' | translate)">
                     <i class="pi pi-share-alt"></i>
                     {{ 'navbar.share' | translate }}
+                    <span *ngIf="hasSelectedTargets" class="selection-badge">({{ selectedTargetsCount }})</span>
                 </button>
             </div>
 
@@ -54,3 +71,509 @@
         </div>
     </div>
 </div>
+
+<!-- Drawer para targets cancelados -->
+<p-drawer 
+    [(visible)]="canceledDrawerVisible" 
+    [modal]="true" 
+    position="left"
+    [style]="{maxWidth: '600px', width: '100%'}"
+    styleClass="canceled-targets-drawer">
+    
+    <ng-template pTemplate="header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="pi pi-trash" style="color: var(--managementColorTextUser);"></i>
+            <span>{{ 'navbar.canceledTargets' | translate }}</span>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="content">
+        <div class="canceled-targets-content">
+            <!-- Campo de búsqueda -->
+            <div class="search-section">
+                <div class="search-input-container">
+                    <i class="pi pi-search search-icon"></i>
+                    <input 
+                        type="text" 
+                        [(ngModel)]="canceledSearchTerm"
+                        (input)="onCanceledSearch()"
+                        [placeholder]="'navbar.searchCanceledTargets' | translate"
+                        class="search-input"
+                        autocomplete="off">
+                    <button 
+                        *ngIf="canceledSearchTerm" 
+                        (click)="clearCanceledSearch()" 
+                        class="clear-search-btn"
+                        title="{{ 'navbar.clearSearch' | translate }}">
+                        <i class="pi pi-times"></i>
+                    </button>
+                </div>
+                <div *ngIf="isSearchingCanceled" class="search-loading">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    {{ 'common.loading' | translate }}...
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div *ngIf="loadingCanceledTargets" class="loading-state">
+                <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: var(--globalColorAccent);"></i>
+                <p>{{ 'common.loading' | translate }}...</p>
+            </div>
+            
+            <!-- Lista de targets cancelados -->
+            <div *ngIf="!loadingCanceledTargets && displayedCanceledTargets.length > 0" class="targets-list">
+                <div *ngFor="let target of displayedCanceledTargets" class="target-card">
+                    <div class="target-info">
+                        <div class="target-header">
+                            <div class="target-title">
+                                <h4>{{ target.name }}</h4>
+                                <span class="canceled-badge">{{ 'common.canceled' | translate }}</span>
+                            </div>
+                            <div class="target-actions">
+                                <button 
+                                    type="button"
+                                    class="restore-btn"
+                                    (click)="restoreTarget(target._id!)"
+                                    title="{{ 'navbar.restoreTarget' | translate }}">
+                                    <i class="pi pi-refresh"></i>
+                                </button>
+                                <button 
+                                    class="details-btn"
+                                    (click)="showTargetDetails(target)"
+                                    title="{{ 'navbar.viewDetails' | translate }}">
+                                    <i class="pi pi-info-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="target-details">
+                            <p><strong>IMEI:</strong> {{ target.device_imei || target.imei }}</p>
+                            <p *ngIf="target.sim_card_number || target.sim_card">
+                                <strong>SIM:</strong> {{ target.sim_card_number || target.sim_card }}
+                            </p>
+                            <p *ngIf="target.plate">
+                                <strong>{{ 'management.targetForm.plate' | translate }}:</strong> {{ target.plate }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sin resultados de búsqueda -->
+            <div *ngIf="!loadingCanceledTargets && !isSearchingCanceled && canceledSearchTerm.trim() && displayedCanceledTargets.length === 0" class="empty-state">
+                <i class="pi pi-search" style="font-size: 3rem; color: var(--managementColorTextUser); opacity: 0.5;"></i>
+                <h3>{{ 'navbar.noSearchResults' | translate }}</h3>
+                <p>{{ 'navbar.noSearchResultsMessage' | translate: {term: canceledSearchTerm} }}</p>
+            </div>
+            
+            <!-- Estado vacío (sin targets cancelados) -->
+            <div *ngIf="!loadingCanceledTargets && !isSearchingCanceled && !canceledSearchTerm.trim() && canceledTargets.length === 0" class="empty-state">
+                <i class="pi pi-info-circle" style="font-size: 3rem; color: var(--managementColorTextUser); opacity: 0.5;"></i>
+                <h3>{{ 'navbar.noCanceledTargets' | translate }}</h3>
+                <p>{{ 'navbar.noCanceledTargetsMessage' | translate }}</p>
+            </div>
+        </div>
+    </ng-template>
+</p-drawer>
+
+<!-- Modal de detalles del target -->
+<p-dialog 
+    [(visible)]="targetDetailsVisible" 
+    [modal]="true" 
+    [resizable]="true" 
+    [draggable]="false"
+    [closable]="true"
+    [closeOnEscape]="true"
+    [dismissableMask]="true"
+    [blockScroll]="true"
+    appendTo="body"
+    [style]="{width: '800px', maxWidth: '95vw'}"
+    styleClass="target-details-dialog">
+    
+    <ng-template pTemplate="header">
+        <div class="dialog-header">
+            <i class="pi pi-info-circle"></i>
+            <span>{{ 'navbar.targetDetails' | translate }}</span>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="content">
+        <div *ngIf="selectedTargetDetails" class="target-details-content">
+            
+            <!-- Header simple -->
+            <div class="simple-header">
+                <div class="target-name">{{ selectedTargetDetails.name }}</div>
+                <div class="target-status">
+                    <span class="status-simple canceled">{{ 'common.canceled' | translate }}</span>
+                    <span class="status-simple" 
+                          *ngIf="selectedTargetDetails.traccarInfo?.status"
+                          [class.online]="selectedTargetDetails.traccarInfo?.status?.toLowerCase() === 'online'">
+                        {{ selectedTargetDetails.traccarInfo?.status! | uppercase }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Información en dos columnas -->
+            <div class="two-column-layout">
+                <!-- Columna izquierda -->
+                <div class="column-left">
+                    <!-- Información del dispositivo -->
+                    <div class="info-group">
+                        <h4>Información del dispositivo</h4>
+                        <div class="field" *ngIf="selectedTargetDetails._id">
+                            <span class="field-label">ID:</span>
+                            <span class="field-value">{{ selectedTargetDetails._id }}</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-label">{{ 'management.targetForm.name' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.name }}</span>
+                        </div>
+                        <div class="field">
+                            <span class="field-label">IMEI:</span>
+                            <span class="field-value">{{ selectedTargetDetails.device_imei || selectedTargetDetails.imei }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.gps_model">
+                            <span class="field-label">{{ 'management.targetForm.gpsModel' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.gps_model }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.api_id">
+                            <span class="field-label">API ID:</span>
+                            <span class="field-value">{{ selectedTargetDetails.api_id }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.sim_card_number || selectedTargetDetails.sim_card">
+                            <span class="field-label">{{ 'management.targetForm.simCard' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.sim_card_number || selectedTargetDetails.sim_card }}</span>
+                        </div>
+
+                        <div class="field" *ngIf="selectedTargetDetails.status">
+                            <span class="field-label">{{ 'management.targetForm.status' | translate }}:</span>
+                            <span class="field-value">{{ getStatusDisplayText(selectedTargetDetails.status) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Características técnicas -->
+                    <div class="info-group">
+                        <h4>Características técnicas</h4>
+                        <div class="field" *ngIf="selectedTargetDetails.ignition_sensor">
+                            <span class="field-label">{{ 'management.targetForm.ignitionSensor' | translate }}:</span>
+                            <span class="field-value">{{ getYesNoDisplayText(selectedTargetDetails.ignition_sensor) }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.engine_shutdown || selectedTargetDetails.shutdown_control">
+                            <span class="field-label">{{ 'management.targetForm.engineShutdown' | translate }}:</span>
+                            <span class="field-value">{{ getYesNoDisplayText(selectedTargetDetails.engine_shutdown || selectedTargetDetails.shutdown_control) }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Plan y precio -->
+                    <div class="info-group" *ngIf="selectedTargetDetails.plan">
+                        <h4>{{ 'management.targetForm.plan' | translate }}</h4>
+                        <div class="field">
+                            <span class="field-value plan-value">{{ getPlanDisplayText(selectedTargetDetails.plan) }}</span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Columna derecha -->
+                <div class="column-right">
+                    <!-- Información del vehículo -->
+                    <div class="info-group" *ngIf="selectedTargetDetails.plate || selectedTargetDetails.brand || selectedTargetDetails.model || selectedTargetDetails.year || selectedTargetDetails.color || selectedTargetDetails.chassis">
+                        <h4>{{ 'navbar.vehicleInformation' | translate }}</h4>
+                        <div class="field" *ngIf="selectedTargetDetails.plate">
+                            <span class="field-label">{{ 'management.targetForm.plate' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.plate }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.brand">
+                            <span class="field-label">{{ 'management.targetForm.brand' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.brand }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.model">
+                            <span class="field-label">{{ 'management.targetForm.model' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.model }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.year">
+                            <span class="field-label">{{ 'management.targetForm.year' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.year }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.color">
+                            <span class="field-label">{{ 'management.targetForm.color' | translate }}:</span>
+                            <span class="field-value">{{ getColorDisplayText(selectedTargetDetails.color) || selectedTargetDetails.color }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.chassis">
+                            <span class="field-label">{{ 'management.targetForm.chassis' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.chassis }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Instalación -->
+                    <div class="info-group">
+                        <h4>Instalación</h4>
+                        <div class="field" *ngIf="selectedTargetDetails.installation_location">
+                            <span class="field-label">{{ 'management.targetForm.installationLocation' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.installation_location }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.installation_details">
+                            <span class="field-label">{{ 'management.targetForm.installationDetails' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.installation_details }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.installation_date">
+                            <span class="field-label">{{ 'management.targetForm.installationDate' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.installation_date | date:'dd/MM/yyyy' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Fechas del sistema -->
+                    <div class="info-group">
+                        <h4>Fechas del sistema</h4>
+                        <div class="field" *ngIf="selectedTargetDetails.expiration_date">
+                            <span class="field-label">{{ 'management.targetForm.expirationDate' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.expiration_date | date:'dd/MM/yyyy' }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.created_at">
+                            <span class="field-label">{{ 'navbar.createdAt' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.updated_at">
+                            <span class="field-label">{{ 'navbar.updatedAt' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.updated_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Información adicional -->
+                    <div class="info-group" *ngIf="selectedTargetDetails.description || selectedTargetDetails.contacts || selectedTargetDetails.user_id">
+                        <h4>Información adicional</h4>
+                        <div class="field" *ngIf="selectedTargetDetails.description">
+                            <span class="field-label">{{ 'management.targetForm.description' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.description }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.contacts">
+                            <span class="field-label">{{ 'management.targetForm.contacts' | translate }}:</span>
+                            <span class="field-value">{{ getContactsDisplayText(selectedTargetDetails.contacts) }}</span>
+                        </div>
+                        <div class="field" *ngIf="selectedTargetDetails.user_id">
+                            <span class="field-label">{{ 'navbar.userId' | translate }}:</span>
+                            <span class="field-value">{{ selectedTargetDetails.user_id }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+
+            <!-- Historial de procesos -->
+            <div class="target-info-section">
+                <h3>
+                    <i class="pi pi-history"></i>
+                    {{ 'navbar.processHistory' | translate }}
+                </h3>
+                
+                <!-- Loading de procesos -->
+                <div *ngIf="loadingTargetProcesses" class="processes-loading">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    {{ 'common.loading' | translate }}...
+                </div>
+                
+                <!-- Lista de procesos -->
+                <div *ngIf="!loadingTargetProcesses && targetProcesses.length > 0" class="processes-list">
+                    <div *ngFor="let process of targetProcesses" class="process-item">
+                        <div class="process-header">
+                            <div class="process-info">
+                                <h4>{{ process.description }}</h4>
+                                <span class="process-date">{{ process.registrationDate | date:'dd/MM/yyyy HH:mm' }}</span>
+                            </div>
+                            <span class="process-type">{{ 'navbar.processType' | translate }} {{ process.type }}</span>
+                        </div>
+                        <div class="process-details" *ngIf="process.details">
+                            <p>{{ process.details }}</p>
+                        </div>
+                        <div class="process-user" *ngIf="process.user?.name">
+                            <small>
+                                <i class="pi pi-user"></i>
+                                {{ process.user.name }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sin procesos -->
+                <div *ngIf="!loadingTargetProcesses && targetProcesses.length === 0" class="no-processes">
+                    <i class="pi pi-info-circle"></i>
+                    <p>{{ 'navbar.noProcesses' | translate }}</p>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="footer">
+        <button 
+            type="button" 
+            (click)="restoreTarget(selectedTargetDetails?._id!)"
+            class="button button--primary">
+            <i class="pi pi-refresh"></i>
+            {{ 'navbar.restoreTarget' | translate }}
+        </button>
+        <button 
+            type="button" 
+            (click)="closeTargetDetails()" 
+            class="button button--secondary">
+            <i class="pi pi-times"></i>
+            {{ 'common.close' | translate }}
+        </button>
+    </ng-template>
+</p-dialog>
+
+<!-- Modal de compartir targets -->
+<p-dialog 
+    [(visible)]="shareDialogVisible" 
+    [modal]="true" 
+    [resizable]="false" 
+    [draggable]="false"
+    [style]="{width: '600px'}"
+    [blockScroll]="true"
+    appendTo="body">
+    
+    <ng-template pTemplate="header">
+        <div style="display: flex; align-items: center;">
+            <i class="pi pi-share-alt" style="margin-right: 10px; color: var(--globalColorAccent); font-size: 18px;"></i>
+            <span>Compartir Objetivos</span>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="content">
+        <div class="share-dialog-content">
+            <!-- Información de targets a compartir -->
+            <div class="targets-info">
+                <h4>
+                    <i class="pi pi-info-circle"></i>
+                    Objetivos a compartir ({{ targetsToShare.length }})
+                </h4>
+                <div class="targets-list-compact">
+                    <div *ngFor="let target of targetsToShare" class="target-item-compact">
+                        <strong>{{ target.name }}</strong>
+                        <span>IMEI: {{ target.device_imei || target.imei }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Agregar correos electrónicos -->
+            <div class="email-input-section">
+                <h4>
+                    <i class="pi pi-envelope"></i>
+                    Agregar correos electrónicos para compartir
+                </h4>
+                
+                <div class="email-input-container">
+                    <div class="email-input-wrapper">
+                        <input 
+                            type="email" 
+                            [(ngModel)]="newEmailInput"
+                            (keypress)="onEmailKeyPress($event)"
+                            placeholder="ejemplo@correo.com"
+                            class="email-input"
+                            [class.error]="emailInputError"
+                            autocomplete="off">
+                        <button 
+                            type="button"
+                            class="add-email-btn"
+                            (click)="addEmail()"
+                            [disabled]="!newEmailInput.trim()"
+                            title="Agregar correo">
+                            <i class="pi pi-plus"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Error de validación -->
+                    <div *ngIf="emailInputError" class="email-error">
+                        <i class="pi pi-exclamation-triangle"></i>
+                        {{ emailInputError }}
+                    </div>
+                    
+                    <!-- Instrucciones -->
+                    <div class="email-instructions">
+                        <small>
+                            <i class="pi pi-info-circle"></i>
+                            Presione Enter o haga clic en + para agregar el correo a la lista
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Estado de carga de emails compartidos -->
+            <div *ngIf="loadingSharedEmails" class="loading-shared-emails">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando correos compartidos actuales...</span>
+            </div>
+
+            <!-- Lista de emails seleccionados -->
+            <div *ngIf="!loadingSharedEmails && selectedEmails.length > 0" class="selected-emails-section">
+                <h4>
+                    <i class="pi pi-list"></i>
+                    Correos electrónicos compartidos ({{ selectedEmails.length }})
+                    <span *ngIf="autoSaving" class="saving-dot">
+                        <i class="pi pi-circle-fill"></i>
+                    </span>
+                </h4>
+                
+                <div class="selected-emails-list">
+                    <div *ngFor="let email of selectedEmails; let i = index" class="email-item">
+                        <div class="email-content">
+                            <i class="pi pi-envelope"></i>
+                            <span>{{ email }}</span>
+                        </div>
+                        <button 
+                            type="button" 
+                            class="remove-email-btn" 
+                            (click)="removeEmail(email)"
+                            title="Eliminar correo">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="email-actions">
+                    <button 
+                        type="button" 
+                        class="button button--secondary button--small"
+                        (click)="clearAllEmails()">
+                        <i class="pi pi-trash"></i>
+                        Limpiar todos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Estado vacío -->
+            <div *ngIf="!loadingSharedEmails && selectedEmails.length === 0" class="empty-emails-state">
+                <i class="pi pi-envelope" style="font-size: 3rem; opacity: 0.3;"></i>
+                <p>No hay correos electrónicos agregados</p>
+                <small>Agregue al menos un correo para compartir los objetivos</small>
+            </div>
+        </div>
+    </ng-template>
+    
+    <ng-template pTemplate="footer">
+        <div class="modal-footer-content">
+            <!-- Indicador de auto-guardado -->
+            <div *ngIf="autoSaving" class="auto-saving-indicator">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Guardando cambios...</span>
+            </div>
+            
+            <!-- Botón cerrar -->
+            <button 
+                type="button" 
+                (click)="cancelShareTargets()" 
+                class="button button--secondary"
+                [disabled]="autoSaving">
+                <i class="pi pi-times" style="margin-right: 6px;"></i>
+                Cerrar
+            </button>
+        </div>
+    </ng-template>
+</p-dialog>
+
+<!-- Diálogo de confirmación -->
+<p-confirmDialog></p-confirmDialog>
+
+<!-- Toast para mensajes -->
+<p-toast></p-toast>

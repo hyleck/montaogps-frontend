@@ -1,11 +1,19 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ThemesService } from '../../../../shareds/services/themes.service';
-import { MenuItem } from 'primeng/api';
+import { MenuItem, ConfirmationService, MessageService } from 'primeng/api';
 import { StatusService } from '../../../../shareds/services/status.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute, NavigationEnd } from '@angular/router';
 import { LangService } from '../../../../shareds/services/langi18/lang.service';
 import { TranslateService } from '@ngx-translate/core';
+import { SelectionService } from '../../../../core/services/selection.service';
+import { TargetsService } from '../../../../core/services/targets.service';
+import { Target, CreateProcessDto } from '../../../../core/interfaces/target.interface';
+import { PlansService } from '../../../../core/services/plans.service';
+import { Plan } from '../../../../core/interfaces/plan.interface';
+import { UserService } from '../../../../core/services/user.service';
+import { User } from '../../../../core/interfaces/user.interface';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter } from 'rxjs';
 
 @Component({
     selector: 'app-navbar',
@@ -13,21 +21,72 @@ import { TranslateService } from '@ngx-translate/core';
     styleUrl: './navbar.component.css',
     standalone: false
 })
-export class NavbarComponent implements OnInit {
+export class NavbarComponent implements OnInit, OnDestroy {
   items: MenuItem[] = [];
   userMenuItems: MenuItem[] = [];
   languageItems: MenuItem[] = [];
   loadingTheme: boolean = false;
   currentTheme: string = 'light';
   currentUser: any;
+  
+  // Control de suscripciones
+  private destroy$ = new Subject<void>();
+  private searchCanceledSubject$ = new Subject<string>();
+  
+  // Estado de la selección
+  selectedTargetsCount: number = 0;
+  hasSelectedTargets: boolean = false;
+  
+  // Control de visibilidad del botón cancelados
+  showCanceledButton: boolean = false;
+  
+  // Drawer de objetivos cancelados
+  canceledDrawerVisible: boolean = false;
+  canceledTargets: Target[] = [];
+  loadingCanceledTargets: boolean = false;
+  
+  // Para los planes
+  plans: Plan[] = [];
+  
+  // Búsqueda de objetivos cancelados
+  canceledSearchTerm: string = '';
+  canceledSearchResults: Target[] = [];
+  isSearchingCanceled: boolean = false;
+  
+  // Modal de detalles del target
+  targetDetailsVisible: boolean = false;
+  selectedTargetDetails: Target | null = null;
+  targetProcesses: any[] = [];
+  loadingTargetProcesses: boolean = false;
+
+  // Modal de compartir targets
+  shareDialogVisible: boolean = false;
+  newEmailInput: string = '';
+  selectedEmails: string[] = [];
+  targetsToShare: Target[] = [];
+  emailInputError: string = '';
+  loadingSharedEmails: boolean = false;
+  autoSaving: boolean = false;
+
+  // Mapeo de tipos de proceso a números
+  private processTypeMap: { [key: string]: number } = {
+    'restoration': 16 // Nuevo tipo de proceso para restauración
+  };
 
   constructor(
     private status: StatusService,
     private themes: ThemesService,
     private authService: AuthService,
     private router: Router,
+    private route: ActivatedRoute,
     private langService: LangService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private selectionService: SelectionService,
+    private targetsService: TargetsService,
+    private plansService: PlansService,
+    private userService: UserService,
+    private confirmationService: ConfirmationService,
+    private messageService: MessageService
   ) {
     this.currentTheme = status.getState('theme') as string;
     this.currentUser = this.authService.getCurrentUser();
@@ -45,6 +104,60 @@ export class NavbarComponent implements OnInit {
     // Suscribirse a cambios de idioma para actualizar los menús
     this.translate.onLangChange.subscribe(() => {
       this.initializeMenus();
+    });
+
+    // Suscribirse a cambios en la selección de objetivos
+    this.selectionService.selectedTargetsCount$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(count => {
+      this.selectedTargetsCount = count;
+      this.hasSelectedTargets = count > 0;
+      this.updateMenuItems();
+    });
+
+    // Configurar debounce para búsqueda de objetivos cancelados
+    this.searchCanceledSubject$
+      .pipe(
+        debounceTime(300), // Esperar 300ms después de la última tecla
+        distinctUntilChanged(), // Solo buscar si el término cambió
+        takeUntil(this.destroy$)
+      )
+      .subscribe(searchTerm => {
+        this.performCanceledSearch(searchTerm);
+      });
+
+
+
+    // Suscribirse a cambios de ruta para controlar visibilidad del botón cancelados
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd),
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.updateCanceledButtonVisibility();
+    });
+
+    // Cargar planes para mostrar nombres en lugar de IDs
+    this.loadPlans();
+    
+    // Verificar visibilidad inicial del botón cancelados
+    this.updateCanceledButtonVisibility();
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  /**
+   * Actualiza la visibilidad del botón "Cancelados" basado en si existe el ID del usuario en la URL
+   */
+  private updateCanceledButtonVisibility() {
+    const parentId = this.getParentIdFromUrl();
+    this.showCanceledButton = !!parentId; // Convertir a boolean: true si existe parentId, false si es null
+    console.log('🔄 Actualizando visibilidad del botón cancelados:', {
+      url: this.router.url,
+      parentId,
+      showCanceledButton: this.showCanceledButton
     });
   }
 
@@ -64,12 +177,14 @@ export class NavbarComponent implements OnInit {
       {
         label: this.translate.instant('navbar.transfer'),
         icon: 'pi pi-reply',
-        disabled: true
+        disabled: !this.hasSelectedTargets, // Se activa si hay objetivos seleccionados
+        command: this.hasSelectedTargets ? () => this.transferSelectedTargets() : undefined
       },
       {
         label: this.translate.instant('navbar.share'),
         icon: 'pi pi-share-alt',
-        disabled: true
+        disabled: !this.hasSelectedTargets, // Se activa si hay objetivos seleccionados
+        command: this.hasSelectedTargets ? () => this.shareSelectedTargets() : undefined
       }
     ];
 
@@ -126,5 +241,764 @@ export class NavbarComponent implements OnInit {
       // Forzar un refresh de la página para asegurar que todo se limpie
       window.location.reload();
     });
+  }
+
+  /**
+   * Actualiza solo los elementos del menú que dependen del estado de selección
+   */
+  private updateMenuItems() {
+    if (this.items.length > 0) {
+      // Actualizar el botón de transferir (índice 2)
+      const transferItem = this.items[2];
+      if (transferItem) {
+        transferItem.disabled = !this.hasSelectedTargets;
+        transferItem.command = this.hasSelectedTargets ? () => this.transferSelectedTargets() : undefined;
+      }
+
+      // Actualizar el botón de compartir (índice 3)
+      const shareItem = this.items[3];
+      if (shareItem) {
+        shareItem.disabled = !this.hasSelectedTargets;
+        shareItem.command = this.hasSelectedTargets ? () => this.shareSelectedTargets() : undefined;
+      }
+    }
+  }
+
+  /**
+   * Maneja la acción de transferir objetivos seleccionados
+   */
+  transferSelectedTargets() {
+    const selectedTargets = this.selectionService.selectedTargetsValue;
+    console.log('🔄 Transfiriendo objetivos seleccionados:', selectedTargets);
+    console.log(`📊 Total de objetivos a transferir: ${selectedTargets.length}`);
+    
+    // Aquí puedes implementar la lógica específica para transferir
+    // Por ejemplo: abrir un modal de selección de usuario destino, etc.
+    
+    // Por ahora, mostrar información en consola
+    selectedTargets.forEach((target, index) => {
+      console.log(`📱 Target ${index + 1} para transferir:`, {
+        id: target._id,
+        imei: target.device_imei,
+        nombre: target.name || 'Sin nombre',
+        usuario_actual: target.parent_id || 'No definido'
+      });
+    });
+  }
+
+  /**
+   * Maneja la acción de compartir objetivos seleccionados
+   */
+  async shareSelectedTargets() {
+    const selectedTargets = this.selectionService.selectedTargetsValue;
+    console.log('🔗 Compartiendo objetivos seleccionados:', selectedTargets);
+    
+    // Asignar targets a compartir
+    this.targetsToShare = selectedTargets;
+    
+    // Resetear estado del modal
+    this.newEmailInput = '';
+    this.emailInputError = '';
+    this.selectedEmails = [];
+    
+    // Abrir modal primero
+    this.shareDialogVisible = true;
+    
+    // Si solo hay un target seleccionado, consultar sus emails compartidos específicos
+    if (selectedTargets.length === 1 && selectedTargets[0]._id) {
+      await this.loadSharedEmailsFromAPI(selectedTargets[0]._id);
+    } else if (selectedTargets.length > 0) {
+      // Para múltiples targets, usar los emails del primer target como referencia (legacy)
+      if (selectedTargets[0].shared && Array.isArray(selectedTargets[0].shared)) {
+        this.selectedEmails = [...selectedTargets[0].shared];
+        console.log('📧 Emails compartidos (múltiples targets - referencia):', this.selectedEmails);
+      }
+    }
+  }
+
+  /**
+   * Carga los emails compartidos de un target específico desde la API
+   */
+  async loadSharedEmailsFromAPI(targetId: string) {
+    try {
+      this.loadingSharedEmails = true;
+      
+      console.log('🔍 Consultando emails compartidos para target:', targetId);
+      
+      const response = await this.targetsService.getSharedEmails(targetId);
+      
+      console.log('✅ Respuesta de emails compartidos:', response);
+      
+      // Cargar los emails compartidos
+      if (response.shared && Array.isArray(response.shared)) {
+        this.selectedEmails = [...response.shared];
+        console.log('📧 Emails compartidos cargados desde API:', this.selectedEmails);
+      } else {
+        this.selectedEmails = [];
+        console.log('📭 No hay emails compartidos para este target');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error al cargar emails compartidos:', error);
+      this.selectedEmails = [];
+      
+      // Mostrar mensaje de error si es necesario
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Advertencia',
+        detail: 'No se pudieron cargar los emails compartidos actuales'
+      });
+    } finally {
+      this.loadingSharedEmails = false;
+    }
+  }
+
+  /**
+   * Valida si un email es válido
+   */
+  isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  /**
+   * Agrega un email a la lista de emails compartidos y auto-guarda
+   */
+  async addEmail() {
+    const email = this.newEmailInput.trim();
+    
+    // Limpiar error previo
+    this.emailInputError = '';
+    
+    // Validaciones
+    if (!email) {
+      this.emailInputError = 'El correo electrónico es requerido';
+      return;
+    }
+    
+    if (!this.isValidEmail(email)) {
+      this.emailInputError = 'Por favor ingrese un correo electrónico válido';
+      return;
+    }
+    
+    if (this.selectedEmails.includes(email)) {
+      this.emailInputError = 'Este correo ya está en la lista';
+      return;
+    }
+    
+    // Agregar email
+    this.selectedEmails.push(email);
+    this.newEmailInput = '';
+    
+    console.log('➕ Email agregado:', email);
+    console.log('📧 Lista actual:', this.selectedEmails);
+    
+    // Auto-guardar cambios
+    await this.autoSaveEmailChanges();
+  }
+
+  /**
+   * Elimina un email de la lista y auto-guarda
+   */
+  async removeEmail(email: string) {
+    this.selectedEmails = this.selectedEmails.filter(e => e !== email);
+    console.log('➖ Email eliminado:', email);
+    console.log('📧 Lista actual:', this.selectedEmails);
+    
+    // Auto-guardar cambios
+    await this.autoSaveEmailChanges();
+  }
+
+  /**
+   * Maneja el evento keypress en el input de email (Enter para agregar)
+   */
+  onEmailKeyPress(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.addEmail();
+    }
+  }
+
+  /**
+   * Auto-guarda los cambios de emails compartidos
+   */
+  async autoSaveEmailChanges() {
+    // No auto-guardar si ya se está guardando o cargando emails
+    if (this.autoSaving || this.loadingSharedEmails) {
+      return;
+    }
+
+    try {
+      this.autoSaving = true;
+      
+      console.log('💾 Auto-guardando cambios de emails:', {
+        targets: this.targetsToShare.map(t => t._id),
+        sharedEmails: this.selectedEmails
+      });
+
+      // Actualizar cada target con los emails compartidos
+      for (const target of this.targetsToShare) {
+        await this.targetsService.updateSharedUsers(target._id!, this.selectedEmails);
+      }
+
+      console.log('✅ Cambios auto-guardados exitosamente');
+
+      // Mostrar mensaje sutil de confirmación
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Guardado',
+        detail: `Emails actualizados automáticamente`,
+        life: 2000 // Mensaje más corto
+      });
+
+    } catch (error: any) {
+      console.error('❌ Error al auto-guardar emails:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: error.message || 'No se pudieron guardar los cambios automáticamente'
+      });
+    } finally {
+      this.autoSaving = false;
+    }
+  }
+
+  /**
+   * Limpia todos los emails seleccionados y auto-guarda
+   */
+  async clearAllEmails() {
+    this.selectedEmails = [];
+    console.log('🗑️ Todos los emails eliminados');
+    
+    // Auto-guardar cambios
+    await this.autoSaveEmailChanges();
+  }
+
+  /**
+   * Cancela la acción de compartir
+   */
+  cancelShareTargets() {
+    this.shareDialogVisible = false;
+    this.selectedEmails = [];
+    this.targetsToShare = [];
+    this.newEmailInput = '';
+    this.emailInputError = '';
+    this.loadingSharedEmails = false;
+    this.autoSaving = false;
+  }
+
+  /**
+   * Abre el drawer de objetivos cancelados
+   */
+  async openCanceledTargetsDrawer() {
+    this.canceledDrawerVisible = true;
+    this.canceledSearchTerm = '';
+    this.canceledSearchResults = [];
+    await this.loadCanceledTargets();
+  }
+
+  /**
+   * Carga los objetivos cancelados desde la API
+   */
+  async loadCanceledTargets() {
+    try {
+      this.loadingCanceledTargets = true;
+      
+      // Obtener el parent ID desde la URL
+      const parentId = this.getParentIdFromUrl();
+      
+      if (!parentId) {
+        console.warn('⚠️ No se pudo obtener el parent ID desde la URL, cancelando carga de objetivos cancelados');
+        this.canceledTargets = [];
+        return;
+      }
+
+      console.log('🚀 Cargando objetivos cancelados para parent ID:', parentId);
+      
+      // Cargar objetivos cancelados
+      this.canceledTargets = await this.targetsService.getCanceledTargets(parentId);
+      console.log('✅ Objetivos cancelados cargados exitosamente:', {
+        cantidad: this.canceledTargets.length,
+        objetivos: this.canceledTargets
+      });
+      
+    } catch (error) {
+      console.error('❌ Error al cargar objetivos cancelados:', error);
+      this.canceledTargets = [];
+    } finally {
+      this.loadingCanceledTargets = false;
+    }
+  }
+
+  /**
+   * Obtiene el parent ID desde la URL actual
+   */
+  private getParentIdFromUrl(): string | null {
+    const url = this.router.url;
+    console.log('🔍 URL actual para extraer parent ID:', url);
+    
+    // El routing de management es /admin/management/:op/:user
+    // Necesitamos extraer el parámetro 'user' que es el segundo después de 'management'
+    const managementPattern = /\/admin\/management\/([^\/\?]+)\/([^\/\?]+)/;
+    const match = url.match(managementPattern);
+    
+    if (match && match[2]) {
+      const parentId = match[2];
+      console.log('✅ Parent ID extraído de la URL:', parentId);
+      return parentId;
+    }
+    
+    // Fallback: Si no se encuentra el patrón, intentar obtener desde route.snapshot.params
+    try {
+      const routeParams = this.route.snapshot.params;
+      console.log('📋 Route params como fallback:', routeParams);
+      
+      if (routeParams['user']) {
+        console.log('✅ Parent ID desde route params:', routeParams['user']);
+        return routeParams['user'];
+      }
+    } catch (error) {
+      console.warn('⚠️ Error al obtener parámetros de ruta:', error);
+    }
+    
+    console.warn('❌ No se pudo extraer parent ID desde la URL:', url);
+    return null;
+  }
+
+  /**
+   * Maneja la entrada de búsqueda (con debounce)
+   */
+  onCanceledSearch() {
+    const searchTerm = this.canceledSearchTerm.trim();
+    this.searchCanceledSubject$.next(searchTerm);
+  }
+
+  /**
+   * Realiza la búsqueda de objetivos cancelados (llamado por el debounce)
+   */
+  async performCanceledSearch(searchTerm: string) {
+    if (!searchTerm) {
+      // Si no hay término de búsqueda, mostrar todos los objetivos cancelados
+      this.canceledSearchResults = [];
+      return;
+    }
+
+    if (searchTerm.length < 2) {
+      // Requiere al menos 2 caracteres para buscar
+      return;
+    }
+
+    try {
+      this.isSearchingCanceled = true;
+      
+      const parentId = this.getParentIdFromUrl();
+      if (!parentId) {
+        console.warn('⚠️ No se puede buscar sin parent ID');
+        return;
+      }
+
+      console.log('🔍 Buscando objetivos cancelados:', {
+        parentId,
+        searchTerm
+      });
+
+      this.canceledSearchResults = await this.targetsService.searchCanceledTargets(parentId, searchTerm);
+      
+      console.log('✅ Resultados de búsqueda de objetivos cancelados:', {
+        cantidad: this.canceledSearchResults.length,
+        resultados: this.canceledSearchResults
+      });
+
+    } catch (error) {
+      console.error('❌ Error al buscar objetivos cancelados:', error);
+      this.canceledSearchResults = [];
+    } finally {
+      this.isSearchingCanceled = false;
+    }
+  }
+
+  /**
+   * Limpia la búsqueda de objetivos cancelados
+   */
+  clearCanceledSearch() {
+    this.canceledSearchTerm = '';
+    this.canceledSearchResults = [];
+  }
+
+  /**
+   * Obtiene los objetivos a mostrar (resultados de búsqueda o todos)
+   */
+  get displayedCanceledTargets(): Target[] {
+    return this.canceledSearchResults.length > 0 || this.canceledSearchTerm.trim() 
+      ? this.canceledSearchResults 
+      : this.canceledTargets;
+  }
+
+  /**
+   * Muestra los detalles de un target cancelado
+   */
+  async showTargetDetails(target: Target) {
+    this.selectedTargetDetails = target;
+    this.targetDetailsVisible = true;
+    await this.loadTargetProcesses(target);
+  }
+
+  /**
+   * Restaura un target cancelado
+   */
+  async restoreTarget(targetId: string) {
+    console.log('🔄 Iniciando restauración de target:', targetId);
+    
+    if (!targetId) {
+      console.error('❌ ID del target es requerido para restaurar');
+      return;
+    }
+
+    try {
+      // Mostrar confirmación
+      this.confirmationService.confirm({
+        message: '¿Está seguro de que desea restaurar este target?',
+        header: 'Confirmar restauración',
+        icon: 'pi pi-refresh',
+        acceptLabel: 'Sí, restaurar',
+        rejectLabel: 'Cancelar',
+        accept: async () => {
+          try {
+            // Llamar al servicio para restaurar
+            console.log('📡 Ejecutando restauración...');
+            await this.targetsService.restoreTarget(targetId);
+            
+            // Mostrar mensaje de éxito
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Éxito',
+              detail: 'Target restaurado correctamente'
+            });
+
+            // Registrar proceso de restauración
+            await this.registerRestorationProcess(targetId);
+
+            // Actualizar la lista de cancelados
+            await this.loadCanceledTargets();
+            
+            // Notificar que se han actualizado objetivos para refrescar management
+            this.selectionService.notifyTargetsUpdated();
+            
+            // Cerrar el modal de detalles si está abierto
+            if (this.targetDetailsVisible && this.selectedTargetDetails?._id === targetId) {
+              this.closeTargetDetails();
+            }
+
+          } catch (error: any) {
+            console.error('❌ Error al restaurar target:', error);
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error.message || 'Error al restaurar el target'
+            });
+          }
+        }
+      });
+
+    } catch (error: any) {
+      console.error('❌ Error en el proceso de restauración:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Error al procesar la restauración'
+      });
+    }
+  }
+
+  /**
+   * Registra un proceso de restauración para el target
+   */
+  private async registerRestorationProcess(targetId: string): Promise<void> {
+    try {
+      console.log('📝 Registrando proceso de restauración para target:', targetId);
+      
+      // Obtener información del target restaurado
+      const targetDetails = this.selectedTargetDetails || this.canceledTargets.find(t => t._id === targetId);
+      if (!targetDetails) {
+        console.warn('⚠️ No se encontró información del target para registrar el proceso');
+        return;
+      }
+
+      const currentUser = this.authService.getCurrentUser();
+      const currentDate = new Date().toISOString();
+
+      // Preparar los datos del proceso de restauración
+      const processData: CreateProcessDto = {
+        type: this.processTypeMap['restoration'] || 16,
+        registrationDate: currentDate,
+        description: 'Target restaurado desde cancelados',
+        details: `El target "${targetDetails.name}" fue restaurado desde el estado cancelado por el usuario ${currentUser?.name || 'Sistema'}.`,
+        target: {
+          _id: targetDetails._id,
+          name: targetDetails.name,
+          device_imei: targetDetails.device_imei || targetDetails.imei,
+          sim_card_number: targetDetails.sim_card_number || targetDetails.sim_card
+        },
+        user: {
+          _id: currentUser?.id || "sistema_id",
+          name: currentUser?.name || "Sistema",
+          email: currentUser?.email || "sistema@montao.com"
+        },
+        reference: targetDetails._id,
+        before: {
+          status: "canceled",
+          lastProcess: null
+        },
+        after: {
+          status: "restored",
+          processType: 'restoration',
+          processDate: currentDate
+        },
+        creator: currentUser?.id || "sistema_id"
+      };
+
+      // Registrar el proceso
+      await this.targetsService.createProcess(processData);
+      console.log('✅ Proceso de restauración registrado exitosamente');
+
+    } catch (error: any) {
+      console.error('❌ Error al registrar proceso de restauración:', error);
+      // No mostramos error al usuario para no interrumpir el flujo, solo lo logueamos
+    }
+  }
+
+  /**
+   * Carga los procesos de un target específico
+   */
+  async loadTargetProcesses(target: Target) {
+    try {
+      this.loadingTargetProcesses = true;
+      this.targetProcesses = [];
+      
+      const targetId = target._id;
+      console.log('🔍 Cargando procesos para target:', targetId);
+      
+      // Cargar procesos usando el ID del target
+      this.targetProcesses = await this.targetsService.getProcessesByReference(targetId);
+      
+      console.log('✅ Procesos del objetivo cargados:', {
+        targetId,
+        cantidad: this.targetProcesses.length,
+        procesos: this.targetProcesses
+      });
+      
+    } catch (error) {
+      console.error('❌ Error al cargar procesos del target:', error);
+      this.targetProcesses = [];
+    } finally {
+      this.loadingTargetProcesses = false;
+    }
+  }
+
+  /**
+   * Cierra el modal de detalles
+   */
+  closeTargetDetails() {
+    this.targetDetailsVisible = false;
+    this.selectedTargetDetails = null;
+    this.targetProcesses = [];
+    this.loadingTargetProcesses = false;
+  }
+
+  /**
+   * Carga la lista de planes para mostrar nombres en lugar de IDs
+   */
+  private loadPlans() {
+    this.plansService.getAllPlans().subscribe({
+      next: (plans: Plan[]) => {
+        this.plans = plans;
+        console.log('✅ Planes cargados para el navbar:', this.plans.length);
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar planes en navbar:', error);
+        this.plans = [];
+      }
+    });
+  }
+
+  /**
+   * Busca un plan por ID y retorna su nombre
+   */
+  private getPlanNameById(planId: string): string {
+    const plan = this.plans.find(p => p._id === planId);
+    return plan ? plan.plan_name : planId; // Si no encuentra el plan, muestra el ID
+  }
+
+  /**
+   * Obtiene el texto de visualización del plan
+   */
+  getPlanDisplayText(plan: any): string {
+    if (!plan) return 'No asignado';
+    
+    if (typeof plan === 'string') {
+      // Si es un string, podría ser un ID, intentar buscar el nombre
+      return this.getPlanNameById(plan);
+    }
+    
+    if (typeof plan === 'object' && plan.id_plan) {
+      // Si es un objeto con id_plan, buscar el nombre del plan
+      const planName = this.getPlanNameById(plan.id_plan);
+      let displayText = planName;
+      
+      if (plan.selected_price) {
+        displayText += ` - $${plan.selected_price.amount}`;
+        if (plan.selected_price.payment_period) {
+          displayText += ` (${plan.selected_price.payment_period})`;
+        }
+      }
+      return displayText;
+    }
+    
+    return JSON.stringify(plan);
+  }
+
+  /**
+   * Obtiene el texto de visualización del precio
+   */
+  getPriceDisplayText(price: any): string {
+    if (!price) return 'No asignado';
+    
+    if (typeof price === 'object' && price.amount) {
+      let displayText = price.amount.toString();
+      if (price.payment_period) {
+        displayText += ` (${price.payment_period})`;
+      }
+      return displayText;
+    }
+    
+    return JSON.stringify(price);
+  }
+
+  /**
+   * Obtiene el texto de visualización de los contactos
+   */
+  getContactsDisplayText(contacts: any): string {
+    if (!contacts) return 'No especificado';
+    
+    if (Array.isArray(contacts)) {
+      return contacts.join(', ');
+    }
+    
+    if (typeof contacts === 'string') {
+      return contacts;
+    }
+    
+    return JSON.stringify(contacts);
+  }
+
+  /**
+   * Obtiene la clase CSS para el estado de Traccar
+   */
+  getTraccarStatusClass(status: string): string {
+    if (!status) return '';
+    
+    switch (status.toLowerCase()) {
+      case 'online':
+        return 'online';
+      case 'offline':
+        return 'canceled';
+      default:
+        return '';
+    }
+  }
+
+  /**
+   * Obtiene el texto de visualización para Yes/No
+   */
+  getYesNoDisplayText(value: any): string {
+    if (!value) return 'No especificado';
+    
+    if (typeof value === 'string') {
+      switch (value.toLowerCase()) {
+        case 'yes':
+        case 'sí':
+        case 'si':
+        case 'true':
+          return 'Sí';
+        case 'no':
+        case 'false':
+          return 'No';
+        default:
+          return value;
+      }
+    }
+    
+    if (typeof value === 'boolean') {
+      return value ? 'Sí' : 'No';
+    }
+    
+    return String(value);
+  }
+
+  /**
+   * Obtiene el texto de visualización del estado
+   */
+  getStatusDisplayText(status: any): string {
+    if (!status) return 'No especificado';
+    
+    if (typeof status === 'string') {
+      switch (status.toLowerCase()) {
+        case 'active':
+          return 'Activo';
+        case 'inactive':
+          return 'Inactivo';
+        default:
+          return status;
+      }
+    }
+    
+    if (typeof status === 'boolean') {
+      return status ? 'Activo' : 'Inactivo';
+    }
+    
+    return String(status);
+  }
+
+  /**
+   * Obtiene el texto de visualización de la marca
+   */
+  getBrandDisplayText(brandId: string): string {
+    if (!brandId) return '';
+    // Aquí podrías hacer una búsqueda en un array de marcas si tienes los datos
+    // Por ahora devolvemos el ID
+    return brandId;
+  }
+
+  /**
+   * Obtiene el texto de visualización del modelo
+   */
+  getModelDisplayText(modelId: string): string {
+    if (!modelId) return '';
+    // Aquí podrías hacer una búsqueda en un array de modelos si tienes los datos
+    // Por ahora devolvemos el ID
+    return modelId;
+  }
+
+  /**
+   * Obtiene el texto de visualización del color
+   */
+  getColorDisplayText(colorValue: string): string {
+    if (!colorValue) return '';
+    
+    // Si es un valor hex, podrías convertirlo a nombre
+    const colorNames: { [key: string]: string } = {
+      '#FFFFFF': 'Blanco',
+      '#000000': 'Negro',
+      '#FF0000': 'Rojo',
+      '#0000FF': 'Azul',
+      '#008000': 'Verde',
+      '#FFFF00': 'Amarillo',
+      '#FFA500': 'Naranja',
+      '#800080': 'Púrpura',
+      '#A0A0A0': 'Gris',
+      '#C0C0C0': 'Plata'
+    };
+    
+    return colorNames[colorValue] || colorValue;
   }
 }

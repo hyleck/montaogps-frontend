@@ -24,6 +24,7 @@ import { MapProviderService } from '@management/presentation/services/map-provid
 import { BreadcrumbService } from '@management/presentation/services/breadcrumb.service';
 import { VehicleDataService } from '@management/presentation/services/vehicle-data.service';
 import { ManagementUIService } from '@management/presentation/services/management-ui.service';
+import { SelectionService } from '@core/services/selection.service';
 
 @Component({
     selector: 'app-management',
@@ -54,6 +55,28 @@ export class ManagementComponent implements OnInit, OnDestroy {
   selectedTargetForMap: any | null = null;
   selectedTargetStopTime: string | undefined = undefined;
   targetIdFromUrl: string | null = null;
+  
+  // ====================================
+  // PROPIEDADES PARA CANCELACIÓN
+  // ====================================
+  cancelDialogVisible: boolean = false;
+  targetToCancel: any | null = null;
+  cancelForm = {
+    reason: '',
+    description: ''
+  };
+  cancelReasons = [
+    { label: 'Vehículo vendido', value: 'vehicle_sold' },
+    { label: 'Descontento con el servicio', value: 'service_dissatisfaction' },
+    { label: 'Cliente saldó el préstamo', value: 'loan_paid_off' },
+    { label: 'Renovación muy cara', value: 'renewal_too_expensive' },
+    { label: 'Vehículo robado', value: 'vehicle_stolen' },
+    { label: 'Vehículo en el taller', value: 'vehicle_in_shop' },
+    { label: 'Cambio de Dispositivo', value: 'device_change' },
+    { label: 'Cambio de Vehículo', value: 'vehicle_change' },
+    { label: 'Dispositivo dañado', value: 'device_damaged' },
+    { label: 'Sin razón específica', value: 'no_specific_reason' }
+  ];
   
   // Estado específico de carga de targets
   private loadingTargets: boolean = false;
@@ -173,7 +196,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private breadcrumbService: BreadcrumbService,
     private vehicleDataService: VehicleDataService,
     private uiService: ManagementUIService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private selectionService: SelectionService
   ) {}
 
   // ====================================
@@ -225,6 +249,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.checkMobileView();
     this.setupInitialState();
     this.setupSubscriptions();
+    this.setupSelectionWatcher();
     this.setupRouting();
     this.loadInitialData();
     // Nota: El status polling ahora está integrado en el polling principal de 10s
@@ -394,6 +419,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Obtener la operación actual antes del cambio
     const currentOp = this.managementService.getOp();
     const currentUserId = this.managementService.getCurrentUserId();
+    
+    // Limpiar selección si se cambia de targets a otra sección
+    if (currentOp === 't' && op !== 't') {
+      this.targetsSelected = [];
+      this.selectionService.clearSelection();
+    }
     
     // Solo actualizar la operación en el servicio, sin recargar datos
     this.managementService.setOp(op);
@@ -800,6 +831,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private setupSubscriptions(): void {
+    // Suscribirse a notificaciones de actualización de targets (ej: cuando se restaura un target)
+    this.subscriptions.push(
+      this.selectionService.targetsUpdated$.subscribe(updated => {
+        if (updated && this.selectedUser) {
+          console.log('🔄 Targets actualizados desde navbar, recargando lista...');
+          this.loadTargetsForUser(this.selectedUser._id);
+        }
+      })
+    );
+
     // Suscribirse a cambios de UI state
     this.subscriptions.push(
       this.uiService.uiState$.subscribe(uiState => {
@@ -949,6 +990,37 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.subscriptions = [];
   }
 
+  /**
+   * Configura el observador para cambios en la selección de targets
+   */
+  private setupSelectionWatcher(): void {
+    // Usar un polling simple para detectar cambios en targetsSelected
+    // Ya que PrimeNG no emite eventos específicos para cambios de selección
+    let previousSelectionLength = 0;
+    
+    setInterval(() => {
+      const currentSelectionLength = this.targetsSelected?.length || 0;
+      
+      if (currentSelectionLength !== previousSelectionLength) {
+        this.onTargetsSelectionChange();
+        previousSelectionLength = currentSelectionLength;
+      }
+    }, 100); // Verificar cada 100ms
+  }
+
+  /**
+   * Maneja cambios en la selección de targets
+   */
+  onTargetsSelectionChange(): void {
+    // Actualizar el servicio de selección con los targets seleccionados
+    this.selectionService.updateSelectedTargets(this.targetsSelected || []);
+    
+    console.log('🔄 Selección de targets actualizada:', {
+      count: this.targetsSelected?.length || 0,
+      targets: this.targetsSelected?.map(t => ({ id: t._id, name: t.name })) || []
+    });
+  }
+
   // ====================================
   // MÉTODOS PRIVADOS - ROUTING
   // ====================================
@@ -1045,7 +1117,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Limpiar datos anteriores y resetear bandera de carga completada
     this.targetsList = [];
     this.targets = [];
+    this.targetsSelected = [];
     this.targetsLoadCompletedFlag = false;
+    
+    // Limpiar selección cuando se cambia de usuario
+    this.selectionService.clearSelection();
     
     // ✅ REINICIAR tiempo de parada cuando se cambia de usuario
     this.selectedTargetStopTime = undefined;
@@ -1435,8 +1511,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  confirmDeleteTarget(target: any) {
-    // Validar permisos antes de permitir eliminar targets
+  confirmCancelTarget(target: any) {
+    // Validar permisos antes de permitir cancelar targets
     if (!this.canDeleteDevices()) {
       this.messageService.add({
         severity: 'error',
@@ -1446,39 +1522,129 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.confirmationService.confirm({
-      message: this.translate.instant('management.confirmDeleteTarget'),
-      header: this.translate.instant('management.targetForm.confirmDeleteHeader'),
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: this.translate.instant('management.targetForm.yes'),
-      rejectLabel: this.translate.instant('management.targetForm.no'),
-      accept: () => {
-        this.deleteTarget(target);
-      }
-    });
+    this.targetToCancel = target;
+    this.cancelForm = {
+      reason: '',
+      description: ''
+    };
+    this.cancelDialogVisible = true;
   }
 
-  private deleteTarget(target: any): void {
-        this.targetsService.deleteTarget(target._id)
-          .then(() => {
-            this.targets = this.targets.filter(t => t._id !== target._id);
-            this.targetsList = this.targetsList.filter(t => t._id !== target._id);
-            
-            this.messageService.add({
-              severity: 'success',
-              summary: this.translate.instant('management.targetDeleted'),
-              detail: this.translate.instant('management.targetDeleted'),
-              life: 3000
-            });
-          })
-          .catch((error) => {
-            console.error('Error al eliminar objetivo:', error);
-            this.messageService.add({
-              severity: 'error',
-              summary: this.translate.instant('management.error'),
-              detail: this.translate.instant('management.errorDeleteTarget'),
-              life: 3000
-            });
-          });
+  confirmCancelation() {
+    if (!this.cancelForm.reason || !this.cancelForm.description.trim()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('management.validationError'),
+        detail: this.translate.instant('management.cancelTargetValidation'),
+        life: 3000
+      });
+      return;
+    }
+
+    this.cancelTarget();
+  }
+
+  cancelCancelation() {
+    this.cancelDialogVisible = false;
+    this.targetToCancel = null;
+    this.cancelForm = {
+      reason: '',
+      description: ''
+    };
+  }
+
+  private async cancelTarget(): Promise<void> {
+    if (!this.targetToCancel) return;
+
+    try {
+      // 1. Cancelar el target usando el nuevo endpoint
+      await this.targetsService.cancelTarget(this.targetToCancel._id, {
+        reason: this.cancelForm.reason,
+        description: this.cancelForm.description
+      });
+
+      // 2. Registrar el proceso de cancelación
+      await this.createCancelationProcess();
+
+      // 3. Actualizar la lista de targets
+      this.targets = this.targets.filter(t => t._id !== this.targetToCancel!._id);
+      this.targetsList = this.targetsList.filter(t => t._id !== this.targetToCancel!._id);
+
+      // 4. Mostrar mensaje de éxito
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('management.targetCanceled'),
+        detail: this.translate.instant('management.targetCanceledDetail'),
+        life: 3000
+      });
+
+      // 5. Cerrar el modal
+      this.cancelDialogVisible = false;
+      this.targetToCancel = null;
+      this.cancelForm = {
+        reason: '',
+        description: ''
+      };
+
+    } catch (error) {
+      console.error('Error al cancelar objetivo:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.error'),
+        detail: this.translate.instant('management.errorCancelTarget'),
+        life: 3000
+      });
+    }
+  }
+
+  private async createCancelationProcess(): Promise<void> {
+    if (!this.targetToCancel) return;
+
+    const reasonLabels: { [key: string]: string } = {
+      'vehicle_sold': 'Vehículo vendido',
+      'service_dissatisfaction': 'Descontento con el servicio',
+      'loan_paid_off': 'Cliente saldó el préstamo',
+      'renewal_too_expensive': 'Renovación muy cara',
+      'vehicle_stolen': 'Vehículo robado',
+      'vehicle_in_shop': 'Vehículo en el taller',
+      'device_change': 'Cambio de Dispositivo',
+      'vehicle_change': 'Cambio de Vehículo',
+      'device_damaged': 'Dispositivo dañado',
+      'no_specific_reason': 'Sin razón específica'
+    };
+
+    const reasonLabel = reasonLabels[this.cancelForm.reason] || this.cancelForm.reason;
+    
+    const processData = {
+      type: 8, // Tipo 8 para cancelación
+      registrationDate: new Date().toISOString(),
+      description: `Dispositivo cancelado - Razón: ${reasonLabel}`,
+      details: this.cancelForm.description,
+      target: {
+        _id: this.targetToCancel._id,
+        name: this.targetToCancel.name,
+        device_imei: this.targetToCancel.device_imei || this.targetToCancel.imei,
+        sim_card_number: this.targetToCancel.sim_card_number || this.targetToCancel.sim
+      },
+      user: {
+        _id: this.authService.getCurrentUser()?.id || "ejemplo_user_id",
+        name: this.authService.getCurrentUser()?.name || "Usuario Ejemplo",
+        email: this.authService.getCurrentUser()?.email || "usuario@ejemplo.com"
+      },
+      reference: this.targetToCancel._id,
+      before: {
+        status: "active",
+        canceled: false
+      },
+      after: {
+        status: "canceled",
+        canceled: true,
+        cancelReason: this.cancelForm.reason,
+        cancelDescription: this.cancelForm.description
+      },
+      creator: this.authService.getCurrentUser()?.id || "creator_ejemplo_id"
+    };
+
+    await this.targetsService.createProcess(processData);
   }
 }

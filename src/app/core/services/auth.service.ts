@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap, switchMap } from 'rxjs';
+import { Observable, tap, switchMap, BehaviorSubject } from 'rxjs';
 import { environment } from '../../../environments/environment.development';
 import { jwtDecode } from 'jwt-decode';
 import { User, BasicUser } from '../interfaces/user.interface';
@@ -19,6 +19,9 @@ export class AuthService {
   private readonly TOKEN_KEY = 'authtoken';
   private readonly USER_KEY = 'user';
 
+  // BehaviorSubject para emitir cambios en el estado de autenticación
+  private authStateSubject = new BehaviorSubject<boolean>(false);
+
   constructor(
     private _httpClient: HttpClient, 
     private _router: Router,
@@ -26,7 +29,24 @@ export class AuthService {
     private translate: TranslateService,
     private langService: LangService,
     private userService: UserService
-  ) { }
+  ) {
+    // Inicializar el estado de autenticación
+    this.authStateSubject.next(this.isAuthenticated());
+  }
+
+  /**
+   * Observable para escuchar cambios en el estado de autenticación
+   */
+  get authState$(): Observable<boolean> {
+    return this.authStateSubject.asObservable();
+  }
+
+  /**
+   * Obtener el estado actual de autenticación
+   */
+  get isAuthenticatedValue(): boolean {
+    return this.authStateSubject.value;
+  }
 
   login(email: string, password: string): Observable<any> {
     return this._httpClient.post<any>(this.LOGIN_URL, { email, password }).pipe(
@@ -88,6 +108,8 @@ export class AuthService {
 
   private saveToken(token: string): void {
     localStorage.setItem(this.TOKEN_KEY, token);
+    // Emitir cambio en el estado de autenticación
+    this.authStateSubject.next(true);
   }
 
   private removeToken(): void {
@@ -241,5 +263,7 @@ export class AuthService {
     if (rememberedEmail) {
       localStorage.setItem('rememberedEmail', rememberedEmail);
     }
+    // Emitir cambio en el estado de autenticación
+    this.authStateSubject.next(false);
   }
 }
