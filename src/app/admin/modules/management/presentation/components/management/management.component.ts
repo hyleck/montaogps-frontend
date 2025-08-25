@@ -1249,14 +1249,38 @@ export class ManagementComponent implements OnInit, OnDestroy {
       
       const parentId = this.managementService.getCurrentUserId();
       this.loadingTargets = true;
-      const targets = await this.targetsService.getTargetsByUserId(userId, parentId);
-      this.showNoTargetMessage = targets.length === 0;
-      this.targets = targets;
       
-      if (targets && targets.length > 0) {
-        this.targetsList = targets.map(target => {
+      // Cargar targets propios y compartidos en paralelo
+      const userEmail = this.selectedUser?.email;
+      
+      const targetsPromise = this.targetsService.getTargetsByUserId(userId, parentId);
+      const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
+      
+      const [targets, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
+      
+      // Combinar targets: compartidos primero, luego propios (evitando duplicados)
+      const ownTargetIds = new Set(targets.map(t => t._id));
+      const uniqueSharedTargets = sharedTargets.filter(t => !ownTargetIds.has(t._id));
+      const combinedTargets = [...uniqueSharedTargets, ...targets];
+      
+      this.showNoTargetMessage = combinedTargets.length === 0;
+      this.targets = combinedTargets;
+      
+      console.log('📋 Targets cargados:', {
+        propios: targets.length,
+        compartidos: uniqueSharedTargets.length,
+        total: combinedTargets.length,
+        selectedUserEmail: userEmail,
+        selectedUserName: this.selectedUser?.name + ' ' + this.selectedUser?.last_name
+      });
+      
+      if (combinedTargets && combinedTargets.length > 0) {
+        this.targetsList = combinedTargets.map((target, index) => {
           const traccarStatus = target.traccarInfo?.status || 'offline';
           const isOnline = traccarStatus === 'online';
+          
+          // Determinar si es un target compartido (está en los primeros uniqueSharedTargets.length elementos)
+          const isShared = index < uniqueSharedTargets.length;
           
           return {
             name: target.name,
@@ -1266,7 +1290,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
             _id: target._id,
             traccarStatus: traccarStatus,
             traccarInfo: target.traccarInfo,
-            originalTarget: target
+            originalTarget: target,
+            isShared: isShared
           };
                   });
         } else {

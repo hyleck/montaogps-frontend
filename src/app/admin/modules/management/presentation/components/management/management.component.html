@@ -209,7 +209,8 @@
                                                 [ngClass]="{
                                                   'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
                                                   'target-selected-from-url': isTargetSelectedFromUrl(target._id),
-                                                  'external-user-target': shouldShowParentUserButton(target)
+                                                  'external-user-target': shouldShowParentUserButton(target),
+                                                  'shared-target-row': target.isShared
                                                 }"
                                                 [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
                                                 [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
@@ -231,6 +232,10 @@
                                                            }"></i> 
                                                         {{target.name}}
                                                         
+                                                        <i *ngIf="target.isShared" 
+                                                           class="pi pi-share-alt target-shared-indicator" 
+                                                           title="Objetivo compartido"
+                                                           style="color: #3b82f6; margin-left: 4px; font-size: 12px;"></i>
                                                         <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id" 
                                                            class="pi pi-eye target-map-indicator" 
                                                            title="Mostrando en mapa"></i>
@@ -245,7 +250,10 @@
                                                     
                                                     <!-- Estado y velocidad combinados -->
                                                     <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
-                                                        <p-tableCheckbox [value]="target" />
+                                                        <p-tableCheckbox [value]="target" *ngIf="!target.isShared" />
+                                                        <div *ngIf="target.isShared" class="shared-checkbox-icon" title="Objetivo compartido">
+                                                            <i class="pi pi-share-alt"></i>
+                                                        </div>
                                                         <!-- <p-badge [style]="{transform: 'scale(0.8)'}" [value]="target.status" [severity]="target.status == translate.instant('management.status.online') ? 'success' : 'secondary'" /> -->
                                                         <span class="device-speed-display device-speed-display--inline">
                                                             🚗 {{ getDeviceSpeed(target) }}
@@ -256,21 +264,29 @@
                                             
                                                 <td style="width: 1rem">
                                                     <div style="transform: scale(0.8)" class="management__user-table-controls management__user-table-controls--maps">
-                                                        <button (click)="showTargetForm(target)" class="button button--primary-flat" title="Editar objetivo" *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square" ></i> </button>
-                                                        <button 
-                                                            *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices()"
-                                                            class="button button--primary-flat-icon" 
-                                                            title="Cancelar objetivo" 
-                                                            (click)="confirmCancelTarget(target)"> 
-                                                            <i class="pi pi-ban" ></i> 
-                                                        </button>
-                                                        <button 
-                                                            *ngIf="shouldShowParentUserButton(target)"
-                                                            class="button button--primary-flat-icon" 
-                                                            title="Abrir usuario propietario (nueva pestaña)" 
-                                                            (click)="navigateToParentUser(target)"> 
-                                                            <i class="pi pi-user" ></i> 
-                                                        </button>
+                                                        <div *ngIf="!target.isShared" class="target-controls-own">
+                                                            <button (click)="showTargetForm(target)" class="button button--primary-flat" title="Editar objetivo" *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                            <button 
+                                                                *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices()"
+                                                                class="button button--primary-flat-icon" 
+                                                                title="Cancelar objetivo" 
+                                                                (click)="confirmCancelTarget(target)"> 
+                                                                <i class="pi pi-ban" ></i> 
+                                                            </button>
+                                                            <button 
+                                                                *ngIf="shouldShowParentUserButton(target)"
+                                                                class="button button--primary-flat-icon" 
+                                                                title="Abrir usuario propietario (nueva pestaña)" 
+                                                                (click)="navigateToParentUser(target)"> 
+                                                                <i class="pi pi-user" ></i> 
+                                                            </button>
+                                                        </div>
+                                                        <div *ngIf="target.isShared" class="target-controls-shared">
+                                                            <span class="shared-target-label">
+                                                                <i class="pi pi-share-alt"></i>
+                                                                Target compartido
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -490,13 +506,19 @@
                                     <tr class="management__content-table-tr" 
                                         [ngClass]="{
                                           'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
-                                          'external-user-target': shouldShowParentUserButton(target)
+                                          'external-user-target': shouldShowParentUserButton(target),
+                                          'shared-target-row': target.isShared
                                         }"
                                         [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
                                         [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
                                         [title]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'TARGET SELECCIONADO - ID: ' + target._id : ''">
-                                        <td *ngIf="canUpdateDevices()">
+                                        <td *ngIf="canUpdateDevices() && !target.isShared">
                                             <p-tableCheckbox [value]="target" />
+                                        </td>
+                                        <td *ngIf="target.isShared" class="shared-checkbox-cell">
+                                            <div class="shared-checkbox-icon" title="Objetivo compartido">
+                                                <i class="pi pi-share-alt"></i>
+                                            </div>
                                         </td>
                                         <td>
                                             <span (click)="handleTargetClick(target, $event)"
@@ -513,6 +535,10 @@
                                                    }"></i> 
                                                 {{target.name}}
                                                 
+                                                <i *ngIf="target.isShared" 
+                                                   class="pi pi-share-alt target-shared-indicator" 
+                                                   title="Objetivo compartido"
+                                                   style="color: #3b82f6; margin-left: 4px; font-size: 12px;"></i>
                                                 <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id" 
                                                    class="pi pi-eye target-map-indicator" 
                                                    title="Mostrando en mapa"></i>
@@ -530,21 +556,29 @@
                                         <td>{{target.sim}}</td>
                                         <td>
                                             <div class="management__user-table-controls">
-                                                <button class="button button--primary-flat" (click)="showTargetForm(target)" title="Editar objetivo" *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square" ></i> </button>
-                                                <button 
-                                                    *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices()"
-                                                    class="button button--primary-flat-icon" 
-                                                    title="Cancelar objetivo" 
-                                                    (click)="confirmCancelTarget(target)"> 
-                                                    <i class="pi pi-ban" ></i> 
-                                                </button>
-                                                <button 
-                                                    *ngIf="shouldShowParentUserButton(target)"
-                                                    class="button button--primary-flat-icon" 
-                                                    title="Abrir usuario propietario (nueva pestaña)" 
-                                                    (click)="navigateToParentUser(target)"> 
-                                                    <i class="pi pi-user" ></i> 
-                                                </button>
+                                                <div *ngIf="!target.isShared" class="target-controls-own">
+                                                    <button class="button button--primary-flat" (click)="showTargetForm(target)" title="Editar objetivo" *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                    <button 
+                                                        *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices()"
+                                                        class="button button--primary-flat-icon" 
+                                                        title="Cancelar objetivo" 
+                                                        (click)="confirmCancelTarget(target)"> 
+                                                        <i class="pi pi-ban" ></i> 
+                                                    </button>
+                                                    <button 
+                                                        *ngIf="shouldShowParentUserButton(target)"
+                                                        class="button button--primary-flat-icon" 
+                                                        title="Abrir usuario propietario (nueva pestaña)" 
+                                                        (click)="navigateToParentUser(target)"> 
+                                                        <i class="pi pi-user" ></i> 
+                                                    </button>
+                                                </div>
+                                                <div *ngIf="target.isShared" class="target-controls-shared">
+                                                    <span class="shared-target-label">
+                                                        <i class="pi pi-share-alt"></i>
+                                                        Target compartido
+                                                    </span>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>

@@ -154,6 +154,11 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
+  async getSharedTargets(email: string): Promise<Target[]> {
+    const observable = this.http.get<Target[]>(`${this.apiUrl}/shared?email=${encodeURIComponent(email)}`);
+    return await lastValueFrom(observable);
+  }
+
   /**
    * Actualiza los correos compartidos de un target
    * @param targetId ID del target

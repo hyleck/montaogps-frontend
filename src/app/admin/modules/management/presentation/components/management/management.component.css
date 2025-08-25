@@ -923,6 +923,109 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     color: #60a5fa !important; /* Azul más claro para tema oscuro */
 }
 
+/* Indicador de target compartido */
+.target-shared-indicator {
+    color: #3b82f6 !important; /* Azul para targets compartidos */
+    margin-left: 6px !important;
+    font-size: 12px !important;
+    animation: pulse-shared 2s infinite !important;
+}
+
+.dark .target-shared-indicator {
+    color: #60a5fa !important; /* Azul más claro para tema oscuro */
+}
+
+/* Estilos para filas de targets compartidos */
+.shared-target-row {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.02)) !important;
+    border-left: 4px solid #3b82f6 !important;
+    opacity: 0.85;
+}
+
+.dark .shared-target-row {
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.08), rgba(96, 165, 250, 0.04)) !important;
+    border-left: 4px solid #60a5fa !important;
+}
+
+.shared-target-row:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)) !important;
+    opacity: 1;
+}
+
+.dark .shared-target-row:hover {
+    background: linear-gradient(135deg, rgba(96, 165, 250, 0.12), rgba(96, 165, 250, 0.06)) !important;
+}
+
+/* Controles para targets compartidos */
+.target-controls-shared {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+}
+
+.shared-target-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 4px 8px;
+    border-radius: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.dark .shared-target-label {
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.12);
+    border: 1px solid rgba(96, 165, 250, 0.25);
+}
+
+.shared-target-label i {
+    font-size: 10px;
+}
+
+/* Icono de checkbox para targets compartidos */
+.shared-checkbox-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 2px solid #3b82f6;
+    border-radius: 4px;
+    color: #3b82f6;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    cursor: default;
+}
+
+.shared-checkbox-icon:hover {
+    background: rgba(59, 130, 246, 0.15);
+    transform: scale(1.05);
+}
+
+.dark .shared-checkbox-icon {
+    background: rgba(96, 165, 250, 0.12);
+    border: 2px solid #60a5fa;
+    color: #60a5fa;
+}
+
+.dark .shared-checkbox-icon:hover {
+    background: rgba(96, 165, 250, 0.18);
+}
+
+.shared-checkbox-cell {
+    width: 4rem;
+    text-align: center;
+    padding: 8px;
+}
+
 /* Animaciones */
 @keyframes pulse-marker {
     0%, 100% {
@@ -941,6 +1044,17 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     }
     40%, 60% {
         opacity: 0.3;
+    }
+}
+
+@keyframes pulse-shared {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
     }
 }
 
@@ -963,6 +1077,32 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     .target-map-indicator {
         margin-left: 4px !important;
         font-size: 0.8em !important;
+    }
+    
+    .target-shared-indicator {
+        margin-left: 4px !important;
+        font-size: 11px !important;
+    }
+    
+    .shared-target-label {
+        font-size: 10px !important;
+        padding: 3px 6px !important;
+        gap: 4px !important;
+    }
+    
+    .shared-target-label i {
+        font-size: 9px !important;
+    }
+    
+    .shared-checkbox-icon {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 11px !important;
+    }
+    
+    .shared-checkbox-cell {
+        width: 3rem !important;
+        padding: 6px !important;
     }
     
     .map-marker-active {
