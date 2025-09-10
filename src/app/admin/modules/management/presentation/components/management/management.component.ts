@@ -2,7 +2,7 @@
 import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subscription, Subject, forkJoin } from 'rxjs';
+import { Subscription, Subject, forkJoin, from } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
 // Third-party imports
@@ -14,7 +14,7 @@ import { User, BasicUser, ExtendedUser, convertToExtendedUser } from '@core/inte
 import { Target } from '@core/interfaces/target.interface';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
-import { TargetsService } from '@core/services/targets.service';
+import { TargetsService, TargetsResponse } from '@core/services/targets.service';
 import { StatusService } from '@shared/services/status.service';
 import { ManagementService } from '@management/presentation/services/management.service';
 import { ScreenService } from '@management/presentation/services/screen.service';
@@ -81,6 +81,26 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // Estado específico de carga de targets
   private loadingTargets: boolean = false;
   private targetsLoadCompletedFlag: boolean = false;
+  
+  // Propiedades para scroll infinito
+  private currentOffset: number = 0;
+  private readonly pageSize: number = 30;
+  private hasMoreTargets: boolean = true;
+  private loadingMoreTargets: boolean = false;
+  private totalTargetsCount: number = 0;
+
+  // Getters para el template
+  get isLoadingMoreTargets(): boolean {
+    return this.loadingMoreTargets;
+  }
+
+  get hasMoreTargetsToLoad(): boolean {
+    return this.hasMoreTargets;
+  }
+
+  get totalTargetsCountDisplay(): number {
+    return this.totalTargetsCount;
+  }
   
   // ====================================
   // PROPIEDADES PÚBLICAS - BÚSQUEDA
@@ -266,6 +286,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Limpiar subjects
     this.searchUsersSubject.complete();
     this.searchTargetsSubject.complete();
+    
+    // Limpiar timeout del scroll infinito
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
+    }
   }
 
   // ====================================
@@ -901,23 +926,26 @@ export class ManagementComponent implements OnInit, OnDestroy {
             this.isSearchingTargets = false;
             if (this.selectedUser) {
       const parentId = this.managementService.getCurrentUserId();
-              return this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId);
+              return from(this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId)).pipe(
+                switchMap(response => from([response.devices]))
+              );
             }
-            return [];
+            return from([[]]);
           } else {
             // Realizar búsqueda
             this.isSearchingTargets = true;
       const parentId = this.managementService.getCurrentUserId();
-            return this.targetsService.searchTargets(searchTerm, parentId);
+            return from(this.targetsService.searchTargets(searchTerm, parentId));
           }
         })
       ).subscribe({
-        next: (targets) => {
+        next: (targets: Target[]) => {
+          // Tanto la búsqueda como la carga normal devuelven Target[] directamente
           this.targets = targets;
           
           // Transformar targets para la lista
           if (targets && targets.length > 0) {
-            this.targetsList = targets.map(target => {
+            this.targetsList = targets.map((target: Target) => {
               const traccarStatus = target.traccarInfo?.status || 'offline';
               const isOnline = traccarStatus === 'online';
               
@@ -1224,7 +1252,74 @@ export class ManagementComponent implements OnInit, OnDestroy {
       }
   }
   showNoTargetMessage = false;
-  private async loadTargetsForUser(userId: string) {
+
+  // Método para cargar más targets (scroll infinito)
+  async loadMoreTargets() {
+    // Verificaciones de seguridad para evitar cargas múltiples
+    if (!this.selectedUser || this.loadingMoreTargets || !this.hasMoreTargets || this.loadingTargets) {
+      return;
+    }
+
+    console.log(`[SCROLL INFINITO] 🚀 Cargando más targets - offset: ${this.currentOffset}, hasMore: ${this.hasMoreTargets}`);
+    
+    this.loadingMoreTargets = true;
+    try {
+      await this.loadTargetsForUser(this.selectedUser._id, false);
+      console.log(`[SCROLL INFINITO] ✅ Targets cargados exitosamente - total: ${this.targets.length}`);
+      
+      // Subir el scroll 300px después de cargar nuevos targets
+      setTimeout(() => {
+        this.scrollUpAfterLoad();
+      }, 100);
+      
+    } catch (error) {
+      console.error('[SCROLL INFINITO] ❌ Error cargando más targets:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudieron cargar más dispositivos'
+      });
+    } finally {
+      this.loadingMoreTargets = false;
+    }
+  }
+
+  // Método para subir el scroll después de cargar nuevos targets
+  private scrollUpAfterLoad() {
+    const scrollContainer = document.querySelector('.management__content-body');
+    if (scrollContainer) {
+      const currentScrollTop = scrollContainer.scrollTop;
+      const newScrollTop = Math.max(0, currentScrollTop - 300);
+      scrollContainer.scrollTo({
+        top: newScrollTop,
+        behavior: 'smooth'
+      });
+      console.log(`[SCROLL INFINITO] 📈 Scroll ajustado: ${currentScrollTop}px → ${newScrollTop}px`);
+    }
+  }
+
+  // Propiedad para controlar el debounce del scroll
+  private scrollTimeout: any;
+
+  // Método para detectar scroll y cargar más contenido
+  onScroll(event: any) {
+    // Limpiar timeout anterior si existe
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
+    }
+
+    // Aplicar debounce de 100ms para evitar múltiples llamadas
+    this.scrollTimeout = setTimeout(() => {
+      const element = event.target;
+      const threshold = 150; // Aumentar threshold para evitar cargas prematuras
+      
+      // Verificar si estamos cerca del final y no estamos ya cargando
+      if (element.scrollTop + element.clientHeight >= element.scrollHeight - threshold) {
+        this.loadMoreTargets();
+      }
+    }, 100);
+  }
+  private async loadTargetsForUser(userId: string, resetPagination: boolean = true) {
     // Validar permisos antes de cargar targets/devices
     if (!this.canReadDevices()) {
       this.messageService.add({
@@ -1244,8 +1339,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
 
     try {
-      // Activar estado de carga específico para targets
-      
+      // Resetear paginación si es necesario
+      if (resetPagination) {
+        this.currentOffset = 0;
+        this.hasMoreTargets = true;
+        this.targets = [];
+      }
       
       const parentId = this.managementService.getCurrentUserId();
       this.loadingTargets = true;
@@ -1253,34 +1352,55 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Cargar targets propios y compartidos en paralelo
       const userEmail = this.selectedUser?.email;
       
-      const targetsPromise = this.targetsService.getTargetsByUserId(userId, parentId);
+      const targetsPromise = this.targetsService.getTargetsByUserId(userId, parentId, this.currentOffset, this.pageSize);
       const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
       
-      const [targets, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
+      const [targetsResponse, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
+      
+      // Extraer devices y totalCount de la respuesta
+      const targets = targetsResponse.devices;
+      this.totalTargetsCount = targetsResponse.totalCount;
       
       // Combinar targets: compartidos primero, luego propios (evitando duplicados)
       const ownTargetIds = new Set(targets.map(t => t._id));
       const uniqueSharedTargets = sharedTargets.filter(t => !ownTargetIds.has(t._id));
       const combinedTargets = [...uniqueSharedTargets, ...targets];
       
-      this.showNoTargetMessage = combinedTargets.length === 0;
-      this.targets = combinedTargets;
+      // Si es la primera carga, reemplazar. Si es scroll infinito, agregar
+      if (resetPagination) {
+        this.targets = combinedTargets;
+      } else {
+        // Para scroll infinito, solo agregar los targets propios (no los compartidos)
+        // Los targets compartidos solo se cargan en la primera carga
+        this.targets = [...this.targets, ...targets];
+      }
+      
+      // Verificar si hay más targets disponibles
+      this.hasMoreTargets = targets.length === this.pageSize;
+      this.currentOffset += this.pageSize;
+      
+      this.showNoTargetMessage = this.targets.length === 0;
       
       console.log('📋 Targets cargados:', {
         propios: targets.length,
         compartidos: uniqueSharedTargets.length,
-        total: combinedTargets.length,
+        total: this.targets.length,
+        offset: this.currentOffset - this.pageSize,
+        hasMore: this.hasMoreTargets,
         selectedUserEmail: userEmail,
         selectedUserName: this.selectedUser?.name + ' ' + this.selectedUser?.last_name
       });
       
-      if (combinedTargets && combinedTargets.length > 0) {
-        this.targetsList = combinedTargets.map((target, index) => {
+      if (this.targets && this.targets.length > 0) {
+        // Crear un Set con los IDs de targets compartidos para verificación rápida
+        const sharedTargetIds = new Set(uniqueSharedTargets.map(t => t._id));
+        
+        this.targetsList = this.targets.map((target, index) => {
           const traccarStatus = target.traccarInfo?.status || 'offline';
           const isOnline = traccarStatus === 'online';
           
-          // Determinar si es un target compartido (está en los primeros uniqueSharedTargets.length elementos)
-          const isShared = index < uniqueSharedTargets.length;
+          // Determinar si es un target compartido
+          const isShared = sharedTargetIds.has(target._id);
           
           return {
             name: target.name,
@@ -1457,13 +1577,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
     try {
       // Obtener la lista actualizada de targets
       const parentId = this.managementService.getCurrentUserId();
-      const updatedTargets = await this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId);
+      const updatedTargetsResponse = await this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId);
+      const updatedTargets = updatedTargetsResponse.devices;
       
       let statusChanges: string[] = [];
       let offlineChangesDetected = 0;
       
       // Comparar con el estado anterior y actualizar los que cambiaron
-      updatedTargets.forEach(updatedTarget => {
+      updatedTargets.forEach((updatedTarget: Target) => {
         const targetId = updatedTarget._id;
         const newStatus = updatedTarget.traccarInfo?.status || 'offline';
         const previousStatus = this.previousTargetsStatus.get(targetId);

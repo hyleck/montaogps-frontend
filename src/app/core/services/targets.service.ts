@@ -4,6 +4,12 @@ import { lastValueFrom, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { CreateTargetDto, Target, UpdateTargetDto, StopTimeResponse, RouteHistoryResponse, CreateProcessDto, ProcessResponse } from '../interfaces';
 
+// Interfaz para la respuesta con totalCount
+export interface TargetsResponse {
+  devices: Target[];
+  totalCount: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -14,6 +20,12 @@ export class TargetsService {
 
   async getAllTargets(): Promise<Target[]> {
     const observable = this.http.get<Target[]>(this.apiUrl);
+    return await lastValueFrom(observable);
+  }
+
+  async getTargetsWithPagination(parentId: string, offset: number = 0, limit: number = 30): Promise<TargetsResponse> {
+    const url = `${this.apiUrl}?parent=${parentId}&offset=${offset}&limit=${limit}`;
+    const observable = this.http.get<TargetsResponse>(url);
     return await lastValueFrom(observable);
   }
 
@@ -58,14 +70,16 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
-  async getTargetsByUserId(userId: string, parentId?: string): Promise<Target[]> {
+  async getTargetsByUserId(userId: string, parentId?: string, offset: number = 0, limit: number = 30): Promise<TargetsResponse> {
     let url = `${this.apiUrl}?user_id=${userId}`;
     
     if (parentId) {
       url += `&parent=${parentId}`;
     }
     
-    const observable = this.http.get<Target[]>(url);
+    url += `&offset=${offset}&limit=${limit}`;
+    
+    const observable = this.http.get<TargetsResponse>(url);
     return await lastValueFrom(observable);
   }
 

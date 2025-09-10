@@ -33,7 +33,7 @@
              
                     <div class="management__user-control-controls" *ngIf="!loading">
                         <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} {{ users.length }} </button>
-                        <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} {{ targets.length }} </button>
+                        <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} {{ totalTargetsCountDisplay }} </button>
                     </div>
                 </div>
                 <div class="management__user-control-content">
@@ -69,7 +69,7 @@
     
     
     
-                    <div class="management__content-body">
+                    <div class="management__content-body" (scroll)="onScroll($event)">
                         <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards management__content-cards--maps">
                             <ng-container *ngIf="!loading; else loadingSkeletonsMaps">
                                 <div *ngIf="!loading && users.length === 0" 
@@ -292,6 +292,22 @@
                                             </tr>
                                         </ng-template>
                                 </p-table>
+                                
+                                <!-- Loading para scroll infinito - vista de mapa -->
+                                <div *ngIf="isLoadingMoreTargets" class="loading-more-targets">
+                                    <div class="loading-content">
+                                        <i class="pi pi-spinner loading-spinner"></i>
+                                        <span>Cargando más dispositivos...</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Indicador de fin de lista - vista de mapa -->
+                                <div *ngIf="!hasMoreTargetsToLoad && targetsList.length > 0" class="end-of-list">
+                                    <div class="end-content">
+                                        <i class="pi pi-check-circle"></i>
+                                        <span>No hay más dispositivos para cargar</span>
+                                    </div>
+                                </div>
                             </div>
                               
                         </div>
@@ -376,7 +392,7 @@
                <div class="management__user-controls" *ngIf="!loading">
                 <div class="management__user-options">
                     <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( {{ users.length }} )</button>
-                    <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( {{ targets.length }} )</button>
+                    <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( {{ totalTargetsCountDisplay }} )</button>
                 </div>
                 <div class="management__user-back-button" *ngIf="canNavigateBack()">
                     <button (click)="goToParent()" class="button button--flat"> <i class="pi pi-arrow-left"></i> {{ translations.back | translate }}</button>
@@ -411,7 +427,7 @@
 
 
 
-                <div class="management__content-body">
+                <div class="management__content-body" (scroll)="onScroll($event)">
                     <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards">
                         <ng-container *ngIf="!loading; else loadingSkeletons">
                             <div *ngIf="!loading && users.length === 0" 
@@ -460,7 +476,7 @@
 
                     <div  *ngIf="managementService.getOp() === 't' && canReadDevices()" class="management__content-table">
                       
-                        <ng-container *ngIf="!loadingTargetsState; else loadingTargetsSkeletons">
+                        <ng-container *ngIf="!loadingTargetsState || isLoadingMoreTargets; else loadingTargetsSkeletons">
                             <div *ngIf="targetsLoadCompleted && targetsList.length === 0" 
                                  class="no-targets-message fade-in-message"
                                  [@fadeInOut]>
@@ -584,6 +600,22 @@
                                     </tr>
                                 </ng-template>
                             </p-table>
+                            
+                            <!-- Loading para scroll infinito - aparece debajo de los targets existentes -->
+                            <div *ngIf="isLoadingMoreTargets" class="loading-more-targets">
+                                <div class="loading-content">
+                                    <i class="pi pi-spinner loading-spinner"></i>
+                                    <span>Cargando más dispositivos...</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Indicador de fin de lista -->
+                            <div *ngIf="!hasMoreTargetsToLoad && targetsList.length > 0" class="end-of-list">
+                                <div class="end-content">
+                                    <i class="pi pi-check-circle"></i>
+                                    <span>No hay más dispositivos para cargar</span>
+                                </div>
+                            </div>
                         </div>
                         </ng-container>
                         

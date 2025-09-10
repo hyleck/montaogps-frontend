@@ -251,7 +251,8 @@ export class ReportsComponent implements OnInit {
         // Obtener targets del usuario actual
         const currentUser = this.authService.getCurrentUser();
         if (currentUser) {
-          this.targets = await this.targetsService.getTargetsByUserId(currentUser.id);
+          const targetsResponse = await this.targetsService.getTargetsByUserId(currentUser.id);
+          this.targets = targetsResponse.devices;
         }
       } catch (error) {
         console.error('Error cargando targets:', error);

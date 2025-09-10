@@ -1809,3 +1809,53 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   }
 }
 
+/* ====================================
+   SCROLL INFINITO - INDICADORES DE CARGA
+   ==================================== */
+
+.loading-more-targets {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 15px;
+  background: var(--globalColorCardBackground);
+  border-top: 1px solid var(--globalColorBorderLight);
+}
+
+.loading-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--managementColorTextUser);
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.loading-content i {
+  font-size: 14px;
+  color: var(--globalColorAccent);
+}
+
+.end-of-list {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 15px;
+  background: var(--globalColorCardBackground);
+  border-top: 1px solid var(--globalColorBorderLight);
+}
+
+.end-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--managementColorTextUser);
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.end-content i {
+  font-size: 14px;
+  color: #22c55e;
+}
+
