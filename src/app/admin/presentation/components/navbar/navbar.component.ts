@@ -82,7 +82,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   // Mapeo de tipos de proceso a números
   private processTypeMap: { [key: string]: number } = {
-    'restoration': 16 // Nuevo tipo de proceso para restauración
+    'restoration': 16, // Nuevo tipo de proceso para restauración
+    'deletion': 17 // Nuevo tipo de proceso para eliminación permanente
   };
 
   constructor(
@@ -881,6 +882,74 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Elimina permanentemente un target cancelado
+   */
+  async deleteTarget(targetId: string) {
+    console.log('🗑️ Iniciando eliminación permanente de target:', targetId);
+    
+    if (!targetId) {
+      console.error('❌ ID del target es requerido para eliminar');
+      return;
+    }
+
+    try {
+      // Mostrar confirmación más estricta para eliminación permanente
+      this.confirmationService.confirm({
+        message: '¿Está seguro de que desea ELIMINAR PERMANENTEMENTE este target? Esta acción no se puede deshacer.',
+        header: 'Confirmar eliminación permanente',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Sí, eliminar permanentemente',
+        rejectLabel: 'Cancelar',
+        acceptButtonStyleClass: 'p-button-danger',
+        accept: async () => {
+          try {
+            // Llamar al servicio para eliminar
+            console.log('📡 Ejecutando eliminación permanente...');
+            await this.targetsService.deleteTarget(targetId);
+            
+            // Mostrar mensaje de éxito
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Éxito',
+              detail: 'Target eliminado permanentemente'
+            });
+
+            // Registrar proceso de eliminación
+            await this.registerDeletionProcess(targetId);
+
+            // Actualizar la lista de cancelados
+            await this.loadCanceledTargets();
+            
+            // Notificar que se han actualizado objetivos para refrescar management
+            this.selectionService.notifyTargetsUpdated();
+            
+            // Cerrar el modal de detalles si está abierto
+            if (this.targetDetailsVisible && this.selectedTargetDetails?._id === targetId) {
+              this.closeTargetDetails();
+            }
+
+          } catch (error: any) {
+            console.error('❌ Error al eliminar target:', error);
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error.message || 'Error al eliminar el target'
+            });
+          }
+        }
+      });
+
+    } catch (error: any) {
+      console.error('❌ Error en el proceso de eliminación:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Error al procesar la eliminación'
+      });
+    }
+  }
+
+  /**
    * Registra un proceso de restauración para el target
    */
   private async registerRestorationProcess(targetId: string): Promise<void> {
@@ -933,6 +1002,63 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     } catch (error: any) {
       console.error('❌ Error al registrar proceso de restauración:', error);
+      // No mostramos error al usuario para no interrumpir el flujo, solo lo logueamos
+    }
+  }
+
+  /**
+   * Registra un proceso de eliminación para el target
+   */
+  private async registerDeletionProcess(targetId: string): Promise<void> {
+    try {
+      console.log('📝 Registrando proceso de eliminación para target:', targetId);
+      
+      // Obtener información del target eliminado
+      const targetDetails = this.selectedTargetDetails || this.canceledTargets.find(t => t._id === targetId);
+      if (!targetDetails) {
+        console.warn('⚠️ No se encontró información del target para registrar el proceso');
+        return;
+      }
+
+      const currentUser = this.authService.getCurrentUser();
+      const currentDate = new Date().toISOString();
+
+      // Preparar los datos del proceso de eliminación
+      const processData: CreateProcessDto = {
+        type: this.processTypeMap['deletion'] || 17, // Tipo de eliminación
+        registrationDate: currentDate,
+        description: 'Target eliminado permanentemente',
+        details: `El target "${targetDetails.name}" fue eliminado permanentemente del sistema por el usuario ${currentUser?.name || 'Sistema'}.`,
+        target: {
+          _id: targetDetails._id,
+          name: targetDetails.name,
+          device_imei: targetDetails.device_imei || targetDetails.imei,
+          plate: targetDetails.plate || 'N/A'
+        },
+        user: {
+          _id: currentUser?.id || 'system',
+          name: currentUser?.name || 'Sistema',
+          email: currentUser?.email || 'system@montaogps.com'
+        },
+        reference: targetId,
+        before: {
+          status: 'canceled',
+          name: targetDetails.name
+        },
+        after: {
+          status: 'deleted',
+          name: targetDetails.name
+        },
+        creator: currentUser?.id || 'system'
+      };
+
+      // Crear el proceso
+      await this.targetsService.createProcess(processData);
+      
+      console.log('✅ Proceso de eliminación registrado exitosamente');
+
+    } catch (error: any) {
+      console.error('❌ Error al registrar proceso de eliminación:', error);
       // No mostramos error al usuario para no interrumpir el flujo, solo lo logueamos
     }
   }

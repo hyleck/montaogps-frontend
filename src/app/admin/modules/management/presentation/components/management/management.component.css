@@ -239,10 +239,22 @@
   grid-template-rows: 60px auto auto auto auto;
 }
 .management__user-card--maps{
-  grid-template-rows: 30px auto auto ;
+  grid-template-rows:  auto auto auto ;
   padding-top: 10px;
   gap: 15px;
+}
 
+.management__user-card--maps .management__user-card-title,
+.management__user-card--maps .management__user-card-subtitle,
+.management__user-card--maps .management__user-card-phone,
+.management__user-card--maps .management__user-card-footer {
+  display: block;
+  text-align: center;
+  max-width: 170px;
+  margin: 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .management__user-card:hover {
@@ -261,28 +273,60 @@
 }
 
 .management__user-card-title {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: block;
+  text-align: center;
   color: var(--globalColorTextMuted);
   font-size: 14px;
+  max-width: 170px;
+  margin: 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .management__user-card-subtitle {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: block;
+  text-align: center;
   color: var(--globalColorTextMuted);
   font-size: 13px;
+  max-width: 170px;
+  margin: 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .management__user-card-footer {
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  display: block;
+  text-align: center;
   color: var(--globalColorTextMuted);
   font-size: 13px;
   padding-bottom: 20px;
+  max-width: 170px;
+  margin: 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.management__user-card-phone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--globalColorTextMuted);
+  font-size: 12px;
+  max-width: 170px;
+  margin: 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.management__user-card-phone i {
+  font-size: 11px;
+  color: var(--globalColorAccent);
+  flex-shrink: 0;
 }
 
 .management__user-card-controls {
@@ -346,6 +390,7 @@
   grid-template-columns: 1fr ;
   
 }
+
 
 .management__input-search {
   position: relative;
@@ -882,6 +927,15 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
   .dark .external-user-target .button--primary-flat-icon .pi-user {
       color: #fb923c !important; /* Naranja más claro para tema oscuro */
+  }
+
+  /* Estilo específico para el icono de eliminar */
+  .button--primary-flat-icon .pi-trash {
+      color: #dc3545 !important; /* Rojo para indicar acción destructiva */
+  }
+
+  .dark .button--primary-flat-icon .pi-trash {
+      color: #ef4444 !important; /* Rojo más claro para tema oscuro */
   }
 
 
@@ -1431,6 +1485,7 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   border: 2px solid rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
+  margin-bottom: 20px;
 }
 
 .management__user-card--shared .management__user-card-icon::before {
@@ -1558,12 +1613,15 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
 /* Ajustes para el título en usuarios compartidos */
 .management__user-card--shared .management__user-card-title {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
+  display: block;
+  text-align: center;
   position: relative;
   z-index: 2;
+  max-width: 170px;
+  margin: 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Texto mejorado en usuarios compartidos */
@@ -1579,6 +1637,13 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   font-weight: 500;
   position: relative;
   z-index: 2;
+  display: block;
+  text-align: center;
+  max-width: 170px;
+  margin: 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .management__user-card--shared .management__user-card-footer {
@@ -1586,6 +1651,36 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   font-weight: 500;
   position: relative;
   z-index: 2;
+  display: block;
+  text-align: center;
+  max-width: 170px;
+  margin: 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.management__user-card--shared .management__user-card-phone {
+  color: var(--managementSharedUserTextSubtitle);
+  font-weight: 500;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  max-width: 170px;
+  margin: 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.management__user-card--shared .management__user-card-phone i {
+  color: var(--managementSharedUserTextTitle);
+  font-size: 11px;
+  flex-shrink: 0;
 }
 
 /* =====================================
@@ -1814,26 +1909,74 @@ pointer-events: none; /* Desactivar interacción mientras carga */
    ==================================== */
 
 .loading-more-targets {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   padding: 15px;
   background: var(--globalColorCardBackground);
   border-top: 1px solid var(--globalColorBorderLight);
 }
 
-.loading-content {
+.loading-more-targets .loading-content {
   display: flex;
+  justify-content: center;
   align-items: center;
   gap: 8px;
   color: var(--managementColorTextUser);
   font-size: 13px;
   opacity: 0.7;
+  margin-top: 15px;
 }
 
-.loading-content i {
+.loading-more-targets .loading-content i {
   font-size: 14px;
   color: var(--globalColorAccent);
+}
+
+/* Skeleton para vista de tabla (desktop) */
+.skeleton-targets-container {
+  width: 100%;
+}
+
+.skeleton-target-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 80px;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--globalColorBorderLight);
+  align-items: center;
+}
+
+.skeleton-target-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Skeleton para vista móvil (cards) */
+.skeleton-targets-mobile-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 8px;
+}
+
+.skeleton-target-card {
+  background: var(--globalColorCardBackground);
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.skeleton-target-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.skeleton-target-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .end-of-list {

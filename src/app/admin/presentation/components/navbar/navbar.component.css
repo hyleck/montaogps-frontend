@@ -344,6 +344,7 @@
 }
 
 .restore-btn,
+.delete-btn,
 .details-btn {
   background: none;
   border: 1px solid var(--managementColorBorderInput);
@@ -370,6 +371,17 @@
   transform: translateY(-1px);
 }
 
+.delete-btn {
+  border-color: #dc3545;
+  color: #dc3545;
+}
+
+.delete-btn:hover {
+  background-color: #dc3545;
+  color: white;
+  transform: translateY(-1px);
+}
+
 .details-btn:hover {
   background-color: var(--managementColorInputSearch);
   border-color: var(--globalColorInputBorderAccent);
@@ -377,6 +389,7 @@
 }
 
 .restore-btn i,
+.delete-btn i,
 .details-btn i {
   font-size: 1rem;
 }

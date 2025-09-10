@@ -138,6 +138,13 @@
                                     <i class="pi pi-refresh"></i>
                                 </button>
                                 <button 
+                                    type="button"
+                                    class="delete-btn"
+                                    (click)="deleteTarget(target._id!)"
+                                    title="{{ 'navbar.deleteTarget' | translate }}">
+                                    <i class="pi pi-trash"></i>
+                                </button>
+                                <button 
                                     class="details-btn"
                                     (click)="showTargetDetails(target)"
                                     title="{{ 'navbar.viewDetails' | translate }}">

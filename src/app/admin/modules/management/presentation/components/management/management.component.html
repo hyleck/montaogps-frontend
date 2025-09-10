@@ -91,11 +91,12 @@
                                 <div *ngFor="let user of users" class="management__user-card management__user-card--maps" [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
                                     <div class="management__user-card-title"> 
                                         <strong>{{ user.name }} {{ user.last_name }}</strong>
-                                        <span *ngIf="isSharedUser(user)" class="management__shared-badge management__shared-badge--compact">
-                                            <i class="pi pi-share-alt"></i> Compartido
-                                        </span>
+                                        
                                     </div>
                                     <div class="management__user-card-subtitle"><span>{{ user.email }}</span></div>
+                                    <div class="management__user-card-phone" *ngIf="user.phone">
+                                        <span> {{ user.phone }}</span>
+                                    </div>
                                     <div class="management__user-card-controls">
                                         <button (click)="enterUser(user)" class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
                                         <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario" *ngIf="canUpdateUsers()"> <i class="pi pi-pencil" ></i> </button>
@@ -274,6 +275,13 @@
                                                                 <i class="pi pi-ban" ></i> 
                                                             </button>
                                                             <button 
+                                                                *ngIf="isCurrentUserRoot"
+                                                                class="button button--primary-flat-icon" 
+                                                                title="Eliminar permanentemente" 
+                                                                (click)="deleteTarget(target)"> 
+                                                                <i class="pi pi-trash" ></i> 
+                                                            </button>
+                                                            <button 
                                                                 *ngIf="shouldShowParentUserButton(target)"
                                                                 class="button button--primary-flat-icon" 
                                                                 title="Abrir usuario propietario (nueva pestaña)" 
@@ -295,6 +303,22 @@
                                 
                                 <!-- Loading para scroll infinito - vista de mapa -->
                                 <div *ngIf="isLoadingMoreTargets" class="loading-more-targets">
+                                    <!-- Skeleton de targets para vista móvil -->
+                                    <div class="skeleton-targets-mobile-container">
+                                        <div class="skeleton-target-card" *ngFor="let item of [1,2,3]">
+                                            <div class="skeleton-target-card-header">
+                                                <!-- <p-skeleton [ngStyle]="{ 'width': '24px', 'height': '24px', 'border-radius': '50%' }"></p-skeleton> -->
+                                                <p-skeleton [ngStyle]="{ 'width': '120px', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
+                                            </div>
+                                            <div class="skeleton-target-card-body">
+                                                <p-skeleton [ngStyle]="{ 'width': '100%', 'height': '16px', 'border-radius': '4px' }"></p-skeleton>
+                                                <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '14px', 'border-radius': '4px', 'margin-top': '8px' }"></p-skeleton>
+                                                <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '14px', 'border-radius': '4px', 'margin-top': '4px' }"></p-skeleton>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Loading original -->
                                     <div class="loading-content">
                                         <i class="pi pi-spinner loading-spinner"></i>
                                         <span>Cargando más dispositivos...</span>
@@ -444,13 +468,11 @@
                             </div>
                             <div *ngFor="let user of users" class="management__user-card" [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
                                 <div class="management__user-card-icon"> 
-                                    <i class="pi" [ngClass]="isSharedUser(user) ? 'pi-users' : 'pi-user'"></i> 
+                                    <i class="pi" [ngClass]="isSharedUser(user) ? 'pi-share-alt' : 'pi-user'"></i> 
                                 </div>
                                 <div class="management__user-card-title"> 
                                     <strong>{{ user.name }} {{ user.last_name }}</strong>
-                                    <span *ngIf="isSharedUser(user)" class="management__shared-badge">
-                                        <i class="pi pi-share-alt"></i> Compartido
-                                    </span>
+                                   
                                 </div>
                                 <div class="management__user-card-subtitle"> <span>{{ user.email }}</span> </div>
                                 <div class="management__user-card-footer">{{ user.phone }}</div>
@@ -582,6 +604,13 @@
                                                         <i class="pi pi-ban" ></i> 
                                                     </button>
                                                     <button 
+                                                        *ngIf="isCurrentUserRoot"
+                                                        class="button button--primary-flat-icon" 
+                                                        title="Eliminar permanentemente" 
+                                                        (click)="deleteTarget(target)"> 
+                                                        <i class="pi pi-trash" ></i> 
+                                                    </button>
+                                                    <button 
                                                         *ngIf="shouldShowParentUserButton(target)"
                                                         class="button button--primary-flat-icon" 
                                                         title="Abrir usuario propietario (nueva pestaña)" 
@@ -603,6 +632,32 @@
                             
                             <!-- Loading para scroll infinito - aparece debajo de los targets existentes -->
                             <div *ngIf="isLoadingMoreTargets" class="loading-more-targets">
+                                <!-- Skeleton de targets -->
+                                <div class="skeleton-targets-container">
+                                    <div class="skeleton-target-row" *ngFor="let item of [1,2,3,4,5,6,7,8,9,10]">
+                                        <div class="skeleton-target-cell">
+                                            <!-- <p-skeleton [ngStyle]="{ 'width': '100%', 'height': '20px', 'border-radius': '4px' }"></p-skeleton> -->
+                                            <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '16px', 'border-radius': '4px', 'margin-top': '4px' }"></p-skeleton>
+                                        </div>
+                                        <div class="skeleton-target-cell">
+                                            <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
+                                        </div>
+                                        <div class="skeleton-target-cell">
+                                            <p-skeleton [ngStyle]="{ 'width': '40%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
+                                        </div>
+                                        <div class="skeleton-target-cell">
+                                            <p-skeleton [ngStyle]="{ 'width': '30%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
+                                        </div>
+                                        <div class="skeleton-target-cell">
+                                            <div style="display: flex; gap: 4px;">
+                                                <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Loading original -->
                                 <div class="loading-content">
                                     <i class="pi pi-spinner loading-spinner"></i>
                                     <span>Cargando más dispositivos...</span>

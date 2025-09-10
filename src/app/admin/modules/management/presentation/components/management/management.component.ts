@@ -77,6 +77,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
     { label: 'Dispositivo dañado', value: 'device_damaged' },
     { label: 'Sin razón específica', value: 'no_specific_reason' }
   ];
+
+  // ====================================
+  // PROPIEDADES PARA PERMISOS DE ROOT
+  // ====================================
+  isCurrentUserRoot: boolean = false;
   
   // Estado específico de carga de targets
   private loadingTargets: boolean = false;
@@ -259,12 +264,94 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   // ====================================
+  // MÉTODOS PARA PERMISOS DE ROOT
+  // ====================================
+  
+  /**
+   * Verifica si el usuario actual tiene permisos de root
+   */
+  checkCurrentUserRootStatus(): void {
+    const currentUser = this.authService.getCurrentUser();
+    this.isCurrentUserRoot = !!(currentUser?.root === true || String(currentUser?.root) === 'true');
+    console.log('🔍 Verificando estado root del usuario:', {
+      currentUser: currentUser?.name,
+      isRoot: this.isCurrentUserRoot,
+      rootValue: currentUser?.root
+    });
+  }
+
+  /**
+   * Elimina permanentemente un target (solo para usuarios root)
+   */
+  async deleteTarget(target: any): Promise<void> {
+    if (!this.isCurrentUserRoot) {
+      console.warn('⚠️ Solo usuarios root pueden eliminar targets permanentemente');
+      return;
+    }
+
+    console.log('🗑️ Iniciando eliminación permanente de target:', target);
+
+    try {
+      // Mostrar confirmación más estricta para eliminación permanente
+      this.confirmationService.confirm({
+        message: `¿Está seguro de que desea ELIMINAR PERMANENTEMENTE el target "${target.name}"? Esta acción no se puede deshacer.`,
+        header: 'Confirmar eliminación permanente',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Sí, eliminar permanentemente',
+        rejectLabel: 'Cancelar',
+        acceptButtonStyleClass: 'p-button-danger',
+        accept: async () => {
+          try {
+            // Llamar al servicio para eliminar
+            console.log('📡 Ejecutando eliminación permanente...');
+            await this.targetsService.deleteTarget(target._id);
+            
+            // Mostrar mensaje de éxito
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Éxito',
+              detail: 'Target eliminado permanentemente'
+            });
+
+            // Actualizar la lista de targets
+            if (this.selectedUser) {
+              await this.loadTargetsForUser(this.selectedUser._id);
+            }
+            
+            // Notificar que se han actualizado objetivos
+            this.selectionService.notifyTargetsUpdated();
+
+          } catch (error: any) {
+            console.error('❌ Error al eliminar target:', error);
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: error.message || 'Error al eliminar el target'
+            });
+          }
+        }
+      });
+
+    } catch (error: any) {
+      console.error('❌ Error en el proceso de eliminación:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Error al procesar la eliminación'
+      });
+    }
+  }
+
+  // ====================================
   // LIFECYCLE HOOKS
   // ====================================
   
   ngOnInit(): void {
     // Sincronizar la selección actual con el servicio
     this.currentMapSelection = this.mapProviderService.selectedMap;
+    
+    // Verificar permisos de root del usuario actual
+    this.checkCurrentUserRootStatus();
     
     this.checkMobileView();
     this.setupInitialState();
@@ -684,6 +771,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
         
         this.selectedTargetForMap = target;
         this.startPolling();
+        
+        // Scroll automático hacia el target seleccionado
+        this.scrollToSelectedTarget();
       }
 
       // En vista móvil, mostrar el mapa en pantalla completa
@@ -1114,6 +1204,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
       
       // Iniciar polling para el nuevo target seleccionado
       this.startPolling();
+      
+      // Scroll automático hacia el target seleccionado
+      this.scrollToSelectedTarget();
     } else {
       console.warn('⚠️ Target no encontrado en la lista:', targetId);
     }
@@ -1289,13 +1382,46 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const scrollContainer = document.querySelector('.management__content-body');
     if (scrollContainer) {
       const currentScrollTop = scrollContainer.scrollTop;
-      const newScrollTop = Math.max(0, currentScrollTop - 300);
+      const newScrollTop = Math.max(0, currentScrollTop - 100);
       scrollContainer.scrollTo({
         top: newScrollTop,
         behavior: 'smooth'
       });
       console.log(`[SCROLL INFINITO] 📈 Scroll ajustado: ${currentScrollTop}px → ${newScrollTop}px`);
     }
+  }
+
+  // Método para hacer scroll automático hacia el target seleccionado
+  private scrollToSelectedTarget() {
+    if (!this.selectedTargetForMap) {
+      return;
+    }
+
+    // Esperar un poco para que el DOM se actualice
+    setTimeout(() => {
+      const selectedTargetElement = document.querySelector('.target-selected-for-map');
+      const scrollContainer = document.querySelector('.management__content-body');
+      
+      if (selectedTargetElement && scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const targetRect = selectedTargetElement.getBoundingClientRect();
+        
+        // Calcular la posición relativa del target dentro del contenedor
+        const targetTop = targetRect.top - containerRect.top + scrollContainer.scrollTop;
+        const targetBottom = targetRect.bottom - containerRect.top + scrollContainer.scrollTop;
+        const containerHeight = containerRect.height;
+        
+        // Calcular la posición de scroll para centrar el target
+        const scrollPosition = targetTop - (containerHeight / 2) + (targetRect.height / 2);
+        
+        scrollContainer.scrollTo({
+          top: Math.max(0, scrollPosition),
+          behavior: 'smooth'
+        });
+        
+        console.log(`[SCROLL TARGET] 🎯 Scroll hacia target seleccionado: ${this.selectedTargetForMap.name}`);
+      }
+    }, 100);
   }
 
   // Propiedad para controlar el debounce del scroll

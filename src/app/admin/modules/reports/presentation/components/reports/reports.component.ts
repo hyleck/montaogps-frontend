@@ -547,12 +547,32 @@ export class ReportsComponent implements OnInit {
         });
       } finally {
         this.generatingReport = false;
+        
+        // Scroll automático hacia abajo en móvil después de generar reporte
+        this.scrollToBottomOnMobile();
       }
     }
 
     private async simulateReportGeneration(): Promise<void> {
       // Simular tiempo de generación
       return new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    private scrollToBottomOnMobile(): void {
+      // Verificar si estamos en móvil (ancho de pantalla <= 768px)
+      if (window.innerWidth <= 768) {
+        // Esperar un poco para que el DOM se actualice
+        setTimeout(() => {
+          const container = document.querySelector('.reports-container');
+          if (container) {
+            container.scrollTo({
+              top: container.scrollHeight,
+              behavior: 'smooth'
+            });
+            console.log('[REPORTS] 📱 Scroll automático hacia abajo en móvil');
+          }
+        }, 300);
+      }
     }
 
     /**

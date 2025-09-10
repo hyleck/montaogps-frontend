@@ -410,12 +410,31 @@ input[type="datetime-local"] {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .reports-container {
+    height: calc(100vh - 50px);
+    padding: 8px;
+  }
+  
   .reports__content {
     flex-direction: column;
+    height: 100%;
   }
   
   .reports__filters-panel {
     width: 100%;
+    flex-shrink: 0;
+    max-height: 25vh;
+    overflow-y: auto;
+  }
+  
+  .reports__main-area {
+    flex: 1;
+    min-height: 75vh;
+  }
+  
+  .main-area__content {
+    height: 100%;
+    padding: 8px;
   }
   
   .date-range-inputs {
