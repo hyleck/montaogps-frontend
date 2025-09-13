@@ -80,6 +80,14 @@ export class ReportsComponent implements OnInit {
     // Target ID específico desde la URL
     targetIdFromUrl: string | null = null;
     
+    // Estado del target seleccionado para determinar opciones rápidas
+    isTargetOffline: boolean = false;
+    
+    // Obtener opciones rápidas según el estado del target
+    get availableQuickDateRanges() {
+      return this.isTargetOffline ? this.quickDateRangesOffline : this.quickDateRanges;
+    }
+    
     // Filtros del reporte
     reportFilter: ReportFilter = {
       reportType: 'movements',
@@ -107,12 +115,12 @@ export class ReportsComponent implements OnInit {
 
     // Opciones base para los dropdowns (sin Historial de Recorrido)
     private baseReportTypes = [
-      { label: 'Reporte de Movimientos', value: 'movements', icon: 'pi pi-map' },
-      { label: 'Reporte de Paradas', value: 'stops', icon: 'pi pi-pause' },
-      { label: 'Reporte de Velocidad', value: 'speed', icon: 'pi pi-clock' },
-      { label: 'Reporte de Combustible', value: 'fuel', icon: 'pi pi-dollar' },
-      { label: 'Reporte de Actividad', value: 'activity', icon: 'pi pi-chart-line' },
-      { label: 'Reporte Detallado', value: 'detailed', icon: 'pi pi-list' }
+      // { label: 'Reporte de Movimientos', value: 'movements', icon: 'pi pi-map' },
+      // { label: 'Reporte de Paradas', value: 'stops', icon: 'pi pi-pause' },
+      // { label: 'Reporte de Velocidad', value: 'speed', icon: 'pi pi-clock' },
+      // { label: 'Reporte de Combustible', value: 'fuel', icon: 'pi pi-dollar' },
+      // { label: 'Reporte de Actividad', value: 'activity', icon: 'pi pi-chart-line' },
+      // { label: 'Reporte Detallado', value: 'detailed', icon: 'pi pi-list' }
     ];
 
     // Historial de Recorrido (solo disponible con target en URL)
@@ -198,6 +206,58 @@ export class ReportsComponent implements OnInit {
       }
     ];
 
+    // Presets de fechas rápidas para targets offline (30 días antes de última ubicación)
+    quickDateRangesOffline = [
+      { 
+        label: '30 días antes de última ubicación', 
+        value: 'fromLastLocation',
+        getRange: (lastUpdate: Date) => {
+          const fromDate = new Date(lastUpdate);
+          fromDate.setDate(fromDate.getDate() - 30);
+          return {
+            start: fromDate,
+            end: lastUpdate
+          };
+        }
+      },
+      { 
+        label: '15 días antes de última ubicación', 
+        value: 'fromLastLocationMinus15Days',
+        getRange: (lastUpdate: Date) => {
+          const fromDate = new Date(lastUpdate);
+          fromDate.setDate(fromDate.getDate() - 15);
+          return {
+            start: fromDate,
+            end: lastUpdate
+          };
+        }
+      },
+      { 
+        label: '7 días antes de última ubicación', 
+        value: 'fromLastLocationMinus7Days',
+        getRange: (lastUpdate: Date) => {
+          const fromDate = new Date(lastUpdate);
+          fromDate.setDate(fromDate.getDate() - 7);
+          return {
+            start: fromDate,
+            end: lastUpdate
+          };
+        }
+      },
+      { 
+        label: '3 días antes de última ubicación', 
+        value: 'fromLastLocationMinus3Days',
+        getRange: (lastUpdate: Date) => {
+          const fromDate = new Date(lastUpdate);
+          fromDate.setDate(fromDate.getDate() - 3);
+          return {
+            start: fromDate,
+            end: lastUpdate
+          };
+        }
+      }
+    ];
+
     constructor(
       private targetsService: TargetsService,
       private protocolsService: ProtocolsService,
@@ -219,24 +279,24 @@ export class ReportsComponent implements OnInit {
       this.loadTargets();
       
       // Capturar targetId de la URL si existe (parámetro de ruta)
-      this.route.params.subscribe(params => {
+      this.route.params.subscribe(async params => {
         const targetId = params['targetId'];
         if (targetId) {
           this.targetIdFromUrl = targetId; // Almacenar el target ID de la ruta
           this.updateAvailableReportTypes(true); // Habilitar Historial de Recorrido
-          this.preselectTarget(targetId);
+          await this.preselectTarget(targetId);
         }
       });
 
       // Capturar query parameters (target y type)
-      this.route.queryParams.subscribe(queryParams => {
+      this.route.queryParams.subscribe(async queryParams => {
         const target = queryParams['target'];
         const type = queryParams['type'];
         
         if (target) {
           this.targetIdFromUrl = target; // Almacenar el target ID de la URL
           this.updateAvailableReportTypes(true); // Habilitar Historial de Recorrido
-          this.preselectTarget(target);
+          await this.preselectTarget(target);
         }
         
         if (type) {
@@ -284,36 +344,78 @@ export class ReportsComponent implements OnInit {
       }
     }
 
-    private preselectTarget(targetId: string): void {
-      // Esperar a que los targets se carguen antes de preseleccionar
-      const checkTargets = () => {
-        if (this.targets.length > 0) {
-          const targetToSelect = this.targets.find(target => 
-            target._id === targetId || target.id === targetId
-          );
+    private async preselectTarget(targetId: string): Promise<void> {
+      try {
+        console.log('🔍 [REPORTES] Capturando target ID de la URL:', targetId);
+        
+        // Cargar información completa del target usando el servicio
+        const targetInfo = await this.targetsService.getTargetById(targetId);
+        
+        console.log('🔍 [REPORTES] Información completa del target cargada:', {
+          targetId: targetId,
+          targetInfo: targetInfo,
+          targetName: targetInfo.name,
+          targetImei: targetInfo.device_imei,
+          targetPlate: targetInfo.plate,
+          targetStatus: targetInfo.status,
+          targetPlan: targetInfo.plan,
+          targetTraccarInfo: targetInfo.traccarInfo,
+          targetCreatedAt: targetInfo.created_at,
+          targetUpdatedAt: targetInfo.updated_at
+        });
+        
+        // Buscar el target en la lista cargada para mantener consistencia
+        const targetToSelect = this.targets.find(target => 
+          target._id === targetId || target.id === targetId
+        );
+        
+        if (targetToSelect) {
+          // Usar el target de la lista cargada (mantiene consistencia con la UI)
+          this.reportFilter.selectedTargets = [targetToSelect];
           
-          if (targetToSelect) {
-            this.reportFilter.selectedTargets = [targetToSelect];
-            
-            // Mostrar mensaje informativo
-            this.messageService.add({
-              severity: 'info',
-              summary: 'Target seleccionado',
-              detail: `Se ha seleccionado "${targetToSelect.name || targetToSelect.alias}" para el reporte`
-            });
-          } else {
-            console.warn('⚠️ Target no encontrado con ID:', targetId);
-          }
-        } else if (!this.loading) {
-          // Si no está cargando y no hay targets, el target no existe
-          console.warn('⚠️ No se encontraron targets o el target no existe');
+          console.log('🔍 [REPORTES] Target preseleccionado desde lista cargada:', targetToSelect);
         } else {
-          // Reintentar después de un momento si aún está cargando
-          setTimeout(checkTargets, 100);
+          // Si no está en la lista cargada, usar la información completa del servicio
+          this.reportFilter.selectedTargets = [targetInfo];
+          
+          console.log('🔍 [REPORTES] Target preseleccionado desde servicio (no encontrado en lista):', targetInfo);
         }
-      };
-      
-      checkTargets();
+        
+        // Verificar si el target está online y ajustar fechas si es necesario
+        this.adjustDateRangeBasedOnTargetStatus(targetInfo);
+        
+        // Mostrar mensaje informativo
+        this.messageService.add({
+          severity: 'info',
+          summary: 'Target seleccionado',
+          detail: `Se ha seleccionado "${targetInfo.name}" para el reporte`
+        });
+        
+      } catch (error) {
+        console.error('❌ [REPORTES] Error cargando información del target:', error);
+        
+        // Fallback: intentar encontrar en la lista cargada
+        const checkTargets = () => {
+          if (this.targets.length > 0) {
+            const targetToSelect = this.targets.find(target => 
+              target._id === targetId || target.id === targetId
+            );
+            
+            if (targetToSelect) {
+              this.reportFilter.selectedTargets = [targetToSelect];
+              console.log('🔍 [REPORTES] Target encontrado en lista cargada (fallback):', targetToSelect);
+            } else {
+              console.warn('⚠️ [REPORTES] Target no encontrado con ID:', targetId);
+            }
+          } else if (!this.loading) {
+            console.warn('⚠️ [REPORTES] No se encontraron targets o el target no existe');
+          } else {
+            setTimeout(checkTargets, 100);
+          }
+        };
+        
+        checkTargets();
+      }
     }
 
     private preselectReportType(type: string): void {
@@ -351,7 +453,25 @@ export class ReportsComponent implements OnInit {
     }
 
     onQuickDateSelect(preset: any): void {
-      const range = preset.getRange();
+      let range;
+      
+      // Verificar si es una opción offline que requiere lastUpdate
+      if (preset.value.startsWith('fromLastLocation')) {
+        const selectedTarget = this.reportFilter.selectedTargets[0];
+        if (selectedTarget?.traccarInfo?.lastUpdate) {
+          const lastUpdate = new Date(selectedTarget.traccarInfo.lastUpdate);
+          range = preset.getRange(lastUpdate);
+        } else {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Opción no disponible',
+            detail: 'No se encontró información de última ubicación para este dispositivo'
+          });
+          return;
+        }
+      } else {
+        range = preset.getRange();
+      }
       
       // Convertir las fechas al formato correcto para los inputs de tipo date
       this.reportFilter.dateRange = {
@@ -411,6 +531,55 @@ export class ReportsComponent implements OnInit {
         start: this.formatDateForInput(yesterday),
         end: this.formatDateForInput(today)
       };
+    }
+
+    /**
+     * Ajusta el rango de fechas basándose en el estado del target
+     * Si el target no está online, usa la fecha de lastUpdate como "desde"
+     */
+    private adjustDateRangeBasedOnTargetStatus(targetInfo: any): void {
+      console.log('🔍 [REPORTES] Verificando estado del target:', {
+        targetName: targetInfo.name,
+        traccarStatus: targetInfo.traccarInfo?.status,
+        lastUpdate: targetInfo.traccarInfo?.lastUpdate
+      });
+
+      // Determinar si el target está offline
+      this.isTargetOffline = targetInfo.traccarInfo?.status !== 'online' && !!targetInfo.traccarInfo?.lastUpdate;
+
+      // Verificar si el target no está online
+      if (this.isTargetOffline) {
+        const lastUpdate = new Date(targetInfo.traccarInfo.lastUpdate);
+        const fromDate = new Date(lastUpdate);
+        fromDate.setDate(fromDate.getDate() - 30); // 30 días antes de lastUpdate
+        
+        console.log('🔍 [REPORTES] Target offline detectado, ajustando fechas desde 30 días antes de última ubicación:', {
+          lastUpdate: lastUpdate.toISOString(),
+          fromDate: fromDate.toISOString(),
+          range: '30 días antes de lastUpdate hasta lastUpdate'
+        });
+
+        // Establecer la fecha "desde" como 30 días antes de lastUpdate y "hasta" como lastUpdate
+        this.reportFilter.dateRange = {
+          start: this.formatDateForInput(fromDate),
+          end: this.formatDateForInput(lastUpdate)
+        };
+
+        // Mostrar mensaje informativo
+        this.messageService.add({
+          severity: 'info',
+          summary: 'Fechas ajustadas',
+          detail: `El dispositivo está offline. Se ha ajustado el rango de fechas desde la última ubicación: ${lastUpdate.toLocaleString()}`
+        });
+
+        console.log('🔍 [REPORTES] Fechas ajustadas para target offline:', {
+          start: this.reportFilter.dateRange.start,
+          end: this.reportFilter.dateRange.end
+        });
+      } else {
+        console.log('🔍 [REPORTES] Target online o sin lastUpdate, usando fechas por defecto');
+        this.isTargetOffline = false;
+      }
     }
 
     onReportTypeChange(): void {
@@ -688,7 +857,7 @@ export class ReportsComponent implements OnInit {
         const deviceImei = selectedTarget?.device_imei || selectedTarget?.imei;
         
         if (!deviceImei) {
-          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un IMEI válido`);
+          throw new Error(`El dispositivo "${selectedTarget.name}" no tiene un IMEI válido`);
         }
 
         // Convertir fechas a formato UTC explícitamente
@@ -842,7 +1011,7 @@ export class ReportsComponent implements OnInit {
         const deviceImei = selectedTarget?.device_imei || selectedTarget?.imei;
         
         if (!deviceImei) {
-          throw new Error(`El dispositivo "${selectedTarget.name || selectedTarget.alias}" no tiene un IMEI válido`);
+          throw new Error(`El dispositivo "${selectedTarget.name}" no tiene un IMEI válido`);
         }
 
         // Validar y convertir fechas

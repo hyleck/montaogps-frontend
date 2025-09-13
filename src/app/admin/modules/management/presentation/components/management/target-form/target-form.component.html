@@ -816,67 +816,88 @@
                                     </div>
                                 </div>
 
-                                <!-- Columna derecha: Chat -->
-                                <div class="sms-chat-column">
-                                    <div class="chat-container">
-                                        <div class="chat-header">
-                                            <h4>{{ translate('management.targetForm.messageHistory') }}</h4>
+                                <!-- Columna derecha: Terminal SMS -->
+                                <div class="sms-terminal-column">
+                                    <div class="terminal-container">
+                                        <div class="terminal-header">
+                                            <div class="terminal-title">
+                                                <i class="pi pi-terminal"></i>
+                                                <span>{{ translate('management.targetForm.messageHistory') }}</span>
+                                            </div>
                                             <button 
                                                 type="button" 
-                                                class="refresh-btn"
+                                                class="terminal-refresh-btn"
                                                 (click)="loadSmsMessages()"
                                                 [disabled]="isLoadingSmsMessages"
+                                                title="Actualizar mensajes"
                                             >
                                                 <i class="pi" [ngClass]="isLoadingSmsMessages ? 'pi-spinner loading-spinner' : 'pi-refresh'"></i>
                                             </button>
                                         </div>
                                         
-                                        <div class="messages-area" #chatMessages>
-                                            <div *ngIf="smsMessages.length === 0" class="empty-state">
-                                                <i class="pi pi-comment"></i>
-                                                <p>{{ translate('management.targetForm.noMessages') }}</p>
-                                                <small>{{ translate('management.targetForm.startConversation') }}</small>
-                                    </div>
-                                    
-                                            <div *ngFor="let message of smsMessages" class="message-wrapper">
-                                            <div class="message" [class.sent]="message.type === 'sent'" [class.received]="message.type === 'received'">
-                                                    <div class="message-bubble">
-                                                    <p>{{ message.content }}</p>
-                                                        <div class="message-meta">
-                                                            <span class="timestamp">{{ message.timestamp | date:'HH:mm' }}</span>
-                                                            <i *ngIf="message.type === 'sent'" class="pi pi-check delivery-status"></i>
-                                                        </div>
-                                                    </div>
+                                        <div class="terminal-body" #chatMessages>
+                                            <div *ngIf="smsMessages.length === 0" class="terminal-empty-state">
+                                                <div class="terminal-prompt">
+                                                    <span class="terminal-user">sms&#64;device</span>
+                                                    <span class="terminal-symbol">:</span>
+                                                    <span class="terminal-path">~</span>
+                                                    <span class="terminal-symbol">$</span>
+                                                    <span class="terminal-cursor">█</span>
                                                 </div>
+                                                <div class="terminal-message">
+                                                    <span class="terminal-text">No hay mensajes SMS disponibles</span>
+                                                </div>
+                                                <div class="terminal-prompt">
+                                                    <span class="terminal-user">sms&#64;device</span>
+                                                    <span class="terminal-symbol">:</span>
+                                                    <span class="terminal-path">~</span>
+                                                    <span class="terminal-symbol">$</span>
+                                                    <span class="terminal-cursor">█</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div *ngFor="let message of smsMessages; let i = index" class="terminal-line">
+                                                <div class="terminal-prompt">
+                                                    <span class="terminal-user">sms&#64;device</span>
+                                                    <span class="terminal-symbol">:</span>
+                                                    <span class="terminal-path">~</span>
+                                                    <span class="terminal-symbol">$</span>
+                                                </div>
+                                                <div class="terminal-command" [class.sent]="message.type === 'sent'" [class.received]="message.type === 'received'">
+                                                    <span class="terminal-arrow">{{ message.type === 'sent' ? '→' : '←' }}</span>
+                                                    <span class="terminal-content">{{ getDisplayMessageContent(message) }}</span>
+                                                    <span class="terminal-timestamp">[{{ message.timestamp | date:'HH:mm:ss' }}]</span>
+                                                    <i *ngIf="message.type === 'sent'" class="pi pi-check terminal-delivery-status"></i>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
-                                        <!-- Input para mensaje personalizado -->
-                                        <div class="message-composer">
-                                            <div class="input-container">
-                            <textarea 
-                                [(ngModel)]="customSmsMessage"
-                                name="customSmsMessage"
-                                                    placeholder="{{ translate('management.targetForm.typeMessage') }}"
-                                                    class="message-input"
-                                                    rows="1"
-                                                    maxlength="160"
-                                [disabled]="isSendingSms"
-                                                    (keydown)="onEnterKeySimple($event)"
-                                                    (input)="autoResizeInput($event)"
-                            ></textarea>
-                                                <div class="char-counter">{{ customSmsMessage.length }}/160</div>
-                                            </div>
-                                <button 
-                                    type="button" 
-                                                class="send-button"
-                                                [disabled]="isSendingSms || !customSmsMessage.trim()"
-                                    (click)="sendCustomMessage()"
-                                >
-                                    <i class="pi" [ngClass]="isSendingSms ? 'pi-spinner loading-spinner' : 'pi-send'"></i>
-                                </button>
-                        </div>
-                    </div>
+                                    <!-- Input para mensaje personalizado -->
+                                    <div class="message-composer">
+                                        <div class="input-container">
+                                            <textarea 
+                                                [(ngModel)]="customSmsMessage"
+                                                name="customSmsMessage"
+                                                placeholder="{{ translate('management.targetForm.typeMessage') }}"
+                                                class="message-input"
+                                                rows="1"
+                                                maxlength="160"
+                                                [disabled]="isSendingSms"
+                                                (keydown)="onEnterKeySimple($event)"
+                                                (input)="autoResizeInput($event)"
+                                            ></textarea>
+                                            <div class="char-counter">{{ customSmsMessage.length }}/160</div>
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            class="send-button"
+                                            [disabled]="isSendingSms || !customSmsMessage.trim()"
+                                            (click)="sendCustomMessage()"
+                                        >
+                                            <i class="pi" [ngClass]="isSendingSms ? 'pi-spinner loading-spinner' : 'pi-send'"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

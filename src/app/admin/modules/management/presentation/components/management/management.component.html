@@ -231,7 +231,7 @@
                                                            [ngClass]="{
                                                              'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
                                                            }"></i> 
-                                                        {{target.name}}
+                                                        <span class="target-name" [ngClass]="{'target-inactive': !target.originalTarget?.status}">{{target.name}}</span>
                                                         
                                                         <i *ngIf="target.isShared" 
                                                            class="pi pi-share-alt target-shared-indicator" 
@@ -245,7 +245,14 @@
                                                            title="Seleccionado desde URL"
                                                            style="color: #22c55e; margin-left: 4px;"></i>
                                                     </span>
-                                                    <span style="margin-bottom: 10px; display: block;">IMEI: {{target.imei}}</span>
+                                                    <div style="margin-bottom: 10px;">
+                                                        <span style="display: block;" [ngClass]="{'target-inactive': !target.originalTarget?.status}">IMEI: {{target.imei}}</span>
+                                                        <span *ngIf="!target.originalTarget?.status" class="target-suspended-text">(Suspendido)</span>
+                                                        <div *ngIf="target.offlineTimeText" class="offline-info-container">
+                                                            <span class="target-offline-time">{{target.offlineTimeText}}</span>
+                                                            <span class="target-offline-date">{{target.offlineDateText}}</span>
+                                                        </div>
+                                                    </div>
                                                     
                                                     
                                                     
@@ -531,7 +538,6 @@
                                             <!-- <p-tableHeaderCheckbox /> Checkbox "seleccionar todos" ocultado -->
                                         </th>
                                         <th>{{ 'management.table.name' | translate }}</th>
-                                        <th>{{ 'management.table.status' | translate }}</th>
                                         <th>{{ 'management.table.imei' | translate }}</th>
                                         <th>{{ 'management.table.sim' | translate }}</th>
                                         <th>
@@ -571,7 +577,7 @@
                                                    [ngClass]="{
                                                      'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
                                                    }"></i> 
-                                                {{target.name}}
+                                                <span class="target-name" [ngClass]="{'target-inactive': !target.originalTarget?.status}">{{target.name}}</span>
                                                 
                                                 <i *ngIf="target.isShared" 
                                                    class="pi pi-share-alt target-shared-indicator" 
@@ -582,16 +588,17 @@
                                                    title="Mostrando en mapa"></i>
                                             </span>
                                         </td>
-                                        <td> 
-                                            <div style="display: flex; flex-direction: column; align-items: left; gap: 4px;">
-                                                <!-- <p-badge [value]="target.status" [severity]="target.status == translate.instant('management.status.online') ? 'success' : 'secondary'" /> -->
-                                                <span class="device-speed-display device-speed-display--compact">
-                                                    🚗 {{ getDeviceSpeed(target) }}
-                                                </span>
+                                        <td>
+                                            <div class="imei-container">
+                                                <span [ngClass]="{'target-inactive': !target.originalTarget?.status}">{{target.imei}}</span>
+                                                <span *ngIf="!target.originalTarget?.status" class="target-suspended-text">(Suspendido)</span>
+                                                <div *ngIf="target.offlineTimeText" class="offline-info-container">
+                                                    <span class="target-offline-time">{{target.offlineTimeText}}</span>
+                                                    <span class="target-offline-date">{{target.offlineDateText}}</span>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td>{{target.imei}}</td>
-                                        <td>{{target.sim}}</td>
+                                        <td [ngClass]="{'target-inactive': !target.originalTarget?.status}">{{target.sim}}</td>
                                         <td>
                                             <div class="management__user-table-controls">
                                                 <div *ngIf="!target.isShared" class="target-controls-own">
@@ -683,7 +690,6 @@
                                                 <p-skeleton [ngStyle]="{ 'width': '20px', 'height': '20px' }"></p-skeleton>
                                             </th>
                                             <th>{{ 'management.table.name' | translate }}</th>
-                                            <th>{{ 'management.table.status' | translate }}</th>
                                             <th>{{ 'management.table.imei' | translate }}</th>
                                             <th>{{ 'management.table.sim' | translate }}</th>
                                             <th></th>
@@ -696,9 +702,6 @@
                                             </td>
                                             <td>
                                                 <p-skeleton [ngStyle]="{ 'width': '120px', 'height': '20px' }"></p-skeleton>
-                                            </td>
-                                            <td>
-                                                <p-skeleton [ngStyle]="{ 'width': '80px', 'height': '20px' }"></p-skeleton>
                                             </td>
                                             <td>
                                                 <p-skeleton [ngStyle]="{ 'width': '140px', 'height': '20px' }"></p-skeleton>

@@ -49,7 +49,7 @@
           <!-- Botones de fecha rápida -->
           <div class="quick-date-buttons">
             <button 
-              *ngFor="let preset of quickDateRanges" 
+              *ngFor="let preset of availableQuickDateRanges" 
               type="button"
               class="quick-date-btn"
               (click)="onQuickDateSelect(preset)">

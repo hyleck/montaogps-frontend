@@ -1754,4 +1754,275 @@ input[readonly]:focus,
 textarea[readonly]:focus {
     outline: none !important;
     box-shadow: none !important;
+}
+
+/* ===========================================
+   ESTILOS PARA TERMINAL SMS
+   =========================================== */
+
+/* Contenedor principal de la terminal */
+.sms-terminal-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
+}
+
+.terminal-container {
+    background: #1a1a1a;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 1px solid #333;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header de la terminal */
+.terminal-header {
+    background: linear-gradient(135deg, #2d2d2d, #1f1f1f);
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+}
+
+.terminal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.terminal-title i {
+    color: #00ff00;
+    font-size: 16px;
+}
+
+.terminal-refresh-btn {
+    background: #333;
+    border: 1px solid #555;
+    color: #00ff00;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 12px;
+}
+
+.terminal-refresh-btn:hover:not(:disabled) {
+    background: #444;
+    border-color: #666;
+    color: #00ff00;
+}
+
+.terminal-refresh-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Cuerpo de la terminal */
+.terminal-body {
+    flex: 1;
+    padding: 16px;
+    background: #1a1a1a;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #e0e0e0;
+}
+
+/* Estado vacío de la terminal */
+.terminal-empty-state {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Líneas de la terminal */
+.terminal-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 4px;
+    min-height: 20px;
+}
+
+/* Prompt de la terminal */
+.terminal-prompt {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    min-width: 120px;
+}
+
+.terminal-user {
+    color: #00ff00;
+    font-weight: 600;
+}
+
+.terminal-symbol {
+    color: #00ff00;
+}
+
+.terminal-path {
+    color: #87ceeb;
+}
+
+.terminal-cursor {
+    color: #00ff00;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* Comando de la terminal */
+.terminal-command {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    padding: 2px 0;
+}
+
+.terminal-arrow {
+    color: #ff6b6b;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.terminal-command.sent .terminal-arrow {
+    color: #4ecdc4;
+}
+
+.terminal-command.received .terminal-arrow {
+    color: #ff6b6b;
+}
+
+.terminal-content {
+    color: #e0e0e0;
+    flex: 1;
+    word-break: break-all;
+}
+
+/* Estilos para nombres de comandos en la terminal */
+.terminal-content:has-text("[") {
+    color: #87ceeb; /* Color azul claro para comandos */
+    font-weight: 600;
+}
+
+/* Alternativa usando clase específica para comandos */
+.terminal-command-name {
+    color: #87ceeb; /* Color azul claro para comandos */
+    font-weight: 600;
+    background: rgba(135, 206, 235, 0.1);
+    padding: 2px 6px;
+    border-radius: 3px;
+    border: 1px solid rgba(135, 206, 235, 0.3);
+}
+
+.terminal-timestamp {
+    color: #888;
+    font-size: 11px;
+    margin-left: 8px;
+}
+
+.terminal-delivery-status {
+    color: #4ecdc4;
+    font-size: 12px;
+    margin-left: 4px;
+}
+
+/* Mensaje de estado vacío */
+.terminal-message {
+    margin-left: 8px;
+}
+
+.terminal-text {
+    color: #888;
+    font-style: italic;
+}
+
+/* Scrollbar personalizado para la terminal */
+.terminal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.terminal-body::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+.terminal-body::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+.terminal-body::-webkit-scrollbar-thumb:hover {
+    background: #666;
+}
+
+/* Responsive para móviles */
+@media screen and (max-width: 768px) {
+    .terminal-container {
+        border-radius: 6px;
+    }
+    
+    .terminal-header {
+        padding: 10px 12px;
+    }
+    
+    .terminal-body {
+        padding: 12px;
+        font-size: 12px;
+    }
+    
+    .terminal-prompt {
+        min-width: 100px;
+    }
+    
+    .terminal-command {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+    
+    .terminal-timestamp {
+        margin-left: 0;
+        font-size: 10px;
+    }
+}
+
+/* Tema oscuro adicional */
+.dark .terminal-container {
+    background: #0a0a0a;
+    border-color: #222;
+}
+
+.dark .terminal-header {
+    background: linear-gradient(135deg, #1a1a1a, #0f0f0f);
+    border-bottom-color: #222;
+}
+
+.dark .terminal-body {
+    background: #0a0a0a;
+}
+
+.dark .terminal-refresh-btn {
+    background: #222;
+    border-color: #444;
+}
+
+.dark .terminal-refresh-btn:hover:not(:disabled) {
+    background: #333;
+    border-color: #555;
 } 

@@ -977,6 +977,75 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     color: #60a5fa !important; /* Azul más claro para tema oscuro */
 }
 
+/* Contenedor del IMEI */
+.imei-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.target-name {
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+/* Contenedor de información offline */
+.offline-info-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+}
+
+.target-offline-time {
+    font-size: 10px;
+    color: #6b7280; /* Gris más opaco para indicar tiempo offline */
+    font-weight: 400;
+    opacity: 0.6;
+    line-height: 1.1;
+    font-style: italic;
+}
+
+.target-offline-date {
+    font-size: 9px;
+    color: #e8a215; /* Naranja dorado para la fecha */
+    font-weight: 400;
+    opacity: 0.8;
+    line-height: 1.1;
+    font-family: 'Courier New', monospace; /* Fuente monoespaciada para fechas */
+}
+
+.dark .target-offline-time {
+    color: #9ca3af; /* Gris más claro para tema oscuro */
+}
+
+.dark .target-offline-date {
+    color: #f59e0b; /* Naranja más claro para tema oscuro */
+}
+
+/* Estilos para targets inactivos (status = false) */
+.management__content-table-link .target-inactive,
+.target-inactive {
+    color: #1569e8 !important;
+}
+
+/* Estilos para el texto de suspendido */
+.target-suspended-text {
+    font-size: 10px;
+    color: #1569e8;
+    font-weight: 500;
+    font-style: italic;
+    display: block;
+    margin-top: 2px;
+    opacity: 0.8;
+}
+
+.dark .target-suspended-text {
+    color: #60a5fa; /* Azul más claro para tema oscuro */
+}
+
 /* Indicador de target compartido */
 .target-shared-indicator {
     color: #3b82f6 !important; /* Azul para targets compartidos */
@@ -1129,6 +1198,26 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
 /* Responsive - ajustes para móviles */
 @media screen and (max-width: 768px) {
+    .imei-container {
+        gap: 1px;
+    }
+    
+    .target-name {
+        font-size: 13px;
+    }
+    
+    .offline-info-container {
+        gap: 0.5px;
+    }
+    
+    .target-offline-time {
+        font-size: 9px;
+    }
+    
+    .target-offline-date {
+        font-size: 8px;
+    }
+    
     .target-map-indicator {
         margin-left: 4px !important;
         font-size: 0.8em !important;

@@ -1257,6 +1257,69 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // MÉTODOS PRIVADOS - GESTIÓN DE DATOS
   // ====================================
   
+  /**
+   * Calcula el tiempo transcurrido desde la última actualización y formatea la fecha
+   * @param lastUpdate Fecha de la última actualización
+   * @returns Objeto con el tiempo transcurrido y la fecha formateada
+   */
+  private calculateOfflineTime(lastUpdate: string | Date): { timeText: string; dateText: string } {
+    try {
+      const lastUpdateDate = new Date(lastUpdate);
+      const now = new Date();
+      const diffInMs = now.getTime() - lastUpdateDate.getTime();
+      
+      // Verificar que la fecha sea válida
+      if (isNaN(lastUpdateDate.getTime())) {
+        return { timeText: 'Fecha inválida', dateText: 'Fecha inválida' };
+      }
+      
+      // Verificar que no sea una fecha futura
+      if (diffInMs < 0) {
+        return { timeText: 'Fecha futura', dateText: 'Fecha futura' };
+      }
+      
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+      const diffInWeeks = Math.floor(diffInDays / 7);
+      const diffInMonths = Math.floor(diffInDays / 30);
+      const diffInYears = Math.floor(diffInDays / 365);
+      
+      // Formatear tiempo transcurrido
+      let timeText = '';
+      if (diffInYears > 0) {
+        timeText = `Fuera de línea hace ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
+      } else if (diffInMonths > 0) {
+        timeText = `Fuera de línea hace ${diffInMonths} mes${diffInMonths > 1 ? 'es' : ''}`;
+      } else if (diffInWeeks > 0) {
+        timeText = `Fuera de línea hace ${diffInWeeks} semana${diffInWeeks > 1 ? 's' : ''}`;
+      } else if (diffInDays > 0) {
+        timeText = `Fuera de línea hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
+      } else if (diffInHours > 0) {
+        timeText = `Fuera de línea hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+      } else if (diffInMinutes > 0) {
+        timeText = `Fuera de línea hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
+      } else {
+        timeText = 'Fuera de línea hace menos de 1 minuto';
+      }
+      
+      // Formatear fecha de última ubicación
+      const dateText = lastUpdateDate.toLocaleString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      
+      return { timeText, dateText };
+    } catch (error) {
+      console.error('Error calculando tiempo offline:', error);
+      return { timeText: 'Error calculando tiempo', dateText: 'Error en fecha' };
+    }
+  }
+  
   private loadUserPath(userId: string): void {
     this.userService.getUserPath(userId).subscribe({
       next: (pathData) => {
@@ -1483,23 +1546,55 @@ export class ManagementComponent implements OnInit, OnDestroy {
       
       const [targetsResponse, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
       
+      // 🔍 CONSOLE LOG PARA DEBUG: Ver cómo llegan los targets
+      console.log('🔍 [DEBUG] Respuesta completa del servicio de targets:', {
+        targetsResponse: targetsResponse,
+        sharedTargets: sharedTargets,
+        userId: userId,
+        parentId: parentId,
+        currentOffset: this.currentOffset,
+        pageSize: this.pageSize
+      });
+      
       // Extraer devices y totalCount de la respuesta
       const targets = targetsResponse.devices;
       this.totalTargetsCount = targetsResponse.totalCount;
+      
+      // 🔍 CONSOLE LOG PARA DEBUG: Ver los targets extraídos
+      console.log('🔍 [DEBUG] Targets extraídos:', {
+        targets: targets,
+        totalCount: this.totalTargetsCount,
+        targetsLength: targets?.length || 0
+      });
       
       // Combinar targets: compartidos primero, luego propios (evitando duplicados)
       const ownTargetIds = new Set(targets.map(t => t._id));
       const uniqueSharedTargets = sharedTargets.filter(t => !ownTargetIds.has(t._id));
       const combinedTargets = [...uniqueSharedTargets, ...targets];
       
+      // 🔍 CONSOLE LOG PARA DEBUG: Ver targets combinados
+      console.log('🔍 [DEBUG] Targets combinados:', {
+        ownTargetIds: Array.from(ownTargetIds),
+        uniqueSharedTargets: uniqueSharedTargets,
+        combinedTargets: combinedTargets,
+        combinedLength: combinedTargets.length
+      });
+      
       // Si es la primera carga, reemplazar. Si es scroll infinito, agregar
       if (resetPagination) {
-        this.targets = combinedTargets;
+      this.targets = combinedTargets;
       } else {
         // Para scroll infinito, solo agregar los targets propios (no los compartidos)
         // Los targets compartidos solo se cargan en la primera carga
         this.targets = [...this.targets, ...targets];
       }
+      
+      // 🔍 CONSOLE LOG PARA DEBUG: Ver targets finales
+      console.log('🔍 [DEBUG] Targets finales después de combinar:', {
+        targets: this.targets,
+        targetsLength: this.targets.length,
+        resetPagination: resetPagination
+      });
       
       // Verificar si hay más targets disponibles
       this.hasMoreTargets = targets.length === this.pageSize;
@@ -1528,6 +1623,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
           // Determinar si es un target compartido
           const isShared = sharedTargetIds.has(target._id);
           
+          // Calcular tiempo offline si no está online
+          let offlineTimeText = '';
+          let offlineDateText = '';
+          if (!isOnline && target.traccarInfo?.['lastUpdate']) {
+            const offlineInfo = this.calculateOfflineTime(target.traccarInfo['lastUpdate']);
+            offlineTimeText = offlineInfo.timeText;
+            offlineDateText = offlineInfo.dateText;
+          }
+          
           return {
             name: target.name,
             status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
@@ -1537,8 +1641,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
             traccarStatus: traccarStatus,
             traccarInfo: target.traccarInfo,
             originalTarget: target,
-            isShared: isShared
+            isShared: isShared,
+            offlineTimeText: offlineTimeText,
+            offlineDateText: offlineDateText
           };
+                  });
+        
+        // 🔍 CONSOLE LOG PARA DEBUG: Ver la lista final de targets para la UI
+        console.log('🔍 [DEBUG] Lista final de targets para la UI (targetsList):', {
+          targetsList: this.targetsList,
+          targetsListLength: this.targetsList.length,
+          sharedTargetIds: Array.from(sharedTargetIds)
                   });
         } else {
           this.targetsList = [];

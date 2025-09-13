@@ -247,7 +247,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             status: 'active',
             canceled: false,
             deleted: false,
-            shared: '',
             index: '',
             parent_id: '',
             user_id: '',
@@ -1255,12 +1254,40 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         try {
             this.isSendingSms = true;
             
+            // Verificar si el mensaje contiene {{company}} y validar tipo de SIM card
+            if (message.includes('{{company}}')) {
+                // Verificar si es SIM card nacional (no permite comandos con {{company}})
+                if (this.target.sim_company?.toLowerCase() === 'nacionales') {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Comando no permitido',
+                        detail: 'Este tipo de simcard no permite este comando, comuníquese con su proveedor de simcard',
+                        life: 5000
+                    });
+                    return;
+                }
+                
+                // Reemplazar {{company}} basado en el tipo de SIM card
+                const companyValue = this.getCompanyValueFromSimType();
+                if (companyValue) {
+                    processedMessage = message.replace(/\{\{company\}\}/g, companyValue);
+                } else {
+                    console.warn('⚠️ No se pudo determinar el valor de company para el tipo de SIM:', this.target.sim_company);
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Advertencia',
+                        detail: 'No se pudo determinar el valor de company. El mensaje se enviará sin procesar.',
+                        life: 3000
+                    });
+                }
+            }
+            
             // Verificar si el mensaje contiene {{server}} y reemplazarlo por la IP del servidor
-            if (message.includes('{{server}}')) {
+            if (processedMessage.includes('{{server}}')) {
                 const serverIp = await this.getServerIpFromPlan();
                 
                 if (serverIp) {
-                    processedMessage = message.replace(/\{\{server\}\}/g, serverIp);
+                    processedMessage = processedMessage.replace(/\{\{server\}\}/g, serverIp);
                 } else {
                     console.warn('⚠️ No se pudo obtener la IP del servidor, enviando mensaje sin procesar');
                     this.messageService.add({
@@ -1444,6 +1471,21 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return providerMap[this.target.sim_company.toLowerCase()] || null;
     }
 
+    private getCompanyValueFromSimType(): string | null {
+        if (!this.target.sim_company) {
+            return null;
+        }
+
+        // Mapear tipos de SIM card a valores de company
+        const companyMap: Record<string, string> = {
+            'global-e': 'em',
+            'global-m': 'altanwifi',
+            'global-m2': 'gigsky-02'
+        };
+
+        return companyMap[this.target.sim_company.toLowerCase()] || null;
+    }
+
     onEnterKeySimple(event: KeyboardEvent): void {
         if (event.key === 'Enter' && !event.shiftKey) {
             event.preventDefault();
@@ -1463,6 +1505,49 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     getCommandName(commandName: string): string {
         const command = this.availableCommands.find(cmd => cmd.name === commandName);
         return command ? command.name : commandName;
+    }
+
+    /**
+     * Obtiene el nombre del comando para mostrar en la terminal
+     * Si el mensaje coincide con algún comando de la lista, muestra el nombre del comando
+     * En caso contrario, muestra el contenido original
+     */
+    getDisplayMessageContent(message: SmsMessage): string {
+        if (!message.content) return '';
+        
+        const messageContent = message.content.trim();
+        
+        // Debug: mostrar información sobre el mensaje y comandos disponibles
+        console.log('🔍 Analizando mensaje:', messageContent);
+        console.log('📋 Comandos disponibles:', this.availableCommands.map(cmd => ({ name: cmd.name, value: cmd.value })));
+        
+        // Buscar si el contenido del mensaje coincide exactamente con algún comando
+        const exactMatch = this.availableCommands.find(cmd => 
+            cmd.value && messageContent === cmd.value.trim()
+        );
+        
+        if (exactMatch) {
+            console.log('✅ Coincidencia exacta encontrada:', exactMatch.name);
+            return `[${exactMatch.name}]`;
+        }
+        
+        // Buscar si el contenido del mensaje contiene algún comando (coincidencia parcial)
+        // Ordenar por longitud descendente para priorizar comandos más largos
+        const sortedCommands = this.availableCommands
+            .filter(cmd => cmd.value)
+            .sort((a, b) => (b.value?.length || 0) - (a.value?.length || 0));
+        
+        for (const cmd of sortedCommands) {
+            if (cmd.value && messageContent.includes(cmd.value)) {
+                console.log('✅ Coincidencia parcial encontrada:', cmd.name, 'en mensaje:', messageContent);
+                // Reemplazar el comando encontrado con su nombre
+                return messageContent.replace(cmd.value, `[${cmd.name}]`);
+            }
+        }
+        
+        console.log('❌ No se encontró coincidencia, mostrando contenido original');
+        // Si no coincide con ningún comando, mostrar el contenido original
+        return messageContent;
     }
 
     ngAfterViewInit() {
@@ -1815,13 +1900,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Métodos para manejar comandos SMS dinámicos
     updateSmsCommands(): void {
         const gpsModelId = this.target.type;
+        let protocolCommands: ProtocolCommand[] = [];
+        
         if (gpsModelId && this.loadedProtocols.length > 0) {
             this.selectedProtocol = this.loadedProtocols.find(p => p._id === gpsModelId) || null;
-            this.availableCommands = this.selectedProtocol?.commands || [];
+            protocolCommands = this.selectedProtocol?.commands || [];
         } else {
             this.selectedProtocol = null;
-            this.availableCommands = [];
+            protocolCommands = [];
         }
+        
+        this.availableCommands = protocolCommands;
         
         // Sincronizar altura después de cambiar comandos
         setTimeout(() => {
@@ -3285,59 +3374,29 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         };
     }
 
-    // Método para cargar planes filtrados por el mismo servidor del plan actual
+    // Método para cargar todos los planes disponibles (sin filtros de servidor)
     async loadFilteredPlansForProcess(): Promise<void> {
-        if (!this.target.plan) {
-            return;
-        }
-
         try {
-            // Obtener el plan actual para conocer su server_id
-            const currentPlanId = typeof this.target.plan === 'string' ? this.target.plan : 
-                                (this.target.plan as any).id_plan || '';
-            
-            if (!currentPlanId) {
-                return;
-            }
-
-            // Obtener información del plan actual
-            this.plansService.getPlanById(currentPlanId).subscribe({
-                next: (currentPlan: Plan) => {
-                    // Obtener todos los planes
-                    this.plansService.getAllPlans().subscribe({
-                        next: (allPlans: Plan[]) => {
-                            // Filtrar planes que tengan el mismo server_id que el plan actual
-                            const filteredPlans = allPlans.filter(plan => 
-                                plan.server_id === currentPlan.server_id
-                            );
-
-                            // Actualizar la lista de planes disponibles SOLO para el proceso
-                            this.availablePlansForProcess = filteredPlans.map(plan => ({
-                                label: plan.plan_name,
-                                value: plan._id
-                            })).sort((a, b) => a.label.localeCompare(b.label));
-                        },
-                        error: (error) => {
-                            console.error('Error al cargar todos los planes:', error);
-                            this.messageService.add({
-                                severity: 'error',
-                                summary: 'Error',
-                                detail: 'No se pudieron cargar los planes disponibles'
-                            });
-                        }
-                    });
+            // Obtener todos los planes sin filtrar por servidor
+            this.plansService.getAllPlans().subscribe({
+                next: (allPlans: Plan[]) => {
+                    // Mostrar todos los planes disponibles sin restricciones
+                    this.availablePlansForProcess = allPlans.map(plan => ({
+                        label: plan.plan_name,
+                        value: plan._id
+                    })).sort((a, b) => a.label.localeCompare(b.label));
                 },
                 error: (error) => {
-                    console.error('Error al obtener el plan actual:', error);
+                    console.error('Error al cargar todos los planes:', error);
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo obtener información del plan actual'
+                        detail: 'No se pudieron cargar los planes disponibles'
                     });
                 }
             });
         } catch (error) {
-            console.error('Error al filtrar planes por servidor:', error);
+            console.error('Error en loadFilteredPlansForProcess:', error);
         }
     }
 
