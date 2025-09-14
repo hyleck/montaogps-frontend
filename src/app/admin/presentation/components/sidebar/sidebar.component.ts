@@ -82,4 +82,34 @@ export class SidebarComponent implements OnInit {
     this.sidebarDisplayed = !this.sidebarDisplayed;
     this.status.setState('sidebar', this.sidebarDisplayed);
   }
+
+  // Getter para verificar si el usuario es root
+  get isRootUser(): boolean {
+    const currentUser = this.authService.getCurrentUser();
+    return currentUser?.root === true;
+  }
+
+  // Getter para obtener los elementos del menú principal filtrados por root
+  get filteredPrincipalItems() {
+    return this.sidaberOptions.principalItems.filter(item => {
+      // Si es inventory, solo mostrar si el usuario es root
+      if (item.path === '/admin/inventory') {
+        return this.isRootUser;
+      }
+      // Para otros elementos, mostrar siempre
+      return true;
+    });
+  }
+
+  // Getter para obtener los elementos del perfil filtrados por root
+  get filteredProfileItems() {
+    return this.sidaberOptions.profileItems.filter(item => {
+      // Si es settings, solo mostrar si el usuario es root
+      if (item.path === '/admin/settings') {
+        return this.isRootUser;
+      }
+      // Para otros elementos, mostrar siempre
+      return true;
+    });
+  }
 }

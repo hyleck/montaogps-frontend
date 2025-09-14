@@ -32,7 +32,7 @@
                 
              
                     <div class="management__user-control-controls" *ngIf="!loading">
-                        <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} {{ users.length }} </button>
+                        <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} {{ totalUsersCountDisplay }} </button>
                         <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} {{ totalTargetsCountDisplay }} </button>
                     </div>
                 </div>
@@ -103,6 +103,16 @@
                                         <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers()"> <i class="pi pi-trash" ></i> </button>
                                     </div>
                                 </div>
+                                
+                                <!-- Loading para scroll infinito de usuarios - vista móvil -->
+                                <ng-container *ngIf="isLoadingMoreUsers">
+                                    <div *ngFor="let skel of [1,2,3,4,5,6,7,8,9,10]" class="management__user-card management__user-card--maps">
+                                        <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton>
+                                        <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton>
+                                        <div class="management__user-card-controls">
+                                        </div>
+                                    </div>
+                                </ng-container>
                             </ng-container>
                             <ng-template #loadingSkeletonsMaps>
                                 <div *ngFor="let skel of [1,2]" class="management__user-card management__user-card--maps">
@@ -333,7 +343,7 @@
                                 </div>
                                 
                                 <!-- Indicador de fin de lista - vista de mapa -->
-                                <div *ngIf="!hasMoreTargetsToLoad && targetsList.length > 0" class="end-of-list">
+                                <div *ngIf="!hasMoreTargetsToLoad && targetsList.length > 25" class="end-of-list">
                                     <div class="end-content">
                                         <i class="pi pi-check-circle"></i>
                                         <span>No hay más dispositivos para cargar</span>
@@ -422,7 +432,7 @@
 
                <div class="management__user-controls" *ngIf="!loading">
                 <div class="management__user-options">
-                    <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( {{ users.length }} )</button>
+                    <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( {{ totalUsersCountDisplay }} )</button>
                     <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( {{ totalTargetsCountDisplay }} )</button>
                 </div>
                 <div class="management__user-back-button" *ngIf="canNavigateBack()">
@@ -489,6 +499,19 @@
                                     <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers()"> <i class="pi pi-trash" ></i> </button>
                                 </div>
                             </div>
+                            
+                            <!-- Loading para scroll infinito de usuarios - vista escritorio -->
+                            <ng-container *ngIf="isLoadingMoreUsers">
+                                <div *ngFor="let skel of [1,2,3,4,5]" class="management__user-card">
+                                    <div class="management__user-card-icon"> <p-skeleton [ngStyle]="{ 'width': '40px', 'height': '40px', 'shape': 'circle' }"></p-skeleton> </div>
+                                    <div class="management__user-card-title"> <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton> </div>
+                                    <div class="management__user-card-subtitle"> <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton> </div>
+                                    <div class="management__user-card-footer"><p-skeleton [ngStyle]="{ 'width': '50%', 'height': '16px' }"></p-skeleton></div>
+                                    <div class="management__user-card-controls">
+                                        <!-- Opciones removidas, solo barra -->
+                                    </div>
+                                </div>
+                            </ng-container>
                         </ng-container>
                         <ng-template #loadingSkeletons>
                             <div *ngFor="let skel of [1,2]" class="management__user-card">
@@ -672,7 +695,7 @@
                             </div>
                             
                             <!-- Indicador de fin de lista -->
-                            <div *ngIf="!hasMoreTargetsToLoad && targetsList.length > 0" class="end-of-list">
+                            <div *ngIf="!hasMoreTargetsToLoad && targetsList.length > 25" class="end-of-list">
                                 <div class="end-content">
                                     <i class="pi pi-check-circle"></i>
                                     <span>No hay más dispositivos para cargar</span>

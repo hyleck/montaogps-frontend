@@ -71,7 +71,7 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
   role: UserRole | null;
   privileges?: { [key: string]: Privilege };
   settings: UserSettings;
-  status: 'active' | 'inactive';
+  status: boolean;
   affiliation_type_id: string;
   profile_type_id: string;
   root?: boolean;
@@ -82,7 +82,7 @@ export function convertToExtendedUser(user: User): ExtendedUser {
         ...user,
         verified_email: false,
         role: null,
-        status: 'active',
+        status: true,
         affiliation_type_id: (user as any).affiliation_type_id || 'cliente',
         profile_type_id: (user as any).profile_type_id || 'personal',
         dni: user.dni || '',

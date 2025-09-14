@@ -206,14 +206,14 @@ export class ReportsComponent implements OnInit {
       }
     ];
 
-    // Presets de fechas rápidas para targets offline (30 días antes de última ubicación)
+    // Presets de fechas rápidas para targets offline (15 días antes de última ubicación)
     quickDateRangesOffline = [
       { 
-        label: '30 días antes de última ubicación', 
+        label: '15 días antes de última ubicación', 
         value: 'fromLastLocation',
         getRange: (lastUpdate: Date) => {
           const fromDate = new Date(lastUpdate);
-          fromDate.setDate(fromDate.getDate() - 30);
+          fromDate.setDate(fromDate.getDate() - 15);
           return {
             start: fromDate,
             end: lastUpdate
@@ -551,15 +551,15 @@ export class ReportsComponent implements OnInit {
       if (this.isTargetOffline) {
         const lastUpdate = new Date(targetInfo.traccarInfo.lastUpdate);
         const fromDate = new Date(lastUpdate);
-        fromDate.setDate(fromDate.getDate() - 30); // 30 días antes de lastUpdate
+        fromDate.setDate(fromDate.getDate() - 15); // 15 días antes de lastUpdate
         
-        console.log('🔍 [REPORTES] Target offline detectado, ajustando fechas desde 30 días antes de última ubicación:', {
+        console.log('🔍 [REPORTES] Target offline detectado, ajustando fechas desde 15 días antes de última ubicación:', {
           lastUpdate: lastUpdate.toISOString(),
           fromDate: fromDate.toISOString(),
-          range: '30 días antes de lastUpdate hasta lastUpdate'
+          range: '15 días antes de lastUpdate hasta lastUpdate'
         });
 
-        // Establecer la fecha "desde" como 30 días antes de lastUpdate y "hasta" como lastUpdate
+        // Establecer la fecha "desde" como 15 días antes de lastUpdate y "hasta" como lastUpdate
         this.reportFilter.dateRange = {
           start: this.formatDateForInput(fromDate),
           end: this.formatDateForInput(lastUpdate)

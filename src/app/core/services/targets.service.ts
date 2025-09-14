@@ -59,14 +59,18 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
-  async searchTargets(query: string, parentId?: string): Promise<Target[]> {
-    let params: any = { q: query };
+  async searchTargets(query: string, parentId?: string, offset: number = 0, limit: number = 30): Promise<TargetsResponse> {
+    let params: any = { 
+      q: query,
+      offset: offset.toString(),
+      limit: limit.toString()
+    };
     
     if (parentId) {
       params.parent = parentId;
     }
     
-    const observable = this.http.get<Target[]>(`${this.apiUrl}/search`, { params });
+    const observable = this.http.get<TargetsResponse>(`${this.apiUrl}/search`, { params });
     return await lastValueFrom(observable);
   }
 

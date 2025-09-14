@@ -149,7 +149,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 affiliation_type: 'cliente',
                 profile_type: 'personal'
             },
-            status: 'active',
+            status: true,
             access_level_id: {
                 _id: '',
                 name: '',

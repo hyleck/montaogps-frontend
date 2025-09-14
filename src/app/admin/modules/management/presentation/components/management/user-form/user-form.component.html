@@ -84,8 +84,8 @@
                                                 id="status"
                                                 required
                                             >
-                                                <option value="active">{{ 'management.userForm.statusActive' | translate }}</option>
-                                                <option value="inactive">{{ 'management.userForm.statusInactive' | translate }}</option>
+                                                <option [value]="true">{{ 'management.userForm.statusActive' | translate }}</option>
+                                                <option [value]="false">{{ 'management.userForm.statusInactive' | translate }}</option>
                                             </select>
                                         </div>
                                     </div>

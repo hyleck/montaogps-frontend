@@ -523,12 +523,13 @@ export class InventoryComponent implements OnInit {
       console.log('🔍 Buscando usuario con email:', this.installationEmail);
       
       this.userService.search(this.installationEmail).subscribe({
-        next: (users) => {
+        next: (response) => {
+          const users = response.users;
           console.log('📊 Resultados de búsqueda de usuarios:', users);
           console.log('📈 Cantidad de usuarios encontrados:', users.length);
           
           // Filtrar usuarios que contengan exactamente el email buscado
-          const exactMatches = users.filter(user => user.email === this.installationEmail);
+          const exactMatches = users.filter((user: any) => user.email === this.installationEmail);
           console.log('🎯 Usuarios con email exacto:', exactMatches);
           console.log('🔢 Cantidad de coincidencias exactas:', exactMatches.length);
           

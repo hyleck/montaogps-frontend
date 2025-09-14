@@ -8,6 +8,11 @@ interface UpdatePasswordDto {
     password: string;
 }
 
+export interface UsersResponse {
+    users: User[];
+    totalCount: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -24,12 +29,25 @@ export class UserService {
     return this.http.get<User[]>(this.apiUrl, params);
   }
 
-  search(query: string, parent?: string): Observable<User[]> {
-    let params: any = { q: query };
+  getAllWithPagination(parent: string, offset: number = 0, limit: number = 30): Observable<UsersResponse> {
+    const params = {
+      parent,
+      offset: offset.toString(),
+      limit: limit.toString()
+    };
+    return this.http.get<UsersResponse>(this.apiUrl, { params });
+  }
+
+  search(query: string, parent?: string, offset: number = 0, limit: number = 30): Observable<UsersResponse> {
+    let params: any = { 
+      q: query,
+      offset: offset.toString(),
+      limit: limit.toString()
+    };
     if (parent) {
       params.parent = parent;
     }
-    return this.http.get<User[]>(`${this.apiUrl}/search`, { params });
+    return this.http.get<UsersResponse>(`${this.apiUrl}/search`, { params });
   }
 
   getByEmail(email: string): Observable<User> {

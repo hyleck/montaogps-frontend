@@ -25,7 +25,7 @@
                 <div *ngIf="sidaberOptions.principalItems" class="sidebar__title">
                     <span>{{sidaberOptions.principalTitle}}</span>
                 </div>
-                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active"  *ngFor="let item of sidaberOptions.principalItems" class="sidebar__option ">
+                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active"  *ngFor="let item of filteredPrincipalItems" class="sidebar__option ">
                     <div class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
                     <div class="sidebar__option-text"> <span>{{ item.label }}</span></div>
                     <div *ngIf="item.badge > 0" class="sidebar__option-badge"><p-badge severity="info" [value]="item.badge" /></div>
@@ -38,7 +38,7 @@
                 <div *ngIf="sidaberOptions.profileItems"  class="sidebar__title">
                     <span>{{sidaberOptions.profileTitle}}</span>
                 </div>
-                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active" *ngFor="let item of sidaberOptions.profileItems"  class="sidebar__option">
+                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active" *ngFor="let item of filteredProfileItems"  class="sidebar__option">
                     <div class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
                     <div class="sidebar__option-text"> <span>{{ item.label }}</span></div>
                     <div *ngIf="item.badge > 0" class="sidebar__option-badge"><p-badge severity="info" [value]="item.badge" /></div>
@@ -73,7 +73,7 @@
                 <div  *ngIf="sidaberOptions.principalItems"  class="sidebar__title">
                     <span>{{sidaberOptions.principalTitle}}</span>
                 </div>
-                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active" *ngFor="let item of sidaberOptions.principalItems" class="sidebar__option ">
+                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active" *ngFor="let item of filteredPrincipalItems" class="sidebar__option ">
                     <div *ngIf="item.badge > 0"  class="sidebar__option-icon"> <i class="{{ item.icon }}" pBadge severity="info"></i></div>
                     <div *ngIf="item.badge == 0"  class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
                 </div>
@@ -86,7 +86,7 @@
                 <div *ngIf="sidaberOptions.profileItems"  class="sidebar__title">
                     <span>{{sidaberOptions.profileTitle}}</span>
                 </div>
-                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active" *ngFor="let item of sidaberOptions.profileItems" class="sidebar__option">
+                <div [routerLink]="item.path" routerLinkActive="sidebar__option--active" *ngFor="let item of filteredProfileItems" class="sidebar__option">
                     <div *ngIf="item.badge > 0"  class="sidebar__option-icon"> <i class="{{ item.icon }}" pBadge severity="info"></i></div>
                     <div *ngIf="item.badge == 0"  class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
                   

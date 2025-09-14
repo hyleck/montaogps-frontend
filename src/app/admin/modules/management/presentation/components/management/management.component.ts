@@ -3,7 +3,7 @@ import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription, Subject, forkJoin, from } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, switchMap, map } from 'rxjs/operators';
 
 // Third-party imports
 import { MenuItem, ConfirmationService, MessageService } from 'primeng/api';
@@ -13,7 +13,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { User, BasicUser, ExtendedUser, convertToExtendedUser } from '@core/interfaces';
 import { Target } from '@core/interfaces/target.interface';
 import { AuthService } from '@core/services/auth.service';
-import { UserService } from '@core/services/user.service';
+import { UserService, UsersResponse } from '@core/services/user.service';
 import { TargetsService, TargetsResponse } from '@core/services/targets.service';
 import { StatusService } from '@shared/services/status.service';
 import { ManagementService } from '@management/presentation/services/management.service';
@@ -87,12 +87,19 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private loadingTargets: boolean = false;
   private targetsLoadCompletedFlag: boolean = false;
   
-  // Propiedades para scroll infinito
+  // Propiedades para scroll infinito de targets
   private currentOffset: number = 0;
   private readonly pageSize: number = 30;
   private hasMoreTargets: boolean = true;
   private loadingMoreTargets: boolean = false;
   private totalTargetsCount: number = 0;
+
+  // Propiedades para scroll infinito de usuarios
+  private currentUsersOffset: number = 0;
+  private readonly usersPageSize: number = 30;
+  private hasMoreUsers: boolean = true;
+  private loadingMoreUsers: boolean = false;
+  private totalUsersCount: number = 0;
 
   // Getters para el template
   get isLoadingMoreTargets(): boolean {
@@ -105,6 +112,19 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   get totalTargetsCountDisplay(): number {
     return this.totalTargetsCount;
+  }
+
+  // Getters para usuarios
+  get isLoadingMoreUsers(): boolean {
+    return this.loadingMoreUsers;
+  }
+
+  get hasMoreUsersToLoad(): boolean {
+    return this.hasMoreUsers;
+  }
+
+  get totalUsersCountDisplay(): number {
+    return this.totalUsersCount;
   }
   
   // ====================================
@@ -977,21 +997,32 @@ export class ManagementComponent implements OnInit, OnDestroy {
         distinctUntilChanged(), // Solo buscar si el término cambió
         switchMap(searchTerm => {
           if (searchTerm.trim() === '') {
-            // Si no hay término de búsqueda, cargar usuarios normales
+            // Si no hay término de búsqueda, cargar usuarios normales con paginación
             this.isSearchingUsers = false;
             if (this.selectedUser) {
-              return this.userService.getAll(this.selectedUser._id);
+              // Resetear paginación y cargar usuarios con scroll infinito
+              this.currentUsersOffset = 0;
+              this.hasMoreUsers = true;
+              this.users = [];
+              return this.userService.getAllWithPagination(this.selectedUser._id, 0, this.usersPageSize);
             }
-            return [];
+            return from([{ users: [], totalCount: 0 }]);
           } else {
-            // Realizar búsqueda
+            // Realizar búsqueda con paginación
             this.isSearchingUsers = true;
-            return this.userService.search(searchTerm, this.selectedUser?._id);
+            // Resetear paginación para búsqueda
+            this.currentUsersOffset = 0;
+            this.hasMoreUsers = true;
+            this.users = [];
+            return this.userService.search(searchTerm, this.selectedUser?._id, 0, this.usersPageSize);
           }
         })
       ).subscribe({
-        next: (users) => {
-          this.users = users;
+        next: (response) => {
+          // Siempre recibimos un objeto con users y totalCount
+          this.users = response.users;
+          this.totalUsersCount = response.totalCount;
+          this.hasMoreUsers = this.users.length < this.totalUsersCount;
         },
         error: (error) => {
           console.error('❌ Error en búsqueda de usuarios:', error);
@@ -1012,30 +1043,40 @@ export class ManagementComponent implements OnInit, OnDestroy {
         distinctUntilChanged(), // Solo buscar si el término cambió
         switchMap(searchTerm => {
           if (searchTerm.trim() === '') {
-            // Si no hay término de búsqueda, cargar targets normales
+            // Si no hay término de búsqueda, cargar targets normales con paginación
             this.isSearchingTargets = false;
             if (this.selectedUser) {
+              // Resetear paginación y cargar targets con scroll infinito
+              this.currentOffset = 0;
+              this.hasMoreTargets = true;
+              this.targets = [];
       const parentId = this.managementService.getCurrentUserId();
-              return from(this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId)).pipe(
-                switchMap(response => from([response.devices]))
+              return from(this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId, 0, this.pageSize)).pipe(
+                switchMap(response => from([{ devices: response.devices, totalCount: response.totalCount }]))
               );
             }
-            return from([[]]);
+            return from([{ devices: [], totalCount: 0 }]);
           } else {
-            // Realizar búsqueda
+            // Realizar búsqueda con paginación
             this.isSearchingTargets = true;
-      const parentId = this.managementService.getCurrentUserId();
-            return from(this.targetsService.searchTargets(searchTerm, parentId));
+            // Resetear paginación para búsqueda
+            this.currentOffset = 0;
+            this.hasMoreTargets = true;
+            this.targets = [];
+            const parentId = this.managementService.getCurrentUserId();
+            return from(this.targetsService.searchTargets(searchTerm, parentId, 0, this.pageSize));
           }
         })
       ).subscribe({
-        next: (targets: Target[]) => {
-          // Tanto la búsqueda como la carga normal devuelven Target[] directamente
-          this.targets = targets;
+        next: (response) => {
+          // Siempre recibimos un objeto con devices y totalCount
+          this.targets = response.devices;
+          this.totalTargetsCount = response.totalCount;
+          this.hasMoreTargets = this.targets.length < this.totalTargetsCount;
           
           // Transformar targets para la lista
-          if (targets && targets.length > 0) {
-            this.targetsList = targets.map((target: Target) => {
+          if (this.targets && this.targets.length > 0) {
+            this.targetsList = this.targets.map((target: Target) => {
               const traccarStatus = target.traccarInfo?.status || 'offline';
               const isOnline = traccarStatus === 'online';
               
@@ -1059,7 +1100,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.initializePreviousTargetsStatus();
           
           // Iniciar polling si hay targets y aún no está activo
-          if (targets.length > 0 && !this.pollingInterval) {
+          if (this.targets.length > 0 && !this.pollingInterval) {
             this.startPolling();
           }
         },
@@ -1248,6 +1289,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.selectedTargetStopTime = undefined;
     this.selectedTargetForMap = null;
     
+    // Limpiar input de búsqueda de usuarios al cambiar de usuario
+    this.searchUsersTerm = '';
+    
     this.loadUserPath(user._id);
     this.loadUsersForUser(user._id);
     this.loadTargetsForUser(user._id);
@@ -1332,7 +1376,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadUsersForUser(userId: string): void {
+  private async loadUsersForUser(userId: string, resetPagination: boolean = true): Promise<void> {
     // Validar permisos antes de cargar usuarios
     if (!this.canReadUsers()) {
       this.messageService.add({
@@ -1347,7 +1391,19 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Si hay un término de búsqueda activo, usar la búsqueda en lugar de cargar todos
     if (this.searchUsersTerm && this.searchUsersTerm.trim() !== '') {
       this.searchUsersSubject.next(this.searchUsersTerm);
-    } else {
+      return;
+    }
+
+    console.log(`[USUARIOS] 📋 Cargando usuarios para user: ${userId} - resetPagination: ${resetPagination}`);
+    
+    try {
+      // Resetear paginación si es necesario
+      if (resetPagination) {
+        this.currentUsersOffset = 0;
+        this.hasMoreUsers = true;
+        this.users = [];
+      }
+      
       // Obtener el usuario logueado
       const loggedUser = this.authService.getCurrentUser();
       const loggedUserId = loggedUser?.id;
@@ -1356,14 +1412,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const shouldLoadSharedUsers = loggedUserId === userId;
       
       if (shouldLoadSharedUsers) {
-        // Cargar usuarios normales y compartidos en paralelo usando forkJoin
-        forkJoin({
-          normalUsers: this.userService.getAll(userId),
-          sharedUsers: this.userService.getSharedUsers()
-        }).subscribe({
-          next: ({ normalUsers, sharedUsers }) => {
+        // Cargar usuarios normales con paginación y compartidos en paralelo
+        const [usersResponse, sharedUsers] = await Promise.all([
+          this.userService.getAllWithPagination(userId, this.currentUsersOffset, this.usersPageSize).toPromise(),
+          this.userService.getSharedUsers().toPromise()
+        ]);
+        
+        if (usersResponse) {
             // Unir las dos listas, eliminando duplicados por ID
-            const allUsers = [...(normalUsers || [])];
+          const allUsers = [...(usersResponse.users || [])];
             
             // Agregar usuarios compartidos que no estén ya en la lista
             (sharedUsers || []).forEach(sharedUser => {
@@ -1372,45 +1429,62 @@ export class ManagementComponent implements OnInit, OnDestroy {
               }
             });
 
-            this.users = allUsers;
+          // Agregar usuarios a la lista existente
+          this.users = [...this.users, ...allUsers];
+          this.totalUsersCount = usersResponse.totalCount;
+          
+          // Verificar si hay más usuarios disponibles
+          this.hasMoreUsers = usersResponse.users.length === this.usersPageSize;
+          this.currentUsersOffset += this.usersPageSize;
+          
+          console.log(`[USUARIOS] ✅ Usuarios cargados exitosamente:`, {
+            totalEnLista: this.users.length,
+            totalEnBD: this.totalUsersCount,
+            hasMore: this.hasMoreUsers,
+            offset: this.currentUsersOffset
+          });
+        }
+      } else {
+        // Solo cargar usuarios normales con paginación si no es el usuario logueado
+        const usersResponse = await this.userService.getAllWithPagination(
+          userId, 
+          this.currentUsersOffset, 
+          this.usersPageSize
+        ).toPromise();
+        
+        if (usersResponse) {
+          // Agregar usuarios a la lista existente
+          this.users = [...this.users, ...usersResponse.users];
+          this.totalUsersCount = usersResponse.totalCount;
+          
+          // Verificar si hay más usuarios disponibles
+          this.hasMoreUsers = usersResponse.users.length === this.usersPageSize;
+          this.currentUsersOffset += this.usersPageSize;
+          
+          console.log(`[USUARIOS] ✅ Usuarios cargados exitosamente:`, {
+            totalEnLista: this.users.length,
+            totalEnBD: this.totalUsersCount,
+            hasMore: this.hasMoreUsers,
+            offset: this.currentUsersOffset
+          });
+        }
+      }
+      
             this.uiService.setLoading(false);
-          },
-          error: (error) => {
-            console.error('Error al cargar usuarios:', error);
-            // En caso de error, intentar cargar solo usuarios normales
-            this.userService.getAll(userId).subscribe({
-              next: (users) => {
-                this.users = users;
-                this.uiService.setLoading(false);
-              },
-              error: (fallbackError) => {
-                console.error('Error al cargar usuarios (fallback):', fallbackError);
-                this.users = [];
+    } catch (error) {
+      console.error('❌ Error al cargar usuarios:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.error'),
+        detail: 'Error al cargar usuarios'
+      });
                 this.uiService.setLoading(false);
               }
-            });
-          }
-        });
-      } else {
-        // Solo cargar usuarios normales si no es el usuario logueado
-      this.userService.getAll(userId).subscribe({
-        next: (users) => {
-          this.users = users;
-          this.uiService.setLoading(false);
-          },
-          error: (error) => {
-          console.error('Error al cargar usuarios:', error);
-            this.users = [];
-          this.uiService.setLoading(false);
-          }
-        });
-      }
-      }
   }
   showNoTargetMessage = false;
 
   // Método para cargar más targets (scroll infinito)
-  async loadMoreTargets() {
+  private async loadMoreTargets() {
     // Verificaciones de seguridad para evitar cargas múltiples
     if (!this.selectedUser || this.loadingMoreTargets || !this.hasMoreTargets || this.loadingTargets) {
       return;
@@ -1420,8 +1494,57 @@ export class ManagementComponent implements OnInit, OnDestroy {
     
     this.loadingMoreTargets = true;
     try {
-      await this.loadTargetsForUser(this.selectedUser._id, false);
-      console.log(`[SCROLL INFINITO] ✅ Targets cargados exitosamente - total: ${this.targets.length}`);
+      let response;
+      if (this.isSearchingTargets && this.searchTargetsTerm.trim() !== '') {
+        // Si estamos en modo búsqueda, usar el endpoint de búsqueda
+        const parentId = this.managementService.getCurrentUserId();
+        response = await this.targetsService.searchTargets(
+          this.searchTargetsTerm,
+          parentId,
+          this.currentOffset,
+          this.pageSize
+        );
+      } else {
+        // Si no estamos buscando, usar el endpoint normal
+        await this.loadTargetsForUser(this.selectedUser._id, false);
+        console.log(`[SCROLL INFINITO] ✅ Targets cargados exitosamente - total: ${this.targets.length}`);
+        
+        // Subir el scroll 300px después de cargar nuevos targets
+        setTimeout(() => {
+          this.scrollUpAfterLoad();
+        }, 100);
+        
+        this.loadingMoreTargets = false;
+        return;
+      }
+
+      if (response) {
+        this.targets = [...this.targets, ...response.devices];
+        this.totalTargetsCount = response.totalCount;
+        this.hasMoreTargets = this.targets.length < this.totalTargetsCount;
+        this.currentOffset += this.pageSize;
+
+        // Transformar targets para la lista
+        if (this.targets && this.targets.length > 0) {
+          this.targetsList = this.targets.map((target: Target) => {
+            const traccarStatus = target.traccarInfo?.status || 'offline';
+            const isOnline = traccarStatus === 'online';
+            
+            return {
+              name: target.name,
+              _id: target._id,
+              device_imei: target.device_imei,
+              target_plate_number: (target as any).target_plate_number || target.plate,
+              status: isOnline ? 'online' : 'offline',
+              traccarInfo: target.traccarInfo,
+              shared: (target as any).shared || [],
+              isShared: ((target as any).shared || []).length > 0
+            };
+          });
+        }
+
+        console.log(`[SCROLL INFINITO] ✅ Cargados ${response.devices.length} targets más. Total: ${this.targets.length}/${this.totalTargetsCount}`);
+      }
       
       // Subir el scroll 300px después de cargar nuevos targets
       setTimeout(() => {
@@ -1437,6 +1560,60 @@ export class ManagementComponent implements OnInit, OnDestroy {
       });
     } finally {
       this.loadingMoreTargets = false;
+    }
+  }
+
+  // Método para cargar más usuarios (scroll infinito)
+  private async loadMoreUsers() {
+    // Verificaciones de seguridad para evitar cargas múltiples
+    if (!this.selectedUser || this.loadingMoreUsers || !this.hasMoreUsers) {
+      return;
+    }
+
+    console.log(`[SCROLL INFINITO USUARIOS] 🚀 Cargando más usuarios - offset: ${this.currentUsersOffset}, hasMore: ${this.hasMoreUsers}`);
+    
+    this.loadingMoreUsers = true;
+    try {
+      let response;
+      if (this.isSearchingUsers && this.searchUsersTerm.trim() !== '') {
+        // Si estamos en modo búsqueda, usar el endpoint de búsqueda
+        response = await this.userService.search(
+          this.searchUsersTerm,
+          this.selectedUser._id,
+          this.currentUsersOffset,
+          this.usersPageSize
+        ).toPromise();
+      } else {
+        // Si no estamos buscando, usar el endpoint normal
+        response = await this.userService.getAllWithPagination(
+          this.selectedUser._id,
+          this.currentUsersOffset,
+          this.usersPageSize
+        ).toPromise();
+      }
+
+      if (response) {
+        this.users = [...this.users, ...response.users];
+        this.totalUsersCount = response.totalCount;
+        this.hasMoreUsers = this.users.length < this.totalUsersCount;
+        this.currentUsersOffset += this.usersPageSize;
+
+        console.log(`[SCROLL INFINITO USUARIOS] ✅ Cargados ${response.users.length} usuarios más. Total: ${this.users.length}/${this.totalUsersCount}`);
+      }
+      
+      // Ajustar scroll después de cargar
+      setTimeout(() => {
+        this.scrollUpAfterLoad();
+      }, 100);
+    } catch (error) {
+      console.error('[SCROLL INFINITO USUARIOS] ❌ Error al cargar más usuarios:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudieron cargar más usuarios'
+      });
+    } finally {
+      this.loadingMoreUsers = false;
     }
   }
 
@@ -1504,7 +1681,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
       
       // Verificar si estamos cerca del final y no estamos ya cargando
       if (element.scrollTop + element.clientHeight >= element.scrollHeight - threshold) {
-        this.loadMoreTargets();
+        // Cargar más contenido según la operación actual
+        if (this.managementService.getOp() === 't') {
+          this.loadMoreTargets();
+        } else if (this.managementService.getOp() === 'u') {
+          this.loadMoreUsers();
+        }
       }
     }, 100);
   }
@@ -1687,6 +1869,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.targetsLoadCompletedFlag = true;
     }
   }
+
 
   private deleteUser(user: User): void {
     this.userService.delete(user._id).subscribe({
