@@ -45,6 +45,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
   canceledTargets: Target[] = [];
   loadingCanceledTargets: boolean = false;
   
+  // Paginación para targets cancelados
+  canceledTargetsOffset: number = 0;
+  canceledTargetsPageSize: number = 20;
+  totalCanceledTargetsCount: number = 0;
+  hasMoreCanceledTargets: boolean = true;
+  loadingMoreCanceledTargets: boolean = false;
+  lastLoadedParentId: string | null = null;
+  
   // Para los planes
   plans: Plan[] = [];
   
@@ -152,7 +160,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     // Cargar planes para mostrar nombres en lugar de IDs
     this.loadPlans();
     
-    // Verificar visibilidad inicial del botón cancelados
+    // Verificar visibilidad inicial del botón cancelados y cargar targets si es necesario
     this.updateCanceledButtonVisibility();
   }
 
@@ -163,15 +171,48 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   /**
    * Actualiza la visibilidad del botón "Cancelados" basado en si existe el ID del usuario en la URL
+   * y carga automáticamente los targets cancelados si es necesario
    */
-  private updateCanceledButtonVisibility() {
+  private async updateCanceledButtonVisibility() {
     const parentId = this.getParentIdFromUrl();
+    const wasVisible = this.showCanceledButton;
     this.showCanceledButton = !!parentId; // Convertir a boolean: true si existe parentId, false si es null
+    
     console.log('🔄 Actualizando visibilidad del botón cancelados:', {
       url: this.router.url,
       parentId,
-      showCanceledButton: this.showCanceledButton
+      showCanceledButton: this.showCanceledButton,
+      wasVisible
     });
+
+    // Si el botón se vuelve visible y hay un parentId, cargar targets cancelados automáticamente
+    if (this.showCanceledButton && parentId) {
+      // Solo cargar si:
+      // 1. El botón no estaba visible antes (nueva ruta)
+      // 2. O si no hay targets cargados aún
+      // 3. O si el parentId cambió (diferente usuario)
+      const shouldLoad = !wasVisible || 
+                        this.canceledTargets.length === 0 || 
+                        this.lastLoadedParentId !== parentId;
+      
+      if (shouldLoad) {
+        console.log('🚀 Cargando targets cancelados automáticamente:', {
+          reason: !wasVisible ? 'nueva ruta' : 
+                  this.canceledTargets.length === 0 ? 'sin targets cargados' : 
+                  'cambio de usuario',
+          parentId,
+          lastParentId: this.lastLoadedParentId
+        });
+        this.lastLoadedParentId = parentId;
+        await this.loadCanceledTargets();
+      }
+    } else if (!this.showCanceledButton) {
+      // Si el botón se oculta, limpiar los datos
+      this.canceledTargets = [];
+      this.totalCanceledTargetsCount = 0;
+      this.hasMoreCanceledTargets = true;
+      this.lastLoadedParentId = null;
+    }
   }
 
   private initializeMenus() {
@@ -669,11 +710,16 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Carga los objetivos cancelados desde la API
+   * Carga los objetivos cancelados desde la API con paginación
    */
   async loadCanceledTargets() {
     try {
       this.loadingCanceledTargets = true;
+      
+      // Resetear paginación
+      this.canceledTargetsOffset = 0;
+      this.canceledTargets = [];
+      this.hasMoreCanceledTargets = true;
       
       // Obtener el parent ID desde la URL
       const parentId = this.getParentIdFromUrl();
@@ -686,18 +732,97 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
       console.log('🚀 Cargando objetivos cancelados para parent ID:', parentId);
       
-      // Cargar objetivos cancelados
-      this.canceledTargets = await this.targetsService.getCanceledTargets(parentId);
+      // Cargar primera página de objetivos cancelados
+      const response = await this.targetsService.getCanceledTargetsWithPagination(
+        parentId, 
+        this.canceledTargetsOffset, 
+        this.canceledTargetsPageSize
+      );
+      
+      this.canceledTargets = response.devices;
+      this.totalCanceledTargetsCount = response.totalCount;
+      this.hasMoreCanceledTargets = this.canceledTargets.length < this.totalCanceledTargetsCount;
+      this.canceledTargetsOffset += this.canceledTargetsPageSize;
+      
       console.log('✅ Objetivos cancelados cargados exitosamente:', {
         cantidad: this.canceledTargets.length,
-        objetivos: this.canceledTargets
+        total: this.totalCanceledTargetsCount,
+        hasMore: this.hasMoreCanceledTargets
       });
       
     } catch (error) {
       console.error('❌ Error al cargar objetivos cancelados:', error);
       this.canceledTargets = [];
+      this.totalCanceledTargetsCount = 0;
+      this.hasMoreCanceledTargets = false;
     } finally {
       this.loadingCanceledTargets = false;
+    }
+  }
+
+  /**
+   * Carga más objetivos cancelados para el scroll infinito
+   */
+  async loadMoreCanceledTargets() {
+    if (!this.hasMoreCanceledTargets || this.loadingMoreCanceledTargets) {
+      return;
+    }
+
+    try {
+      this.loadingMoreCanceledTargets = true;
+      
+      // Obtener el parent ID desde la URL
+      const parentId = this.getParentIdFromUrl();
+      
+      if (!parentId) {
+        console.warn('⚠️ No se pudo obtener el parent ID desde la URL para cargar más objetivos cancelados');
+        return;
+      }
+
+      console.log('🔄 Cargando más objetivos cancelados:', {
+        parentId,
+        offset: this.canceledTargetsOffset,
+        pageSize: this.canceledTargetsPageSize
+      });
+      
+      // Cargar siguiente página de objetivos cancelados
+      const response = await this.targetsService.getCanceledTargetsWithPagination(
+        parentId, 
+        this.canceledTargetsOffset, 
+        this.canceledTargetsPageSize
+      );
+      
+      // Agregar nuevos targets a la lista existente
+      this.canceledTargets = [...this.canceledTargets, ...response.devices];
+      this.totalCanceledTargetsCount = response.totalCount;
+      this.hasMoreCanceledTargets = this.canceledTargets.length < this.totalCanceledTargetsCount;
+      this.canceledTargetsOffset += this.canceledTargetsPageSize;
+      
+      console.log('✅ Más objetivos cancelados cargados:', {
+        nuevos: response.devices.length,
+        total: this.canceledTargets.length,
+        hasMore: this.hasMoreCanceledTargets
+      });
+      
+    } catch (error) {
+      console.error('❌ Error al cargar más objetivos cancelados:', error);
+    } finally {
+      this.loadingMoreCanceledTargets = false;
+    }
+  }
+
+  /**
+   * Maneja el evento de scroll en la lista de targets cancelados
+   */
+  onCanceledTargetsScroll(event: Event) {
+    const element = event.target as HTMLElement;
+    const threshold = 50; // pixels desde el final
+    
+    const atBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + threshold;
+    
+    if (atBottom && this.hasMoreCanceledTargets && !this.loadingMoreCanceledTargets) {
+      console.log('🔄 Scroll infinito detectado - cargando más targets cancelados');
+      this.loadMoreCanceledTargets();
     }
   }
 
