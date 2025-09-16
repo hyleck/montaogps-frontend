@@ -13,6 +13,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
 import { PrimengModule } from './shareds/libraries/primeng/primeng.module';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './i18n/', '.json');
@@ -43,7 +44,9 @@ export function HttpLoaderFactory(http: HttpClient) {
         preset: Aura,
         options: { darkModeSelector: '.app-dark' }
       }
-    })
+    }),
+    ConfirmationService,
+    MessageService
   ],
   bootstrap: [AppComponent]
 })

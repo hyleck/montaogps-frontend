@@ -162,6 +162,8 @@ export class HistorialesSettingsComponent implements OnInit, OnDestroy {
       message: this.translate.instant('settings.historiales.messages.confirm_analyze_all'),
       header: this.translate.instant('settings.historiales.messages.confirm_header'),
       icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, analizar',
+      rejectLabel: 'Cancelar',
       accept: () => {
         this.executeAnalyzeAll();
       }

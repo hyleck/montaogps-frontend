@@ -84,6 +84,6 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     ToolbarModule,
     DrawerModule
   ],
-  providers: [ConfirmationService, MessageService]
+  providers: []
 })
 export class PrimengModule { }
