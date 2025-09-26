@@ -216,6 +216,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return this.authService.hasPrivilege('devices', 'update');
     }
 
+
     private getEmptyTarget(): TargetDevice {
         return {
             _id: '',

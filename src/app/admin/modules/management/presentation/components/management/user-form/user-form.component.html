@@ -441,6 +441,15 @@
                             </div>
                         </div>
                     </p-tabPanel>
+
+                    <p-tabPanel *ngIf="userInput">
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-cloud"></i>
+                        </ng-template>
+                        <div class="user-form__base">
+                            <app-cloud [targetId]="user._id" *ngIf="user._id"></app-cloud>
+                        </div>
+                    </p-tabPanel>
                 </p-tabView>
             </div>
         </div>

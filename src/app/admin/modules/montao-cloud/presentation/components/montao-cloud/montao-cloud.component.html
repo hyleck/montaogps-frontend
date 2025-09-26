@@ -1,0 +1,234 @@
+<div class="montao-cloud-container">
+  <!-- Header -->
+  <div class="cloud-header">
+    <div class="header-content">
+      <div class="header-title">
+        <i class="pi pi-cloud"></i>
+        <h2>{{ translateKey('montaoCloud.title') }}</h2>
+      </div>
+      <div class="header-description">
+        <p>{{ translateKey('montaoCloud.description') }}</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button
+        pButton
+        type="button"
+        icon="pi pi-plus"
+        label="New Folder"
+        class="p-button-outlined"
+        (click)="openCreateFolderDialog()">
+      </button>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-upload"
+        label="Upload Files"
+        class="p-button-primary"
+        (click)="openUploadDialog()">
+      </button>
+    </div>
+  </div>
+
+  <!-- Current Location & Navigation -->
+  <div class="location-container">
+    <div class="current-location">
+      <i class="pi pi-folder-open"></i>
+      <span *ngIf="!currentFolder">Root Directory</span>
+      <span *ngIf="currentFolder">{{ currentFolder.name }}</span>
+    </div>
+    <div class="breadcrumb-container">
+      <p-breadcrumb [model]="getBreadcrumbModel()"></p-breadcrumb>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="cloud-content">
+    <!-- Folders Grid -->
+    <div class="folders-section" *ngIf="folders.length > 0">
+      <h3>Folders</h3>
+      <div class="folders-grid">
+        <div
+          *ngFor="let folder of folders"
+          class="folder-card"
+          (click)="navigateToFolder(folder)"
+          (contextmenu)="onFolderRightClick($event, folder)">
+          <div class="folder-icon">
+            <i class="pi pi-folder"></i>
+          </div>
+          <div class="folder-info">
+            <span class="folder-name">{{ folder.name }}</span>
+            <span class="folder-meta">{{ folder.description || 'No description' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Files Grid -->
+    <div class="files-section" *ngIf="files.length > 0">
+      <h3>Files</h3>
+      <div class="files-grid">
+        <div
+          *ngFor="let file of files"
+          class="file-card"
+          (contextmenu)="onFileRightClick($event, file)">
+          <div class="file-icon">
+            <i [class]="getFileIcon(file.mimetype)"></i>
+          </div>
+          <div class="file-info">
+            <span class="file-name">{{ file.name }}</span>
+            <span class="file-meta">{{ formatFileSize(file.file_size) }}</span>
+          </div>
+          <div class="file-actions">
+            <button
+              pButton
+              type="button"
+              icon="pi pi-download"
+              class="p-button-text p-button-sm"
+              (click)="downloadFile(file)"
+              title="Download">
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="folders.length === 0 && files.length === 0 && !loading">
+      <div class="empty-icon">
+        <i class="pi pi-cloud"></i>
+      </div>
+      <h3 *ngIf="!currentFolder">No files or folders yet</h3>
+      <h3 *ngIf="currentFolder">This folder is empty</h3>
+      <p *ngIf="!currentFolder">Start by creating a folder or uploading some files</p>
+      <p *ngIf="currentFolder">Add files to this folder or create subfolders</p>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="loading">
+      <p-progressSpinner></p-progressSpinner>
+      <p>Loading...</p>
+    </div>
+  </div>
+</div>
+
+<!-- Create Folder Dialog -->
+<p-dialog
+  [(visible)]="showCreateFolderDialog"
+  [modal]="true"
+  [style]="{width: '400px'}"
+  header="Create New Folder">
+  <div class="dialog-content">
+    <div class="field">
+      <label for="folderName">Folder Name *</label>
+      <input
+        pInputText
+        id="folderName"
+        [(ngModel)]="newFolderName"
+        placeholder="Enter folder name"
+        class="w-full">
+    </div>
+    <div class="field">
+      <label for="folderDescription">Description</label>
+      <textarea
+        pInputTextarea
+        id="folderDescription"
+        [(ngModel)]="newFolderDescription"
+        placeholder="Enter folder description (optional)"
+        rows="3"
+        class="w-full">
+      </textarea>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <button
+      pButton
+      type="button"
+      label="Cancel"
+      icon="pi pi-times"
+      class="p-button-text"
+      (click)="showCreateFolderDialog = false">
+    </button>
+    <button
+      pButton
+      type="button"
+      label="Create"
+      icon="pi pi-check"
+      class="p-button-primary"
+      [disabled]="!newFolderName.trim()"
+      (click)="createFolder()">
+    </button>
+  </ng-template>
+</p-dialog>
+
+<!-- Upload Files Dialog -->
+<p-dialog
+  [(visible)]="showUploadDialog"
+  [modal]="true"
+  [style]="{width: '500px'}"
+  header="Upload Files">
+  <div class="dialog-content">
+    <div class="upload-area">
+      <input
+        type="file"
+        #fileInput
+        multiple
+        (change)="onFileSelected($event)"
+        style="display: none">
+      <div
+        class="upload-drop-zone"
+        (click)="fileInput.click()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onDrop($event)">
+        <div class="upload-icon">
+          <i class="pi pi-cloud-upload"></i>
+        </div>
+        <div class="upload-text">
+          <p>Click to browse or drag and drop files here</p>
+          <small>Supported formats: All file types</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="selected-files" *ngIf="selectedFiles.length > 0">
+      <h4>Selected Files ({{ selectedFiles.length }})</h4>
+      <div class="file-list">
+        <div *ngFor="let file of selectedFiles" class="file-item">
+          <i class="pi pi-file"></i>
+          <span>{{ file.name }}</span>
+          <span class="file-size">({{ formatFileSize(file.size) }})</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <ng-template pTemplate="footer">
+    <button
+      pButton
+      type="button"
+      label="Cancel"
+      icon="pi pi-times"
+      class="p-button-text"
+      (click)="showUploadDialog = false">
+    </button>
+    <button
+      pButton
+      type="button"
+      label="Upload"
+      icon="pi pi-upload"
+      class="p-button-primary"
+      [disabled]="selectedFiles.length === 0"
+      (click)="uploadFiles()">
+    </button>
+  </ng-template>
+</p-dialog>
+
+<!-- Context Menu -->
+<p-contextMenu #folderMenu [model]="folderContextMenuItems"></p-contextMenu>
+<p-contextMenu #fileMenu [model]="fileContextMenuItems"></p-contextMenu>
+
+<!-- Confirm Dialog -->
+<p-confirmDialog></p-confirmDialog>
+
+<!-- Toast Messages -->
+<p-toast></p-toast>

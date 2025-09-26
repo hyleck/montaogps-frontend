@@ -1,0 +1,364 @@
+.montao-cloud-container {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header */
+.cloud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.header-content .header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.header-content .header-title i {
+  font-size: 2rem;
+  color: var(--globalColorPrimaryInmutable);
+}
+
+.header-content .header-title h2 {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
+.header-description p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Location & Navigation */
+.location-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--surface-section);
+  border-radius: 8px;
+  border: 1px solid var(--surface-border);
+}
+
+.current-location {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.current-location i {
+  color: var(--globalColorPrimaryInmutable);
+}
+
+.breadcrumb-container {
+  flex: 1;
+  max-width: 70%;
+}
+
+/* Main Content */
+.cloud-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Folders Section */
+.folders-section h3,
+.files-section h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-color);
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.folders-section h3 i,
+.files-section h3 i {
+  color: var(--globalColorPrimaryInmutable);
+}
+
+.folders-grid,
+.files-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* Folder Cards */
+.folder-card,
+.file-card {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.folder-card:hover,
+.file-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  border-color: var(--globalColorPrimaryInmutable);
+}
+
+.folder-icon,
+.file-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  color: var(--globalColorPrimaryInmutable);
+  flex-shrink: 0;
+}
+
+.folder-info,
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.folder-name,
+.file-name {
+  margin: 0 0 0.25rem 0;
+  font-weight: 500;
+  color: var(--text-color);
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-meta,
+.file-meta {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.file-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  background: var(--surface-section);
+  border: 2px dashed var(--surface-border);
+  border-radius: 8px;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-color);
+  font-size: 1.25rem;
+}
+
+.empty-state p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 2rem;
+}
+
+.loading-state p {
+  margin: 1rem 0 0 0;
+  color: var(--text-secondary);
+}
+
+/* Dialogs */
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field label {
+  font-weight: 500;
+  color: var(--text-color);
+  font-size: 0.9rem;
+}
+
+.field input,
+.field textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.3s ease;
+}
+
+.field input:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--globalColorPrimaryInmutable);
+}
+
+/* Upload Area */
+.upload-area {
+  margin-bottom: 1rem;
+}
+
+.upload-drop-zone {
+  border: 2px dashed var(--surface-border);
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--surface-section);
+}
+
+.upload-drop-zone:hover {
+  border-color: var(--globalColorPrimaryInmutable);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.upload-icon {
+  font-size: 2rem;
+  color: var(--globalColorPrimaryInmutable);
+  margin-bottom: 0.75rem;
+}
+
+.upload-text p {
+  margin: 0 0 0.25rem 0;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.upload-text small {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+/* Selected Files */
+.selected-files {
+  margin-top: 1rem;
+}
+
+.selected-files h4 {
+  margin: 0 0 0.75rem 0;
+  color: var(--text-color);
+  font-size: 1rem;
+}
+
+.file-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--surface-section);
+  border-radius: 4px;
+  margin-bottom: 0.25rem;
+}
+
+.file-item i {
+  color: var(--globalColorPrimaryInmutable);
+}
+
+.file-item span {
+  flex: 1;
+  font-size: 0.85rem;
+  color: var(--text-color);
+}
+
+.file-size {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .montao-cloud-container {
+    padding: 1rem;
+  }
+
+  .cloud-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .folders-grid,
+  .files-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .folder-card,
+  .file-card {
+    padding: 0.75rem;
+  }
+
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .cloud-header .header-title h2 {
+    font-size: 1.5rem;
+  }
+
+  .header-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .header-actions button {
+    width: 100%;
+  }
+}

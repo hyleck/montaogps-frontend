@@ -122,7 +122,7 @@ export class AuthService {
       // Manejamos tanto string como boolean del backend
       const userRoot = user.root as any; // Cast temporal para evitar error de TypeScript
       const rootBoolean = userRoot === "true" || userRoot === true;
-      
+
       // Guardar solo la información básica del usuario
       const basicUserInfo = {
         id: user.id,
@@ -130,12 +130,13 @@ export class AuthService {
         last_name: user.last_name,
         email: user.email,
         access_level_id: user.access_level_id,
+        affiliation_type_id: (user as any).affiliation_type_id || (user as any).affiliation_type,
         root: rootBoolean
       };
-      
+
       // 🔍 DEBUG: Imprimir información del usuario que se va a guardar
       console.log('🔍 DEBUG - GUARDANDO USUARIO:', basicUserInfo);
-      
+
       localStorage.setItem(this.USER_KEY, JSON.stringify(basicUserInfo));
     } catch (error) {
       console.error('Error al guardar usuario:', error);
@@ -147,7 +148,7 @@ export class AuthService {
       // Obtener el usuario actual del localStorage directamente
       const userStr = localStorage.getItem(this.USER_KEY);
       const currentUser = userStr ? JSON.parse(userStr) : null;
-      
+
       if (!currentUser) return;
 
       let privilegesToSave = completeUserData.privileges || [];
@@ -158,10 +159,11 @@ export class AuthService {
         console.log('🔍 DEBUG - USUARIO ROOT DETECTADO - GENERANDO TODOS LOS PRIVILEGIOS:', privilegesToSave);
       }
 
-      // Agregar los privilegios al usuario existente
+      // Agregar los privilegios y affiliation_type_id al usuario existente
       const updatedUser = {
         ...currentUser,
-        privileges: privilegesToSave
+        privileges: privilegesToSave,
+        affiliation_type_id: completeUserData.affiliation_type_id || completeUserData.affiliation_type
       };
 
       // 🔍 DEBUG: Imprimir usuario actualizado con privilegios

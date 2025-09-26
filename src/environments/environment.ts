@@ -1,5 +1,5 @@
 export const environment = {
     production: false,
-    apiUrl: 'https://tracker-back.dorhu.com',
+    apiUrl: 'http://localhost:3333',
     montaoApiUrl: 'https://hostapi.montao.net'
 };

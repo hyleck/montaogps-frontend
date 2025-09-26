@@ -13,6 +13,7 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import { providePrimeNG } from 'primeng/config';
 import Aura from '@primeng/themes/aura';
 import { PrimengModule } from './shareds/libraries/primeng/primeng.module';
+import { CloudModule } from './shareds/components/cloud/cloud.module';
 import { ConfirmationService, MessageService } from 'primeng/api';
 
 export function HttpLoaderFactory(http: HttpClient) {
@@ -28,6 +29,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     AppRoutingModule,
     BrowserAnimationsModule,
     PrimengModule,
+    CloudModule,
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,

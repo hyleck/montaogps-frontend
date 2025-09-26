@@ -10,6 +10,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { ButtonModule } from 'primeng/button';
 import { TranslateModule } from '@ngx-translate/core';
 import { ToastModule } from 'primeng/toast';
+import { CloudComponent } from '../../../../../../../shareds/components/cloud/cloud.component';
 
 @NgModule({
   declarations: [
@@ -25,7 +26,8 @@ import { ToastModule } from 'primeng/toast';
     CheckboxModule,
     ButtonModule,
     TranslateModule,
-    ToastModule
+    ToastModule,
+    CloudComponent
   ],
   exports: [
     UserFormComponent

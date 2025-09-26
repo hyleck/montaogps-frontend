@@ -29,6 +29,7 @@ export interface BasicUser {
   last_name: string;
   email: string;
   access_level_id: AccessLevel;
+  affiliation_type_id?: string;
   root?: boolean;
   privileges?: UserPrivilege[];
 }

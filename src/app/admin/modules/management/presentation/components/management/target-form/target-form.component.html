@@ -751,15 +751,6 @@
                       </div>
                     </p-tabPanel>
 
-                    <!-- Pestaña Cloud ocultada -->
-                    <!-- <p-tabPanel>
-                        <ng-template pTemplate="header">
-                            <i class="tab-icon pi pi-cloud"></i>
-                            <span class="tab-text">{{ translate('management.targetForm.cloudAdmin') }}</span>
-                        </ng-template>
-                        <app-cloud></app-cloud>
-                    </p-tabPanel> -->
-
                     <p-tabPanel *ngIf="hasSimCardTypeSelected()">
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-comments"></i>
@@ -901,6 +892,14 @@
                                 </div>
                             </div>
                         </div>
+                    </p-tabPanel>
+
+                    <p-tabPanel *ngIf="isEditMode">
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-cloud"></i>
+                            <span class="tab-text">Cloud</span>
+                        </ng-template>
+                        <app-cloud [targetId]="target._id"></app-cloud>
                     </p-tabPanel>
                 </p-tabView>
 
