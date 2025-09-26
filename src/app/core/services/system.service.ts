@@ -57,10 +57,17 @@ export class SystemService {
   constructor(private http: HttpClient) {}
 
   /**
-   * Obtener todas las configuraciones del sistema
+   * Obtener todas las configuraciones del sistema (requiere auth)
    */
   getAll(): Observable<SystemSettings[]> {
     return this.http.get<SystemSettings[]>(this.apiUrl);
+  }
+
+  /**
+   * Obtener configuraciones del sistema públicas (sin auth)
+   */
+  getPublic(): Observable<SystemSettings[]> {
+    return this.http.get<SystemSettings[]>(`${this.apiUrl}-public`);
   }
 
   /**

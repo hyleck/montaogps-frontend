@@ -2,7 +2,7 @@
     <div *ngIf="sidebarDisplayed" class="sidebar">
         <div class="sidebar__logo">
            <div class="sidebar__logo-img">
-            <img src="logo/LOGO.png" alt="">
+            <img [src]="systemLogo" alt="System Logo">
            </div>
            <div (click)="toggleSidebar()" class="sidebar__hide-button">
             <i class="pi pi-window-minimize"></i>

@@ -13,7 +13,7 @@ import { LangService } from '@shared/services/langi18/lang.service';
 import { TranslateModule } from '@ngx-translate/core';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
-import { ProfileUser } from '@core/interfaces/profile.interface';
+import { CloudService } from '@core/services/cloud.service';
 import { ToastModule } from 'primeng/toast';
 
 @Component({
@@ -38,13 +38,12 @@ export class ProfileComponent implements OnInit {
     items: MenuItem[] = [{ label: 'Perfil' }];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
     loading: boolean = true;
-    user: ProfileUser = {
+    user: any = {
         _id: '',
         name: '',
         last_name: '',
         email: '',
         phone: '',
-        birth: '',
         dni: '',
         settings: {
             theme: 'light',
@@ -73,6 +72,7 @@ export class ProfileComponent implements OnInit {
         private langService: LangService,
         private authService: AuthService,
         private userService: UserService,
+        private cloudService: CloudService,
         private messageService: MessageService
     ) {
         this.selectedTheme = this.themesService.getCurrentTheme();
@@ -123,9 +123,76 @@ export class ProfileComponent implements OnInit {
         this.updateUserSettings();
     }
 
+    onPhotoSelected(event: any) {
+        const file = event.target.files[0];
+        if (file) {
+            this.uploadProfilePhoto(file);
+        }
+    }
+
+    removePhoto() {
+        this.user.photo = '';
+        this.userPhotoUrl = null;
+        this.updateUserProfile({ photo: '' });
+    }
+
+    private uploadProfilePhoto(file: File) {
+        // Validate file type and size
+        if (!file.type.startsWith('image/')) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('Solo se permiten archivos de imagen')
+            });
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('La imagen no puede ser mayor a 5MB')
+            });
+            return;
+        }
+
+        const currentUser = this.authService.getCurrentUser();
+        if (!currentUser?.id) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('Usuario no autenticado')
+            });
+            return;
+        }
+
+        // Upload to cloud storage
+        this.cloudService.uploadFile(file, currentUser.id).subscribe({
+            next: (event) => {
+                // Handle upload progress if needed
+                if (event.type === 4 && event.body) { // HttpEventType.Response
+                    const uploadedFile = event.body.data?.[0];
+                    if (uploadedFile?.location_cdn) {
+                        this.user.photo = uploadedFile.location_cdn;
+                        this.userPhotoUrl = uploadedFile.location_cdn;
+                        this.updateUserProfile({ photo: uploadedFile.location_cdn });
+                    }
+                }
+            },
+            error: (error) => {
+                console.error('Error uploading photo:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translate.instant('Error'),
+                    detail: this.translate.instant('Error al subir la foto de perfil')
+                });
+            }
+        });
+    }
+
     // Métodos Privados
     private loadCachedProfile() {
-        const cachedProfile = this.status.getState<ProfileUser>('profile');
+        const cachedProfile = this.status.getState<any>('profile');
         if (cachedProfile) {
             this.user = cachedProfile;
             this.loading = false;
@@ -156,7 +223,7 @@ export class ProfileComponent implements OnInit {
         }
     }
 
-    private processUserData(userData: any): ProfileUser {
+    private processUserData(userData: any): any {
         const userSettingsArray = userData.settings || [];
         const userSettingsData = userSettingsArray.length > 0 ? userSettingsArray[0] : {};
         
@@ -177,7 +244,10 @@ export class ProfileComponent implements OnInit {
             notifications: userSettingsData.notifications !== undefined ? userSettingsData.notifications : true
         };
 
-        const birthDate = userData.birth ? new Date(userData.birth).toISOString().split('T')[0] : '';
+        // Set photo URL for display
+        if (userData.photo) {
+            this.userPhotoUrl = userData.photo;
+        }
 
         return {
             _id: userData._id,
@@ -190,7 +260,6 @@ export class ProfileComponent implements OnInit {
             access_level_id: userData.access_level_id,
             phone: userData.phone || '',
             phone2: userData.phone2 || '',
-            birth: birthDate,
             dni: userData.dni || '',
             address: userData.address || '',
             photo: userData.photo || '',
@@ -198,7 +267,7 @@ export class ProfileComponent implements OnInit {
         };
     }
 
-    private updateUserIfChanged(updatedUser: ProfileUser) {
+    private updateUserIfChanged(updatedUser: any) {
         if (JSON.stringify(this.user) !== JSON.stringify(updatedUser)) {
             this.user = updatedUser;
             if (!this.loading) {
@@ -218,7 +287,6 @@ export class ProfileComponent implements OnInit {
             email: this.user.email,
             phone: this.user.phone,
             phone2: this.user.phone2,
-            birth: this.user.birth ? new Date(this.user.birth).toISOString() : null,
             dni: this.user.dni,
             address: this.user.address,
             settings: [{
@@ -282,15 +350,25 @@ export class ProfileComponent implements OnInit {
     }
 
     private updateAuthServiceUser(updatedUser: any) {
-        const currentUser = this.authService.getCurrentUser();
-        if (currentUser) {
-            const basicUserInfo = {
-                ...currentUser,
-                name: updatedUser.name,
-                last_name: updatedUser.last_name,
-                email: updatedUser.email
-            };
-            this.authService['saveUser'](basicUserInfo);
+        // Instead of calling saveUser directly, update the localStorage manually
+        // to preserve all existing data including privileges
+        try {
+            const userStr = localStorage.getItem('user');
+            const currentUser = userStr ? JSON.parse(userStr) : null;
+
+            if (currentUser) {
+                // Update only the fields that changed, preserve everything else
+                const updatedUserData = {
+                    ...currentUser,
+                    name: updatedUser.name,
+                    last_name: updatedUser.last_name,
+                    email: updatedUser.email
+                };
+
+                localStorage.setItem('user', JSON.stringify(updatedUserData));
+            }
+        } catch (error) {
+            console.error('Error updating user in localStorage:', error);
         }
     }
 

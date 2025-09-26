@@ -29,11 +29,17 @@
                                         <i *ngIf="!userPhotoUrl" class="pi pi-user"></i>
                                     </div>
                                     <div class="photo-actions">
-                                        <button class="change-photo-btn">
+                                        <label class="change-photo-btn" for="photo-upload">
                                             <i class="pi pi-camera"></i>
                                             <span>{{ 'profile.settings.photo.change' | translate }}</span>
-                                        </button>
-                                        <button class="remove-photo-btn" *ngIf="userPhotoUrl">
+                                        </label>
+                                        <input
+                                            type="file"
+                                            id="photo-upload"
+                                            accept="image/*"
+                                            (change)="onPhotoSelected($event)"
+                                            style="display: none;">
+                                        <button class="remove-photo-btn" *ngIf="userPhotoUrl" (click)="removePhoto()">
                                             <i class="pi pi-trash"></i>
                                             <span>{{ 'profile.settings.photo.remove' | translate }}</span>
                                         </button>
@@ -76,10 +82,6 @@
                             <div class="form-group required">
                                 <label for="address">{{ 'profile.personal_info.address' | translate }}</label>
                                 <input [(ngModel)]="user.address" name="address" id="address" type="text" required>
-                            </div>
-                            <div class="form-group required">
-                                <label for="birth">{{ 'profile.personal_info.birth_date' | translate }}</label>
-                                <input [(ngModel)]="user.birth" name="birth" type="date" id="birth" required>
                             </div>
                         </div>
                     </div>

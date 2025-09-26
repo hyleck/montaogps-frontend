@@ -114,28 +114,43 @@
             <img src="login.jpg" alt="">
           </div>
           <div class="login__info-contacts">
-            <div class="login__info-contact animated flip infinite">
+            <div class="login__info-contact animated flip infinite" *ngIf="systemContacts.length > 0">
+              <strong>{{ systemContacts[0].name }}</strong>
+              <a [href]="getContactLink(systemContacts[0])" target="_blank">
+                <i class="pi" [ngClass]="getContactIcon(systemContacts[0])"></i>
+                <span>{{ systemContacts[0].value }}</span>
+              </a>
+            </div>
+            <div class="login__info-contact" *ngFor="let contact of systemContacts.slice(1)">
+              <strong>{{ contact.name }}</strong>
+              <a [href]="getContactLink(contact)" target="_blank">
+                <i class="pi" [ngClass]="getContactIcon(contact)"></i>
+                <span>{{ contact.value }}</span>
+              </a>
+            </div>
+            <!-- Fallback contacts if system contacts are not loaded -->
+            <div class="login__info-contact animated flip infinite" *ngIf="systemContacts.length === 0">
               <strong>{{ 'login.contactInstallation' | translate }}</strong>
               <a href="https://wa.me/18295379776" target="_blank">
                 <i class="pi pi-whatsapp"></i>
                 <span>(829) 537-9776</span>
               </a>
             </div>
-            <div class="login__info-contact">
+            <div class="login__info-contact" *ngIf="systemContacts.length === 0">
               <strong>{{ 'login.contactRenewal' | translate }}</strong>
               <a href="https://wa.me/18498899924" target="_blank">
                 <i class="pi pi-whatsapp"></i>
                 <span>(849) 889-9924</span>
               </a>
             </div>
-            <div class="login__info-contact">
+            <div class="login__info-contact" *ngIf="systemContacts.length === 0">
               <strong>{{ 'login.contactAccounting' | translate }}</strong>
               <a href="https://wa.me/18296697013" target="_blank">
                 <i class="pi pi-whatsapp"></i>
                 <span>(829) 669-7013</span>
               </a>
             </div>
-            <div class="login__info-contact">
+            <div class="login__info-contact" *ngIf="systemContacts.length === 0">
               <strong>{{ 'login.contactEmergency' | translate }}</strong>
               <a href="https://wa.me/18095761000" target="_blank">
                 <i class="pi pi-whatsapp"></i>

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { StatusService } from '../../../../shareds/services/status.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { SystemService } from '../../../../core/services/system.service';
 import { TranslateService } from '@ngx-translate/core';
 import { LangService } from '../../../../shareds/services/langi18/lang.service';
 
@@ -14,6 +15,7 @@ export class SidebarComponent implements OnInit {
 
   sidebarDisplayed = true;
   userName: string = '';
+  systemLogo: string = 'logo/LOGO.png'; // Default logo
 
   sidaberOptions = {
     favoriteTitle: '',
@@ -35,6 +37,7 @@ export class SidebarComponent implements OnInit {
   constructor(
     private status: StatusService,
     private authService: AuthService,
+    private systemService: SystemService,
     private translate: TranslateService,
     private langService: LangService
   ) {
@@ -43,7 +46,8 @@ export class SidebarComponent implements OnInit {
 
   ngOnInit() {
     this.updateTranslations();
-    
+    this.loadSystemSettings();
+
     const user = this.authService.getCurrentUser();
     if (user) {
       this.userName = `${user.name} ${user.last_name}`;
@@ -76,6 +80,23 @@ export class SidebarComponent implements OnInit {
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');
+  }
+
+  loadSystemSettings() {
+    this.systemService.getAll().subscribe({
+      next: (systems) => {
+        if (systems && systems.length > 0) {
+          const system = systems[0];
+          if (system.logo) {
+            this.systemLogo = system.logo;
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error loading system settings:', error);
+        // Keep default logo if system settings can't be loaded
+      }
+    });
   }
 
   toggleSidebar() {
