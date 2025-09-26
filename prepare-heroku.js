@@ -101,7 +101,7 @@ console.log('\n✅ ¡Proyecto listo para Heroku!');
 console.log('\nPróximos pasos:');
 console.log('1. heroku git:remote -a montao-gps-beta');
 console.log('2. heroku config:set NODE_ENV=production');
-console.log('3. heroku config:set environment=production  # Para usar environment.production.ts');
+console.log('3. heroku config:set environment=production  # Variable de entorno para el build');
 console.log('4. heroku config:set GOOGLE_MAPS_API_KEY=tu_api_key');
 console.log('5. heroku config:set MAPBOX_ACCESS_TOKEN=tu_token');
 console.log('6. git add . && git commit -m "Ready for Heroku"');
