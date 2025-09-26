@@ -4,26 +4,30 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 4200;
 
+// Detectar si estamos sirviendo archivos de producción
+const isProductionBuild = require('fs').existsSync(path.join(__dirname, '/dist/montaogps-frontend/browser/main-J2MBITJD.js'));
+
 // Servir archivos estáticos de Angular
 app.use(express.static(path.join(__dirname, '/dist/montaogps-frontend/browser/')));
 
-// Configurar CORS optimizado para beta.montao.net
+// Configurar CORS optimizado para beta.montao.net y tracker.dorhu.com
 app.use((req, res, next) => {
   const allowedOrigins = [
     'https://beta.montao.net',
+    'https://tracker.dorhu.com',
     'http://localhost:4200',
     'http://localhost:3000'
   ];
-  
+
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin) || !origin) {
     res.header('Access-Control-Allow-Origin', origin || '*');
   }
-  
+
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
-  
+
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
   } else {
@@ -65,23 +69,24 @@ app.get('*', (req, res) => {
 // Manejo de errores
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Something went wrong!',
-    message: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : err.message
+    message: isProductionBuild ? 'Internal Server Error' : err.message
   });
 });
 
 app.listen(PORT, () => {
   console.log(`🚀 MontaoGPS Frontend server running on port ${PORT}`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  
-  if (process.env.NODE_ENV === 'production') {
-    console.log(`🌐 Production URL: https://beta.montao.net`);
+  console.log(`📍 Build Type: ${isProductionBuild ? 'production' : 'development'}`);
+  console.log(`📦 Serving files from: /dist/montaogps-frontend/browser/`);
+
+  if (isProductionBuild) {
+    console.log(`🌐 Production Build: URLs replaced with production endpoints`);
+    console.log(`🏥 Health check: http://localhost:${PORT}/health`);
   } else {
-    console.log(`🌐 Local URL: http://localhost:${PORT}`);
+    console.log(`🌐 Development Build: Using localhost URLs`);
+    console.log(`🏥 Health check: http://localhost:${PORT}/health`);
   }
-  
-  console.log(`🏥 Health check: ${process.env.NODE_ENV === 'production' ? 'https://beta.montao.net' : `http://localhost:${PORT}`}/health`);
 });
 
 // Manejo graceful shutdown

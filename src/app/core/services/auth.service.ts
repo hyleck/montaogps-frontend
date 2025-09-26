@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap, switchMap, BehaviorSubject } from 'rxjs';
-import { environment } from '../../../environments/environment.development';
+import { environment } from '../../../environments/environment';
 import { jwtDecode } from 'jwt-decode';
 import { User, BasicUser } from '../interfaces/user.interface';
 import { TokenPayload } from '../interfaces/token-payload.interface';
