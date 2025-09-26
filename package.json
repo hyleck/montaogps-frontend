@@ -9,7 +9,7 @@
     "dev": "ng serve",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "heroku-postbuild": "node build.js",
+    "heroku-postbuild": "ng build --configuration heroku",
     "prepare-heroku": "node prepare-heroku.js",
     "local-prod": "npm run build && node server.js"
   },
