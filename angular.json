@@ -77,30 +77,6 @@
                   "with": "src/environments/environment.development.ts"
                 }
               ]
-            },
-            "heroku": {
-              "optimization": true,
-              "outputHashing": "all",
-              "sourceMap": false,
-              "extractLicenses": true,
-              "fileReplacements": [
-                {
-                  "replace": "src/environments/environment.ts",
-                  "with": "src/environments/environment.production.ts"
-                }
-              ],
-              "budgets": [
-                {
-                  "type": "initial",
-                  "maximumWarning": "4MB",
-                  "maximumError": "8MB"
-                },
-                {
-                  "type": "anyComponentStyle",
-                  "maximumWarning": "50kB",
-                  "maximumError": "100kB"
-                }
-              ]
             }
           },
           "defaultConfiguration": "production"
