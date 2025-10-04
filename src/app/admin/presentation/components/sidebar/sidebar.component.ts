@@ -26,6 +26,7 @@ export class SidebarComponent implements OnInit {
     principalItems: [
       { label: '', path: '/admin/management/' , icon:'pi pi-book', badge: 0},
       { label: '', path: '/admin/inventory', icon:'pi pi-database', badge: 0 },
+      { label: '', path: '/admin/macro', icon:'pi pi-cog', badge: 0 },
     ],
     profileTitle: '',
     profileItems: [
@@ -77,6 +78,7 @@ export class SidebarComponent implements OnInit {
     // Elementos del menú principal
     this.sidaberOptions.principalItems[0].label = this.translate.instant('sidebar.management');
     this.sidaberOptions.principalItems[1].label = this.translate.instant('sidebar.inventory');
+    this.sidaberOptions.principalItems[2].label = this.translate.instant('sidebar.macro');
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');
@@ -113,8 +115,8 @@ export class SidebarComponent implements OnInit {
   // Getter para obtener los elementos del menú principal filtrados por root
   get filteredPrincipalItems() {
     return this.sidaberOptions.principalItems.filter(item => {
-      // Si es inventory, solo mostrar si el usuario es root
-      if (item.path === '/admin/inventory') {
+      // Si es inventory o macro, solo mostrar si el usuario es root
+      if (item.path === '/admin/inventory' || item.path === '/admin/macro') {
         return this.isRootUser;
       }
       // Para otros elementos, mostrar siempre

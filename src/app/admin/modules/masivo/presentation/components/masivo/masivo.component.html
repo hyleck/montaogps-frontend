@@ -1,0 +1,115 @@
+<div class="masivo-container">
+  <h2>Módulo Masivo</h2>
+
+  <!-- Controls Section -->
+  <div class="controls-section">
+    <div class="filters-section">
+       <div class="plan-filter-section">
+        <select
+          [(ngModel)]="selectedPlan"
+          (ngModelChange)="onPlanFilterChange()"
+          class="plan-filter native-select">
+          <option value="">Filtrar por plan</option>
+          <option *ngFor="let plan of planOptions.slice(1)" [value]="plan.value">
+            {{ plan.label }}
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions-section">
+      <p-splitButton
+        label="Ejecutar..."
+        icon="pi pi-play"
+        [model]="actionMenuItems"
+        styleClass="p-button-primary"
+        [disabled]="selectedDevices.length === 0">
+      </p-splitButton>
+    </div>
+  </div>
+
+  <!-- Table Section -->
+  <div class="table-section">
+    <p-table
+      [value]="filteredDevices"
+      [(selection)]="selectedDevices"
+      [paginator]="true"
+      [rows]="10"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} dispositivos"
+      [rowsPerPageOptions]="[5, 10, 25, 50]"
+      styleClass="p-datatable-striped"
+      [loading]="isLoadingDevices"
+      loadingIcon="pi pi-spin pi-spinner">
+
+      <ng-template pTemplate="header">
+        <tr>
+          <th style="width: 3rem">
+            <p-tableHeaderCheckbox></p-tableHeaderCheckbox>
+          </th>
+          <th>Nombre</th>
+          <th>IMEI</th>
+          <th>SIM Card</th>
+          <th>Plan</th>
+          <th>Protocolo</th>
+          <th>Primer Comando</th>
+          <th>Estado</th>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="body" let-device>
+        <tr>
+          <td>
+            <p-tableCheckbox [value]="device"></p-tableCheckbox>
+          </td>
+          <td>{{ device.name }}</td>
+          <td>{{ device.device_imei }}</td>
+          <td>{{ device.sim_card_number || 'Sin SIM' }}</td>
+          <td>{{ device.plan?.id_plan?.plan_name || 'Sin plan' }}</td>
+          <td>{{ device.protocol?.name || 'Sin protocolo' }}</td>
+          <td>
+            <span [title]="device.protocol?.firstCommand || 'N/A'">
+              {{ (device.protocol?.firstCommand || 'N/A') | slice:0:20 }}{{ (device.protocol?.firstCommand?.length || 0) > 20 ? '...' : '' }}
+            </span>
+          </td>
+          <td>
+            <span class="status-badge" [ngClass]="device.status ? 'active' : 'inactive'">
+              {{ device.status ? 'Activo' : 'Inactivo' }}
+            </span>
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="8" class="text-center">
+            {{ isLoadingDevices ? 'Cargando dispositivos...' : 'No se encontraron dispositivos' }}
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+
+  <!-- Results Section (shown after actions) -->
+  <div *ngIf="results.length > 0" class="results-section">
+    <h3>Resultados de la Operación:</h3>
+    <div class="results-grid">
+      <div *ngFor="let result of results" class="result-card" [ngClass]="result.status">
+        <div class="result-header">
+          <strong>{{ result.device }}</strong>
+          <span class="status-badge" [ngClass]="result.status">{{ result.status }}</span>
+        </div>
+        <div class="result-details">
+          <p><strong>IMEI:</strong> {{ result.imei }}</p>
+          <p *ngIf="result.simCard"><strong>SIM:</strong> {{ result.simCard }}</p>
+          <p *ngIf="result.provider"><strong>Proveedor:</strong> {{ result.provider }}</p>
+          <p *ngIf="result.command"><strong>Comando:</strong> {{ result.command }}</p>
+          <p *ngIf="result.reason" class="reason"><strong>Razón:</strong> {{ result.reason }}</p>
+          <p *ngIf="result.error" class="error"><strong>Error:</strong> {{ result.error }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p-toast></p-toast>

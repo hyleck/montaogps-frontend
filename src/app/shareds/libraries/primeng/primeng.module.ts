@@ -25,6 +25,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { TagModule } from 'primeng/tag';
 import { ToolbarModule } from 'primeng/toolbar';
 import { DrawerModule } from 'primeng/drawer';
+import { SplitButtonModule } from 'primeng/splitbutton';
 
 import { ConfirmationService, MessageService } from 'primeng/api';
 
@@ -55,7 +56,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     InputNumberModule,
     TagModule,
     ToolbarModule,
-    DrawerModule
+    DrawerModule,
+    SplitButtonModule
   ],
   exports: [
     BadgeModule,
@@ -82,7 +84,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     InputNumberModule,
     TagModule,
     ToolbarModule,
-    DrawerModule
+    DrawerModule,
+    SplitButtonModule
   ],
   providers: []
 })

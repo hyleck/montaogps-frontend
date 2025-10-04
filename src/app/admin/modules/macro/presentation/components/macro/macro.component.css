@@ -1,0 +1,163 @@
+.macro-container {
+  padding: 20px;
+  background-color: var(--managementColorBackgroundUser);
+  min-height: calc(100vh - 120px);
+}
+
+.macro-container h1 {
+  color: var(--managementColorTitleUser);
+  font-size: 2rem;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.status-active {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.status-inactive {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.filter-section {
+  background: var(--managementColorCardBackground);
+  border-radius: 12px;
+  border: 1px solid var(--managementFieldsBorder);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 20px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.filter-field label {
+  font-weight: 600;
+  color: var(--managementColorTitleUser);
+  font-size: 14px;
+}
+
+.actions-section {
+  background: var(--managementColorCardBackground);
+  border-radius: 12px;
+  border: 1px solid var(--managementFieldsBorder);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.actions-controls {
+  display: flex;
+  gap: 20px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.action-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-field label {
+  font-weight: 600;
+  color: var(--managementColorTitleUser);
+  font-size: 14px;
+}
+
+/* Process Dialog Styles */
+.process-dialog-content {
+  padding: 1rem 0;
+}
+
+.process-summary {
+  background: var(--managementColorCardBackground);
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border: 1px solid var(--managementFieldsBorder);
+}
+
+.process-summary h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--managementColorTitleUser);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.process-summary ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.process-summary li {
+  margin-bottom: 0.5rem;
+  color: var(--managementColorTextUser);
+}
+
+.warning-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.warning-message i {
+  color: #856404;
+  font-size: 1.2rem;
+  margin-top: 0.1rem;
+}
+
+.warning-message span {
+  color: #856404;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* SMS Dialog Styles */
+.sms-dialog-content {
+  padding: 1rem 0;
+}
+
+.sms-summary {
+  background: var(--managementColorCardBackground);
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border: 1px solid var(--managementFieldsBorder);
+}
+
+.sms-summary h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--managementColorTitleUser);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.sms-summary ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.sms-summary li {
+  margin-bottom: 0.5rem;
+  color: var(--managementColorTextUser);
+}

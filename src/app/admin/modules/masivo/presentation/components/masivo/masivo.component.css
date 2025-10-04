@@ -1,0 +1,352 @@
+/* Masivo component styles */
+.masivo-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.masivo-container h2 {
+  margin-bottom: 30px;
+  color: var(--globalColorTextDark);
+  font-size: 1.5em;
+  font-weight: 600;
+}
+
+/* Controls Section */
+.controls-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: var(--globalColorBackground);
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 8px;
+  box-shadow: var(--globalColorShadow);
+}
+
+
+.plan-filter-section {
+  min-width: 200px;
+}
+
+.plan-filter {
+  width: 100%;
+}
+
+.native-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 6px;
+  background: var(--globalColorBackground);
+  color: var(--globalColorTextDark);
+  font-size: 14px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.native-select:focus {
+  outline: none;
+  border-color: var(--globalColorPrimaryInmutable);
+  box-shadow: 0 0 0 2px rgba(189, 53, 53, 0.1);
+}
+
+.native-select option {
+  background: var(--globalColorBackground);
+  color: var(--globalColorTextDark);
+  padding: 8px;
+}
+
+.actions-section {
+  display: flex;
+  gap: 15px;
+}
+
+/* Table Section */
+.table-section {
+  background: var(--globalColorBackground);
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 8px;
+  box-shadow: var(--globalColorShadow);
+  overflow: hidden;
+}
+
+.table-section .p-datatable {
+  border: none;
+}
+
+.table-section .p-datatable .p-datatable-header {
+  background: var(--globalColorBackgroundLight);
+  border-bottom: 1px solid var(--globalColorBorderLight);
+  padding: 15px;
+  font-weight: 600;
+  color: var(--globalColorTextDark);
+}
+
+.table-section .p-datatable .p-datatable-thead > tr > th {
+  background: var(--globalColorBackgroundLight);
+  border: 1px solid var(--globalColorBorderLight);
+  padding: 12px 15px;
+  font-weight: 600;
+  color: var(--globalColorTextDark);
+  text-align: left;
+}
+
+.table-section .p-datatable .p-datatable-tbody > tr {
+  border-bottom: 1px solid var(--globalColorBorderLight);
+}
+
+.table-section .p-datatable .p-datatable-tbody > tr > td {
+  padding: 12px 15px;
+  border: 1px solid var(--globalColorBorderLight);
+  color: var(--globalColorTextDark);
+}
+
+.table-section .p-datatable .p-datatable-tbody > tr:hover {
+  background: var(--globalColorBackgroundLight);
+}
+
+.table-section .p-datatable .p-datatable-tbody > tr > td .status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-section .p-datatable .p-datatable-tbody > tr > td .status-badge.active {
+  background: var(--globalColorCardBackground);
+  color: var(--globalGreen);
+}
+
+.table-section .p-datatable .p-datatable-tbody > tr > td .status-badge.inactive {
+  background: var(--globalColorCardBorderLight);
+  color: var(--globalColorTextMuted);
+}
+
+.table-section .p-datatable .p-datatable-tfoot {
+  background: var(--globalColorBackgroundLight);
+  border-top: 1px solid var(--globalColorBorderLight);
+}
+
+.table-section .p-datatable .p-paginator {
+  background: var(--globalColorBackgroundLight);
+  border-top: 1px solid var(--globalColorBorderLight);
+  padding: 15px;
+}
+
+.table-section .p-datatable .p-paginator .p-paginator-pages .p-paginator-page {
+  color: var(--globalColorTextDark);
+}
+
+.table-section .p-datatable .p-paginator .p-paginator-pages .p-paginator-page:hover {
+  background: var(--globalColorBackground);
+  color: var(--globalColorPrimaryInmutable);
+}
+
+.table-section .p-datatable .p-paginator .p-paginator-pages .p-paginator-page.p-highlight {
+  background: var(--globalColorPrimaryInmutable);
+  color: var(--globalColorTextStrong);
+}
+
+/* Results Section */
+.results-section {
+  margin-top: 30px;
+  padding: 20px;
+  background: var(--globalColorBackground);
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 8px;
+  box-shadow: var(--globalColorShadow);
+}
+
+.results-section h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--globalColorTextDark);
+  font-size: 1.2em;
+  font-weight: 600;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.result-card {
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 8px;
+  padding: 15px;
+  background: var(--globalColorBackground);
+  box-shadow: var(--globalColorShadow);
+  transition: box-shadow 0.2s;
+}
+
+.result-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.result-card.sent {
+  border-left: 4px solid var(--globalGreen);
+}
+
+.result-card.error {
+  border-left: 4px solid var(--globalColorPrimaryInmutable);
+}
+
+.result-card.skipped {
+  border-left: 4px solid var(--globalColorHighlight);
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--globalColorBorderLight);
+}
+
+.result-header strong {
+  font-size: 16px;
+  color: var(--globalColorTextDark);
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.sent {
+  background: var(--globalColorCardBackground);
+  color: var(--globalGreen);
+}
+
+.status-badge.error {
+  background: var(--globalColorCardBorderLight);
+  color: var(--globalColorPrimaryInmutable);
+}
+
+.status-badge.skipped {
+  background: var(--globalColorCardHighlight);
+  color: var(--globalColorTextDark);
+}
+
+.result-details p {
+  margin: 6px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.result-details strong {
+  color: var(--globalColorTextDark);
+  font-weight: 600;
+}
+
+.reason {
+  color: var(--globalColorHighlight);
+  font-style: italic;
+}
+
+.error {
+  color: var(--globalColorPrimaryInmutable);
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .controls-section {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-section .p-datatable .p-datatable-tbody > tr > td {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
+
+.masivo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.masivo__card {
+  background: var(--globalColorCardBackground);
+  border: 1px solid var(--globalColorCardBorderLight);
+  border-radius: 8px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px var(--globalColorShadow);
+}
+
+.masivo__card:hover {
+  border-color: var(--globalColorBorderHover);
+}
+
+.masivo__card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.masivo__card-header i {
+  font-size: 1.5rem;
+  color: var(--globalColorPrimaryInmutable);
+}
+
+.masivo__card-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--globalColorTextDark);
+}
+
+.masivo__card-description {
+  margin: 0;
+  color: var(--globalColorTextMuted);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+/* Modal styles */
+.modal-content {
+  padding: 1rem 0;
+}
+
+.modal-content p {
+  margin-bottom: 1rem;
+  font-weight: 500;
+  color: var(--globalColorTextDark);
+}
+
+/* Status styles */
+.status-active {
+  color: var(--globalGreen);
+  font-weight: 600;
+}
+
+.status-inactive {
+  color: var(--globalColorTextMuted);
+  font-weight: 600;
+}

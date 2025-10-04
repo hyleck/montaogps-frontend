@@ -107,7 +107,8 @@
       "processes": "Processes",
       "reports": "Reports",
       "settings": "Settings",
-      "inventory": "Inventory"
+      "inventory": "Inventory",
+      "macro": "Macro"
     },
     "inventory": {
       "title": "Inventory",

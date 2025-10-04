@@ -131,7 +131,8 @@
       "processes": "Procesos",
       "reports": "Reportes",
       "settings": "Configuración",
-      "inventory": "Inventario"
+      "inventory": "Inventario",
+      "macro": "Macro"
     },
     "inventory": {
       "title": "Inventario",
