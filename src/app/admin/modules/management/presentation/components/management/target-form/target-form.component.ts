@@ -2384,7 +2384,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         shutdown_control: this.target.shutdown_control,
                         engine_shutdown: this.target.engine_shutdown,
                         installation_details: this.target.installation_details,
-                        status: this.target.status,
+                        status: this.target.status == 'active',
                         canceled: this.target.canceled,
                         delete: this.target['delete'],
                         index: this.target.index,

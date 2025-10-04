@@ -1,7 +1,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AdminComponent } from './components/admin-layout/admin.component';
-import { RootGuard } from '../../../core/guards/root.guard';
 
 const routes: Routes = [
   { 
@@ -22,8 +21,7 @@ const routes: Routes = [
       },
       {
         path: 'macro',
-        loadChildren: () => import('../modules/macro/presentation/macro.module').then(m => m.MacroModule),
-        canActivate: [RootGuard]
+        loadChildren: () => import('../modules/macro/presentation/macro.module').then(m => m.MacroModule)
       },
       {
         path: 'follow-up',
