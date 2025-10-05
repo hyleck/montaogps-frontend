@@ -159,11 +159,12 @@ export class AuthService {
         console.log('🔍 DEBUG - USUARIO ROOT DETECTADO - GENERANDO TODOS LOS PRIVILEGIOS:', privilegesToSave);
       }
 
-      // Agregar los privilegios y affiliation_type_id al usuario existente
+      // Agregar los privilegios, affiliation_type_id y access_level_id al usuario existente
       const updatedUser = {
         ...currentUser,
         privileges: privilegesToSave,
-        affiliation_type_id: completeUserData.affiliation_type_id || completeUserData.affiliation_type
+        affiliation_type_id: completeUserData.affiliation_type_id || completeUserData.affiliation_type,
+        access_level_id: completeUserData.access_level_id
       };
 
       // 🔍 DEBUG: Imprimir usuario actualizado con privilegios

@@ -135,6 +135,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
   
   // Propiedad local para el ngModel del select de mapas
   currentMapSelection: string = 'mapbox-light';
+
+  // Propiedad para el tipo de afiliación del usuario actual
+  currentUserAffiliationTypeId: string = '';
   
   // ====================================
   // PROPIEDADES PÚBLICAS - TRADUCCIONES
@@ -1120,9 +1123,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private setupRouting(): void {
     const currentUser = this.authService.getCurrentUser();
     if (!currentUser) {
-      this.router.navigate(['auth/login']); 
+      this.router.navigate(['auth/login']);
       return;
     }
+
+    // Obtener el tipo de afiliación del usuario actual
+    this.currentUserAffiliationTypeId = currentUser?.affiliation_type_id || '';
 
     // Configurar suscripciones a parámetros de ruta
     this.subscriptions.push(

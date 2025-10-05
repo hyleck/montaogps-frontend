@@ -73,6 +73,54 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     user: ExtendedUser = this.getEmptyUser();
     roles: UserRole[] = [];
 
+    // Propiedad para verificar si el usuario actual es empleado
+    get isCurrentUserEmployee(): boolean {
+        const currentUser = this.authService.getCurrentUser();
+        return currentUser?.affiliation_type_id === 'empleado';
+    }
+
+    // Getter para obtener los roles filtrados según el tipo de usuario
+    get filteredRoles(): UserRole[] {
+        // Si el usuario actual es empleado, mostrar todos los roles
+        if (this.isCurrentUserEmployee) {
+            return this.roles;
+        }
+
+        // Para usuarios que no son empleados
+        const currentUser = this.authService.getCurrentUser();
+        if (currentUser && currentUser.access_level_id) {
+            let userAccessLevelId: string = '';
+
+            // Manejar tanto si access_level_id es un objeto como si es un string
+            if (typeof currentUser.access_level_id === 'string') {
+                userAccessLevelId = currentUser.access_level_id;
+            } else if (currentUser.access_level_id && typeof currentUser.access_level_id === 'object' && currentUser.access_level_id._id) {
+                userAccessLevelId = currentUser.access_level_id._id;
+            }
+
+            if (userAccessLevelId) {
+                let filteredRoles = this.roles.filter(role => role._id === userAccessLevelId);
+
+                // Si estamos editando un usuario (userInput existe), también incluir el rol actual del usuario que se está editando
+                if (this.userInput && this.user.role && this.user.role._id) {
+                    const editingUserRoleId = this.user.role._id;
+                    const editingUserRole = this.roles.find(role => role._id === editingUserRoleId);
+
+                    // Si el rol del usuario que se está editando es diferente al del usuario logueado, agregarlo
+                    if (editingUserRole && editingUserRole._id !== userAccessLevelId) {
+                        filteredRoles = [...filteredRoles, editingUserRole];
+                    }
+                }
+
+                return filteredRoles;
+            }
+        }
+
+        // Si no hay usuario actual o no tiene access_level_id, mostrar todos los roles (fallback)
+        return this.roles;
+    }
+
+
     availableModules: ModuleOption[] = AVAILABLE_MODULES;
     moduleIcons: { [key: string]: string } = MODULE_ICONS;
     themes: ThemeOption[] = THEMES;

@@ -59,9 +59,9 @@
                             <div  class="management__input-search">
                                 <label for="management-search"><i class="pi pi-search"></i></label>
                                 <input (keyup)="searchTargets()" [(ngModel)]="searchTargetsTerm" id="management-search" type="text" [placeholder]="translations.searchTargets | translate">
-                                
+
                             </div>
-                            <button (click)="showTargetForm()" class="button button--primary-flat-red">
+                            <button (click)="showTargetForm()" class="button button--primary-flat-red" *ngIf="currentUserAffiliationTypeId === 'empleado'">
                                 <i class="pi pi-plus"></i>
                                 <!-- <span class="button-text">{{ translations.newTarget | translate }}</span> -->
                             </button>
@@ -284,12 +284,12 @@
                                                     <div style="transform: scale(0.8)" class="management__user-table-controls management__user-table-controls--maps">
                                                         <div *ngIf="!target.isShared" class="target-controls-own">
                                                             <button (click)="showTargetForm(target)" class="button button--primary-flat" title="Editar objetivo" *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square" ></i> </button>
-                                                            <button 
-                                                                *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices()"
-                                                                class="button button--primary-flat-icon" 
-                                                                title="Cancelar objetivo" 
-                                                                (click)="confirmCancelTarget(target)"> 
-                                                                <i class="pi pi-ban" ></i> 
+                                                            <button
+                                                                *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices() && currentUserAffiliationTypeId === 'empleado'"
+                                                                class="button button--primary-flat-icon"
+                                                                title="Cancelar objetivo"
+                                                                (click)="confirmCancelTarget(target)">
+                                                                <i class="pi pi-ban" ></i>
                                                             </button>
                                                             <button 
                                                                 *ngIf="isCurrentUserRoot"
@@ -458,9 +458,9 @@
                         <div  class="management__input-search">
                             <label for="management-search"><i class="pi pi-search"></i></label>
                             <input (keyup)="searchTargets()" [(ngModel)]="searchTargetsTerm" id="management-search" type="text" [placeholder]="translations.searchTargets | translate">
-                            
+
                         </div>
-                        <button (click)="showTargetForm()" class="button button--primary-flat-red">
+                        <button (click)="showTargetForm()" class="button button--primary-flat-red" *ngIf="currentUserAffiliationTypeId === 'empleado'">
                             <i class="pi pi-plus"></i>
                             <span class="button-text">{{ translations.newTarget | translate }}</span>
                         </button>
@@ -626,12 +626,12 @@
                                             <div class="management__user-table-controls">
                                                 <div *ngIf="!target.isShared" class="target-controls-own">
                                                     <button class="button button--primary-flat" (click)="showTargetForm(target)" title="Editar objetivo" *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square" ></i> </button>
-                                                    <button 
-                                                        *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices()"
-                                                        class="button button--primary-flat-icon" 
-                                                        title="Cancelar objetivo" 
-                                                        (click)="confirmCancelTarget(target)"> 
-                                                        <i class="pi pi-ban" ></i> 
+                                                    <button
+                                                        *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices() && currentUserAffiliationTypeId === 'empleado'"
+                                                        class="button button--primary-flat-icon"
+                                                        title="Cancelar objetivo"
+                                                        (click)="confirmCancelTarget(target)">
+                                                        <i class="pi pi-ban" ></i>
                                                     </button>
                                                     <button 
                                                         *ngIf="isCurrentUserRoot"

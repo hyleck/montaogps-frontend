@@ -127,7 +127,7 @@
                                                 [ngClass]="{'ng-invalid': roleInput.invalid && roleInput.touched}"
                                             >
                                                 <option [ngValue]="null">{{ 'management.userForm.selectRole' | translate }}</option>
-                                                <option *ngFor="let role of roles" [ngValue]="role">
+                                                <option *ngFor="let role of filteredRoles" [ngValue]="role">
                                                     {{role.name}}
                                                 </option>
                                             </select>
@@ -182,7 +182,7 @@
                         </div>
                     </p-tabPanel>
 
-                    <p-tabPanel>
+                    <p-tabPanel *ngIf="isCurrentUserEmployee">
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-shield"></i>
                             <span class="tab-text">{{ user.role ? (translations.privileges | translate) + ' ' + (translations.of | translate) + ' ' + user.role.name : (translations.privileges | translate) }}</span>
@@ -254,7 +254,7 @@
                         </div>
                     </p-tabPanel>
 
-                    <p-tabPanel>
+                    <p-tabPanel *ngIf="isCurrentUserEmployee">
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-cog"></i>
                             <span class="tab-text">{{ translations.settings | translate }}</span>

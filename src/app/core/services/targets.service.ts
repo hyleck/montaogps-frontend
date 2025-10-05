@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { lastValueFrom, Observable } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { CreateTargetDto, Target, UpdateTargetDto, StopTimeResponse, RouteHistoryResponse, CreateProcessDto, ProcessResponse } from '../interfaces';
 
@@ -100,7 +101,7 @@ export class TargetsService {
 
   async getRouteHistory(deviceId: string, fromDate?: string, toDate?: string): Promise<RouteHistoryResponse> {
     let url = `${environment.apiUrl}/reports/device/${deviceId}/route-history`;
-    
+
     const params = new URLSearchParams();
     if (fromDate) {
       params.append('fromDate', fromDate);
@@ -108,13 +109,16 @@ export class TargetsService {
     if (toDate) {
       params.append('toDate', toDate);
     }
-    
+
     if (params.toString()) {
       url += `?${params.toString()}`;
     }
-    
+
+    // Add timeout to prevent hanging requests
     const observable = this.http.get<RouteHistoryResponse>(url);
-    return await lastValueFrom(observable);
+    return await lastValueFrom(observable.pipe(
+      timeout(60000) // 60 second timeout
+    ));
   }
 
 

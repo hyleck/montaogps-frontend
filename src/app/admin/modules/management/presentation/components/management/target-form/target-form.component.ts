@@ -192,6 +192,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     @ViewChild('smsCommands') smsCommands!: ElementRef;
     @ViewChild('smsChat') smsChat!: ElementRef;
     @ViewChild('chatMessages') chatMessages!: ElementRef;
+
+    // Propiedad para el tipo de afiliación del usuario actual
+    currentUserAffiliationTypeId: string = '';
     
     constructor(
         private langService: LangService,
@@ -260,7 +263,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.loadInitialData();
         this.target = this.getEmptyTarget();
         this.activeTabIndex = 0;
-        
+
         // Asegurar que mechanic_id esté inicializado como string vacío
         if (this.target.mechanic_id === undefined || this.target.mechanic_id === null) {
             this.target.mechanic_id = '';
@@ -270,6 +273,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         if (!this.processForm.registrationDate) {
             this.processForm.registrationDate = this.getTodayInputDate();
         }
+
+        // Obtener el tipo de afiliación del usuario actual
+        const currentUser = this.authService.getCurrentUser();
+        this.currentUserAffiliationTypeId = currentUser?.affiliation_type_id || '';
     }
 
     private async loadInitialData() {

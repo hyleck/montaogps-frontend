@@ -341,12 +341,12 @@
                                             </select>
                                         </div>
 
-                                        <!-- Price selector (appears only when a plan is selected) -->
-                                        <div class="target-form__field" *ngIf="target.plan">
+                                        <!-- Price selector (appears only when a plan is selected and user is employee) -->
+                                        <div class="target-form__field" *ngIf="target.plan && currentUserAffiliationTypeId === 'empleado'">
                                             <label for="price">
                                                 {{ translate('management.targetForm.selectPrice') }} <span class="required-label">(Requerido)</span>
                                                 <i *ngIf="!isEditMode" class="pi pi-pencil edit-price-icon" (click)="startCustomPriceEdit()" style="color: var(--globalColorPrimaryInmutable); cursor: pointer; margin-left: 5px; font-size: 0.8rem; opacity: 0.7;"></i>
-                                                 <i 
+                                                 <i
                                                     *ngIf="target.selectedPrice && isPriceCustomized(target.selectedPrice)"
                                                     class="pi pi-eye original-price-eye"
                                                     pTooltip="Precio original: {{ getOriginalPriceAmount(target.selectedPrice) }}"
@@ -413,7 +413,7 @@
                         </div>
                     </p-tabPanel>
 
-                    <p-tabPanel *ngIf="isEditMode">
+                    <p-tabPanel *ngIf="isEditMode && currentUserAffiliationTypeId === 'empleado'">
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-history"></i>
                             <span class="tab-text">{{ translate(translations.processInfo) }}</span>
@@ -751,7 +751,7 @@
                       </div>
                     </p-tabPanel>
 
-                    <p-tabPanel *ngIf="hasSimCardTypeSelected()">
+                    <p-tabPanel *ngIf="hasSimCardTypeSelected() && currentUserAffiliationTypeId === 'empleado'">
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-comments"></i>
                             <span class="tab-text">{{ getSimCardDisplayName() }} SMS</span>
