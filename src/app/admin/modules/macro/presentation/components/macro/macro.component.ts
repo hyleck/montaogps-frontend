@@ -247,12 +247,40 @@ export class MacroComponent implements OnInit {
 
   sendSmsToDevices(): void {
     console.log('Enviando SMS masivo a', this.devices.length, 'dispositivos');
-    this.messageService.add({
-      severity: 'success',
-      summary: 'SMS enviado',
-      detail: `SMS enviado exitosamente a ${this.devices.length} dispositivos`
+
+    // Preparar parámetros de consulta
+    const params: any = {};
+    if (this.selectedPlan && this.selectedPlan.trim() !== '') {
+      params.plan = this.selectedPlan;
+    }
+    if (this.limit && this.limit > 0) {
+      params.limit = this.limit.toString();
+    }
+    if (this.commandIndex !== undefined && this.commandIndex >= 0) {
+      params.commandIndex = this.commandIndex.toString();
+    }
+
+    // Llamar al endpoint del backend
+    this.http.post<{ message: string }>(`${environment.apiUrl}/macro/sendsms`, {}, { params }).subscribe({
+      next: (response) => {
+        console.log('Respuesta del envío de SMS:', response);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'SMS enviado',
+          detail: response.message
+        });
+        this.closeSmsDialog();
+      },
+      error: (error) => {
+        console.error('Error al enviar SMS:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error al enviar SMS',
+          detail: 'No se pudo completar el envío de SMS. Revisa los logs del servidor.'
+        });
+        this.closeSmsDialog();
+      }
     });
-    this.closeSmsDialog();
   }
 
   sendSMS(): void {

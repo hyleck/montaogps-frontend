@@ -37,6 +37,10 @@ export interface DeviceDto {
   shared?: string[];
   index?: string;
   parent_id?: string;
+  protocol?: {
+    _id: string;
+    name: string;
+  };
   plan?: {
     id_plan: string;
     name?: string;
