@@ -130,6 +130,7 @@ export interface TargetDevice {
   api_position_id: string;
   description: string;
   type: string;
+  protocol?: { _id: string; name: string };
   sim_card_number: string;
   sim_company: string;
   target_plate_number: string;

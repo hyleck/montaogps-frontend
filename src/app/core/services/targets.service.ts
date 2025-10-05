@@ -119,14 +119,15 @@ export class TargetsService {
 
 
 
-  async sendSMS(simCardId: string, message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<any> {
+  async sendSMS(simCardId: string, message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2', sim_company?: string): Promise<any> {
     const url = `${environment.apiUrl}/sim-card`;
     const body = {
       id: simCardId,
       message: message,
-      provider: provider
+      provider: provider,
+      sim_company: sim_company
     };
-    
+
     const observable = this.http.post<any>(url, body);
     return await lastValueFrom(observable);
   }

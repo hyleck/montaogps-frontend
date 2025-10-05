@@ -1318,7 +1318,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.scrollToBottom();
 
             // Enviar SMS real al backend (usando el mensaje procesado)
-            const response = await this.targetsService.sendSMS(this.target.sim_card_number, processedMessage, provider);
+            const response = await this.targetsService.sendSMS(this.target.sim_card_number, processedMessage, provider, this.target.sim_company);
 
 
             // Validar que la respuesta no sea null/undefined

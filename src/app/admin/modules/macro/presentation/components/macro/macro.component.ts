@@ -9,6 +9,7 @@ import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { UserService } from 'src/app/core/services/user.service';
 import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
+import { debounceTime, Subject } from 'rxjs';
 
 @Component({
   selector: 'app-macro',
@@ -52,11 +53,18 @@ export class MacroComponent implements OnInit {
     private messageService: MessageService
   ) {}
 
+  private limitChangeSubject = new Subject<void>();
+
   ngOnInit(): void {
     this.loadPlans();
     this.loadGpsModels();
     this.loadTechnicians();
     this.loadDevices();
+
+    // Set up debouncing for limit changes
+    this.limitChangeSubject.pipe(debounceTime(500)).subscribe(() => {
+      this.loadDevices(this.selectedPlan);
+    });
   }
 
   loadPlans(): void {
@@ -103,7 +111,7 @@ export class MacroComponent implements OnInit {
   }
 
   onLimitChange(): void {
-    this.loadDevices(this.selectedPlan);
+    this.limitChangeSubject.next();
   }
 
   onActionSelected(): void {
@@ -287,6 +295,7 @@ export class MacroComponent implements OnInit {
       }
     });
   }
+
 
   onProcessTypeChange(): void {
     // Reset form when process type changes
