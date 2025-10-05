@@ -34,6 +34,18 @@
                     placeholder="50"
                 />
             </div>
+            <div class="filter-field">
+                <label for="commandIndexFilter">Comando a mostrar:</label>
+                <select
+                    id="commandIndexFilter"
+                    [(ngModel)]="commandIndex"
+                    (change)="onCommandIndexChange()"
+                    class="form-input"
+                >
+                    <option [ngValue]="0">Primer comando</option>
+                    <option [ngValue]="1">Segundo comando</option>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -66,6 +78,7 @@
                 <th>Protocolo</th>
                 <th>Tipo</th>
                 <th>Plan</th>
+                <th>Servidor</th>
                 <th>Estado</th>
             </tr>
         </ng-template>
@@ -78,6 +91,7 @@
                 <td>{{ device.protocol?.name || 'N/A' }}</td>
                 <td>{{ device.type || 'N/A' }}</td>
                 <td>{{ device.plan?.name || 'Sin plan' }}</td>
+                <td>{{ device.plan?.server_ip || 'N/A' }}</td>
                 <td>
                     <span [class]="'status-' + (device.status ? 'active' : 'inactive')">
                         {{ device.status ? 'Activo' : 'Inactivo' }}
@@ -88,7 +102,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="7" class="text-center">No hay dispositivos disponibles</td>
+                <td colspan="8" class="text-center">No hay dispositivos disponibles</td>
             </tr>
         </ng-template>
     </p-table>

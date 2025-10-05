@@ -40,6 +40,7 @@ export interface DeviceDto {
   plan?: {
     id_plan: string;
     name?: string;
+    server_ip?: string;
     selected_price: {
       payment_period: string;
       amount: number;
@@ -59,13 +60,16 @@ export class MacroService {
 
   constructor(private http: HttpClient) { }
 
-  getDevices(plan?: string, limit?: number): Observable<DeviceDto[]> {
+  getDevices(plan?: string, limit?: number, commandIndex?: number): Observable<DeviceDto[]> {
     const params: any = {};
     if (plan && plan.trim() !== '') {
       params.plan = plan;
     }
     if (limit && limit > 0) {
       params.limit = limit.toString();
+    }
+    if (commandIndex !== undefined && commandIndex >= 0) {
+      params.commandIndex = commandIndex.toString();
     }
     return this.http.get<DeviceDto[]>(`${this.apiUrl}/devices`, { params });
   }

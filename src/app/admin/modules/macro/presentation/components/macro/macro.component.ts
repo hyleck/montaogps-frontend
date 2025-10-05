@@ -29,6 +29,7 @@ export class MacroComponent implements OnInit {
   selectedPlan: string = '';
   limit: number = 50;
   selectedAction: string = '';
+  commandIndex: number = 0; // 0 for first command, 1 for second command
 
   actionItems: PrimeMenuItem[] = [
     {
@@ -87,7 +88,7 @@ export class MacroComponent implements OnInit {
 
   loadDevices(plan?: string): void {
     this.loading = true;
-    this.macroService.getDevices(plan, this.limit).subscribe({
+    this.macroService.getDevices(plan, this.limit, this.commandIndex).subscribe({
       next: (devices) => {
         this.devices = devices;
         this.loading = false;
@@ -112,6 +113,10 @@ export class MacroComponent implements OnInit {
 
   onLimitChange(): void {
     this.limitChangeSubject.next();
+  }
+
+  onCommandIndexChange(): void {
+    this.loadDevices(this.selectedPlan);
   }
 
   onActionSelected(): void {
