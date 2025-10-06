@@ -1001,7 +1001,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.searchUsersSubject.pipe(
         debounceTime(300), // Esperar 300ms después de que el usuario deje de escribir
-        distinctUntilChanged(), // Solo buscar si el término cambió
+        // distinctUntilChanged() removed to allow re-triggering search with same term after user modifications
         switchMap(searchTerm => {
           if (searchTerm.trim() === '') {
             // Si no hay término de búsqueda, cargar usuarios normales con paginación
@@ -1047,7 +1047,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.subscriptions.push(
       this.searchTargetsSubject.pipe(
         debounceTime(300), // Esperar 300ms después de que el usuario deje de escribir
-        distinctUntilChanged(), // Solo buscar si el término cambió
+        // distinctUntilChanged() removed to allow re-triggering search with same term after target modifications
         switchMap(searchTerm => {
           if (searchTerm.trim() === '') {
             // Si no hay término de búsqueda, cargar targets normales con paginación
