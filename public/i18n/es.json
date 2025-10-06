@@ -958,6 +958,7 @@
         }
     },
     "management": {
+      "confirmDeleteUser": "¿Estás seguro de que deseas eliminar este usuario?",
       "users": {
         "title": "Usuarios",
         "no_permissions": "Sin permisos",
@@ -1297,6 +1298,7 @@
         "errorDelete": "No se pudo eliminar el usuario",
         "backToPersonalInfo": "Volver a información personal"
       },
+      "confirmDeleteUser": "¿Estás seguro de que deseas eliminar este usuario?",
       "noUsers": "Esta cuenta no tiene usuarios.",
       "noTargets": "No hay dispositivos disponibles"
     }

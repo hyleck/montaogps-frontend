@@ -732,6 +732,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
       rejectLabel: this.translate.instant('management.userForm.no'),
       accept: () => {
         this.deleteUser(user);
+      },
+      reject: () => {
+        // Opcional: manejar el rechazo si es necesario
+        console.log('Usuario canceló la eliminación');
       }
     });
   }
@@ -2096,12 +2100,25 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.targetToCancel = target;
-    this.cancelForm = {
-      reason: '',
-      description: ''
-    };
-    this.cancelDialogVisible = true;
+    this.confirmationService.confirm({
+      message: this.translate.instant('management.cancelTargetInfo'),
+      header: this.translate.instant('management.cancelTarget'),
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: this.translate.instant('management.targetForm.yes'),
+      rejectLabel: this.translate.instant('management.targetForm.no'),
+      accept: () => {
+        this.targetToCancel = target;
+        this.cancelForm = {
+          reason: '',
+          description: ''
+        };
+        this.cancelDialogVisible = true;
+      },
+      reject: () => {
+        // Opcional: manejar el rechazo si es necesario
+        console.log('Usuario canceló la cancelación del target');
+      }
+    });
   }
 
   confirmCancelation() {
