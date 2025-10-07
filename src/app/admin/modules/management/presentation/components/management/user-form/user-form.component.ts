@@ -520,7 +520,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             // Enviar también en nivel raíz por si el backend lo espera ahí
             profile_type: this.selectedProfileType,
             department_id: 'exampleDepartmentId',
-            // parent_id: parentId,
+            parent_id: parentId,
             // Campos de ubicación/servicios para técnicos
             province: this.selectedAffiliationType?.startsWith('tecnico') ? this.selectedProvince : undefined,
             municipality: this.selectedAffiliationType?.startsWith('tecnico') ? this.selectedMunicipality : undefined,
