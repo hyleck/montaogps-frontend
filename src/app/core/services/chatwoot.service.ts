@@ -19,62 +19,62 @@ export class ChatwootService {
    * Inicializa el widget de Chatwoot solo si el usuario está autenticado
    */
   initializeChatwoot(): void {
-    // Solo ejecutar en el navegador
-    if (!isPlatformBrowser(this.platformId)) {
-      return;
-    }
+  //   // Solo ejecutar en el navegador
+  //   if (!isPlatformBrowser(this.platformId)) {
+  //     return;
+  //   }
 
-    // Verificar si el usuario está autenticado
-    if (!this.authService.isAuthenticated()) {
-      this.removeChatwoot();
-      return;
-    }
+  //   // Verificar si el usuario está autenticado
+  //   if (!this.authService.isAuthenticated()) {
+  //     this.removeChatwoot();
+  //     return;
+  //   }
 
-    // Evitar inicialización múltiple
-    if (this.isInitialized) {
-      return;
-    }
+  //   // Evitar inicialización múltiple
+  //   if (this.isInitialized) {
+  //     return;
+  //   }
 
-    try {
-      // 1. Configurar las opciones de Chatwoot
-      (window as any).chatwootSettings = {
-        position: 'right',
-        type: 'expanded_bubble',
-        launcherTitle: 'Ayuda'
-      };
+  //   try {
+  //     // 1. Configurar las opciones de Chatwoot
+  //     (window as any).chatwootSettings = {
+  //       position: 'right',
+  //       type: 'expanded_bubble',
+  //       launcherTitle: 'Ayuda'
+  //     };
 
-      // 2. Inyectar dinámicamente el script de Chatwoot si no existe ya
-      const existingScript = document.querySelector('script[src="https://team.montao.net/packs/js/sdk.js"]');
-      if (!existingScript && !this.isScriptLoaded) {
-        this.loadChatwootScript();
-      } else if (this.isScriptLoaded) {
-        // Si el script ya está cargado, solo inicializar
-        this.initializeChatwootWidget();
-      }
-    } catch (error) {
-      console.error('Error al inicializar Chatwoot:', error);
-    }
-  }
+  //     // 2. Inyectar dinámicamente el script de Chatwoot si no existe ya
+  //     const existingScript = document.querySelector('script[src="https://team.montao.net/packs/js/sdk.js"]');
+  //     if (!existingScript && !this.isScriptLoaded) {
+  //       this.loadChatwootScript();
+  //     } else if (this.isScriptLoaded) {
+  //       // Si el script ya está cargado, solo inicializar
+  //       this.initializeChatwootWidget();
+  //     }
+  //   } catch (error) {
+  //     console.error('Error al inicializar Chatwoot:', error);
+  //   }
+  // }
 
-  /**
-   * Carga el script de Chatwoot
-   */
-  private loadChatwootScript(): void {
-    const script = document.createElement('script');
-    script.src = 'https://team.montao.net/packs/js/sdk.js';
-    script.defer = true;
-    script.async = true;
+  // /**
+  //  * Carga el script de Chatwoot
+  //  */
+  // private loadChatwootScript(): void {
+  //   const script = document.createElement('script');
+  //   script.src = 'https://team.montao.net/packs/js/sdk.js';
+  //   script.defer = true;
+  //   script.async = true;
 
-    script.onload = () => {
-      this.isScriptLoaded = true;
-      this.initializeChatwootWidget();
-    };
+  //   script.onload = () => {
+  //     this.isScriptLoaded = true;
+  //     this.initializeChatwootWidget();
+  //   };
 
-    script.onerror = (error) => {
-      console.error('Error al cargar el script de Chatwoot:', error);
-    };
+  //   script.onerror = (error) => {
+  //     console.error('Error al cargar el script de Chatwoot:', error);
+  //   };
 
-    document.head.appendChild(script);
+  //   document.head.appendChild(script);
   }
 
   /**
