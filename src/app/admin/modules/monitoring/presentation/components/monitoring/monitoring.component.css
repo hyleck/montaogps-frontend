@@ -1,0 +1,289 @@
+.monitoring-container {
+  padding: 20px;
+}
+
+.monitoring-content {
+  margin-top: 20px;
+}
+
+.user-path-header {
+  margin-bottom: 15px;
+}
+
+.path-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.path-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 20px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.path-item:hover {
+  background-color: #e9ecef;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.path-item-last {
+  background-color: #007bff !important;
+  color: white !important;
+  border-color: #0056b3 !important;
+  font-weight: bold !important;
+  box-shadow: 0 4px 8px rgba(0,123,255,0.3) !important;
+  transform: scale(1.05) !important;
+}
+
+.path-item-last:hover {
+  background-color: #0056b3 !important;
+  transform: scale(1.05) translateY(-1px) !important;
+  box-shadow: 0 6px 12px rgba(0,123,255,0.4) !important;
+}
+
+.path-level {
+  background-color: rgba(255,255,255,0.2);
+  color: inherit;
+  padding: 2px 6px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+}
+
+.path-item-last .path-level {
+  background-color: rgba(255,255,255,0.3) !important;
+}
+
+.path-name {
+  font-weight: 500;
+}
+
+
+.loading-container {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.loading-container p {
+  margin-top: 10px;
+  color: var(--monitoringLoadingText);
+}
+
+.error-container {
+  margin-top: 20px;
+}
+
+.error-message {
+  color: var(--monitoringErrorText);
+  font-weight: bold;
+}
+
+.result-section {
+  margin-top: 10px;
+}
+
+.monitoring-block {
+  margin-top: 30px;
+  background-color: var(--monitoringDevicesSectionBackground);
+  border-radius: 8px;
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  overflow: hidden;
+}
+
+.user-path-header {
+  padding: 15px 20px;
+  background-color: var(--monitoringPathBackground);
+  border-bottom: 1px solid var(--monitoringDevicesSectionBorder);
+}
+
+.path-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.path-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  background-color: var(--monitoringDevicesCardBackground);
+  border-radius: 20px;
+  border: 1px solid var(--monitoringPathBorder);
+  font-size: 0.9em;
+}
+
+.path-level {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-color: var(--monitoringPathLevelBackground);
+  color: var(--monitoringPathLevelText);
+  border-radius: 50%;
+  text-align: center;
+  line-height: 24px;
+  font-weight: bold;
+  font-size: 0.8em;
+  margin-right: 8px;
+}
+
+.path-name {
+  font-weight: 500;
+  color: var(--monitoringPathNameText);
+}
+
+.path-id {
+  color: var(--monitoringPathIdText);
+  margin-left: 6px;
+  font-size: 0.8em;
+}
+
+.devices-content {
+  padding: 20px;
+}
+
+.devices-content ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--monitoringDevicesSectionBorder);
+  color: var(--monitoringSectionTitleText);
+}
+
+.devices-content ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+  padding: 0.75rem 0.5rem;
+  background-color: var(--monitoringPathBackground);
+  border-bottom: 2px solid var(--monitoringPathBorder);
+  font-weight: 600;
+  color: var(--monitoringSectionTitleText);
+}
+
+.devices-content ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+  background-color: var(--monitoringDevicesCardBackground);
+}
+
+.devices-content ::ng-deep .p-paginator {
+  padding: 0.75rem;
+  border-top: 1px solid var(--monitoringDevicesSectionBorder);
+  background-color: var(--monitoringPathBackground);
+  color: var(--monitoringSectionTitleText);
+}
+
+.devices-content ::ng-deep .p-paginator .p-paginator-pages .p-paginator-page {
+  color: var(--monitoringSectionTitleText);
+}
+
+.devices-content ::ng-deep .p-paginator .p-dropdown {
+  border-color: var(--monitoringDevicesSectionBorder);
+}
+
+.devices-content ::ng-deep .p-paginator .p-dropdown .p-dropdown-label {
+  color: var(--monitoringSectionTitleText);
+}
+
+.devices-count {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--monitoringSectionTitleText);
+  margin-bottom: 15px;
+}
+
+.devices-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 15px;
+}
+
+.device-item {
+  background-color: var(--monitoringDevicesCardBackground);
+  border: 1px solid var(--monitoringDevicesCardBorder);
+  border-radius: 6px;
+  padding: 15px;
+  box-shadow: 0 2px 4px var(--monitoringDevicesCardShadow);
+  transition: box-shadow 0.2s ease;
+}
+
+.device-item:hover {
+  box-shadow: 0 4px 8px var(--monitoringDevicesCardHoverShadow);
+}
+
+.device-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.device-name {
+  font-weight: 600;
+  font-size: 1.1em;
+  color: var(--monitoringDevicesNameText);
+}
+
+.device-imei {
+  color: var(--monitoringDevicesImeiText);
+  font-size: 0.9em;
+  font-family: monospace;
+}
+
+.device-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.device-type {
+  background-color: var(--monitoringDevicesTypeBackground);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  color: var(--monitoringDevicesTypeText);
+}
+
+.device-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.device-status.active {
+  background-color: var(--monitoringDevicesStatusActiveBackground);
+  color: var(--monitoringDevicesStatusActiveText);
+}
+
+.device-status.inactive {
+  background-color: var(--monitoringDevicesStatusInactiveBackground);
+  color: var(--monitoringDevicesStatusInactiveText);
+}
+
+.device-info {
+  margin-top: 8px;
+}
+
+.plate-number {
+  background-color: var(--monitoringDevicesPlateBackground);
+  color: var(--monitoringDevicesPlateText);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.no-devices {
+  padding: 20px;
+  text-align: center;
+  color: var(--monitoringNoDevicesText);
+  font-style: italic;
+  background-color: var(--monitoringDevicesSectionBackground);
+  border-top: 1px solid var(--monitoringDevicesSectionBorder);
+}

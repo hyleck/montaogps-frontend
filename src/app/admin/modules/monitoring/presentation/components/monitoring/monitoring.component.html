@@ -1,0 +1,93 @@
+<div class="monitoring-container">
+  <h1>{{ 'MONITORING.TITLE' | translate }}</h1>
+  <p>{{ 'MONITORING.DESCRIPTION' | translate }}</p>
+
+  <!-- Initial State - Button to start monitoring -->
+  <div *ngIf="!monitoringResult && !loading && !error" class="start-monitoring-container">
+    <p-card class="start-card">
+      <ng-template pTemplate="header">
+        <div class="start-header">
+          <i class="pi pi-eye"></i>
+          <span>{{ 'MONITORING.START_TITLE' | translate }}</span>
+        </div>
+      </ng-template>
+      <p>{{ 'MONITORING.START_DESCRIPTION' | translate }}</p>
+      <ng-template pTemplate="footer">
+        <p-button
+          label="{{ 'MONITORING.START_BUTTON' | translate }}"
+          icon="pi pi-play"
+          (onClick)="startMonitoring()"
+          [loading]="false">
+        </p-button>
+      </ng-template>
+    </p-card>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <p-progressSpinner></p-progressSpinner>
+    <p>Monitoring user activity...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <p-card header="Error">
+      <p class="error-message">{{ error }}</p>
+    </p-card>
+  </div>
+
+  <!-- Monitoring Results -->
+  <div *ngIf="monitoringResult && !loading" class="monitoring-content">
+    <div *ngFor="let userData of monitoringResult.data; let i = index" class="monitoring-block">
+      <!-- User Path as Header -->
+      <div *ngIf="userData.route && userData.route.length > 0" class="user-path-header">
+        <div class="path-list">
+          <div *ngFor="let pathItem of userData.route; let j = index; let isLast = last"
+               [class.path-item-last]="isLast" class="path-item">
+            <span class="path-level">{{ j + 1 }}</span>
+            <span class="path-name">{{ pathItem.fullName }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Devices as Content -->
+      <div *ngIf="userData.devices && userData.devices.length > 0" class="devices-content">
+        <div class="devices-count">Devices: {{ userData.devices.length }}</div>
+        <p-table [value]="userData.devices" [paginator]="userData.devices.length > 10" [rows]="10"
+                 [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Name</th>
+              <th>IMEI</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Plate Number</th>
+              <th>SIM Card</th>
+              <th>Company</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-device>
+            <tr>
+              <td>{{ device.name }}</td>
+              <td>{{ device.device_imei }}</td>
+              <td>{{ device.type }}</td>
+              <td>
+                <span class="device-status" [class.active]="device.status" [class.inactive]="!device.status">
+                  {{ device.status ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td>{{ device.target_plate_number || '-' }}</td>
+              <td>{{ device.sim_card_number || '-' }}</td>
+              <td>{{ device.sim_company || '-' }}</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+
+      <!-- No devices message -->
+      <div *ngIf="userData.devices && userData.devices.length === 0" class="no-devices">
+        <p>No devices found for this user.</p>
+      </div>
+    </div>
+  </div>
+</div>

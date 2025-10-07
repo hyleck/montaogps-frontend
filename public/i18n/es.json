@@ -74,6 +74,14 @@
         "dashboard": "Dashboard"
       }
     },
+    "MONITORING": {
+      "TITLE": "Monitoreo",
+      "DESCRIPTION": "Panel de monitoreo del sistema GPS",
+      "DASHBOARD": "Dashboard de Monitoreo",
+      "START_TITLE": "Iniciar Monitoreo",
+      "START_DESCRIPTION": "Haga clic en el botón para comenzar el monitoreo de la jerarquía de usuarios y dispositivos.",
+      "START_BUTTON": "Empezar Monitoreo"
+    },
     "navbar": {
       "scheduleProcess": "Programar proceso",
       "canceled": "Cancelados",
@@ -132,7 +140,8 @@
       "reports": "Reportes",
       "settings": "Configuración",
       "inventory": "Inventario",
-      "macro": "Macro"
+      "macro": "Macro",
+      "monitoring": "Monitoreo"
     },
     "inventory": {
       "title": "Inventario",

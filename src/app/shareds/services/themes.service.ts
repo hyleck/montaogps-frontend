@@ -9,6 +9,7 @@ import { userRolesPalette } from '../../admin/modules/settings/presentation/comp
 import { dashboardPalette } from '../../admin/modules/dashboard/presentation/components/dashboard/dashboard.palette';
 import { colorsPalette } from '../../admin/modules/settings/presentation/components/settings/colors-settings/colors.palette';
 import { reportsPalette } from '../../admin/modules/reports/presentation/components/reports/reports.palette';
+import { monitoringPalette } from '../../admin/modules/monitoring/presentation/components/monitoring/monitoring.palette';
 import { StatusService } from './status.service';
 // import { applyThemeTransition } from '../../shareds/helpers/theme-transition.helper';
 
@@ -29,7 +30,8 @@ export class ThemesService {
       ...userRolesPalette.light,
       ...dashboardPalette.light,
       ...colorsPalette.light,
-      ...reportsPalette.light
+      ...reportsPalette.light,
+      ...monitoringPalette.light
     },
     dark: {
       ...globalPalette.dark,
@@ -41,7 +43,8 @@ export class ThemesService {
       ...userRolesPalette.dark,
       ...dashboardPalette.dark,
       ...colorsPalette.dark,
-      ...reportsPalette.dark
+      ...reportsPalette.dark,
+      ...monitoringPalette.dark
     }
   };
 

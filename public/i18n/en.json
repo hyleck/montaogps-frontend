@@ -72,6 +72,14 @@
         "dashboard": "Dashboard"
       }
     },
+    "MONITORING": {
+      "TITLE": "Monitoring",
+      "DESCRIPTION": "GPS System Monitoring Panel",
+      "DASHBOARD": "Monitoring Dashboard",
+      "START_TITLE": "Start Monitoring",
+      "START_DESCRIPTION": "Click the button to start monitoring the user hierarchy and devices.",
+      "START_BUTTON": "Start Monitoring"
+    },
     "navbar": {
         "scheduleProcess": "Schedule process",
         "canceled": "Canceled",
@@ -108,7 +116,8 @@
       "reports": "Reports",
       "settings": "Settings",
       "inventory": "Inventory",
-      "macro": "Macro"
+      "macro": "Macro",
+      "monitoring": "Monitoring"
     },
     "inventory": {
       "title": "Inventory",
