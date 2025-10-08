@@ -2,12 +2,147 @@
   padding: 20px;
 }
 
+.monitoring-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: var(--monitoringDevicesSectionBackground);
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 8px;
+}
+
+.header-content {
+  flex: 1;
+}
+
+.header-content p {
+  margin: 0;
+  color: var(--monitoringDescriptionText);
+  font-size: 16px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .monitoring-content {
   margin-top: 20px;
 }
 
+.search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.p-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.p-field label {
+  font-weight: 600;
+  color: var(--monitoringSectionTitleText);
+}
+
+.email-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: var(--monitoringDevicesCardBackground);
+  color: var(--monitoringSectionTitleText);
+}
+
+.email-input:focus {
+  outline: none;
+  border-color: var(--monitoringPathLevelBackground);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.search-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.user-found-info {
+  margin-top: 10px;
+}
+
+.success-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: var(--monitoringDevicesStatusActiveBackground);
+  color: var(--monitoringDevicesStatusActiveText);
+  border: 1px solid var(--monitoringDevicesStatusActiveBackground);
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.success-message i {
+  color: var(--monitoringDevicesStatusActiveText);
+  font-size: 16px;
+}
+
+.error-message {
+  margin-top: 10px;
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: var(--monitoringDevicesStatusInactiveBackground);
+  color: var(--monitoringDevicesStatusInactiveText);
+  border: 1px solid var(--monitoringDevicesStatusInactiveBackground);
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.error-content i {
+  color: var(--monitoringDevicesStatusInactiveText);
+  font-size: 16px;
+}
+
+.start-monitoring-container {
+  margin-top: 20px;
+}
+
+.start-card {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.start-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
 .user-path-header {
   margin-bottom: 15px;
+  padding: 15px 20px;
+  background-color: var(--monitoringDevicesSectionBackground);
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 8px;
 }
 
 .path-list {
@@ -22,37 +157,46 @@
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: var(--monitoringDevicesCardBackground);
+  border: 1px solid var(--monitoringDevicesCardBorder);
   border-radius: 20px;
   font-size: 14px;
   transition: all 0.3s ease;
+  color: var(--monitoringPathNameText);
 }
 
 .path-item:hover {
-  background-color: #e9ecef;
+  background-color: var(--monitoringDevicesSectionBackground);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px var(--monitoringDevicesCardShadow);
 }
 
-.path-item-last {
-  background-color: #007bff !important;
-  color: white !important;
-  border-color: #0056b3 !important;
+.path-item.path-item-last {
+  background: #007bff !important;
+  color: #ffffff !important;
+  border: 1px solid #007bff !important;
   font-weight: bold !important;
   box-shadow: 0 4px 8px rgba(0,123,255,0.3) !important;
   transform: scale(1.05) !important;
 }
 
-.path-item-last:hover {
-  background-color: #0056b3 !important;
+.path-item.path-item-last:hover {
+  background: #007bff !important;
   transform: scale(1.05) translateY(-1px) !important;
   box-shadow: 0 6px 12px rgba(0,123,255,0.4) !important;
 }
 
+.path-item.path-item-last .path-name {
+  color: #ffffff !important;
+}
+
+.path-item.path-item-last .path-id {
+  color: #ffffff !important;
+}
+
 .path-level {
-  background-color: rgba(255,255,255,0.2);
-  color: inherit;
+  background-color: var(--monitoringPathLevelBackground);
+  color: var(--monitoringPathLevelText);
   padding: 2px 6px;
   border-radius: 50%;
   font-size: 12px;
@@ -61,12 +205,14 @@
   text-align: center;
 }
 
-.path-item-last .path-level {
-  background-color: rgba(255,255,255,0.3) !important;
+.path-item.path-item-last .path-level {
+  background-color: rgba(255,255,255,0.2) !important;
+  color: #ffffff !important;
 }
 
 .path-name {
   font-weight: 500;
+  color: var(--monitoringPathNameText);
 }
 
 
@@ -87,6 +233,10 @@
 .error-message {
   color: var(--monitoringErrorText);
   font-weight: bold;
+  background-color: var(--monitoringDevicesSectionBackground);
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 6px;
+  padding: 12px 16px;
 }
 
 .result-section {
@@ -101,46 +251,7 @@
   overflow: hidden;
 }
 
-.user-path-header {
-  padding: 15px 20px;
-  background-color: var(--monitoringPathBackground);
-  border-bottom: 1px solid var(--monitoringDevicesSectionBorder);
-}
-
-.path-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.path-item {
-  display: flex;
-  align-items: center;
-  padding: 6px 12px;
-  background-color: var(--monitoringDevicesCardBackground);
-  border-radius: 20px;
-  border: 1px solid var(--monitoringPathBorder);
-  font-size: 0.9em;
-}
-
-.path-level {
-  display: inline-block;
-  width: 24px;
-  height: 24px;
-  background-color: var(--monitoringPathLevelBackground);
-  color: var(--monitoringPathLevelText);
-  border-radius: 50%;
-  text-align: center;
-  line-height: 24px;
-  font-weight: bold;
-  font-size: 0.8em;
-  margin-right: 8px;
-}
-
-.path-name {
-  font-weight: 500;
-  color: var(--monitoringPathNameText);
-}
+/* Estilos ya definidos arriba, eliminando duplicados */
 
 .path-id {
   color: var(--monitoringPathIdText);
@@ -160,8 +271,8 @@
 
 .devices-content ::ng-deep .p-datatable .p-datatable-thead > tr > th {
   padding: 0.75rem 0.5rem;
-  background-color: var(--monitoringPathBackground);
-  border-bottom: 2px solid var(--monitoringPathBorder);
+  background-color: var(--monitoringDevicesSectionBackground);
+  border-bottom: 2px solid var(--monitoringDevicesSectionBorder);
   font-weight: 600;
   color: var(--monitoringSectionTitleText);
 }
@@ -173,7 +284,7 @@
 .devices-content ::ng-deep .p-paginator {
   padding: 0.75rem;
   border-top: 1px solid var(--monitoringDevicesSectionBorder);
-  background-color: var(--monitoringPathBackground);
+  background-color: var(--monitoringDevicesSectionBackground);
   color: var(--monitoringSectionTitleText);
 }
 
@@ -285,5 +396,48 @@
   color: var(--monitoringNoDevicesText);
   font-style: italic;
   background-color: var(--monitoringDevicesSectionBackground);
-  border-top: 1px solid var(--monitoringDevicesSectionBorder);
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 6px;
+  margin-top: 20px;
+}
+
+.sim-card-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-company-badge {
+  font-size: 0.75rem !important;
+  padding: 2px 6px !important;
+}
+
+.expiration-date {
+  font-weight: 500;
+}
+
+.expiration-date.expired {
+  color: var(--monitoringDevicesStatusInactiveText);
+  background-color: var(--monitoringDevicesStatusInactiveBackground);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.expiration-date.expiring-soon {
+  color: #856404;
+  background-color: #fff3cd;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  border: 1px solid #ffeaa7;
+}
+
+.expiration-date.valid {
+  color: #155724;
+  background-color: #d4edda;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  border: 1px solid #c3e6cb;
 }

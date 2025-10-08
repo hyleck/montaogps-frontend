@@ -76,11 +76,25 @@
     },
     "MONITORING": {
       "TITLE": "Monitoreo",
-      "DESCRIPTION": "Panel de monitoreo del sistema GPS",
+      "DESCRIPTION": "Panel de monitoreo de Montao GPS",
       "DASHBOARD": "Dashboard de Monitoreo",
       "START_TITLE": "Iniciar Monitoreo",
       "START_DESCRIPTION": "Haga clic en el botón para comenzar el monitoreo de la jerarquía de usuarios y dispositivos.",
-      "START_BUTTON": "Empezar Monitoreo"
+      "START_BUTTON": "Empezar Monitoreo",
+      "SEARCH_USER_TITLE": "Buscar Usuario",
+      "SEARCH_USER_DESCRIPTION": "Ingrese el correo electrónico del usuario que desea monitorear",
+      "EMAIL_LABEL": "Correo Electrónico del Usuario",
+      "EMAIL_PLACEHOLDER": "ejemplo@correo.com",
+      "SEARCH_BUTTON": "Buscar Usuario",
+      "NEW_SEARCH_BUTTON": "Nueva Búsqueda",
+      "USER_FOUND": "Usuario encontrado",
+      "USER_NOT_FOUND": "Usuario no encontrado con ese correo electrónico",
+      "ENTER_VALID_EMAIL": "Por favor ingrese un correo electrónico válido",
+      "SEARCH_USER_FIRST": "Primero debe buscar un usuario por correo electrónico",
+      "CANCEL_BUTTON": "Cancelar",
+      "CHANGE_USER_BUTTON": "Cambiar Usuario",
+      "SELECT_USER_BUTTON": "Seleccionar Usuario",
+      "CONFIGURE_MONITORING_BUTTON": "Configurar Monitoreo"
     },
     "navbar": {
       "scheduleProcess": "Programar proceso",

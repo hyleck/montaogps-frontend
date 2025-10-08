@@ -74,11 +74,25 @@
     },
     "MONITORING": {
       "TITLE": "Monitoring",
-      "DESCRIPTION": "GPS System Monitoring Panel",
+      "DESCRIPTION": "Montao GPS Monitoring Panel",
       "DASHBOARD": "Monitoring Dashboard",
       "START_TITLE": "Start Monitoring",
       "START_DESCRIPTION": "Click the button to start monitoring the user hierarchy and devices.",
-      "START_BUTTON": "Start Monitoring"
+      "START_BUTTON": "Start Monitoring",
+      "SEARCH_USER_TITLE": "Search User",
+      "SEARCH_USER_DESCRIPTION": "Enter the email of the user you want to monitor",
+      "EMAIL_LABEL": "User Email",
+      "EMAIL_PLACEHOLDER": "example@email.com",
+      "SEARCH_BUTTON": "Search User",
+      "NEW_SEARCH_BUTTON": "New Search",
+      "USER_FOUND": "User found",
+      "USER_NOT_FOUND": "User not found with that email",
+      "ENTER_VALID_EMAIL": "Please enter a valid email address",
+      "SEARCH_USER_FIRST": "You must first search for a user by email",
+      "CANCEL_BUTTON": "Cancel",
+      "CHANGE_USER_BUTTON": "Change User",
+      "SELECT_USER_BUTTON": "Select User",
+      "CONFIGURE_MONITORING_BUTTON": "Configure Monitoring"
     },
     "navbar": {
         "scheduleProcess": "Schedule process",

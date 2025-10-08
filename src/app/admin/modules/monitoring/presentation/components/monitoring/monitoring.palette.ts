@@ -39,39 +39,39 @@ export const monitoringPalette = {
 
   dark: {
     // Colores para la sección de jerarquía de usuario
-    monitoringPathBackground: "#333333",
-    monitoringPathBorder: "#555555",
-    monitoringPathLevelBackground: "#ff7070",
+    monitoringPathBackground: "#2a2a2a",
+    monitoringPathBorder: "#444444",
+    monitoringPathLevelBackground: "#007bff",
     monitoringPathLevelText: "#ffffff",
-    monitoringPathNameText: "#ffffff",
-    monitoringPathIdText: "#a1a1a1",
+    monitoringPathNameText: "#e0e0e0",
+    monitoringPathIdText: "#b0b0b0",
 
     // Colores para la sección de dispositivos
-    monitoringDevicesSectionBackground: "#333333",
-    monitoringDevicesSectionBorder: "#555555",
-    monitoringDevicesCardBackground: "#2c2c2c",
-    monitoringDevicesCardBorder: "#555555",
-    monitoringDevicesCardShadow: "rgba(0,0,0,0.3)",
-    monitoringDevicesCardHoverShadow: "rgba(0,0,0,0.4)",
-    monitoringDevicesNameText: "#ffffff",
-    monitoringDevicesImeiText: "#a1a1a1",
-    monitoringDevicesTypeBackground: "#444444",
-    monitoringDevicesTypeText: "#d1d1d1",
-    monitoringDevicesStatusActiveBackground: "#1a5f1a",
-    monitoringDevicesStatusActiveText: "#90ee90",
-    monitoringDevicesStatusInactiveBackground: "#5f1a1a",
-    monitoringDevicesStatusInactiveText: "#ff6b6b",
-    monitoringDevicesPlateBackground: "#5f4a1a",
-    monitoringDevicesPlateText: "#ffd700",
+    monitoringDevicesSectionBackground: "#2a2a2a",
+    monitoringDevicesSectionBorder: "#444444",
+    monitoringDevicesCardBackground: "#1e1e1e",
+    monitoringDevicesCardBorder: "#444444",
+    monitoringDevicesCardShadow: "rgba(0,0,0,0.5)",
+    monitoringDevicesCardHoverShadow: "rgba(0,0,0,0.6)",
+    monitoringDevicesNameText: "#f0f0f0",
+    monitoringDevicesImeiText: "#c0c0c0",
+    monitoringDevicesTypeBackground: "#333333",
+    monitoringDevicesTypeText: "#e0e0e0",
+    monitoringDevicesStatusActiveBackground: "#0d4d0d",
+    monitoringDevicesStatusActiveText: "#7fff7f",
+    monitoringDevicesStatusInactiveBackground: "#4d0d0d",
+    monitoringDevicesStatusInactiveText: "#ff7f7f",
+    monitoringDevicesPlateBackground: "#4d3d0d",
+    monitoringDevicesPlateText: "#ffed4e",
 
     // Colores para estados de carga y error
-    monitoringLoadingText: "#a1a1a1",
+    monitoringLoadingText: "#c0c0c0",
     monitoringErrorText: "#ff6b6b",
-    monitoringNoDevicesText: "#a1a1a1",
+    monitoringNoDevicesText: "#b0b0b0",
 
     // Colores generales
-    monitoringTitleText: "#ff7070",
-    monitoringDescriptionText: "#d1d1d1",
-    monitoringSectionTitleText: "#d1d1d1"
+    monitoringTitleText: "#4dabf7",
+    monitoringDescriptionText: "#e0e0e0",
+    monitoringSectionTitleText: "#f0f0f0"
   }
 };

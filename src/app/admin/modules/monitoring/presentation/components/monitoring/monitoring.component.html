@@ -1,9 +1,107 @@
 <div class="monitoring-container">
-  <h1>{{ 'MONITORING.TITLE' | translate }}</h1>
-  <p>{{ 'MONITORING.DESCRIPTION' | translate }}</p>
+  <div class="monitoring-header">
+    <div class="header-content">
+      <p>{{ 'MONITORING.DESCRIPTION' | translate }}</p>
+    </div>
+    <div class="header-actions">
+      <p-button
+        *ngIf="!monitoringResult"
+        [label]="'MONITORING.CONFIGURE_MONITORING_BUTTON' | translate"
+        icon="pi pi-cog"
+        (onClick)="openUserSearchModal()"
+        styleClass="p-button-primary">
+      </p-button>
+      <p-button
+        *ngIf="monitoringResult"
+        [label]="'MONITORING.CHANGE_USER_BUTTON' | translate"
+        icon="pi pi-user"
+        (onClick)="openUserSearchModal()"
+        styleClass="p-button-outlined">
+      </p-button>
+    </div>
+  </div>
+
+  <!-- User Search Modal -->
+  <p-dialog
+    [header]="'MONITORING.SEARCH_USER_TITLE' | translate"
+    [(visible)]="showUserSearchModal"
+    [modal]="true"
+    [closable]="true"
+    [style]="{width: '500px'}"
+    [draggable]="false"
+    [resizable]="false">
+
+    <div class="search-form">
+      <div class="p-field">
+        <label for="userEmail">{{ 'MONITORING.EMAIL_LABEL' | translate }}</label>
+        <input
+          id="userEmail"
+          type="email"
+          pInputText
+          [(ngModel)]="userEmail"
+          [placeholder]="'MONITORING.EMAIL_PLACEHOLDER' | translate"
+          (keyup.enter)="searchUserByEmail()"
+          [disabled]="searchingUser || loading"
+          class="email-input">
+      </div>
+
+      <div class="search-actions">
+        <p-button
+          [label]="'MONITORING.SEARCH_BUTTON' | translate"
+          icon="pi pi-search"
+          (onClick)="searchUserByEmail()"
+          [loading]="searchingUser"
+          [disabled]="!userEmail || loading"
+          styleClass="p-button-primary">
+        </p-button>
+
+        <p-button
+          *ngIf="userFound || monitoringResult"
+          [label]="'MONITORING.NEW_SEARCH_BUTTON' | translate"
+          icon="pi pi-refresh"
+          (onClick)="resetSearch()"
+          [disabled]="loading"
+          styleClass="p-button-secondary">
+        </p-button>
+      </div>
+
+      <!-- User Found Info -->
+      <div *ngIf="userFound && !searchingUser" class="user-found-info">
+        <div class="success-message">
+          <i class="pi pi-check-circle"></i>
+          <span>{{ 'MONITORING.USER_FOUND' | translate }}: {{ foundUserName }}</span>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div *ngIf="error" class="error-message">
+        <div class="error-content">
+          <i class="pi pi-exclamation-triangle"></i>
+          <span>{{ error }}</span>
+        </div>
+      </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <p-button
+        [label]="'MONITORING.START_BUTTON' | translate"
+        icon="pi pi-play"
+        (onClick)="startMonitoring()"
+        [loading]="loading"
+        [disabled]="!userFound || loading"
+        styleClass="p-button-success">
+      </p-button>
+      <p-button
+        [label]="'MONITORING.CANCEL_BUTTON' | translate"
+        icon="pi pi-times"
+        (onClick)="closeUserSearchModal()"
+        styleClass="p-button-secondary">
+      </p-button>
+    </ng-template>
+  </p-dialog>
 
   <!-- Initial State - Button to start monitoring -->
-  <div *ngIf="!monitoringResult && !loading && !error" class="start-monitoring-container">
+  <div *ngIf="userFound && !monitoringResult && !loading && !error" class="start-monitoring-container">
     <p-card class="start-card">
       <ng-template pTemplate="header">
         <div class="start-header">
@@ -38,20 +136,31 @@
 
   <!-- Monitoring Results -->
   <div *ngIf="monitoringResult && !loading" class="monitoring-content">
-    <div *ngFor="let userData of monitoringResult.data; let i = index" class="monitoring-block">
+    <!-- No users with devices message -->
+    <div *ngIf="filteredMonitoringData.length === 0" class="no-data-container">
+      <p-card header="No Devices Found">
+        <p>No users with devices were found in the monitoring results.</p>
+      </p-card>
+    </div>
+
+    <!-- Users with devices -->
+    <div *ngFor="let userData of filteredMonitoringData; let i = index" class="monitoring-block">
       <!-- User Path as Header -->
       <div *ngIf="userData.route && userData.route.length > 0" class="user-path-header">
         <div class="path-list">
           <div *ngFor="let pathItem of userData.route; let j = index; let isLast = last"
-               [class.path-item-last]="isLast" class="path-item">
-            <span class="path-level">{{ j + 1 }}</span>
-            <span class="path-name">{{ pathItem.fullName }}</span>
+               [class.path-item-last]="isLast" class="path-item"
+               [style.background]="isLast ? '#007bff' : null"
+               [style.color]="isLast ? '#ffffff' : null"
+               [style.border-color]="isLast ? '#007bff' : null">
+            <span class="path-level" [style.color]="isLast ? '#ffffff' : null">{{ j + 1 }}</span>
+            <span class="path-name" [style.color]="isLast ? '#ffffff' : null">{{ pathItem.fullName }}</span>
           </div>
         </div>
       </div>
 
       <!-- Devices as Content -->
-      <div *ngIf="userData.devices && userData.devices.length > 0" class="devices-content">
+      <div class="devices-content">
         <div class="devices-count">Devices: {{ userData.devices.length }}</div>
         <p-table [value]="userData.devices" [paginator]="userData.devices.length > 10" [rows]="10"
                  [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries">
@@ -59,34 +168,43 @@
             <tr>
               <th>Name</th>
               <th>IMEI</th>
-              <th>Type</th>
+              <th>Protocol</th>
               <th>Status</th>
-              <th>Plate Number</th>
+              <th>Expiration Date</th>
               <th>SIM Card</th>
-              <th>Company</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-device>
             <tr>
               <td>{{ device.name }}</td>
               <td>{{ device.device_imei }}</td>
-              <td>{{ device.type }}</td>
+              <td>{{ getProtocolName(device.type) }}</td>
               <td>
                 <span class="device-status" [class.active]="device.status" [class.inactive]="!device.status">
                   {{ device.status ? 'Active' : 'Inactive' }}
                 </span>
               </td>
-              <td>{{ device.target_plate_number || '-' }}</td>
-              <td>{{ device.sim_card_number || '-' }}</td>
-              <td>{{ device.sim_company || '-' }}</td>
+              <td>
+                <span class="expiration-date"
+                      [class.expired]="isExpired(device.expiration_date)"
+                      [class.expiring-soon]="isExpiringSoon(device.expiration_date)"
+                      [class.valid]="isValid(device.expiration_date)">
+                  {{ formatExpirationDate(device.expiration_date) }}
+                </span>
+              </td>
+              <td>
+                <div class="sim-card-cell">
+                  <span>{{ device.sim_card_number || '-' }}</span>
+                  <p-badge *ngIf="device.sim_company"
+                           [value]="device.sim_company"
+                           severity="info"
+                           styleClass="sim-company-badge">
+                  </p-badge>
+                </div>
+              </td>
             </tr>
           </ng-template>
         </p-table>
-      </div>
-
-      <!-- No devices message -->
-      <div *ngIf="userData.devices && userData.devices.length === 0" class="no-devices">
-        <p>No devices found for this user.</p>
       </div>
     </div>
   </div>
