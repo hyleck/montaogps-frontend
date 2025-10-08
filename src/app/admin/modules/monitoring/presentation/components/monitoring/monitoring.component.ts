@@ -108,6 +108,8 @@ export class MonitoringComponent implements OnInit {
     this.showUserSearchModal = false;
   }
 
+
+
   private loadUserInfo(userId: string): void {
     // Optional: load user info if we have ID from route
     this.userService.getById(userId).subscribe({

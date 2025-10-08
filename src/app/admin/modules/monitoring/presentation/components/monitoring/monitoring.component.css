@@ -153,37 +153,35 @@
 }
 
 .path-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 4px;
+  padding: 6px 10px;
   background-color: var(--monitoringDevicesCardBackground);
   border: 1px solid var(--monitoringDevicesCardBorder);
-  border-radius: 20px;
+  border-radius: 4px;
   font-size: 14px;
-  transition: all 0.3s ease;
-  color: var(--monitoringPathNameText);
+  color: var(--monitoringDevicesNameText);
+  text-decoration: none;
+  transition: all 0.2s ease;
 }
 
 .path-item:hover {
-  background-color: var(--monitoringDevicesSectionBackground);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px var(--monitoringDevicesCardShadow);
+  background-color: var(--monitoringDevicesTypeBackground);
+  border-color: var(--monitoringPathLevelBackground);
 }
 
 .path-item.path-item-last {
-  background: #007bff !important;
-  color: #ffffff !important;
-  border: 1px solid #007bff !important;
-  font-weight: bold !important;
-  box-shadow: 0 4px 8px rgba(0,123,255,0.3) !important;
-  transform: scale(1.05) !important;
+  background-color: #007bff;
+  color: #ffffff;
+  border-color: #007bff;
 }
 
-.path-item.path-item-last:hover {
-  background: #007bff !important;
-  transform: scale(1.05) translateY(-1px) !important;
-  box-shadow: 0 6px 12px rgba(0,123,255,0.4) !important;
+.path-separator {
+  color: var(--monitoringDevicesImeiText);
+  font-size: 14px;
+  font-weight: 600;
+  user-select: none;
 }
 
 .path-item.path-item-last .path-name {
@@ -249,6 +247,66 @@
   border-radius: 8px;
   border: 1px solid var(--monitoringDevicesSectionBorder);
   overflow: hidden;
+}
+
+/* Breadcrumbs Styles */
+.user-breadcrumbs {
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: var(--monitoringDevicesSectionBackground, #f8f9fa);
+  border: 1px solid var(--monitoringDevicesSectionBorder, #e9ecef);
+  border-radius: 6px;
+}
+
+.user-breadcrumbs .breadcrumb-container {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.user-breadcrumbs .breadcrumb-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--monitoringDevicesNameText, #212529);
+  background-color: var(--monitoringDevicesTypeBackground, #e9ecef);
+  border: 1px solid var(--monitoringDevicesCardBorder, #dee2e6);
+  transition: all 0.2s ease, transform 0.1s ease;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.user-breadcrumbs .breadcrumb-item:hover {
+  background-color: var(--monitoringDevicesCardBackground, #ffffff);
+  color: var(--monitoringPathLevelBackground, #007bff);
+  border-color: var(--monitoringPathLevelBackground, #007bff);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px var(--monitoringDevicesCardShadow, rgba(0,0,0,0.1));
+}
+
+.user-breadcrumbs .breadcrumb-item.active {
+  background-color: var(--monitoringPathLevelBackground, #007bff);
+  color: #ffffff;
+  font-weight: 600;
+  border-color: var(--monitoringPathLevelBackground, #007bff);
+  box-shadow: 0 2px 8px rgba(0,123,255,0.25);
+}
+
+.user-breadcrumbs .breadcrumb-item .breadcrumb-icon {
+  margin-right: 4px;
+  font-size: 14px;
+}
+
+.user-breadcrumbs .breadcrumb-separator {
+  color: var(--monitoringDevicesImeiText, #6c757d);
+  margin: 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  user-select: none;
 }
 
 /* Estilos ya definidos arriba, eliminando duplicados */

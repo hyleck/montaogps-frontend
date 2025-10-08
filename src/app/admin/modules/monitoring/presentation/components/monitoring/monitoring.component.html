@@ -100,6 +100,7 @@
     </ng-template>
   </p-dialog>
 
+
   <!-- Initial State - Button to start monitoring -->
   <div *ngIf="userFound && !monitoringResult && !loading && !error" class="start-monitoring-container">
     <p-card class="start-card">
@@ -145,17 +146,20 @@
 
     <!-- Users with devices -->
     <div *ngFor="let userData of filteredMonitoringData; let i = index" class="monitoring-block">
-      <!-- User Path as Header -->
-      <div *ngIf="userData.route && userData.route.length > 0" class="user-path-header">
-        <div class="path-list">
-          <div *ngFor="let pathItem of userData.route; let j = index; let isLast = last"
-               [class.path-item-last]="isLast" class="path-item"
-               [style.background]="isLast ? '#007bff' : null"
-               [style.color]="isLast ? '#ffffff' : null"
-               [style.border-color]="isLast ? '#007bff' : null">
-            <span class="path-level" [style.color]="isLast ? '#ffffff' : null">{{ j + 1 }}</span>
-            <span class="path-name" [style.color]="isLast ? '#ffffff' : null">{{ pathItem.fullName }}</span>
-          </div>
+      <!-- User Path as Breadcrumbs -->
+      <div *ngIf="userData.route && userData.route.length > 0" class="user-breadcrumbs">
+        <div class="breadcrumb-container">
+          <a class="breadcrumb-item" routerLink="/admin/dashboard">
+            <i class="pi pi-home breadcrumb-icon"></i>
+            <span>Dashboard</span>
+          </a>
+          <span class="breadcrumb-separator">></span>
+          <ng-container *ngFor="let pathItem of userData.route; let j = index; let isLast = last">
+            <span class="breadcrumb-item" [class.active]="isLast">
+              {{ pathItem.fullName }}
+            </span>
+            <span *ngIf="!isLast" class="breadcrumb-separator">></span>
+          </ng-container>
         </div>
       </div>
 

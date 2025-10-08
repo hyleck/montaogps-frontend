@@ -19,7 +19,11 @@ export class MonitoringService {
 
   constructor(private http: HttpClient) { }
 
-  monitorUser(userId: string): Observable<MonitorUserResponse> {
-    return this.http.post<MonitorUserResponse>(`${this.apiUrl}/user`, { userId });
+  monitorUser(userId: string, filter?: string): Observable<MonitorUserResponse> {
+    const body: any = { userId };
+    if (filter) {
+      body.filter = filter;
+    }
+    return this.http.post<MonitorUserResponse>(`${this.apiUrl}/user`, body);
   }
 }
