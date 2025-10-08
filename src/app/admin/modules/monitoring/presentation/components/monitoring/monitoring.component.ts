@@ -104,7 +104,35 @@ export class MonitoringComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
-    this.monitoringService.monitorUser(this.userId, filter).subscribe({
+    // For backward compatibility, convert string filter to object
+    const filters = filter ? { expiration: filter } : undefined;
+
+    this.monitoringService.monitorUser(this.userId, filters).subscribe({
+      next: (result) => {
+        this.monitoringResult = result;
+        this.loading = false;
+        console.log('Monitoring result:', result);
+      },
+      error: (error) => {
+        this.error = 'Error monitoring user: ' + error.message;
+        this.loading = false;
+        console.error('Monitoring error:', error);
+      }
+    });
+  }
+
+  startMonitoringWithFilters(filters?: { status?: string; expiration?: string }): void {
+    if (!this.userId) {
+      this.error = this.translate.instant('MONITORING.SEARCH_USER_FIRST');
+      return;
+    }
+
+    // Close the modal and start monitoring
+    this.showUserSearchModal = false;
+    this.loading = true;
+    this.error = '';
+
+    this.monitoringService.monitorUser(this.userId, filters).subscribe({
       next: (result) => {
         this.monitoringResult = result;
         this.loading = false;
@@ -140,14 +168,16 @@ export class MonitoringComponent implements OnInit {
       expiration: this.selectedExpirationFilter
     });
 
-    // Apply expiration filter by calling startMonitoring with the filter
+    // Apply both status and expiration filters
+    const filters: { status?: string; expiration?: string } = {};
+    if (this.selectedStatusFilter && this.selectedStatusFilter !== '') {
+      filters.status = this.selectedStatusFilter;
+    }
     if (this.selectedExpirationFilter && this.selectedExpirationFilter !== '') {
-      this.startMonitoring(this.selectedExpirationFilter);
-    } else {
-      // If no expiration filter, just reload without filter
-      this.startMonitoring();
+      filters.expiration = this.selectedExpirationFilter;
     }
 
+    this.startMonitoringWithFilters(filters);
     this.closeFiltersModal();
   }
 
@@ -155,7 +185,7 @@ export class MonitoringComponent implements OnInit {
     this.selectedStatusFilter = '';
     this.selectedExpirationFilter = '';
     // Reload without filters
-    this.startMonitoring();
+    this.startMonitoringWithFilters();
     console.log('Filters cleared');
   }
 
