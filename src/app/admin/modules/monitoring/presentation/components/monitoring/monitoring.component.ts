@@ -22,7 +22,25 @@ export class MonitoringComponent implements OnInit {
   userFound: boolean = false;
   foundUserName: string = '';
   showUserSearchModal: boolean = false;
+  showFiltersModal: boolean = false;
   protocols: any[] = [];
+
+  // Filter options
+  statusOptions: any[] = [
+    { label: 'All Statuses', value: null },
+    { label: 'Active', value: 'active' },
+    { label: 'Inactive', value: 'inactive' }
+  ];
+
+  expirationOptions: any[] = [
+    { label: 'All Expirations', value: null },
+    { label: 'Valid', value: 'valid' },
+    { label: 'Expiring Soon', value: 'expiring-soon' },
+    { label: 'Expired', value: 'expired' }
+  ];
+
+  selectedStatusFilter: string = '';
+  selectedExpirationFilter: string = '';
 
   constructor(
     private route: ActivatedRoute,
@@ -75,7 +93,7 @@ export class MonitoringComponent implements OnInit {
     });
   }
 
-  startMonitoring(): void {
+  startMonitoring(filter?: string): void {
     if (!this.userId) {
       this.error = this.translate.instant('MONITORING.SEARCH_USER_FIRST');
       return;
@@ -86,7 +104,7 @@ export class MonitoringComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
-    this.monitoringService.monitorUser(this.userId).subscribe({
+    this.monitoringService.monitorUser(this.userId, filter).subscribe({
       next: (result) => {
         this.monitoringResult = result;
         this.loading = false;
@@ -106,6 +124,39 @@ export class MonitoringComponent implements OnInit {
 
   closeUserSearchModal(): void {
     this.showUserSearchModal = false;
+  }
+
+  openFiltersModal(): void {
+    this.showFiltersModal = true;
+  }
+
+  closeFiltersModal(): void {
+    this.showFiltersModal = false;
+  }
+
+  applyFilters(): void {
+    console.log('Applying filters:', {
+      status: this.selectedStatusFilter,
+      expiration: this.selectedExpirationFilter
+    });
+
+    // Apply expiration filter by calling startMonitoring with the filter
+    if (this.selectedExpirationFilter && this.selectedExpirationFilter !== '') {
+      this.startMonitoring(this.selectedExpirationFilter);
+    } else {
+      // If no expiration filter, just reload without filter
+      this.startMonitoring();
+    }
+
+    this.closeFiltersModal();
+  }
+
+  clearFilters(): void {
+    this.selectedStatusFilter = '';
+    this.selectedExpirationFilter = '';
+    // Reload without filters
+    this.startMonitoring();
+    console.log('Filters cleared');
   }
 
 

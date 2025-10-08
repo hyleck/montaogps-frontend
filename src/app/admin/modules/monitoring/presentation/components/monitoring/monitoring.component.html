@@ -18,6 +18,13 @@
         (onClick)="openUserSearchModal()"
         styleClass="p-button-outlined">
       </p-button>
+      <p-button
+        *ngIf="monitoringResult"
+        [label]="'MONITORING.FILTERS_BUTTON' | translate"
+        icon="pi pi-filter"
+        (onClick)="openFiltersModal()"
+        styleClass="p-button-secondary">
+      </p-button>
     </div>
   </div>
 
@@ -100,6 +107,56 @@
     </ng-template>
   </p-dialog>
 
+  <!-- Filters Modal -->
+  <p-dialog
+    [header]="'MONITORING.FILTERS_TITLE' | translate"
+    [(visible)]="showFiltersModal"
+    [modal]="true"
+    [closable]="true"
+    [style]="{width: '500px'}"
+    [draggable]="false"
+    [resizable]="false">
+
+    <div class="filters-form">
+      <div class="field">
+        <label>{{ 'MONITORING.FILTERS_STATUS' | translate }}</label>
+        <select
+          [(ngModel)]="selectedStatusFilter"
+          class="filter-select">
+          <option value="">{{ 'MONITORING.FILTERS_ALL_STATUSES' | translate }}</option>
+          <option value="active">{{ 'MONITORING.FILTERS_ACTIVE' | translate }}</option>
+          <option value="inactive">{{ 'MONITORING.FILTERS_INACTIVE' | translate }}</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>{{ 'MONITORING.FILTERS_EXPIRATION' | translate }}</label>
+        <select
+          [(ngModel)]="selectedExpirationFilter"
+          class="filter-select">
+          <option value="">{{ 'MONITORING.FILTERS_ALL_EXPIRATIONS' | translate }}</option>
+          <option value="valid">{{ 'MONITORING.FILTERS_VALID' | translate }}</option>
+          <option value="expiring-soon">{{ 'MONITORING.FILTERS_EXPIRING_SOON' | translate }}</option>
+          <option value="expired">{{ 'MONITORING.FILTERS_EXPIRED' | translate }}</option>
+        </select>
+      </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <p-button
+        [label]="'MONITORING.FILTERS_APPLY' | translate"
+        icon="pi pi-check"
+        (onClick)="applyFilters()"
+        styleClass="p-button-primary">
+      </p-button>
+      <p-button
+        [label]="'MONITORING.FILTERS_CLEAR' | translate"
+        icon="pi pi-times"
+        (onClick)="clearFilters()"
+        styleClass="p-button-secondary">
+      </p-button>
+    </ng-template>
+  </p-dialog>
 
   <!-- Initial State - Button to start monitoring -->
   <div *ngIf="userFound && !monitoringResult && !loading && !error" class="start-monitoring-container">

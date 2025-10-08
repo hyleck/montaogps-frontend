@@ -94,7 +94,20 @@
       "CANCEL_BUTTON": "Cancelar",
       "CHANGE_USER_BUTTON": "Cambiar Usuario",
       "SELECT_USER_BUTTON": "Seleccionar Usuario",
-      "CONFIGURE_MONITORING_BUTTON": "Configurar Monitoreo"
+      "CONFIGURE_MONITORING_BUTTON": "Configurar Monitoreo",
+      "FILTERS_BUTTON": "Filtros",
+      "FILTERS_TITLE": "Filtros de Monitoreo",
+      "FILTERS_STATUS": "Estado",
+      "FILTERS_EXPIRATION": "Estado de Expiración",
+      "FILTERS_ALL_STATUSES": "Todos los Estados",
+      "FILTERS_ACTIVE": "Activo",
+      "FILTERS_INACTIVE": "Inactivo",
+      "FILTERS_ALL_EXPIRATIONS": "Todas las Expiraciones",
+      "FILTERS_VALID": "Vigente",
+      "FILTERS_EXPIRING_SOON": "Por Expirar",
+      "FILTERS_EXPIRED": "Expirado",
+      "FILTERS_APPLY": "Aplicar Filtros",
+      "FILTERS_CLEAR": "Limpiar Filtros"
     },
     "navbar": {
       "scheduleProcess": "Programar proceso",
