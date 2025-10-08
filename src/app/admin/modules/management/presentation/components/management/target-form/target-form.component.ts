@@ -33,6 +33,7 @@ import { ProtocolCommand } from 'src/app/core/interfaces/protocol.interface';
 import { ManagementService } from 'src/app/admin/modules/management/presentation/services/management.service';
 import { UserService } from 'src/app/core/services/user.service';
 import { User } from 'src/app/core/interfaces/user.interface';
+import { CommandsService, Command } from 'src/app/core/services/commands.service';
 
 
 
@@ -195,6 +196,33 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Propiedad para el tipo de afiliación del usuario actual
     currentUserAffiliationTypeId: string = '';
+
+    // Propiedad para controlar la visibilidad del modal de gestión de comandos
+    displayCommandManagementModal: boolean = false;
+
+    // Propiedad para controlar la visibilidad del modal de historial de comandos
+    displayCommandHistoryModal: boolean = false;
+
+    // Propiedades para gestión de comandos
+    displayCreateCommandModal: boolean = false;
+    deviceCommands: any[] = [];
+    isLoadingCommands: boolean = false;
+    isCreatingCommand: boolean = false;
+    newCommand: any = {
+        name: '',
+        description: '',
+        observation: ''
+    };
+
+    // Propiedades para modal de observación de comandos estáticos
+    displayCommandObservationModal: boolean = false;
+    commandObservationTitle: string = '';
+    commandObservationIcon: string = '';
+    commandObservationName: string = '';
+    commandObservationDescription: string = '';
+    commandObservationText: string = '';
+    isSendingCommand: boolean = false;
+    pendingCommandType: string = ''; // 'shutdown' or 'ignition'
     
     constructor(
         private langService: LangService,
@@ -207,7 +235,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         private protocolsService: ProtocolsService,
         private managementService: ManagementService,
         private authService: AuthService,
-        private userService: UserService
+        private userService: UserService,
+        private commandsService: CommandsService
     ) {}
 
     // Métodos de validación de privilegios para devices
@@ -3731,6 +3760,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return process._id || String(index);
     }
 
+    trackByCommand(index: number, command: any): any {
+        return command._id || index;
+    }
+
     // Método para obtener el ícono según el tipo de proceso
     getProcessIcon(type: number): string {
         const iconMap: { [key: number]: string } = {
@@ -3780,7 +3813,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         const statusMap: { [key: number]: string } = {
             1: 'CONFIGURACIÓN INICIAL',
             2: 'MODIFICADA',
-            3: 'MODIFICADA', 
+            3: 'MODIFICADA',
             4: 'COMPLETADA',
             5: 'ACTUALIZADO',
             6: 'ACTUALIZADO', // Cambio de plan (compatibilidad)
@@ -3795,5 +3828,228 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             15: 'ACTUALIZADO' // Modificar tipo de SIM card
         };
         return statusMap[type] || 'COMPLETADO';
+    }
+
+    // Método para abrir el modal de gestión de comandos
+    openCommandManagementModal(): void {
+        this.displayCommandManagementModal = true;
+    }
+
+    // Método para cerrar el modal de gestión de comandos
+    closeCommandManagementModal(): void {
+        this.displayCommandManagementModal = false;
+    }
+
+    // Método para abrir el modal de historial de comandos
+    openCommandHistoryModal(): void {
+        this.displayCommandHistoryModal = true;
+        // Cargar comandos al abrir el modal
+        this.loadDeviceCommands();
+    }
+
+    // Método para cerrar el modal de historial de comandos
+    closeCommandHistoryModal(): void {
+        this.displayCommandHistoryModal = false;
+    }
+
+    // Método para abrir el modal de crear comando
+    openCreateCommandModal(): void {
+        this.newCommand = {
+            name: '',
+            description: '',
+            observation: ''
+        };
+        this.displayCreateCommandModal = true;
+    }
+
+    // Método para cerrar el modal de crear comando
+    closeCreateCommandModal(): void {
+        this.displayCreateCommandModal = false;
+    }
+
+    // Método para cargar comandos del dispositivo
+    async loadDeviceCommands(): Promise<void> {
+        if (!this.target._id) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se puede cargar comandos sin un dispositivo seleccionado'
+            });
+            return;
+        }
+
+        try {
+            this.isLoadingCommands = true;
+            const commands = await this.commandsService.getCommandsByDevice(this.target._id);
+            this.deviceCommands = commands || [];
+        } catch (error) {
+            console.error('Error al cargar comandos:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudieron cargar los comandos del dispositivo'
+            });
+            this.deviceCommands = [];
+        } finally {
+            this.isLoadingCommands = false;
+        }
+    }
+
+    // Método para crear un comando
+    async createCommand(): Promise<void> {
+        if (!this.newCommand.name || !this.newCommand.observation) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Campos requeridos',
+                detail: 'El nombre y la observación son obligatorios'
+            });
+            return;
+        }
+
+        if (!this.target._id) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se puede crear comando sin un dispositivo seleccionado'
+            });
+            return;
+        }
+
+        try {
+            this.isCreatingCommand = true;
+
+            const commandData = {
+                ...this.newCommand,
+                deviceId: this.target._id,
+                creator: this.authService.getCurrentUser()?.id || 'system'
+            };
+
+            // Enviar comando al backend
+            await this.commandsService.createCommand(commandData);
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Comando creado',
+                detail: 'El comando ha sido creado exitosamente'
+            });
+
+            this.closeCreateCommandModal();
+            this.loadDeviceCommands(); // Recargar la lista
+
+        } catch (error) {
+            console.error('Error al crear comando:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo crear el comando'
+            });
+        } finally {
+            this.isCreatingCommand = false;
+        }
+    }
+
+    // Método para obtener el texto del estado del comando
+    getCommandStatusText(status: string): string {
+        const statusMap: { [key: string]: string } = {
+            'pending': 'Pendiente',
+            'sent': 'Enviado',
+            'executed': 'Ejecutado',
+            'failed': 'Fallido'
+        };
+        return statusMap[status] || 'Desconocido';
+    }
+
+    // Método para enviar comando de apagar vehículo
+    sendVehicleShutdownCommand(): void {
+        this.pendingCommandType = 'shutdown';
+        this.commandObservationTitle = 'Confirmar Comando: Apagar Vehículo';
+        this.commandObservationIcon = 'pi pi-power-off';
+        this.commandObservationName = 'Apagar Vehículo';
+        this.commandObservationDescription = 'Este comando apagará el motor del vehículo de forma remota.';
+        this.commandObservationText = '';
+        this.displayCommandObservationModal = true;
+    }
+
+    // Método para enviar comando de permitir encendido
+    sendAllowIgnitionCommand(): void {
+        this.pendingCommandType = 'ignition';
+        this.commandObservationTitle = 'Confirmar Comando: Permitir Encendido';
+        this.commandObservationIcon = 'pi pi-key';
+        this.commandObservationName = 'Permitir Encendido';
+        this.commandObservationDescription = 'Este comando permitirá el encendido del vehículo.';
+        this.commandObservationText = '';
+        this.displayCommandObservationModal = true;
+    }
+
+    // Método para cerrar el modal de observación
+    closeCommandObservationModal(): void {
+        this.displayCommandObservationModal = false;
+        this.pendingCommandType = '';
+        this.commandObservationText = '';
+    }
+
+    // Método para confirmar y enviar el comando
+    async confirmSendCommand(): Promise<void> {
+        if (!this.target._id) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se puede enviar comando sin un dispositivo seleccionado'
+            });
+            return;
+        }
+
+        try {
+            this.isSendingCommand = true;
+
+            // Preparar datos del comando según el tipo
+            let commandData: any;
+
+            if (this.pendingCommandType === 'shutdown') {
+                commandData = {
+                    name: 'Apagar Vehículo',
+                    description: 'Comando para apagar el motor del vehículo de forma remota',
+                    observation: this.commandObservationText || 'Comando enviado desde la interfaz de gestión',
+                    targetId: this.target._id,
+                    creator: this.authService.getCurrentUser()?.id || 'system',
+                    commandType: 'shutdown'
+                };
+            } else if (this.pendingCommandType === 'ignition') {
+                commandData = {
+                    name: 'Permitir Encendido',
+                    description: 'Comando para permitir el encendido del vehículo',
+                    observation: this.commandObservationText || 'Comando enviado desde la interfaz de gestión',
+                    targetId: this.target._id,
+                    creator: this.authService.getCurrentUser()?.id || 'system',
+                    commandType: 'ignition'
+                };
+            } else {
+                throw new Error('Tipo de comando no válido');
+            }
+
+            // Enviar comando al backend
+            await this.commandsService.createCommand(commandData);
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Comando enviado',
+                detail: `El comando "${commandData.name}" ha sido enviado exitosamente al dispositivo`
+            });
+
+            this.closeCommandObservationModal();
+
+            // Recargar la lista de comandos
+            this.loadDeviceCommands();
+
+        } catch (error) {
+            console.error('Error al enviar comando:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error al enviar comando',
+                detail: 'No se pudo enviar el comando al dispositivo. Intente nuevamente.'
+            });
+        } finally {
+            this.isSendingCommand = false;
+        }
     }
 }

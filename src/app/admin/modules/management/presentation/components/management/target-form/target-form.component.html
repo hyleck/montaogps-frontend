@@ -324,6 +324,14 @@
                                     </select>
                                 </div>
 
+                                        <!-- Texto condicional para gestión de comandos -->
+                                        <div *ngIf="target.engine_shutdown === 'yes'" class="target-form__field">
+                                            <div class="command-management-link" (click)="openCommandManagementModal()">
+                                                <i class="pi pi-cog"></i>
+                                                Gestión de comandos
+                                            </div>
+                                        </div>
+
                                 <div class="target-form__field">
                                             <label for="plan">{{ translate(translations.plan) }} <span class="required-label">(Requerido)</span></label>
                                             <select
@@ -1162,6 +1170,272 @@
                     <div style="display:flex;justify-content:center;align-items:center;min-height:120px;">
                         <p-progressSpinner [style]="{'width': '30px', 'height': '30px'}" strokeWidth="4"></p-progressSpinner>
                     </div>
+                </ng-template>
+            </p-dialog>
+
+            <!-- Modal de gestión de comandos -->
+            <p-dialog
+                [(visible)]="displayCommandManagementModal"
+                [modal]="true"
+                [draggable]="false"
+                [resizable]="false"
+                [style]="{ width: '700px', maxWidth: '95vw' }"
+                header="Gestión de Comandos"
+                (onHide)="closeCommandManagementModal()"
+            >
+                <div class="command-management-content">
+                    <!-- Sección de acciones rápidas -->
+                    <div class="command-actions">
+                        <h3>
+                            <i class="pi pi-bolt"></i>
+                            Acciones Rápidas
+                        </h3>
+                        <div class="command-actions-buttons">
+                            <button type="button" class="command-action-btn shutdown-btn" (click)="sendVehicleShutdownCommand()">
+                                <i class="pi pi-power-off"></i>
+                                <span>Apagar Vehículo</span>
+                            </button>
+                            <button type="button" class="command-action-btn ignition-btn" (click)="sendAllowIgnitionCommand()">
+                                <i class="pi pi-key"></i>
+                                <span>Permitir Encendido</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Botón para ver historial -->
+                    <div class="command-history-link">
+                        <button type="button" class="view-history-btn" (click)="openCommandHistoryModal()">
+                            <i class="pi pi-history"></i>
+                            <span>Ver historial de comandos</span>
+                        </button>
+                    </div>
+                </div>
+
+                <ng-template pTemplate="footer">
+                    <button type="button" class="cancel-btn" (click)="closeCommandManagementModal()">
+                        <i class="pi pi-times"></i>
+                        Cerrar
+                    </button>
+                </ng-template>
+            </p-dialog>
+
+            <!-- Modal de observación para comandos -->
+            <p-dialog
+                [(visible)]="displayCommandObservationModal"
+                [modal]="true"
+                [draggable]="false"
+                [resizable]="false"
+                [style]="{ width: '500px' }"
+                [header]="commandObservationTitle"
+                (onHide)="closeCommandObservationModal()"
+            >
+                <div class="command-observation-content">
+                    <div class="command-info">
+                        <div class="command-icon">
+                            <i [class]="commandObservationIcon"></i>
+                        </div>
+                        <div class="command-details">
+                            <h3>{{ commandObservationName }}</h3>
+                            <p>{{ commandObservationDescription }}</p>
+                        </div>
+                    </div>
+
+                    <div class="observation-field">
+                        <label for="commandObservation">Observación (opcional):</label>
+                        <textarea
+                            id="commandObservation"
+                            [(ngModel)]="commandObservationText"
+                            placeholder="Agregue una observación para este comando..."
+                            rows="3"
+                            class="observation-textarea">
+                        </textarea>
+                    </div>
+                </div>
+
+                <ng-template pTemplate="footer">
+                    <button type="button" class="cancel-btn" (click)="closeCommandObservationModal()">
+                        <i class="pi pi-times"></i>
+                        Cancelar
+                    </button>
+                    <button type="button" class="confirm-btn" (click)="confirmSendCommand()" [disabled]="isSendingCommand">
+                        <i class="pi pi-send" *ngIf="!isSendingCommand"></i>
+                        <i class="pi pi-spin pi-spinner" *ngIf="isSendingCommand"></i>
+                        {{ isSendingCommand ? 'Enviando...' : 'Confirmar y Enviar' }}
+                    </button>
+                </ng-template>
+            </p-dialog>
+
+            <!-- Modal para crear comando con observación -->
+            <p-dialog
+                [(visible)]="displayCreateCommandModal"
+                [modal]="true"
+                [draggable]="false"
+                [resizable]="false"
+                [style]="{ width: '500px' }"
+                header="Crear Comando"
+                (onHide)="closeCreateCommandModal()"
+            >
+                <div class="create-command-content">
+                    <form class="create-command-form" (ngSubmit)="createCommand()" #commandForm="ngForm">
+                        <div class="target-form__field">
+                            <label for="command_name">Nombre del Comando <span class="required-label">(Requerido)</span></label>
+                            <input
+                                [(ngModel)]="newCommand.name"
+                                name="command_name"
+                                type="text"
+                                id="command_name"
+                                placeholder="Ej: Apagar Motor"
+                                required
+                            >
+                        </div>
+
+                        <div class="target-form__field">
+                            <label for="command_description">Descripción</label>
+                            <textarea
+                                [(ngModel)]="newCommand.description"
+                                name="command_description"
+                                id="command_description"
+                                placeholder="Describe qué hace este comando"
+                                rows="3"
+                            ></textarea>
+                        </div>
+
+                        <div class="target-form__field">
+                            <label for="command_observation">Observación <span class="required-label">(Requerido)</span></label>
+                            <textarea
+                                [(ngModel)]="newCommand.observation"
+                                name="command_observation"
+                                id="command_observation"
+                                placeholder="Observaciones adicionales sobre el comando"
+                                rows="3"
+                                required
+                            ></textarea>
+                        </div>
+                    </form>
+                </div>
+
+                <ng-template pTemplate="footer">
+                    <button type="button" class="cancel-btn" (click)="closeCreateCommandModal()">
+                        <i class="pi pi-times"></i>
+                        Cancelar
+                    </button>
+                    <button type="button" class="apply-btn" (click)="createCommand()" [disabled]="!commandForm.form.valid || isCreatingCommand">
+                        <i class="pi" [ngClass]="isCreatingCommand ? 'pi-spinner loading-spinner' : 'pi-check'"></i>
+                        {{ isCreatingCommand ? 'Creando...' : 'Crear Comando' }}
+                    </button>
+                </ng-template>
+            </p-dialog>
+
+            <!-- Modal para observación de comandos estáticos -->
+            <p-dialog
+                [(visible)]="displayCommandObservationModal"
+                [modal]="true"
+                [draggable]="false"
+                [resizable]="false"
+                [style]="{ width: '500px' }"
+                [header]="commandObservationTitle"
+                (onHide)="closeCommandObservationModal()"
+            >
+                <div class="command-observation-content">
+                    <div class="command-info">
+                        <div class="command-icon">
+                            <i [class]="commandObservationIcon"></i>
+                        </div>
+                        <div class="command-details">
+                            <h4>{{ commandObservationName }}</h4>
+                            <p>{{ commandObservationDescription }}</p>
+                        </div>
+                    </div>
+
+                    <div class="target-form__field">
+                        <label for="command_observation_text">Observación (Opcional)</label>
+                        <textarea
+                            [(ngModel)]="commandObservationText"
+                            name="command_observation_text"
+                            id="command_observation_text"
+                            placeholder="Agregue una observación sobre este comando..."
+                            rows="3"
+                        ></textarea>
+                    </div>
+                </div>
+
+                <ng-template pTemplate="footer">
+                    <button type="button" class="cancel-btn" (click)="closeCommandObservationModal()">
+                        <i class="pi pi-times"></i>
+                        Cancelar
+                    </button>
+                    <button type="button" class="apply-btn" (click)="confirmSendCommand()" [disabled]="isSendingCommand">
+                        <i class="pi" [ngClass]="isSendingCommand ? 'pi-spinner loading-spinner' : 'pi-send'"></i>
+                        {{ isSendingCommand ? 'Enviando...' : 'Enviar Comando' }}
+                    </button>
+                </ng-template>
+            </p-dialog>
+
+            <!-- Modal para historial de comandos -->
+            <p-dialog
+                [(visible)]="displayCommandHistoryModal"
+                [modal]="true"
+                [draggable]="false"
+                [resizable]="false"
+                [style]="{ width: '700px', maxWidth: '95vw' }"
+                header="Historial de Comandos"
+                (onHide)="closeCommandHistoryModal()"
+            >
+                <div class="command-history-content">
+                    <!-- Lista de comandos existentes -->
+                    <div class="commands-list" *ngIf="deviceCommands.length > 0">
+                        <div class="commands-grid">
+                            <div class="command-item" *ngFor="let command of deviceCommands; trackBy: trackByCommand">
+                                <div class="command-header">
+                                    <div class="command-name">{{ command.name }}</div>
+                                    <div class="command-date">{{ formatDateTime(command.createdAt) }}</div>
+                                </div>
+                                <div class="command-description" *ngIf="command.description">{{ command.description }}</div>
+                                <div class="command-observation" *ngIf="command.observation">
+                                    <strong>Observación:</strong> {{ command.observation }}
+                                </div>
+                                <div class="command-status">
+                                    <span class="status-badge" [class]="'status-' + command.status">
+                                        <ng-container *ngIf="getCommandStatusText(command.status) !== 'Desconocido'; else creatorInfo">
+                                            {{ getCommandStatusText(command.status) }}
+                                        </ng-container>
+                                        <ng-template #creatorInfo>
+                                            <ng-container *ngIf="command.creator && typeof command.creator === 'object'">
+                                                <div>Enviado por {{ command.creator.name }} {{ command.creator.last_name }}</div>
+                                                <div class="creator-email">{{ command.creator.email }}</div>
+                                            </ng-container>
+                                            <ng-container *ngIf="command.creator && typeof command.creator !== 'object'">
+                                                Enviado por {{ command.creator }}
+                                            </ng-container>
+                                            <ng-container *ngIf="!command.creator">
+                                                Desconocido
+                                            </ng-container>
+                                        </ng-template>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estado vacío -->
+                    <div class="no-commands" *ngIf="deviceCommands.length === 0 && !isLoadingCommands">
+                        <i class="pi pi-send"></i>
+                        <p>No hay comandos registrados para este dispositivo</p>
+                        <small>Los comandos enviados aparecerán aquí</small>
+                    </div>
+
+                    <!-- Estado de carga -->
+                    <div class="loading-commands" *ngIf="isLoadingCommands">
+                        <p-progressSpinner [style]="{'width': '40px', 'height': '40px'}" strokeWidth="4"></p-progressSpinner>
+                        <p>Cargando historial de comandos...</p>
+                    </div>
+                </div>
+
+                <ng-template pTemplate="footer">
+                    <button type="button" class="cancel-btn" (click)="closeCommandHistoryModal()">
+                        <i class="pi pi-times"></i>
+                        Cerrar
+                    </button>
                 </ng-template>
             </p-dialog>
         </div>

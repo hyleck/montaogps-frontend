@@ -2025,4 +2025,456 @@ textarea[readonly]:focus {
 .dark .terminal-refresh-btn:hover:not(:disabled) {
     background: #333;
     border-color: #555;
-} 
+}
+
+/* Estilos para el enlace de gestión de comandos */
+.command-management-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--globalColorPrimaryInmutable);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 400;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    margin-top: 8px;
+    margin-left: 2px;
+    border: 1px solid transparent;
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.command-management-link:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+    border-color: rgba(0, 123, 255, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+}
+
+.command-management-link i {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+/* Estilos para el email del creador en el status badge */
+.creator-email {
+    font-size: 0.7rem;
+    opacity: 0.6;
+    margin-top: 2px;
+    font-weight: normal;
+}
+
+/* Enlace para ver historial de comandos */
+.command-history-link {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.view-history-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--globalColorBorderLight);
+    background: var(--globalColorInputBackground);
+    color: var(--managementColorTextUser);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.view-history-btn:hover:not(:disabled) {
+    border-color: var(--globalColorAccent);
+    background: var(--globalColorBackgroundLight);
+}
+
+.view-history-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.view-history-btn i {
+    font-size: 1rem;
+    opacity: 0.8;
+}
+
+/* Contenido del modal de historial de comandos */
+.command-history-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.25rem;
+}
+
+/* ===========================================
+   ESTILOS PARA EL MODAL DE GESTIÓN DE COMANDOS
+   =========================================== */
+
+.command-management-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.25rem;
+}
+
+/* Sección de acciones rápidas */
+.command-actions {
+    background: var(--globalColorCardBackground);
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.command-actions h3 {
+    margin: 0 0 0.75rem 0;
+    color: var(--managementColorTextUser);
+    font-size: 0.95rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.command-actions h3 i {
+    color: var(--globalColorPrimaryInmutable);
+    font-size: 1rem;
+}
+
+/* Grid de botones de acciones rápidas - 2 columnas */
+.command-actions-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+/* Botones de acciones rápidas */
+.command-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0.5rem;
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 6px;
+    background: var(--globalColorInputBackground);
+    color: var(--managementColorTextUser);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-align: center;
+    min-height: 70px;
+}
+
+.command-action-btn:hover:not(:disabled) {
+    border-color: var(--globalColorAccent);
+    background: var(--globalColorBackgroundLight);
+}
+
+.command-action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.command-action-btn i {
+    font-size: 1.2rem;
+    margin-bottom: 0.25rem;
+}
+
+.command-action-btn span {
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.command-action-btn.shutdown-btn {
+    border-color: var(--globalColorPrimaryInmutable);
+    color: var(--globalColorPrimaryInmutable);
+}
+
+.command-action-btn.shutdown-btn:hover:not(:disabled) {
+    background: rgba(189, 53, 53, 0.05);
+}
+
+.command-action-btn.ignition-btn {
+    border-color: var(--globalGreen);
+    color: var(--globalGreen);
+}
+
+.command-action-btn.ignition-btn:hover:not(:disabled) {
+    background: rgba(26, 156, 26, 0.05);
+}
+
+/* Sección de lista de comandos */
+.commands-list {
+    background: var(--globalColorCardBackground);
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.commands-list h4 {
+    margin: 0 0 0.75rem 0;
+    color: var(--managementColorTextUser);
+    font-size: 0.95rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.commands-list h4 i {
+    color: var(--globalColorPrimaryInmutable);
+    font-size: 1rem;
+}
+
+/* Grid de comandos */
+.commands-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+.commands-grid::-webkit-scrollbar {
+    width: 4px;
+}
+
+.commands-grid::-webkit-scrollbar-track {
+    background: var(--globalColorBackgroundLight);
+    border-radius: 2px;
+}
+
+.commands-grid::-webkit-scrollbar-thumb {
+    background: var(--globalColorBorderLight);
+    border-radius: 2px;
+}
+
+.commands-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--globalColorAccent);
+}
+
+/* Item de comando */
+.command-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    background: var(--globalColorInputBackground);
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 6px;
+    transition: border-color 0.15s ease;
+}
+
+.command-item:hover {
+    border-color: var(--globalColorAccent);
+}
+
+.command-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.command-name {
+    font-weight: 600;
+    color: var(--managementColorTextUser);
+    font-size: 0.9rem;
+    flex: 1;
+}
+
+.command-date {
+    font-size: 0.75rem;
+    color: var(--globalColorTextMuted);
+    white-space: nowrap;
+}
+
+.command-description {
+    font-size: 0.85rem;
+    color: var(--managementColorTextUser);
+    opacity: 0.8;
+    margin: 0;
+}
+
+.command-creator {
+    font-size: 0.8rem;
+    color: var(--managementColorTextUser);
+    opacity: 0.7;
+    margin: 0;
+    padding: 0.5rem;
+    background: var(--globalColorBackgroundLight);
+    border-radius: 4px;
+    border-left: 3px solid var(--globalColorAccent);
+}
+
+.command-observation {
+    font-size: 0.8rem;
+    color: var(--managementColorTextUser);
+    opacity: 0.7;
+    margin: 0;
+    padding: 0.5rem;
+    background: var(--globalColorBackgroundLight);
+    border-radius: 4px;
+    border-left: 3px solid var(--globalColorPrimaryInmutable);
+}
+
+.command-status {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid transparent;
+}
+
+.status-badge.status-pending {
+    background: var(--globalColorBackgroundLight);
+    color: var(--managementColorTextUser);
+    border-color: var(--globalColorBorderLight);
+}
+
+.status-badge.status-sent {
+    background: linear-gradient(135deg, var(--globalColorBackgroundLight), var(--globalColorCardBackground));
+    color: var(--globalColorTextDark);
+    border-color: var(--globalColorAccent);
+}
+
+.status-badge.status-delivered {
+    background: linear-gradient(135deg, var(--globalColorBackgroundLight), rgba(26, 156, 26, 0.1));
+    color: var(--globalGreen);
+    border-color: var(--globalGreen);
+}
+
+.status-badge.status-failed {
+    background: linear-gradient(135deg, var(--globalColorBackgroundLight), rgba(189, 53, 53, 0.1));
+    color: var(--globalColorPrimaryInmutable);
+    border-color: var(--globalColorPrimaryInmutable);
+}
+
+/* Estado vacío */
+.no-commands {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem 1rem;
+    text-align: center;
+    background: var(--globalColorCardBackground);
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 8px;
+    color: var(--globalColorTextMuted);
+}
+
+.no-commands i {
+    font-size: 2rem;
+    opacity: 0.5;
+    color: var(--globalColorTextMuted);
+}
+
+.no-commands p {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.no-commands small {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+/* Estado de carga */
+.loading-commands {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem 1rem;
+    text-align: center;
+    background: var(--globalColorCardBackground);
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 8px;
+    color: var(--globalColorTextMuted);
+}
+
+.loading-commands p {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Responsive para el modal */
+@media (max-width: 768px) {
+    .command-management-content {
+        gap: 0.75rem;
+        padding: 0.25rem;
+    }
+
+    .command-actions,
+    .commands-list {
+        padding: 0.75rem;
+    }
+
+    .command-actions h3,
+    .commands-list h4 {
+        font-size: 0.9rem;
+    }
+
+    /* En móvil, mantener 2 columnas pero más compactas */
+    .command-actions-buttons {
+        gap: 0.375rem;
+    }
+
+    .command-action-btn {
+        padding: 0.625rem 0.375rem;
+        font-size: 0.75rem;
+        min-height: 60px;
+        gap: 0.375rem;
+    }
+
+    .command-action-btn i {
+        font-size: 1.1rem;
+    }
+
+    .command-action-btn span {
+        font-size: 0.7rem;
+    }
+
+    .command-item {
+        padding: 0.625rem;
+        gap: 0.25rem;
+    }
+
+    .command-name {
+        font-size: 0.8rem;
+    }
+
+    .command-date {
+        font-size: 0.65rem;
+    }
+
+    .no-commands,
+    .loading-commands {
+        padding: 1.5rem 0.75rem;
+    }
+
+    .no-commands i {
+        font-size: 1.8rem;
+    }
+}
