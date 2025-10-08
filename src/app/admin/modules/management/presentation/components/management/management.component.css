@@ -2086,3 +2086,34 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   color: #22c55e;
 }
 
+/* Estilo para el contenedor de monitoreo */
+.management__user-monitoring {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-top: 10px;
+}
+
+/* Estilo para el enlace de monitoreo */
+.monitoring-link {
+  color: #2563eb !important; /* Azul para el enlace */
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.monitoring-link:hover {
+  color: #1d4ed8 !important; /* Azul más oscuro en hover */
+  text-decoration: underline;
+}
+
+.dark .monitoring-link {
+  color: #60a5fa !important; /* Azul más claro para tema oscuro */
+}
+
+.dark .monitoring-link:hover {
+  color: #93c5fd !important; /* Azul aún más claro en hover para tema oscuro */
+}
+

@@ -119,8 +119,12 @@ export class SidebarComponent implements OnInit {
   // Getter para obtener los elementos del menú principal filtrados por root
   get filteredPrincipalItems() {
     return this.sidaberOptions.principalItems.filter(item => {
-      // Si es inventory o macro, solo mostrar si el usuario es root
-      if (item.path === '/admin/inventory' || item.path === '/admin/macro') {
+      // Ocultar completamente la opción macro
+      if (item.path === '/admin/macro') {
+        return false;
+      }
+      // Si es inventory, solo mostrar si el usuario es root
+      if (item.path === '/admin/inventory') {
         return this.isRootUser;
       }
       // Para otros elementos, mostrar siempre

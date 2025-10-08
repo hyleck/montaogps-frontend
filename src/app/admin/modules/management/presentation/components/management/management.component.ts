@@ -533,7 +533,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   // MÉTODOS PÚBLICOS - NAVEGACIÓN
   // ====================================
-  
+
+
   goToParent() {
     if (this.selectedUser) {
         const managementState: any = this.status.getState('management');
@@ -554,33 +555,33 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Obtener la operación actual antes del cambio
     const currentOp = this.managementService.getOp();
     const currentUserId = this.managementService.getCurrentUserId();
-    
+
     // Limpiar selección si se cambia de targets a otra sección
     if (currentOp === 't' && op !== 't') {
       this.targetsSelected = [];
       this.selectionService.clearSelection();
     }
-    
+
     // Solo actualizar la operación en el servicio, sin recargar datos
     this.managementService.setOp(op);
-    
+
     // Si cambia a targets, verificar si necesita cargar datos
     // Solo cargar si no hay datos O si cambió el usuario desde la última carga
     if (op === 't' && this.selectedUser) {
       const hasNoTargets = this.targetsList.length === 0;
       const userChanged = currentUserId !== this.selectedUser._id;
-      
+
       if (hasNoTargets || userChanged) {
         this.targetsLoadCompletedFlag = false; // Solo aquí, cuando realmente se van a cargar datos
         this.loadTargetsForUser(this.selectedUser._id);
-      } 
+      }
     }
-    
+
     // Si cambia a usuarios, verificar si necesita cargar datos
     if (op === 'u' && this.selectedUser) {
       const hasNoUsers = this.users.length === 0;
       const userChanged = currentUserId !== this.selectedUser._id;
-      
+
       if (hasNoUsers || userChanged) {
         this.loadUsersForUser(this.selectedUser._id);
       }
@@ -2237,5 +2238,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
     };
 
     await this.targetsService.createProcess(processData);
+  }
+
+  /**
+   * Navega a la página de monitoreo del usuario seleccionado
+   * @param userId ID del usuario para monitorear
+   */
+  navigateToMonitoring(userId: string): void {
+    this.router.navigate(['/admin/monitoring', userId]);
   }
 }

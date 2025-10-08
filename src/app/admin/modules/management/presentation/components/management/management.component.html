@@ -427,6 +427,9 @@
                     <span *ngIf="!loading">{{ selectedUser?.access_level_id?.name | titlecase }}</span>
                     <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '120px', 'height': '18px' }"></p-skeleton>
                 </div>
+                <div class="management__user-monitoring" *ngIf="!loading">
+                    <span (click)="selectedUser && navigateToMonitoring(selectedUser!._id)" class="monitoring-link">Monitoreo</span>
+                </div>
          
            
                </div>

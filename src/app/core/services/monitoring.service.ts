@@ -11,6 +11,33 @@ export interface MonitorUserResponse {
   }>;
 }
 
+export interface MonitoringReport {
+  id: string;
+  userId: string;
+  creator: {
+    id: string;
+    name: string;
+    last_name: string;
+    email: string;
+  };
+  createdAt: string;
+  data: Array<{
+    route: { id: string; fullName: string }[];
+    devices: any[];
+  }>;
+}
+
+export interface UserMonitoringReportsResponse {
+  id: string;
+  userId: string;
+  creator: string;
+  createdAt: string;
+  data: Array<{
+    route: { id: string; fullName: string }[];
+    devices: any[];
+  }>;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -19,16 +46,16 @@ export class MonitoringService {
 
   constructor(private http: HttpClient) { }
 
-  monitorUser(userId: string, filters?: { status?: string; expiration?: string }): Observable<MonitorUserResponse> {
+  monitorUser(userId: string): Observable<MonitorUserResponse> {
     const body: any = { userId };
-    if (filters) {
-      if (filters.status) {
-        body.statusFilter = filters.status;
-      }
-      if (filters.expiration) {
-        body.expirationFilter = filters.expiration;
-      }
-    }
     return this.http.post<MonitorUserResponse>(`${this.apiUrl}/user`, body);
+  }
+
+  getMonitoringReport(reportId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/report/${reportId}`);
+  }
+
+  getUserMonitoringReports(userId: string): Observable<MonitoringReport[]> {
+    return this.http.get<MonitoringReport[]>(`${this.apiUrl}/user/${userId}/reports`);
   }
 }

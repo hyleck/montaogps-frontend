@@ -6,15 +6,22 @@
     <div class="header-actions">
       <p-button
         *ngIf="!monitoringResult"
-        [label]="'MONITORING.CONFIGURE_MONITORING_BUTTON' | translate"
-        icon="pi pi-cog"
+        label="Nuevo monitoreo"
+        icon="pi pi-plus"
         (onClick)="openUserSearchModal()"
         styleClass="p-button-primary">
       </p-button>
       <p-button
         *ngIf="monitoringResult"
-        [label]="'MONITORING.CHANGE_USER_BUTTON' | translate"
-        icon="pi pi-user"
+        [label]="'Volver a Reportes'"
+        icon="pi pi-arrow-left"
+        (onClick)="backToReports()"
+        styleClass="p-button-outlined">
+      </p-button>
+      <p-button
+        *ngIf="monitoringResult"
+        label="Nuevo monitoreo"
+        icon="pi pi-plus"
         (onClick)="openUserSearchModal()"
         styleClass="p-button-outlined">
       </p-button>
@@ -25,6 +32,61 @@
         (onClick)="openFiltersModal()"
         styleClass="p-button-secondary">
       </p-button>
+    </div>
+  </div>
+
+  <!-- Loading Reports State -->
+  <div *ngIf="loadingReports" class="loading-reports-container">
+    <div class="loading-reports-content">
+      <p-progressSpinner></p-progressSpinner>
+      <p class="loading-reports-text">Cargando reportes de monitoreo...</p>
+    </div>
+  </div>
+
+  <!-- Monitoring Reports Section -->
+  <div *ngIf="userMonitoringReports.length > 0 && !monitoringResult && !loadingReports && !loading" class="monitoring-reports-section">
+    <!-- Current User Reports -->
+    <div class="reports-container">
+      <h3 class="reports-title">
+        <i class="pi pi-chart-line"></i>
+        Tus Reportes de Monitoreo ({{ userMonitoringReports.length }})
+      </h3>
+      <div class="reports-grid">
+        <div *ngFor="let report of userMonitoringReports" class="report-card">
+          <div class="report-message-main">
+            <i class="pi pi-clock"></i>
+            <span>Monitoreo registrado {{ getTimeAgo(report.createdAt) }}</span>
+          </div>
+          <div class="report-details">
+            <div class="report-detail-item">
+              <span class="detail-label">Fecha:</span>
+              <span class="detail-value">{{ formatReportDate(report.createdAt) }}</span>
+            </div>
+            <div class="report-detail-item">
+              <span class="detail-label">Creado por:</span>
+              <span class="detail-value">{{ report.creator.name }} {{ report.creator.last_name }} ({{ report.creator.email }})</span>
+            </div>
+            <div class="report-actions">
+              <p-button
+                label="Abrir"
+                icon="pi pi-eye"
+                (onClick)="openReport(report.id)"
+                styleClass="p-button-primary p-button-sm">
+              </p-button>
+            </div>
+          </div>
+          <div class="report-stats">
+            <div class="stat-item">
+              <span class="stat-label">Usuarios:</span>
+              <span class="stat-value">{{ report.data.length }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Dispositivos totales:</span>
+              <span class="stat-value">{{ getTotalDevices(report.data) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -87,6 +149,22 @@
           <span>{{ error }}</span>
         </div>
       </div>
+
+      <!-- Selected User Reports (shown in modal) -->
+      <div *ngIf="selectedUserReports.length > 0" class="selected-user-reports-modal">
+        <div class="reports-summary">
+          <i class="pi pi-chart-line"></i>
+          <span class="reports-count">{{ selectedUserReports.length }} monitoreo{{ selectedUserReports.length !== 1 ? 's' : '' }} registrado{{ selectedUserReports.length !== 1 ? 's' : '' }}</span>
+        </div>
+        <div class="reports-grid-modal">
+          <div *ngFor="let report of selectedUserReports" class="report-card-modal">
+            <div class="report-message">
+              <i class="pi pi-clock"></i>
+              <span>Monitoreo registrado {{ getTimeAgo(report.createdAt) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <ng-template pTemplate="footer">
@@ -142,42 +220,8 @@
       </div>
     </div>
 
-    <ng-template pTemplate="footer">
-      <p-button
-        [label]="'MONITORING.FILTERS_APPLY' | translate"
-        icon="pi pi-check"
-        (onClick)="applyFilters()"
-        styleClass="p-button-primary">
-      </p-button>
-      <p-button
-        [label]="'MONITORING.FILTERS_CLEAR' | translate"
-        icon="pi pi-times"
-        (onClick)="clearFilters()"
-        styleClass="p-button-secondary">
-      </p-button>
-    </ng-template>
   </p-dialog>
 
-  <!-- Initial State - Button to start monitoring -->
-  <div *ngIf="userFound && !monitoringResult && !loading && !error" class="start-monitoring-container">
-    <p-card class="start-card">
-      <ng-template pTemplate="header">
-        <div class="start-header">
-          <i class="pi pi-eye"></i>
-          <span>{{ 'MONITORING.START_TITLE' | translate }}</span>
-        </div>
-      </ng-template>
-      <p>{{ 'MONITORING.START_DESCRIPTION' | translate }}</p>
-      <ng-template pTemplate="footer">
-        <p-button
-          label="{{ 'MONITORING.START_BUTTON' | translate }}"
-          icon="pi pi-play"
-          (onClick)="startMonitoring()"
-          [loading]="false">
-        </p-button>
-      </ng-template>
-    </p-card>
-  </div>
 
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-container">
@@ -202,15 +246,10 @@
     </div>
 
     <!-- Users with devices -->
-    <div *ngFor="let userData of filteredMonitoringData; let i = index" class="monitoring-block">
+    <div *ngFor="let userData of filteredMonitoringData; let i = index; trackBy: trackByUser" class="monitoring-block">
       <!-- User Path as Breadcrumbs -->
       <div *ngIf="userData.route && userData.route.length > 0" class="user-breadcrumbs">
         <div class="breadcrumb-container">
-          <a class="breadcrumb-item" routerLink="/admin/dashboard">
-            <i class="pi pi-home breadcrumb-icon"></i>
-            <span>Dashboard</span>
-          </a>
-          <span class="breadcrumb-separator">></span>
           <ng-container *ngFor="let pathItem of userData.route; let j = index; let isLast = last">
             <span class="breadcrumb-item" [class.active]="isLast">
               {{ pathItem.fullName }}
@@ -224,7 +263,8 @@
       <div class="devices-content">
         <div class="devices-count">Devices: {{ userData.devices.length }}</div>
         <p-table [value]="userData.devices" [paginator]="userData.devices.length > 10" [rows]="10"
-                 [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries">
+                  [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+                  [dataKey]="'klk'+i">
           <ng-template pTemplate="header">
             <tr>
               <th>Name</th>
