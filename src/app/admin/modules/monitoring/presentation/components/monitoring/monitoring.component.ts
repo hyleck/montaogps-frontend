@@ -5,6 +5,7 @@ import { UserService } from '../../../../../../core/services/user.service';
 import { ProtocolsService } from '../../../../../../core/services/protocols.service';
 import { User } from '../../../../../../core/interfaces/user.interface';
 import { TranslateService } from '@ngx-translate/core';
+import * as ExcelJS from 'exceljs';
 
 @Component({
   selector: 'app-monitoring',
@@ -40,7 +41,10 @@ export class MonitoringComponent implements OnInit {
   ];
 
   private _selectedStatusFilter: string = '';
+  private _selectedConnectionFilter: string = '';
   private _selectedExpirationFilter: string = '';
+  private _expirationFromDate: Date | null = null;
+  private _expirationToDate: Date | null = null;
 
 
 
@@ -54,6 +58,16 @@ export class MonitoringComponent implements OnInit {
     }
   }
 
+  get selectedConnectionFilter(): string {
+    return this._selectedConnectionFilter;
+  }
+
+  set selectedConnectionFilter(value: string) {
+    if (this._selectedConnectionFilter !== value) {
+      this._selectedConnectionFilter = value;
+    }
+  }
+
   get selectedExpirationFilter(): string {
     return this._selectedExpirationFilter;
   }
@@ -62,6 +76,31 @@ export class MonitoringComponent implements OnInit {
     if (this._selectedExpirationFilter !== value) {
       this._selectedExpirationFilter = value;
     }
+  }
+
+  get expirationFromDate(): string {
+    return this._expirationFromDate ? this.formatDateForInput(this._expirationFromDate) : '';
+  }
+
+  set expirationFromDate(value: string) {
+    this._expirationFromDate = value ? new Date(value) : null;
+  }
+
+  get expirationToDate(): string {
+    return this._expirationToDate ? this.formatDateForInput(this._expirationToDate) : '';
+  }
+
+  set expirationToDate(value: string) {
+    this._expirationToDate = value ? new Date(value) : null;
+  }
+
+  private formatDateForInput(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 
   // Monitoring reports
@@ -289,17 +328,35 @@ export class MonitoringComponent implements OnInit {
           }
         }
 
+        // Apply connection filter
+        if (this._selectedConnectionFilter && this._selectedConnectionFilter !== '') {
+          switch (this._selectedConnectionFilter) {
+            case 'online':
+              filteredDevices = filteredDevices.filter(device => this.isDeviceOnline(device));
+              break;
+            case 'offline':
+              filteredDevices = filteredDevices.filter(device => !this.isDeviceOnline(device));
+              break;
+          }
+        }
+
         // Apply expiration filter
         if (this._selectedExpirationFilter && this._selectedExpirationFilter !== '') {
           switch (this._selectedExpirationFilter) {
             case 'expired':
-              filteredDevices = filteredDevices.filter(device => this.isExpired(device.expiration_date));
+              filteredDevices = filteredDevices.filter(device =>
+                this.isExpired(device.expiration_date) &&
+                this.isDateInRange(device.expiration_date, this._expirationFromDate, this._expirationToDate)
+              );
               break;
             case 'expiring-soon':
               filteredDevices = filteredDevices.filter(device => this.isExpiringSoon(device.expiration_date));
               break;
             case 'valid':
-              filteredDevices = filteredDevices.filter(device => this.isValid(device.expiration_date));
+              filteredDevices = filteredDevices.filter(device =>
+                this.isValid(device.expiration_date) &&
+                this.isDateInRange(device.expiration_date, this._expirationFromDate, this._expirationToDate)
+              );
               break;
           }
         }
@@ -386,6 +443,35 @@ export class MonitoringComponent implements OnInit {
     fifteenDaysFromNow.setHours(0, 0, 0, 0);
 
     return date > fifteenDaysFromNow;
+  }
+
+  isDeviceOnline(device: any): boolean {
+    return device?.traccarInfo?.status === 'online';
+  }
+
+  isDateInRange(date: Date | string, fromDate: Date | null, toDate: Date | null): boolean {
+    if (!date || (!fromDate && !toDate)) {
+      return true; // No range set, include all
+    }
+
+    const deviceDate = new Date(date);
+    if (isNaN(deviceDate.getTime())) {
+      return false;
+    }
+
+    if (fromDate) {
+      if (deviceDate < fromDate) {
+        return false;
+      }
+    }
+
+    if (toDate) {
+      if (deviceDate > toDate) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   formatReportDate(dateString: string): string {
@@ -476,4 +562,210 @@ export class MonitoringComponent implements OnInit {
     // Use the first route item's id as unique identifier, fallback to index
     return userData.route && userData.route.length > 0 ? userData.route[0].id : index;
   }
+
+  async exportToExcel(): Promise<void> {
+    if (!this.monitoringResult?.data) {
+      return;
+    }
+
+    // Create a new workbook
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Monitoreo');
+
+    // Define columns
+    worksheet.columns = [
+      { header: 'Usuario', key: 'usuario', width: 20 },
+      { header: 'Jerarquía', key: 'jerarquia', width: 40 },
+      { header: 'Nombre Dispositivo', key: 'nombreDispositivo', width: 25 },
+      { header: 'IMEI', key: 'imei', width: 20 },
+      { header: 'Protocolo', key: 'protocolo', width: 15 },
+      { header: 'Estado', key: 'estado', width: 10 },
+      { header: 'Conexión', key: 'conexion', width: 12 },
+      { header: 'Fecha Expiración', key: 'fechaExpiracion', width: 15 },
+      { header: 'Número SIM', key: 'numeroSim', width: 15 },
+      { header: 'Compañía SIM', key: 'companiaSim', width: 15 }
+    ];
+
+    // Style header row
+    worksheet.getRow(1).eachCell(cell => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF007BFF' } // Blue background
+      };
+      cell.font = {
+        bold: true,
+        color: { argb: 'FFFFFFFF' }, // White text
+        size: 12
+      };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF000000' } },
+        bottom: { style: 'thin', color: { argb: 'FF000000' } },
+        left: { style: 'thin', color: { argb: 'FF000000' } },
+        right: { style: 'thin', color: { argb: 'FF000000' } }
+      };
+    });
+
+    // Add data rows
+    let rowIndex = 2; // Start from row 2 (after header)
+    this.filteredMonitoringData.forEach(userData => {
+      const userHierarchy = userData.route && userData.route.length > 0
+        ? userData.route.map(item => item.fullName).join(' > ')
+        : 'Sin jerarquía';
+
+      userData.devices.forEach(device => {
+        const row = worksheet.addRow({
+          usuario: userData.route && userData.route.length > 0 ? userData.route[userData.route.length - 1].fullName : 'Sin nombre',
+          jerarquia: userHierarchy,
+          nombreDispositivo: device.name || '',
+          imei: device.device_imei || '',
+          protocolo: this.getProtocolName(device.type) || '',
+          estado: device.status ? 'Activo' : 'Inactivo',
+          conexion: this.isDeviceOnline(device) ? 'En línea' : 'Fuera de línea',
+          fechaExpiracion: this.formatExpirationDate(device.expiration_date) || '',
+          numeroSim: device.sim_card_number || '',
+          companiaSim: device.sim_company || ''
+        });
+
+        // Style the row with alternating colors
+        const isEvenRow = (rowIndex - 1) % 2 === 0; // -1 because rowIndex starts at 2
+        const backgroundColor = isEvenRow ? 'FFF8F9FA' : 'FFFFFFFF'; // Light gray for even rows
+
+        row.eachCell(cell => {
+          // Default styling
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: backgroundColor }
+          };
+          cell.font = {
+            color: { argb: 'FF000000' }, // Black text
+            size: 10
+          };
+          cell.alignment = { horizontal: 'left', vertical: 'middle' };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'FFDEDEDE' } },
+            bottom: { style: 'thin', color: { argb: 'FFDEDEDE' } },
+            left: { style: 'thin', color: { argb: 'FFDEDEDE' } },
+            right: { style: 'thin', color: { argb: 'FFDEDEDE' } }
+          };
+        });
+
+        // Special styling for status column (column F - Estado)
+        const statusCell = row.getCell('estado');
+        if (device.status) {
+          statusCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD4EDDA' } // Light green for active
+          };
+          statusCell.font = {
+            color: { argb: 'FF155724' }, // Dark green text
+            size: 10,
+            bold: true
+          };
+        } else {
+          statusCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8D7DA' } // Light red for inactive
+          };
+          statusCell.font = {
+            color: { argb: 'FF721C24' }, // Dark red text
+            size: 10,
+            bold: true
+          };
+        }
+
+        // Special styling for connection column (column G - Conexión)
+        const connectionCell = row.getCell('conexion');
+        if (this.isDeviceOnline(device)) {
+          connectionCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFD4EDDA' } // Light green for online
+          };
+          connectionCell.font = {
+            color: { argb: 'FF155724' }, // Dark green text
+            size: 10,
+            bold: true
+          };
+        } else {
+          connectionCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF8D7DA' } // Light red for offline
+          };
+          connectionCell.font = {
+            color: { argb: 'FF721C24' }, // Dark red text
+            size: 10,
+            bold: true
+          };
+        }
+
+        // Special styling for expiration column (column G - Fecha Expiración)
+        const expirationCell = row.getCell('fechaExpiracion');
+        if (device.expiration_date) {
+          if (this.isExpired(device.expiration_date)) {
+            expirationCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFF8D7DA' } // Light red for expired
+            };
+            expirationCell.font = {
+              color: { argb: 'FF721C24' }, // Dark red text
+              size: 10,
+              bold: true
+            };
+          } else if (this.isExpiringSoon(device.expiration_date)) {
+            expirationCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFFFF3CD' } // Light yellow for expiring soon
+            };
+            expirationCell.font = {
+              color: { argb: 'FF856404' }, // Dark yellow text
+              size: 10,
+              bold: true
+            };
+          } else {
+            expirationCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FFD4EDDA' } // Light green for valid
+            };
+            expirationCell.font = {
+              color: { argb: 'FF155724' }, // Dark green text
+              size: 10,
+              bold: true
+            };
+          }
+        }
+
+        rowIndex++;
+      });
+    });
+
+    // Generate filename with current date
+    const now = new Date();
+    const filename = `monitoreo_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}.xlsx`;
+
+    // Save file
+    try {
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+    }
+  }
+
 }

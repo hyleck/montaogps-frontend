@@ -32,6 +32,13 @@
         (onClick)="openFiltersModal()"
         styleClass="p-button-secondary">
       </p-button>
+      <p-button
+        *ngIf="monitoringResult"
+        label="Excel"
+        icon="pi pi-file-excel"
+        (onClick)="exportToExcel()"
+        styleClass="p-button-success">
+      </p-button>
     </div>
   </div>
 
@@ -208,6 +215,17 @@
       </div>
 
       <div class="field">
+        <label>{{ 'MONITORING.FILTERS_CONNECTION' | translate }}</label>
+        <select
+          [(ngModel)]="selectedConnectionFilter"
+          class="filter-select">
+          <option value="">{{ 'MONITORING.FILTERS_ALL_CONNECTIONS' | translate }}</option>
+          <option value="online">{{ 'MONITORING.FILTERS_ONLINE' | translate }}</option>
+          <option value="offline">{{ 'MONITORING.FILTERS_OFFLINE' | translate }}</option>
+        </select>
+      </div>
+
+      <div class="field">
         <label>{{ 'MONITORING.FILTERS_EXPIRATION' | translate }}</label>
         <select
           [(ngModel)]="selectedExpirationFilter"
@@ -217,6 +235,24 @@
           <option value="expiring-soon">{{ 'MONITORING.FILTERS_EXPIRING_SOON' | translate }}</option>
           <option value="expired">{{ 'MONITORING.FILTERS_EXPIRED' | translate }}</option>
         </select>
+      </div>
+
+      <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
+        <label>{{ 'MONITORING.FILTERS_EXPIRATION_FROM' | translate }}</label>
+        <input
+          type="datetime-local"
+          [(ngModel)]="expirationFromDate"
+          class="datetime-input"
+          [placeholder]="'MONITORING.FILTERS_EXPIRATION_FROM' | translate">
+      </div>
+
+      <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
+        <label>{{ 'MONITORING.FILTERS_EXPIRATION_TO' | translate }}</label>
+        <input
+          type="datetime-local"
+          [(ngModel)]="expirationToDate"
+          class="datetime-input"
+          [placeholder]="'MONITORING.FILTERS_EXPIRATION_TO' | translate">
       </div>
     </div>
 
@@ -271,6 +307,7 @@
               <th>IMEI</th>
               <th>Protocol</th>
               <th>Status</th>
+              <th>Conexión</th>
               <th>Expiration Date</th>
               <th>SIM Card</th>
             </tr>
@@ -286,6 +323,11 @@
                 </span>
               </td>
               <td>
+                <span class="connection-status" [class.online]="isDeviceOnline(device)" [class.offline]="!isDeviceOnline(device)">
+                  {{ isDeviceOnline(device) ? 'En línea' : 'Fuera de línea' }}
+                </span>
+              </td>
+              <td>
                 <span class="expiration-date"
                       [class.expired]="isExpired(device.expiration_date)"
                       [class.expiring-soon]="isExpiringSoon(device.expiration_date)"
@@ -297,9 +339,9 @@
                 <div class="sim-card-cell">
                   <span>{{ device.sim_card_number || '-' }}</span>
                   <p-badge *ngIf="device.sim_company"
-                           [value]="device.sim_company"
-                           severity="info"
-                           styleClass="sim-company-badge">
+                          [value]="device.sim_company"
+                          severity="info"
+                          styleClass="sim-company-badge">
                   </p-badge>
                 </div>
               </td>
