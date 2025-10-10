@@ -15,19 +15,21 @@ import { MapThemeService } from '../../helpers/map-theme.helper';
   standalone: false
 })
 export class MapsComponent implements OnInit, OnChanges, OnDestroy {
-  @Input() provider: 'google' | 'mapbox' = 'mapbox';
-  @Input() theme: 'dark' | 'light' = 'dark';
-  @Input() selectedTarget: any = null;
-  @Input() vehicleTypeGetter: ((modelId: string) => string) | null = null;
-  @Input() preloadedStopTime: string | undefined = undefined;
+   @Input() provider: 'google' | 'mapbox' = 'mapbox';
+   @Input() theme: 'dark' | 'light' = 'dark';
+   @Input() selectedTarget: any = null;
+   @Input() vehicleTypeGetter: ((modelId: string) => string) | null = null;
+   @Input() preloadedStopTime: string | undefined = undefined;
 
-  map: any;
-  apiKey: string = '';
-  apiUrl: string = '';
-  currentMarker: any = null;
-  currentPopup: any = null;
-  currentPopupId: string = '';
-  currentTargetId: string | null = null; // Para rastrear cambios de target
+   map: any;
+   apiKey: string = '';
+   apiUrl: string = '';
+   currentMarker: any = null;
+   currentPopup: any = null;
+   currentPopupId: string = '';
+   currentTargetId: string | null = null; // Para rastrear cambios de target
+   offlineDuration: string = '';
+   isTargetOffline: boolean = false;
 
   constructor(
     private _theme: ThemesService,
@@ -195,12 +197,121 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private updateTargetMarker(): void {
+  private async calculateOfflineDuration(): Promise<void> {
+    // Check if target is offline
+    this.isTargetOffline = this.selectedTarget?.traccarStatus !== 'online';
+
+    if (!this.isTargetOffline) {
+      this.offlineDuration = '';
+      return;
+    }
+
+    let lastUpdate = this.selectedTarget?.traccarInfo?.lastUpdate;
+
+    // If no lastUpdate available, try to get the latest location from history
+    if (!lastUpdate) {
+      try {
+        const deviceImei = this.selectedTarget?.device_imei || this.selectedTarget?.imei;
+        if (deviceImei) {
+          console.log(`[OFFLINE DEBUG] No lastUpdate available, trying to get latest location from history for IMEI: ${deviceImei}`);
+          const historyResponse = await this.targetsService.getLatestLocationFromHistory(deviceImei);
+
+          if (historyResponse.success && historyResponse.location) {
+            lastUpdate = historyResponse.location.deviceTime || historyResponse.location.fixTime;
+            console.log(`[OFFLINE DEBUG] Got location from history: ${lastUpdate}`);
+
+            // Store historical location data for marker creation
+            if (this.selectedTarget && !this.selectedTarget.historicalLocation) {
+              this.selectedTarget.historicalLocation = {
+                latitude: historyResponse.location.latitude,
+                longitude: historyResponse.location.longitude,
+                fixTime: historyResponse.location.fixTime,
+                deviceTime: historyResponse.location.deviceTime
+              };
+            }
+          } else {
+            console.log(`[OFFLINE DEBUG] No location found in history for IMEI: ${deviceImei}`);
+            this.offlineDuration = '';
+            return;
+          }
+        } else {
+          console.log(`[OFFLINE DEBUG] No IMEI available for history lookup`);
+          this.offlineDuration = '';
+          return;
+        }
+      } catch (error) {
+        console.error(`[OFFLINE DEBUG] Error getting location from history:`, error);
+        this.offlineDuration = '';
+        return;
+      }
+    }
+
+    // Use the same calculation logic as the management component
+    const lastUpdateDate = new Date(lastUpdate);
+    const now = new Date();
+    const diffInMs = now.getTime() - lastUpdateDate.getTime();
+
+    if (isNaN(lastUpdateDate.getTime())) {
+      this.offlineDuration = 'Fecha inválida';
+      return;
+    }
+
+    if (diffInMs < 0) {
+      this.offlineDuration = 'Fecha futura';
+      return;
+    }
+
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+    const diffInWeeks = Math.floor(diffInDays / 7);
+    const diffInMonths = Math.floor(diffInDays / 30);
+    const diffInYears = Math.floor(diffInDays / 365);
+
+    let timeText = '';
+    if (diffInYears > 0) {
+      timeText = `Última ubicación hace ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
+    } else if (diffInMonths > 0) {
+      timeText = `Última ubicación hace ${diffInMonths} mes${diffInMonths > 1 ? 'es' : ''}`;
+    } else if (diffInWeeks > 0) {
+      timeText = `Última ubicación hace ${diffInWeeks} semana${diffInWeeks > 1 ? 's' : ''}`;
+    } else if (diffInDays > 0) {
+      timeText = `Última ubicación hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
+    } else if (diffInHours > 0) {
+      timeText = `Última ubicación hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+    } else if (diffInMinutes > 0) {
+      timeText = `Última ubicación hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
+    } else {
+      timeText = 'Última ubicación hace menos de 1 minuto';
+    }
+
+    this.offlineDuration = timeText;
+  }
+
+  private async updateTargetMarker(): Promise<void> {
     if (!this.map) return;
 
+    // Calcular tiempo fuera de línea si hay target seleccionado
+    await this.calculateOfflineDuration();
 
     // Si no hay target seleccionado, remover marcador existente
-    if (!this.selectedTarget?.traccarInfo?.geolocation) {
+    if (!this.selectedTarget) {
+      if (this.currentMarker) {
+        MapUtils.removeMarker(this.currentMarker, this.provider);
+        this.currentMarker = null;
+        this.currentPopup = null;
+        this.currentPopupId = '';
+        this.currentTargetId = null;
+      }
+      return;
+    }
+
+    // Check if we have real-time location or historical location
+    const hasRealTimeLocation = this.selectedTarget?.traccarInfo?.geolocation;
+    const hasHistoricalLocation = this.isTargetOffline && this.selectedTarget?.historicalLocation;
+
+    // If no location data at all, remove marker
+    if (!hasRealTimeLocation && !hasHistoricalLocation) {
       if (this.currentMarker) {
         MapUtils.removeMarker(this.currentMarker, this.provider);
         this.currentMarker = null;
@@ -216,7 +327,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     if (isNewTarget) {
       this.currentTargetId = targetId;
-      
+
       // Remover marcador anterior si existe para crear uno nuevo
       if (this.currentMarker) {
         MapUtils.removeMarker(this.currentMarker, this.provider);
@@ -226,9 +337,20 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       }
     }
 
-    const lat = parseFloat(this.selectedTarget.traccarInfo.geolocation.latitude);
-    const lng = parseFloat(this.selectedTarget.traccarInfo.geolocation.longitude);
-    
+    // Get coordinates from real-time or historical location
+    let lat: number, lng: number;
+
+    if (hasRealTimeLocation) {
+      lat = parseFloat(this.selectedTarget.traccarInfo.geolocation.latitude);
+      lng = parseFloat(this.selectedTarget.traccarInfo.geolocation.longitude);
+    } else if (hasHistoricalLocation) {
+      lat = parseFloat(this.selectedTarget.historicalLocation.latitude);
+      lng = parseFloat(this.selectedTarget.historicalLocation.longitude);
+    } else {
+      console.warn('⚠️ No se pudieron obtener coordenadas para el target');
+      return;
+    }
+
     if (isNaN(lat) || isNaN(lng)) {
       console.warn('⚠️ Coordenadas inválidas para el target:', { lat, lng });
       return;
@@ -240,7 +362,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     // Si el marcador no existe o es un target nuevo, crearlo
     if (!this.currentMarker || isNewTarget) {
       this.createMarkerWithPopup(lat, lng);
-      
+
       // Para un target nuevo, obtener tiempo de parada desde cero
       this.updateMarkerWithStopTime(true);
     } else {
@@ -253,6 +375,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     const title = this.selectedTarget.name || 'Target';
     const imei = this.selectedTarget.imei || 'N/A';
     const status = this.selectedTarget.traccarStatus || 'desconocido';
+    const isOffline = this.isTargetOffline;
 
     // Crear contenido inicial del popup (sin tiempo de parada)
     const initialContent = this.createPopupContent(title, imei, status, null);
@@ -263,6 +386,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     if (this.provider === 'google') {
       // Crear marcador Google Maps
+      const markerColor = isOffline ? '#ef4444' : '#22c55e'; // Red for offline, green for online
       this.currentMarker = new google.maps.Marker({
         position: { lat, lng },
         map: this.map,
@@ -270,7 +394,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         icon: {
           url: 'data:image/svg+xml;base64,' + btoa(`
             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-              <circle cx="16" cy="16" r="12" fill="#22c55e" stroke="#fff" stroke-width="2"/>
+              <circle cx="16" cy="16" r="12" fill="${markerColor}" stroke="#fff" stroke-width="2"/>
               <circle cx="16" cy="16" r="6" fill="#fff"/>
             </svg>
           `),
@@ -305,10 +429,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       
       const markerElement = document.createElement('div');
       markerElement.className = 'custom-marker';
+      const markerColor = isOffline ? '#ef4444' : '#22c55e'; // Red for offline, green for online
       markerElement.style.cssText = `
         width: 32px;
         height: 32px;
-        background: #22c55e;
+        background: ${markerColor};
         border: 2px solid #fff;
         border-radius: 50%;
         cursor: pointer;

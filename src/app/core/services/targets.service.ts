@@ -202,4 +202,14 @@ export class TargetsService {
     const observable = this.http.patch(`${this.apiUrl}/${targetId}/shared`, { shared: sharedEmails });
     return await lastValueFrom(observable);
   }
-} 
+
+  /**
+   * Obtiene la ubicación más reciente de un dispositivo desde el historial
+   * @param deviceId ID del dispositivo
+   */
+  async getLatestLocationFromHistory(deviceId: string): Promise<any> {
+    const url = `${environment.apiUrl}/history/latest-location/${deviceId}`;
+    const observable = this.http.get<any>(url);
+    return await lastValueFrom(observable);
+  }
+}

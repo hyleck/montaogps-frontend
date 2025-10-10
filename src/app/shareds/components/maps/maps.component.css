@@ -6,6 +6,7 @@
 .maps{
     height: 100%;
     width: 100%;
+    position: relative;
 
     background: radial-gradient(circle, var(--globalColorPrimaryDarkStart), var(--globalColorPrimaryDarkEnd));
 }
@@ -297,4 +298,53 @@
 ::ng-deep .gm-style-iw-d {
     overflow: hidden !important;
     max-height: none !important;
+}
+
+/* Estilos para el cuadro de tiempo fuera de línea */
+.offline-time-box {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(89, 89, 89, 0.95);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 100000;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+}
+
+.offline-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.offline-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.offline-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+}
+
+.offline-duration {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
 }
