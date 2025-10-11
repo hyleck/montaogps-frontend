@@ -3490,7 +3490,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     onProcessTypeChange(): void {
         console.log('🔍 DEBUG: Cambio de tipo de proceso a:', this.processForm.type);
         console.log('🔍 DEBUG: Precio del target ANTES del cambio:', this.target.selectedPrice);
-        
+
         // Solo cargar planes filtrados si es cambio de plan, sin limpiar nada más
         if (this.processForm.type === 'plan_change') {
             this.loadFilteredPlansForProcess();
@@ -3501,55 +3501,140 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.availablePricesForProcess = []; // Solo limpiar precios de procesos, no del formulario principal
             this.availablePlansForProcess = [];
         }
-        
+
         // Limpiar campos específicos de cambio de fechas cuando se cambia el tipo
         if (this.processForm.type !== 'installation') {
             this.processForm.newInstallationDate = '';
         }
-        
+
         if (this.processForm.type !== 'expiration') {
             this.processForm.newExpirationDate = '';
         }
-        
+
         if (this.processForm.type !== 'renewal') {
             this.processForm.newRenewalDate = '';
         }
-        
+
         if (this.processForm.type !== 'technician_change') {
             this.processForm.newTechnician = '';
         }
-        
+
         // Limpiar IMEI solo si no es gps_change ni imei_change
         if (this.processForm.type !== 'gps_change' && this.processForm.type !== 'imei_change') {
             this.processForm.newGpsImei = '';
         }
-        
+
         // Limpiar modelo de GPS solo si no es gps_change ni gps_model_change
         if (this.processForm.type !== 'gps_change' && this.processForm.type !== 'gps_model_change') {
             this.processForm.newGpsModel = '';
         }
-        
+
         // Limpiar detalles de instalación solo si no es gps_change ni installation_details_change
         if (this.processForm.type !== 'gps_change' && this.processForm.type !== 'installation_details_change') {
             this.processForm.newInstallationDetails = '';
         }
-        
+
         // Limpiar SIM card solo si no es sim_change
         if (this.processForm.type !== 'sim_change') {
             this.processForm.newSimCard = '';
             this.processForm.newSimCompany = '';
         }
-        
+
         // Limpiar número de SIM solo si no es sim_number_change
         if (this.processForm.type !== 'sim_number_change') {
             this.processForm.newSimNumber = '';
         }
-        
+
         // Limpiar tipo de SIM solo si no es sim_type_change
         if (this.processForm.type !== 'sim_type_change') {
             this.processForm.newSimType = '';
         }
-        
+
+        // Pre-llenar campos con valores actuales del target cuando corresponde
+        if (this.processForm.type === 'installation') {
+            // Pre-llenar con la fecha de instalación actual
+            if (this.target.installation_date) {
+                this.processForm.newInstallationDate = this.target.installation_date;
+            }
+        }
+
+        if (this.processForm.type === 'expiration') {
+            // Pre-llenar con la fecha de expiración actual
+            if (this.target.expiration_date) {
+                this.processForm.newExpirationDate = this.target.expiration_date;
+            }
+        }
+
+        if (this.processForm.type === 'renewal') {
+            // Pre-llenar con la fecha de expiración actual (para renovación)
+            if (this.target.expiration_date) {
+                this.processForm.newRenewalDate = this.target.expiration_date;
+            }
+        }
+
+        if (this.processForm.type === 'technician_change') {
+            // Pre-llenar con el técnico actual
+            if (this.target.mechanic_id) {
+                this.processForm.newTechnician = this.target.mechanic_id;
+            }
+        }
+
+        if (this.processForm.type === 'gps_change' || this.processForm.type === 'imei_change') {
+            // Pre-llenar con el IMEI actual
+            if (this.target.device_imei) {
+                this.processForm.newGpsImei = this.target.device_imei;
+            }
+        }
+
+        if (this.processForm.type === 'gps_change') {
+            // Pre-llenar con el modelo de GPS actual
+            if (this.target.type) {
+                this.processForm.newGpsModel = this.target.type;
+            }
+            // Pre-llenar con los detalles de instalación actuales
+            if (this.target.installation_details) {
+                this.processForm.newInstallationDetails = this.target.installation_details;
+            }
+        }
+
+        if (this.processForm.type === 'gps_model_change') {
+            // Pre-llenar con el modelo de GPS actual
+            if (this.target.type) {
+                this.processForm.newGpsModel = this.target.type;
+            }
+        }
+
+        if (this.processForm.type === 'installation_details_change') {
+            // Pre-llenar con los detalles de instalación actuales
+            if (this.target.installation_details) {
+                this.processForm.newInstallationDetails = this.target.installation_details;
+            }
+        }
+
+        if (this.processForm.type === 'sim_change') {
+            // Pre-llenar con la SIM card actual
+            if (this.target.sim_card_number) {
+                this.processForm.newSimCard = this.target.sim_card_number;
+            }
+            if (this.target.sim_company) {
+                this.processForm.newSimCompany = this.target.sim_company;
+            }
+        }
+
+        if (this.processForm.type === 'sim_number_change') {
+            // Pre-llenar con el número de SIM actual
+            if (this.target.sim_card_number) {
+                this.processForm.newSimNumber = this.target.sim_card_number;
+            }
+        }
+
+        if (this.processForm.type === 'sim_type_change') {
+            // Pre-llenar con el tipo de SIM actual
+            if (this.target.sim_company) {
+                this.processForm.newSimType = this.target.sim_company;
+            }
+        }
+
         console.log('🔍 DEBUG: Precio del target DESPUÉS del cambio:', this.target.selectedPrice);
     }
 

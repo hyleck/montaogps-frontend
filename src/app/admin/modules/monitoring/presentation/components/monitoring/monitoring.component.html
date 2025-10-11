@@ -240,18 +240,18 @@
       <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
         <label>{{ 'MONITORING.FILTERS_EXPIRATION_FROM' | translate }}</label>
         <input
-          type="datetime-local"
+          type="date"
           [(ngModel)]="expirationFromDate"
-          class="datetime-input"
+          class="date-input"
           [placeholder]="'MONITORING.FILTERS_EXPIRATION_FROM' | translate">
       </div>
 
       <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
         <label>{{ 'MONITORING.FILTERS_EXPIRATION_TO' | translate }}</label>
         <input
-          type="datetime-local"
+          type="date"
           [(ngModel)]="expirationToDate"
-          class="datetime-input"
+          class="date-input"
           [placeholder]="'MONITORING.FILTERS_EXPIRATION_TO' | translate">
       </div>
     </div>
