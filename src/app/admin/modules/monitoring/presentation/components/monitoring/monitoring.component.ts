@@ -572,88 +572,189 @@ export class MonitoringComponent implements OnInit {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Monitoreo');
 
-    // Define columns
+    // Set column widths
     worksheet.columns = [
-      { header: 'Usuario', key: 'usuario', width: 20 },
-      { header: 'Jerarquía', key: 'jerarquia', width: 40 },
-      { header: 'Nombre Dispositivo', key: 'nombreDispositivo', width: 25 },
-      { header: 'IMEI', key: 'imei', width: 20 },
-      { header: 'Protocolo', key: 'protocolo', width: 15 },
-      { header: 'Estado', key: 'estado', width: 10 },
-      { header: 'Conexión', key: 'conexion', width: 12 },
-      { header: 'Fecha Expiración', key: 'fechaExpiracion', width: 15 },
-      { header: 'Número SIM', key: 'numeroSim', width: 15 },
-      { header: 'Compañía SIM', key: 'companiaSim', width: 15 }
+      { key: 'col1', width: 5 }, // Empty column for spacing
+      { key: 'col2', width: 25 },
+      { key: 'col3', width: 20 },
+      { key: 'col4', width: 15 },
+      { key: 'col5', width: 12 },
+      { key: 'col6', width: 15 },
+      { key: 'col7', width: 15 },
+      { key: 'col8', width: 15 }
     ];
 
-    // Style header row
-    worksheet.getRow(1).eachCell(cell => {
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FF007BFF' } // Blue background
-      };
-      cell.font = {
-        bold: true,
-        color: { argb: 'FFFFFFFF' }, // White text
-        size: 12
-      };
-      cell.alignment = { horizontal: 'center', vertical: 'middle' };
-      cell.border = {
-        top: { style: 'thin', color: { argb: 'FF000000' } },
-        bottom: { style: 'thin', color: { argb: 'FF000000' } },
-        left: { style: 'thin', color: { argb: 'FF000000' } },
-        right: { style: 'thin', color: { argb: 'FF000000' } }
-      };
-    });
+    let currentRow = 1; // Start from row 1
 
-    // Add data rows
-    let rowIndex = 2; // Start from row 2 (after header)
-    this.filteredMonitoringData.forEach(userData => {
+    // Process each user
+    this.filteredMonitoringData.forEach((userData, userIndex) => {
+      // Add user route as title
       const userHierarchy = userData.route && userData.route.length > 0
         ? userData.route.map(item => item.fullName).join(' > ')
         : 'Sin jerarquía';
 
-      userData.devices.forEach(device => {
-        const row = worksheet.addRow({
-          usuario: userData.route && userData.route.length > 0 ? userData.route[userData.route.length - 1].fullName : 'Sin nombre',
-          jerarquia: userHierarchy,
-          nombreDispositivo: device.name || '',
-          imei: device.device_imei || '',
-          protocolo: this.getProtocolName(device.type) || '',
-          estado: device.status ? 'Activo' : 'Inactivo',
-          conexion: this.isDeviceOnline(device) ? 'En línea' : 'Fuera de línea',
-          fechaExpiracion: this.formatExpirationDate(device.expiration_date) || '',
-          numeroSim: device.sim_card_number || '',
-          companiaSim: device.sim_company || ''
-        });
+      const userName = userData.route && userData.route.length > 0
+        ? userData.route[userData.route.length - 1].fullName
+        : 'Sin nombre';
 
-        // Style the row with alternating colors
-        const isEvenRow = (rowIndex - 1) % 2 === 0; // -1 because rowIndex starts at 2
-        const backgroundColor = isEvenRow ? 'FFF8F9FA' : 'FFFFFFFF'; // Light gray for even rows
+      // Add user title row
+      const titleRow = worksheet.addRow({
+        col1: '',
+        col2: `Usuario: ${userName}`,
+        col3: '',
+        col4: '',
+        col5: '',
+        col6: '',
+        col7: '',
+        col8: ''
+      });
 
-        row.eachCell(cell => {
-          // Default styling
+      // Style user title
+      titleRow.getCell(2).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF007BFF' } // Blue background
+      };
+      titleRow.getCell(2).font = {
+        bold: true,
+        color: { argb: 'FFFFFFFF' }, // White text
+        size: 14
+      };
+      titleRow.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
+
+      // Merge cells for title
+      worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
+      currentRow++;
+
+      // Add hierarchy info
+      const hierarchyRow = worksheet.addRow({
+        col1: '',
+        col2: `Jerarquía: ${userHierarchy}`,
+        col3: '',
+        col4: '',
+        col5: '',
+        col6: '',
+        col7: '',
+        col8: ''
+      });
+
+      hierarchyRow.getCell(2).font = {
+        italic: true,
+        color: { argb: 'FF666666' },
+        size: 11
+      };
+      worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
+      currentRow++;
+
+      // Add device count
+      const deviceCountRow = worksheet.addRow({
+        col1: '',
+        col2: `Total de dispositivos: ${userData.devices.length}`,
+        col3: '',
+        col4: '',
+        col5: '',
+        col6: '',
+        col7: '',
+        col8: ''
+      });
+
+      deviceCountRow.getCell(2).font = {
+        bold: true,
+        color: { argb: 'FF333333' },
+        size: 11
+      };
+      worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
+      currentRow++;
+
+      // Add empty row for spacing
+      worksheet.addRow({
+        col1: '',
+        col2: '',
+        col3: '',
+        col4: '',
+        col5: '',
+        col6: '',
+        col7: '',
+        col8: ''
+      });
+      currentRow++;
+
+      // Add device table headers
+      const headerRow = worksheet.addRow({
+        col1: '',
+        col2: 'Nombre Dispositivo',
+        col3: 'IMEI',
+        col4: 'Protocolo',
+        col5: 'Estado',
+        col6: 'Conexión',
+        col7: 'Fecha Expiración',
+        col8: 'Número SIM'
+      });
+
+      // Style header row
+      headerRow.eachCell((cell, colNumber) => {
+        if (colNumber > 1) { // Skip first column (empty)
           cell.fill = {
             type: 'pattern',
             pattern: 'solid',
-            fgColor: { argb: backgroundColor }
+            fgColor: { argb: 'FF007BFF' } // Blue background
           };
           cell.font = {
-            color: { argb: 'FF000000' }, // Black text
-            size: 10
+            bold: true,
+            color: { argb: 'FFFFFFFF' }, // White text
+            size: 11
           };
-          cell.alignment = { horizontal: 'left', vertical: 'middle' };
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
           cell.border = {
-            top: { style: 'thin', color: { argb: 'FFDEDEDE' } },
-            bottom: { style: 'thin', color: { argb: 'FFDEDEDE' } },
-            left: { style: 'thin', color: { argb: 'FFDEDEDE' } },
-            right: { style: 'thin', color: { argb: 'FFDEDEDE' } }
+            top: { style: 'thin', color: { argb: 'FF000000' } },
+            bottom: { style: 'thin', color: { argb: 'FF000000' } },
+            left: { style: 'thin', color: { argb: 'FF000000' } },
+            right: { style: 'thin', color: { argb: 'FF000000' } }
           };
+        }
+      });
+      currentRow++;
+
+      // Add device data rows
+      userData.devices.forEach((device, deviceIndex) => {
+        const dataRow = worksheet.addRow({
+          col1: '',
+          col2: device.name || '',
+          col3: device.device_imei || '',
+          col4: this.getProtocolName(device.type) || '',
+          col5: device.status ? 'Activo' : 'Inactivo',
+          col6: this.isDeviceOnline(device) ? 'En línea' : 'Fuera de línea',
+          col7: this.formatExpirationDate(device.expiration_date) || '',
+          col8: device.sim_card_number || ''
         });
 
-        // Special styling for status column (column F - Estado)
-        const statusCell = row.getCell('estado');
+        // Style data row
+        dataRow.eachCell((cell, colNumber) => {
+          if (colNumber > 1) { // Skip first column (empty)
+            const isEvenRow = deviceIndex % 2 === 0;
+            const backgroundColor = isEvenRow ? 'FFF8F9FA' : 'FFFFFFFF';
+
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: backgroundColor }
+            };
+            cell.font = {
+              color: { argb: 'FF000000' },
+              size: 10
+            };
+            cell.alignment = { horizontal: 'left', vertical: 'middle' };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'FFDEDEDE' } },
+              bottom: { style: 'thin', color: { argb: 'FFDEDEDE' } },
+              left: { style: 'thin', color: { argb: 'FFDEDEDE' } },
+              right: { style: 'thin', color: { argb: 'FFDEDEDE' } }
+            };
+          }
+        });
+
+        // Special styling for status column (column E - Estado)
+        const statusCell = dataRow.getCell(5);
         if (device.status) {
           statusCell.fill = {
             type: 'pattern',
@@ -678,8 +779,8 @@ export class MonitoringComponent implements OnInit {
           };
         }
 
-        // Special styling for connection column (column G - Conexión)
-        const connectionCell = row.getCell('conexion');
+        // Special styling for connection column (column F - Conexión)
+        const connectionCell = dataRow.getCell(6);
         if (this.isDeviceOnline(device)) {
           connectionCell.fill = {
             type: 'pattern',
@@ -705,7 +806,7 @@ export class MonitoringComponent implements OnInit {
         }
 
         // Special styling for expiration column (column G - Fecha Expiración)
-        const expirationCell = row.getCell('fechaExpiracion');
+        const expirationCell = dataRow.getCell(7);
         if (device.expiration_date) {
           if (this.isExpired(device.expiration_date)) {
             expirationCell.fill = {
@@ -743,8 +844,33 @@ export class MonitoringComponent implements OnInit {
           }
         }
 
-        rowIndex++;
+        currentRow++;
       });
+
+      // Add spacing between users (except for the last user)
+      if (userIndex < this.filteredMonitoringData.length - 1) {
+        worksheet.addRow({
+          col1: '',
+          col2: '',
+          col3: '',
+          col4: '',
+          col5: '',
+          col6: '',
+          col7: '',
+          col8: ''
+        });
+        worksheet.addRow({
+          col1: '',
+          col2: '',
+          col3: '',
+          col4: '',
+          col5: '',
+          col6: '',
+          col7: '',
+          col8: ''
+        });
+        currentRow += 2;
+      }
     });
 
     // Generate filename with current date
