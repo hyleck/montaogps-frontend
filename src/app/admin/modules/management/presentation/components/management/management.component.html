@@ -162,59 +162,59 @@
                                     </ng-template>
 
                                      <ng-template pTemplate="loadingbody" >
-                                        <tr *ngFor="let skel of [1,2,3]">
-                                            <td style="font-size: 13px!important; padding: 16px;">
-                                                <!-- Skeleton para el nombre del target -->
-                                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                                                    <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px', 'border-radius': '50%' }"></p-skeleton>
-                                                    <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '120px' : skel === 2 ? '150px' : '100px'), 'height': '18px' }"></p-skeleton>
-                                                </div>
-                                                
-                                                <!-- Skeleton para IMEI -->
-                                                <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '180px' : skel === 2 ? '160px' : '200px'), 'height': '14px', 'margin-bottom': '12px' }"></p-skeleton>
-                                                
-                                                <!-- Skeleton para estado y velocidad -->
-                                                <div style="display: flex; align-items: center; gap: 6px;">
-                                                    <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px' }"></p-skeleton>
-                                                    <p-skeleton [ngStyle]="{ 'width': '80px', 'height': '16px' }"></p-skeleton>
-                                                </div>
-                                            </td>
-                                            <td style="width: 1rem; padding: 16px;">
-                                                <div style="display: flex; gap: 4px;">
-                                                    <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
-                                                    <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </ng-template>
+                                         <tr *ngFor="let skel of [1,2,3]">
+                                             <td style="font-size: 13px!important; padding: 16px;">
+                                                 <!-- Skeleton para el nombre del target -->
+                                                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                                     <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px', 'border-radius': '50%' }"></p-skeleton>
+                                                     <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '120px' : skel === 2 ? '150px' : '100px'), 'height': '18px' }"></p-skeleton>
+                                                 </div>
+
+                                                 <!-- Skeleton para IMEI -->
+                                                 <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '180px' : skel === 2 ? '160px' : '200px'), 'height': '14px', 'margin-bottom': '12px' }"></p-skeleton>
+
+                                                 <!-- Skeleton para estado y velocidad -->
+                                                 <div style="display: flex; align-items: center; gap: 6px;">
+                                                     <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px' }"></p-skeleton>
+                                                     <p-skeleton [ngStyle]="{ 'width': '80px', 'height': '16px' }"></p-skeleton>
+                                                 </div>
+                                             </td>
+                                             <td style="width: 1rem; padding: 16px;">
+                                                 <div style="display: flex; gap: 4px;">
+                                                     <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                     <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                 </div>
+                                             </td>
+                                         </tr>
+                                     </ng-template>
 
                                     <!-- Template para skeleton de loading -->
-                                    <ng-template pTemplate="loadingbody" ngIf="!showNoTargetMessage">
-                                        <tr *ngFor="let skel of [1,2,3]">
-                                            <td style="font-size: 13px!important; padding: 16px;">
-                                                <!-- Skeleton para el nombre del target -->
-                                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                                                    <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px', 'border-radius': '50%' }"></p-skeleton>
-                                                    <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '120px' : skel === 2 ? '150px' : '100px'), 'height': '18px' }"></p-skeleton>
-                                                </div>
-                                                
-                                                <!-- Skeleton para IMEI -->
-                                                <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '180px' : skel === 2 ? '160px' : '200px'), 'height': '14px', 'margin-bottom': '12px' }"></p-skeleton>
-                                                
-                                                <!-- Skeleton para estado y velocidad -->
-                                                <div style="display: flex; align-items: center; gap: 6px;">
-                                                    <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px' }"></p-skeleton>
-                                                    <p-skeleton [ngStyle]="{ 'width': '80px', 'height': '16px' }"></p-skeleton>
-                                                </div>
-                                            </td>
-                                            <td style="width: 1rem; padding: 16px;">
-                                                <div style="display: flex; gap: 4px;">
-                                                    <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
-                                                    <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </ng-template>
+                                     <ng-template pTemplate="loadingbody" ngIf="!showNoTargetMessage">
+                                         <tr *ngFor="let skel of [1,2,3]">
+                                             <td style="font-size: 13px!important; padding: 16px;">
+                                                 <!-- Skeleton para el nombre del target -->
+                                                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                                     <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px', 'border-radius': '50%' }"></p-skeleton>
+                                                     <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '120px' : skel === 2 ? '150px' : '100px'), 'height': '18px' }"></p-skeleton>
+                                                 </div>
+
+                                                 <!-- Skeleton para IMEI -->
+                                                 <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '180px' : skel === 2 ? '160px' : '200px'), 'height': '14px', 'margin-bottom': '12px' }"></p-skeleton>
+
+                                                 <!-- Skeleton para estado y velocidad -->
+                                                 <div style="display: flex; align-items: center; gap: 6px;">
+                                                     <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px' }"></p-skeleton>
+                                                     <p-skeleton [ngStyle]="{ 'width': '80px', 'height': '16px' }"></p-skeleton>
+                                                 </div>
+                                             </td>
+                                             <td style="width: 1rem; padding: 16px;">
+                                                 <div style="display: flex; gap: 4px;">
+                                                     <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                     <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                 </div>
+                                             </td>
+                                         </tr>
+                                     </ng-template>
                                       
                                         <ng-template pTemplate="body" let-target>
                                             <tr class="management__content-table-tr"
@@ -279,8 +279,7 @@
                                                         </span>
                                                     </div>
                                                 </td>
-                                               
-                                            
+
                                                 <td style="width: 1rem">
                                                     <div style="transform: scale(0.8)" class="management__user-table-controls management__user-table-controls--maps">
                                                         <div *ngIf="!target.isShared" class="target-controls-own">
@@ -570,6 +569,7 @@
                                         <th>{{ 'management.table.name' | translate }}</th>
                                         <th>{{ 'management.table.imei' | translate }}</th>
                                         <th>{{ 'management.table.sim' | translate }}</th>
+                                        <th>{{ 'management.table.expiration' | translate }}</th>
                                         <th>
                                             <!-- {{ 'management.table.actions' | translate }} -->
 
@@ -596,13 +596,14 @@
                                         </td>
                                         <td>
                                             <span (click)="handleTargetClick(target, $event)"
-                                                  class="management__content-table-link" 
-                                                  [ngClass]="{
-                                                    'target-online': target.traccarStatus === 'online',
-                                                    'target-offline': target.traccarStatus !== 'online',
-                                                    'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id
-                                                  }"
-                                                  title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña">
+                                              class="management__content-table-link"
+                                              [ngClass]="{
+                                                'target-online': target.traccarStatus === 'online',
+                                                'target-offline': target.traccarStatus !== 'online',
+                                                'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
+                                                'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
+                                              }"
+                                              title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña">
                                                 <i class="pi pi-map-marker" 
                                                    [ngClass]="{
                                                      'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
@@ -629,6 +630,20 @@
                                             </div>
                                         </td>
                                         <td [ngClass]="{'target-inactive': !target.originalTarget?.status}">{{target.sim}}</td>
+                                        <td [ngClass]="{
+                                          'target-inactive': !target.originalTarget?.status,
+                                          'expiration-normal': getExpirationStatus(target.expiration_date) === 'normal',
+                                          'expiration-warning': getExpirationStatus(target.expiration_date) === 'warning',
+                                          'expiration-expired': getExpirationStatus(target.expiration_date) === 'expired'
+                                        }">
+                                          <div *ngIf="getExpirationStatus(target.expiration_date) === 'expired'" class="expiration-expired-content">
+                                            <span class="expiration-label">EXPIRADO</span>
+                                            <span class="expiration-date">{{target.expiration_date | date:'dd/MM/yyyy'}}</span>
+                                          </div>
+                                          <span *ngIf="getExpirationStatus(target.expiration_date) !== 'expired'">
+                                            {{target.expiration_date ? (target.expiration_date | date:'dd/MM/yyyy') : '-'}}
+                                          </span>
+                                        </td>
                                         <td>
                                             <div class="management__user-table-controls">
                                                 <div *ngIf="!target.isShared" class="target-controls-own">

@@ -166,6 +166,30 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return user.profile_type_id === 'compartido';
   }
 
+  /**
+   * Determina el estado de expiración de un target basado en la fecha de expiración
+   * @param expirationDate Fecha de expiración del target
+   * @returns 'expired' | 'warning' | 'normal' | null
+   */
+  getExpirationStatus(expirationDate: string | null | undefined): 'expired' | 'warning' | 'normal' | null {
+    if (!expirationDate) return null;
+
+    const now = new Date();
+    const expDate = new Date(expirationDate);
+    const timeDiff = expDate.getTime() - now.getTime();
+    const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
+
+    if (daysDiff < 0) {
+      return 'expired'; // Ya vencido
+    } else if (daysDiff <= 15) {
+      return 'warning'; // Menos de 15 días
+    } else if (daysDiff > 30) {
+      return 'normal'; // Más de 1 mes
+    } else {
+      return null; // Entre 15 días y 1 mes
+    }
+  }
+
   // ====================================
   // PROPIEDADES PÚBLICAS - DELEGADAS A SERVICIOS
   // ====================================
@@ -784,22 +808,46 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   handleTargetClick(target: any, event: MouseEvent) {
+    // Check if target is expired
+    if (this.getExpirationStatus(target.expiration_date) === 'expired') {
+      // Show toast message and prevent normal action
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Dispositivo Expirado',
+        detail: 'Este dispositivo está expirado y no se puede seleccionar.',
+        life: 5000
+      });
+      return; // Prevent any further action
+    }
+
+    // Check if target is suspended (status false)
+    if (!target.originalTarget?.status) {
+      // Show toast message and prevent normal action
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Dispositivo Suspendido',
+        detail: 'Este dispositivo está suspendido y no se puede seleccionar.',
+        life: 5000
+      });
+      return; // Prevent any further action
+    }
+
     if (event.ctrlKey) {
       this.openTargetInNewTab(target);
     } else {
       // Click normal: agregar el query parameter 'target' a la URL actual
       this.addTargetToUrl(target);
-      
+
       // Si el target es diferente al actual, cambiar selección y actualizar polling
       if (!this.selectedTargetForMap || this.selectedTargetForMap._id !== target._id) {
         this.stopPolling();
-        
+
         // ✅ REINICIAR tiempo de parada cuando se cambia de target
         this.selectedTargetStopTime = undefined;
-        
+
         this.selectedTargetForMap = target;
         this.startPolling();
-        
+
         // Scroll automático hacia el target seleccionado
         this.scrollToSelectedTarget();
       }
@@ -810,11 +858,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
         if (!this.uiService.areMapsVisible()) {
           this.uiService.toggleMaps();
         }
-        
+
         this.showMobileMapFullscreen = true;
         this.cdr.detectChanges(); // Forzar detección de cambios
-     
-        
+
+
 
       }
     }
@@ -1089,10 +1137,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
               const isOnline = traccarStatus === 'online';
               
               return {
-              name: target.name,
+                name: target.name,
                 status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
                 imei: target.device_imei || target.imei,
                 sim: target.sim_card_number || target.sim_card,
+                expiration_date: target.expiration_date,
                 _id: target._id,
                 traccarStatus: traccarStatus,
                 traccarInfo: target.traccarInfo,
@@ -1549,7 +1598,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
               status: isOnline ? 'online' : 'offline',
               traccarInfo: target.traccarInfo,
               shared: (target as any).shared || [],
-              isShared: ((target as any).shared || []).length > 0
+              isShared: ((target as any).shared || []).length > 0,
+              expiration_date: target.expiration_date
             };
           });
         }
@@ -1830,6 +1880,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
             status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
             imei: target.device_imei || target.imei,
             sim: target.sim_card_number || target.sim_card,
+            expiration_date: target.expiration_date,
             _id: target._id,
             traccarStatus: traccarStatus,
             traccarInfo: target.traccarInfo,
