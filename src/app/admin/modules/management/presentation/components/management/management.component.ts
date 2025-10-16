@@ -1199,6 +1199,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
     );
   }
 
+  /**
+   * Indica si el usuario seleccionado es el mismo que el usuario logueado
+   */
+  get isSelectedUserCurrentUser(): boolean {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser || !this.selectedUser?._id) {
+      return false;
+    }
+
+    return currentUser.id === this.selectedUser._id;
+  }
+
   private async loadInitialData(): Promise<void> {
     // Cargar datos de vehículos en segundo plano
     await this.vehicleDataService.loadVehicleData();

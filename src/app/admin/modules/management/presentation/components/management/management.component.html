@@ -432,6 +432,12 @@
                         Monitoreo
                     </span>
                 </div>
+                <div class="management__user-actions" *ngIf="!loading && selectedUser && currentUserAffiliationTypeId === 'empleado' && canUpdateUsers() && !isSelectedUserCurrentUser">
+                    <button (click)="editUser(selectedUser!)" class="button button--primary-flat" title="Editar usuario">
+                        <i class="pi pi-pencil"></i>
+                        <span>Modificar</span>
+                    </button>
+                </div>
          
            
                </div>

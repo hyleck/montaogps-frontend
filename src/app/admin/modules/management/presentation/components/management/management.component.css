@@ -85,11 +85,14 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  text-align: center;
 }
 
 .management__user-title strong {
   font-size: 15px;
   color: var(--managementColorTitleUser);
+  display: block;
+  text-align: center;
 }
 
 .management__user-subtitle {
@@ -98,12 +101,15 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  text-align: center;
 }
 
 .management__user-subtitle span {
   font-size: 13px;
   opacity: 0.6;
   color: var(--managementColorTextUser);
+  display: block;
+  text-align: center;
 }
 
 .management__user-footer {
@@ -122,6 +128,20 @@
 
 .management__card-user > div {
   margin-bottom: 10px;
+}
+
+.management__user-actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.management__user-actions .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .management__card-user-img {
@@ -2216,4 +2236,3 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   line-height: 1.2;
   opacity: 0.9;
 }
-
