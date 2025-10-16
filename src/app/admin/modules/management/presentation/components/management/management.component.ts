@@ -2296,6 +2296,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
    * @param userId ID del usuario para monitorear
    */
   navigateToMonitoring(userId: string): void {
+    if (this.currentUserAffiliationTypeId !== 'empleado') {
+      return;
+    }
     this.router.navigate(['/admin/monitoring', userId]);
   }
 }

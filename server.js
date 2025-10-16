@@ -1,14 +1,33 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 4200;
+const staticDir = path.join(__dirname, '/dist/montaogps-frontend/browser');
 
 // Detectar si estamos sirviendo archivos de producción
-const isProductionBuild = require('fs').existsSync(path.join(__dirname, '/dist/montaogps-frontend/browser/main-J2MBITJD.js'));
+const isProductionBuild = fs.existsSync(path.join(staticDir, 'index.html'));
 
-// Servir archivos estáticos de Angular
-app.use(express.static(path.join(__dirname, '/dist/montaogps-frontend/browser/')));
+// Servir archivos estáticos de Angular controlando el cache
+const hashedAssetRegex = /-[A-F0-9]{8,}\.(?:js|css|png|jpe?g|webp|svg|woff2?)$/i;
+app.use(express.static(staticDir, {
+  setHeaders: (res, resourcePath) => {
+    if (resourcePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-store');
+      return;
+    }
+
+    if (hashedAssetRegex.test(resourcePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      return;
+    }
+
+    if (/\.(?:js|css|html|json|ico)$/i.test(resourcePath)) {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+  }
+}));
 
 // Configurar CORS optimizado para beta.montao.net y tracker.dorhu.com
 app.use((req, res, next) => {
@@ -63,7 +82,8 @@ app.get('/health', (req, res) => {
 
 // Todas las otras rutas deben devolver index.html (para SPA routing)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '/dist/montaogps-frontend/browser/index.html'));
+  res.setHeader('Cache-Control', 'no-store');
+  res.sendFile(path.join(staticDir, 'index.html'));
 });
 
 // Manejo de errores

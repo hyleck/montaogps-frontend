@@ -16,6 +16,7 @@ export class SidebarComponent implements OnInit {
   sidebarDisplayed = true;
   userName: string = '';
   systemLogo: string = 'logo/LOGO.png'; // Default logo
+  private isEmployeeUser: boolean = false;
 
   sidaberOptions = {
     favoriteTitle: '',
@@ -54,8 +55,11 @@ export class SidebarComponent implements OnInit {
     if (user) {
       this.userName = `${user.name} ${user.last_name}`;
       this.sidaberOptions.profileItems[1].label = this.userName;
-      // Set monitoring path with current user ID
-      this.sidaberOptions.principalItems[3].path = `/admin/monitoring/${user.id}`;
+      this.isEmployeeUser = user.affiliation_type_id === 'empleado';
+      // Set monitoring path with current user ID when the current user is an employee
+      if (this.isEmployeeUser) {
+        this.sidaberOptions.principalItems[3].path = `/admin/monitoring/${user.id}`;
+      }
     }
 
     this.status.statusChanges$.subscribe((newStatus) => {
@@ -121,6 +125,10 @@ export class SidebarComponent implements OnInit {
     return this.sidaberOptions.principalItems.filter(item => {
       // Ocultar completamente la opción macro
       if (item.path === '/admin/macro') {
+        return false;
+      }
+      // Ocultar el módulo de monitoreo si el usuario no es empleado
+      if (!this.isEmployeeUser && item.path.startsWith('/admin/monitoring')) {
         return false;
       }
       // Si es inventory, solo mostrar si el usuario es root
