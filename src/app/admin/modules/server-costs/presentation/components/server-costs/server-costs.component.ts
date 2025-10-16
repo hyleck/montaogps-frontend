@@ -14,7 +14,7 @@ export class ServerCostsComponent implements OnInit {
   billingData: DigitalOceanBillingData | null = null;
   loading = false;
   errorKey: string | null = null;
-  selectedAccount = 'montao-admin';
+  selectedAccount = 'all';
   accountSummaries: DigitalOceanAccountBilling[] = [];
   rowsPerPage = 10;
   rowsPerPageOptions = [10, 25, 50];
