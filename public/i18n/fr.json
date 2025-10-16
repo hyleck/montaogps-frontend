@@ -109,7 +109,49 @@
       "processes": "Processus",
       "reports": "Rapports",
       "settings": "Paramètres",
-      "inventory": "Inventaire"
+      "inventory": "Inventaire",
+      "macro": "Macro",
+      "monitoring": "Surveillance",
+      "serverCosts": "Coûts des serveurs"
+    },
+    "serverCosts": {
+      "title": "Coûts des serveurs",
+      "actions": {
+        "refresh": "Actualiser"
+      },
+      "filters": {
+        "account": "Compte"
+      },
+      "selectedAccount": "Compte actuel : {{account}}",
+      "accounts": {
+        "title": "Totaux par compte",
+        "all": "Tous les serveurs",
+        "montaoAdmin": "Montao.net | Admin",
+        "montaoCloud": "Montao Cloud",
+        "traccarServers": "Traccar Servers",
+        "unknown": "Compte inconnu"
+      },
+      "summary": {
+        "accountBalance": "Solde du compte",
+        "monthToDateUsage": "Utilisation du mois",
+        "monthToDateBalance": "Solde du mois",
+        "updatedAt": "Mis à jour : {{date}}"
+      },
+      "history": {
+        "title": "Historique de facturation",
+        "records": "enregistrements",
+        "columns": {
+          "date": "Date",
+          "account": "Compte",
+          "type": "Type",
+          "description": "Description",
+          "amount": "Montant"
+        },
+        "empty": "Aucune entrée de facturation."
+      },
+      "errors": {
+        "loadFailed": "Impossible de charger les informations de facturation DigitalOcean."
+      }
     },
     "inventory": {
       "title": "Inventaire",

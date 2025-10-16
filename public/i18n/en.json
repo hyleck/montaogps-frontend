@@ -150,7 +150,47 @@
       "settings": "Settings",
       "inventory": "Inventory",
       "macro": "Macro",
-      "monitoring": "Monitoring"
+      "monitoring": "Monitoring",
+      "serverCosts": "Server Costs"
+    },
+    "serverCosts": {
+      "title": "Server Costs",
+      "actions": {
+        "refresh": "Refresh"
+      },
+      "filters": {
+        "account": "Account"
+      },
+      "selectedAccount": "Current account: {{account}}",
+      "accounts": {
+        "title": "Totals by account",
+        "all": "All servers",
+        "montaoAdmin": "Montao.net | Admin",
+        "montaoCloud": "Montao Cloud",
+        "traccarServers": "Traccar Servers",
+        "unknown": "Unknown account"
+      },
+      "summary": {
+        "accountBalance": "Account balance",
+        "monthToDateUsage": "Month-to-date usage",
+        "monthToDateBalance": "Month-to-date balance",
+        "updatedAt": "Updated: {{date}}"
+      },
+      "history": {
+        "title": "Billing history",
+        "records": "records",
+        "columns": {
+          "date": "Date",
+          "account": "Account",
+          "type": "Type",
+          "description": "Description",
+          "amount": "Amount"
+        },
+        "empty": "No billing entries found."
+      },
+      "errors": {
+        "loadFailed": "Unable to load DigitalOcean billing information."
+      }
     },
     "inventory": {
       "title": "Inventory",

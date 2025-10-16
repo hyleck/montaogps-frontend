@@ -43,6 +43,10 @@ const routes: Routes = [
         path: 'monitoring',
         loadChildren: () => import('../modules/monitoring/presentation/monitoring.module').then(m => m.MonitoringModule)
       },
+      {
+        path: 'server-costs',
+        loadChildren: () => import('../modules/server-costs/presentation/server-costs.module').then(m => m.ServerCostsModule)
+      },
     ]
   }
 ];

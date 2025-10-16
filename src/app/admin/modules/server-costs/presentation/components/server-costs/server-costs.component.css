@@ -1,0 +1,181 @@
+.server-costs {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+
+.server-costs__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.server-costs__header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.server-costs__account-active {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.server-costs__account-label {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.server-costs__account-select {
+  min-width: 200px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--globalColorBorderLight, rgba(255, 255, 255, 0.1));
+  background-color: var(--globalColorCardBackground, #1c1f2b);
+  color: inherit;
+}
+
+.server-costs__header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--globalColorAccent, #ffffff);
+}
+
+.server-costs__summary {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.summary-card {
+  background: var(--globalColorCardBackground, #1c1f2b);
+  border: 1px solid var(--globalColorBorderLight, rgba(255, 255, 255, 0.05));
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-card__label {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.summary-card__value {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--globalColorAccent, #ff7a1c);
+}
+
+.summary-card__help {
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.server-costs__accounts {
+  background: var(--globalColorCardBackground, #1c1f2b);
+  border: 1px solid var(--globalColorBorderLight, rgba(255, 255, 255, 0.05));
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.server-costs__accounts h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--globalColorAccent, #ffffff);
+}
+
+.server-costs__accounts-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.server-costs__history {
+  background: var(--globalColorCardBackground, #1c1f2b);
+  border: 1px solid var(--globalColorBorderLight, rgba(255, 255, 255, 0.05));
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.server-costs__history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.server-costs__history-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.server-costs__history-count {
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+.server-costs__table {
+  width: 100%;
+}
+
+.server-costs__amount-column {
+  text-align: right;
+}
+
+.server-costs__empty {
+  text-align: center;
+  padding: 20px 0;
+  opacity: 0.6;
+}
+
+.server-costs__state {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.server-costs__state--error {
+  align-items: center;
+  color: #ff5252;
+  font-weight: 500;
+}
+
+.server-costs__state--error i {
+  font-size: 1.4rem;
+}
+
+@media (max-width: 768px) {
+  .server-costs {
+    padding: 10px;
+  }
+
+  .server-costs__header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .server-costs__header button {
+    align-self: stretch;
+  }
+
+  .server-costs__header-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .server-costs__account-select {
+    width: 100%;
+  }
+}

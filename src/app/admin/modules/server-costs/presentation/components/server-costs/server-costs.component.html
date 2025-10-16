@@ -1,0 +1,133 @@
+<div class="server-costs">
+  <div class="server-costs__header">
+    <h1>{{ 'serverCosts.title' | translate }}</h1>
+    <div class="server-costs__header-controls">
+      <label class="server-costs__account-label" for="server-costs-account">
+        {{ 'serverCosts.filters.account' | translate }}
+      </label>
+      <select
+        id="server-costs-account"
+        class="server-costs__account-select"
+        [(ngModel)]="selectedAccount"
+        (ngModelChange)="onAccountChange($event)"
+        [disabled]="loading"
+      >
+        <option *ngFor="let account of accountOptions" [value]="account.value">
+          {{ account.labelKey | translate }}
+        </option>
+      </select>
+      <span class="server-costs__account-active">
+        {{ 'serverCosts.selectedAccount' | translate:{ account: resolvedAccountLabel } }}
+      </span>
+      <button class="button button--flat" type="button" (click)="loadBillingData()" [disabled]="loading">
+        <i class="pi pi-refresh"></i>
+        <span>{{ 'serverCosts.actions.refresh' | translate }}</span>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="server-costs__state">
+    <p-skeleton width="100%" height="2.5rem"></p-skeleton>
+    <p-skeleton width="100%" height="2.5rem"></p-skeleton>
+    <p-skeleton width="100%" height="12rem"></p-skeleton>
+  </div>
+
+  <div *ngIf="errorKey && !loading" class="server-costs__state server-costs__state--error">
+    <i class="pi pi-exclamation-triangle"></i>
+    <span>{{ errorKey | translate }}</span>
+  </div>
+
+  <ng-container *ngIf="billingData && !loading">
+    <section class="server-costs__summary">
+      <div class="summary-card">
+        <span class="summary-card__label">{{ 'serverCosts.summary.accountBalance' | translate }}</span>
+        <span class="summary-card__value">
+          {{ toNumber(billingData.balance?.account_balance) | currency:'USD':'symbol':'1.2-2' }}
+        </span>
+        <small class="summary-card__help">
+          {{ 'serverCosts.summary.updatedAt' | translate:{ date: (billingData.balance?.generated_at | date:'medium') } }}
+        </small>
+      </div>
+      <div class="summary-card">
+        <span class="summary-card__label">{{ 'serverCosts.summary.monthToDateUsage' | translate }}</span>
+        <span class="summary-card__value">
+          {{ toNumber(billingData.balance?.month_to_date_usage) | currency:'USD':'symbol':'1.2-2' }}
+        </span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-card__label">{{ 'serverCosts.summary.monthToDateBalance' | translate }}</span>
+        <span class="summary-card__value">
+          {{ toNumber(billingData.balance?.month_to_date_balance) | currency:'USD':'symbol':'1.2-2' }}
+        </span>
+      </div>
+    </section>
+
+    <section class="server-costs__accounts" *ngIf="accountSummaries.length && showAccountColumn">
+      <h3>{{ 'serverCosts.accounts.title' | translate }}</h3>
+      <div class="server-costs__accounts-grid">
+        <div class="summary-card" *ngFor="let account of accountSummaries">
+          <span class="summary-card__label">{{ translateAccountSlug(account.account) }}</span>
+          <span class="summary-card__value">
+            {{ toNumber(account.balance?.account_balance) | currency:'USD':'symbol':'1.2-2' }}
+          </span>
+          <small class="summary-card__help">
+            {{ 'serverCosts.summary.monthToDateUsage' | translate }}:
+            {{ toNumber(account.balance?.month_to_date_usage) | currency:'USD':'symbol':'1.2-2' }}
+          </small>
+          <small class="summary-card__help">
+            {{ 'serverCosts.summary.monthToDateBalance' | translate }}:
+            {{ toNumber(account.balance?.month_to_date_balance) | currency:'USD':'symbol':'1.2-2' }}
+          </small>
+        </div>
+      </div>
+    </section>
+
+    <section class="server-costs__history">
+      <div class="server-costs__history-header">
+        <h2>{{ 'serverCosts.history.title' | translate }}</h2>
+        <span class="server-costs__history-count" *ngIf="billingData.billingHistory?.billing_history?.length">
+          {{ billingData.billingHistory?.billing_history?.length || 0 }} {{ 'serverCosts.history.records' | translate }}
+        </span>
+      </div>
+
+      <p-table
+        [value]="billingData.billingHistory?.billing_history || []"
+        [tableStyleClass]="'server-costs__table'"
+        [responsiveLayout]="'scroll'"
+        [rowTrackBy]="trackByHistory"
+        [paginator]="showPaginator"
+        [rows]="rowsPerPage"
+        [rowsPerPageOptions]="rowsPerPageOptions"
+        [showFirstLastIcon]="showPaginator"
+      >
+        <ng-template pTemplate="header">
+          <tr>
+            <th>{{ 'serverCosts.history.columns.date' | translate }}</th>
+            <th *ngIf="showAccountColumn">{{ 'serverCosts.history.columns.account' | translate }}</th>
+            <th>{{ 'serverCosts.history.columns.type' | translate }}</th>
+            <th>{{ 'serverCosts.history.columns.description' | translate }}</th>
+            <th class="server-costs__amount-column">{{ 'serverCosts.history.columns.amount' | translate }}</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-entry>
+          <tr>
+            <td>{{ entry.date | date:'medium' }}</td>
+            <td *ngIf="showAccountColumn">{{ translateAccountSlug(entry.account) }}</td>
+            <td>{{ entry.type }}</td>
+            <td>{{ entry.description }}</td>
+            <td class="server-costs__amount-column">
+              {{ toNumber(entry.amount) | currency:'USD':'symbol':'1.2-2' }}
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td [attr.colspan]="showAccountColumn ? 5 : 4" class="server-costs__empty">
+              {{ 'serverCosts.history.empty' | translate }}
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </section>
+  </ng-container>
+</div>

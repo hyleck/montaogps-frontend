@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Server, CreateServerDto, UpdateServerDto } from '../interfaces/server.interface';
+import { Server, CreateServerDto, UpdateServerDto, DigitalOceanBillingData } from '../interfaces/server.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -56,4 +56,20 @@ export class ServersService {
   deleteServer(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
-} 
+
+  /**
+   * Obtiene la información de facturación de DigitalOcean
+   */
+  getDigitalOceanBilling(account?: string): Observable<DigitalOceanBillingData> {
+    let params: HttpParams | undefined;
+    if (account) {
+      params = new HttpParams().set('account', account);
+    }
+
+    if (params) {
+      return this.http.get<DigitalOceanBillingData>(`${this.apiUrl}/digitalocean/billing`, { params });
+    }
+
+    return this.http.get<DigitalOceanBillingData>(`${this.apiUrl}/digitalocean/billing`);
+  }
+}

@@ -174,7 +174,47 @@
       "settings": "Configuración",
       "inventory": "Inventario",
       "macro": "Macro",
-      "monitoring": "Monitoreo"
+      "monitoring": "Monitoreo",
+      "serverCosts": "Costos de servidores"
+    },
+    "serverCosts": {
+      "title": "Costos de Servidores",
+      "actions": {
+        "refresh": "Actualizar"
+      },
+      "filters": {
+        "account": "Cuenta"
+      },
+      "selectedAccount": "Cuenta actual: {{account}}",
+      "accounts": {
+        "title": "Totales por cuenta",
+        "all": "Todos los servidores",
+        "montaoAdmin": "Montao.net | Admin",
+        "montaoCloud": "Montao Cloud",
+        "traccarServers": "Traccar Servers",
+        "unknown": "Cuenta desconocida"
+      },
+      "summary": {
+        "accountBalance": "Balance de cuenta",
+        "monthToDateUsage": "Uso del mes",
+        "monthToDateBalance": "Balance del mes",
+        "updatedAt": "Actualizado: {{date}}"
+      },
+      "history": {
+        "title": "Historial de facturación",
+        "records": "registros",
+        "columns": {
+          "date": "Fecha",
+          "account": "Cuenta",
+          "type": "Tipo",
+          "description": "Descripción",
+          "amount": "Monto"
+        },
+        "empty": "No hay movimientos registrados."
+      },
+      "errors": {
+        "loadFailed": "No se pudo cargar la información de facturación de DigitalOcean."
+      }
     },
     "inventory": {
       "title": "Inventario",
@@ -1112,7 +1152,7 @@
         "typeOther": "Otro",
         "status": "Estado",
         "statusActive": "Activo",
-        "statusInactive": "Inactivo",
+        "statusInactive": "Suspendido",
         "processType": "Tipo de Proceso",
         "processDate": "Fecha del Proceso",
         "processNotes": "Notas del Proceso",
@@ -1325,7 +1365,7 @@
         "roleRequired": "Debe configurar los privilegios antes de guardarlo.",
         "status": "Estado",
         "statusActive": "Activo",
-        "statusInactive": "Inactivo",
+        "statusInactive": "Suspendido",
         "info": "Información importante",
         "success": "Éxito",
         "userCreated": "Usuario creado correctamente.",
