@@ -113,7 +113,9 @@
       "FILTERS_EXPIRATION_FROM": "Desde",
       "FILTERS_EXPIRATION_TO": "Hasta",
       "FILTERS_APPLY": "Aplicar Filtros",
-      "FILTERS_CLEAR": "Limpiar Filtros"
+      "FILTERS_CLEAR": "Limpiar Filtros",
+      "SUMMARY_USERS": "Usuarios encontrados",
+      "SUMMARY_DEVICES": "Dispositivos encontrados"
     },
     "navbar": {
       "scheduleProcess": "Programar proceso",

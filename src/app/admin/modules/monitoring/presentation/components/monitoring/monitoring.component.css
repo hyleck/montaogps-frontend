@@ -35,6 +35,35 @@
   margin-top: 20px;
 }
 
+.monitoring-summary {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.monitoring-summary .summary-card {
+  background-color: var(--monitoringDevicesSectionBackground);
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 8px;
+  padding: 16px 20px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.monitoring-summary .summary-label {
+  font-size: 14px;
+  color: var(--monitoringDescriptionText);
+}
+
+.monitoring-summary .summary-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--monitoringSectionTitleText);
+}
+
 .search-form {
   display: flex;
   flex-direction: column;

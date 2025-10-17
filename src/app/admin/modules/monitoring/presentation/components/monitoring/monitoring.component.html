@@ -274,15 +274,27 @@
 
   <!-- Monitoring Results -->
   <div *ngIf="monitoringResult && !loading" class="monitoring-content">
+    <ng-container *ngIf="filteredMonitoringData as monitoringData">
+    <div class="monitoring-summary" *ngIf="monitoringData.length > 0">
+      <div class="summary-card">
+        <span class="summary-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}</span>
+        <span class="summary-value">{{ monitoringData.length }}</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}</span>
+        <span class="summary-value">{{ getTotalDevices(monitoringData) }}</span>
+      </div>
+    </div>
+
     <!-- No users with devices message -->
-    <div *ngIf="filteredMonitoringData.length === 0" class="no-data-container">
+    <div *ngIf="monitoringData.length === 0" class="no-data-container">
       <p-card header="No Devices Found">
         <p>No users with devices were found in the monitoring results.</p>
       </p-card>
     </div>
 
     <!-- Users with devices -->
-    <div *ngFor="let userData of filteredMonitoringData; let i = index; trackBy: trackByUser" class="monitoring-block">
+    <div *ngFor="let userData of monitoringData; let i = index; trackBy: trackByUser" class="monitoring-block">
       <!-- User Path as Breadcrumbs -->
       <div *ngIf="userData.route && userData.route.length > 0" class="user-breadcrumbs">
         <div class="breadcrumb-container">
@@ -350,5 +362,6 @@
         </p-table>
       </div>
     </div>
+    </ng-container>
   </div>
 </div>

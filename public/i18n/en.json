@@ -111,7 +111,9 @@
       "FILTERS_EXPIRATION_FROM": "From",
       "FILTERS_EXPIRATION_TO": "To",
       "FILTERS_APPLY": "Apply Filters",
-      "FILTERS_CLEAR": "Clear Filters"
+      "FILTERS_CLEAR": "Clear Filters",
+      "SUMMARY_USERS": "Users found",
+      "SUMMARY_DEVICES": "Devices found"
     },
     "navbar": {
         "scheduleProcess": "Schedule process",

@@ -74,6 +74,10 @@
         "dashboard": "Panorama"
       }
     },
+    "MONITORING": {
+      "SUMMARY_USERS": "Utilisateurs trouvés",
+      "SUMMARY_DEVICES": "Appareils trouvés"
+    },
     "navbar": {
       "scheduleProcess": "Planifier le processus",
       "canceled": "Annulés",
