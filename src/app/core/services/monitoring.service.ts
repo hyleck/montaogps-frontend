@@ -32,6 +32,8 @@ export interface MonitoringSummary {
   totalDevices: number;
   activeDevices: number;
   activeValidOnlineDevices: number;
+  activeValidOfflineDevices: number;
+  totalExpiredDevices: number;
   createdAt: string;
   reportId?: string | null;
 }

@@ -120,7 +120,9 @@
       "SUMMARY_USERS": "Users found",
       "SUMMARY_DEVICES": "Devices found",
       "SUMMARY_ACTIVE_DEVICES": "Active devices",
-      "SUMMARY_ACTIVE_VALID_ONLINE_DEVICES": "Valid online devices"
+      "SUMMARY_ACTIVE_VALID_ONLINE_DEVICES": "Valid online devices",
+      "SUMMARY_ACTIVE_VALID_OFFLINE_DEVICES": "Valid offline devices",
+      "SUMMARY_EXPIRED_DEVICES": "Expired devices"
     },
     "navbar": {
         "scheduleProcess": "Schedule process",

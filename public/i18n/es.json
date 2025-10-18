@@ -140,7 +140,9 @@
       "SUMMARY_USERS": "Usuarios encontrados",
       "SUMMARY_DEVICES": "Dispositivos encontrados",
       "SUMMARY_ACTIVE_DEVICES": "Dispositivos activos",
-      "SUMMARY_ACTIVE_VALID_ONLINE_DEVICES": "Vigentes en línea"
+      "SUMMARY_ACTIVE_VALID_ONLINE_DEVICES": "Vigentes en línea",
+      "SUMMARY_ACTIVE_VALID_OFFLINE_DEVICES": "Vigentes fuera de línea",
+      "SUMMARY_EXPIRED_DEVICES": "Dispositivos expirados"
     },
     "navbar": {
       "scheduleProcess": "Programar proceso",

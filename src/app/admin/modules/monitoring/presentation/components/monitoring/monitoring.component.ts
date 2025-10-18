@@ -326,7 +326,9 @@ export class MonitoringComponent implements OnInit {
       next: (response) => {
         const summaries = (response?.summaries || []).map(summary => ({
           ...summary,
-          activeValidOnlineDevices: summary.activeValidOnlineDevices ?? 0
+          activeValidOnlineDevices: summary.activeValidOnlineDevices ?? 0,
+          activeValidOfflineDevices: summary.activeValidOfflineDevices ?? 0,
+          totalExpiredDevices: summary.totalExpiredDevices ?? 0
         }));
         this.monitoringSummaries = summaries;
         this.latestSummary = summaries.length > 0 ? summaries[0] : null;
