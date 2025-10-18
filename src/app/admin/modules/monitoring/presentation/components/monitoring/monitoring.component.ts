@@ -447,6 +447,70 @@ export class MonitoringComponent implements OnInit {
     return device?.traccarInfo?.status === 'online';
   }
 
+  getConnectionDisplay(device: any): string {
+    if (this.isDeviceOnline(device)) {
+      return 'En línea';
+    }
+
+    const lastUpdate =
+      device?.traccarInfo?.lastUpdate ||
+      device?.traccarInfo?.last_update ||
+      device?.traccarInfo?.['lastUpdate'];
+
+    if (!lastUpdate) {
+      return 'Fuera de línea (sin fecha de actualización)';
+    }
+
+    return this.formatOfflineDuration(lastUpdate);
+  }
+
+  private formatOfflineDuration(lastUpdate: string | Date): string {
+    try {
+      const lastUpdateDate = new Date(lastUpdate);
+      const now = new Date();
+      const diffInMs = now.getTime() - lastUpdateDate.getTime();
+
+      if (isNaN(lastUpdateDate.getTime())) {
+        return 'Fuera de línea (fecha inválida)';
+      }
+
+      if (diffInMs < 0) {
+        return 'Fuera de línea (fecha futura)';
+      }
+
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+      const diffInWeeks = Math.floor(diffInDays / 7);
+      const diffInMonths = Math.floor(diffInDays / 30);
+      const diffInYears = Math.floor(diffInDays / 365);
+
+      if (diffInYears > 0) {
+        return `Fuera de línea hace ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
+      }
+      if (diffInMonths > 0) {
+        return `Fuera de línea hace ${diffInMonths} mes${diffInMonths > 1 ? 'es' : ''}`;
+      }
+      if (diffInWeeks > 0) {
+        return `Fuera de línea hace ${diffInWeeks} semana${diffInWeeks > 1 ? 's' : ''}`;
+      }
+      if (diffInDays > 0) {
+        return `Fuera de línea hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
+      }
+      if (diffInHours > 0) {
+        return `Fuera de línea hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+      }
+      if (diffInMinutes > 0) {
+        return `Fuera de línea hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
+      }
+
+      return 'Fuera de línea hace menos de 1 minuto';
+    } catch (error) {
+      console.error('Error formateando tiempo offline:', error);
+      return 'Fuera de línea (error al calcular)';
+    }
+  }
+
   isDateInRange(date: Date | string, fromDate: Date | null, toDate: Date | null): boolean {
     if (!date || (!fromDate && !toDate)) {
       return true; // No range set, include all
@@ -721,7 +785,7 @@ export class MonitoringComponent implements OnInit {
           col3: device.device_imei || '',
           col4: this.getProtocolName(device.type) || '',
           col5: device.status ? 'Activo' : 'Inactivo',
-          col6: this.isDeviceOnline(device) ? 'En línea' : 'Fuera de línea',
+          col6: this.getConnectionDisplay(device),
           col7: this.formatExpirationDate(device.expiration_date) || '',
           col8: device.sim_card_number || ''
         });

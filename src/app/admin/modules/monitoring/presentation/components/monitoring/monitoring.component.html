@@ -336,7 +336,7 @@
               </td>
               <td>
                 <span class="connection-status" [class.online]="isDeviceOnline(device)" [class.offline]="!isDeviceOnline(device)">
-                  {{ isDeviceOnline(device) ? 'En línea' : 'Fuera de línea' }}
+                  {{ getConnectionDisplay(device) }}
                 </span>
               </td>
               <td>
