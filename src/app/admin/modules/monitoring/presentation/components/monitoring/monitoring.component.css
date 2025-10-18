@@ -583,6 +583,25 @@
   gap: 20px;
 }
 
+.filters-section {
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 10px;
+  padding: 16px 18px;
+  background-color: var(--monitoringDevicesCardBackground);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+}
+
+.filters-section-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--monitoringSectionTitleText);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .filters-form .field {
   display: flex;
   flex-direction: column;

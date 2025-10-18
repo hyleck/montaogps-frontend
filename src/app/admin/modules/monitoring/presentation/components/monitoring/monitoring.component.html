@@ -202,67 +202,99 @@
     (onHide)="closeFiltersDrawer()">
 
     <div class="filters-form">
-      <div class="field">
-        <label>{{ 'MONITORING.FILTERS_STATUS' | translate }}</label>
-        <select
-          [(ngModel)]="selectedStatusFilter"
-          class="filter-select">
-          <option value="">{{ 'MONITORING.FILTERS_ALL_STATUSES' | translate }}</option>
-          <option value="active">{{ 'MONITORING.FILTERS_ACTIVE' | translate }}</option>
-          <option value="inactive">{{ 'MONITORING.FILTERS_INACTIVE' | translate }}</option>
-        </select>
+      <div class="filters-section">
+        <div class="filters-section-title">{{ 'MONITORING.FILTERS_SECTION_USERS' | translate }}</div>
+
+        <div class="field">
+          <label>{{ 'MONITORING.FILTERS_AFFILIATION' | translate }}</label>
+          <select
+            [(ngModel)]="selectedAffiliationFilter"
+            class="filter-select">
+            <option value="">{{ 'MONITORING.FILTERS_ALL_AFFILIATIONS' | translate }}</option>
+            <option *ngFor="let option of affiliationFilterOptions" [value]="option">
+              {{ 'management.userForm.affiliationTypes.' + option | translate }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>{{ 'MONITORING.FILTERS_PROFILE' | translate }}</label>
+          <select
+            [(ngModel)]="selectedProfileFilter"
+            class="filter-select">
+            <option value="">{{ 'MONITORING.FILTERS_ALL_PROFILES' | translate }}</option>
+            <option *ngFor="let option of profileFilterOptions" [value]="option">
+              {{ 'management.userForm.profileTypes.' + option | translate }}
+            </option>
+          </select>
+        </div>
       </div>
 
-      <div class="field">
-        <label>{{ 'MONITORING.FILTERS_CONNECTION' | translate }}</label>
-        <select
-          [(ngModel)]="selectedConnectionFilter"
-          class="filter-select">
-          <option value="">{{ 'MONITORING.FILTERS_ALL_CONNECTIONS' | translate }}</option>
-          <option value="online">{{ 'MONITORING.FILTERS_ONLINE' | translate }}</option>
-          <option value="offline">{{ 'MONITORING.FILTERS_OFFLINE' | translate }}</option>
-        </select>
-      </div>
+      <div class="filters-section">
+        <div class="filters-section-title">{{ 'MONITORING.FILTERS_SECTION_DEVICES' | translate }}</div>
 
-      <div class="field" *ngIf="selectedConnectionFilter === 'offline'">
-        <label>{{ 'MONITORING.FILTERS_OFFLINE_DURATION' | translate }}</label>
-        <select
-          [(ngModel)]="selectedOfflineDurationFilter"
-          class="filter-select">
-          <option value="">{{ 'MONITORING.FILTERS_OFFLINE_DURATION_ANY' | translate }}</option>
-          <option *ngFor="let option of offlineDurationOptions" [value]="option.value">
-            {{ option.label | translate }}
-          </option>
-        </select>
-      </div>
+        <div class="field">
+          <label>{{ 'MONITORING.FILTERS_STATUS' | translate }}</label>
+          <select
+            [(ngModel)]="selectedStatusFilter"
+            class="filter-select">
+            <option value="">{{ 'MONITORING.FILTERS_ALL_STATUSES' | translate }}</option>
+            <option value="active">{{ 'MONITORING.FILTERS_ACTIVE' | translate }}</option>
+            <option value="inactive">{{ 'MONITORING.FILTERS_INACTIVE' | translate }}</option>
+          </select>
+        </div>
 
-      <div class="field">
-        <label>{{ 'MONITORING.FILTERS_EXPIRATION' | translate }}</label>
-        <select
-          [(ngModel)]="selectedExpirationFilter"
-          class="filter-select">
-          <option value="">{{ 'MONITORING.FILTERS_ALL_EXPIRATIONS' | translate }}</option>
-          <option value="valid">{{ 'MONITORING.FILTERS_VALID' | translate }}</option>
-          <option value="expired">{{ 'MONITORING.FILTERS_EXPIRED' | translate }}</option>
-        </select>
-      </div>
+        <div class="field">
+          <label>{{ 'MONITORING.FILTERS_CONNECTION' | translate }}</label>
+          <select
+            [(ngModel)]="selectedConnectionFilter"
+            class="filter-select">
+            <option value="">{{ 'MONITORING.FILTERS_ALL_CONNECTIONS' | translate }}</option>
+            <option value="online">{{ 'MONITORING.FILTERS_ONLINE' | translate }}</option>
+            <option value="offline">{{ 'MONITORING.FILTERS_OFFLINE' | translate }}</option>
+          </select>
+        </div>
 
-      <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
-        <label>{{ 'MONITORING.FILTERS_EXPIRATION_FROM' | translate }}</label>
-        <input
-          type="date"
-          [(ngModel)]="expirationFromDate"
-          class="date-input"
-          [placeholder]="'MONITORING.FILTERS_EXPIRATION_FROM' | translate">
-      </div>
+        <div class="field" *ngIf="selectedConnectionFilter === 'offline'">
+          <label>{{ 'MONITORING.FILTERS_OFFLINE_DURATION' | translate }}</label>
+          <select
+            [(ngModel)]="selectedOfflineDurationFilter"
+            class="filter-select">
+            <option value="">{{ 'MONITORING.FILTERS_OFFLINE_DURATION_ANY' | translate }}</option>
+            <option *ngFor="let option of offlineDurationOptions" [value]="option.value">
+              {{ option.label | translate }}
+            </option>
+          </select>
+        </div>
 
-      <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
-        <label>{{ 'MONITORING.FILTERS_EXPIRATION_TO' | translate }}</label>
-        <input
-          type="date"
-          [(ngModel)]="expirationToDate"
-          class="date-input"
-          [placeholder]="'MONITORING.FILTERS_EXPIRATION_TO' | translate">
+        <div class="field">
+          <label>{{ 'MONITORING.FILTERS_EXPIRATION' | translate }}</label>
+          <select
+            [(ngModel)]="selectedExpirationFilter"
+            class="filter-select">
+            <option value="">{{ 'MONITORING.FILTERS_ALL_EXPIRATIONS' | translate }}</option>
+            <option value="valid">{{ 'MONITORING.FILTERS_VALID' | translate }}</option>
+            <option value="expired">{{ 'MONITORING.FILTERS_EXPIRED' | translate }}</option>
+          </select>
+        </div>
+
+        <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
+          <label>{{ 'MONITORING.FILTERS_EXPIRATION_FROM' | translate }}</label>
+          <input
+            type="date"
+            [(ngModel)]="expirationFromDate"
+            class="date-input"
+            [placeholder]="'MONITORING.FILTERS_EXPIRATION_FROM' | translate">
+        </div>
+
+        <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
+          <label>{{ 'MONITORING.FILTERS_EXPIRATION_TO' | translate }}</label>
+          <input
+            type="date"
+            [(ngModel)]="expirationToDate"
+            class="date-input"
+            [placeholder]="'MONITORING.FILTERS_EXPIRATION_TO' | translate">
+        </div>
       </div>
     </div>
 

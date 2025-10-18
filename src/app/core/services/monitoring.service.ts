@@ -3,10 +3,17 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export interface MonitoringRouteEntry {
+  id: string;
+  fullName: string;
+  affiliation_type_id?: string;
+  profile_type_id?: string;
+}
+
 export interface MonitorUserResponse {
   message: string;
   data: Array<{
-    route: { id: string; fullName: string }[];
+    route: MonitoringRouteEntry[];
     devices: any[];
   }>;
 }
@@ -22,7 +29,7 @@ export interface MonitoringReport {
   };
   createdAt: string;
   data: Array<{
-    route: { id: string; fullName: string }[];
+    route: MonitoringRouteEntry[];
     devices: any[];
   }>;
 }
@@ -33,7 +40,7 @@ export interface UserMonitoringReportsResponse {
   creator: string;
   createdAt: string;
   data: Array<{
-    route: { id: string; fullName: string }[];
+    route: MonitoringRouteEntry[];
     devices: any[];
   }>;
 }

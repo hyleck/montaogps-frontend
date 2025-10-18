@@ -39,6 +39,18 @@ export class MonitoringComponent implements OnInit {
     { label: 'Expired', value: 'expired' }
   ];
 
+  affiliationFilterOptions: string[] = [
+    'cliente',
+    'subcliente',
+    'socio',
+    'empleado',
+    'tecnico_empleado',
+    'tecnico_independiente',
+    'otro'
+  ];
+
+  profileFilterOptions: string[] = ['empresa', 'personal', 'compartido'];
+
   offlineDurationOptions: Array<{ label: string; value: string; minutes: number; comparison: 'lt' | 'gte' }> = [
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_NO_DATA', value: 'no-data', minutes: 0, comparison: 'lt' },
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_1H', value: 'lt-1h', minutes: 60, comparison: 'lt' },
@@ -61,6 +73,8 @@ export class MonitoringComponent implements OnInit {
   private _selectedConnectionFilter: string = '';
   private _selectedOfflineDurationFilter: string = '';
   private _selectedExpirationFilter: string = '';
+  private _selectedAffiliationFilter: string = '';
+  private _selectedProfileFilter: string = '';
   private _expirationFromDate: Date | null = null;
   private _expirationToDate: Date | null = null;
 
@@ -106,6 +120,26 @@ export class MonitoringComponent implements OnInit {
   set selectedExpirationFilter(value: string) {
     if (this._selectedExpirationFilter !== value) {
       this._selectedExpirationFilter = value;
+    }
+  }
+
+  get selectedAffiliationFilter(): string {
+    return this._selectedAffiliationFilter;
+  }
+
+  set selectedAffiliationFilter(value: string) {
+    if (this._selectedAffiliationFilter !== value) {
+      this._selectedAffiliationFilter = value;
+    }
+  }
+
+  get selectedProfileFilter(): string {
+    return this._selectedProfileFilter;
+  }
+
+  set selectedProfileFilter(value: string) {
+    if (this._selectedProfileFilter !== value) {
+      this._selectedProfileFilter = value;
     }
   }
 
@@ -344,6 +378,26 @@ export class MonitoringComponent implements OnInit {
       .map(userData => {
         // Filter devices based on selected filters
         let filteredDevices = userData.devices;
+
+        const userRoute = Array.isArray(userData.route) ? userData.route : [];
+        const targetRouteEntry = userRoute.length > 0 ? userRoute[userRoute.length - 1] : null;
+
+        // Apply affiliation filter on user route
+        if (this._selectedAffiliationFilter && this._selectedAffiliationFilter !== '') {
+          const matchesAffiliation =
+            targetRouteEntry?.affiliation_type_id === this._selectedAffiliationFilter;
+          if (!matchesAffiliation) {
+            filteredDevices = [];
+          }
+        }
+
+        // Apply profile filter on user route
+        if (this._selectedProfileFilter && this._selectedProfileFilter !== '') {
+          const matchesProfile = targetRouteEntry?.profile_type_id === this._selectedProfileFilter;
+          if (!matchesProfile) {
+            filteredDevices = [];
+          }
+        }
 
         // Apply status filter
         if (this._selectedStatusFilter && this._selectedStatusFilter !== '') {
