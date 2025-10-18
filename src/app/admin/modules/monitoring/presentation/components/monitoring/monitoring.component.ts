@@ -34,9 +34,8 @@ export class MonitoringComponent implements OnInit {
   ];
 
   expirationOptions: any[] = [
-    { label: 'All Expirations', value: null },
-    { label: 'Valid', value: 'valid' },
-    { label: 'Expiring Soon', value: 'expiring-soon' },
+    { label: 'All renewals', value: null },
+    { label: 'Active', value: 'valid' },
     { label: 'Expired', value: 'expired' }
   ];
 
@@ -384,21 +383,31 @@ export class MonitoringComponent implements OnInit {
 
         // Apply expiration filter
         if (this._selectedExpirationFilter && this._selectedExpirationFilter !== '') {
+          const hasDateRange = !!(this._expirationFromDate || this._expirationToDate);
           switch (this._selectedExpirationFilter) {
             case 'expired':
-              filteredDevices = filteredDevices.filter(device =>
-                this.isExpired(device.expiration_date) &&
-                this.isDateInRange(device.expiration_date, this._expirationFromDate, this._expirationToDate)
-              );
-              break;
-            case 'expiring-soon':
-              filteredDevices = filteredDevices.filter(device => this.isExpiringSoon(device.expiration_date));
+              filteredDevices = filteredDevices.filter(device => {
+                const expirationDate = device.expiration_date;
+                if (!expirationDate) {
+                  return false;
+                }
+                if (hasDateRange) {
+                  return this.isDateInRange(expirationDate, this._expirationFromDate, this._expirationToDate);
+                }
+                return this.isExpired(expirationDate);
+              });
               break;
             case 'valid':
-              filteredDevices = filteredDevices.filter(device =>
-                this.isValid(device.expiration_date) &&
-                this.isDateInRange(device.expiration_date, this._expirationFromDate, this._expirationToDate)
-              );
+              filteredDevices = filteredDevices.filter(device => {
+                const expirationDate = device.expiration_date;
+                if (!expirationDate) {
+                  return false;
+                }
+                if (hasDateRange) {
+                  return !this.isDateInRange(expirationDate, this._expirationFromDate, this._expirationToDate);
+                }
+                return !this.isExpired(expirationDate);
+              });
               break;
           }
         }
@@ -606,14 +615,34 @@ export class MonitoringComponent implements OnInit {
       return false;
     }
 
-    if (fromDate) {
-      if (deviceDate < fromDate) {
+    const normalizedDeviceDate = new Date(deviceDate);
+    normalizedDeviceDate.setHours(0, 0, 0, 0);
+
+    let normalizedFrom = fromDate ? new Date(fromDate) : null;
+    let normalizedTo = toDate ? new Date(toDate) : null;
+
+    if (normalizedFrom) {
+      normalizedFrom.setHours(0, 0, 0, 0);
+    }
+
+    if (normalizedTo) {
+      normalizedTo.setHours(23, 59, 59, 999);
+    }
+
+    if (normalizedFrom && normalizedTo && normalizedFrom.getTime() > normalizedTo.getTime()) {
+      const temp = normalizedFrom;
+      normalizedFrom = normalizedTo;
+      normalizedTo = temp;
+    }
+
+    if (normalizedFrom) {
+      if (normalizedDeviceDate.getTime() < normalizedFrom.getTime()) {
         return false;
       }
     }
 
-    if (toDate) {
-      if (deviceDate > toDate) {
+    if (normalizedTo) {
+      if (normalizedDeviceDate.getTime() > normalizedTo.getTime()) {
         return false;
       }
     }
