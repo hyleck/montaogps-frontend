@@ -71,25 +71,34 @@
             </div>
             <div class="report-detail-item">
               <span class="detail-label">Creado por:</span>
-              <span class="detail-value">{{ report.creator.name }} {{ report.creator.last_name }} ({{ report.creator.email }})</span>
+              <span class="detail-value">{{ report.creator?.name }} {{ report.creator?.last_name }} ({{ report.creator?.email }})</span>
             </div>
             <div class="report-actions">
               <p-button
+                *ngIf="report.reportId as reportId"
                 label="Abrir"
                 icon="pi pi-eye"
-                (onClick)="openReport(report.id)"
+                (onClick)="openReport(reportId)"
                 styleClass="p-button-primary p-button-sm">
               </p-button>
             </div>
           </div>
           <div class="report-stats">
             <div class="stat-item">
-              <span class="stat-label">Usuarios:</span>
-              <span class="stat-value">{{ report.data.length }}</span>
+              <span class="stat-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}:</span>
+              <span class="stat-value">{{ report.totalUsers }}</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">Dispositivos totales:</span>
-              <span class="stat-value">{{ getTotalDevices(report.data) }}</span>
+              <span class="stat-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}:</span>
+              <span class="stat-value">{{ report.totalDevices }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_DEVICES' | translate }}:</span>
+              <span class="stat-value">{{ report.activeDevices }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_ONLINE_DEVICES' | translate }}:</span>
+              <span class="stat-value">{{ report.activeValidOnlineDevices }}</span>
             </div>
           </div>
         </div>
@@ -168,6 +177,33 @@
             <div class="report-message">
               <i class="pi pi-clock"></i>
               <span>Monitoreo registrado {{ getTimeAgo(report.createdAt) }}</span>
+            </div>
+            <div class="report-summary-details">
+              <div class="summary-row">
+                <span class="summary-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}:</span>
+                <span class="summary-value">{{ report.totalUsers }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}:</span>
+                <span class="summary-value">{{ report.totalDevices }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_DEVICES' | translate }}:</span>
+                <span class="summary-value">{{ report.activeDevices }}</span>
+              </div>
+              <div class="summary-row">
+                <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_ONLINE_DEVICES' | translate }}:</span>
+                <span class="summary-value">{{ report.activeValidOnlineDevices }}</span>
+              </div>
+            </div>
+            <div class="report-summary-actions">
+              <p-button
+                *ngIf="report.reportId as reportId"
+                label="Ver detalles"
+                icon="pi pi-eye"
+                (onClick)="openReport(reportId)"
+                styleClass="p-button-link">
+              </p-button>
             </div>
           </div>
         </div>
@@ -320,11 +356,11 @@
     <div class="monitoring-summary" *ngIf="monitoringData.length > 0">
       <div class="summary-card">
         <span class="summary-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}</span>
-        <span class="summary-value">{{ monitoringData.length }}</span>
+        <span class="summary-value">{{ latestSummary?.totalUsers ?? monitoringData.length }}</span>
       </div>
       <div class="summary-card">
         <span class="summary-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}</span>
-        <span class="summary-value">{{ getTotalDevices(monitoringData) }}</span>
+        <span class="summary-value">{{ latestSummary?.totalDevices ?? getTotalDevices(monitoringData) }}</span>
       </div>
     </div>
 

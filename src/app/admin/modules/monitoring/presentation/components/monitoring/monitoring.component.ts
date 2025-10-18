@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { MonitoringService, MonitorUserResponse, MonitoringReport } from '../../../../../../core/services/monitoring.service';
+import { MonitoringService, MonitorUserResponse, MonitoringSummary } from '../../../../../../core/services/monitoring.service';
 import { UserService } from '../../../../../../core/services/user.service';
 import { ProtocolsService } from '../../../../../../core/services/protocols.service';
 import { User } from '../../../../../../core/interfaces/user.interface';
@@ -17,6 +17,8 @@ export class MonitoringComponent implements OnInit {
   userEmail: string = '';
   userId: string = '';
   monitoringResult: MonitorUserResponse | null = null;
+  monitoringSummaries: MonitoringSummary[] = [];
+  latestSummary: MonitoringSummary | null = null;
   loading: boolean = false;
   searchingUser: boolean = false;
   error: string = '';
@@ -167,8 +169,8 @@ export class MonitoringComponent implements OnInit {
   }
 
   // Monitoring reports
-  userMonitoringReports: MonitoringReport[] = [];
-  selectedUserReports: MonitoringReport[] = [];
+  userMonitoringReports: MonitoringSummary[] = [];
+  selectedUserReports: MonitoringSummary[] = [];
   loadingReports: boolean = false;
 
   constructor(
@@ -242,6 +244,7 @@ export class MonitoringComponent implements OnInit {
         this.monitoringResult = result;
         this.loading = false;
         console.log('Monitoring result:', result);
+        this.fetchMonitoringSummaries(this.userId);
       },
       error: (error) => {
         this.error = 'Error monitoring user: ' + error.message;
@@ -267,6 +270,7 @@ export class MonitoringComponent implements OnInit {
         this.monitoringResult = result;
         this.loading = false;
         console.log('Monitoring result:', result);
+        this.fetchMonitoringSummaries(this.userId);
       },
       error: (error) => {
         this.error = 'Error monitoring user: ' + error.message;
@@ -309,6 +313,38 @@ export class MonitoringComponent implements OnInit {
     });
   }
 
+  private fetchMonitoringSummaries(userId: string, showLoader: boolean = false): void {
+    if (!userId) {
+      return;
+    }
+
+    if (showLoader) {
+      this.loadingReports = true;
+    }
+
+    this.monitoringService.monitorUserSummary(userId).subscribe({
+      next: (response) => {
+        const summaries = (response?.summaries || []).map(summary => ({
+          ...summary,
+          activeValidOnlineDevices: summary.activeValidOnlineDevices ?? 0
+        }));
+        this.monitoringSummaries = summaries;
+        this.latestSummary = summaries.length > 0 ? summaries[0] : null;
+        this.userMonitoringReports = summaries;
+        this.selectedUserReports = summaries;
+        if (showLoader) {
+          this.loadingReports = false;
+        }
+      },
+      error: (error) => {
+        console.error('Monitoring summary error:', error);
+        if (showLoader) {
+          this.loadingReports = false;
+        }
+      }
+    });
+  }
+
   resetSearch(): void {
     this.userEmail = '';
     this.userId = '';
@@ -316,6 +352,10 @@ export class MonitoringComponent implements OnInit {
     this.foundUserName = '';
     this.monitoringResult = null;
     this.error = '';
+    this.monitoringSummaries = [];
+    this.latestSummary = null;
+    this.userMonitoringReports = [];
+    this.selectedUserReports = [];
   }
 
   private loadProtocols(): void {
@@ -330,33 +370,11 @@ export class MonitoringComponent implements OnInit {
   }
 
   private loadUserMonitoringReports(userId: string): void {
-    this.loadingReports = true;
-    this.monitoringService.getUserMonitoringReports(userId).subscribe({
-      next: (reports: MonitoringReport[]) => {
-        this.userMonitoringReports = reports;
-        this.loadingReports = false;
-        console.log('Loaded monitoring reports:', reports);
-      },
-      error: (error: any) => {
-        console.error('Error loading monitoring reports:', error);
-        this.loadingReports = false;
-      }
-    });
+    this.fetchMonitoringSummaries(userId, true);
   }
 
   private loadSelectedUserReports(userId: string): void {
-    this.loadingReports = true;
-    this.monitoringService.getUserMonitoringReports(userId).subscribe({
-      next: (reports: MonitoringReport[]) => {
-        this.selectedUserReports = reports;
-        this.loadingReports = false;
-        console.log('Loaded selected user monitoring reports:', reports);
-      },
-      error: (error: any) => {
-        console.error('Error loading selected user monitoring reports:', error);
-        this.loadingReports = false;
-      }
-    });
+    this.fetchMonitoringSummaries(userId, true);
   }
 
   getProtocolName(deviceType: string): string {

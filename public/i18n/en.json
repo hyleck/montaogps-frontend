@@ -118,7 +118,9 @@
       "FILTERS_APPLY": "Apply Filters",
       "FILTERS_CLEAR": "Clear Filters",
       "SUMMARY_USERS": "Users found",
-      "SUMMARY_DEVICES": "Devices found"
+      "SUMMARY_DEVICES": "Devices found",
+      "SUMMARY_ACTIVE_DEVICES": "Active devices",
+      "SUMMARY_ACTIVE_VALID_ONLINE_DEVICES": "Valid online devices"
     },
     "navbar": {
         "scheduleProcess": "Schedule process",

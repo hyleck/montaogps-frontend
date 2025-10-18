@@ -18,6 +18,29 @@ export interface MonitorUserResponse {
   }>;
 }
 
+export interface MonitoringSummary {
+  id: string;
+  userId: string;
+  creator?: {
+    id?: string;
+    _id?: string;
+    name: string;
+    last_name: string;
+    email: string;
+  } | null;
+  totalUsers: number;
+  totalDevices: number;
+  activeDevices: number;
+  activeValidOnlineDevices: number;
+  createdAt: string;
+  reportId?: string | null;
+}
+
+export interface MonitoringSummaryResponse {
+  message: string;
+  summaries: MonitoringSummary[];
+}
+
 export interface MonitoringReport {
   id: string;
   userId: string;
@@ -56,6 +79,11 @@ export class MonitoringService {
   monitorUser(userId: string): Observable<MonitorUserResponse> {
     const body: any = { userId };
     return this.http.post<MonitorUserResponse>(`${this.apiUrl}/user`, body);
+  }
+
+  monitorUserSummary(userId: string): Observable<MonitoringSummaryResponse> {
+    const body: any = { userId };
+    return this.http.post<MonitoringSummaryResponse>(`${this.apiUrl}/user/summary`, body);
   }
 
   getMonitoringReport(reportId: string): Observable<any> {

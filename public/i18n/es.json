@@ -138,7 +138,9 @@
       "FILTERS_APPLY": "Aplicar Filtros",
       "FILTERS_CLEAR": "Limpiar Filtros",
       "SUMMARY_USERS": "Usuarios encontrados",
-      "SUMMARY_DEVICES": "Dispositivos encontrados"
+      "SUMMARY_DEVICES": "Dispositivos encontrados",
+      "SUMMARY_ACTIVE_DEVICES": "Dispositivos activos",
+      "SUMMARY_ACTIVE_VALID_ONLINE_DEVICES": "Vigentes en línea"
     },
     "navbar": {
       "scheduleProcess": "Programar proceso",
