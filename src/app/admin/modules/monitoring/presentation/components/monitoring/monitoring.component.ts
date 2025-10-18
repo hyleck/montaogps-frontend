@@ -40,8 +40,27 @@ export class MonitoringComponent implements OnInit {
     { label: 'Expired', value: 'expired' }
   ];
 
+  offlineDurationOptions: Array<{ label: string; value: string; minutes: number; comparison: 'lt' | 'gte' }> = [
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_NO_DATA', value: 'no-data', minutes: 0, comparison: 'lt' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_1H', value: 'lt-1h', minutes: 60, comparison: 'lt' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_5H', value: 'lt-5h', minutes: 5 * 60, comparison: 'lt' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_20H', value: 'lt-20h', minutes: 20 * 60, comparison: 'lt' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_1D', value: 'lt-1d', minutes: 24 * 60, comparison: 'lt' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_3D', value: 'lt-3d', minutes: 3 * 24 * 60, comparison: 'lt' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_5D', value: 'lt-5d', minutes: 5 * 24 * 60, comparison: 'lt' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_1W', value: 'lt-1w', minutes: 7 * 24 * 60, comparison: 'lt' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_1H', value: 'gt-1h', minutes: 60, comparison: 'gte' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_5H', value: 'gt-5h', minutes: 5 * 60, comparison: 'gte' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_20H', value: 'gt-20h', minutes: 20 * 60, comparison: 'gte' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_1D', value: 'gt-1d', minutes: 24 * 60, comparison: 'gte' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_3D', value: 'gt-3d', minutes: 3 * 24 * 60, comparison: 'gte' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_5D', value: 'gt-5d', minutes: 5 * 24 * 60, comparison: 'gte' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_1W', value: 'gt-1w', minutes: 7 * 24 * 60, comparison: 'gte' }
+  ];
+
   private _selectedStatusFilter: string = '';
   private _selectedConnectionFilter: string = '';
+  private _selectedOfflineDurationFilter: string = '';
   private _selectedExpirationFilter: string = '';
   private _expirationFromDate: Date | null = null;
   private _expirationToDate: Date | null = null;
@@ -65,6 +84,19 @@ export class MonitoringComponent implements OnInit {
   set selectedConnectionFilter(value: string) {
     if (this._selectedConnectionFilter !== value) {
       this._selectedConnectionFilter = value;
+      if (value !== 'offline') {
+        this._selectedOfflineDurationFilter = '';
+      }
+    }
+  }
+
+  get selectedOfflineDurationFilter(): string {
+    return this._selectedOfflineDurationFilter;
+  }
+
+  set selectedOfflineDurationFilter(value: string) {
+    if (this._selectedOfflineDurationFilter !== value) {
+      this._selectedOfflineDurationFilter = value;
     }
   }
 
@@ -338,6 +370,18 @@ export class MonitoringComponent implements OnInit {
           }
         }
 
+        if (this._selectedConnectionFilter === 'offline' && this._selectedOfflineDurationFilter) {
+          const durationOption = this.offlineDurationOptions.find(
+            option => option.value === this._selectedOfflineDurationFilter
+          );
+
+          if (durationOption) {
+            filteredDevices = filteredDevices.filter(device =>
+              this.matchesOfflineDuration(device, durationOption)
+            );
+          }
+        }
+
         // Apply expiration filter
         if (this._selectedExpirationFilter && this._selectedExpirationFilter !== '') {
           switch (this._selectedExpirationFilter) {
@@ -509,6 +553,47 @@ export class MonitoringComponent implements OnInit {
       console.error('Error formateando tiempo offline:', error);
       return 'Fuera de línea (error al calcular)';
     }
+  }
+
+  private getOfflineDurationInMinutes(device: any): number | null {
+    const lastUpdate =
+      device?.traccarInfo?.lastUpdate ||
+      device?.traccarInfo?.last_update ||
+      device?.traccarInfo?.['lastUpdate'];
+
+    if (!lastUpdate) {
+      return null;
+    }
+
+    const lastUpdateDate = new Date(lastUpdate);
+    if (isNaN(lastUpdateDate.getTime())) {
+      return null;
+    }
+
+    const diffInMs = Date.now() - lastUpdateDate.getTime();
+    if (diffInMs < 0) {
+      return 0;
+    }
+
+    return Math.floor(diffInMs / (1000 * 60));
+  }
+
+  private matchesOfflineDuration(
+    device: any,
+    option: { minutes: number; comparison: 'lt' | 'gte' }
+  ): boolean {
+    const duration = this.getOfflineDurationInMinutes(device);
+    if (this._selectedOfflineDurationFilter === 'no-data') {
+      return duration === null;
+    }
+
+    if (duration === null) {
+      return false;
+    }
+    if (option.comparison === 'lt') {
+      return duration < option.minutes;
+    }
+    return duration > option.minutes;
   }
 
   isDateInRange(date: Date | string, fromDate: Date | null, toDate: Date | null): boolean {
