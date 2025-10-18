@@ -23,7 +23,7 @@ export class MonitoringComponent implements OnInit {
   userFound: boolean = false;
   foundUserName: string = '';
   showUserSearchModal: boolean = false;
-  showFiltersModal: boolean = false;
+  isFiltersDrawerVisible: boolean = false;
   protocols: any[] = [];
 
   // Filter options
@@ -251,12 +251,12 @@ export class MonitoringComponent implements OnInit {
     this.showUserSearchModal = false;
   }
 
-  openFiltersModal(): void {
-    this.showFiltersModal = true;
+  openFiltersDrawer(): void {
+    this.isFiltersDrawerVisible = true;
   }
 
-  closeFiltersModal(): void {
-    this.showFiltersModal = false;
+  closeFiltersDrawer(): void {
+    this.isFiltersDrawerVisible = false;
   }
 
 

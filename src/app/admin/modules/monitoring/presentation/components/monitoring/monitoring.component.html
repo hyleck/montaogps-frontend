@@ -29,7 +29,7 @@
         *ngIf="monitoringResult"
         [label]="'MONITORING.FILTERS_BUTTON' | translate"
         icon="pi pi-filter"
-        (onClick)="openFiltersModal()"
+        (onClick)="openFiltersDrawer()"
         styleClass="p-button-secondary">
       </p-button>
       <p-button
@@ -192,15 +192,14 @@
     </ng-template>
   </p-dialog>
 
-  <!-- Filters Modal -->
-  <p-dialog
+  <!-- Filters Drawer -->
+  <p-drawer
     [header]="'MONITORING.FILTERS_TITLE' | translate"
-    [(visible)]="showFiltersModal"
+    [(visible)]="isFiltersDrawerVisible"
+    [position]="'right'"
     [modal]="true"
-    [closable]="true"
-    [style]="{width: '500px'}"
-    [draggable]="false"
-    [resizable]="false">
+    [style]="{ width: '420px' }"
+    (onHide)="closeFiltersDrawer()">
 
     <div class="filters-form">
       <div class="field">
@@ -268,7 +267,7 @@
       </div>
     </div>
 
-  </p-dialog>
+  </p-drawer>
 
 
   <!-- Loading State -->
