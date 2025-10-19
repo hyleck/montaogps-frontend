@@ -393,7 +393,7 @@
 
 .management__user-table-controls i:hover{
   opacity: 1;
-  transform: scale(1.1);
+  /* transform: scale(1.1); */
 }
 .management__content-table-tr {
   background: var(--globalColorNone);
@@ -619,13 +619,13 @@ cursor: pointer;
 }
 
 .management__content-table-link:hover {
-text-decoration: underline;
+/* text-decoration: underline; */
 }
 
 .management__content-table-link i {
 font-size: 13px;
 opacity: 0.5;
-transform: scale(0.8); /* escalar */
+/* transform: scale(0.8); escalar */
 }
 
 .management__content--maps {
@@ -1452,6 +1452,10 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   }
 }
 
+.p-datatable-table-container{
+  overflow: hidden!important;
+}
+
 /* Tema oscuro - Ya manejado por las variables CSS de management */
 
 /* ====================================
@@ -2157,15 +2161,15 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   color: #ca8a04 !important; /* Amarillo dorado */
   font-weight: 600;
   background: linear-gradient(135deg, rgba(250, 204, 21, 0.1), rgba(250, 204, 21, 0.05));
-  padding: 2px 4px;
-  border-radius: 3px;
-  border: 1px solid rgba(250, 204, 21, 0.2);
+  /* padding: 2px 4px; */
+  /* border-radius: 3px; */
+  /* border: 1px solid rgba(250, 204, 21, 0.2); */
 }
 
 .dark .expiration-warning {
   color: #facc15 !important; /* Amarillo más claro para tema oscuro */
   background: linear-gradient(135deg, rgba(250, 204, 21, 0.15), rgba(250, 204, 21, 0.08));
-  border: 1px solid rgba(250, 204, 21, 0.3);
+  /* border: 1px solid rgba(250, 204, 21, 0.3); */
 }
 
 /* Rojo: Ya vencido */
@@ -2173,10 +2177,10 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   color: #dc2626 !important; /* Rojo intenso */
   font-weight: 600;
   background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(220, 38, 38, 0.05));
-  padding: 2px 4px;
-  border-radius: 3px;
-  border: 1px solid rgba(220, 38, 38, 0.2);
-  animation: pulse-expired 2s infinite;
+  /* padding: 2px 4px; */
+  /* border-radius: 3px; */
+  /* border: 1px solid rgba(220, 38, 38, 0.2); */
+  /* animation: pulse-expired 2s infinite; */
 }
 
 .dark .expiration-expired {
@@ -2185,7 +2189,7 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   border: 1px solid rgba(220, 38, 38, 0.3);
 }
 
-/* Animación para targets expirados */
+/* Animación para targets expirados
 @keyframes pulse-expired {
   0%, 100% {
     opacity: 1;
@@ -2195,7 +2199,7 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     opacity: 0.8;
     transform: scale(1.02);
   }
-}
+} */
 
 /* Estilo para nombres de targets expirados */
 .target-expired {
