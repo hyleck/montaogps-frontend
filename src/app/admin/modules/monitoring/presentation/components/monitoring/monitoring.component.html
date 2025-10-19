@@ -84,29 +84,47 @@
             </div>
           </div>
           <div class="report-stats">
-            <div class="stat-item">
-              <span class="stat-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}:</span>
-              <span class="stat-value">{{ report.totalUsers }}</span>
+            <div class="summary-stat summary-stat-users">
+              <div class="summary-stat-icon"><i class="pi pi-users"></i></div>
+              <div class="summary-stat-info">
+                <span class="summary-stat-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}</span>
+                <span class="summary-stat-value">{{ report.totalUsers }}</span>
+              </div>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}:</span>
-              <span class="stat-value">{{ report.totalDevices }}</span>
+            <div class="summary-stat summary-stat-devices">
+              <div class="summary-stat-icon"><i class="pi pi-table"></i></div>
+              <div class="summary-stat-info">
+                <span class="summary-stat-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}</span>
+                <span class="summary-stat-value">{{ report.totalDevices }}</span>
+              </div>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_DEVICES' | translate }}:</span>
-              <span class="stat-value">{{ report.activeDevices }}</span>
+            <div class="summary-stat summary-stat-active">
+              <div class="summary-stat-icon"><i class="pi pi-bolt"></i></div>
+              <div class="summary-stat-info">
+                <span class="summary-stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_DEVICES' | translate }}</span>
+                <span class="summary-stat-value">{{ report.activeDevices }}</span>
+              </div>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_ONLINE_DEVICES' | translate }}:</span>
-              <span class="stat-value">{{ report.activeValidOnlineDevices }}</span>
+            <div class="summary-stat summary-stat-online">
+              <div class="summary-stat-icon"><i class="pi pi-wifi"></i></div>
+              <div class="summary-stat-info">
+                <span class="summary-stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_ONLINE_DEVICES' | translate }}</span>
+                <span class="summary-stat-value">{{ report.activeValidOnlineDevices }}</span>
+              </div>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_OFFLINE_DEVICES' | translate }}:</span>
-              <span class="stat-value">{{ report.activeValidOfflineDevices }}</span>
+            <div class="summary-stat summary-stat-offline">
+              <div class="summary-stat-icon"><i class="pi pi-ban"></i></div>
+              <div class="summary-stat-info">
+                <span class="summary-stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_OFFLINE_DEVICES' | translate }}</span>
+                <span class="summary-stat-value">{{ report.activeValidOfflineDevices }}</span>
+              </div>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">{{ 'MONITORING.SUMMARY_EXPIRED_DEVICES' | translate }}:</span>
-              <span class="stat-value">{{ report.totalExpiredDevices }}</span>
+            <div class="summary-stat summary-stat-expired">
+              <div class="summary-stat-icon"><i class="pi pi-calendar-times"></i></div>
+              <div class="summary-stat-info">
+                <span class="summary-stat-label">{{ 'MONITORING.SUMMARY_EXPIRED_DEVICES' | translate }}</span>
+                <span class="summary-stat-value">{{ report.totalExpiredDevices }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -187,29 +205,47 @@
               <span>Monitoreo registrado {{ getTimeAgo(report.createdAt) }}</span>
             </div>
             <div class="report-summary-details">
-              <div class="summary-row">
-                <span class="summary-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}:</span>
-                <span class="summary-value">{{ report.totalUsers }}</span>
+              <div class="summary-row summary-stat-users">
+                <div class="summary-row-icon"><i class="pi pi-users"></i></div>
+                <div class="summary-row-info">
+                  <span class="summary-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}</span>
+                  <span class="summary-value">{{ report.totalUsers }}</span>
+                </div>
               </div>
-              <div class="summary-row">
-                <span class="summary-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}:</span>
-                <span class="summary-value">{{ report.totalDevices }}</span>
+              <div class="summary-row summary-stat-devices">
+                <div class="summary-row-icon"><i class="pi pi-table"></i></div>
+                <div class="summary-row-info">
+                  <span class="summary-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}</span>
+                  <span class="summary-value">{{ report.totalDevices }}</span>
+                </div>
               </div>
-              <div class="summary-row">
-                <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_DEVICES' | translate }}:</span>
-                <span class="summary-value">{{ report.activeDevices }}</span>
+              <div class="summary-row summary-stat-active">
+                <div class="summary-row-icon"><i class="pi pi-bolt"></i></div>
+                <div class="summary-row-info">
+                  <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_DEVICES' | translate }}</span>
+                  <span class="summary-value">{{ report.activeDevices }}</span>
+                </div>
               </div>
-              <div class="summary-row">
-                <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_ONLINE_DEVICES' | translate }}:</span>
-                <span class="summary-value">{{ report.activeValidOnlineDevices }}</span>
+              <div class="summary-row summary-stat-online">
+                <div class="summary-row-icon"><i class="pi pi-wifi"></i></div>
+                <div class="summary-row-info">
+                  <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_ONLINE_DEVICES' | translate }}</span>
+                  <span class="summary-value">{{ report.activeValidOnlineDevices }}</span>
+                </div>
               </div>
-              <div class="summary-row">
-                <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_OFFLINE_DEVICES' | translate }}:</span>
-                <span class="summary-value">{{ report.activeValidOfflineDevices }}</span>
+              <div class="summary-row summary-stat-offline">
+                <div class="summary-row-icon"><i class="pi pi-ban"></i></div>
+                <div class="summary-row-info">
+                  <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_OFFLINE_DEVICES' | translate }}</span>
+                  <span class="summary-value">{{ report.activeValidOfflineDevices }}</span>
+                </div>
               </div>
-              <div class="summary-row">
-                <span class="summary-label">{{ 'MONITORING.SUMMARY_EXPIRED_DEVICES' | translate }}:</span>
-                <span class="summary-value">{{ report.totalExpiredDevices }}</span>
+              <div class="summary-row summary-stat-expired">
+                <div class="summary-row-icon"><i class="pi pi-calendar-times"></i></div>
+                <div class="summary-row-info">
+                  <span class="summary-label">{{ 'MONITORING.SUMMARY_EXPIRED_DEVICES' | translate }}</span>
+                  <span class="summary-value">{{ report.totalExpiredDevices }}</span>
+                </div>
               </div>
             </div>
             <div class="report-summary-actions">

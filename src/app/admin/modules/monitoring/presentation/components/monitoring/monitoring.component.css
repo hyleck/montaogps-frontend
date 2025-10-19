@@ -51,14 +51,14 @@
   border-radius: 12px;
   min-width: 220px;
   background: var(--monitoringDevicesCardBackground);
-  box-shadow: 0 8px 20px var(--monitoringDevicesCardShadow, rgba(15, 23, 42, 0.12));
+  box-shadow: 0 6px 18px var(--monitoringDevicesCardShadow, rgba(15, 23, 42, 0.1));
   border: 1px solid var(--monitoringDevicesSectionBorder);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .monitoring-summary .summary-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px var(--monitoringDevicesCardHoverShadow, rgba(15, 23, 42, 0.18));
+  box-shadow: 0 10px 22px var(--monitoringDevicesCardHoverShadow, rgba(15, 23, 42, 0.15));
 }
 
 .summary-icon {
@@ -95,68 +95,77 @@
   color: var(--monitoringSectionTitleText);
 }
 
-.summary-users {
+.summary-users,
+.summary-stat-users,
+.summary-row.summary-stat-users {
   border-left: 4px solid var(--monitoringSummaryUsersBorder, #4a90e2);
   background: var(--monitoringSummaryUsersCardBg, var(--monitoringDevicesCardBackground));
 }
 
-.summary-users .summary-icon {
+.summary-users .summary-icon,
+.summary-stat-users .summary-stat-icon,
+.summary-row.summary-stat-users .summary-row-icon {
   background-color: var(--monitoringSummaryUsersIconBg, var(--monitoringSummaryIconBackground));
-}
-
-.summary-users .summary-icon i {
   color: var(--monitoringSummaryUsersIconColor, var(--monitoringSummaryIconColor));
 }
 
-.summary-devices {
+.summary-devices,
+.summary-stat-devices,
+.summary-row.summary-stat-devices {
   border-left: 4px solid var(--monitoringSummaryDevicesBorder, #1a9c1a);
   background: var(--monitoringSummaryDevicesCardBg, var(--monitoringDevicesCardBackground));
 }
 
-.summary-devices .summary-icon {
+.summary-devices .summary-icon,
+.summary-stat-devices .summary-stat-icon,
+.summary-row.summary-stat-devices .summary-row-icon {
   background-color: var(--monitoringSummaryDevicesIconBg, var(--monitoringSummaryIconBackground));
-}
-
-.summary-devices .summary-icon i {
   color: var(--monitoringSummaryDevicesIconColor, var(--monitoringSummaryIconColor));
 }
 
-.summary-active-online {
+.summary-active-online,
+.summary-stat-active,
+.summary-stat-online,
+.summary-row.summary-stat-active,
+.summary-row.summary-stat-online {
   border-left: 4px solid var(--monitoringSummaryActiveOnlineBorder, #ffc107);
   background: var(--monitoringSummaryActiveOnlineCardBg, var(--monitoringDevicesCardBackground));
 }
 
-.summary-active-online .summary-icon {
+.summary-active-online .summary-icon,
+.summary-stat-active .summary-stat-icon,
+.summary-stat-online .summary-stat-icon,
+.summary-row.summary-stat-active .summary-row-icon,
+.summary-row.summary-stat-online .summary-row-icon {
   background-color: var(--monitoringSummaryActiveOnlineIconBg, var(--monitoringSummaryIconBackground));
-}
-
-.summary-active-online .summary-icon i {
   color: var(--monitoringSummaryActiveOnlineIconColor, var(--monitoringSummaryIconColor));
 }
 
-.summary-active-offline {
+.summary-active-offline,
+.summary-stat-offline,
+.summary-row.summary-stat-offline {
   border-left: 4px solid var(--monitoringSummaryActiveOfflineBorder, #9e9e9e);
   background: var(--monitoringSummaryActiveOfflineCardBg, var(--monitoringDevicesCardBackground));
 }
 
-.summary-active-offline .summary-icon {
+.summary-active-offline .summary-icon,
+.summary-stat-offline .summary-stat-icon,
+.summary-row.summary-stat-offline .summary-row-icon {
   background-color: var(--monitoringSummaryActiveOfflineIconBg, var(--monitoringSummaryIconBackground));
-}
-
-.summary-active-offline .summary-icon i {
   color: var(--monitoringSummaryActiveOfflineIconColor, var(--monitoringSummaryIconColor));
 }
 
-.summary-expired {
+.summary-expired,
+.summary-stat-expired,
+.summary-row.summary-stat-expired {
   border-left: 4px solid var(--monitoringSummaryExpiredBorder, #ec4343);
   background: var(--monitoringSummaryExpiredCardBg, var(--monitoringDevicesCardBackground));
 }
 
-.summary-expired .summary-icon {
+.summary-expired .summary-icon,
+.summary-stat-expired .summary-stat-icon,
+.summary-row.summary-stat-expired .summary-row-icon {
   background-color: var(--monitoringSummaryExpiredIconBg, var(--monitoringSummaryIconBackground));
-}
-
-.summary-expired .summary-icon i {
   color: var(--monitoringSummaryExpiredIconColor, var(--monitoringSummaryIconColor));
 }
 
@@ -887,52 +896,69 @@
 }
 
 .report-stats {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-  flex-wrap: wrap;
+  margin-top: 12px;
 }
 
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  min-width: 110px;
-}
-
-.stat-label {
-  font-size: 0.85em;
-  color: var(--monitoringDevicesImeiText);
-  margin-bottom: 5px;
-}
-
-.stat-value {
-  font-size: 1.2em;
-  font-weight: 600;
-  color: var(--monitoringSectionTitleText);
+@media screen and (max-width: 768px) {
+  .report-stats,
+  .report-summary-details {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
 }
 
 .report-summary-details {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
 }
 
+.summary-stat,
 .summary-row {
   display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: var(--monitoringSectionTitleText);
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--monitoringDevicesCardBorder);
+  background: transparent;
 }
 
+.summary-stat-icon,
+.summary-row-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--monitoringSummaryIconBackground, rgba(15,23,42,0.05));
+  color: var(--monitoringSummaryIconColor, var(--monitoringSectionTitleText));
+}
+
+.summary-stat-info,
+.summary-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.summary-stat-label,
 .summary-label {
+  font-size: 12px;
   font-weight: 600;
+  color: var(--monitoringDescriptionText);
 }
 
+.summary-stat-value,
 .summary-value {
-  font-weight: 500;
-  color: var(--monitoringDevicesNameText);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--monitoringSectionTitleText);
 }
 
 .report-summary-actions {
