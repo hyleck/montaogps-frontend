@@ -31,6 +31,155 @@
   gap: 10px;
 }
 
+.monitoring-status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  background: var(--monitoringDevicesCardBackground);
+  box-shadow: 0 6px 18px var(--monitoringDevicesCardShadow, rgba(15, 23, 42, 0.1));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.monitoring-status-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px var(--monitoringDevicesCardHoverShadow, rgba(15, 23, 42, 0.15));
+}
+
+.monitoring-status-card .status-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.monitoring-status-card .status-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--monitoringSummaryIconBackground, rgba(15, 23, 42, 0.05));
+  font-size: 22px;
+  color: var(--monitoringSummaryIconColor, var(--monitoringSectionTitleText));
+}
+
+.monitoring-status-card .status-card-texts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.monitoring-status-card .status-card-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--monitoringSectionTitleText);
+}
+
+.monitoring-status-card .status-card-subtitle {
+  color: var(--monitoringDescriptionText);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.monitoring-status-card .status-card-error {
+  color: #dc3545;
+}
+
+.monitoring-status-card .status-card-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.monitoring-status-card .status-progress-track {
+  flex: 1;
+  position: relative;
+  height: 8px;
+  background: rgba(59, 130, 246, 0.2);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.monitoring-status-card .status-progress-value {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 0;
+  background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 100%);
+  transition: width 20s ease;
+}
+
+.monitoring-status-card .status-progress-track.indeterminate .status-progress-value {
+  width: 50%;
+  animation: monitoring-progress-indeterminate 1.2s ease-in-out infinite;
+}
+
+@keyframes monitoring-progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.monitoring-status-card .status-card-progress-text {
+  font-weight: 600;
+  color: var(--monitoringSectionTitleText);
+}
+
+.monitoring-status-card .status-card-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--monitoringDescriptionText);
+}
+
+.monitoring-status-card .status-card-hint i {
+  font-size: 14px;
+  color: var(--monitoringSummaryIconColor, var(--monitoringSectionTitleText));
+}
+
+.monitoring-status-card .status-card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.monitoring-status-card.pending .status-card-icon,
+.monitoring-status-card.in-progress .status-card-icon {
+  color: #0d6efd;
+}
+
+.monitoring-status-card.pending,
+.monitoring-status-card.in-progress {
+  border-left: 4px solid #0d6efd;
+}
+
+.monitoring-status-card.completed .status-card-icon {
+  color: #198754;
+}
+
+.monitoring-status-card.completed {
+  border-left: 4px solid #198754;
+}
+
+.monitoring-status-card.failed .status-card-icon {
+  color: #dc3545;
+}
+
+.monitoring-status-card.failed {
+  border-left: 4px solid #dc3545;
+}
+
 .monitoring-content {
   margin-top: 20px;
 }
@@ -1063,9 +1212,22 @@
   border-bottom: 1px solid var(--monitoringDevicesSectionBorder);
 }
 
+.report-message-main.report-latest i {
+  color: #22c55e;
+}
+
 .report-message-main i {
   color: var(--monitoringPathLevelBackground);
   font-size: 0.9em;
+}
+
+.report-badge-new {
+  background-color: #16a34a;
+  color: #fff;
+  font-size: 0.7em;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  text-transform: uppercase;
 }
 
 .report-details {

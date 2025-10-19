@@ -1,11 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { MonitoringService, MonitorUserResponse, MonitoringSummary } from '../../../../../../core/services/monitoring.service';
+import { MonitoringService, MonitorUserResponse, MonitoringStatus, MonitoringSummary } from '../../../../../../core/services/monitoring.service';
 import { UserService } from '../../../../../../core/services/user.service';
 import { ProtocolsService } from '../../../../../../core/services/protocols.service';
 import { User } from '../../../../../../core/interfaces/user.interface';
 import { TranslateService } from '@ngx-translate/core';
 import * as ExcelJS from 'exceljs';
+import { interval, Subscription } from 'rxjs';
+import { startWith, switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-monitoring',
@@ -13,13 +15,14 @@ import * as ExcelJS from 'exceljs';
   styleUrls: ['./monitoring.component.css'],
   standalone: false
 })
-export class MonitoringComponent implements OnInit {
+export class MonitoringComponent implements OnInit, OnDestroy {
   userEmail: string = '';
   userId: string = '';
   monitoringResult: MonitorUserResponse | null = null;
   monitoringSummaries: MonitoringSummary[] = [];
   latestSummary: MonitoringSummary | null = null;
   loading: boolean = false;
+  reportGenerationStatus: MonitoringStatus | null = null;
   searchingUser: boolean = false;
   error: string = '';
   userFound: boolean = false;
@@ -80,10 +83,190 @@ export class MonitoringComponent implements OnInit {
   private _expirationFromDate: Date | null = null;
   private _expirationToDate: Date | null = null;
 
+  private statusPollingSubscription: Subscription | null = null;
+  private readonly statusPollingIntervalMs = 10000;
+  private currentStatusRequestId: string | null = null;
+  private monitoringRequestStartTimestamp: number | null = null;
+  cancellingStatus: boolean = false;
+
 
 
   get selectedStatusFilter(): string {
     return this._selectedStatusFilter;
+  }
+
+  private startStatusPolling(userId: string, initialStatus: MonitoringStatus | null = null, startTimestamp?: number): void {
+    if (!userId) {
+      return;
+    }
+
+    this.stopStatusPolling();
+    if (initialStatus) {
+      this.reportGenerationStatus = initialStatus;
+      this.currentStatusRequestId = initialStatus.requestId || null;
+    } else {
+      this.reportGenerationStatus = null;
+      this.currentStatusRequestId = null;
+    }
+
+    if (typeof startTimestamp === 'number') {
+      this.monitoringRequestStartTimestamp = startTimestamp;
+    } else if (!this.monitoringRequestStartTimestamp) {
+      this.monitoringRequestStartTimestamp = Date.now();
+    }
+
+    this.statusPollingSubscription = interval(this.statusPollingIntervalMs)
+      .pipe(
+        startWith(0),
+        switchMap(() => this.monitoringService.getMonitoringStatus(userId))
+      )
+      .subscribe({
+        next: (status) => {
+          if (!status || status.status === 'idle') {
+            this.currentStatusRequestId = null;
+            if (this.reportGenerationStatus?.status !== 'pending') {
+              this.reportGenerationStatus = null;
+              this.monitoringRequestStartTimestamp = null;
+            }
+            return;
+          }
+
+          if (this.monitoringRequestStartTimestamp && status.updatedAt) {
+            const statusUpdatedAt = new Date(status.updatedAt).getTime();
+            if (statusUpdatedAt < this.monitoringRequestStartTimestamp) {
+              return;
+            }
+          }
+
+          if (!this.currentStatusRequestId && status.requestId) {
+            this.currentStatusRequestId = status.requestId;
+          }
+
+          if (status.requestId && this.currentStatusRequestId && status.requestId !== this.currentStatusRequestId) {
+            // Ignore previous status records when a new request is being tracked
+            if (status.status === 'completed' || status.status === 'failed') {
+              return;
+            }
+            this.currentStatusRequestId = status.requestId;
+          }
+
+          if (
+            (status.status === 'completed' || status.status === 'failed') &&
+            (!status.requestId || !this.currentStatusRequestId || status.requestId === this.currentStatusRequestId)
+          ) {
+            if (status.status === 'completed') {
+              this.clearMonitoringStatus({
+                requestId: status.requestId,
+                refreshSummaries: true,
+                stopPolling: false
+              });
+              return;
+            }
+
+            this.clearMonitoringStatus({
+              requestId: status.requestId,
+              stopPolling: false
+            });
+            return;
+          }
+
+          if (!this.monitoringRequestStartTimestamp) {
+            this.monitoringRequestStartTimestamp = status.updatedAt
+              ? new Date(status.updatedAt).getTime()
+              : Date.now();
+          }
+
+          this.reportGenerationStatus = status;
+        },
+        error: (error) => {
+          console.error('Monitoring status polling error:', error);
+          this.currentStatusRequestId = null;
+        }
+      });
+  }
+  private stopStatusPolling = (): void => {
+    if (this.statusPollingSubscription) {
+      this.statusPollingSubscription.unsubscribe();
+      this.statusPollingSubscription = null;
+    }
+    this.monitoringRequestStartTimestamp = null;
+  };
+
+  private clearMonitoringStatus(options: { requestId?: string | null; refreshSummaries?: boolean; stopPolling?: boolean } = {}): void {
+    const { requestId, refreshSummaries = false, stopPolling = false } = options;
+
+    if (stopPolling) {
+      this.stopStatusPolling();
+    }
+
+    const id = requestId || this.currentStatusRequestId;
+
+    const finalize = () => {
+      this.reportGenerationStatus = null;
+      this.currentStatusRequestId = null;
+      this.cancellingStatus = false;
+      if (!stopPolling) {
+        this.monitoringRequestStartTimestamp = null;
+      }
+      if (refreshSummaries && this.userId) {
+        this.fetchMonitoringSummaries(this.userId, true);
+      }
+    };
+
+    if (!id) {
+      finalize();
+      return;
+    }
+
+    this.monitoringService.cancelMonitoringStatus(id).subscribe({
+      next: finalize,
+      error: (error) => {
+        console.error('Error clearing monitoring status:', error);
+        finalize();
+      }
+    });
+  }
+
+  private buildPendingMonitoringStatus(userId: string): MonitoringStatus {
+    return {
+      userId,
+      status: 'pending',
+      processedUsers: 0,
+      totalUsers: 0,
+      progress: 0,
+      message: this.translate.instant('MONITORING.STATUS_PREPARING')
+    } as MonitoringStatus;
+  }
+
+  private checkMonitoringStatus(userId: string, startPollingAfterFetch: boolean = false): void {
+    if (!userId) {
+      return;
+    }
+
+    this.monitoringService.getMonitoringStatus(userId).subscribe({
+      next: (status) => {
+        if (!status || status.status === 'idle') {
+          this.currentStatusRequestId = null;
+          if (this.reportGenerationStatus?.status !== 'pending') {
+            this.reportGenerationStatus = null;
+          }
+          return;
+        }
+
+        this.reportGenerationStatus = status;
+        this.currentStatusRequestId = status.requestId || null;
+
+        if (startPollingAfterFetch && !this.statusPollingSubscription) {
+          const resumeTimestamp = status.updatedAt
+            ? new Date(status.updatedAt).getTime()
+            : Date.now();
+          this.startStatusPolling(userId, status, resumeTimestamp);
+        }
+      },
+      error: (error) => {
+        console.error('Monitoring status fetch error:', error);
+      }
+    });
   }
 
   set selectedStatusFilter(value: string) {
@@ -198,6 +381,10 @@ export class MonitoringComponent implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    this.stopStatusPolling();
+  }
+
   searchUserByEmail(): void {
     if (!this.userEmail || !this.userEmail.trim()) {
       this.error = this.translate.instant('MONITORING.ENTER_VALID_EMAIL');
@@ -236,20 +423,26 @@ export class MonitoringComponent implements OnInit {
 
     // Close the modal and start monitoring
     this.showUserSearchModal = false;
-    this.loading = true;
     this.error = '';
+    this.monitoringResult = null;
+    this.monitoringRequestStartTimestamp = Date.now();
+    const pendingStatus = this.buildPendingMonitoringStatus(this.userId);
+    this.reportGenerationStatus = pendingStatus;
+    this.currentStatusRequestId = null;
+    this.startStatusPolling(this.userId, pendingStatus, this.monitoringRequestStartTimestamp);
 
     this.monitoringService.monitorUser(this.userId).subscribe({
       next: (result) => {
-        this.monitoringResult = result;
-        this.loading = false;
+        if (result?.statusRequestId) {
+          this.currentStatusRequestId = result.statusRequestId;
+        }
         console.log('Monitoring result:', result);
         this.fetchMonitoringSummaries(this.userId);
       },
       error: (error) => {
         this.error = 'Error monitoring user: ' + error.message;
-        this.loading = false;
         console.error('Monitoring error:', error);
+        this.stopStatusPolling();
       }
     });
   }
@@ -262,20 +455,26 @@ export class MonitoringComponent implements OnInit {
 
     // Close the modal and start monitoring
     this.showUserSearchModal = false;
-    this.loading = true;
     this.error = '';
+    this.monitoringResult = null;
+    this.monitoringRequestStartTimestamp = Date.now();
+    const pendingStatus = this.buildPendingMonitoringStatus(this.userId);
+    this.reportGenerationStatus = pendingStatus;
+    this.currentStatusRequestId = null;
+    this.startStatusPolling(this.userId, pendingStatus, this.monitoringRequestStartTimestamp);
 
     this.monitoringService.monitorUser(this.userId).subscribe({
       next: (result) => {
-        this.monitoringResult = result;
-        this.loading = false;
+        if (result?.statusRequestId) {
+          this.currentStatusRequestId = result.statusRequestId;
+        }
         console.log('Monitoring result:', result);
         this.fetchMonitoringSummaries(this.userId);
       },
       error: (error) => {
         this.error = 'Error monitoring user: ' + error.message;
-        this.loading = false;
         console.error('Monitoring error:', error);
+        this.stopStatusPolling();
       }
     });
   }
@@ -313,7 +512,7 @@ export class MonitoringComponent implements OnInit {
     });
   }
 
-  private fetchMonitoringSummaries(userId: string, showLoader: boolean = false): void {
+  private fetchMonitoringSummaries(userId: string, showLoader: boolean = false, checkStatus: boolean = false): void {
     if (!userId) {
       return;
     }
@@ -334,6 +533,9 @@ export class MonitoringComponent implements OnInit {
         this.latestSummary = summaries.length > 0 ? summaries[0] : null;
         this.userMonitoringReports = summaries;
         this.selectedUserReports = summaries;
+        if (checkStatus) {
+          this.checkMonitoringStatus(userId, true);
+        }
         if (showLoader) {
           this.loadingReports = false;
         }
@@ -342,6 +544,9 @@ export class MonitoringComponent implements OnInit {
         console.error('Monitoring summary error:', error);
         if (showLoader) {
           this.loadingReports = false;
+        }
+        if (checkStatus) {
+          this.checkMonitoringStatus(userId, true);
         }
       }
     });
@@ -358,6 +563,9 @@ export class MonitoringComponent implements OnInit {
     this.latestSummary = null;
     this.userMonitoringReports = [];
     this.selectedUserReports = [];
+    this.reportGenerationStatus = null;
+    this.currentStatusRequestId = null;
+    this.stopStatusPolling();
   }
 
   private loadProtocols(): void {
@@ -372,11 +580,71 @@ export class MonitoringComponent implements OnInit {
   }
 
   private loadUserMonitoringReports(userId: string): void {
-    this.fetchMonitoringSummaries(userId, true);
+    this.fetchMonitoringSummaries(userId, true, true);
   }
 
   private loadSelectedUserReports(userId: string): void {
-    this.fetchMonitoringSummaries(userId, true);
+    this.fetchMonitoringSummaries(userId, true, true);
+  }
+
+  getMonitoringStatusTitle(status: MonitoringStatus | null): string {
+    if (!status) {
+      return '';
+    }
+
+    switch (status.status) {
+      case 'pending':
+        return this.translate.instant('MONITORING.STATUS_PENDING');
+      case 'in-progress':
+        return this.translate.instant('MONITORING.STATUS_IN_PROGRESS', {
+          processed: status.processedUsers ?? 0,
+          total: status.totalUsers ?? 0
+        });
+      case 'failed':
+        return this.translate.instant('MONITORING.STATUS_FAILED');
+      default:
+        return this.translate.instant('MONITORING.STATUS_PENDING');
+    }
+  }
+
+  getMonitoringStatusIcon(status: MonitoringStatus | null): string {
+    if (!status) {
+      return '';
+    }
+
+    switch (status.status) {
+      case 'completed':
+        return 'pi pi-check-circle';
+      case 'failed':
+        return 'pi pi-exclamation-triangle';
+      default:
+        return 'pi pi-spinner pi-spin';
+    }
+  }
+
+  getStatusCreatorLabel(status: MonitoringStatus | null): string | null {
+    const creator = status?.creator as any;
+    if (!creator) {
+      return null;
+    }
+
+    const nameParts = [creator?.name, creator?.last_name].filter(Boolean);
+    const name = nameParts.join(' ').trim();
+    const email = (creator?.email ?? '').trim();
+
+    if (name && email) {
+      return `${name} (${email})`;
+    }
+
+    if (name) {
+      return name;
+    }
+
+    if (email) {
+      return email;
+    }
+
+    return null;
   }
 
   getProtocolName(deviceType: string): string {
@@ -629,7 +897,7 @@ export class MonitoringComponent implements OnInit {
       device?.traccarInfo?.['lastUpdate'];
 
     if (!lastUpdate) {
-      return 'Fuera de línea (sin fecha de actualización)';
+      return 'Fuera de línea (estado inicial)';
     }
 
     return this.formatOfflineDuration(lastUpdate);
@@ -827,6 +1095,22 @@ export class MonitoringComponent implements OnInit {
     }
   }
 
+  isReportNew(dateString: string | Date): boolean {
+    if (!dateString) {
+      return false;
+    }
+
+    const reportDate = new Date(dateString);
+    if (isNaN(reportDate.getTime())) {
+      return false;
+    }
+
+    const now = new Date();
+    const diffInMs = now.getTime() - reportDate.getTime();
+    const diffInMinutes = diffInMs / (1000 * 60);
+    return diffInMinutes <= 5;
+  }
+
   openReport(reportId: string): void {
     console.log('Opening report:', reportId);
     this.loading = true;
@@ -850,6 +1134,20 @@ export class MonitoringComponent implements OnInit {
     this.monitoringResult = null;
     this.error = '';
     console.log('Back to reports list');
+  }
+
+  cancelMonitoringStatus(): void {
+    const requestId = this.reportGenerationStatus?.requestId || this.currentStatusRequestId;
+    if (this.cancellingStatus || !requestId) {
+      return;
+    }
+
+    this.cancellingStatus = true;
+    this.clearMonitoringStatus({
+      requestId,
+      refreshSummaries: true,
+      stopPolling: false
+    });
   }
 
   trackByUser(index: number, userData: any): any {

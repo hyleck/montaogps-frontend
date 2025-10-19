@@ -52,6 +52,58 @@
 
   <!-- Monitoring Reports Section -->
   <div *ngIf="userMonitoringReports.length > 0 && !monitoringResult && !loadingReports && !loading" class="monitoring-reports-section">
+    <div
+      *ngIf="reportGenerationStatus && reportGenerationStatus.status !== 'idle'"
+      class="monitoring-status-card"
+      [ngClass]="reportGenerationStatus.status">
+      <div class="status-card-header">
+        <div class="status-card-icon">
+          <i [ngClass]="getMonitoringStatusIcon(reportGenerationStatus)"></i>
+        </div>
+        <div class="status-card-texts">
+          <span class="status-card-title">{{ getMonitoringStatusTitle(reportGenerationStatus) }}</span>
+          <span
+            class="status-card-subtitle"
+            *ngIf="getStatusCreatorLabel(reportGenerationStatus) as creatorLabel">
+            {{ 'MONITORING.STATUS_EXECUTED_BY' | translate:{ user: creatorLabel } }}
+          </span>
+          <span
+            class="status-card-subtitle status-card-error"
+            *ngIf="reportGenerationStatus?.error && reportGenerationStatus.status === 'failed'">
+            {{ reportGenerationStatus.error }}
+          </span>
+        </div>
+      </div>
+      <div class="status-card-progress" *ngIf="reportGenerationStatus.status !== 'failed'">
+          <div
+            class="status-progress-track"
+            [ngClass]="{ 'indeterminate': reportGenerationStatus.status === 'pending' }">
+            <div
+              class="status-progress-value"
+              [style.width.%]="reportGenerationStatus.status === 'in-progress' ? reportGenerationStatus.progress : 0">
+            </div>
+          </div>
+      </div>
+      <div
+        class="status-card-hint"
+        *ngIf="reportGenerationStatus.status === 'pending' || reportGenerationStatus.status === 'in-progress'">
+        <i class="pi pi-info-circle"></i>
+        <span>{{ 'MONITORING.STATUS_BACKGROUND_HINT' | translate }}</span>
+      </div>
+      <div
+        class="status-card-actions"
+        *ngIf="reportGenerationStatus.status === 'in-progress'">
+        <p-button
+          [label]="'MONITORING.STATUS_CANCEL_BUTTON' | translate"
+          icon="pi pi-times"
+          (onClick)="cancelMonitoringStatus()"
+          [loading]="cancellingStatus"
+          [disabled]="cancellingStatus"
+          styleClass="p-button-danger p-button-sm p-button-outlined">
+        </p-button>
+      </div>
+    </div>
+
     <!-- Current User Reports -->
     <div class="reports-container">
       <h3 class="reports-title">
@@ -59,10 +111,15 @@
         Tus Reportes de Monitoreo ({{ userMonitoringReports.length }})
       </h3>
       <div class="reports-grid">
-        <div *ngFor="let report of userMonitoringReports" class="report-card">
-          <div class="report-message-main">
-            <i class="pi pi-clock"></i>
+        <div *ngFor="let report of userMonitoringReports; let idx = index" class="report-card">
+          <div class="report-message-main" [ngClass]="{ 'report-latest': idx === 0 && !reportGenerationStatus }">
+            <i [ngClass]="idx === 0 && !reportGenerationStatus ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
             <span>Monitoreo registrado {{ getTimeAgo(report.createdAt) }}</span>
+            <span
+              *ngIf="idx === 0 && isReportNew(report.createdAt) && !reportGenerationStatus"
+              class="report-badge-new">
+              Nuevo
+            </span>
           </div>
           <div class="report-details">
             <div class="report-detail-item">
@@ -194,6 +251,59 @@
 
       <!-- Selected User Reports (shown in modal) -->
       <div *ngIf="selectedUserReports.length > 0" class="selected-user-reports-modal">
+        <div
+          *ngIf="reportGenerationStatus && reportGenerationStatus.status !== 'idle'"
+          class="monitoring-status-card"
+          [ngClass]="reportGenerationStatus.status">
+          <div class="status-card-header">
+            <div class="status-card-icon">
+              <i [ngClass]="getMonitoringStatusIcon(reportGenerationStatus)"></i>
+            </div>
+            <div class="status-card-texts">
+              <span class="status-card-title">{{ getMonitoringStatusTitle(reportGenerationStatus) }}</span>
+              <span class="status-card-subtitle" *ngIf="reportGenerationStatus?.message">{{ reportGenerationStatus.message }}</span>
+              <span
+                class="status-card-subtitle"
+                *ngIf="getStatusCreatorLabel(reportGenerationStatus) as creatorLabel">
+                {{ 'MONITORING.STATUS_EXECUTED_BY' | translate:{ user: creatorLabel } }}
+              </span>
+              <span
+                class="status-card-subtitle status-card-error"
+                *ngIf="reportGenerationStatus?.error && reportGenerationStatus.status === 'failed'">
+                {{ reportGenerationStatus.error }}
+              </span>
+            </div>
+          </div>
+          <div class="status-card-progress" *ngIf="reportGenerationStatus.status !== 'failed'">
+            <div
+              class="status-progress-track"
+              [ngClass]="{ 'indeterminate': reportGenerationStatus.status === 'pending' }">
+              <div
+                class="status-progress-value"
+                [style.width.%]="reportGenerationStatus.status === 'in-progress' ? reportGenerationStatus.progress : 0">
+              </div>
+            </div>
+          </div>
+          <div
+            class="status-card-hint"
+            *ngIf="reportGenerationStatus.status === 'pending' || reportGenerationStatus.status === 'in-progress'">
+            <i class="pi pi-info-circle"></i>
+            <span>{{ 'MONITORING.STATUS_BACKGROUND_HINT' | translate }}</span>
+          </div>
+          <div
+            class="status-card-actions"
+            *ngIf="reportGenerationStatus.status === 'in-progress'">
+            <p-button
+              [label]="'MONITORING.STATUS_CANCEL_BUTTON' | translate"
+              icon="pi pi-times"
+              (onClick)="cancelMonitoringStatus()"
+              [loading]="cancellingStatus"
+              [disabled]="cancellingStatus"
+              styleClass="p-button-danger p-button-sm p-button-outlined">
+            </p-button>
+          </div>
+        </div>
+
         <div class="reports-summary">
           <i class="pi pi-chart-line"></i>
           <span class="reports-count">{{ selectedUserReports.length }} monitoreo{{ selectedUserReports.length !== 1 ? 's' : '' }} registrado{{ selectedUserReports.length !== 1 ? 's' : '' }}</span>

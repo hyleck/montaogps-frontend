@@ -12,6 +12,7 @@ export interface MonitoringRouteEntry {
 
 export interface MonitorUserResponse {
   message: string;
+  statusRequestId: string;
   data: Array<{
     route: MonitoringRouteEntry[];
     devices: any[];
@@ -59,6 +60,31 @@ export interface MonitoringReport {
   }>;
 }
 
+export type MonitoringStatusState = 'idle' | 'pending' | 'in-progress' | 'completed' | 'failed';
+
+export interface MonitoringStatus {
+  requestId?: string;
+  userId: string;
+  status: MonitoringStatusState;
+  processedUsers: number;
+  totalUsers: number;
+  progress: number;
+  message?: string;
+  error?: string;
+  reportId?: string | null;
+  startedAt?: string;
+  completedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  creator?: {
+    id?: string;
+    _id?: string;
+    name: string;
+    last_name: string;
+    email: string;
+  } | null;
+}
+
 export interface UserMonitoringReportsResponse {
   id: string;
   userId: string;
@@ -94,5 +120,15 @@ export class MonitoringService {
 
   getUserMonitoringReports(userId: string): Observable<MonitoringReport[]> {
     return this.http.get<MonitoringReport[]>(`${this.apiUrl}/user/${userId}/reports`);
+  }
+
+  getMonitoringStatus(userId: string): Observable<MonitoringStatus> {
+    return this.http.get<MonitoringStatus>(`${this.apiUrl}/status`, {
+      params: { userId }
+    });
+  }
+
+  cancelMonitoringStatus(requestId: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/status/${requestId}`);
   }
 }
