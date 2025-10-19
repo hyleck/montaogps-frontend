@@ -6,16 +6,7 @@
         {{ monitoringPanelTitle | titlecase }}
       </h2>
       <p class="header-subtitle">{{ monitoringPanelSubtitle }}</p>
-      <div class="header-meta" *ngIf="latestSummary">
-        <span class="header-meta-chip">
-          <i class="pi pi-users"></i>
-          {{ latestSummary.totalUsers }} {{ 'MONITORING.PANEL_META_USERS' | translate }}
-        </span>
-        <span class="header-meta-chip">
-          <i class="pi pi-table"></i>
-          {{ latestSummary.totalDevices }} {{ 'MONITORING.PANEL_META_DEVICES' | translate }}
-        </span>
-      </div>
+   
     </div>
     <div class="header-actions">
       <p-button
