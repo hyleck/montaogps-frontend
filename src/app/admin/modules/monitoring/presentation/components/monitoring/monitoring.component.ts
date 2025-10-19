@@ -95,6 +95,21 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return this._selectedStatusFilter;
   }
 
+  get monitoringPanelTitle(): string {
+    const fallback = this.translate.instant('MONITORING.DESCRIPTION');
+    const prefix = this.translate.instant('MONITORING.PANEL_PREFIX');
+
+    if (this.foundUserName) {
+      return `${prefix} ${this.foundUserName}`;
+    }
+
+    if (this.userEmail) {
+      return `${prefix} ${this.userEmail}`;
+    }
+
+    return fallback;
+  }
+
   private startStatusPolling(userId: string, initialStatus: MonitoringStatus | null = null, startTimestamp?: number): void {
     if (!userId) {
       return;

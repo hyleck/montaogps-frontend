@@ -149,7 +149,8 @@
       "STATUS_CANCEL_BUTTON": "Cancelar",
       "STATUS_PREPARING": "Iniciando el monitoreo, preparando recursos",
       "STATUS_BACKGROUND_HINT": "Puedes cambiar de página; el reporte seguirá ejecutándose en segundo plano",
-      "STATUS_EXECUTED_BY": "Proceso ejecutado por {{user}}"
+      "STATUS_EXECUTED_BY": "Proceso ejecutado por {{user}}",
+      "PANEL_PREFIX": "Panel de monitoreo de"
     },
     "navbar": {
       "scheduleProcess": "Programar proceso",
