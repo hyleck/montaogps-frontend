@@ -42,26 +42,122 @@
   margin-bottom: 20px;
 }
 
+
 .monitoring-summary .summary-card {
-  background-color: var(--monitoringDevicesSectionBackground);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  min-width: 220px;
+  background: var(--monitoringDevicesCardBackground);
+  box-shadow: 0 8px 20px var(--monitoringDevicesCardShadow, rgba(15, 23, 42, 0.12));
   border: 1px solid var(--monitoringDevicesSectionBorder);
-  border-radius: 8px;
-  padding: 16px 20px;
-  min-width: 180px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.monitoring-summary .summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px var(--monitoringDevicesCardHoverShadow, rgba(15, 23, 42, 0.18));
+}
+
+.summary-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background-color: var(--monitoringSummaryIconBackground, rgba(15, 23, 42, 0.05));
+}
+
+.summary-icon i {
+  font-size: 22px;
+  color: var(--monitoringSummaryIconColor, var(--monitoringSectionTitleText));
+}
+
+.summary-content {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
 .monitoring-summary .summary-label {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--monitoringDescriptionText);
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .monitoring-summary .summary-value {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
   color: var(--monitoringSectionTitleText);
+}
+
+.summary-users {
+  border-left: 4px solid var(--monitoringSummaryUsersBorder, #4a90e2);
+  background: var(--monitoringSummaryUsersCardBg, var(--monitoringDevicesCardBackground));
+}
+
+.summary-users .summary-icon {
+  background-color: var(--monitoringSummaryUsersIconBg, var(--monitoringSummaryIconBackground));
+}
+
+.summary-users .summary-icon i {
+  color: var(--monitoringSummaryUsersIconColor, var(--monitoringSummaryIconColor));
+}
+
+.summary-devices {
+  border-left: 4px solid var(--monitoringSummaryDevicesBorder, #1a9c1a);
+  background: var(--monitoringSummaryDevicesCardBg, var(--monitoringDevicesCardBackground));
+}
+
+.summary-devices .summary-icon {
+  background-color: var(--monitoringSummaryDevicesIconBg, var(--monitoringSummaryIconBackground));
+}
+
+.summary-devices .summary-icon i {
+  color: var(--monitoringSummaryDevicesIconColor, var(--monitoringSummaryIconColor));
+}
+
+.summary-active-online {
+  border-left: 4px solid var(--monitoringSummaryActiveOnlineBorder, #ffc107);
+  background: var(--monitoringSummaryActiveOnlineCardBg, var(--monitoringDevicesCardBackground));
+}
+
+.summary-active-online .summary-icon {
+  background-color: var(--monitoringSummaryActiveOnlineIconBg, var(--monitoringSummaryIconBackground));
+}
+
+.summary-active-online .summary-icon i {
+  color: var(--monitoringSummaryActiveOnlineIconColor, var(--monitoringSummaryIconColor));
+}
+
+.summary-active-offline {
+  border-left: 4px solid var(--monitoringSummaryActiveOfflineBorder, #9e9e9e);
+  background: var(--monitoringSummaryActiveOfflineCardBg, var(--monitoringDevicesCardBackground));
+}
+
+.summary-active-offline .summary-icon {
+  background-color: var(--monitoringSummaryActiveOfflineIconBg, var(--monitoringSummaryIconBackground));
+}
+
+.summary-active-offline .summary-icon i {
+  color: var(--monitoringSummaryActiveOfflineIconColor, var(--monitoringSummaryIconColor));
+}
+
+.summary-expired {
+  border-left: 4px solid var(--monitoringSummaryExpiredBorder, #ec4343);
+  background: var(--monitoringSummaryExpiredCardBg, var(--monitoringDevicesCardBackground));
+}
+
+.summary-expired .summary-icon {
+  background-color: var(--monitoringSummaryExpiredIconBg, var(--monitoringSummaryIconBackground));
+}
+
+.summary-expired .summary-icon i {
+  color: var(--monitoringSummaryExpiredIconColor, var(--monitoringSummaryIconColor));
 }
 
 .search-form {

@@ -494,6 +494,50 @@ export class MonitoringComponent implements OnInit {
       .filter(userData => userData.devices && userData.devices.length > 0); // Remove users with no devices after filtering
   }
 
+  get monitoringSummaryStats() {
+    const data = this.filteredMonitoringData;
+    let totalUsers = data.length;
+    let totalDevices = 0;
+    let activeDevices = 0;
+    let activeValidOnlineDevices = 0;
+    let activeValidOfflineDevices = 0;
+    let totalExpiredDevices = 0;
+
+    data.forEach(userData => {
+      const devices = userData.devices ?? [];
+      totalDevices += devices.length;
+
+      devices.forEach(device => {
+        const isActive = !!device.status;
+        const isOnline = this.isDeviceOnline(device);
+        const isValid = this.isValid(device.expiration_date);
+        const isExpired = this.isExpired(device.expiration_date);
+
+        if (isActive) {
+          activeDevices++;
+          if (isValid && isOnline) {
+            activeValidOnlineDevices++;
+          } else if (isValid && !isOnline) {
+            activeValidOfflineDevices++;
+          }
+        }
+
+        if (isExpired) {
+          totalExpiredDevices++;
+        }
+      });
+    });
+
+    return {
+      totalUsers,
+      totalDevices,
+      activeDevices,
+      activeValidOnlineDevices,
+      activeValidOfflineDevices,
+      totalExpiredDevices
+    };
+  }
+
   formatExpirationDate(expirationDate: Date | string): string {
     if (!expirationDate) {
       return '-';

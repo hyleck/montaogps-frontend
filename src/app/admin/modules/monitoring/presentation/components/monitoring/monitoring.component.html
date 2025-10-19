@@ -369,14 +369,51 @@
   <!-- Monitoring Results -->
   <div *ngIf="monitoringResult && !loading" class="monitoring-content">
     <ng-container *ngIf="filteredMonitoringData as monitoringData">
-    <div class="monitoring-summary" *ngIf="monitoringData.length > 0">
-      <div class="summary-card">
-        <span class="summary-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}</span>
-        <span class="summary-value">{{ latestSummary?.totalUsers ?? monitoringData.length }}</span>
+    <div class="monitoring-summary" *ngIf="monitoringResult">
+      <div class="summary-card summary-users">
+        <div class="summary-icon">
+          <i class="pi pi-users"></i>
+        </div>
+        <div class="summary-content">
+          <span class="summary-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}</span>
+          <span class="summary-value">{{ monitoringSummaryStats.totalUsers }}</span>
+        </div>
       </div>
-      <div class="summary-card">
-        <span class="summary-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}</span>
-        <span class="summary-value">{{ latestSummary?.totalDevices ?? getTotalDevices(monitoringData) }}</span>
+      <div class="summary-card summary-devices">
+        <div class="summary-icon">
+          <i class="pi pi-table"></i>
+        </div>
+        <div class="summary-content">
+          <span class="summary-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}</span>
+          <span class="summary-value">{{ monitoringSummaryStats.totalDevices }}</span>
+        </div>
+      </div>
+      <div class="summary-card summary-active-online">
+        <div class="summary-icon">
+          <i class="pi pi-wifi"></i>
+        </div>
+        <div class="summary-content">
+          <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_ONLINE_DEVICES' | translate }}</span>
+          <span class="summary-value">{{ monitoringSummaryStats.activeValidOnlineDevices }}</span>
+        </div>
+      </div>
+      <div class="summary-card summary-active-offline">
+        <div class="summary-icon">
+          <i class="pi pi-ban"></i>
+        </div>
+        <div class="summary-content">
+          <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_OFFLINE_DEVICES' | translate }}</span>
+          <span class="summary-value">{{ monitoringSummaryStats.activeValidOfflineDevices }}</span>
+        </div>
+      </div>
+      <div class="summary-card summary-expired">
+        <div class="summary-icon">
+          <i class="pi pi-calendar-times"></i>
+        </div>
+        <div class="summary-content">
+          <span class="summary-label">{{ 'MONITORING.SUMMARY_EXPIRED_DEVICES' | translate }}</span>
+          <span class="summary-value">{{ monitoringSummaryStats.totalExpiredDevices }}</span>
+        </div>
       </div>
     </div>
 
