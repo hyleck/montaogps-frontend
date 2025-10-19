@@ -613,8 +613,8 @@
                                                 <i class="pi pi-map-marker" 
                                                    [ngClass]="{
                                                      'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
-                                                   }"></i> 
-                                                <span class="target-name" [ngClass]="{'target-inactive': !target.originalTarget?.status}">{{target.name}}</span>
+                                                   }"> </i> 
+                                                 <span class="target-name" [ngClass]="{'target-inactive': !target.originalTarget?.status}"> {{target.name}}</span>
                                                 
                                                 <i *ngIf="target.isShared" 
                                                    class="pi pi-share-alt target-shared-indicator" 

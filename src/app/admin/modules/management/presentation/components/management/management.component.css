@@ -2150,6 +2150,7 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 .expiration-normal {
   color: #16a34a !important; /* Verde intenso */
   font-weight: 500;
+  background: linear-gradient(135deg, rgba(71, 250, 21, 0.039), rgba(93, 250, 21, 0));
 }
 
 .dark .expiration-normal {
@@ -2237,6 +2238,13 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   font-weight: 600;
   font-size: 10px;
   display: block;
+  text-align: center;
+  line-height: 1.2;
+  opacity: 0.9;
+}
+
+.expiration-normal, .expiration-warning {
+ 
   text-align: center;
   line-height: 1.2;
   opacity: 0.9;
