@@ -150,7 +150,10 @@
       "STATUS_PREPARING": "Iniciando el monitoreo, preparando recursos",
       "STATUS_BACKGROUND_HINT": "Puedes cambiar de página; el reporte seguirá ejecutándose en segundo plano",
       "STATUS_EXECUTED_BY": "Proceso ejecutado por {{user}}",
-      "PANEL_PREFIX": "Panel de monitoreo de"
+      "PANEL_PREFIX": "Panel de monitoreo de",
+      "PANEL_SUBTITLE_DEFAULT": "Selecciona un usuario para comenzar un nuevo monitoreo.",
+      "PANEL_META_USERS": "usuarios",
+      "PANEL_META_DEVICES": "dispositivos"
     },
     "navbar": {
       "scheduleProcess": "Programar proceso",
