@@ -111,7 +111,7 @@
   bottom: 0;
   width: 0;
   background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 100%);
-  transition: width 20s ease;
+  transition: width 10s ease;
 }
 
 .monitoring-status-card .status-progress-track.indeterminate .status-progress-value {

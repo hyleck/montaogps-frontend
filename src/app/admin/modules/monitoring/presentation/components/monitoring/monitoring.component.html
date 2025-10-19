@@ -51,7 +51,7 @@
   </div>
 
   <!-- Monitoring Reports Section -->
-  <div *ngIf=" !loadingReports && !loading" class="monitoring-reports-section">
+  <div *ngIf=" !monitoringResult && !loadingReports && !loading" class="monitoring-reports-section">
     <div
       *ngIf="reportGenerationStatus && reportGenerationStatus.status !== 'idle'"
       class="monitoring-status-card"
