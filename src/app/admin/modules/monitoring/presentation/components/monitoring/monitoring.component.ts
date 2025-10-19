@@ -880,6 +880,52 @@ export class MonitoringComponent implements OnInit {
 
     let currentRow = 1; // Start from row 1
 
+    // Add summary header for current filters
+    const summary = this.monitoringSummaryStats;
+    if (summary.totalUsers > 0 || summary.totalDevices > 0) {
+      const summaryTitle = worksheet.addRow({
+        col1: '',
+        col2: 'Resumen del monitoreo (según filtros aplicados)'
+      });
+      summaryTitle.getCell(2).font = {
+        bold: true,
+        color: { argb: 'FF1F2937' },
+        size: 14
+      };
+      currentRow = summaryTitle.number + 1;
+
+      const summaryRows = [
+        { label: 'Usuarios encontrados', value: summary.totalUsers },
+        { label: 'Dispositivos encontrados', value: summary.totalDevices },
+        { label: 'Dispositivos activos', value: summary.activeDevices },
+        { label: 'Vigentes en línea', value: summary.activeValidOnlineDevices },
+        { label: 'Vigentes fuera de línea', value: summary.activeValidOfflineDevices },
+        { label: 'Dispositivos expirados', value: summary.totalExpiredDevices }
+      ];
+
+      summaryRows.forEach(item => {
+        const row = worksheet.addRow({
+          col1: '',
+          col2: item.label,
+          col3: item.value
+        });
+
+        row.getCell(2).font = {
+          bold: true,
+          color: { argb: 'FF374151' }
+        };
+        row.getCell(3).font = {
+          color: { argb: 'FF111827' }
+        };
+        row.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
+        row.getCell(3).alignment = { horizontal: 'left', vertical: 'middle' };
+        currentRow = row.number + 1;
+      });
+
+      const spacerRow = worksheet.addRow({});
+      currentRow = spacerRow.number + 1;
+    }
+
     // Process each user
     this.filteredMonitoringData.forEach((userData, userIndex) => {
       // Add user route as title
