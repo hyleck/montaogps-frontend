@@ -18,12 +18,54 @@
 
 .header-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.header-content p {
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0;
+  font-size: 23px;
+  font-weight: 700;
+  color: var(--monitoringSectionTitleText);
+}
+
+.header-title i {
+  font-size: 22px;
+  color: #3b82f6;
+}
+
+.header-subtitle {
+  margin: 0;
+  opacity: 0.5;
   color: var(--monitoringDescriptionText);
-  font-size: 16px;
+  font-size: 15px;
+}
+
+.header-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.header-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--monitoringSectionTitleText);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.header-meta-chip i {
+  color: #2563eb;
 }
 
 .header-actions {

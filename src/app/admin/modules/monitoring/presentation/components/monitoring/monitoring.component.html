@@ -1,7 +1,21 @@
 <div class="monitoring-container">
   <div class="monitoring-header">
     <div class="header-content">
-      <p>{{ monitoringPanelTitle }}</p>
+      <h2 class="header-title">
+        <i class="pi pi-chart-bar"></i>
+        {{ monitoringPanelTitle | titlecase }}
+      </h2>
+      <p class="header-subtitle">{{ monitoringPanelSubtitle }}</p>
+      <div class="header-meta" *ngIf="latestSummary">
+        <span class="header-meta-chip">
+          <i class="pi pi-users"></i>
+          {{ latestSummary.totalUsers }} {{ 'MONITORING.PANEL_META_USERS' | translate }}
+        </span>
+        <span class="header-meta-chip">
+          <i class="pi pi-table"></i>
+          {{ latestSummary.totalDevices }} {{ 'MONITORING.PANEL_META_DEVICES' | translate }}
+        </span>
+      </div>
     </div>
     <div class="header-actions">
       <p-button
@@ -108,7 +122,7 @@
     <div class="reports-container">
       <h3 class="reports-title">
         <i class="pi pi-chart-line"></i>
-        Tus Reportes de Monitoreo ({{ userMonitoringReports.length }})
+        Reportes de Monitoreo ({{ userMonitoringReports.length }})
       </h3>
       <div class="reports-grid">
         <div *ngFor="let report of userMonitoringReports; let idx = index" class="report-card">

@@ -110,6 +110,14 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return fallback;
   }
 
+  get monitoringPanelSubtitle(): string {
+    if (this.userEmail) {
+      return this.userEmail;
+    }
+
+    return this.translate.instant('MONITORING.PANEL_SUBTITLE_DEFAULT');
+  }
+
   private startStatusPolling(userId: string, initialStatus: MonitoringStatus | null = null, startTimestamp?: number): void {
     if (!userId) {
       return;
