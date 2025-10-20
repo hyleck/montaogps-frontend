@@ -84,9 +84,12 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   private _selectedProfileFilter: string = '';
   private _selectedProtocolFilter: string = '';
   private _selectedSimCompanyFilter: string = '';
+  private _selectedActivationFilter: string = 'all';
   private _selectedAccountSizeFilter: number | null = null;
   private _expirationFromDate: Date | null = null;
   private _expirationToDate: Date | null = null;
+  private _activationFromDate: Date | null = null;
+  private _activationToDate: Date | null = null;
 
   private statusPollingSubscription: Subscription | null = null;
   private readonly statusPollingIntervalMs = 10000;
@@ -376,6 +379,16 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
   }
 
+  get selectedActivationFilter(): string {
+    return this._selectedActivationFilter;
+  }
+
+  set selectedActivationFilter(value: string) {
+    if (this._selectedActivationFilter !== value) {
+      this._selectedActivationFilter = value;
+    }
+  }
+
   get selectedAccountSizeFilter(): number | null {
     return this._selectedAccountSizeFilter;
   }
@@ -400,6 +413,22 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   set expirationToDate(value: string) {
     this._expirationToDate = value ? new Date(value) : null;
+  }
+
+  get activationFromDate(): string {
+    return this._activationFromDate ? this.formatDateForInput(this._activationFromDate) : '';
+  }
+
+  set activationFromDate(value: string) {
+    this._activationFromDate = value ? new Date(value) : null;
+  }
+
+  get activationToDate(): string {
+    return this._activationToDate ? this.formatDateForInput(this._activationToDate) : '';
+  }
+
+  set activationToDate(value: string) {
+    this._activationToDate = value ? new Date(value) : null;
   }
 
   private formatDateForInput(date: Date): string {
@@ -625,6 +654,9 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     this.currentStatusRequestId = null;
     this.selectedProtocolFilter = '';
     this.selectedSimCompanyFilter = '';
+    this.selectedActivationFilter = 'all';
+    this._activationFromDate = null;
+    this._activationToDate = null;
     this.selectedAccountSizeFilter = null;
     this.stopStatusPolling();
   }
@@ -777,6 +809,16 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           });
         }
 
+        if (this._selectedActivationFilter === 'range') {
+          filteredDevices = filteredDevices.filter(device => {
+            const activationDate = device?.activation_date;
+            if (!activationDate) {
+              return false;
+            }
+            return this.isDateInRange(activationDate, this._activationFromDate, this._activationToDate);
+          });
+        }
+
         // Apply status filter
         if (this._selectedStatusFilter && this._selectedStatusFilter !== '') {
           switch (this._selectedStatusFilter) {
@@ -908,6 +950,23 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
 
     const date = new Date(expirationDate);
+    if (isNaN(date.getTime())) {
+      return '-';
+    }
+
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+
+  formatActivationDate(activationDate: Date | string): string {
+    if (!activationDate) {
+      return '-';
+    }
+
+    const date = new Date(activationDate);
     if (isNaN(date.getTime())) {
       return '-';
     }
@@ -1273,7 +1332,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       { key: 'col5', width: 12 },
       { key: 'col6', width: 15 },
       { key: 'col7', width: 15 },
-      { key: 'col8', width: 15 }
+      { key: 'col8', width: 15 },
+      { key: 'col9', width: 15 }
     ];
 
     let currentRow = 1; // Start from row 1
@@ -1344,7 +1404,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col5: '',
         col6: '',
         col7: '',
-        col8: ''
+        col8: '',
+        col9: ''
       });
 
       // Style user title
@@ -1361,7 +1422,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       titleRow.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
 
       // Merge cells for title
-      worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
+      worksheet.mergeCells(`B${currentRow}:I${currentRow}`);
       currentRow++;
 
       // Add hierarchy info
@@ -1373,7 +1434,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col5: '',
         col6: '',
         col7: '',
-        col8: ''
+        col8: '',
+        col9: ''
       });
 
       hierarchyRow.getCell(2).font = {
@@ -1381,7 +1443,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         color: { argb: 'FF666666' },
         size: 11
       };
-      worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
+      worksheet.mergeCells(`B${currentRow}:I${currentRow}`);
       currentRow++;
 
       // Add device count
@@ -1393,7 +1455,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col5: '',
         col6: '',
         col7: '',
-        col8: ''
+        col8: '',
+        col9: ''
       });
 
       deviceCountRow.getCell(2).font = {
@@ -1401,7 +1464,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         color: { argb: 'FF333333' },
         size: 11
       };
-      worksheet.mergeCells(`B${currentRow}:H${currentRow}`);
+      worksheet.mergeCells(`B${currentRow}:I${currentRow}`);
       currentRow++;
 
       // Add empty row for spacing
@@ -1413,7 +1476,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col5: '',
         col6: '',
         col7: '',
-        col8: ''
+        col8: '',
+        col9: ''
       });
       currentRow++;
 
@@ -1425,8 +1489,9 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col4: 'Protocolo',
         col5: 'Estado',
         col6: 'Conexión',
-        col7: 'Fecha Expiración',
-        col8: 'Número SIM'
+        col7: 'Fecha Instalación',
+        col8: 'Fecha Expiración',
+        col9: 'Número SIM'
       });
 
       // Style header row
@@ -1462,8 +1527,9 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           col4: this.getProtocolName(device.type) || '',
           col5: device.status ? 'Activo' : 'Inactivo',
           col6: this.getConnectionDisplay(device),
-          col7: this.formatExpirationDate(device.expiration_date) || '',
-          col8: device.sim_card_number || ''
+          col7: this.formatActivationDate(device.activation_date) || '',
+          col8: this.formatExpirationDate(device.expiration_date) || '',
+          col9: device.sim_card_number || ''
         });
 
         // Style data row
@@ -1544,7 +1610,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         }
 
         // Special styling for expiration column (column G - Fecha Expiración)
-        const expirationCell = dataRow.getCell(7);
+        const expirationCell = dataRow.getCell(8);
         if (device.expiration_date) {
           if (this.isExpired(device.expiration_date)) {
             expirationCell.fill = {

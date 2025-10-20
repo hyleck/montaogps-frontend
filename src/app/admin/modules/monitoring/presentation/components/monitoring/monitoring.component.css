@@ -68,6 +68,23 @@
   color: #2563eb;
 }
 
+.filters-subsection {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 8px;
+  background: var(--monitoringDevicesSectionBackground);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filters-subsection-title {
+  font-weight: 600;
+  color: var(--monitoringSectionTitleText);
+  margin: 0;
+}
+
 .header-actions {
   display: flex;
   gap: 10px;
@@ -796,6 +813,10 @@
 .sim-company-badge {
   font-size: 0.75rem !important;
   padding: 2px 6px !important;
+}
+
+.activation-date {
+  font-weight: 500;
 }
 
 .expiration-date {

@@ -494,6 +494,38 @@
           </select>
         </div>
 
+        <div class="filters-subsection">
+          <div class="filters-subsection-title">{{ 'MONITORING.FILTERS_ACTIVATION_SECTION' | translate }}</div>
+
+          <div class="field">
+            <label>{{ 'MONITORING.FILTERS_ACTIVATION' | translate }}</label>
+            <select
+              [(ngModel)]="selectedActivationFilter"
+              class="filter-select">
+              <option value="all">{{ 'MONITORING.FILTERS_ACTIVATION_ALL' | translate }}</option>
+              <option value="range">{{ 'MONITORING.FILTERS_ACTIVATION_RANGE' | translate }}</option>
+            </select>
+          </div>
+
+          <div class="field" *ngIf="selectedActivationFilter === 'range'">
+            <label>{{ 'MONITORING.FILTERS_ACTIVATION_FROM' | translate }}</label>
+            <input
+              type="date"
+              [(ngModel)]="activationFromDate"
+              class="date-input"
+              [placeholder]="'MONITORING.FILTERS_ACTIVATION_FROM' | translate">
+          </div>
+
+          <div class="field" *ngIf="selectedActivationFilter === 'range'">
+            <label>{{ 'MONITORING.FILTERS_ACTIVATION_TO' | translate }}</label>
+            <input
+              type="date"
+              [(ngModel)]="activationToDate"
+              class="date-input"
+              [placeholder]="'MONITORING.FILTERS_ACTIVATION_TO' | translate">
+          </div>
+        </div>
+
         <div class="field" *ngIf="selectedConnectionFilter === 'offline'">
           <label>{{ 'MONITORING.FILTERS_OFFLINE_DURATION' | translate }}</label>
           <select
@@ -506,33 +538,37 @@
           </select>
         </div>
 
-        <div class="field">
-          <label>{{ 'MONITORING.FILTERS_EXPIRATION' | translate }}</label>
-          <select
-            [(ngModel)]="selectedExpirationFilter"
-            class="filter-select">
-            <option value="">{{ 'MONITORING.FILTERS_ALL_EXPIRATIONS' | translate }}</option>
-            <option value="valid">{{ 'MONITORING.FILTERS_VALID' | translate }}</option>
-            <option value="expired">{{ 'MONITORING.FILTERS_EXPIRED' | translate }}</option>
-          </select>
-        </div>
+        <div class="filters-subsection">
+          <div class="filters-subsection-title">{{ 'MONITORING.FILTERS_EXPIRATION_SECTION' | translate }}</div>
 
-        <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
-          <label>{{ 'MONITORING.FILTERS_EXPIRATION_FROM' | translate }}</label>
-          <input
-            type="date"
-            [(ngModel)]="expirationFromDate"
-            class="date-input"
-            [placeholder]="'MONITORING.FILTERS_EXPIRATION_FROM' | translate">
-        </div>
+          <div class="field">
+            <label>{{ 'MONITORING.FILTERS_EXPIRATION' | translate }}</label>
+            <select
+              [(ngModel)]="selectedExpirationFilter"
+              class="filter-select">
+              <option value="">{{ 'MONITORING.FILTERS_ALL_EXPIRATIONS' | translate }}</option>
+              <option value="valid">{{ 'MONITORING.FILTERS_VALID' | translate }}</option>
+              <option value="expired">{{ 'MONITORING.FILTERS_EXPIRED' | translate }}</option>
+            </select>
+          </div>
 
-        <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
-          <label>{{ 'MONITORING.FILTERS_EXPIRATION_TO' | translate }}</label>
-          <input
-            type="date"
-            [(ngModel)]="expirationToDate"
-            class="date-input"
-            [placeholder]="'MONITORING.FILTERS_EXPIRATION_TO' | translate">
+          <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
+            <label>{{ 'MONITORING.FILTERS_EXPIRATION_FROM' | translate }}</label>
+            <input
+              type="date"
+              [(ngModel)]="expirationFromDate"
+              class="date-input"
+              [placeholder]="'MONITORING.FILTERS_EXPIRATION_FROM' | translate">
+          </div>
+
+          <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
+            <label>{{ 'MONITORING.FILTERS_EXPIRATION_TO' | translate }}</label>
+            <input
+              type="date"
+              [(ngModel)]="expirationToDate"
+              class="date-input"
+              [placeholder]="'MONITORING.FILTERS_EXPIRATION_TO' | translate">
+          </div>
         </div>
       </div>
     </div>
@@ -638,6 +674,7 @@
               <th>Protocol</th>
               <th>Status</th>
               <th>Conexión</th>
+              <th>{{ 'MONITORING.TABLE_INSTALLATION' | translate }}</th>
               <th>Expiration Date</th>
               <th>SIM Card</th>
             </tr>
@@ -655,6 +692,11 @@
               <td>
                 <span class="connection-status" [class.online]="isDeviceOnline(device)" [class.offline]="!isDeviceOnline(device)">
                   {{ getConnectionDisplay(device) }}
+                </span>
+              </td>
+              <td>
+                <span class="activation-date">
+                  {{ formatActivationDate(device.activation_date) }}
                 </span>
               </td>
               <td>
