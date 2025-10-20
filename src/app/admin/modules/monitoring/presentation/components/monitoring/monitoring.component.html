@@ -31,10 +31,10 @@
         styleClass="p-button-outlined">
       </p-button>
       <p-button
-        *ngIf="monitoringResult"
         [label]="'MONITORING.FILTERS_BUTTON' | translate"
         icon="pi pi-filter"
         (onClick)="openFiltersDrawer()"
+        [disabled]="loading || loadingReports"
         styleClass="p-button-secondary">
       </p-button>
       <p-button
