@@ -470,6 +470,30 @@
           </select>
         </div>
 
+        <div class="field">
+          <label>{{ 'MONITORING.FILTERS_PROTOCOL' | translate }}</label>
+          <select
+            [(ngModel)]="selectedProtocolFilter"
+            class="filter-select">
+            <option value="">{{ 'MONITORING.FILTERS_ALL_PROTOCOLS' | translate }}</option>
+            <option *ngFor="let protocol of protocols" [value]="protocol._id">
+              {{ protocol.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>{{ 'MONITORING.FILTERS_SIM_COMPANY' | translate }}</label>
+          <select
+            [(ngModel)]="selectedSimCompanyFilter"
+            class="filter-select">
+            <option value="">{{ 'MONITORING.FILTERS_ALL_SIM_COMPANIES' | translate }}</option>
+            <option *ngFor="let company of availableSimCompanies" [value]="company">
+              {{ company }}
+            </option>
+          </select>
+        </div>
+
         <div class="field" *ngIf="selectedConnectionFilter === 'offline'">
           <label>{{ 'MONITORING.FILTERS_OFFLINE_DURATION' | translate }}</label>
           <select

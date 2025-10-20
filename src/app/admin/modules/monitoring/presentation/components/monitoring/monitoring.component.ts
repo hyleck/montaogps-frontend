@@ -82,6 +82,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   private _selectedExpirationFilter: string = '';
   private _selectedAffiliationFilter: string = '';
   private _selectedProfileFilter: string = '';
+  private _selectedProtocolFilter: string = '';
+  private _selectedSimCompanyFilter: string = '';
   private _selectedAccountSizeFilter: number | null = null;
   private _expirationFromDate: Date | null = null;
   private _expirationToDate: Date | null = null;
@@ -354,6 +356,26 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
   }
 
+  get selectedProtocolFilter(): string {
+    return this._selectedProtocolFilter;
+  }
+
+  set selectedProtocolFilter(value: string) {
+    if (this._selectedProtocolFilter !== value) {
+      this._selectedProtocolFilter = value;
+    }
+  }
+
+  get selectedSimCompanyFilter(): string {
+    return this._selectedSimCompanyFilter;
+  }
+
+  set selectedSimCompanyFilter(value: string) {
+    if (this._selectedSimCompanyFilter !== value) {
+      this._selectedSimCompanyFilter = value;
+    }
+  }
+
   get selectedAccountSizeFilter(): number | null {
     return this._selectedAccountSizeFilter;
   }
@@ -601,6 +623,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     this.selectedUserReports = [];
     this.reportGenerationStatus = null;
     this.currentStatusRequestId = null;
+    this.selectedProtocolFilter = '';
+    this.selectedSimCompanyFilter = '';
     this.selectedAccountSizeFilter = null;
     this.stopStatusPolling();
   }
@@ -693,6 +717,24 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return protocol ? protocol.name : deviceType;
   }
 
+  get availableSimCompanies(): string[] {
+    if (!this.monitoringResult?.data) {
+      return [];
+    }
+
+    const companies = new Set<string>();
+    this.monitoringResult.data.forEach(userData => {
+      (userData.devices ?? []).forEach(device => {
+        const value = device?.sim_company;
+        if (value) {
+          companies.add(value.toString());
+        }
+      });
+    });
+
+    return Array.from(companies).sort((a, b) => a.localeCompare(b));
+  }
+
   // Getter to filter out users without devices and apply status/expiration filters
   get filteredMonitoringData() {
     if (!this.monitoringResult?.data) {
@@ -722,6 +764,17 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           if (!matchesProfile) {
             filteredDevices = [];
           }
+        }
+
+        if (this._selectedProtocolFilter && this._selectedProtocolFilter !== '') {
+          filteredDevices = filteredDevices.filter(device => device.type === this._selectedProtocolFilter);
+        }
+
+        if (this._selectedSimCompanyFilter && this._selectedSimCompanyFilter !== '') {
+          filteredDevices = filteredDevices.filter(device => {
+            const simCompany = device?.sim_company?.toString().toLowerCase() ?? '';
+            return simCompany === this._selectedSimCompanyFilter.toLowerCase();
+          });
         }
 
         // Apply status filter
