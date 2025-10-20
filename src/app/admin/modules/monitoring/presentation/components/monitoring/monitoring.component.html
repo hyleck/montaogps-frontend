@@ -431,6 +431,18 @@
             </option>
           </select>
         </div>
+
+        <div class="field">
+          <label>{{ 'MONITORING.ACCOUNT_SIZE_FILTER' | translate }}</label>
+          <select
+            [(ngModel)]="selectedAccountSizeFilter"
+            class="filter-select">
+            <option [ngValue]="null">{{ 'MONITORING.ACCOUNT_SIZE_ALL' | translate }}</option>
+            <option *ngFor="let threshold of accountSizeThresholds" [ngValue]="threshold">
+              {{ 'MONITORING.ACCOUNT_SIZE_OPTION' | translate:{ count: threshold } }}
+            </option>
+          </select>
+        </div>
       </div>
 
       <div class="filters-section">

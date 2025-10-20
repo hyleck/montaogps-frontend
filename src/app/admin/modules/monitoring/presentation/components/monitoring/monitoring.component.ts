@@ -74,12 +74,15 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_1W', value: 'gt-1w', minutes: 7 * 24 * 60, comparison: 'gte' }
   ];
 
+  accountSizeThresholds: number[] = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
+
   private _selectedStatusFilter: string = '';
   private _selectedConnectionFilter: string = '';
   private _selectedOfflineDurationFilter: string = '';
   private _selectedExpirationFilter: string = '';
   private _selectedAffiliationFilter: string = '';
   private _selectedProfileFilter: string = '';
+  private _selectedAccountSizeFilter: number | null = null;
   private _expirationFromDate: Date | null = null;
   private _expirationToDate: Date | null = null;
 
@@ -351,6 +354,16 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
   }
 
+  get selectedAccountSizeFilter(): number | null {
+    return this._selectedAccountSizeFilter;
+  }
+
+  set selectedAccountSizeFilter(value: number | null) {
+    if (this._selectedAccountSizeFilter !== value) {
+      this._selectedAccountSizeFilter = value;
+    }
+  }
+
   get expirationFromDate(): string {
     return this._expirationFromDate ? this.formatDateForInput(this._expirationFromDate) : '';
   }
@@ -588,6 +601,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     this.selectedUserReports = [];
     this.reportGenerationStatus = null;
     this.currentStatusRequestId = null;
+    this.selectedAccountSizeFilter = null;
     this.stopStatusPolling();
   }
 
@@ -782,7 +796,13 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           devices: filteredDevices
         };
       })
-      .filter(userData => userData.devices && userData.devices.length > 0); // Remove users with no devices after filtering
+      .filter(userData => userData.devices && userData.devices.length > 0) // Remove users with no devices after filtering
+      .filter(userData => {
+        if (this._selectedAccountSizeFilter === null) {
+          return true;
+        }
+        return (userData.devices?.length ?? 0) > this._selectedAccountSizeFilter;
+      });
   }
 
   get monitoringSummaryStats() {
@@ -980,6 +1000,10 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       device?.traccarInfo?.['lastUpdate'];
 
     if (!lastUpdate) {
+      return null;
+    }
+
+    if (lastUpdate?.toString().toLowerCase() === 'never') {
       return null;
     }
 
