@@ -35,6 +35,7 @@ interface SystemSettingsForm {
   logoFile: File | null;
   logoPreview: string | null;
   company_name: string;
+  version: string;
   phone: string;
   contacts: ContactEntry[];
   downloads: DownloadEntry[];
@@ -56,6 +57,7 @@ export class SystemSettingsComponent implements OnInit {
     logoFile: null,
     logoPreview: null,
     company_name: '',
+    version: '',
     phone: '',
     contacts: [],
     downloads: [],
@@ -162,6 +164,7 @@ export class SystemSettingsComponent implements OnInit {
       logoFile: null,
       logoPreview: system.logo || null,
       company_name: system.company_name,
+      version: system.version || '',
       phone: system.phone || '',
       contacts: system.contacts || [],
       downloads: system.downloads || [],
@@ -378,6 +381,7 @@ export class SystemSettingsComponent implements OnInit {
     // Crear el objeto SystemSettings a partir del formulario
     const systemData: SystemSettings = {
       company_name: this.form.company_name,
+      version: this.form.version,
       phone: this.form.phone,
       logo: this.form.logo,
       contacts: this.form.contacts,
@@ -395,6 +399,7 @@ export class SystemSettingsComponent implements OnInit {
         .subscribe({
           next: (updatedSystem) => {
             this.existingSystem = updatedSystem;
+            this.populateForm(updatedSystem);
             this.messageService.add({
               severity: 'success',
               summary: this.translateService.instant('settings.system.update_success'),
@@ -418,6 +423,7 @@ export class SystemSettingsComponent implements OnInit {
           next: (newSystem) => {
             this.existingSystem = newSystem;
             this.form._id = newSystem._id;
+            this.populateForm(newSystem);
             this.messageService.add({
               severity: 'success',
               summary: this.translateService.instant('settings.system.create_success'),
@@ -450,6 +456,7 @@ export class SystemSettingsComponent implements OnInit {
       logoFile: null,
       logoPreview: logoUrl,
       company_name: 'Montao GPS Internacional',
+      version: '1.0.0',
       phone: '+1 (555) 123-4567',
       contacts: [
         {

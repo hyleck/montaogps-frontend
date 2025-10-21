@@ -7,6 +7,7 @@ export interface SystemSettings {
   _id?: string;
   logo?: string;
   company_name: string;
+  version?: string;
   phone?: string;
   contacts: Array<{
     id: string;

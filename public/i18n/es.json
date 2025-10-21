@@ -853,6 +853,8 @@
         "company_name": "Nombre de la empresa",
         "company_name_placeholder": "Ej: Montao GPS",
         "company_name_hint": "Este nombre se mostrará en la aplicación y en los reportes.",
+        "version": "Versión",
+        "version_placeholder": "Ej: 1.0.0",
         "phone": "Teléfono de contacto",
         "phone_placeholder": "Ej: +1 (555) 123-4567",
         "phone_hint": "Este teléfono se utilizará como contacto principal de la empresa.",
