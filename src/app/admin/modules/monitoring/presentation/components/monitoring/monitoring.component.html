@@ -494,6 +494,17 @@
           </select>
         </div>
 
+        <div class="field" *ngIf="selectedSimCompanyFilter === 'global-m'">
+          <label>{{ 'MONITORING.FILTERS_SIM_STATUS' | translate }}</label>
+          <select
+            [(ngModel)]="selectedSimStatusFilter"
+            class="filter-select">
+            <option value="">{{ 'MONITORING.FILTERS_ALL_SIM_STATUSES' | translate }}</option>
+            <option value="active">{{ 'MONITORING.FILTERS_SIM_ACTIVE' | translate }}</option>
+            <option value="suspended">{{ 'MONITORING.FILTERS_SIM_SUSPENDED' | translate }}</option>
+          </select>
+        </div>
+
         <div class="filters-subsection">
           <div class="filters-subsection-title">{{ 'MONITORING.FILTERS_ACTIVATION_SECTION' | translate }}</div>
 
@@ -709,7 +720,7 @@
               </td>
               <td>
                 <div class="sim-card-cell">
-                  <span>{{ device.sim_card_number || '-' }}</span>
+                  <span [class]="getSimStatusClass(device)">{{ device.sim_card_number || '-' }}</span>
                   <p-badge *ngIf="device.sim_company"
                           [value]="device.sim_company"
                           severity="info"

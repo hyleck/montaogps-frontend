@@ -667,17 +667,19 @@
 }
 
 .devices-content ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
-  padding: 0.75rem 0.5rem;
+  padding: 0.3rem 0.2rem;
   border-bottom: 1px solid var(--monitoringDevicesSectionBorder);
   color: var(--monitoringSectionTitleText);
+  font-size: 0.75rem;
 }
 
 .devices-content ::ng-deep .p-datatable .p-datatable-thead > tr > th {
-  padding: 0.75rem 0.5rem;
+  padding: 0.3rem 0.2rem;
   background-color: var(--monitoringDevicesSectionBackground);
   border-bottom: 2px solid var(--monitoringDevicesSectionBorder);
   font-weight: 600;
   color: var(--monitoringSectionTitleText);
+  font-size: 0.8rem;
 }
 
 .devices-content ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
@@ -813,6 +815,16 @@
 .sim-company-badge {
   font-size: 0.75rem !important;
   padding: 2px 6px !important;
+}
+
+.sim-active {
+  color: #28a745;
+  font-size: 0.8em;
+}
+
+.sim-suspended {
+  color: #dc3545;
+  font-size: 0.8em;
 }
 
 .activation-date {

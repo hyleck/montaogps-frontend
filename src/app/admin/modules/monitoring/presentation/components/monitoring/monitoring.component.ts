@@ -84,6 +84,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   private _selectedProfileFilter: string = '';
   private _selectedProtocolFilter: string = '';
   private _selectedSimCompanyFilter: string = '';
+  private _selectedSimStatusFilter: string = '';
   private _selectedActivationFilter: string = 'all';
   private _selectedAccountSizeFilter: number | null = null;
   private _expirationFromDate: Date | null = null;
@@ -376,6 +377,20 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   set selectedSimCompanyFilter(value: string) {
     if (this._selectedSimCompanyFilter !== value) {
       this._selectedSimCompanyFilter = value;
+      // Reset SIM status filter when SIM company changes
+      if (value !== 'global-m') {
+        this._selectedSimStatusFilter = '';
+      }
+    }
+  }
+
+  get selectedSimStatusFilter(): string {
+    return this._selectedSimStatusFilter;
+  }
+
+  set selectedSimStatusFilter(value: string) {
+    if (this._selectedSimStatusFilter !== value) {
+      this._selectedSimStatusFilter = value;
     }
   }
 
@@ -654,6 +669,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     this.currentStatusRequestId = null;
     this.selectedProtocolFilter = '';
     this.selectedSimCompanyFilter = '';
+    this.selectedSimStatusFilter = '';
     this.selectedActivationFilter = 'all';
     this._activationFromDate = null;
     this._activationToDate = null;
@@ -806,6 +822,14 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           filteredDevices = filteredDevices.filter(device => {
             const simCompany = device?.sim_company?.toString().toLowerCase() ?? '';
             return simCompany === this._selectedSimCompanyFilter.toLowerCase();
+          });
+        }
+
+        if (this._selectedSimStatusFilter && this._selectedSimStatusFilter !== '') {
+          filteredDevices = filteredDevices.filter(device => {
+            const simStatus = device?.simStatus?.status;
+            if (!simStatus) return false;
+            return simStatus.toLowerCase() === this._selectedSimStatusFilter.toLowerCase();
           });
         }
 
@@ -1056,6 +1080,19 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
 
     return this.formatOfflineDuration(lastUpdate);
+  }
+
+  getSimStatusClass(device: any): string {
+    // Si es de la compañía "nacionales", siempre mostrar en verde
+    if (device?.sim_company && device.sim_company.toLowerCase() === 'nacionales') {
+      return 'sim-active';
+    }
+
+    const simStatus = device?.simStatus;
+    if (!simStatus || !simStatus.status) {
+      return '';
+    }
+    return simStatus.status === 'Active' ? 'sim-active' : simStatus.status === 'Suspended' ? 'sim-suspended' : '';
   }
 
   private formatOfflineDuration(lastUpdate: string | Date): string {
