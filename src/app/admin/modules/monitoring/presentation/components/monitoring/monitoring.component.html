@@ -470,6 +470,18 @@
           </select>
         </div>
 
+        <div class="field" *ngIf="selectedConnectionFilter === 'offline'">
+          <label>{{ 'MONITORING.FILTERS_OFFLINE_DURATION' | translate }}</label>
+          <select
+            [(ngModel)]="selectedOfflineDurationFilter"
+            class="filter-select">
+            <option value="">{{ 'MONITORING.FILTERS_OFFLINE_DURATION_ANY' | translate }}</option>
+            <option *ngFor="let option of offlineDurationOptions" [value]="option.value">
+              {{ option.label | translate }}
+            </option>
+          </select>
+        </div>
+
         <div class="field">
           <label>{{ 'MONITORING.FILTERS_PROTOCOL' | translate }}</label>
           <select
@@ -535,18 +547,6 @@
               class="date-input"
               [placeholder]="'MONITORING.FILTERS_ACTIVATION_TO' | translate">
           </div>
-        </div>
-
-        <div class="field" *ngIf="selectedConnectionFilter === 'offline'">
-          <label>{{ 'MONITORING.FILTERS_OFFLINE_DURATION' | translate }}</label>
-          <select
-            [(ngModel)]="selectedOfflineDurationFilter"
-            class="filter-select">
-            <option value="">{{ 'MONITORING.FILTERS_OFFLINE_DURATION_ANY' | translate }}</option>
-            <option *ngFor="let option of offlineDurationOptions" [value]="option.value">
-              {{ option.label | translate }}
-            </option>
-          </select>
         </div>
 
         <div class="filters-subsection">
