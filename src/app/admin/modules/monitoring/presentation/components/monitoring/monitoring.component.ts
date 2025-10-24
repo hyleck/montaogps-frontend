@@ -314,6 +314,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   set selectedConnectionFilter(value: string) {
     if (this._selectedConnectionFilter !== value) {
       this._selectedConnectionFilter = value;
+      
       if (value !== 'offline') {
         this._selectedOfflineDurationFilter = '';
       }
@@ -1069,11 +1070,16 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     if (this.isDeviceOnline(device)) {
       return 'En línea';
     }
+    console.log(device,
+      '[pokemon]'
+    )
+    
+const isTraccar = device?.traccarInfo;
 
-    const lastUpdate =
-      device?.traccarInfo?.lastUpdate ||
-      device?.traccarInfo?.last_update ||
-      device?.traccarInfo?.['lastUpdate'];
+     if (!isTraccar) {
+      return 'Error';
+    }
+const lastUpdate = device?.traccarInfo?.lastUpdate;
 
     if (!lastUpdate) {
       return 'Fuera de línea (estado inicial)';
