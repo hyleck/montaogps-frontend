@@ -420,7 +420,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   set expirationFromDate(value: string) {
-    this._expirationFromDate = value ? new Date(value) : null;
+    this._expirationFromDate = this.parseDateInput(value);
   }
 
   get expirationToDate(): string {
@@ -428,7 +428,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   set expirationToDate(value: string) {
-    this._expirationToDate = value ? new Date(value) : null;
+    this._expirationToDate = this.parseDateInput(value);
   }
 
   get activationFromDate(): string {
@@ -436,7 +436,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   set activationFromDate(value: string) {
-    this._activationFromDate = value ? new Date(value) : null;
+    this._activationFromDate = this.parseDateInput(value);
   }
 
   get activationToDate(): string {
@@ -444,7 +444,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   set activationToDate(value: string) {
-    this._activationToDate = value ? new Date(value) : null;
+    this._activationToDate = this.parseDateInput(value);
   }
 
   private formatDateForInput(date: Date): string {
@@ -452,6 +452,101 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private parseDateInput(value: string): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    const parts = value.split('-');
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    const [yearStr, monthStr, dayStr] = parts;
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+
+    if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+      return null;
+    }
+
+    if (month < 1 || month > 12 || day < 1 || day > 31) {
+      return null;
+    }
+
+    const date = new Date(year, month - 1, day);
+
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return date;
+  }
+
+  private normalizeDateOnly(value: Date | string | null | undefined): Date | null {
+    if (!value) {
+      return null;
+    }
+
+    if (value instanceof Date) {
+      if (isNaN(value.getTime())) {
+        return null;
+      }
+      return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+    }
+
+    if (typeof value === 'string') {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const [yearStr, monthStr, dayStr] = value.split('-');
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        const day = Number(dayStr);
+
+        if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
+          return null;
+        }
+
+        if (month < 1 || month > 12 || day < 1 || day > 31) {
+          return null;
+        }
+
+        const parsedDate = new Date(year, month - 1, day);
+        if (
+          parsedDate.getFullYear() !== year ||
+          parsedDate.getMonth() !== month - 1 ||
+          parsedDate.getDate() !== day
+        ) {
+          return null;
+        }
+
+        return parsedDate;
+      }
+
+      const parsedStringDate = new Date(value);
+      if (!isNaN(parsedStringDate.getTime())) {
+        return new Date(
+          parsedStringDate.getFullYear(),
+          parsedStringDate.getMonth(),
+          parsedStringDate.getDate()
+        );
+      }
+
+      return null;
+    }
+
+    const parsed = new Date(value as any);
+    if (isNaN(parsed.getTime())) {
+      return null;
+    }
+
+    return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
   }
 
   // Monitoring reports
@@ -1004,62 +1099,54 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   isExpired(expirationDate: Date | string): boolean {
-    if (!expirationDate) {
+    const normalizedExpiration = this.normalizeDateOnly(expirationDate);
+    if (!normalizedExpiration) {
       return false;
     }
 
-    const date = new Date(expirationDate);
-    if (isNaN(date.getTime())) {
+    const today = this.normalizeDateOnly(new Date());
+    if (!today) {
       return false;
     }
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
-
-    return date < today;
+    return normalizedExpiration.getTime() < today.getTime();
   }
 
   isExpiringSoon(expirationDate: Date | string): boolean {
-    if (!expirationDate) {
+    const normalizedExpiration = this.normalizeDateOnly(expirationDate);
+    if (!normalizedExpiration) {
       return false;
     }
 
-    const date = new Date(expirationDate);
-    if (isNaN(date.getTime())) {
+    const today = this.normalizeDateOnly(new Date());
+    if (!today) {
       return false;
     }
 
-    const today = new Date();
-    const fifteenDaysFromNow = new Date();
-    fifteenDaysFromNow.setDate(today.getDate() + 15);
+    const fifteenDaysFromNow = new Date(today);
+    fifteenDaysFromNow.setDate(fifteenDaysFromNow.getDate() + 15);
 
-    today.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
-    fifteenDaysFromNow.setHours(0, 0, 0, 0);
-
-    return date >= today && date <= fifteenDaysFromNow;
+    return (
+      normalizedExpiration.getTime() >= today.getTime() &&
+      normalizedExpiration.getTime() <= fifteenDaysFromNow.getTime()
+    );
   }
 
   isValid(expirationDate: Date | string): boolean {
-    if (!expirationDate) {
+    const normalizedExpiration = this.normalizeDateOnly(expirationDate);
+    if (!normalizedExpiration) {
       return false;
     }
 
-    const date = new Date(expirationDate);
-    if (isNaN(date.getTime())) {
+    const today = this.normalizeDateOnly(new Date());
+    if (!today) {
       return false;
     }
 
-    const today = new Date();
-    const fifteenDaysFromNow = new Date();
-    fifteenDaysFromNow.setDate(today.getDate() + 15);
+    const fifteenDaysFromNow = new Date(today);
+    fifteenDaysFromNow.setDate(fifteenDaysFromNow.getDate() + 15);
 
-    today.setHours(0, 0, 0, 0);
-    date.setHours(0, 0, 0, 0);
-    fifteenDaysFromNow.setHours(0, 0, 0, 0);
-
-    return date > fifteenDaysFromNow;
+    return normalizedExpiration.getTime() > fifteenDaysFromNow.getTime();
   }
 
   isDeviceOnline(device: any): boolean {
@@ -1070,13 +1157,15 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     if (this.isDeviceOnline(device)) {
       return 'En línea';
     }
-    console.log(device,
-      '[pokemon]'
-    )
+   
     
 const isTraccar = device?.traccarInfo;
 
      if (!isTraccar) {
+ console.log(device,
+      '[pokemon]'
+    )
+
       return 'Error';
     }
 const lastUpdate = device?.traccarInfo?.lastUpdate;
@@ -1198,24 +1287,13 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
       return true; // No range set, include all
     }
 
-    const deviceDate = new Date(date);
-    if (isNaN(deviceDate.getTime())) {
+    const normalizedDeviceDate = this.normalizeDateOnly(date);
+    if (!normalizedDeviceDate) {
       return false;
     }
 
-    const normalizedDeviceDate = new Date(deviceDate);
-    normalizedDeviceDate.setHours(0, 0, 0, 0);
-
-    let normalizedFrom = fromDate ? new Date(fromDate) : null;
-    let normalizedTo = toDate ? new Date(toDate) : null;
-
-    if (normalizedFrom) {
-      normalizedFrom.setHours(0, 0, 0, 0);
-    }
-
-    if (normalizedTo) {
-      normalizedTo.setHours(23, 59, 59, 999);
-    }
+    let normalizedFrom = this.normalizeDateOnly(fromDate);
+    let normalizedTo = this.normalizeDateOnly(toDate);
 
     if (normalizedFrom && normalizedTo && normalizedFrom.getTime() > normalizedTo.getTime()) {
       const temp = normalizedFrom;

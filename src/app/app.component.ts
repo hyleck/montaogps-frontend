@@ -75,10 +75,10 @@ export class AppComponent implements OnInit, OnDestroy {
     
     if (isAuthenticated) {
       // Usuario está logueado, inicializar Chatwoot
-      this.chatwootService.initializeChatwoot();
+      // this.chatwootService.initializeChatwoot();
     } else {
       // Usuario no está logueado, remover Chatwoot
-      this.chatwootService.removeChatwoot();
+      // this.chatwootService.removeChatwoot();
     }
   }
 
