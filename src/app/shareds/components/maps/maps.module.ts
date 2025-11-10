@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MapsComponent } from './maps.component';
 import { GoogleMapsModule } from '@angular/google-maps';
+import { TranslateModule } from '@ngx-translate/core';
 
 
 @NgModule({
@@ -10,7 +11,8 @@ import { GoogleMapsModule } from '@angular/google-maps';
   ],
   imports: [
     CommonModule,
-    GoogleMapsModule
+    GoogleMapsModule,
+    TranslateModule
   ],
   exports: [
     MapsComponent

@@ -11,6 +11,16 @@ export interface TargetsResponse {
   totalCount: number;
 }
 
+export interface DeviceDistanceResponse {
+  deviceId: string;
+  traccarDeviceId: string;
+  from: string;
+  to: string;
+  distance: number;
+  summary?: any[] | null;
+  details?: any | null;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -190,6 +200,13 @@ export class TargetsService {
 
   async transferTarget(targetId: string, targetUserId: string): Promise<any> {
     const observable = this.http.patch(`${this.apiUrl}/${targetId}/transfer`, { targetUserId });
+    return await lastValueFrom(observable);
+  }
+
+  async getDeviceDistance(deviceId: string, from: string, to: string): Promise<DeviceDistanceResponse> {
+    const url = `${this.apiUrl}/${deviceId}/distance`;
+    const params = { from, to };
+    const observable = this.http.get<DeviceDistanceResponse>(url, { params });
     return await lastValueFrom(observable);
   }
 

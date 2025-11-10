@@ -1,19 +1,135 @@
 .main{
     height: 100%;
-    width: auto;
-    background: rgb(236, 111, 111);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    /* gap: 1.5rem; */
+    background: transparent;
 }
 .maps{
-    height: 100%;
-    width: 100%;
     position: relative;
-
-    background: radial-gradient(circle, var(--globalColorPrimaryDarkStart), var(--globalColorPrimaryDarkEnd));
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 320px;
+    background: radial-gradient(circle, var(--globalColorPrimaryDarkStart, #0f172a), var(--globalColorPrimaryDarkEnd, #020617));
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.45);
 }
 
 .maps__map{
     height: 100%;
     width: 100%;
+    min-height: 320px;
+}
+
+.target-info-panel{
+    background: rgba(10, 12, 20, 0.88);
+    border-radius: 999px;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 10px 25px rgba(2, 6, 23, 0.4);
+    backdrop-filter: blur(6px);
+    min-height: 50px;
+    max-height: 50px;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(130px, 1fr);
+    gap: 0.35rem;
+    overflow: hidden;
+    align-items: center;
+}
+
+.info-chip{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    color: #e2e8f0;
+}
+
+.info-chip.primary .chip-value{
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.info-chip .chip-label{
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(148, 163, 184, 0.85);
+}
+
+.info-chip .chip-value{
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.info-chip.status{
+    flex-direction: row;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.status-dot{
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.status-dot.online{
+    background: #4ade80;
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+}
+
+.status-dot.offline{
+    background: #f87171;
+    box-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+}
+
+.status-dot.unknown{
+    background: #cbd5f5;
+    box-shadow: 0 0 8px rgba(203, 213, 245, 0.6);
+}
+
+.info-chip.location{
+    flex-direction: row;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.info-chip.location .chip-value{
+    max-width: 170px;
+}
+
+.info-chip.time .chip-value{
+    font-size: 0.72rem;
+    color: rgba(226, 232, 240, 0.75);
+}
+
+.target-info-empty{
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px dashed rgba(148,163,184,0.5);
+    border-radius: 16px;
+    padding: 0.8rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: #e2e8f0;
+    min-height: 50px;
+}
+
+.target-info-empty i{
+    font-size: 1.5rem;
+    color: #94a3b8;
+}
+
+.target-info-empty p{
+    margin: 0;
+    color: rgba(226, 232, 240, 0.75);
 }
 
 /* Estilos para popups personalizados */

@@ -4,6 +4,7 @@ import { ThemesService } from '../../services/themes.service';
 import { StatusService } from '../../services/status.service';
 import { SystemService, SystemSettings } from '../../../core/services/system.service';
 import { TargetsService } from '../../../core/services/targets.service';
+import { TranslateService } from '@ngx-translate/core';
 
 import { MapUtils } from '../../helpers/map.helper';
 import { MapThemeService } from '../../helpers/map-theme.helper';
@@ -30,13 +31,15 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
    currentTargetId: string | null = null; // Para rastrear cambios de target
    offlineDuration: string = '';
    isTargetOffline: boolean = false;
+   distanceDisplay: string = '';
 
   constructor(
     private _theme: ThemesService,
     private _status: StatusService,
     private systemService: SystemService,
     private targetsService: TargetsService,
-    private router: Router
+    private router: Router,
+    private translate: TranslateService
   ) {}
 
   ngOnInit(): void {
@@ -145,6 +148,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     // Manejar cambios en el target seleccionado
     if (changes['selectedTarget']) {
       this.updateTargetMarker();
+      this.loadDistanceTraveled();
     }
   }
 
@@ -368,6 +372,94 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     } else {
       // Si el marcador existe y es el mismo target, solo actualizar
       this.updateExistingMarker(lat, lng);
+    }
+  }
+
+  // ----- UI helpers for detail panel -----
+  get statusLabel(): string {
+    if (!this.selectedTarget?.traccarStatus) {
+      return this.translate.instant('maps.statusUnknown');
+    }
+    const status = this.selectedTarget.traccarStatus.toLowerCase();
+    if (status === 'online') {
+      return this.translate.instant('maps.statusOnline');
+    }
+    if (status === 'offline') {
+      return this.translate.instant('maps.statusOffline');
+    }
+    return this.selectedTarget.traccarStatus;
+  }
+
+  get statusClass(): string {
+    const status = this.selectedTarget?.traccarStatus?.toLowerCase();
+    if (status === 'online') return 'online';
+    if (status === 'offline') return 'offline';
+    return 'unknown';
+  }
+
+  get currentSpeedDisplay(): string {
+    const speed = this.selectedTarget?.traccarInfo?.geolocation?.speed;
+    if (speed === undefined || speed === null) {
+      return this.translate.instant('maps.notAvailable');
+    }
+    const kmh = Math.round(speed * 1.852);
+    return `${kmh} km/h`;
+  }
+
+  get lastUpdateDisplay(): string {
+    const lastUpdate = this.selectedTarget?.traccarInfo?.lastUpdate;
+    if (!lastUpdate) {
+      return this.translate.instant('maps.notAvailable');
+    }
+    const date = new Date(lastUpdate);
+    return date.toLocaleString();
+  }
+
+  get simDisplay(): string {
+    return (
+      this.selectedTarget?.sim_card_number ||
+      (this.selectedTarget as any)?.sim_card?.number ||
+      this.translate.instant('maps.notAvailable')
+    );
+  }
+
+  get imeiDisplay(): string {
+    return (
+      this.selectedTarget?.device_imei ||
+      this.selectedTarget?.imei ||
+      this.translate.instant('maps.notAvailable')
+    );
+  }
+
+  private async loadDistanceTraveled(): Promise<void> {
+    if (!this.selectedTarget?._id) {
+      this.distanceDisplay = this.translate.instant('maps.notAvailable');
+      return;
+    }
+
+    try {
+      const now = new Date();
+      const from = new Date(now);
+      from.setHours(0, 0, 0, 0);
+      const to = new Date(now);
+      to.setHours(23, 59, 59, 999);
+      const response = await this.targetsService.getDeviceDistance(
+        this.selectedTarget._id,
+        from.toISOString(),
+        to.toISOString()
+      );
+
+      const distanceKm =
+        response && typeof response.distance === 'number'
+          ? (response.distance / 1000).toFixed(1)
+          : null;
+
+      this.distanceDisplay = distanceKm
+        ? `${distanceKm} km`
+        : this.translate.instant('maps.notAvailable');
+    } catch (error) {
+      console.error('❌ Error obteniendo distancia recorrida:', error);
+      this.distanceDisplay = this.translate.instant('maps.notAvailable');
     }
   }
 

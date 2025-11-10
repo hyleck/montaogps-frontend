@@ -242,6 +242,25 @@
       "myProfile": "Mi Perfil",
       "logout": "Cerrar sesión"
     },
+    "maps": {
+      "infoTitle": "Información del objetivo",
+      "infoSubtitle": "Datos actualizados en tiempo real",
+      "unknownTarget": "Objetivo sin nombre",
+      "noTargetSelectedTitle": "Sin objetivo seleccionado",
+      "noTargetSelected": "Selecciona un objetivo para ver sus detalles en el mapa.",
+      "status": "Estado",
+      "statusOnline": "En línea",
+      "statusOffline": "Fuera de línea",
+      "statusUnknown": "Desconocido",
+      "speed": "Velocidad",
+      "lastUpdate": "Última actualización",
+      "offlineDuration": "Tiempo sin conexión",
+      "location": "Ubicación",
+      "distance": "Distancia",
+      "sim": "SIM",
+      "imei": "IMEI",
+      "notAvailable": "No disponible"
+    },
     "sidebar": {
       "favorites": "Favoritos",
       "mainMenu": "Menú Principal",

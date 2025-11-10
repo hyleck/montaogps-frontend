@@ -745,40 +745,6 @@ export class ReportsComponent implements OnInit {
     }
 
     /**
-     * Ajusta las fechas del filtro sumando el utcOffset del protocolo antes de enviar al backend
-     * Esto compensa la diferencia horaria para que el servidor consulte el rango correcto
-     */
-    private adjustDatesWithProtocolOffset(fromDate: string | undefined, toDate: string | undefined): { fromDate: string | undefined, toDate: string | undefined } {
-      if (!this.targetProtocol || this.targetProtocol.utcOffset === undefined || this.targetProtocol.utcOffset === null) {
-     
-        return { fromDate, toDate };
-      }
-
-      const offsetHours = this.targetProtocol.utcOffset;
-      let adjustedFromDate = fromDate;
-      let adjustedToDate = toDate;
-
-      if (fromDate) {
-        const fromDateObj = new Date(fromDate);
-        fromDateObj.setHours(fromDateObj.getHours() + offsetHours);
-        adjustedFromDate = fromDateObj.toISOString();
-      }
-
-      if (toDate) {
-        const toDateObj = new Date(toDate);
-        toDateObj.setHours(toDateObj.getHours() + offsetHours);
-        adjustedToDate = toDateObj.toISOString();
-      }
-
-   
-
-      return { 
-        fromDate: adjustedFromDate, 
-        toDate: adjustedToDate 
-      };
-    }
-
-    /**
      * Consulta el protocolo asociado al target usando su propiedad type
      */
     private async loadTargetProtocol(target: any): Promise<void> {
@@ -881,18 +847,14 @@ export class ReportsComponent implements OnInit {
         }
 
         // Ajustar fechas con el utcOffset del protocolo antes de enviar al backend
-        const adjustedDates = this.adjustDatesWithProtocolOffset(fromDate, toDate);
-        
-    
-        
-        if (!adjustedDates.fromDate || !adjustedDates.toDate) {
+        if (!fromDate || !toDate) {
           throw new Error('Las fechas de inicio y fin son requeridas para cargar historial');
         }
         
         this.routeHistory = await this.targetsService.getRouteHistory(
           deviceImei, 
-          adjustedDates.fromDate, 
-          adjustedDates.toDate
+          fromDate, 
+          toDate
         );
         
       
@@ -1075,20 +1037,11 @@ export class ReportsComponent implements OnInit {
       
       
       // Ajustar fechas del bloque con el utcOffset del protocolo
-      const adjustedDates = this.adjustDatesWithProtocolOffset(
-        firstHourRange.start.toISOString(),
-        firstHourRange.end.toISOString()
-      );
-      
-      if (!adjustedDates.fromDate || !adjustedDates.toDate) {
-        throw new Error('Error ajustando fechas del primer bloque');
-      }
-      
       try {
         const firstBlockHistory = await this.targetsService.getRouteHistory(
           deviceImei,
-          adjustedDates.fromDate,
-          adjustedDates.toDate
+          firstHourRange.start.toISOString(),
+          firstHourRange.end.toISOString()
         );
         
         if (firstBlockHistory && firstBlockHistory.positions && firstBlockHistory.positions.length > 0) {
@@ -1145,21 +1098,11 @@ export class ReportsComponent implements OnInit {
         
         
         // Ajustar fechas del bloque con el utcOffset del protocolo
-        const adjustedDates = this.adjustDatesWithProtocolOffset(
-          hourRange.start.toISOString(),
-          hourRange.end.toISOString()
-        );
-        
-        if (!adjustedDates.fromDate || !adjustedDates.toDate) {
-          console.error(`❌ Error ajustando fechas del bloque ${blockNumber}`);
-          continue;
-        }
-        
         try {
           const blockHistory = await this.targetsService.getRouteHistory(
             deviceImei,
-            adjustedDates.fromDate,
-            adjustedDates.toDate
+            hourRange.start.toISOString(),
+            hourRange.end.toISOString()
           );
           
           if (blockHistory && blockHistory.positions && blockHistory.positions.length > 0) {

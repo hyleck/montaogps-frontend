@@ -14,4 +14,51 @@
             </div>
         </div>
     </div>
+
+    <div class="target-info-panel" *ngIf="selectedTarget; else noTargetInfo">
+        <div class="info-chip status">
+            <span class="status-dot" [ngClass]="statusClass"></span>
+            <span class="chip-value">{{ statusLabel }}</span>
+        </div>
+        <div class="info-chip primary">
+            <span class="chip-label">{{ 'maps.infoTitle' | translate }}</span>
+            <span class="chip-value" [title]="selectedTarget?.name">
+                {{ selectedTarget?.name || ('maps.unknownTarget' | translate) }}
+            </span>
+        </div>
+        <div class="info-chip imei">
+            <span class="chip-label">{{ 'maps.imei' | translate }}</span>
+            <span class="chip-value">{{ imeiDisplay }}</span>
+        </div>
+        <div class="info-chip">
+            <span class="chip-label">{{ 'maps.speed' | translate }}</span>
+            <span class="chip-value">{{ currentSpeedDisplay }}</span>
+        </div>
+        <div class="info-chip" *ngIf="statusClass !== 'online'">
+            <span class="chip-label">{{ 'maps.offlineDuration' | translate }}</span>
+            <span class="chip-value">{{ offlineDuration || ('maps.notAvailable' | translate) }}</span>
+        </div>
+        <div class="info-chip">
+            <span class="chip-label">{{ 'maps.distance' | translate }}</span>
+            <span class="chip-value">{{ distanceDisplay || ('maps.notAvailable' | translate) }}</span>
+        </div>
+        <div class="info-chip">
+            <span class="chip-label">{{ 'maps.sim' | translate }}</span>
+            <span class="chip-value">{{ simDisplay }}</span>
+        </div>
+        <div class="info-chip time" *ngIf="statusClass !== 'online'">
+            <span class="chip-label">{{ 'maps.lastUpdate' | translate }}</span>
+            <span class="chip-value">{{ lastUpdateDisplay }}</span>
+        </div>
+    </div>
+
+    <ng-template #noTargetInfo>
+        <div class="target-info-empty">
+            <i class="pi pi-map-marker"></i>
+            <div>
+                <h4>{{ 'maps.noTargetSelectedTitle' | translate }}</h4>
+                <p>{{ 'maps.noTargetSelected' | translate }}</p>
+            </div>
+        </div>
+    </ng-template>
 </div>

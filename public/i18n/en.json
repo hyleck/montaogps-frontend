@@ -170,6 +170,25 @@
         "myProfile": "My Profile",
         "logout": "Logout"
     },
+    "maps": {
+        "infoTitle": "Target insights",
+        "infoSubtitle": "Live information from the selected device",
+        "unknownTarget": "Unnamed target",
+        "noTargetSelectedTitle": "No target selected",
+        "noTargetSelected": "Select a target to see its details below the map.",
+        "status": "Status",
+        "statusOnline": "Online",
+        "statusOffline": "Offline",
+        "statusUnknown": "Unknown",
+        "speed": "Speed",
+        "lastUpdate": "Last update",
+        "offlineDuration": "Offline duration",
+        "location": "Location",
+        "distance": "Distance",
+        "sim": "SIM",
+        "imei": "IMEI",
+        "notAvailable": "Not available"
+    },
     "sidebar": {
       "favorites": "Favorites",
       "mainMenu": "Main Menu",
