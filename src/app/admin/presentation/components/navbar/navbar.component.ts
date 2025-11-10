@@ -13,7 +13,8 @@ import { PlansService } from '../../../../core/services/plans.service';
 import { Plan } from '../../../../core/interfaces/plan.interface';
 import { UserService } from '../../../../core/services/user.service';
 import { User } from '../../../../core/interfaces/user.interface';
-import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter } from 'rxjs';
+import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter, firstValueFrom } from 'rxjs';
+import { AlertsService, AlertResponse } from '../../../../core/services/alerts.service';
 
 @Component({
     selector: 'app-navbar',
@@ -76,6 +77,23 @@ export class NavbarComponent implements OnInit, OnDestroy {
   loadingSharedEmails: boolean = false;
   autoSaving: boolean = false;
 
+  // Modal de alertas
+  alertsDialogVisible: boolean = false;
+  speedAlertDialogVisible: boolean = false;
+  alertsOptions: { labelKey: string }[] = [
+    { labelKey: 'navbar.alertOptionSpeed' },
+    { labelKey: 'navbar.alertOptionPerimeter' },
+    { labelKey: 'navbar.alertOptionPower' },
+    { labelKey: 'navbar.alertOptionMovement' }
+  ];
+  currentSelectedTargets: Target[] = [];
+  maxSpeedValue: number | null = null;
+  creatingAlert: boolean = false;
+  deletingAlertId: string | null = null;
+  speedAlerts: AlertResponse[] = [];
+  visibleSpeedAlerts: AlertResponse[] = [];
+  loadingSpeedAlerts: boolean = false;
+
   // Modal de transferir targets
   transferDialogVisible: boolean = false;
   transferEmailInput: string = '';
@@ -107,7 +125,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private plansService: PlansService,
     private userService: UserService,
     private confirmationService: ConfirmationService,
-    private messageService: MessageService
+    private messageService: MessageService,
+    private alertsService: AlertsService
   ) {
     this.currentTheme = status.getState('theme') as string;
     this.currentUser = this.authService.getCurrentUser();
@@ -128,12 +147,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
     });
 
     // Suscribirse a cambios en la selección de objetivos
-    this.selectionService.selectedTargetsCount$.pipe(
+    this.selectionService.selectedTargets$.pipe(
       takeUntil(this.destroy$)
-    ).subscribe(count => {
-      this.selectedTargetsCount = count;
-      this.hasSelectedTargets = count > 0;
+    ).subscribe(targets => {
+      this.currentSelectedTargets = targets || [];
+      this.selectedTargetsCount = this.currentSelectedTargets.length;
+      this.hasSelectedTargets = this.selectedTargetsCount > 0;
       this.updateMenuItems();
+      this.filterSpeedAlertsForSelection();
     });
 
     // Configurar debounce para búsqueda de objetivos cancelados
@@ -219,9 +240,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
     // Menú principal
     this.items = [
       {
-        label: this.translate.instant('navbar.scheduleProcess'),
-        icon: 'pi pi-calendar-clock',
-        disabled: true
+        label: this.translate.instant('navbar.alerts'),
+        icon: 'pi pi-bell',
+        command: () => this.openAlertsModal()
       },
       {
         label: this.translate.instant('navbar.canceled'),
@@ -287,6 +308,168 @@ export class NavbarComponent implements OnInit, OnDestroy {
     
     // Actualizar el menú después de cambiar el tema
     this.initializeMenus();
+  }
+
+  openAlertsModal(): void {
+    this.alertsDialogVisible = true;
+  }
+
+  openSpeedAlertModal(): void {
+    this.loadSpeedAlerts();
+    this.speedAlertDialogVisible = true;
+  }
+
+  async createSpeedAlert(): Promise<void> {
+    if (this.maxSpeedValue === null || this.maxSpeedValue <= 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: this.translate.instant('navbar.maxSpeedRequired')
+      });
+      return;
+    }
+
+    const targetIds = (this.currentSelectedTargets || [])
+      .map(target => target?._id || (target as any)?.id)
+      .filter((id): id is string => !!id);
+
+    if (!targetIds.length) {
+      const userIdFromUrl = this.getParentIdFromUrl();
+
+      if (!userIdFromUrl) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: this.translate.instant('common.warning'),
+          detail: this.translate.instant('navbar.userIdRequired')
+        });
+        return;
+      }
+
+      const targetIdsForGlobalAlert = [userIdFromUrl];
+      targetIds.push(...targetIdsForGlobalAlert);
+    }
+
+    const payload = {
+      type: 'speed' as const,
+      maxSpeed: this.maxSpeedValue,
+      targetIds
+    };
+
+    this.creatingAlert = true;
+
+    try {
+      await firstValueFrom(this.alertsService.createAlert(payload));
+
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('navbar.createAlert'),
+        detail: `${this.translate.instant('navbar.alertOptionSpeed')} - ${this.maxSpeedValue} km/h`
+      });
+
+      this.maxSpeedValue = null;
+      await this.loadSpeedAlerts();
+    } catch (error: any) {
+      console.error('❌ Error al crear la alerta de velocidad:', error);
+      const detail =
+        error?.error?.message ||
+        this.translate.instant('navbar.createAlertError');
+
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail
+      });
+    } finally {
+      this.creatingAlert = false;
+    }
+  }
+
+  private async loadSpeedAlerts(): Promise<void> {
+    this.loadingSpeedAlerts = true;
+    try {
+      const alerts = await firstValueFrom(this.alertsService.getAlerts());
+      this.speedAlerts = (alerts || []).filter(alert => alert.type === 'speed');
+      this.filterSpeedAlertsForSelection();
+    } catch (error) {
+      console.error('❌ Error al cargar las alertas de velocidad:', error);
+    } finally {
+      this.loadingSpeedAlerts = false;
+    }
+  }
+
+  private async logCurrentUserDetails(): Promise<User | null> {
+    try {
+      const currentUserId = this.currentUser?.id;
+      if (!currentUserId) {
+        console.warn('⚠️ No se pudo obtener el ID del usuario actual');
+        return null;
+      }
+      const user = await firstValueFrom(this.userService.getById(currentUserId));
+      console.log('ℹ️ Usuario logueado sin objetivos seleccionados:', user);
+      return user;
+    } catch (error) {
+      console.error('❌ Error al obtener datos del usuario logueado:', error);
+      return null;
+    }
+  }
+
+  private filterSpeedAlertsForSelection(): void {
+    const currentTargetIds = (this.currentSelectedTargets || [])
+      .map(target => target?._id || (target as any)?.id)
+      .filter((id): id is string => !!id);
+    const userIdFromUrl = this.getParentIdFromUrl();
+
+    if (!currentTargetIds.length) {
+      if (!userIdFromUrl) {
+        this.visibleSpeedAlerts = [];
+        return;
+      }
+
+      this.visibleSpeedAlerts = (this.speedAlerts || []).filter(alert => {
+        return alert.targetIds.includes(userIdFromUrl);
+      });
+      return;
+    }
+
+    this.visibleSpeedAlerts = (this.speedAlerts || []).filter(alert => {
+      if (!alert.targetIds || alert.targetIds.length === 0) {
+        return false;
+      }
+      return currentTargetIds.every(targetId => alert.targetIds.includes(targetId));
+    });
+  }
+
+  confirmDeleteAlert(alert: AlertResponse): void {
+    this.confirmationService.confirm({
+      message: this.translate.instant('navbar.deleteAlertConfirm'),
+      header: this.translate.instant('navbar.deleteAlert'),
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => this.deleteAlert(alert._id)
+    });
+  }
+
+  private async deleteAlert(alertId: string): Promise<void> {
+    this.deletingAlertId = alertId;
+    try {
+      await firstValueFrom(this.alertsService.deleteAlert(alertId));
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('navbar.deleteAlert'),
+        detail: this.translate.instant('navbar.deleteAlertSuccess')
+      });
+      await this.loadSpeedAlerts();
+    } catch (error: any) {
+      console.error('❌ Error eliminando alerta:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail:
+          error?.error?.message ||
+          this.translate.instant('navbar.deleteAlertError')
+      });
+    } finally {
+      this.deletingAlertId = null;
+    }
   }
 
   logout() {

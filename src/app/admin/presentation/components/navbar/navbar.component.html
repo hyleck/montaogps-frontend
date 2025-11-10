@@ -4,9 +4,11 @@
    
         <div class="navbar__controls">
             <div class="navbar__controls-base">
-                <button class="button button--flat-negative button--disabled">
-                    <i class="pi pi-calendar-clock"></i>
-                    {{ 'navbar.scheduleProcess' | translate }}
+                <button 
+                    class="button button--flat-negative"
+                    (click)="openAlertsModal()">
+                    <i class="pi pi-bell"></i>
+                    {{ 'navbar.alerts' | translate }}
                 </button>
                 <button 
                     *ngIf="showCanceledButton"
@@ -71,6 +73,143 @@
         </div>
     </div>
 </div>
+
+<p-dialog
+    header="{{ 'navbar.alerts' | translate }}"
+    [(visible)]="alertsDialogVisible"
+    [modal]="true"
+    [dismissableMask]="true"
+    [closeOnEscape]="true"
+    [draggable]="false"
+    appendTo="body"
+    [style]="{width: '640px', maxWidth: '90vw'}"
+    styleClass="alerts-dialog">
+    <div class="alerts-modal-content">
+        <div class="alerts-column">
+            <h4>{{ 'navbar.alertTypes' | translate }}</h4>
+            <div class="alerts-options">
+                <button 
+                    *ngFor="let option of alertsOptions"
+                    class="button button--flat-negative alerts-option"
+                    type="button"
+                    [disabled]="option.labelKey !== 'navbar.alertOptionSpeed'"
+                    [ngClass]="{'alerts-option--disabled': option.labelKey !== 'navbar.alertOptionSpeed'}"
+                    (click)="option.labelKey === 'navbar.alertOptionSpeed' ? openSpeedAlertModal() : null">
+                    {{ option.labelKey | translate }}
+                </button>
+            </div>
+        </div>
+        <div class="alerts-column alerts-selected-column">
+            <h4>
+                {{ 'navbar.selectedTargets' | translate }}
+                ({{ currentSelectedTargets.length }})
+            </h4>
+            <div *ngIf="currentSelectedTargets.length; else noSelectedTargets"
+                 class="targets-list alerts-targets-list">
+                <div 
+                    *ngFor="let target of currentSelectedTargets"
+                    class="target-item">
+                    <div class="target-info">
+                        <i class="pi pi-map-marker"></i>
+                        <div class="target-details">
+                            <span class="target-name">{{ target.name }}</span>
+                            <span class="target-imei" *ngIf="target.imei || target.device_imei">
+                                IMEI: {{ target.imei || target.device_imei }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <ng-template #noSelectedTargets>
+                <div class="no-targets-message">
+                    <i class="pi pi-info-circle"></i>
+                    <span>{{ 'navbar.noSelectedTargets' | translate }}</span>
+                </div>
+            </ng-template>
+        </div>
+    </div>
+</p-dialog>
+
+<p-dialog
+    header="{{ 'navbar.alertOptionSpeed' | translate }}"
+    [(visible)]="speedAlertDialogVisible"
+    [modal]="true"
+    [dismissableMask]="true"
+    [closeOnEscape]="true"
+    [draggable]="false"
+    appendTo="body"
+    [style]="{width: '420px', maxWidth: '90vw'}">
+    <div class="speed-alert-modal-content">
+        <form class="speed-alert-form" (ngSubmit)="createSpeedAlert()" #speedAlertForm="ngForm">
+            <div class="form-field">
+                <label for="maxSpeedInput">{{ 'navbar.maxSpeedLabel' | translate }}</label>
+                <div class="input-with-unit">
+                    <input
+                        id="maxSpeedInput"
+                        type="number"
+                        min="1"
+                        step="1"
+                        required
+                        [(ngModel)]="maxSpeedValue"
+                        name="maxSpeedValue"
+                        class="input"
+                        placeholder="0" />
+                    <span class="unit">km/h</span>
+                </div>
+            </div>
+            <button 
+                type="submit" 
+                class="button button--primary full-width"
+                [disabled]="speedAlertForm.invalid || creatingAlert">
+                <i *ngIf="creatingAlert" class="pi pi-spin pi-spinner" style="margin-right: 0.5rem;"></i>
+                <span>{{ 'navbar.createAlert' | translate }}</span>
+            </button>
+        </form>
+
+        <div class="speed-alerts-history">
+            <h4>
+                {{ (currentSelectedTargets.length ? 'navbar.speedAlertsTitle' : 'navbar.speedAlertsGlobalTitle') | translate }}
+            </h4>
+            <div *ngIf="loadingSpeedAlerts" class="speed-alerts-loading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>{{ 'common.loading' | translate }}...</span>
+            </div>
+            <ng-container *ngIf="!loadingSpeedAlerts">
+                <div *ngIf="visibleSpeedAlerts.length; else emptySpeedAlerts" class="speed-alerts-list">
+                    <div *ngFor="let alert of visibleSpeedAlerts" class="speed-alert-item">
+                        <div class="speed-alert-meta">
+                            <div class="speed-alert-meta-info">
+                                <span class="speed-alert-max">{{ alert.config?.['maxSpeed'] ?? '-' }} km/h</span>
+                                <small>
+                                    {{ alert.createdAt | date:'short' }}
+                                </small>
+                            </div>
+                            <button 
+                                type="button" 
+                                class="speed-alert-delete"
+                                pTooltip="{{ 'navbar.deleteAlert' | translate }}"
+                                tooltipPosition="top"
+                                (click)="confirmDeleteAlert(alert)"
+                                [disabled]="deletingAlertId === alert._id">
+                                <i *ngIf="deletingAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
+                                <i *ngIf="deletingAlertId !== alert._id" class="pi pi-trash"></i>
+                            </button>
+                        </div>
+                        <div class="speed-alert-targets" *ngIf="alert.targetIds?.length">
+                            {{ 'navbar.alertTargetsCount' | translate:{ count: alert.targetIds.length } }}
+                        </div>
+                    </div>
+                </div>
+                <ng-template #emptySpeedAlerts>
+                    <div class="speed-alerts-empty">
+                        <i class="pi pi-info-circle"></i>
+                        <span>{{ 'navbar.noSpeedAlerts' | translate }}</span>
+                    </div>
+                </ng-template>
+            </ng-container>
+        </div>
+    </div>
+</p-dialog>
 
 <!-- Drawer para targets cancelados -->
 <p-drawer 
