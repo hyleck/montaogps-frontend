@@ -82,7 +82,14 @@
       </div>
     </section>
 
-    <section class="server-costs__history">
+    <div class="server-costs__history-toggle">
+      <button class="history-toggle-button" type="button" (click)="toggleHistory()">
+        <i class="pi" [ngClass]="showHistory ? 'pi-eye-slash' : 'pi-eye'"></i>
+        <span>{{ showHistory ? ('serverCosts.history.hide' | translate) : ('serverCosts.history.show' | translate) }}</span>
+      </button>
+    </div>
+
+    <section class="server-costs__history" *ngIf="showHistory">
       <div class="server-costs__history-header">
         <h2>{{ 'serverCosts.history.title' | translate }}</h2>
         <span class="server-costs__history-count" *ngIf="billingData.billingHistory?.billing_history?.length">

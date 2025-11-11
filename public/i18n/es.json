@@ -301,6 +301,8 @@
       "history": {
         "title": "Historial de facturación",
         "records": "registros",
+        "show": "Mostrar historial de facturación",
+        "hide": "Ocultar historial de facturación",
         "columns": {
           "date": "Fecha",
           "account": "Cuenta",

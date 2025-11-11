@@ -18,6 +18,7 @@ export class ServerCostsComponent implements OnInit {
   accountSummaries: DigitalOceanAccountBilling[] = [];
   rowsPerPage = 10;
   rowsPerPageOptions = [10, 25, 50];
+  showHistory = false;
 
   get resolvedAccountLabel(): string {
     const accountSlug = this.billingData?.account || this.selectedAccount;
@@ -55,6 +56,7 @@ export class ServerCostsComponent implements OnInit {
     this.loading = true;
     this.errorKey = null;
     this.accountSummaries = [];
+    this.showHistory = false;
 
     const accountParam =
       this.selectedAccount === 'montao-admin' ? undefined : this.selectedAccount;
@@ -97,5 +99,9 @@ export class ServerCostsComponent implements OnInit {
 
     const option = this.accountOptions.find((account) => account.value === slug);
     return option ? this.translate.instant(option.labelKey) : slug;
+  }
+
+  toggleHistory(): void {
+    this.showHistory = !this.showHistory;
   }
 }
