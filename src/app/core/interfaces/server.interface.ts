@@ -57,6 +57,7 @@ export interface DigitalOceanAccountBilling {
   account: string;
   balance?: DigitalOceanBalance;
   billingHistory?: DigitalOceanBillingHistory;
+  dueDate?: string | Date | null;
 }
 
 export interface DigitalOceanBillingData {

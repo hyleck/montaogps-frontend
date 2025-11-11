@@ -5,6 +5,7 @@ import { ChatwootService } from './core/services/chatwoot.service';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
+import { FirebaseNotificationsService } from './core/services/firebase-notifications.service';
 
 @Component({
     selector: 'app-root',
@@ -19,7 +20,8 @@ export class AppComponent implements OnInit, OnDestroy {
     public themes: ThemesService,
     private authService: AuthService,
     private chatwootService: ChatwootService,
-    private router: Router
+    private router: Router,
+    private firebaseNotifications: FirebaseNotificationsService
   ) {
     // this.themes.setTheme('light');
   }
@@ -50,12 +52,16 @@ export class AppComponent implements OnInit, OnDestroy {
    */
   private monitorAuthentication(): void {
     // Verificar estado inicial
-    this.handleAuthenticationChange();
+    this.handleAuthenticationChange().catch((error) =>
+      console.error('Error handling auth change', error),
+    );
 
     // Monitorear cambios en localStorage (login/logout)
     window.addEventListener('storage', (event) => {
       if (event.key === 'authtoken' || event.key === 'user') {
-        this.handleAuthenticationChange();
+        this.handleAuthenticationChange().catch((error) =>
+          console.error('Error handling auth change', error),
+        );
       }
     });
 
@@ -63,19 +69,22 @@ export class AppComponent implements OnInit, OnDestroy {
     // Nota: Esto es un workaround ya que AuthService no emite eventos
     // En una implementación más robusta, AuthService debería usar BehaviorSubject
     setInterval(() => {
-      this.handleAuthenticationChange();
+      this.handleAuthenticationChange().catch((error) =>
+        console.error('Error handling auth change', error),
+      );
     }, 5000); // Verificar cada 5 segundos
   }
 
   /**
    * Maneja cambios en el estado de autenticación
    */
-  private handleAuthenticationChange(): void {
+  private async handleAuthenticationChange(): Promise<void> {
     const isAuthenticated = this.authService.isAuthenticated();
     
     if (isAuthenticated) {
       // Usuario está logueado, inicializar Chatwoot
       // this.chatwootService.initializeChatwoot();
+      await this.firebaseNotifications.subscribeLoggedUserToTopic();
     } else {
       // Usuario no está logueado, remover Chatwoot
       // this.chatwootService.removeChatwoot();

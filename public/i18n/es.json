@@ -296,7 +296,8 @@
         "accountBalance": "Balance de cuenta",
         "monthToDateUsage": "Uso del mes",
         "monthToDateBalance": "Balance del mes",
-        "updatedAt": "Actualizado: {{date}}"
+        "updatedAt": "Actualizado: {{date}}",
+        "dueDate": "Fecha límite de pago"
       },
       "history": {
         "title": "Historial de facturación",

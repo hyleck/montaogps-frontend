@@ -47,6 +47,9 @@
         <small class="summary-card__help">
           {{ 'serverCosts.summary.updatedAt' | translate:{ date: (billingData.balance?.generated_at | date:'medium') } }}
         </small>
+        <small class="summary-card__help" *ngIf="globalDueDate">
+          {{ 'serverCosts.summary.dueDate' | translate }}: {{ globalDueDate | date:'mediumDate' }}
+        </small>
       </div>
       <div class="summary-card">
         <span class="summary-card__label">{{ 'serverCosts.summary.monthToDateUsage' | translate }}</span>
@@ -77,6 +80,9 @@
           <small class="summary-card__help">
             {{ 'serverCosts.summary.monthToDateBalance' | translate }}:
             {{ toNumber(account.balance?.month_to_date_balance) | currency:'USD':'symbol':'1.2-2' }}
+          </small>
+          <small class="summary-card__help" *ngIf="account.dueDate">
+            {{ 'serverCosts.summary.dueDate' | translate }}: {{ account.dueDate | date:'mediumDate' }}
           </small>
         </div>
       </div>

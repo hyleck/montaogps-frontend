@@ -16,6 +16,7 @@ export class ServerCostsComponent implements OnInit {
   errorKey: string | null = null;
   selectedAccount = 'all';
   accountSummaries: DigitalOceanAccountBilling[] = [];
+  globalDueDate: Date | null = null;
   rowsPerPage = 10;
   rowsPerPageOptions = [10, 25, 50];
   showHistory = false;
@@ -56,6 +57,7 @@ export class ServerCostsComponent implements OnInit {
     this.loading = true;
     this.errorKey = null;
     this.accountSummaries = [];
+    this.globalDueDate = null;
     this.showHistory = false;
 
     const accountParam =
@@ -64,7 +66,15 @@ export class ServerCostsComponent implements OnInit {
     this.serversService.getDigitalOceanBilling(accountParam).subscribe({
       next: (data) => {
         this.billingData = data;
-        this.accountSummaries = data.accounts ?? [];
+        this.globalDueDate = this.resolveDueDate(
+          data.billingHistory?.billing_history ?? []
+        );
+        this.accountSummaries = (data.accounts ?? []).map((account) => ({
+          ...account,
+          dueDate: this.resolveDueDate(
+            account.billingHistory?.billing_history ?? []
+          )
+        }));
         this.loading = false;
       },
       error: (error) => {
@@ -103,5 +113,25 @@ export class ServerCostsComponent implements OnInit {
 
   toggleHistory(): void {
     this.showHistory = !this.showHistory;
+  }
+
+  private resolveDueDate(
+    entries: DigitalOceanBillingHistoryEntry[] | undefined | null
+  ): Date | null {
+    if (!entries?.length) {
+      return null;
+    }
+
+    const invoiceEntry =
+      entries.find(
+        (entry) => entry.type?.toLowerCase() === 'invoice'
+      ) || entries[0];
+
+    if (!invoiceEntry?.date) {
+      return null;
+    }
+
+    const dueDate = new Date(invoiceEntry.date);
+    return isNaN(dueDate.getTime()) ? null : dueDate;
   }
 }

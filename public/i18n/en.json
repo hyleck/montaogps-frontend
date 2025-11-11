@@ -224,11 +224,14 @@
         "accountBalance": "Account balance",
         "monthToDateUsage": "Month-to-date usage",
         "monthToDateBalance": "Month-to-date balance",
-        "updatedAt": "Updated: {{date}}"
+        "updatedAt": "Updated: {{date}}",
+        "dueDate": "Payment due date"
       },
       "history": {
         "title": "Billing history",
         "records": "records",
+        "show": "Show billing history",
+        "hide": "Hide billing history",
         "columns": {
           "date": "Date",
           "account": "Account",
