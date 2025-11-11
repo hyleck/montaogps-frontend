@@ -30,6 +30,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
    currentPopupId: string = '';
    currentTargetId: string | null = null; // Para rastrear cambios de target
    offlineDuration: string = '';
+   lastUpdateText: string = '';
    isTargetOffline: boolean = false;
    distanceDisplay: string = '';
 
@@ -204,9 +205,18 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   private async calculateOfflineDuration(): Promise<void> {
     // Check if target is offline
     this.isTargetOffline = this.selectedTarget?.traccarStatus !== 'online';
+    this.lastUpdateText = '';
 
     if (!this.isTargetOffline) {
       this.offlineDuration = '';
+
+      const onlineLastUpdate = this.selectedTarget?.traccarInfo?.lastUpdate;
+      if (onlineLastUpdate) {
+        const onlineDate = new Date(onlineLastUpdate);
+        if (!Number.isNaN(onlineDate.getTime())) {
+          this.lastUpdateText = onlineDate.toLocaleString();
+        }
+      }
       return;
     }
 
@@ -257,11 +267,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     if (isNaN(lastUpdateDate.getTime())) {
       this.offlineDuration = 'Fecha inválida';
+      this.lastUpdateText = this.translate.instant('maps.notAvailable');
       return;
     }
 
     if (diffInMs < 0) {
       this.offlineDuration = 'Fecha futura';
+      this.lastUpdateText = this.translate.instant('maps.notAvailable');
       return;
     }
 
@@ -290,6 +302,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     this.offlineDuration = timeText;
+    this.lastUpdateText = lastUpdateDate.toLocaleString();
   }
 
   private async updateTargetMarker(): Promise<void> {
@@ -407,12 +420,18 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   get lastUpdateDisplay(): string {
+    if (this.lastUpdateText) {
+      return this.lastUpdateText;
+    }
+
     const lastUpdate = this.selectedTarget?.traccarInfo?.lastUpdate;
     if (!lastUpdate) {
       return this.translate.instant('maps.notAvailable');
     }
     const date = new Date(lastUpdate);
-    return date.toLocaleString();
+    return Number.isNaN(date.getTime())
+      ? this.translate.instant('maps.notAvailable')
+      : date.toLocaleString();
   }
 
   get simDisplay(): string {

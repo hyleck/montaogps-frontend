@@ -7,6 +7,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { AuthService } from '@core/services/auth.service';
 import { ThemesService } from '@shared/services/themes.service';
 import { RouteHistoryResponse, RouteHistoryPosition } from '@core/interfaces';
+import { ReportsMapInfoPanelData } from '../../../../../../shareds/components/reports-map/reports-map.component';
 
 export interface ReportFilter {
   reportType: string;
@@ -82,6 +83,8 @@ export class ReportsComponent implements OnInit {
     
     // Estado del target seleccionado para determinar opciones rápidas
     isTargetOffline: boolean = false;
+
+    mapInfoPanelData: ReportsMapInfoPanelData | null = null;
     
     // Obtener opciones rápidas según el estado del target
     get availableQuickDateRanges() {
@@ -891,6 +894,10 @@ export class ReportsComponent implements OnInit {
       
       // Forzar actualización del mapa
       this.cdr.detectChanges();
+    }
+
+    onMapInfoPanelChange(data: ReportsMapInfoPanelData | null): void {
+      this.mapInfoPanelData = data;
     }
 
 

@@ -324,6 +324,72 @@ input[type="datetime-local"] {
   background: var(--reportsTableHeader);
 }
 
+.main-area__header--info {
+  justify-content: flex-start;
+}
+
+.header-info {
+  width: 100%;
+}
+
+.header-info-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--reportsTitle);
+  margin-bottom: 0.5rem;
+}
+
+.header-info-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.header-info-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.header-info-item .label {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--reportsSubtitle);
+}
+
+.header-info-item .value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--reportsText);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-visualization-title {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--reportsTitle);
+}
+
+@media (max-width: 768px) {
+  .header-info {
+    display: none;
+  }
+
+  .main-area__header--info {
+    justify-content: center;
+  }
+
+  .mobile-visualization-title {
+    display: flex;
+  }
+}
+
 .main-area__title {
   margin: 0;
   font-size: 1.125rem;

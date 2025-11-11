@@ -233,20 +233,31 @@
     <!-- ÁREA PRINCIPAL DERECHA: Mapa/Resultados -->
     <div class="reports__main-area">
       <!-- Header del área principal -->
-      <div class="main-area__header">
-        <h3 class="main-area__title">
-          <i class="fas fa-map-marked-alt"></i>
-          {{ 'reports.visualization' | translate }}
-        </h3>
-        <button 
-          *ngIf="!generatingReport"
-          type="button"
-          class="export-btn"
-          (click)="exportReport()">
-          <i class="fas fa-download"></i>
-          {{ 'reports.export' | translate }}
-        </button>
-      </div>
+      <ng-container *ngIf="mapInfoPanelData as infoPanel; else defaultMainHeader">
+        <div class="main-area__header main-area__header--info">
+          <div class="header-info">
+            <div class="header-info-title">{{ infoPanel.title }}</div>
+            <div class="header-info-items">
+              <div class="header-info-item" *ngFor="let item of infoPanel.items">
+                <span class="label">{{ item.label }}</span>
+                <span class="value" [style.color]="item.color || null">{{ item.value }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="mobile-visualization-title">
+            <i class="fas fa-map-marked-alt"></i>
+            {{ 'reports.visualization' | translate }}
+          </div>
+        </div>
+      </ng-container>
+      <ng-template #defaultMainHeader>
+        <div class="main-area__header">
+          <h3 class="main-area__title">
+            <i class="fas fa-map-marked-alt"></i>
+            {{ 'reports.visualization' | translate }}
+          </h3>
+        </div>
+      </ng-template>
 
       <!-- Contenido del área principal -->
       <div class="main-area__content">
@@ -321,7 +332,8 @@
             [showRouteDetails]="true"
             [autoStartReplay]="progressiveLoading.replayStarted"
             [isStreamingMode]="progressiveLoading.isStreamingMode"
-            [targetProtocol]="targetProtocol">
+            [targetProtocol]="targetProtocol"
+            (infoPanelChange)="onMapInfoPanelChange($event)">
           </app-reports-map>
         </div>
       </div>

@@ -1,9 +1,20 @@
-import { Component, OnInit, OnDestroy, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, OnChanges, SimpleChanges, Output, EventEmitter } from '@angular/core';
 import { SystemService, SystemSettings } from '../../../core/services/system.service';
 import { TargetsService } from '../../../core/services/targets.service';
 import { RouteHistoryResponse } from '../../../core/interfaces';
 
 import { MapUtils } from '../../helpers/map.helper';
+
+export interface ReportsMapInfoPanelItem {
+  label: string;
+  value: string;
+  color?: string;
+}
+
+export interface ReportsMapInfoPanelData {
+  title: string;
+  items: ReportsMapInfoPanelItem[];
+}
 
 @Component({
   selector: 'app-reports-map',
@@ -21,6 +32,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   @Input() autoStartReplay: boolean = false;
   @Input() isStreamingMode: boolean = false;
   @Input() targetProtocol: any = null;
+  @Output() infoPanelChange = new EventEmitter<ReportsMapInfoPanelData | null>();
 
   // Configuración de zona horaria para los labels de marcadores
   // NOTA: Este valor se usa solo como FALLBACK si el protocolo no tiene utcOffset configurado
@@ -164,6 +176,15 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       if (current && current.utcOffset !== undefined) {
     
       }
+    }
+
+    if (
+      changes['routeHistory'] &&
+      (!this.routeHistory ||
+        !this.routeHistory.positions ||
+        this.routeHistory.positions.length === 0)
+    ) {
+      this.emitInfoPanelData(null);
     }
   }
 
@@ -387,6 +408,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private createPositionPopupContent(position: any, title: string, color: string): string {
     const date = this.formatDateForPopup(position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
+    this.updateInfoPanelFromPosition(position, title);
     
     return `
       <div class="reports-popup">
@@ -899,6 +921,10 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private createFinalPositionPopupContent(position: any): string {
     const date = this.formatDateForPopup(position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
+    this.updateInfoPanelFromPosition(position, '🏁 Posición Final del Recorrido', {
+      dateLabel: 'Fecha y hora final',
+      speedLabel: 'Velocidad final',
+    });
     
     return `
       <div class="reports-popup">
@@ -960,6 +986,9 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private createStoppedPositionPopupContent(position: any): string {
     const date = this.formatDateForPopup(position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
+    this.updateInfoPanelFromPosition(position, '⏹️ Reproducción Detenida', {
+      dateLabel: 'Fecha y hora de detención',
+    });
     
     return `
       <div class="reports-popup">
@@ -1087,6 +1116,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private createStopPopupContent(stop: any, stopNumber: number): string {
     const startTime = this.formatDateForPopup(stop.startTime);
     const endTime = this.formatDateForPopup(stop.endTime);
+    this.updateInfoPanelForStop(stop, `Parada #${stopNumber}`);
     
     return `
       <div style="font-family: Arial, sans-serif; max-width: 300px; padding: 10px; color: #000;">
@@ -1180,6 +1210,26 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     const currentPosition = this.replayPositions[this.currentPositionIndex];
+
+    if (currentPosition?.type === 'stop' && currentPosition.stopData) {
+      this.updateInfoPanelForStop(
+        currentPosition.stopData,
+        `Parada ${currentPosition.stopData.stopNumber}`,
+        [
+          {
+            label: currentPosition.isStopStart
+              ? 'Inicio de parada'
+              : 'Fin de parada',
+            value: this.formatDateForPopup(currentPosition.fixTime),
+          },
+        ],
+      );
+    } else {
+      this.updateInfoPanelFromPosition(
+        currentPosition,
+        `Posición ${this.currentPositionIndex + 1}`,
+      );
+    }
     
     // Mover marcador a la nueva posición
     if (this.replayMarker) {
@@ -1303,6 +1353,14 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private createMovementReplayPopupContent(position: any, positionNumber: number): string {
     const date = this.formatDateForPopup(position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
+    this.updateInfoPanelFromPosition(position, `Posición ${positionNumber}`, {
+      extraItems: [
+        {
+          label: 'Progreso',
+          value: `${positionNumber} de ${this.replayPositions.length}`,
+        },
+      ],
+    });
     
     return `
       <div class="reports-popup">
@@ -1372,6 +1430,20 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     
     const startTime = this.formatDateForPopup(stopData.startTime);
     const endTime = this.formatDateForPopup(stopData.endTime);
+    this.updateInfoPanelForStop(
+      stopData,
+      `${isStart ? 'Inicio' : 'Fin'} de Parada ${stopData.stopNumber}`,
+      [
+        {
+          label: isStart ? 'Inicio de parada' : 'Fin de parada',
+          value: date,
+        },
+        {
+          label: 'Progreso',
+          value: `${positionNumber} de ${this.replayPositions.length}`,
+        },
+      ],
+    );
     
     return `
       <div class="reports-popup">
@@ -1972,6 +2044,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private createCalculatedStopPopupContent(stop: any): string {
     const startTime = this.formatDateForPopup(stop.startTime);
     const endTime = this.formatDateForPopup(stop.endTime);
+    this.updateInfoPanelForStop(stop, `Parada Detectada ${stop.stopNumber}`);
     
     return `
       <div style="font-family: Arial, sans-serif; max-width: 300px; padding: 10px; color: #000;">
@@ -2017,4 +2090,158 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       </div>
     `;
   }
-} 
+
+  private emitInfoPanelData(
+    data: ReportsMapInfoPanelData | null,
+  ): void {
+    this.infoPanelChange.emit(data);
+  }
+
+  private updateInfoPanelFromPosition(
+    position: any,
+    title: string,
+    options: {
+      dateLabel?: string;
+      speedLabel?: string;
+      includeSpeed?: boolean;
+      includeCoordinates?: boolean;
+      extraItems?: ReportsMapInfoPanelItem[];
+    } = {},
+  ): void {
+    if (!position) {
+      this.emitInfoPanelData(null);
+      return;
+    }
+
+    const items: ReportsMapInfoPanelItem[] = [];
+    const rawDate =
+      position.fixTime ||
+      position.deviceTime ||
+      position.serverTime ||
+      position.timestamp ||
+      new Date().toISOString();
+    const formattedDate = this.formatDateForPopup(rawDate);
+    items.push({
+      label: options.dateLabel || 'Fecha y hora',
+      value: formattedDate,
+    });
+
+    const includeSpeed = options.includeSpeed !== false;
+    if (includeSpeed && typeof position.speed === 'number') {
+      const speedValue = Math.round(position.speed * 1.852);
+      items.push({
+        label: options.speedLabel || 'Velocidad',
+        value: `${speedValue} km/h`,
+      });
+    }
+
+    const includeCoordinates = options.includeCoordinates !== false;
+    const lat =
+      typeof position.latitude === 'number'
+        ? position.latitude
+        : parseFloat(position.latitude);
+    const lng =
+      typeof position.longitude === 'number'
+        ? position.longitude
+        : parseFloat(position.longitude);
+    if (includeCoordinates && !Number.isNaN(lat) && !Number.isNaN(lng)) {
+      items.push({
+        label: 'Coordenadas',
+        value: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+      });
+    }
+
+    if (position.dbfrom) {
+      const dbfromLower = position.dbfrom.toLowerCase();
+      let source = position.dbfrom.toUpperCase();
+      let color: string | undefined;
+
+      if (dbfromLower === 'traccar') {
+        source = 'TR';
+        color = '#60a5fa'; // azul claro
+      } else if (dbfromLower === 'mongodb') {
+        source = 'MDB';
+        color = '#10b981'; // verde MongoDB
+      }
+
+      items.push({
+        label: 'Fuente',
+        value: source,
+        color,
+      });
+    }
+
+    if (options.extraItems) {
+      items.push(...options.extraItems);
+    }
+
+    this.emitInfoPanelData({ title, items });
+  }
+
+  private updateInfoPanelForStop(
+    stop: any,
+    title: string,
+    extraItems: ReportsMapInfoPanelItem[] = [],
+  ): void {
+    if (!stop) {
+      this.emitInfoPanelData(null);
+      return;
+    }
+
+    const items: ReportsMapInfoPanelItem[] = [];
+
+    if (stop.durationText) {
+      items.push({ label: 'Duración', value: stop.durationText });
+    }
+
+    if (stop.startTime) {
+      items.push({
+        label: 'Inicio',
+        value: this.formatDateForPopup(stop.startTime),
+      });
+    }
+
+    if (stop.endTime) {
+      items.push({ label: 'Fin', value: this.formatDateForPopup(stop.endTime) });
+    }
+
+    if (stop.address) {
+      items.push({ label: 'Dirección', value: stop.address });
+    }
+
+    const lat =
+      typeof stop.latitude === 'number'
+        ? stop.latitude
+        : parseFloat(stop.latitude);
+    const lng =
+      typeof stop.longitude === 'number'
+        ? stop.longitude
+        : parseFloat(stop.longitude);
+    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+      items.push({
+        label: 'Coordenadas',
+        value: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
+      });
+    }
+
+    if (stop.ignitionOff !== undefined) {
+      items.push({
+        label: 'Motor',
+        value: stop.ignitionOff ? 'Apagado' : 'Encendido',
+      });
+    }
+
+    if (stop.positionCount !== undefined) {
+      items.push({
+        label: 'Posiciones',
+        value: String(stop.positionCount),
+      });
+    }
+
+    if (extraItems.length) {
+      items.push(...extraItems);
+    }
+
+    this.emitInfoPanelData({ title, items });
+  }
+}

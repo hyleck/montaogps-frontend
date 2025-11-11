@@ -57,7 +57,7 @@
     font-size: 0.6rem;
     text-transform: uppercase;
     letter-spacing: 0.12em;
-    color: rgba(148, 163, 184, 0.85);
+    color: #fb923c;
 }
 
 .info-chip .chip-value{
@@ -130,6 +130,13 @@
 .target-info-empty p{
     margin: 0;
     color: rgba(226, 232, 240, 0.75);
+}
+
+@media (max-width: 768px) {
+    .target-info-panel,
+    .target-info-empty {
+        display: none;
+    }
 }
 
 /* Estilos para popups personalizados */
