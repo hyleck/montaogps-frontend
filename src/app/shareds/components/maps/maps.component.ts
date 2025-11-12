@@ -507,7 +507,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         icon: {
           url: markerIconUrl,
           scaledSize: new google.maps.Size(36, 36),
-          anchor: new google.maps.Point(18, 28)
+          anchor: new google.maps.Point(18, 35)
         }
       });
 
@@ -538,7 +538,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       const markerElement = document.createElement('div');
       markerElement.className = 'custom-marker';
       markerElement.style.cssText = `
-        width: 40px;
+        width: 60px;
         height: 40px;
         background-image: url('${markerIconUrl}');
         background-size: contain;
@@ -550,21 +550,24 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         transform: translateY(-10px);
       `;
 
-      const statusDot = document.createElement('div');
-      statusDot.style.cssText = `
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        border: 2px solid #fff;
-        background: ${isOffline ? '#ef4444' : '#22c55e'};
-        position: absolute;
-        bottom: -2px;
-        right: -2px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-      `;
-      markerElement.appendChild(statusDot);
+      // const statusDot = document.createElement('div');
+      // statusDot.style.cssText = `
+      //   width: 12px;
+      //   height: 12px;
+      //   border-radius: 50%;
+      //   border: 2px solid #fff;
+      //   background: ${isOffline ? '#ef4444' : '#22c55e'};
+      //   position: absolute;
+      //   bottom: -2px;
+      //   right: -2px;
+      //   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      // `;
+      // markerElement.appendChild(statusDot);
 
-      this.currentMarker = new mapboxgl.Marker(markerElement)
+      this.currentMarker = new mapboxgl.Marker({
+        element: markerElement,
+        offset: [0, -10],
+      })
         .setLngLat([lng, lat])
         .addTo(this.map);
 
