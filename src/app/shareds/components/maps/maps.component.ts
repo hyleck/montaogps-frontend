@@ -33,6 +33,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
    lastUpdateText: string = '';
    isTargetOffline: boolean = false;
    distanceDisplay: string = '';
+   private cachedMarkerIconUrl: string | null = null;
 
   constructor(
     private _theme: ThemesService,
@@ -495,22 +496,18 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     const popupIdMatch = initialContent.match(/id="(popup-[^"]+)"/);
     this.currentPopupId = popupIdMatch ? popupIdMatch[1] : '';
 
+    const markerIconUrl = this.getMarkerIconUrl();
+
     if (this.provider === 'google') {
       // Crear marcador Google Maps
-      const markerColor = isOffline ? '#ef4444' : '#22c55e'; // Red for offline, green for online
       this.currentMarker = new google.maps.Marker({
         position: { lat, lng },
         map: this.map,
         title: title,
         icon: {
-          url: 'data:image/svg+xml;base64,' + btoa(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-              <circle cx="16" cy="16" r="12" fill="${markerColor}" stroke="#fff" stroke-width="2"/>
-              <circle cx="16" cy="16" r="6" fill="#fff"/>
-            </svg>
-          `),
-          scaledSize: new google.maps.Size(32, 32),
-          anchor: new google.maps.Point(16, 16)
+          url: markerIconUrl,
+          scaledSize: new google.maps.Size(36, 36),
+          anchor: new google.maps.Point(18, 28)
         }
       });
 
@@ -540,30 +537,32 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       
       const markerElement = document.createElement('div');
       markerElement.className = 'custom-marker';
-      const markerColor = isOffline ? '#ef4444' : '#22c55e'; // Red for offline, green for online
       markerElement.style.cssText = `
-        width: 32px;
-        height: 32px;
-        background: ${markerColor};
-        border: 2px solid #fff;
-        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        background-image: url('${markerIconUrl}');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
         cursor: pointer;
         position: relative;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
+        transform: translateY(-10px);
       `;
-      
-      const centerDot = document.createElement('div');
-      centerDot.style.cssText = `
+
+      const statusDot = document.createElement('div');
+      statusDot.style.cssText = `
         width: 12px;
         height: 12px;
-        background: #fff;
         border-radius: 50%;
+        border: 2px solid #fff;
+        background: ${isOffline ? '#ef4444' : '#22c55e'};
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        bottom: -2px;
+        right: -2px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
       `;
-      markerElement.appendChild(centerDot);
+      markerElement.appendChild(statusDot);
 
       this.currentMarker = new mapboxgl.Marker(markerElement)
         .setLngLat([lng, lat])
@@ -859,5 +858,32 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       mapElement.className = '';
       mapElement.style.cssText = '';
     }
+  }
+
+  private getMarkerIconUrl(): string {
+    if (this.cachedMarkerIconUrl) {
+      return this.cachedMarkerIconUrl;
+    }
+
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      this.cachedMarkerIconUrl = '/favicon.ico';
+      return this.cachedMarkerIconUrl;
+    }
+
+    const iconLink =
+      (document.querySelector("link[rel*='icon']") as HTMLLinkElement | null) ??
+      null;
+    const href = iconLink?.href ?? '/favicon.ico';
+    if (href.startsWith('http')) {
+      this.cachedMarkerIconUrl = href;
+    } else {
+      const normalized =
+        href.startsWith('/') || href.startsWith('http')
+          ? href
+          : `/${href}`;
+      this.cachedMarkerIconUrl = `${window.location.origin}${normalized}`;
+    }
+
+    return this.cachedMarkerIconUrl;
   }
 }
