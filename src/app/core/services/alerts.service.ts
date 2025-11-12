@@ -10,6 +10,14 @@ export interface CreateAlertDto {
   type: AlertType;
   maxSpeed?: number;
   targetIds?: string[];
+  userTopic?: string;
+}
+
+export interface AlertUserTopic {
+  _id: string;
+  email?: string;
+  name?: string;
+  last_name?: string;
 }
 
 export interface AlertResponse {
@@ -17,6 +25,7 @@ export interface AlertResponse {
   type: AlertType;
   targetIds: string[];
   config?: Record<string, any>;
+  userTopic?: AlertUserTopic | string;
   status: string;
   createdAt: string;
   updatedAt: string;

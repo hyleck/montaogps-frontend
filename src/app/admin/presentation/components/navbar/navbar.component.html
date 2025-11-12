@@ -6,9 +6,13 @@
             <div class="navbar__controls-base">
                 <button 
                     class="button button--flat-negative"
-                    (click)="openAlertsModal()">
+                    [class.button--disabled]="!hasSelectedTargets"
+                    [disabled]="!hasSelectedTargets"
+                    (click)="hasSelectedTargets ? openAlertsModal() : null"
+                    [title]="hasSelectedTargets ? ('navbar.alertsTooltip' | translate) + ' (' + selectedTargetsCount + ')' : ('navbar.alertsDisabledTooltip' | translate)">
                     <i class="pi pi-bell"></i>
                     {{ 'navbar.alerts' | translate }}
+                    <span *ngIf="hasSelectedTargets" class="selection-badge">({{ selectedTargetsCount }})</span>
                 </button>
                 <button 
                     *ngIf="showCanceledButton"
@@ -157,6 +161,31 @@
                     <span class="unit">km/h</span>
                 </div>
             </div>
+            <div class="form-field">
+                <label for="notificationEmailInput">{{ 'navbar.notifyEmailLabel' | translate }}</label>
+                <div class="notification-email-row">
+                    <input
+                        id="notificationEmailInput"
+                        type="email"
+                        name="notificationEmail"
+                        class="input"
+                        [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
+                        [(ngModel)]="notificationEmail"
+                        (ngModelChange)="onNotificationEmailChange()"
+                    />
+                    <button
+                        type="button"
+                        class="button button--flat"
+                        (click)="verifyNotificationEmail()"
+                        [disabled]="verifyingNotificationEmail || !notificationEmail">
+                        <i *ngIf="verifyingNotificationEmail" class="pi pi-spin pi-spinner" style="margin-right: 0.5rem;"></i>
+                        <span>{{ 'navbar.verifyEmail' | translate }}</span>
+                    </button>
+                </div>
+                <small *ngIf="notificationEmailUserId" class="verification-success">
+                    {{ 'navbar.verifyEmailSuccessShort' | translate }}
+                </small>
+            </div>
             <button 
                 type="submit" 
                 class="button button--primary full-width"
@@ -197,6 +226,12 @@
                         </div>
                         <div class="speed-alert-targets" *ngIf="alert.targetIds?.length">
                             {{ 'navbar.alertTargetsCount' | translate:{ count: alert.targetIds.length } }}
+                        </div>
+                        <div class="speed-alert-recipient">
+                            {{ 'navbar.notifyRecipientDisplay' | translate }}:
+                            <span class="speed-alert-recipient-email">
+                                {{ getAlertRecipientEmail(alert) || ('navbar.notifyRecipientUnknown' | translate) }}
+                            </span>
                         </div>
                     </div>
                 </div>

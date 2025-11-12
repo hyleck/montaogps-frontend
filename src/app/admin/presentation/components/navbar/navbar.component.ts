@@ -89,6 +89,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   currentSelectedTargets: Target[] = [];
   maxSpeedValue: number | null = null;
   creatingAlert: boolean = false;
+  notificationEmail: string = '';
+  notificationEmailUserId: string | null = null;
+  verifyingNotificationEmail: boolean = false;
   deletingAlertId: string | null = null;
   speedAlerts: AlertResponse[] = [];
   visibleSpeedAlerts: AlertResponse[] = [];
@@ -130,6 +133,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   ) {
     this.currentTheme = status.getState('theme') as string;
     this.currentUser = this.authService.getCurrentUser();
+    this.resetNotificationEmailToCurrentUser();
   }
 
   ngOnInit() {
@@ -242,7 +246,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       {
         label: this.translate.instant('navbar.alerts'),
         icon: 'pi pi-bell',
-        command: () => this.openAlertsModal()
+        disabled: !this.hasSelectedTargets,
+        command: this.hasSelectedTargets ? () => this.openAlertsModal() : undefined
       },
       {
         label: this.translate.instant('navbar.canceled'),
@@ -319,6 +324,82 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.speedAlertDialogVisible = true;
   }
 
+  onNotificationEmailChange(): void {
+    if (
+      this.notificationEmail &&
+      this.currentUser?.email &&
+      this.notificationEmail.trim().toLowerCase() ===
+        this.currentUser.email.toLowerCase() &&
+      this.currentUser?.id
+    ) {
+      this.notificationEmailUserId = this.currentUser.id;
+    } else {
+      this.notificationEmailUserId = null;
+    }
+  }
+
+  async verifyNotificationEmail(): Promise<void> {
+    const email = this.notificationEmail?.trim();
+    if (!email) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: this.translate.instant('navbar.verifyEmailRequired')
+      });
+      return;
+    }
+
+    // Si coincide con el usuario actual, marcar como verificado sin consultar API
+    if (
+      this.currentUser?.email &&
+      email.toLowerCase() === this.currentUser.email.toLowerCase() &&
+      this.currentUser?.id
+    ) {
+      this.notificationEmailUserId = this.currentUser.id;
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('common.success'),
+        detail: this.translate.instant('navbar.verifyEmailSuccess')
+      });
+      return;
+    }
+
+    this.verifyingNotificationEmail = true;
+    try {
+      const user = await firstValueFrom(this.userService.getByEmail(email));
+      const userId = user?._id || (user as any)?.id;
+
+      if (userId) {
+        this.notificationEmailUserId = userId;
+        this.messageService.add({
+          severity: 'success',
+          summary: this.translate.instant('common.success'),
+          detail: this.translate.instant('navbar.verifyEmailSuccess')
+        });
+      } else {
+        this.notificationEmailUserId = null;
+        this.messageService.add({
+          severity: 'warn',
+          summary: this.translate.instant('common.warning'),
+          detail: this.translate.instant('navbar.verifyEmailNotFound')
+        });
+      }
+    } catch (error) {
+      this.notificationEmailUserId = null;
+      console.error('❌ Error verificando correo para alerta:', error);
+      const detail =
+        (error as any)?.error?.message ||
+        this.translate.instant('navbar.verifyEmailError');
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail
+      });
+    } finally {
+      this.verifyingNotificationEmail = false;
+    }
+  }
+
   async createSpeedAlert(): Promise<void> {
     if (this.maxSpeedValue === null || this.maxSpeedValue <= 0) {
       this.messageService.add({
@@ -349,10 +430,20 @@ export class NavbarComponent implements OnInit, OnDestroy {
       targetIds.push(...targetIdsForGlobalAlert);
     }
 
+    if (this.notificationEmail?.trim() && !this.notificationEmailUserId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: this.translate.instant('navbar.verifyEmailPending')
+      });
+      return;
+    }
+
     const payload = {
       type: 'speed' as const,
       maxSpeed: this.maxSpeedValue,
-      targetIds
+      targetIds,
+      userTopic: this.notificationEmailUserId || undefined
     };
 
     this.creatingAlert = true;
@@ -367,6 +458,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       });
 
       this.maxSpeedValue = null;
+      this.resetNotificationEmailToCurrentUser();
       await this.loadSpeedAlerts();
     } catch (error: any) {
       console.error('❌ Error al crear la alerta de velocidad:', error);
@@ -381,6 +473,16 @@ export class NavbarComponent implements OnInit, OnDestroy {
       });
     } finally {
       this.creatingAlert = false;
+    }
+  }
+
+  private resetNotificationEmailToCurrentUser(): void {
+    if (this.currentUser?.email && this.currentUser?.id) {
+      this.notificationEmail = this.currentUser.email;
+      this.notificationEmailUserId = this.currentUser.id;
+    } else {
+      this.notificationEmail = '';
+      this.notificationEmailUserId = null;
     }
   }
 
@@ -439,6 +541,18 @@ export class NavbarComponent implements OnInit, OnDestroy {
     });
   }
 
+  getAlertRecipientEmail(alert: AlertResponse): string | null {
+    if (!alert?.userTopic) {
+      return null;
+    }
+
+    if (typeof alert.userTopic === 'string') {
+      return null;
+    }
+
+    return alert.userTopic.email ?? null;
+  }
+
   confirmDeleteAlert(alert: AlertResponse): void {
     this.confirmationService.confirm({
       message: this.translate.instant('navbar.deleteAlertConfirm'),
@@ -485,6 +599,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   private updateMenuItems() {
     if (this.items.length > 0) {
+      // Actualizar el botón de alertas (índice 0)
+      const alertsItem = this.items[0];
+      if (alertsItem) {
+        alertsItem.disabled = !this.hasSelectedTargets;
+        alertsItem.command = this.hasSelectedTargets ? () => this.openAlertsModal() : undefined;
+      }
+
       // Actualizar el botón de transferir (índice 2)
       const transferItem = this.items[2];
       if (transferItem) {

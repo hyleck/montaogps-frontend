@@ -1962,6 +1962,23 @@ body .p-dialog-mask {
   color: var(--managementColorTitle);
 }
 
+.notification-email-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.notification-email-row .input {
+  flex: 1;
+}
+
+.verification-success {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--managementSuccessColor, #22c55e);
+}
+
 .input-with-unit {
   display: flex;
   align-items: center;
@@ -2080,6 +2097,18 @@ body .p-dialog-mask {
 .speed-alert-targets {
   font-size: 0.85rem;
   color: var(--managementColorSubtitle);
+}
+
+.speed-alert-recipient {
+  font-size: 0.85rem;
+  color: var(--managementColorSubtitle);
+}
+
+.speed-alert-recipient-email {
+  font-weight: 600;
+  color: var(--managementColorTitle);
+  margin-left: 0.25rem;
+  word-break: break-all;
 }
 
 .speed-alerts-empty {

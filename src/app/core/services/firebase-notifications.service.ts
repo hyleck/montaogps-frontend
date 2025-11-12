@@ -138,10 +138,17 @@ export class FirebaseNotificationsService {
         payload.notification?.body ||
         '';
 
-      registration?.showNotification(title, {
-        body,
-        data: payload.data ?? {},
-      });
+      if (registration) {
+        await registration.showNotification(title, {
+          body,
+          data: payload.data ?? {},
+        });
+      } else if ('Notification' in window) {
+        new Notification(title, {
+          body,
+          data: payload.data ?? {},
+        });
+      }
     } catch (error) {
       console.error('Error mostrando notificación en primer plano', error);
     }
