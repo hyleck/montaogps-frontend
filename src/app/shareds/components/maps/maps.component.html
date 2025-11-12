@@ -38,7 +38,7 @@
             <span class="chip-label">{{ 'maps.offlineDuration' | translate }}</span>
             <span class="chip-value">{{ offlineDuration || ('maps.notAvailable' | translate) }}</span>
         </div>
-        <div class="info-chip">
+        <div class="info-chip" *ngIf="statusClass === 'online'">
             <span class="chip-label">{{ 'maps.distance' | translate }}</span>
             <span class="chip-value">{{ distanceDisplay || ('maps.notAvailable' | translate) }}</span>
         </div>

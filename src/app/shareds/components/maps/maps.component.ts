@@ -452,7 +452,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private async loadDistanceTraveled(): Promise<void> {
-    if (!this.selectedTarget?._id) {
+    if (!this.selectedTarget?._id || this.isTargetOffline) {
       this.distanceDisplay = this.translate.instant('maps.notAvailable');
       return;
     }
