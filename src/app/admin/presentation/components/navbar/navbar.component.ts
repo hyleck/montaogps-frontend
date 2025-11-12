@@ -14,7 +14,7 @@ import { Plan } from '../../../../core/interfaces/plan.interface';
 import { UserService } from '../../../../core/services/user.service';
 import { User } from '../../../../core/interfaces/user.interface';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter, firstValueFrom } from 'rxjs';
-import { AlertsService, AlertResponse } from '../../../../core/services/alerts.service';
+import { AlertsService, AlertResponse, AlertStatus } from '../../../../core/services/alerts.service';
 
 @Component({
     selector: 'app-navbar',
@@ -96,6 +96,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   speedAlerts: AlertResponse[] = [];
   visibleSpeedAlerts: AlertResponse[] = [];
   loadingSpeedAlerts: boolean = false;
+  togglingAlertId: string | null = null;
 
   // Modal de transferir targets
   transferDialogVisible: boolean = false;
@@ -551,6 +552,42 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
 
     return alert.userTopic.email ?? null;
+  }
+
+  async toggleAlertStatus(alert: AlertResponse): Promise<void> {
+    const nextStatus: AlertStatus =
+      alert.status === 'active' ? 'inactive' : 'active';
+
+    this.togglingAlertId = alert._id;
+
+    try {
+      const updatedAlert = await firstValueFrom(
+        this.alertsService.updateAlertStatus(alert._id, nextStatus),
+      );
+
+      alert.status = updatedAlert.status;
+
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('navbar.alertStatusUpdated'),
+        detail:
+          alert.status === 'active'
+            ? this.translate.instant('navbar.alertEnabled')
+            : this.translate.instant('navbar.alertDisabled'),
+      });
+    } catch (error: any) {
+      console.error('❌ Error al actualizar estado de alerta:', error);
+      const detail =
+        error?.error?.message ||
+        this.translate.instant('navbar.toggleAlertError');
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail,
+      });
+    } finally {
+      this.togglingAlertId = null;
+    }
   }
 
   confirmDeleteAlert(alert: AlertResponse): void {

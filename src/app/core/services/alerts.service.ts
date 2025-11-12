@@ -6,6 +6,8 @@ import { environment } from '../../../environments/environment';
 
 export type AlertType = 'speed' | 'perimeter' | 'power' | 'movement';
 
+export type AlertStatus = 'active' | 'inactive';
+
 export interface CreateAlertDto {
   type: AlertType;
   maxSpeed?: number;
@@ -26,7 +28,7 @@ export interface AlertResponse {
   targetIds: string[];
   config?: Record<string, any>;
   userTopic?: AlertUserTopic | string;
-  status: string;
+  status: AlertStatus | string;
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +49,12 @@ export class AlertsService {
     return this.http
       .get<{ data: AlertResponse[] }>(this.apiUrl)
       .pipe(map((response) => response?.data ?? []));
+  }
+
+  updateAlertStatus(id: string, status: AlertStatus): Observable<AlertResponse> {
+    return this.http
+      .patch<{ data: AlertResponse }>(`${this.apiUrl}/${id}/status`, { status })
+      .pipe(map((response) => response.data));
   }
 
   deleteAlert(id: string): Observable<any> {

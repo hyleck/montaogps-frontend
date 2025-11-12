@@ -2111,6 +2111,28 @@ body .p-dialog-mask {
   word-break: break-all;
 }
 
+.speed-alert-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.speed-alert-status {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--managementSuccessColor, #22c55e);
+}
+
+.speed-alert-status--inactive {
+  color: var(--globalColorWarning, #f97316);
+}
+
+.speed-alert-toggle {
+  min-width: 120px;
+  justify-content: center;
+}
+
 .speed-alerts-empty {
   border: 1px dashed var(--managementColorBorderInput);
   border-radius: 10px;
