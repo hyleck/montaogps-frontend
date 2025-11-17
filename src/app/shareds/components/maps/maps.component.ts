@@ -1,7 +1,6 @@
 import { Component, OnInit, OnChanges, OnDestroy, SimpleChanges, Input } from '@angular/core';
 import { Router } from '@angular/router';
 import { ThemesService } from '../../services/themes.service';
-import { StatusService } from '../../services/status.service';
 import { SystemService, SystemSettings } from '../../../core/services/system.service';
 import { TargetsService } from '../../../core/services/targets.service';
 import { TranslateService } from '@ngx-translate/core';
@@ -26,84 +25,26 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
    apiKey: string = '';
    apiUrl: string = '';
    currentMarker: any = null;
-   currentPopup: any = null;
-   currentPopupId: string = '';
    currentTargetId: string | null = null; // Para rastrear cambios de target
    offlineDuration: string = '';
    lastUpdateText: string = '';
    isTargetOffline: boolean = false;
    distanceDisplay: string = '';
+   stopTimeText: string = '';
+   isStopTimeMoving: boolean = false;
+   showToolsModal: boolean = false;
    private cachedMarkerIconUrl: string | null = null;
 
   constructor(
     private _theme: ThemesService,
-    private _status: StatusService,
     private systemService: SystemService,
     private targetsService: TargetsService,
-    private router: Router,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
     this.initializeNewProvider();
-    this.setupGlobalFunctions();
-  }
-
-  private setupGlobalFunctions(): void {
-    // Función global para toggle de detalles en popups con ID específico
-    (window as any).togglePopupDetails = (popupId: string) => {
-      const popup = document.getElementById(popupId);
-      if (!popup) return;
-      
-      const details = popup.querySelector(`#details-${popupId}`) as HTMLElement;
-      const expandIcon = popup.querySelector('.expand-icon') as HTMLElement;
-      
-      if (details && expandIcon) {
-        const isExpanded = details.style.maxHeight !== '0px' && details.style.maxHeight !== '';
-        
-        if (!isExpanded) {
-          // Expandir
-          details.style.maxHeight = '80px';
-          details.style.opacity = '1';
-          details.style.paddingTop = '8px';
-          details.style.paddingBottom = '8px';
-          expandIcon.style.transform = 'rotate(180deg)';
-        } else {
-          // Contraer
-          details.style.maxHeight = '0px';
-          details.style.opacity = '0';
-          details.style.paddingTop = '0px';
-          details.style.paddingBottom = '0px';
-          expandIcon.style.transform = 'rotate(0deg)';
-        }
-      }
-    };
-
-    // Función global para actualizar solo el tiempo de parada
-    (window as any).updateStopTime = (popupId: string, stopTime: string) => {
-      const popup = document.getElementById(popupId);
-      if (!popup) return;
-      
-      const stopTimeElement = popup.querySelector(`#stop-time-${popupId} .detail-value`) as HTMLElement;
-      if (stopTimeElement) {
-        stopTimeElement.textContent = stopTime;
-      }
-    };
-
-    // Función global para navegar a reportes con ID del target
-    (window as any).navigateToReports = (targetId: string) => {
-      this.navigateToReports(targetId);
-    };
-  }
-
-  private navigateToReports(targetId: string): void {
-    // Navegar a reportes con query parameters
-    this.router.navigate(['/admin/reports'], {
-      queryParams: {
-        target: targetId,
-        type: 'history' // Tipo de reporte por defecto
-      }
-    });
   }
 
   private initializeNewProvider(): void {
@@ -133,6 +74,10 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['preloadedStopTime']) {
+      this.resetStopTimeInfo(this.preloadedStopTime);
+    }
+
     // Manejar cambios de proveedor (cuando se recrea el componente)
     if (changes['provider'] && !changes['provider'].firstChange) {
       this.destroyMap();
@@ -155,24 +100,82 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.showToolsModal) {
+      this.toggleExternalControls(true);
+    }
     this.destroyMap();
-    this.cleanupGlobalFunctions();
   }
 
-  private cleanupGlobalFunctions(): void {
-    // Limpiar funciones globales
-    if ((window as any).togglePopupDetails) {
-      delete (window as any).togglePopupDetails;
+  openToolsModal(): void {
+    this.showToolsModal = true;
+    this.toggleExternalControls(false);
+  }
+
+  closeToolsModal(): void {
+    this.showToolsModal = false;
+    this.toggleExternalControls(true);
+  }
+
+  openInGoogleMaps(): void {
+    const url = this.getGoogleMapsUrl();
+    if (!url) return;
+    window.open(url, '_blank');
+  }
+
+  openInWaze(): void {
+    const url = this.getWazeUrl();
+    if (!url) return;
+    window.open(url, '_blank');
+  }
+
+  openHistory(): void {
+    const targetId = this.selectedTarget?._id || this.selectedTarget?.id;
+    if (!targetId) return;
+    this.router.navigate(['/admin/reports'], {
+      queryParams: {
+        target: targetId,
+        type: 'history'
+      }
+    });
+    this.closeToolsModal();
+  }
+
+  private getCurrentLatLng(): { lat: number; lng: number } | null {
+    const geo = this.selectedTarget?.traccarInfo?.geolocation;
+    const historical = this.selectedTarget?.historicalLocation;
+    const latitude = geo?.latitude ?? historical?.latitude;
+    const longitude = geo?.longitude ?? historical?.longitude;
+
+    const latNum = parseFloat(latitude !== undefined ? String(latitude) : '');
+    const lngNum = parseFloat(longitude !== undefined ? String(longitude) : '');
+
+    if (isNaN(latNum) || isNaN(lngNum)) {
+      return null;
     }
-    if ((window as any).updateStopTime) {
-      delete (window as any).updateStopTime;
-    }
-    if ((window as any).navigateToReports) {
-      delete (window as any).navigateToReports;
-    }
-    if ((window as any).closeCurrentMapPopup) {
-      delete (window as any).closeCurrentMapPopup;
-    }
+    return { lat: latNum, lng: lngNum };
+  }
+
+  getGoogleMapsUrl(): string | null {
+    const coords = this.getCurrentLatLng();
+    if (!coords) return null;
+    return `https://www.google.com/maps?q=${coords.lat},${coords.lng}`;
+  }
+
+  getWazeUrl(): string | null {
+    const coords = this.getCurrentLatLng();
+    if (!coords) return null;
+    return `https://www.waze.com/ul?ll=${coords.lat}%2C${coords.lng}&navigate=yes&zoom=17`;
+  }
+
+  private toggleExternalControls(show: boolean): void {
+    const elements = document.querySelectorAll<HTMLElement>('.map-provider-select-wrapper, .mobile-back-button');
+    elements.forEach((el) => {
+      if (show) {
+        el.style.removeProperty('display');
+      } else {
+        el.style.display = 'none';
+      }
+    });
   }
 
   private async initializeMap(): Promise<void> {
@@ -317,10 +320,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       if (this.currentMarker) {
         MapUtils.removeMarker(this.currentMarker, this.provider);
         this.currentMarker = null;
-        this.currentPopup = null;
-        this.currentPopupId = '';
         this.currentTargetId = null;
       }
+      this.resetStopTimeInfo();
       return;
     }
 
@@ -333,10 +335,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       if (this.currentMarker) {
         MapUtils.removeMarker(this.currentMarker, this.provider);
         this.currentMarker = null;
-        this.currentPopup = null;
-        this.currentPopupId = '';
         this.currentTargetId = null;
       }
+      this.resetStopTimeInfo();
       return;
     }
 
@@ -345,13 +346,12 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     if (isNewTarget) {
       this.currentTargetId = targetId;
+      this.resetStopTimeInfo(this.preloadedStopTime);
 
       // Remover marcador anterior si existe para crear uno nuevo
       if (this.currentMarker) {
         MapUtils.removeMarker(this.currentMarker, this.provider);
         this.currentMarker = null;
-        this.currentPopup = null;
-        this.currentPopupId = '';
       }
     }
 
@@ -379,7 +379,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     // Si el marcador no existe o es un target nuevo, crearlo
     if (!this.currentMarker || isNewTarget) {
-      this.createMarkerWithPopup(lat, lng);
+      this.createMarker(lat, lng);
 
       // Para un target nuevo, obtener tiempo de parada desde cero
       this.updateMarkerWithStopTime(true);
@@ -483,58 +483,24 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private createMarkerWithPopup(lat: number, lng: number): void {
-    const title = this.selectedTarget.name || 'Target';
-    const imei = this.selectedTarget.imei || 'N/A';
-    const status = this.selectedTarget.traccarStatus || 'desconocido';
-    const isOffline = this.isTargetOffline;
-
-    // Crear contenido inicial del popup (sin tiempo de parada)
-    const initialContent = this.createPopupContent(title, imei, status, null);
-    
-    // Extraer el popupId del contenido HTML
-    const popupIdMatch = initialContent.match(/id="(popup-[^"]+)"/);
-    this.currentPopupId = popupIdMatch ? popupIdMatch[1] : '';
-
+  private createMarker(lat: number, lng: number): void {
+    const title = this.selectedTarget?.name || 'Target';
     const markerIconUrl = this.getMarkerIconUrl();
 
     if (this.provider === 'google') {
-      // Crear marcador Google Maps
       this.currentMarker = new google.maps.Marker({
         position: { lat, lng },
         map: this.map,
-        title: title,
+        title,
         icon: {
           url: markerIconUrl,
           scaledSize: new google.maps.Size(36, 36),
           anchor: new google.maps.Point(18, 35)
         }
       });
-
-      // Crear InfoWindow
-      this.currentPopup = new google.maps.InfoWindow({
-        content: initialContent
-      });
-
-      // Configurar función global para cerrar popup
-      (window as any).closeCurrentMapPopup = () => {
-        if (this.currentPopup) {
-          this.currentPopup.close();
-        }
-      };
-
-      // Abrir InfoWindow
-      this.currentPopup.open(this.map, this.currentMarker);
-
-      // Listener para click en marcador
-      this.currentMarker.addListener('click', () => {
-        this.currentPopup.open(this.map, this.currentMarker);
-      });
-
     } else {
-      // Crear marcador Mapbox
       const mapboxgl = (window as any).mapboxgl;
-      
+
       const markerElement = document.createElement('div');
       markerElement.className = 'custom-marker';
       markerElement.style.cssText = `
@@ -550,51 +516,19 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         transform: translateY(-10px);
       `;
 
-      // const statusDot = document.createElement('div');
-      // statusDot.style.cssText = `
-      //   width: 12px;
-      //   height: 12px;
-      //   border-radius: 50%;
-      //   border: 2px solid #fff;
-      //   background: ${isOffline ? '#ef4444' : '#22c55e'};
-      //   position: absolute;
-      //   bottom: -2px;
-      //   right: -2px;
-      //   box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-      // `;
-      // markerElement.appendChild(statusDot);
-
       this.currentMarker = new mapboxgl.Marker({
         element: markerElement,
         offset: [0, -10],
       })
         .setLngLat([lng, lat])
         .addTo(this.map);
-
-      // Crear popup Mapbox
-      this.currentPopup = new mapboxgl.Popup({ offset: 25 })
-        .setHTML(initialContent);
-
-      // Configurar función global para cerrar popup
-      (window as any).closeCurrentMapPopup = () => {
-        if (this.currentPopup) {
-          this.currentPopup.remove();
-        }
-      };
-
-      this.currentMarker.setPopup(this.currentPopup);
-      this.currentMarker.togglePopup();
     }
   }
 
   private updateExistingMarker(lat: number, lng: number): void {
     if (!this.currentMarker) return;
 
-    const title = this.selectedTarget.name || 'Target';
-    const imei = this.selectedTarget.imei || 'N/A';
-    const status = this.selectedTarget.traccarStatus || 'desconocido';
-    const speed = this.selectedTarget.traccarInfo?.geolocation?.speed ? 
-                  Math.round(this.selectedTarget.traccarInfo.geolocation.speed * 1.852) : 0;
+    const title = this.selectedTarget?.name || 'Target';
 
     if (this.provider === 'google') {
       // Actualizar posición del marcador Google Maps
@@ -603,19 +537,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       // Actualizar título del marcador
       this.currentMarker.setTitle(title);
 
-      // Actualizar contenido del popup si está abierto (sin regenerar HTML)
-      if (this.currentPopup && this.currentPopup.getMap()) {
-        this.updatePopupContent(title, imei, status, speed);
-      }
-
     } else {
       // Actualizar posición del marcador Mapbox
       this.currentMarker.setLngLat([lng, lat]);
-
-      // Actualizar contenido del popup si está abierto (sin regenerar HTML)
-      if (this.currentPopup && this.currentPopup.isOpen()) {
-        this.updatePopupContent(title, imei, status, speed);
-      }
     }
 
     // Solicitar tiempo de parada actualizado en cada polling
@@ -623,227 +547,64 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private async updateMarkerWithStopTime(isInitialRequest: boolean = false): Promise<void> {
-    const deviceId = this.selectedTarget?.device_imei || this.selectedTarget?.imei || this.selectedTarget?.originalTarget?.device_imei || this.selectedTarget?.originalTarget?.imei;
-    if (!deviceId || !this.currentMarker) {
+    const deviceId =
+      this.selectedTarget?.device_imei ||
+      this.selectedTarget?.imei ||
+      this.selectedTarget?.originalTarget?.device_imei ||
+      this.selectedTarget?.originalTarget?.imei;
+
+    if (!deviceId) {
+      this.resetStopTimeInfo();
       return;
     }
 
+    const requestType = isInitialRequest ? '[INICIAL]' : '[POLLING]';
+
     try {
-      const requestType = isInitialRequest ? '[INICIAL]' : '[POLLING]';
-      
       const stopTimeResult = await this.targetsService.getStopTime(deviceId);
 
+      this.isStopTimeMoving = !!stopTimeResult?.isMoving;
+
       if (stopTimeResult && stopTimeResult.text && !stopTimeResult.isMoving) {
-        // Actualizar el popup con el tiempo de parada solo si el vehículo no está en movimiento
-        this.updateMarkerPopupWithStopTime(stopTimeResult.text);
-      } else if (stopTimeResult && stopTimeResult.isMoving) {
-        // Si es una solicitud inicial y el vehículo está en movimiento, limpiar cualquier tiempo previo
-        if (isInitialRequest) {
-          this.clearStopTimeFromPopup();
-        }
-      } else {
-        // Si es una solicitud inicial, limpiar cualquier tiempo previo
-        if (isInitialRequest) {
-          this.clearStopTimeFromPopup();
-        }
+        this.stopTimeText = stopTimeResult.text;
+      } else if (stopTimeResult?.isMoving) {
+        this.stopTimeText = '';
+      } else if (isInitialRequest && this.preloadedStopTime) {
+        this.stopTimeText = this.preloadedStopTime;
+      } else if (!this.isStopTimeMoving) {
+        this.stopTimeText = '';
       }
     } catch (error) {
-      console.error(`❌ ${isInitialRequest ? '[INICIAL]' : '[POLLING]'} Error al obtener tiempo de parada:`, error);
-    }
-  }
-
-  private updateMarkerPopupWithStopTime(stopTime: string): void {
-    if (!this.currentPopupId || !stopTime) return;
-
-    const popupElement = document.querySelector(`#${this.currentPopupId}`) as HTMLElement;
-    if (!popupElement) return;
-
-    // Usar el método optimizado del PopupBuilder para actualizar tiempo de parada
-    const PopupBuilder = (window as any).PopupBuilder;
-    if (PopupBuilder && PopupBuilder.updatePopupElementsDirectly) {
-      const speed = this.selectedTarget.traccarInfo?.geolocation?.speed ? 
-                   Math.round(this.selectedTarget.traccarInfo.geolocation.speed * 1.852) : 0;
-      
-      PopupBuilder.updatePopupElementsDirectly(popupElement, {
-        stopTime: stopTime,
-        speedKmh: speed
-      });
-    } else {
-      // Fallback: usar la función global
-      if ((window as any).updateStopTime) {
-        (window as any).updateStopTime(this.currentPopupId, stopTime);
-      } else {
-        console.warn('⚠️ Función updateStopTime no disponible');
+      console.error(`❌ ${requestType} Error al obtener tiempo de parada:`, error);
+      if (isInitialRequest && this.preloadedStopTime) {
+        this.stopTimeText = this.preloadedStopTime;
       }
     }
   }
 
-  private clearStopTimeFromPopup(): void {
-    if (!this.currentPopupId) return;
-
-    const popupElement = document.querySelector(`#${this.currentPopupId}`) as HTMLElement;
-    if (!popupElement) return;
-
-    // Usar el método optimizado del PopupBuilder para limpiar tiempo de parada
-    const PopupBuilder = (window as any).PopupBuilder;
-    if (PopupBuilder && PopupBuilder.updatePopupElementsDirectly) {
-      PopupBuilder.updatePopupElementsDirectly(popupElement, {
-        stopTime: null // Limpiar tiempo de parada
-      });
-    } else {
-      // Fallback: usar método manual
-      const stopTimeSection = popupElement.querySelector('.popup-stop-time');
-      if (stopTimeSection) {
-        stopTimeSection.remove();
-      }
+  get stopTimeInfoDisplay(): string {
+    if (this.stopTimeText) {
+      return this.stopTimeText;
     }
+    if (this.isStopTimeMoving) {
+      return this.translate.instant('maps.stopTimeMoving');
+    }
+    return this.translate.instant('maps.notAvailable');
   }
 
-  private updatePopupContent(title: string, imei: string, status: string, speed?: number): void {
-    if (!this.currentPopupId) return;
-
-    const popupElement = document.querySelector(`#${this.currentPopupId}`) as HTMLElement;
-    if (!popupElement) return;
-
-    // Usar el método optimizado del PopupBuilder
-    const PopupBuilder = (window as any).PopupBuilder;
-    if (PopupBuilder && PopupBuilder.updatePopupElementsDirectly) {
-      PopupBuilder.updatePopupElementsDirectly(popupElement, {
-        title,
-        speedKmh: speed,
-        status
-      });
-    } else {
-      // Fallback: actualización manual
-      this.updatePopupElementsManually(popupElement, title, status, speed);
-    }
-
+  private resetStopTimeInfo(initialValue?: string | null): void {
+    this.stopTimeText = initialValue || '';
+    this.isStopTimeMoving = false;
   }
-
-  private updatePopupElementsManually(popupElement: HTMLElement, title: string, status: string, speed?: number): void {
-    // Actualizar título
-    const titleElement = popupElement.querySelector('.popup-title');
-    if (titleElement) {
-      titleElement.textContent = title;
-    }
-
-    // Actualizar velocidad
-    const speedElement = popupElement.querySelector('.popup-info-item .info-value');
-    if (speedElement) {
-      const speedText = speed === 0 ? 'Estacionado' : `${speed} km/h`;
-      speedElement.textContent = speedText;
-    }
-
-    // Actualizar estado
-    const statusElement = popupElement.querySelector('.popup-status span');
-    if (statusElement) {
-      statusElement.textContent = status === 'online' ? 'En línea' : 'Desconectado';
-    }
-  }
-
-  private createPopupContent(title: string, imei: string, status: string, stopTime: string | null): string {
-    // Crear ID único para este popup
-    const popupId = `popup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Obtener el ID del target para la navegación
-    const targetId = this.selectedTarget?._id || this.selectedTarget?.id || '';
-    
-    return `
-      <div class="custom-popup" id="${popupId}">
-        <div class="popup-header">
-          <div class="popup-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-          </div>
-          <h3 class="popup-title">${title}</h3>
-          <div class="popup-status online">
-            <div class="status-dot"></div>
-            <span>En línea</span>
-          </div>
-        </div>
-        <div class="popup-content">
-          <div class="popup-info-item">
-            <div class="info-icon">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
-                <path d="M12 2v10l8-8z"></path>
-                <path d="M2 12h20"></path>
-                <path d="M12 22v-10l8 8z"></path>
-              </svg>
-            </div>
-            <div class="info-content">
-              <span class="info-label">Velocidad</span>
-              <span class="info-value">0 km/h</span>
-            </div>
-          </div>
-          <div class="popup-info-item expandable" onclick="window.togglePopupDetails('${popupId}')">
-            <div class="info-icon">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2 2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-              </svg>
-            </div>
-            <div class="info-content">
-              <span class="info-label">Más información</span>
-              <svg class="expand-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2" style="transition: transform 0.3s ease;">
-                <polyline points="6,9 12,15 18,9"></polyline>
-              </svg>
-            </div>
-          </div>
-          <div class="popup-details" id="details-${popupId}" style="max-height: 0px; opacity: 0; overflow: hidden; transition: all 0.3s ease; padding: 0;">
-            <div class="detail-item">
-              <span class="detail-label">IMEI:</span>
-              <span class="detail-value">${imei}</span>
-            </div>
-            <div class="detail-item" id="stop-time-${popupId}">
-              <span class="detail-label">Tiempo detenido:</span>
-              <span class="detail-value">${stopTime || 'Cargando...'}</span>
-            </div>
-          </div>
-          <div class="popup-footer">
-            <div class="popup-history-btn" onclick="window.navigateToReports('${targetId}')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12,6 12,12 16,14"></polyline>
-              </svg>
-              Historial
-            </div>
-            <button class="popup-close-btn" onclick="if(window.closeCurrentMapPopup) window.closeCurrentMapPopup()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-              Cerrar
-            </button>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-
 
   private destroyMap(): void {
-    
-    // Limpiar marcador y popup antes de destruir el mapa
     if (this.currentMarker) {
       MapUtils.removeMarker(this.currentMarker, this.provider);
       this.currentMarker = null;
     }
-    
-    if (this.currentPopup) {
-      // Cerrar popup si existe
-      if (this.provider === 'google' && this.currentPopup.close) {
-        this.currentPopup.close();
-      }
-      this.currentPopup = null;
-      this.currentPopupId = '';
-    }
-    
+
     if (this.map) {
       try {
-        // Destruir el mapa según el proveedor
         if (this.provider === 'mapbox' && this.map.remove) {
           this.map.remove();
         }
@@ -851,10 +612,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         console.warn('Error destroying map:', error);
       }
     }
-    
+
     this.map = null;
-    
-    // Limpiar completamente el contenedor del mapa
+
     const mapElement = document.getElementById('map');
     if (mapElement) {
       mapElement.innerHTML = '';

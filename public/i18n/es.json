@@ -276,6 +276,8 @@
       "speed": "Velocidad",
       "lastUpdate": "Última actualización",
       "offlineDuration": "Tiempo sin conexión",
+      "stopTime": "Tiempo de parada",
+      "stopTimeMoving": "En movimiento",
       "location": "Ubicación",
       "distance": "Hoy",
       "sim": "SIM",

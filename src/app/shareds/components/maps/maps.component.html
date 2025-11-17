@@ -13,6 +13,63 @@
                 <span class="offline-duration">{{ offlineDuration }}</span>
             </div>
         </div>
+        <button class="tools-button" type="button" (click)="openToolsModal()">
+            <i class="pi pi-wrench"></i>
+            <span>Herramientas</span>
+        </button>
+        <div class="tools-modal-overlay" *ngIf="showToolsModal" (click)="closeToolsModal()">
+            <div class="tools-modal" (click)="$event.stopPropagation()">
+                <div class="tools-modal-header">
+                    <h3>Herramientas</h3>
+                    <button type="button" class="tools-modal-close" (click)="closeToolsModal()">
+                        <i class="pi pi-times"></i>
+                    </button>
+                </div>
+                <div class="tools-menu">
+                    <div class="tools-menu-card tools-menu-card--half">
+                        <div class="card-main">
+                            <button type="button" class="action-btn" (click)="openInGoogleMaps()" [disabled]="!getGoogleMapsUrl()">
+                                <span class="action-icon"><i class="pi pi-map-marker"></i></span>
+                                <span>
+                                    <strong>Google Maps</strong>
+                                    <small>Ver ubicación</small>
+                                </span>
+                            </button>
+                        </div>
+                        <div class="tool-url" [class.tool-url--empty]="!getGoogleMapsUrl()">
+                            {{ getGoogleMapsUrl() || 'Coordenadas no disponibles' }}
+                        </div>
+                    </div>
+
+                    <div class="tools-menu-card tools-menu-card--half">
+                        <div class="card-main">
+                            <button type="button" class="action-btn" (click)="openInWaze()" [disabled]="!getWazeUrl()">
+                                <span class="action-icon"><i class="pi pi-compass"></i></span>
+                                <span>
+                                    <strong>Waze</strong>
+                                    <small>Ver ubicación</small>
+                                </span>
+                            </button>
+                        </div>
+                        <div class="tool-url" [class.tool-url--empty]="!getWazeUrl()">
+                            {{ getWazeUrl() || 'Coordenadas no disponibles' }}
+                        </div>
+                    </div>
+
+                    <div class="tools-menu-card tools-menu-card--history">
+                        <div class="card-main single">
+                            <button type="button" class="action-btn" (click)="openHistory()" [disabled]="!(selectedTarget?._id || selectedTarget?.id)">
+                                <span class="action-icon"><i class="pi pi-history"></i></span>
+                                <span>
+                                    <strong>Historial</strong>
+                                    <small>Ver recorrido</small>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="target-info-panel" *ngIf="selectedTarget; else noTargetInfo">
@@ -41,6 +98,10 @@
         <div class="info-chip" *ngIf="statusClass === 'online'">
             <span class="chip-label">{{ 'maps.distance' | translate }}</span>
             <span class="chip-value">{{ distanceDisplay || ('maps.notAvailable' | translate) }}</span>
+        </div>
+        <div class="info-chip stop-time">
+            <span class="chip-label">{{ 'maps.stopTime' | translate }}</span>
+            <span class="chip-value">{{ stopTimeInfoDisplay }}</span>
         </div>
         <div class="info-chip">
             <span class="chip-label">{{ 'maps.sim' | translate }}</span>

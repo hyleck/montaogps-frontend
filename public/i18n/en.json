@@ -204,6 +204,8 @@
         "speed": "Speed",
         "lastUpdate": "Last update",
         "offlineDuration": "Offline duration",
+        "stopTime": "Stop time",
+        "stopTimeMoving": "In motion",
         "location": "Location",
         "distance": "Distance",
         "sim": "SIM",

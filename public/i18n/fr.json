@@ -137,6 +137,8 @@
       "speed": "Vitesse",
       "lastUpdate": "Dernière mise à jour",
       "offlineDuration": "Durée hors ligne",
+      "stopTime": "Temps à l'arrêt",
+      "stopTimeMoving": "En mouvement",
       "location": "Emplacement",
       "distance": "Distance",
       "sim": "SIM",
