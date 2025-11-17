@@ -92,6 +92,9 @@ export class ProfileComponent implements OnInit {
     }
 
     onChangePassword() {
+        this.newPassword = this.sanitizeString(this.newPassword);
+        this.confirmPassword = this.sanitizeString(this.confirmPassword);
+
         if (this.newPassword !== this.confirmPassword) {
             this.showPasswordMismatchError();
             return;
@@ -281,7 +284,7 @@ export class ProfileComponent implements OnInit {
     }
 
     private prepareUpdateUserDto() {
-        return {
+        const payload = {
             name: this.user.name,
             last_name: this.user.last_name,
             email: this.user.email,
@@ -295,10 +298,14 @@ export class ProfileComponent implements OnInit {
                 notifications: this.user.settings.notifications
             }]
         };
+
+        return this.normalizeUserPayload(payload);
     }
 
     private updateUserProfile(updateUserDto: any) {
-        this.userService.update(this.user._id, updateUserDto).subscribe({
+        const normalizedDto = this.normalizeUserPayload(updateUserDto);
+
+        this.userService.update(this.user._id, normalizedDto).subscribe({
             next: (updatedUser) => {
                 this.status.setState('profile', this.user);
                 this.showUpdateSuccessMessage();
@@ -320,7 +327,9 @@ export class ProfileComponent implements OnInit {
             }]
         };
 
-        this.userService.update(this.user._id, updateUserDto).subscribe({
+        const normalizedDto = this.normalizeUserPayload(updateUserDto);
+
+        this.userService.update(this.user._id, normalizedDto).subscribe({
             next: (updatedUser) => {
                 this.status.setState('profile', this.user);
                 this.showUpdateSuccessMessage();
@@ -333,9 +342,9 @@ export class ProfileComponent implements OnInit {
     }
 
     private updatePassword() {
-        const updatePasswordDto = {
+        const updatePasswordDto = this.normalizeUserPayload({
             password: this.newPassword
-        };
+        });
 
         this.userService.updatePassword(this.user._id, updatePasswordDto).subscribe({
             next: () => {
@@ -423,5 +432,47 @@ export class ProfileComponent implements OnInit {
     private clearPasswordFields() {
         this.newPassword = '';
         this.confirmPassword = '';
+    }
+
+    private sanitizeString(value?: string | null): string {
+        return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private sanitizeOptionalString(value?: string | null): string | undefined {
+        const sanitized = this.sanitizeString(value);
+        return sanitized || undefined;
+    }
+
+    private normalizeEmail(value?: string | null): string {
+        return this.sanitizeString(value).toLowerCase();
+    }
+
+    private normalizeSettings(settings: any[]): any[] {
+        return settings.map(setting => ({
+            theme: this.sanitizeString(setting?.theme),
+            language: this.normalizeEmail(setting?.language),
+            notifications: !!setting?.notifications
+        }));
+    }
+
+    private normalizeUserPayload(payload: any): any {
+        const sanitized: any = { ...payload };
+
+        if ('name' in sanitized) sanitized.name = this.sanitizeString(sanitized.name);
+        if ('last_name' in sanitized) sanitized.last_name = this.sanitizeString(sanitized.last_name);
+        if ('email' in sanitized) sanitized.email = this.normalizeEmail(sanitized.email);
+        if ('phone' in sanitized) sanitized.phone = this.sanitizeOptionalString(sanitized.phone);
+        if ('phone2' in sanitized) sanitized.phone2 = this.sanitizeOptionalString(sanitized.phone2);
+        if ('dni' in sanitized) sanitized.dni = this.sanitizeOptionalString(sanitized.dni);
+        if ('address' in sanitized) sanitized.address = this.sanitizeOptionalString(sanitized.address);
+        if ('password' in sanitized && typeof sanitized.password === 'string') {
+            sanitized.password = this.sanitizeString(sanitized.password);
+        }
+
+        if (Array.isArray(sanitized.settings)) {
+            sanitized.settings = this.normalizeSettings(sanitized.settings);
+        }
+
+        return sanitized;
     }
 }

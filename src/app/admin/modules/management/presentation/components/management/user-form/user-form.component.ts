@@ -459,9 +459,14 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             return;
         }
 
+        const sanitizedPassword = this.sanitizeString(this.user.password);
+        const sanitizedConfirmPassword = this.sanitizeString(this.confirmPassword);
+        this.user.password = sanitizedPassword;
+        this.confirmPassword = sanitizedConfirmPassword;
+
         // Validar contraseñas solo si se está creando un nuevo usuario o si se ha ingresado una contraseña
         if (!this.userInput) {
-            if (!this.user.password || !this.confirmPassword) {
+            if (!sanitizedPassword || !sanitizedConfirmPassword) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate.instant('management.userForm.error'),
@@ -470,7 +475,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 });
                 return;
             }
-            if (this.user.password !== this.confirmPassword) {
+            if (sanitizedPassword !== sanitizedConfirmPassword) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate.instant('management.userForm.error'),
@@ -479,7 +484,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 });
                 return;
             }
-        } else if (this.user.password && this.user.password !== this.confirmPassword) {
+        } else if (sanitizedPassword && sanitizedPassword !== sanitizedConfirmPassword) {
             this.messageService.add({
                 severity: 'error',
                 summary: this.translate.instant('management.userForm.error'),
@@ -527,13 +532,14 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             services: this.selectedAffiliationType?.startsWith('tecnico') ? (this.technicianServices || []) : []
         };
 
+        const normalizedUserPayload = this.normalizeUserPayload(userToSubmit);
 
 
         if (this.userInput) {
             // Actualizar usuario existente
-            const updateUserDto = {
-                ...userToSubmit,
-                password: this.user.password || undefined
+            const updateUserDto: any = {
+                ...normalizedUserPayload,
+                password: normalizedUserPayload.password || undefined
             };
             
             this.userService.update(this.userInput._id, updateUserDto)
@@ -561,9 +567,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 });
         } else {
             // Crear nuevo usuario
-            const createUserDto = {
-                ...userToSubmit,
-                password: this.user.password || ''
+            const createUserDto: any = {
+                ...normalizedUserPayload,
+                password: normalizedUserPayload.password || ''
             };
             this.userService.create(createUserDto)
                 .pipe(takeUntil(this.destroy$))
@@ -631,6 +637,71 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 this.technicianServices = [];
             }
         }
+    }
+
+    private sanitizeString(value?: string | null): string {
+        return typeof value === 'string' ? value.trim() : '';
+    }
+
+    private sanitizeOptionalString(value?: string | null): string | undefined {
+        const sanitized = this.sanitizeString(value);
+        return sanitized || undefined;
+    }
+
+    private sanitizePhone(value?: string | null): string | undefined {
+        const sanitized = this.sanitizeString(value);
+        return sanitized || undefined;
+    }
+
+    private normalizeIdentifier(value?: string | null): string {
+        return this.sanitizeString(value).toLowerCase();
+    }
+
+    private normalizeEmail(value?: string | null): string {
+        return this.normalizeIdentifier(value);
+    }
+
+    private normalizeUserPayload(payload: any): any {
+        const sanitized: any = { ...payload };
+
+        sanitized.email = this.normalizeEmail(payload.email);
+        sanitized.name = this.sanitizeString(payload.name);
+        sanitized.last_name = this.sanitizeString(payload.last_name);
+        sanitized.dni = this.sanitizeString(payload.dni);
+        sanitized.address = this.sanitizeOptionalString(payload.address);
+        sanitized.birth = this.sanitizeOptionalString(payload.birth);
+        sanitized.photo = this.sanitizeOptionalString(payload.photo);
+        sanitized.phone = this.sanitizePhone(payload.phone);
+        sanitized.phone2 = this.sanitizePhone(payload.phone2);
+        sanitized.parent_id = this.sanitizeOptionalString(payload.parent_id);
+        sanitized.hashdRt = this.sanitizeString(payload.hashdRt);
+        sanitized.creator_id = this.sanitizeOptionalString(payload.creator_id);
+        sanitized.access_level_id = this.sanitizeString(payload.access_level_id);
+        sanitized.role = this.sanitizeString(payload.role);
+        sanitized.profile_type = this.normalizeIdentifier(payload.profile_type);
+        sanitized.profile_type_id = this.normalizeIdentifier(payload.profile_type_id);
+        sanitized.affiliation_type_id = this.normalizeIdentifier(payload.affiliation_type_id);
+        sanitized.department_id = this.sanitizeString(payload.department_id);
+        sanitized.province = this.sanitizeOptionalString(payload.province);
+        sanitized.municipality = this.sanitizeOptionalString(payload.municipality);
+        sanitized.password = typeof payload.password === 'string' ? this.sanitizeString(payload.password) : payload.password;
+
+        sanitized.services = Array.isArray(payload.services)
+            ? payload.services.map((service: string) => this.normalizeIdentifier(service))
+            : payload.services;
+
+        sanitized.settings = Array.isArray(payload.settings)
+            ? payload.settings.map((setting: any) => ({
+                ...setting,
+                theme: this.sanitizeString(setting.theme),
+                language: this.normalizeIdentifier(setting.language),
+                affiliation_type: this.normalizeIdentifier(setting.affiliation_type),
+                profile_type: this.normalizeIdentifier(setting.profile_type),
+                notifications: !!setting.notifications
+            }))
+            : payload.settings;
+
+        return sanitized;
     }
 
     onProvinceChange(): void {
@@ -775,4 +846,3 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.destroy$.complete();
     }
 }
-

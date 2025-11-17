@@ -37,7 +37,7 @@ export class LoginComponent {
     private fb: FormBuilder,
     private router: Router
   ) {
-    const savedEmail = localStorage.getItem('rememberedEmail') || '';
+    const savedEmail = this.normalizeEmail(localStorage.getItem('rememberedEmail') || '');
     this.rememberMe = !!savedEmail;
     
     this.loginForm = this.fb.group({
@@ -99,14 +99,21 @@ export class LoginComponent {
     this.error = '';
 
     const { email, password } = this.loginForm.value;
+    const normalizedEmail = this.normalizeEmail(email);
+    const normalizedPassword = this.normalizePassword(password);
+
+    this.loginForm.patchValue(
+      { email: normalizedEmail, password: normalizedPassword },
+      { emitEvent: false }
+    );
     
     if (this.rememberMe) {
-      localStorage.setItem('rememberedEmail', email);
+      localStorage.setItem('rememberedEmail', normalizedEmail);
     } else {
       localStorage.removeItem('rememberedEmail');
     }
     
-    this.authService.login(email, password).subscribe({
+    this.authService.login(normalizedEmail, normalizedPassword).subscribe({
       next: (response) => {
         this.isLoading = false;
         // Guardar el token
@@ -180,5 +187,13 @@ export class LoginComponent {
 
     // Default icon
     return 'pi-user';
+  }
+
+  private normalizeEmail(value: string): string {
+    return (value || '').trim().toLowerCase();
+  }
+
+  private normalizePassword(value: string): string {
+    return (value || '').trim();
   }
 }

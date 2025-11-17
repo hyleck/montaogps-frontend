@@ -49,7 +49,10 @@ export class AuthService {
   }
 
   login(email: string, password: string): Observable<any> {
-    return this._httpClient.post<any>(this.LOGIN_URL, { email, password }).pipe(
+    const normalizedEmail = this.normalizeEmail(email);
+    const normalizedPassword = this.normalizePassword(password);
+
+    return this._httpClient.post<any>(this.LOGIN_URL, { email: normalizedEmail, password: normalizedPassword }).pipe(
       tap(response => {
         // 🔍 DEBUG: Imprimir respuesta completa del login
         console.log('🔍 DEBUG - RESPUESTA COMPLETA DEL LOGIN:', response);
@@ -57,12 +60,12 @@ export class AuthService {
           console.log('🔍 DEBUG - USUARIO EN RESPUESTA DEL LOGIN:', response.user);
         }
         
-        if (response.access_token) {
-          this.saveToken(response.access_token);
-          if (response.user) {
-            // Guardar solo la información básica del usuario
-            this.saveUser(response.user);
-          }
+          if (response.access_token) {
+            this.saveToken(response.access_token);
+            if (response.user) {
+              // Guardar solo la información básica del usuario
+              this.saveUser(response.user);
+            }
         }
       }),
       switchMap(response => {
@@ -128,7 +131,7 @@ export class AuthService {
         id: user.id,
         name: user.name,
         last_name: user.last_name,
-        email: user.email,
+        email: this.normalizeEmail(user.email),
         access_level_id: user.access_level_id,
         affiliation_type_id: (user as any).affiliation_type_id || (user as any).affiliation_type,
         root: rootBoolean
@@ -268,5 +271,13 @@ export class AuthService {
     }
     // Emitir cambio en el estado de autenticación
     this.authStateSubject.next(false);
+  }
+
+  private normalizeEmail(value: string | undefined | null): string {
+    return (value || '').trim().toLowerCase();
+  }
+
+  private normalizePassword(value: string | undefined | null): string {
+    return (value || '').trim();
   }
 }
