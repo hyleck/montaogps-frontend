@@ -410,6 +410,48 @@
   color: var(--monitoringSectionTitleText);
 }
 
+.monitoring-type-select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: var(--monitoringDevicesCardBackground);
+  color: var(--monitoringSectionTitleText);
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: auto;
+  padding-left: 0;
+  align-self: flex-start;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--monitoringSectionTitleText);
+}
+
+.checkbox-label input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+}
+
+.monitoring-date-input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: var(--monitoringDevicesCardBackground);
+  color: var(--monitoringSectionTitleText);
+}
+
 .email-input:focus {
   outline: none;
   border-color: var(--monitoringPathLevelBackground);
@@ -815,6 +857,26 @@
 .sim-company-badge {
   font-size: 0.75rem !important;
   padding: 2px 6px !important;
+}
+
+.distance-report {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.distance-value {
+  font-weight: 600;
+  color: var(--monitoringSummaryActiveValidOnlineColor, #2dd4bf);
+}
+
+.distance-range {
+  font-size: 0.75rem;
+  color: var(--monitoringSectionSubtitleText, #94a3b8);
+}
+
+.distance-empty {
+  color: var(--monitoringSectionSubtitleText, #94a3b8);
 }
 
 .sim-active {
@@ -1303,6 +1365,17 @@
   padding: 2px 8px;
   border-radius: 9999px;
   text-transform: uppercase;
+}
+
+.report-type-badge {
+  margin-left: auto;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(59, 130, 246, 0.15);
+  color: rgba(59, 130, 246, 0.95);
 }
 
 .report-details {

@@ -125,6 +125,7 @@
               class="report-badge-new">
               Nuevo
             </span>
+            <span class="report-type-badge">{{ getMonitoringTypeLabel(report.monitoringType) }}</span>
           </div>
           <div class="report-details">
             <div class="report-detail-item">
@@ -196,7 +197,7 @@
 
   <!-- User Search Modal -->
   <p-dialog
-    [header]="'MONITORING.SEARCH_USER_TITLE' | translate"
+    header="Nuevo monitoreo"
     [(visible)]="showUserSearchModal"
     [modal]="true"
     [closable]="true"
@@ -205,6 +206,35 @@
     [resizable]="false">
 
     <div class="search-form">
+      <div class="p-field checkbox-field">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            [(ngModel)]="includeMileage"
+            [disabled]="searchingUser || loading"
+            (ngModelChange)="onMileageToggle($event)"
+          />
+          Incluir kilometraje
+        </label>
+      </div>
+      <div class="p-field" *ngIf="isMileageMonitoring">
+        <label for="mileageFrom">Desde</label>
+        <input
+          id="mileageFrom"
+          type="datetime-local"
+          class="monitoring-date-input"
+          [(ngModel)]="mileageFrom"
+          [disabled]="searchingUser || loading">
+      </div>
+      <div class="p-field" *ngIf="isMileageMonitoring">
+        <label for="mileageTo">Hasta</label>
+        <input
+          id="mileageTo"
+          type="datetime-local"
+          class="monitoring-date-input"
+          [(ngModel)]="mileageTo"
+          [disabled]="searchingUser || loading">
+      </div>
       <div class="p-field">
         <label for="userEmail">{{ 'MONITORING.EMAIL_LABEL' | translate }}</label>
         <input
@@ -688,6 +718,7 @@
               <th>{{ 'MONITORING.TABLE_INSTALLATION' | translate }}</th>
               <th>Expiration Date</th>
               <th>SIM Card</th>
+              <th *ngIf="isMileageMonitoring">Distancia recorrido</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-device>
@@ -727,6 +758,15 @@
                           styleClass="sim-company-badge">
                   </p-badge>
                 </div>
+              </td>
+              <td *ngIf="isMileageMonitoring">
+                <div class="distance-report" *ngIf="device.distanceReport; else noDistance">
+                  <span class="distance-value">{{ formatDeviceDistance(device) }}</span>
+                  <small class="distance-range">{{ formatDistanceRange(device) }}</small>
+                </div>
+                <ng-template #noDistance>
+                  <span class="distance-empty">N/D</span>
+                </ng-template>
               </td>
             </tr>
           </ng-template>

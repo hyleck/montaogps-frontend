@@ -17,6 +17,8 @@ export interface MonitorUserResponse {
     route: MonitoringRouteEntry[];
     devices: any[];
   }>;
+  monitoringType?: 'device-status' | 'mileage';
+  distanceRange?: { from: string; to: string };
 }
 
 export interface MonitoringSummary {
@@ -37,6 +39,7 @@ export interface MonitoringSummary {
   totalExpiredDevices: number;
   createdAt: string;
   reportId?: string | null;
+  monitoringType?: 'device-status' | 'mileage';
 }
 
 export interface MonitoringSummaryResponse {
@@ -58,6 +61,8 @@ export interface MonitoringReport {
     route: MonitoringRouteEntry[];
     devices: any[];
   }>;
+  monitoringType?: 'device-status' | 'mileage';
+  distanceRange?: { from: string; to: string };
 }
 
 export type MonitoringStatusState = 'idle' | 'pending' | 'in-progress' | 'completed' | 'failed';
@@ -104,9 +109,25 @@ export class MonitoringService {
 
   constructor(private http: HttpClient) { }
 
-  monitorUser(userId: string): Observable<MonitorUserResponse> {
+  monitorUser(
+    userId: string,
+    monitoringType?: string,
+    range?: { from: string; to: string }
+  ): Observable<MonitorUserResponse> {
     const body: any = { userId };
-    return this.http.post<MonitorUserResponse>(`${this.apiUrl}/user`, body);
+    if (monitoringType) {
+      body.monitoringType = monitoringType;
+    }
+    if (range) {
+      body.from = range.from;
+      body.to = range.to;
+    }
+
+    const endpoint = range
+      ? `${this.apiUrl}/user/mileage`
+      : `${this.apiUrl}/user`;
+
+    return this.http.post<MonitorUserResponse>(endpoint, body);
   }
 
   monitorUserSummary(userId: string): Observable<MonitoringSummaryResponse> {

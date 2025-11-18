@@ -18,7 +18,11 @@ import { startWith, switchMap } from 'rxjs/operators';
 export class MonitoringComponent implements OnInit, OnDestroy {
   userEmail: string = '';
   userId: string = '';
+  monitoringType: 'device-status' | 'mileage' = 'device-status';
+  includeMileage: boolean = false;
   monitoringResult: MonitorUserResponse | null = null;
+  mileageFrom: string = '';
+  mileageTo: string = '';
   monitoringSummaries: MonitoringSummary[] = [];
   latestSummary: MonitoringSummary | null = null;
   loading: boolean = false;
@@ -125,6 +129,49 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
 
     return this.translate.instant('MONITORING.PANEL_SUBTITLE_DEFAULT');
+  }
+
+  get isMileageMonitoring(): boolean {
+    return this.monitoringType === 'mileage';
+  }
+
+  onMileageToggle(enabled: boolean): void {
+    this.includeMileage = enabled;
+    this.monitoringType = enabled ? 'mileage' : 'device-status';
+    if (!enabled) {
+      this.mileageFrom = '';
+      this.mileageTo = '';
+    }
+  }
+
+  formatDeviceDistance(device: any): string {
+    const distance = device?.distanceReport?.distance;
+    if (typeof distance !== 'number') {
+      return 'N/D';
+    }
+    const kilometers = distance / 1000;
+    return `${kilometers.toFixed(2)} km`;
+  }
+
+  formatDistanceRange(device: any): string {
+    const report = device?.distanceReport;
+    if (!report?.from || !report?.to) {
+      return '';
+    }
+    const from = new Date(report.from);
+    const to = new Date(report.to);
+    if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+      return '';
+    }
+    return `${from.toLocaleDateString()} - ${to.toLocaleDateString()}`;
+  }
+
+  getMonitoringTypeLabel(type?: 'device-status' | 'mileage'): string {
+    const base = 'Estados de los dispositivos';
+    if (type === 'mileage') {
+      return `${base} + Kilometraje`;
+    }
+    return base;
   }
 
   private startStatusPolling(userId: string, initialStatus: MonitoringStatus | null = null, startTimestamp?: number): void {
@@ -629,7 +676,22 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     this.currentStatusRequestId = null;
     this.startStatusPolling(this.userId, pendingStatus, this.monitoringRequestStartTimestamp);
 
-    this.monitoringService.monitorUser(this.userId).subscribe({
+    if (this.monitoringType === 'mileage') {
+      if (!this.mileageFrom || !this.mileageTo) {
+        this.error = 'Selecciona el rango de fechas (desde y hasta).';
+        return;
+      }
+      if (new Date(this.mileageFrom) > new Date(this.mileageTo)) {
+        this.error = 'La fecha inicial debe ser menor o igual a la final.';
+        return;
+      }
+    }
+
+    const range = this.monitoringType === 'mileage'
+      ? { from: this.mileageFrom, to: this.mileageTo }
+      : undefined;
+
+    this.monitoringService.monitorUser(this.userId, this.monitoringType, range).subscribe({
       next: (result) => {
         if (result?.statusRequestId) {
           this.currentStatusRequestId = result.statusRequestId;
@@ -661,7 +723,22 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     this.currentStatusRequestId = null;
     this.startStatusPolling(this.userId, pendingStatus, this.monitoringRequestStartTimestamp);
 
-    this.monitoringService.monitorUser(this.userId).subscribe({
+    if (this.monitoringType === 'mileage') {
+      if (!this.mileageFrom || !this.mileageTo) {
+        this.error = 'Selecciona el rango de fechas (desde y hasta).';
+        return;
+      }
+      if (new Date(this.mileageFrom) > new Date(this.mileageTo)) {
+        this.error = 'La fecha inicial debe ser menor o igual a la final.';
+        return;
+      }
+    }
+
+    const range = this.monitoringType === 'mileage'
+      ? { from: this.mileageFrom, to: this.mileageTo }
+      : undefined;
+
+    this.monitoringService.monitorUser(this.userId, this.monitoringType, range).subscribe({
       next: (result) => {
         if (result?.statusRequestId) {
           this.currentStatusRequestId = result.statusRequestId;
@@ -725,7 +802,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           ...summary,
           activeValidOnlineDevices: summary.activeValidOnlineDevices ?? 0,
           activeValidOfflineDevices: summary.activeValidOfflineDevices ?? 0,
-          totalExpiredDevices: summary.totalExpiredDevices ?? 0
+          totalExpiredDevices: summary.totalExpiredDevices ?? 0,
+          monitoringType: (summary as any).monitoringType || 'device-status'
         }));
         this.monitoringSummaries = summaries;
         this.latestSummary = summaries.length > 0 ? summaries[0] : null;
@@ -1399,6 +1477,19 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
     this.monitoringService.getMonitoringReport(reportId).subscribe({
       next: (report) => {
         this.monitoringResult = report;
+        if (report?.monitoringType) {
+          this.monitoringType = report.monitoringType;
+        } else {
+          this.monitoringType = 'device-status';
+        }
+        this.includeMileage = this.monitoringType === 'mileage';
+        if (report?.distanceRange) {
+          this.mileageFrom = report.distanceRange.from;
+          this.mileageTo = report.distanceRange.to;
+        } else if (this.monitoringType !== 'mileage') {
+          this.mileageFrom = '';
+          this.mileageTo = '';
+        }
         this.loading = false;
         console.log('Report loaded:', report);
       },
@@ -1440,6 +1531,8 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
       return;
     }
 
+    const includeMileage = this.monitoringType === 'mileage';
+
     // Create a new workbook
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Monitoreo');
@@ -1454,8 +1547,11 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
       { key: 'col6', width: 15 },
       { key: 'col7', width: 15 },
       { key: 'col8', width: 15 },
-      { key: 'col9', width: 15 }
+      { key: 'col9', width: 15 },
+      { key: 'col10', width: includeMileage ? 24 : 2 }
     ];
+
+    const lastColumnLetter = includeMileage ? 'J' : 'I';
 
     let currentRow = 1; // Start from row 1
 
@@ -1526,7 +1622,8 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
         col6: '',
         col7: '',
         col8: '',
-        col9: ''
+        col9: '',
+        col10: ''
       });
 
       // Style user title
@@ -1543,7 +1640,7 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
       titleRow.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
 
       // Merge cells for title
-      worksheet.mergeCells(`B${currentRow}:I${currentRow}`);
+      worksheet.mergeCells(`B${currentRow}:${lastColumnLetter}${currentRow}`);
       currentRow++;
 
       // Add hierarchy info
@@ -1556,7 +1653,8 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
         col6: '',
         col7: '',
         col8: '',
-        col9: ''
+        col9: '',
+        col10: ''
       });
 
       hierarchyRow.getCell(2).font = {
@@ -1564,7 +1662,7 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
         color: { argb: 'FF666666' },
         size: 11
       };
-      worksheet.mergeCells(`B${currentRow}:I${currentRow}`);
+      worksheet.mergeCells(`B${currentRow}:${lastColumnLetter}${currentRow}`);
       currentRow++;
 
       // Add device count
@@ -1577,7 +1675,8 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
         col6: '',
         col7: '',
         col8: '',
-        col9: ''
+        col9: '',
+        col10: ''
       });
 
       deviceCountRow.getCell(2).font = {
@@ -1585,7 +1684,7 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
         color: { argb: 'FF333333' },
         size: 11
       };
-      worksheet.mergeCells(`B${currentRow}:I${currentRow}`);
+      worksheet.mergeCells(`B${currentRow}:${lastColumnLetter}${currentRow}`);
       currentRow++;
 
       // Add empty row for spacing
@@ -1598,7 +1697,8 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
         col6: '',
         col7: '',
         col8: '',
-        col9: ''
+        col9: '',
+        col10: ''
       });
       currentRow++;
 
@@ -1612,17 +1712,18 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
         col6: 'Conexión',
         col7: 'Fecha Instalación',
         col8: 'Fecha Expiración',
-        col9: 'Número SIM'
+        col9: 'Número SIM',
+        col10: includeMileage ? 'Distancia' : ''
       });
 
       // Style header row
       headerRow.eachCell((cell, colNumber) => {
-        if (colNumber > 1) { // Skip first column (empty)
-          cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF007BFF' } // Blue background
-          };
+          if (colNumber > 1 && (!includeMileage || colNumber <= 10)) { // Skip first column (empty)
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'FF007BFF' } // Blue background
+            };
           cell.font = {
             bold: true,
             color: { argb: 'FFFFFFFF' }, // White text
@@ -1650,12 +1751,15 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
           col6: this.getConnectionDisplay(device),
           col7: this.formatActivationDate(device.activation_date) || '',
           col8: this.formatExpirationDate(device.expiration_date) || '',
-          col9: device.sim_card_number || ''
+          col9: device.sim_card_number || '',
+          col10: includeMileage
+            ? `${this.formatDeviceDistance(device)} ${this.formatDistanceRange(device) ? '(' + this.formatDistanceRange(device) + ')' : ''}`
+            : ''
         });
 
         // Style data row
         dataRow.eachCell((cell, colNumber) => {
-          if (colNumber > 1) { // Skip first column (empty)
+          if (colNumber > 1 && (!includeMileage || colNumber <= 10)) { // Skip first column (empty)
             const isEvenRow = deviceIndex % 2 === 0;
             const backgroundColor = isEvenRow ? 'FFF8F9FA' : 'FFFFFFFF';
 
