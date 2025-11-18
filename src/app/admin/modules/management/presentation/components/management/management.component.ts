@@ -936,7 +936,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
    * Cambia la URL para navegar al usuario padre del target
    * @param target Target con parent_id diferente al usuario actual
    */
-  navigateToParentUser(target: any) {
+  navigateToParentUser(target: any, event?: MouseEvent) {
     // Buscar parent_id en el target principal o en originalTarget
     const originalTarget = target.originalTarget || target;
     const parentId = target.parent_id || target.parentId || target.user_id ||
@@ -950,10 +950,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const currentQueryParams = this.route.snapshot.queryParams;
       const queryString = new URLSearchParams(currentQueryParams).toString();
       const newUrl = `/admin/management/${currentOp}/${parentId}${queryString ? '?' + queryString : ''}`;
-  
-      
-      // Abrir en nueva pestaña manteniendo todos los parámetros
-      window.open(newUrl, '_blank');
+
+      if (event?.ctrlKey) {
+        window.open(newUrl, '_blank');
+      } else {
+        this.router.navigate(['/admin/management', currentOp, parentId], {
+          queryParams: currentQueryParams
+        });
+      }
     } else {
       console.error('❌ No se encontró parent_id/parentId/user_id en el target ni en originalTarget:', {
         target: target,

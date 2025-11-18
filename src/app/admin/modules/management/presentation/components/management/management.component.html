@@ -309,8 +309,8 @@
                                                             <button 
                                                                 *ngIf="shouldShowParentUserButton(target)"
                                                                 class="button button--primary-flat-icon" 
-                                                                title="Abrir usuario propietario (nueva pestaña)" 
-                                                                (click)="navigateToParentUser(target)"> 
+                                                                title="Abrir usuario propietario (Ctrl+click para nueva pestaña)" 
+                                                                (click)="navigateToParentUser(target, $event)"> 
                                                                 <i class="pi pi-user" ></i> 
                                                             </button>
                                                         </div>
@@ -676,13 +676,13 @@
                                                         (click)="deleteTarget(target)"> 
                                                         <i class="pi pi-trash" ></i> 
                                                     </button>
-                                                    <button 
-                                                        *ngIf="shouldShowParentUserButton(target)"
-                                                        class="button button--primary-flat-icon" 
-                                                        title="Abrir usuario propietario (nueva pestaña)" 
-                                                        (click)="navigateToParentUser(target)"> 
-                                                        <i class="pi pi-user" ></i> 
-                                                    </button>
+                                                            <button 
+                                                                *ngIf="shouldShowParentUserButton(target)"
+                                                                class="button button--primary-flat-icon" 
+                                                                title="Abrir usuario propietario (Ctrl+click para nueva pestaña)" 
+                                                                (click)="navigateToParentUser(target, $event)"> 
+                                                                <i class="pi pi-user" ></i> 
+                                                            </button>
                                                 </div>
                                                 <div *ngIf="target.isShared" class="target-controls-shared">
                                                     <span class="shared-target-label">
