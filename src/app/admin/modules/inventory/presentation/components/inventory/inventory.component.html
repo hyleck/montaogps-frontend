@@ -1,611 +1,261 @@
 <div class="management__route">
-    <p-breadcrumb [model]="items" [home]="home" />
+  <p-breadcrumb [model]="items" [home]="home" />
 </div>
 
-<!-- Mensaje de sin permisos -->
 <div *ngIf="!canReadInventory()" class="no-permissions-container">
-    <div class="no-permissions-message">
-        <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-        <h3>{{ 'inventory.no_read_permission' | translate }}</h3>
-        <p>{{ 'inventory.contact_admin' | translate }}</p>
-    </div>
+  <div class="no-permissions-message">
+    <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+    <h3>{{ 'inventory.no_read_permission' | translate }}</h3>
+    <p>{{ 'inventory.contact_admin' | translate }}</p>
+  </div>
 </div>
 
 <div class="inventory-container" *ngIf="canReadInventory()">
-    <!-- Global Search Bar -->
-    <div *ngIf="!currentPackageId" class="global-search-section">
-        <div class="search-container">
-            <div class="search-field">
-                <label for="globalSearch">Buscar en todos los inventarios</label>
-                <form (ngSubmit)="searchAllInventory()" class="search-form">
-                    <div class="search-input-group">
-                        <input 
-                            type="text" 
-                            id="globalSearch"
-                            [(ngModel)]="globalSearchQuery"
-                            name="globalSearch"
-                            placeholder="Buscar por IMEI o SIM..."
-                            class="form-input search-input"
-                            [disabled]="isSearchingGlobal"
-                        />
-                        <button 
-                            type="submit"
-                            class="search-button"
-                            [disabled]="isSearchingGlobal"
-                        >
-                            <i class="pi pi-search" *ngIf="!isSearchingGlobal"></i>
-                            <i class="pi pi-spin pi-spinner" *ngIf="isSearchingGlobal"></i>
-                        </button>
-                        <button 
-                            type="button"
-                            class="clear-button"
-                            (click)="clearGlobalSearch()"
-                            *ngIf="globalSearchQuery || showingSearchResults"
-                        >
-                            <i class="pi pi-times"></i>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+  <div class="global-search-section">
+    <div class="search-container">
+      <div class="search-field">
+        <label for="globalSearch">Buscar en todos los inventarios</label>
+        <form (ngSubmit)="searchAllInventory()" class="search-form">
+          <div class="search-input-group">
+            <input
+              type="text"
+              id="globalSearch"
+              [(ngModel)]="globalSearchQuery"
+              name="globalSearch"
+              placeholder="Buscar por IMEI o SIM..."
+              class="form-input search-input"
+              [disabled]="isSearchingGlobal"
+            />
+            <button type="submit" class="search-button" [disabled]="isSearchingGlobal">
+              <i class="pi pi-search" *ngIf="!isSearchingGlobal"></i>
+              <i class="pi pi-spin pi-spinner" *ngIf="isSearchingGlobal"></i>
+            </button>
+            <button
+              type="button"
+              class="clear-button"
+              (click)="clearGlobalSearch()"
+              *ngIf="globalSearchQuery || showingSearchResults"
+            >
+              <i class="pi pi-times"></i>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
+  </div>
 
-    <!-- Global Search Results -->
-    <div *ngIf="!currentPackageId && showingSearchResults" class="search-results-section">
-        <h3>Resultados de búsqueda ({{ allDevicesSearchResults.length }} dispositivos)</h3>
-        <div class="search-results-table">
-            <table class="devices-table">
-                <thead>
-                    <tr>
-                        <th>IMEI</th>
-                        <th>SIM</th>
-                        <th>Protocolo</th>
-                        <th>Paquete</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="let device of allDevicesSearchResults">
-                        <td>{{ device.IMEI || device.imei || 'N/A' }}</td>
-                        <td>{{ device.SIM || device.sim || 'N/A' }}</td>
-                        <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
-                        <td>{{ device.package?.title || 'N/A' }}</td>
-                        <td>
-                            <button 
-                                class="action-button edit-button"
-                                (click)="editDevice(device)"
-                                title="Editar"
-                                *ngIf="canUpdateInventory()"
-                            >
-                                <i class="pi pi-pencil"></i>
-                            </button>
-                            <button 
-                                class="action-button install-button"
-                                (click)="installDevice(device)"
-                                title="Instalar"
-                                *ngIf="canUpdateInventory()"
-                            >
-                                <i class="pi pi-cog"></i>
-                            </button>
-                            <button 
-                                class="action-button delete-button"
-                                (click)="deleteDevice(device)"
-                                title="Eliminar"
-                                *ngIf="canDeleteInventory()"
-                            >
-                                <i class="pi pi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <div *ngIf="allDevicesSearchResults.length === 0" class="no-results">
-                No se encontraron dispositivos con esa búsqueda
-            </div>
-        </div>
+  <div *ngIf="showingSearchResults" class="search-results-section">
+    <h3>Resultados de búsqueda ({{ allDevicesSearchResults.length }} dispositivos)</h3>
+    <div class="search-results-table">
+      <table class="devices-table">
+        <thead>
+          <tr>
+            <th>IMEI</th>
+            <th>SIM</th>
+            <th>Protocolo</th>
+            <th>Paquete</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let device of allDevicesSearchResults">
+            <td class="imei-cell">
+              <i
+                *ngIf="isDeviceInstalled(device)"
+                class="pi pi-check-circle installed-icon"
+                title="Instalado"
+              ></i>
+              <span>{{ device.IMEI || device.imei || 'N/A' }}</span>
+              <span *ngIf="isDeviceInstalled(device)" class="installed-label">
+                (Instalado)
+              </span>
+            </td>
+            <td>{{ device.SIM || device.sim || 'N/A' }}</td>
+            <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
+            <td>{{ getPackageTitle(device) }}</td>
+            <td>
+              <button
+                class="action-button edit-button"
+                (click)="navigateToDevicePackage(device)"
+                title="Ver paquete"
+              >
+                <i class="pi pi-arrow-right-arrow-left"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div *ngIf="allDevicesSearchResults.length === 0" class="no-results">
+        No se encontraron dispositivos con esa búsqueda
+      </div>
     </div>
+  </div>
 
-    <!-- Main view: Package list or Device list -->
-    <div *ngIf="!currentPackageId && !showingSearchResults" class="packages-view">
-        <div class="package-form-section">
-            <div class="form-header">
-                <h2>Formulario de paquete</h2>
-            </div>
-            
-            <div class="package-form-card">
-                <div class="form-grid">
-                    <div class="form-row">
-                        <div class="form-field">
-                            <label for="packageTitle">Título del paquete</label>
-                            <input 
-                                type="text" 
-                                id="packageTitle" 
-                                [ngModel]="selectedPackage?.title" 
-                                (ngModelChange)="selectedPackage && (selectedPackage.title = $event)"
-                                placeholder="Ingrese el título del paquete"
-                                class="form-input"
-                            />
-                        </div>
-                        
-                        <div class="form-field">
-                            <label for="packageDate">Fecha</label>
-                            <input 
-                                type="date" 
-                                id="packageDate" 
-                                [ngModel]="selectedPackage?.date" 
-                                (ngModelChange)="selectedPackage && (selectedPackage.date = $event)"
-                                class="form-input"
-                            />
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-field">
-                            <label for="packagePrice">Precio</label>
-                            <input 
-                                type="number" 
-                                id="packagePrice" 
-                                [ngModel]="selectedPackage?.price" 
-                                (ngModelChange)="selectedPackage && (selectedPackage.price = $event)"
-                                placeholder="0.00"
-                                class="form-input"
-                                step="0.01"
-                            />
-                        </div>
-                        
-                        <div class="form-field">
-                            <label for="packageDescription">Descripción</label>
-                            <textarea 
-                                id="packageDescription" 
-                                [ngModel]="selectedPackage?.description" 
-                                (ngModelChange)="selectedPackage && (selectedPackage.description = $event)"
-                                placeholder="Descripción opcional"
-                                class="form-input"
-                                rows="3"
-                            ></textarea>
-                        </div>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button 
-                            pButton 
-                            pRipple 
-                            label="Guardar Paquete" 
-                            icon="pi pi-save" 
-                            class="p-button-success"
-                            (click)="savePackage()"
-                            [disabled]="!selectedPackage?.title || (!canCreateInventory() && !isEditPackageMode) || (!canUpdateInventory() && isEditPackageMode)"
-                            *ngIf="canCreateInventory() || canUpdateInventory()"
-                        ></button>
-                        <div *ngIf="!canCreateInventory() && !canUpdateInventory()" class="no-save-permission">
-                            <i class="pi pi-lock" style="opacity: 0.5;"></i>
-                            <span style="font-size: 0.875rem; opacity: 0.6;">{{ 'inventory.no_save_permission' | translate }}</span>
-                        </div>
-                        
-                        <button 
-                            pButton 
-                            pRipple 
-                            label="Limpiar" 
-                            icon="pi pi-refresh" 
-                            class="p-button-secondary"
-                            (click)="openNewPackage()"
-                        ></button>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <div class="packages-view" *ngIf="!showingSearchResults">
+    <div class="package-form-section">
+      <div class="form-header">
+        <h2>Formulario de paquete</h2>
+      </div>
 
-        <div class="packages-list-section">
-            <div class="list-header">
-                <h2>Listado de paquetes</h2>
+      <div class="package-form-card">
+        <div class="form-grid">
+          <div class="form-row">
+            <div class="form-field">
+              <label for="packageTitle">Título del paquete</label>
+              <input
+                type="text"
+                id="packageTitle"
+                [ngModel]="selectedPackage?.title"
+                (ngModelChange)="selectedPackage && (selectedPackage.title = $event)"
+                placeholder="Ingrese el título del paquete"
+                class="form-input"
+              />
             </div>
-            
-            <div class="packages-grid">
-                <div 
-                    *ngFor="let package of packages" 
-                    class="package-card"
-                    (click)="viewPackageDevices(package)"
-                >
-                    <div class="package-card-header">
-                        <h3>{{ package.title }}</h3>
-                        <div class="package-actions">
-                            <button 
-                                pButton 
-                                pRipple 
-                                icon="pi pi-pencil" 
-                                class="p-button-rounded p-button-text p-button-sm"
-                                (click)="editPackage(package); $event.stopPropagation()"
-                                pTooltip="Editar paquete"
-                                *ngIf="canUpdateInventory()"
-                            ></button>
-                            <button 
-                                pButton 
-                                pRipple 
-                                icon="pi pi-trash" 
-                                class="p-button-rounded p-button-text p-button-sm p-button-danger"
-                                (click)="deletePackage(package); $event.stopPropagation()"
-                                pTooltip="Eliminar paquete"
-                                *ngIf="canDeleteInventory()"
-                            ></button>
-                        </div>
-                    </div>
-                    
-                    <div class="package-card-body">
-                        <div class="package-info">
-                            <div class="info-item">
-                                <i class="pi pi-calendar"></i>
-                                <span>{{ package.date | date:'dd/MM/yyyy' }}</span>
-                            </div>
-                            <div class="info-item">
-                                <i class="pi pi-dollar"></i>
-                                <span>{{ package.price | currency:'USD':'symbol':'1.2-2' }}</span>
-                            </div>
-                            <div class="info-item" *ngIf="package.devices?.length">
-                                <i class="pi pi-box"></i>
-                                <span>{{ package.devices?.length || 0 }} dispositivos</span>
-                            </div>
-                        </div>
-                        <p *ngIf="package.description" class="package-description">{{ package.description }}</p>
-                    </div>
-                </div>
-                
-                <div class="empty-state" *ngIf="packages.length === 0 && !loading">
-                    <i class="pi pi-box"></i>
-                    <p>No hay paquetes registrados</p>
-                    <small>Crea tu primer paquete usando el formulario de arriba</small>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Device list view for selected package -->
-    <div *ngIf="currentPackageId" class="devices-view">
-        <div class="devices-header">
-            <button 
-                pButton 
-                pRipple 
-                label="Volver a paquetes" 
-                icon="pi pi-arrow-left" 
-                class="p-button-text"
-                (click)="goBackToPackages()"
+            <div class="form-field">
+              <label for="packageDate">Fecha</label>
+              <input
+                type="date"
+                id="packageDate"
+                [ngModel]="selectedPackage?.date"
+                (ngModelChange)="selectedPackage && (selectedPackage.date = $event)"
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label for="packagePrice">Precio</label>
+              <input
+                type="number"
+                id="packagePrice"
+                [ngModel]="selectedPackage?.price"
+                (ngModelChange)="selectedPackage && (selectedPackage.price = $event)"
+                placeholder="0.00"
+                class="form-input"
+                step="0.01"
+              />
+            </div>
+
+            <div class="form-field">
+              <label for="packageDescription">Descripción</label>
+              <textarea
+                id="packageDescription"
+                [ngModel]="selectedPackage?.description"
+                (ngModelChange)="selectedPackage && (selectedPackage.description = $event)"
+                placeholder="Descripción opcional"
+                class="form-input"
+                rows="3"
+              ></textarea>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button
+              pButton
+              pRipple
+              label="Guardar Paquete"
+              icon="pi pi-save"
+              class="p-button-success"
+              (click)="savePackage()"
+              [disabled]="
+                !selectedPackage?.title ||
+                (!canCreateInventory() && !isEditPackageMode) ||
+                (!canUpdateInventory() && isEditPackageMode)
+              "
+              *ngIf="canCreateInventory() || canUpdateInventory()"
             ></button>
-            <h2>Dispositivos del paquete</h2>
-        </div>
-
-        <!-- Package Search Bar -->
-        <div class="package-search-section">
-            <div class="search-container">
-                <div class="search-field">
-                    <label for="packageSearch">Buscar en este paquete</label>
-                    <form (ngSubmit)="searchPackageDevices()" class="search-form">
-                        <div class="search-input-group">
-                            <input 
-                                type="text" 
-                                id="packageSearch"
-                                [(ngModel)]="packageSearchQuery"
-                                name="packageSearch"
-                                placeholder="Buscar por IMEI o SIM..."
-                                class="form-input search-input"
-                                [disabled]="isSearchingPackage"
-                            />
-                            <button 
-                                type="submit"
-                                class="search-button"
-                                [disabled]="isSearchingPackage"
-                            >
-                                <i class="pi pi-search" *ngIf="!isSearchingPackage"></i>
-                                <i class="pi pi-spin pi-spinner" *ngIf="isSearchingPackage"></i>
-                            </button>
-                            <button 
-                                type="button"
-                                class="clear-button"
-                                (click)="clearPackageSearch()"
-                                *ngIf="packageSearchQuery"
-                            >
-                                <i class="pi pi-times"></i>
-                            </button>
-                        </div>
-                    </form>
-                </div>
+            <div *ngIf="!canCreateInventory() && !canUpdateInventory()" class="no-save-permission">
+              <i class="pi pi-lock" style="opacity: 0.5;"></i>
+              <span style="font-size: 0.875rem; opacity: 0.6;">
+                {{ 'inventory.no_save_permission' | translate }}
+              </span>
             </div>
+
+            <button
+              pButton
+              pRipple
+              label="Limpiar"
+              icon="pi pi-refresh"
+              class="p-button-secondary"
+              (click)="openNewPackage()"
+            ></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="packages-list-section">
+      <div class="list-header">
+        <h2>Listado de paquetes</h2>
+      </div>
+
+      <div class="packages-grid">
+        <div
+          *ngFor="let package of packages"
+          class="package-card"
+          (click)="viewPackageDevices(package)"
+        >
+          <div class="package-card-header">
+            <h3>{{ package.title }}</h3>
+            <div class="package-actions">
+              <button
+                pButton
+                pRipple
+                icon="pi pi-pencil"
+                class="p-button-rounded p-button-text p-button-sm"
+                (click)="editPackage(package); $event.stopPropagation()"
+                pTooltip="Editar paquete"
+                *ngIf="canUpdateInventory()"
+              ></button>
+              <button
+                pButton
+                pRipple
+                icon="pi pi-trash"
+                class="p-button-rounded p-button-text p-button-sm p-button-danger"
+                (click)="deletePackage(package); $event.stopPropagation()"
+                pTooltip="Eliminar paquete"
+                *ngIf="canDeleteInventory()"
+              ></button>
+            </div>
+          </div>
+
+          <div class="package-card-body">
+            <div class="package-info">
+              <div class="info-item">
+                <i class="pi pi-calendar"></i>
+                <span>{{ package.date | date: 'dd/MM/yyyy' }}</span>
+              </div>
+              <div class="info-item">
+                <i class="pi pi-dollar"></i>
+                <span>{{ package.price | currency: 'USD':'symbol':'1.2-2' }}</span>
+              </div>
+              <div class="info-item" *ngIf="package.devices?.length">
+                <i class="pi pi-box"></i>
+                <span>{{ package.devices?.length || 0 }} dispositivos</span>
+              </div>
+            </div>
+            <p *ngIf="package.description" class="package-description">
+              {{ package.description }}
+            </p>
+          </div>
         </div>
 
-        <p-toolbar styleClass="mb-4 gap-2">
-            <ng-template pTemplate="left">
-                <button 
-                    pButton 
-                    pRipple 
-                    label="Agregar Dispositivo" 
-                    icon="pi pi-plus" 
-                    class="p-button-success"
-                    (click)="openNewDevice()"
-                    *ngIf="canCreateInventory()"
-                ></button>
-                <div *ngIf="!canCreateInventory()" class="no-create-permission">
-                    <i class="pi pi-lock" style="opacity: 0.5;"></i>
-                    <span style="font-size: 0.875rem; opacity: 0.6;">{{ 'inventory.no_create_permission' | translate }}</span>
-                </div>
-            </ng-template>
-        </p-toolbar>
-
-        <p-table 
-            [value]="packageDevices" 
-            [paginator]="true" 
-            [rows]="10" 
-            [loading]="loading"
-            styleClass="p-datatable-sm p-datatable-gridlines"
-        >
-            <ng-template pTemplate="header">
-                <tr>
-                    <th>IMEI</th>
-                    <th>SIM</th>
-                    <th>Protocolo</th>
-                    <th>Acciones</th>
-                </tr>
-            </ng-template>
-            
-            <ng-template pTemplate="body" let-device>
-                <tr>
-                    <td>{{ device.IMEI || device.imei || 'N/A' }}</td>
-                    <td>{{ device.SIM || device.sim || 'N/A' }}</td>
-                    <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
-                    <td>
-                        <button 
-                            pButton 
-                            pRipple 
-                            icon="pi pi-pencil" 
-                            class="p-button-rounded p-button-success mr-2"
-                            (click)="editDevice(device)"
-                            pTooltip="Editar"
-                            *ngIf="canUpdateInventory()"
-                        ></button>
-                        <button 
-                            pButton 
-                            pRipple 
-                            icon="pi pi-cog" 
-                            class="p-button-rounded p-button-info mr-2"
-                            (click)="installDevice(device)"
-                            pTooltip="Instalar"
-                            *ngIf="canUpdateInventory()"
-                        ></button>
-                        <button 
-                            pButton 
-                            pRipple 
-                            icon="pi pi-trash" 
-                            class="p-button-rounded p-button-danger"
-                            (click)="deleteDevice(device)"
-                            pTooltip="Eliminar"
-                            *ngIf="canDeleteInventory()"
-                        ></button>
-                        <div *ngIf="!canUpdateInventory() && !canDeleteInventory()" class="no-actions-permission">
-                            <i class="pi pi-lock" style="opacity: 0.5; font-size: 0.75rem;"></i>
-                            <span style="font-size: 0.75rem; opacity: 0.6;">{{ 'inventory.no_actions_permission' | translate }}</span>
-                        </div>
-                    </td>
-                </tr>
-            </ng-template>
-            
-            <ng-template pTemplate="emptymessage">
-                <tr>
-                    <td colspan="4" class="text-center">No hay dispositivos en este paquete</td>
-                </tr>
-            </ng-template>
-        </p-table>
+        <div class="empty-state" *ngIf="packages.length === 0 && !loading">
+          <i class="pi pi-box"></i>
+          <p>No hay paquetes registrados</p>
+          <small>Crea tu primer paquete usando el formulario de arriba</small>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- Loading state -->
-    <div *ngIf="loading" class="loading-container">
-        <p-progressSpinner></p-progressSpinner>
-        <p>Cargando...</p>
-    </div>
+  <div *ngIf="loading" class="loading-container">
+    <p-progressSpinner></p-progressSpinner>
+    <p>Cargando...</p>
+  </div>
 </div>
 
-<!-- Device dialog -->
-<p-dialog 
-    [(visible)]="deviceDialogVisible" 
-    [style]="{width: '450px'}" 
-    header="Dispositivo" 
-    [modal]="true" 
-    styleClass="p-fluid"
->
-    <ng-template pTemplate="content">
-        <form (ngSubmit)="saveDevice()" #deviceForm="ngForm">
-            <div class="field" *ngIf="selectedDevice">
-                <label for="deviceImei">IMEI</label>
-                <input 
-                    type="text" 
-                    id="deviceImei" 
-                    [(ngModel)]="selectedDevice.imei" 
-                    name="imei"
-                    required 
-                    #imeiInput
-                    class="form-input"
-                    placeholder="Ingrese el IMEI"
-                />
-            </div>
-            
-            <div class="field" *ngIf="selectedDevice">
-                <label for="deviceSim">SIM</label>
-                <input 
-                    type="text" 
-                    id="deviceSim" 
-                    [(ngModel)]="selectedDevice.sim" 
-                    name="sim"
-                    class="form-input"
-                    placeholder="Ingrese el SIM (opcional)"
-                />
-            </div>
-            
-            <div class="field" *ngIf="selectedDevice">
-                <label for="deviceProtocol">Protocolo</label>
-                <select 
-                    id="deviceProtocol"
-                    [(ngModel)]="selectedDevice.protocol" 
-                    name="protocol"
-                    required
-                    class="form-input"
-                >
-                    <option value="">Seleccionar protocolo</option>
-                    <option *ngFor="let protocol of protocols" [value]="protocol.value">
-                        {{ protocol.label }}
-                    </option>
-                </select>
-            </div>
-            
-            <!-- Hidden submit button to make the form work with Enter -->
-            <button type="submit" style="display: none;"></button>
-        </form>
-    </ng-template>
-
-    <ng-template pTemplate="footer">
-        <button 
-            pButton 
-            pRipple 
-            label="Cancelar" 
-            icon="pi pi-times" 
-            class="p-button-text" 
-            (click)="hideDeviceDialog()"
-        ></button>
-        <button 
-            pButton 
-            pRipple 
-            label="Guardar" 
-            icon="pi pi-check" 
-            class="p-button-text" 
-            (click)="saveDevice()"
-        ></button>
-    </ng-template>
-</p-dialog>
-
-<!-- Diálogo para solicitar email de instalación -->
-<p-dialog 
-    header="Instalar Dispositivo" 
-    [(visible)]="installDialogVisible" 
-    [modal]="true" 
-    [closable]="true"
-    [style]="{ width: '450px' }"
-    (onHide)="cancelInstallation()"
->
-    <div class="install-dialog-content">
-        <div class="device-info" *ngIf="deviceToInstall">
-            <h4>Dispositivo a instalar:</h4>
-            <p><strong>IMEI:</strong> {{ deviceToInstall.IMEI || deviceToInstall.imei || 'N/A' }}</p>
-            <p><strong>SIM:</strong> {{ deviceToInstall.SIM || deviceToInstall.sim || 'N/A' }}</p>
-            <p><strong>Protocolo:</strong> {{ getProtocolLabel(deviceToInstall.Protocol || deviceToInstall.protocol) }}</p>
-        </div>
-        
-        <div class="email-input-section">
-            <label for="installationEmail" class="form-label">
-                <strong>Correo electrónico del cliente: *</strong>
-            </label>
-            <input 
-                id="installationEmail"
-                type="email" 
-                pInputText 
-                [(ngModel)]="installationEmail" 
-                placeholder="Ingrese el email del cliente"
-                class="w-full"
-                [class.ng-invalid]="!installationEmail"
-                autocomplete="email"
-            />
-            <small class="help-text">
-                Se enviará una notificación de instalación a esta dirección
-            </small>
-        </div>
-    </div>
-    
-    <ng-template pTemplate="footer">
-        <button 
-            pButton 
-            pRipple 
-            label="Cancelar" 
-            icon="pi pi-times" 
-            class="p-button-text"
-            (click)="cancelInstallation()"
-        ></button>
-        <button 
-            pButton 
-            pRipple 
-            label="Confirmar Instalación" 
-            icon="pi pi-check" 
-            class="p-button-primary"
-            (click)="confirmInstallation()"
-            [disabled]="!installationEmail || !installationEmail.trim()"
-        ></button>
-    </ng-template>
-</p-dialog>
-
-<!-- Confirm dialog removido - usando el global -->
+<p-confirmDialog></p-confirmDialog>
 <p-toast></p-toast>
-
-<style>
-.install-dialog-content {
-    padding: 1rem 0;
-}
-
-.device-info {
-    background-color: var(--globalColorCardBackground);
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-    border-left: 4px solid var(--globalColorPrimaryInmutable);
-    border: 1px solid var(--globalColorCardBorderLight);
-}
-
-.device-info h4 {
-    margin: 0 0 0.5rem 0;
-    color: var(--globalColorTitle);
-    font-size: 1rem;
-    font-weight: 600;
-}
-
-.device-info p {
-    margin: 0.25rem 0;
-    font-size: 0.9rem;
-    color: var(--globalColorTextDark);
-}
-
-.email-input-section {
-    margin-bottom: 1rem;
-}
-
-.form-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: var(--globalColorTextDark);
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.help-text {
-    display: block;
-    margin-top: 0.25rem;
-    color: var(--globalColorTextMuted);
-    font-size: 0.8rem;
-    font-style: italic;
-}
-
-#installationEmail {
-    padding: 0.75rem;
-    border: 1px solid var(--globalColorBorderInput);
-    border-radius: 4px;
-    transition: border-color 0.3s ease;
-    background-color: var(--globalColorInputBackground);
-    color: var(--globalColorTextInput);
-}
-
-#installationEmail:focus {
-    border-color: var(--globalColorPrimaryInmutable);
-    outline: none;
-    box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
-}
-
-#installationEmail.ng-invalid:not(:focus) {
-    border-color: var(--globalColorBorderHover);
-}
-
-#installationEmail::placeholder {
-    color: var(--globalColorTextMuted);
-    opacity: 0.8;
-}
-</style>

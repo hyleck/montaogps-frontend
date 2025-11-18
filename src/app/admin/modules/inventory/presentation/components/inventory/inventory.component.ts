@@ -1,11 +1,14 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
-import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
-import { InventoryItem, InventoryService, Package } from 'src/app/core/services/inventory.service';
-import { ProtocolsService } from 'src/app/core/services/protocols.service';
-import { TranslateService } from '@ngx-translate/core';
-import { AuthService } from 'src/app/core/services/auth.service';
-import { UserService } from 'src/app/core/services/user.service';
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
+import { TranslateService } from '@ngx-translate/core';
+import {
+  InventoryItem,
+  InventoryService,
+  Package,
+} from 'src/app/core/services/inventory.service';
+import { ProtocolsService } from 'src/app/core/services/protocols.service';
+import { AuthService } from 'src/app/core/services/auth.service';
 
 @Component({
   selector: 'app-inventory',
@@ -15,36 +18,21 @@ import { Router } from '@angular/router';
   standalone: false,
 })
 export class InventoryComponent implements OnInit {
-  @ViewChild('imeiInput') imeiInput!: ElementRef;
-  
   items: MenuItem[] = [{ label: 'Inventario' }];
   home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
-  // Package management
   packages: Package[] = [];
   selectedPackage: Package | null = null;
-  packageDialogVisible: boolean = false;
-  isEditPackageMode: boolean = false;
+  packageDialogVisible = false;
+  isEditPackageMode = false;
 
-  // Device management for selected package
-  packageDevices: InventoryItem[] = [];
-  selectedDevice: InventoryItem | null = null;
-  deviceDialogVisible: boolean = false;
-  isEditDeviceMode: boolean = false;
-
-  // Current package being viewed/edited
-  currentPackageId: string | null = null;
-
-  loading: boolean = true;
+  loading = true;
   protocols: { label: string; value: string }[] = [];
 
-  // Search properties
-  globalSearchQuery: string = '';
-  packageSearchQuery: string = '';
-  isSearchingGlobal: boolean = false;
-  isSearchingPackage: boolean = false;
+  globalSearchQuery = '';
+  isSearchingGlobal = false;
   allDevicesSearchResults: InventoryItem[] = [];
-  showingSearchResults: boolean = false;
+  showingSearchResults = false;
 
   constructor(
     private inventoryService: InventoryService,
@@ -53,11 +41,26 @@ export class InventoryComponent implements OnInit {
     private confirmationService: ConfirmationService,
     private translate: TranslateService,
     private authService: AuthService,
-    private userService: UserService,
-    private router: Router
+    private router: Router,
   ) {}
 
-  // Métodos de validación de privilegios para inventory
+  ngOnInit(): void {
+    if (!this.canReadInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_read_permission'),
+        detail: this.translate.instant('inventory.contact_admin'),
+      });
+      this.loading = false;
+      return;
+    }
+
+    this.openNewPackage();
+    this.loadProtocols();
+    this.loadPackages();
+  }
+
+  // Privilege helpers
   canCreateInventory(): boolean {
     return this.authService.hasPrivilege('inventory', 'create');
   }
@@ -74,28 +77,12 @@ export class InventoryComponent implements OnInit {
     return this.authService.hasPrivilege('inventory', 'delete');
   }
 
-  ngOnInit(): void {
-    // Solo cargar si tiene permisos de lectura
-    if (this.canReadInventory()) {
-      this.openNewPackage(); // Initialize selectedPackage
-      this.loadProtocols();
-      this.loadPackages();
-    } else {
-      this.messageService.add({
-        severity: 'error',
-        summary: this.translate.instant('inventory.no_permissions'),
-        detail: this.translate.instant('inventory.contact_admin')
-      });
-      this.loading = false;
-    }
-  }
-
-  loadProtocols(): void {
+  private loadProtocols(): void {
     this.protocolsService.getAllProtocols().subscribe({
       next: (list: any[]) => {
-        this.protocols = list.map((p) => ({ 
-          label: p.name || p.type || p._id, 
-          value: p._id 
+        this.protocols = list.map((p) => ({
+          label: p.name || p.type || p._id,
+          value: p._id,
         }));
       },
       error: () => {
@@ -114,34 +101,32 @@ export class InventoryComponent implements OnInit {
       error: () => {
         this.packages = [];
         this.loading = false;
-        this.messageService.add({ 
-          severity: 'error', 
-          summary: 'Error', 
-          detail: 'Error al cargar paquetes' 
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Error al cargar paquetes',
         });
       },
     });
   }
 
-  // Package management methods
   openNewPackage(): void {
     this.selectedPackage = {
       title: '',
       date: new Date().toISOString().split('T')[0],
       price: 0,
-      description: ''
+      description: '',
     };
     this.isEditPackageMode = false;
     this.packageDialogVisible = true;
   }
 
   editPackage(pkg: Package): void {
-    // Validar permisos antes de permitir editar paquetes
     if (!this.canUpdateInventory()) {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('inventory.no_update_permission'),
-        detail: this.translate.instant('inventory.contact_admin')
+        detail: this.translate.instant('inventory.contact_admin'),
       });
       return;
     }
@@ -152,65 +137,64 @@ export class InventoryComponent implements OnInit {
   }
 
   savePackage(): void {
-    // Validar privilegios antes de proceder
     if (this.isEditPackageMode && !this.canUpdateInventory()) {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('inventory.no_update_permission'),
-        detail: this.translate.instant('inventory.contact_admin')
+        detail: this.translate.instant('inventory.contact_admin'),
       });
       return;
     }
-    
+
     if (!this.isEditPackageMode && !this.canCreateInventory()) {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('inventory.no_create_permission'),
-        detail: this.translate.instant('inventory.contact_admin')
+        detail: this.translate.instant('inventory.contact_admin'),
       });
       return;
     }
 
-    if (!this.selectedPackage || !this.selectedPackage.title) {
-      this.messageService.add({ 
-        severity: 'warn', 
-        summary: 'Validación', 
-        detail: 'El título del paquete es requerido' 
+    if (!this.selectedPackage?.title) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Validación',
+        detail: 'El título del paquete es requerido',
       });
       return;
     }
 
-    const operation = this.isEditPackageMode && this.selectedPackage._id
-      ? this.inventoryService.updatePackage(this.selectedPackage._id, this.selectedPackage)
-      : this.inventoryService.createPackage(this.selectedPackage);
+    const operation =
+      this.isEditPackageMode && this.selectedPackage?._id
+        ? this.inventoryService.updatePackage(this.selectedPackage._id, this.selectedPackage)
+        : this.inventoryService.createPackage(this.selectedPackage as Package);
 
     operation.subscribe({
       next: () => {
-        this.messageService.add({ 
-          severity: 'success', 
-          summary: 'Éxito', 
-          detail: this.isEditPackageMode ? 'Paquete actualizado' : 'Paquete creado' 
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: this.isEditPackageMode ? 'Paquete actualizado' : 'Paquete creado',
         });
         this.hidePackageDialog();
         this.loadPackages();
       },
       error: () => {
-        this.messageService.add({ 
-          severity: 'error', 
-          summary: 'Error', 
-          detail: 'No se pudo guardar el paquete' 
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudo guardar el paquete',
         });
-      }
+      },
     });
   }
 
   deletePackage(pkg: Package): void {
-    // Validar permisos antes de permitir eliminar paquetes
     if (!this.canDeleteInventory()) {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('inventory.no_delete_permission'),
-        detail: this.translate.instant('inventory.contact_admin')
+        detail: this.translate.instant('inventory.contact_admin'),
       });
       return;
     }
@@ -223,23 +207,23 @@ export class InventoryComponent implements OnInit {
         if (pkg._id) {
           this.inventoryService.deletePackage(pkg._id).subscribe({
             next: () => {
-              this.messageService.add({ 
-                severity: 'success', 
-                summary: 'Eliminado', 
-                detail: 'Paquete eliminado correctamente' 
+              this.messageService.add({
+                severity: 'success',
+                summary: 'Eliminado',
+                detail: 'Paquete eliminado correctamente',
               });
               this.loadPackages();
             },
             error: () => {
-              this.messageService.add({ 
-                severity: 'error', 
-                summary: 'Error', 
-                detail: 'No se pudo eliminar el paquete' 
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo eliminar el paquete',
               });
-            }
+            },
           });
         }
-      }
+      },
     });
   }
 
@@ -248,454 +232,18 @@ export class InventoryComponent implements OnInit {
     this.selectedPackage = null;
   }
 
-  // Device management methods
   viewPackageDevices(pkg: Package): void {
-    this.currentPackageId = pkg._id || null;
-    console.log('viewPackageDevices - Package selected:', pkg);
-    console.log('viewPackageDevices - Package ID:', pkg._id);
-    
-    if (pkg._id) {
-      this.inventoryService.getDevicesByPackage(pkg._id).subscribe({
-        next: (devices) => {
-          this.packageDevices = devices || [];
-          console.log('viewPackageDevices - Devices loaded:', devices);
-          console.log('viewPackageDevices - Number of devices:', devices?.length || 0);
-          console.log('viewPackageDevices - packageDevices array:', this.packageDevices);
-        },
-        error: (err) => {
-          console.error('viewPackageDevices - Error loading devices:', err);
-          this.packageDevices = [];
-          this.messageService.add({ 
-            severity: 'error', 
-            summary: 'Error', 
-            detail: 'Error al cargar dispositivos del paquete' 
-          });
-        }
-      });
-    } else {
-      console.warn('viewPackageDevices - No package ID provided');
-    }
-  }
-
-  openNewDevice(): void {
-    // Validar permisos antes de permitir crear dispositivos
-    if (!this.canCreateInventory()) {
-      this.messageService.add({
-        severity: 'error',
-        summary: this.translate.instant('inventory.no_create_permission'),
-        detail: this.translate.instant('inventory.contact_admin')
-      });
-      return;
-    }
-
-    if (!this.currentPackageId) {
-      this.messageService.add({ 
-        severity: 'warn', 
-        summary: 'Advertencia', 
-        detail: 'Selecciona un paquete primero' 
-      });
-      return;
-    }
-
-    // Forzar la inicialización con valores explícitos
-    this.selectedDevice = {
-      imei: '',
-      sim: '', 
-      protocol: '',
-      package: this.currentPackageId,
-      packageId: this.currentPackageId
-    } as InventoryItem;
-    
-    this.isEditDeviceMode = false;
-    this.deviceDialogVisible = true;
-    
-    // Enfocar el campo IMEI después de que se abra el diálogo
-    setTimeout(() => {
-      if (this.imeiInput && this.imeiInput.nativeElement) {
-        this.imeiInput.nativeElement.focus();
-      }
-    }, 100);
-  }
-
-  editDevice(device: InventoryItem): void {
-    // Validar permisos antes de permitir editar dispositivos
-    if (!this.canUpdateInventory()) {
-      this.messageService.add({
-        severity: 'error',
-        summary: this.translate.instant('inventory.no_update_permission'),
-        detail: this.translate.instant('inventory.contact_admin')
-      });
-      return;
-    }
-    // Normalizar los datos del dispositivo para el formulario
-    this.selectedDevice = {
-      _id: device._id,
-      imei: device.IMEI || device.imei || '',
-      sim: device.SIM || device.sim || '',
-      protocol: typeof device.Protocol === 'object' ? device.Protocol._id : (device.Protocol || device.protocol || ''),
-      package: device.package || this.currentPackageId,
-      packageId: device.package || this.currentPackageId
-    };
-    
-    console.log('editDevice - Original device:', device);
-    console.log('editDevice - Normalized selectedDevice:', this.selectedDevice);
-    
-    this.isEditDeviceMode = true;
-    this.deviceDialogVisible = true;
-  }
-
-  saveDevice(): void {
-    // Validar privilegios antes de proceder
-    if (this.isEditDeviceMode && !this.canUpdateInventory()) {
-      this.messageService.add({
-        severity: 'error',
-        summary: this.translate.instant('inventory.no_update_permission'),
-        detail: this.translate.instant('inventory.contact_admin')
-      });
-      return;
-    }
-    
-    if (!this.isEditDeviceMode && !this.canCreateInventory()) {
-      this.messageService.add({
-        severity: 'error',
-        summary: this.translate.instant('inventory.no_create_permission'),
-        detail: this.translate.instant('inventory.contact_admin')
-      });
-      return;
-    }
-
-    // Validaciones específicas
-    if (!this.selectedDevice) {
-      this.messageService.add({ 
-        severity: 'warn', 
-        summary: 'Error', 
-        detail: 'No hay dispositivo seleccionado' 
-      });
-      return;
-    }
-
-    if (!this.selectedDevice.imei || this.selectedDevice.imei.trim() === '') {
-      this.messageService.add({ 
-        severity: 'warn', 
-        summary: 'Validación', 
-        detail: 'El IMEI es requerido' 
-      });
-      return;
-    }
-
-    // SIM es opcional, no se valida
-
-    if (!this.selectedDevice.protocol || this.selectedDevice.protocol === '') {
-      this.messageService.add({ 
-        severity: 'warn', 
-        summary: 'Validación', 
-        detail: 'El protocolo es requerido' 
-      });
-      return;
-    }
-
-    if (!this.currentPackageId) {
-      this.messageService.add({ 
-        severity: 'warn', 
-        summary: 'Error', 
-        detail: 'No se ha seleccionado un paquete' 
-      });
-      return;
-    }
-
-    // Preparar el payload con el formato correcto - MAYÚSCULAS como espera el backend
-    const devicePayload: any = {};
-    devicePayload.IMEI = (this.selectedDevice.imei || '').trim();
-    devicePayload.SIM = (this.selectedDevice.sim || '').trim();
-    devicePayload.Protocol = this.selectedDevice.protocol || '';
-    devicePayload.package = this.currentPackageId; // Este se mantiene en minúscula
-
-    // Validar que el payload tenga valores válidos antes de enviar (SIM es opcional)
-    if (!devicePayload.IMEI || !devicePayload.Protocol || !devicePayload.package) {
-      this.messageService.add({ 
-        severity: 'error', 
-        summary: 'Error de validación', 
-        detail: 'Faltan campos requeridos en el payload (IMEI y Protocolo son obligatorios)' 
-      });
-      return;
-    }
-
-    const operation = this.isEditDeviceMode && this.selectedDevice._id
-      ? this.inventoryService.update(this.selectedDevice._id, devicePayload)
-      : this.inventoryService.create(devicePayload);
-
-    operation.subscribe({
-      next: () => {
-        this.messageService.add({ 
-          severity: 'success', 
-          summary: 'Éxito', 
-          detail: this.isEditDeviceMode ? 'Dispositivo actualizado' : 'Dispositivo agregado' 
-        });
-        
-        if (this.isEditDeviceMode) {
-          // Si estamos editando, cerrar el formulario
-          this.hideDeviceDialog();
-        } else {
-          // Si estamos creando, reiniciar el formulario pero mantener el protocolo
-          this.resetFormForNewDevice();
-        }
-        
-        if (this.currentPackageId) {
-          this.viewPackageDevices({ _id: this.currentPackageId } as Package);
-        }
-      },
-      error: (err) => {
-        console.error('Error saving device:', err);
-        let errorMessage = 'No se pudo guardar el dispositivo';
-        if (err.error && err.error.message) {
-          if (Array.isArray(err.error.message)) {
-            errorMessage = err.error.message.join(', ');
-          } else {
-            errorMessage = err.error.message;
-          }
-        }
-        this.messageService.add({ 
-          severity: 'error', 
-          summary: 'Error', 
-          detail: errorMessage 
-        });
-      }
-    });
-  }
-
-  // Variables para el diálogo de instalación
-  installDialogVisible: boolean = false;
-  deviceToInstall: InventoryItem | null = null;
-  installationEmail: string = '';
-
-  installDevice(device: InventoryItem): void {
-    // Validar permisos antes de permitir instalar dispositivos
-    if (!this.canUpdateInventory()) {
-      this.messageService.add({
-        severity: 'error',
-        summary: this.translate.instant('inventory.no_update_permission'),
-        detail: this.translate.instant('inventory.contact_admin')
-      });
-      return;
-    }
-
-    // Establecer el dispositivo a instalar y mostrar el diálogo
-    this.deviceToInstall = device;
-    this.installationEmail = '';
-    this.installDialogVisible = true;
-  }
-
-  confirmInstallation(): void {
-    if (!this.installationEmail || !this.installationEmail.trim()) {
+    if (!pkg?._id) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Email requerido',
-        detail: 'Por favor ingrese una dirección de correo electrónico'
+        summary: 'Paquete inválido',
+        detail: 'No fue posible determinar el paquete seleccionado',
       });
       return;
     }
-
-    // Validar formato de email básico
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(this.installationEmail)) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Email inválido',
-        detail: 'Por favor ingrese una dirección de correo electrónico válida'
-      });
-      return;
-    }
-
-    if (!this.deviceToInstall) {
-      console.error('❌ Error: deviceToInstall es null');
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo procesar la instalación. Intente nuevamente.'
-      });
-      return;
-    }
-
-    if (this.deviceToInstall._id) {
-      const imei = this.deviceToInstall.IMEI || this.deviceToInstall.imei || 'Sin IMEI';
-      
-      // Buscar usuario por email
-      console.log('🔍 Buscando usuario con email:', this.installationEmail);
-      
-      this.userService.search(this.installationEmail).subscribe({
-        next: (response) => {
-          const users = response.users;
-          console.log('📊 Resultados de búsqueda de usuarios:', users);
-          console.log('📈 Cantidad de usuarios encontrados:', users.length);
-          
-          // Filtrar usuarios que contengan exactamente el email buscado
-          const exactMatches = users.filter((user: any) => user.email === this.installationEmail);
-          console.log('🎯 Usuarios con email exacto:', exactMatches);
-          console.log('🔢 Cantidad de coincidencias exactas:', exactMatches.length);
-          
-          if (exactMatches.length > 0) {
-            const foundUser = exactMatches[0];
-            console.log('✅ Usuario encontrado:', foundUser);
-            console.log('👤 Datos del usuario:', {
-              id: foundUser._id,
-              name: foundUser.name,
-              lastName: foundUser.last_name,
-              email: foundUser.email,
-              phone: foundUser.phone,
-              profileType: foundUser.profile_type_id,
-              accessLevel: foundUser.access_level_id
-            });
-            
-            // Guardar datos del dispositivo en sessionStorage para el formulario de target
-            // Usar aserción no nula ya que ya validamos deviceToInstall al inicio del método
-            const deviceInstallationData = {
-              imei: this.deviceToInstall!.IMEI || this.deviceToInstall!.imei || '',
-              sim: this.deviceToInstall!.SIM || this.deviceToInstall!.sim || '',
-              protocol: this.deviceToInstall!.Protocol || this.deviceToInstall!.protocol || '',
-              userId: foundUser._id,
-              timestamp: new Date().toISOString()
-            };
-            
-            sessionStorage.setItem('deviceInstallationData', JSON.stringify(deviceInstallationData));
-            console.log('💾 Datos del dispositivo guardados en sessionStorage:', deviceInstallationData);
-
-            // Procesar instalación con usuario encontrado
-            this.messageService.add({ 
-              severity: 'success', 
-              summary: 'Usuario encontrado', 
-              detail: `Navegando a management del usuario: ${foundUser.name} ${foundUser.last_name}` 
-            });
-
-            // Cerrar el diálogo antes de navegar
-            this.cancelInstallation();
-
-            // Navegar a management con el ID del usuario
-            console.log('🚀 Navegando a management con usuario ID:', foundUser._id);
-            this.router.navigate(['/admin/management/u', foundUser._id]);
-            
-            return; // Salir del método después de navegar
-          } else {
-            console.log('❌ No se encontró usuario con email exacto:', this.installationEmail);
-            console.log('💡 Sugerencia: Verificar si el email existe o crear nuevo usuario');
-            
-            this.messageService.add({
-              severity: 'warn',
-              summary: 'Usuario no encontrado',
-              detail: `No se encontró un usuario con el email ${this.installationEmail}. Verifique el correo o cree el usuario primero.`
-            });
-            return; // No proceder con la instalación
-          }
-        },
-        error: (error) => {
-          console.error('❌ Error al buscar usuario:', error);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error de búsqueda',
-            detail: 'No se pudo buscar el usuario. Intente nuevamente.'
-          });
-        }
-      });
-    }
+    this.router.navigate(['/admin/inventory', pkg._id]);
   }
 
-  cancelInstallation(): void {
-    this.installDialogVisible = false;
-    this.deviceToInstall = null;
-    this.installationEmail = '';
-  }
-
-  deleteDevice(device: InventoryItem): void {
-    // Validar permisos antes de permitir eliminar dispositivos
-    if (!this.canDeleteInventory()) {
-      this.messageService.add({
-        severity: 'error',
-        summary: this.translate.instant('inventory.no_delete_permission'),
-        detail: this.translate.instant('inventory.contact_admin')
-      });
-      return;
-    }
-
-    const imei = device.IMEI || device.imei || 'Sin IMEI';
-    this.confirmationService.confirm({
-      message: `¿Está seguro de eliminar el dispositivo IMEI: ${imei}?`,
-      header: 'Confirmar eliminación',
-      icon: 'pi pi-exclamation-triangle',
-      accept: () => {
-        if (device._id) {
-          this.inventoryService.delete(device._id).subscribe({
-            next: () => {
-              this.messageService.add({ 
-                severity: 'success', 
-                summary: 'Eliminado', 
-                detail: 'Dispositivo eliminado correctamente' 
-              });
-              if (this.currentPackageId) {
-                this.viewPackageDevices({ _id: this.currentPackageId } as Package);
-              }
-            },
-            error: () => {
-              this.messageService.add({ 
-                severity: 'error', 
-                summary: 'Error', 
-                detail: 'No se pudo eliminar el dispositivo' 
-              });
-            }
-          });
-        }
-      }
-    });
-  }
-
-  hideDeviceDialog(): void {
-    this.deviceDialogVisible = false;
-    this.selectedDevice = null;
-  }
-
-  resetFormForNewDevice(): void {
-    if (!this.selectedDevice || !this.currentPackageId) return;
-    
-    // Guardar el protocolo actual
-    const currentProtocol = this.selectedDevice.protocol;
-    
-    // Reiniciar el dispositivo manteniendo solo el protocolo
-    this.selectedDevice = {
-      imei: '',
-      sim: '', 
-      protocol: currentProtocol, // Mantener el protocolo
-      package: this.currentPackageId,
-      packageId: this.currentPackageId
-    } as InventoryItem;
-    
-    // Enfocar el campo IMEI después de un breve delay para asegurar que el DOM se ha actualizado
-    setTimeout(() => {
-      if (this.imeiInput && this.imeiInput.nativeElement) {
-        this.imeiInput.nativeElement.focus();
-      }
-    }, 100);
-  }
-
-  getProtocolLabel(protocolData: any): string {
-    // Si es un objeto con propiedades de protocolo, usar el name
-    if (protocolData && typeof protocolData === 'object' && protocolData.name) {
-      return protocolData.name;
-    }
-    // Si es un string (ID), buscar en la lista de protocolos
-    if (typeof protocolData === 'string') {
-      const protocol = this.protocols.find(p => p.value === protocolData);
-      return protocol ? protocol.label : protocolData;
-    }
-    // Fallback
-    return 'Sin protocolo';
-  }
-
-  goBackToPackages(): void {
-    this.currentPackageId = null;
-    this.packageDevices = [];
-    this.packageSearchQuery = '';
-    this.isSearchingPackage = false;
-  }
-
-  // Search methods
   searchAllInventory(): void {
     if (!this.globalSearchQuery.trim()) {
       this.clearGlobalSearch();
@@ -708,19 +256,17 @@ export class InventoryComponent implements OnInit {
         this.allDevicesSearchResults = results || [];
         this.showingSearchResults = true;
         this.isSearchingGlobal = false;
-        console.log('Global search results:', results);
       },
-      error: (err) => {
-        console.error('Error searching all devices:', err);
+      error: () => {
         this.allDevicesSearchResults = [];
         this.showingSearchResults = false;
         this.isSearchingGlobal = false;
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Error al buscar dispositivos'
+          detail: 'Error al buscar dispositivos',
         });
-      }
+      },
     });
   }
 
@@ -731,42 +277,42 @@ export class InventoryComponent implements OnInit {
     this.isSearchingGlobal = false;
   }
 
-  searchPackageDevices(): void {
-    if (!this.currentPackageId) {
+  navigateToDevicePackage(device: InventoryItem): void {
+    const pkg = device.package;
+    const packageId =
+      typeof pkg === 'object' && pkg !== null ? pkg._id || pkg.id : (pkg as string | undefined);
+
+    if (!packageId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Sin paquete',
+        detail: 'No se pudo identificar el paquete del dispositivo seleccionado',
+      });
       return;
     }
 
-    if (!this.packageSearchQuery.trim()) {
-      this.clearPackageSearch();
-      return;
-    }
-
-    this.isSearchingPackage = true;
-    this.inventoryService.searchDevicesByPackage(this.currentPackageId, this.packageSearchQuery.trim()).subscribe({
-      next: (results) => {
-        this.packageDevices = results || [];
-        this.isSearchingPackage = false;
-        console.log('Package search results:', results);
-      },
-      error: (err) => {
-        console.error('Error searching package devices:', err);
-        this.isSearchingPackage = false;
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Error al buscar dispositivos del paquete'
-        });
-      }
-    });
+    this.router.navigate(['/admin/inventory', packageId]);
   }
 
-  clearPackageSearch(): void {
-    this.packageSearchQuery = '';
-    this.isSearchingPackage = false;
-    if (this.currentPackageId) {
-      this.viewPackageDevices({ _id: this.currentPackageId } as Package);
+  getPackageTitle(device: InventoryItem): string {
+    if (device.package && typeof device.package === 'object') {
+      return device.package.title || device.package.name || 'N/A';
     }
+    return 'N/A';
   }
 
+  getProtocolLabel(protocolData: any): string {
+    if (protocolData && typeof protocolData === 'object' && protocolData.name) {
+      return protocolData.name;
+    }
+    if (typeof protocolData === 'string') {
+      const protocol = this.protocols.find((p) => p.value === protocolData);
+      return protocol ? protocol.label : protocolData;
+    }
+    return 'Sin protocolo';
+  }
 
+  isDeviceInstalled(device: InventoryItem): boolean {
+    return !!device?.installed;
+  }
 }

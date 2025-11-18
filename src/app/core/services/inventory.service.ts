@@ -17,6 +17,7 @@ export interface InventoryItem {
   packageId?: string; // For frontend convenience, maps to 'package'
   createdAt?: string;
   updatedAt?: string;
+  installed?: boolean;
 }
 
 export interface Package {
@@ -99,5 +100,4 @@ export class InventoryService {
     return this.http.get<InventoryItem[]>(url);
   }
 }
-
 

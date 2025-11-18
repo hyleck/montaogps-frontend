@@ -5,11 +5,11 @@ import { TranslateModule } from '@ngx-translate/core';
 import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
 import { InventoryRoutingModule } from './inventory-routing.module';
 import { InventoryComponent } from './components/inventory/inventory.component';
+import { InventoryPackageDevicesComponent } from './components/inventory-package-devices/inventory-package-devices.component';
 
 @NgModule({
-  declarations: [InventoryComponent],
+  declarations: [InventoryComponent, InventoryPackageDevicesComponent],
   imports: [CommonModule, FormsModule, TranslateModule, PrimengModule, InventoryRoutingModule],
 })
 export class InventoryModule {}
-
 
