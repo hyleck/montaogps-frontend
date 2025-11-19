@@ -261,11 +261,16 @@
                                                            style="color: #22c55e; margin-left: 4px;"></i>
                                                     </span>
                                                     <div style="margin-bottom: 10px;">
-                                                        <span style="display: block;"
-                                                              [ngClass]="{
+                                                    <span style="display: block;"
+                                                          [ngClass]="{
                                                                 'target-inactive': !target.originalTarget?.status,
                                                                 'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
                                                               }">IMEI: {{target.imei}}</span>
+                                                        <span style="display: block;"
+                                                              class="target-sim-info"
+                                                              *ngIf="target.sim || target.sim_card_number">
+                                                            SIM: {{ target.sim || target.sim_card_number }}
+                                                        </span>
                                                         <span *ngIf="!target.originalTarget?.status" class="target-suspended-text">(Suspendido)</span>
                                                         <div *ngIf="target.offlineTimeText" class="offline-info-container">
                                                             <span class="target-offline-time">{{target.offlineTimeText}}</span>
@@ -582,6 +587,7 @@
                                         </th>
                                         <th>{{ 'management.table.name' | translate }}</th>
                                         <th>{{ 'management.table.imei' | translate }}</th>
+                                        <th>{{ 'management.table.sim' | translate }}</th>
                                         <th>{{ 'management.table.expiration' | translate }}</th>
                                         <th>
                                             <!-- {{ 'management.table.actions' | translate }} -->
@@ -641,6 +647,9 @@
                                                     <span class="target-offline-date">{{target.offlineDateText}}</span>
                                                 </div>
                                             </div>
+                                        </td>
+                                        <td>
+                                            {{ target.sim || target.sim_card_number || '—' }}
                                         </td>
                                         <td [ngClass]="{
                                           'target-inactive': !target.originalTarget?.status,
@@ -748,6 +757,7 @@
                                             </th>
                                             <th>{{ 'management.table.name' | translate }}</th>
                                             <th>{{ 'management.table.imei' | translate }}</th>
+                                            <th>{{ 'management.table.sim' | translate }}</th>
                                             <th></th>
                                         </tr>
                                     </ng-template>
