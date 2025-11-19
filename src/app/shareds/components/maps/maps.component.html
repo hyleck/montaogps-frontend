@@ -1,18 +1,6 @@
 <div class="main">
     <div class="maps">
         <div class="maps__map" id="map"></div>
-        <div class="offline-time-box" *ngIf="selectedTarget && offlineDuration">
-            <div class="offline-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-            </div>
-            <div class="offline-content">
-                <span class="offline-duration">{{ offlineDuration }}</span>
-            </div>
-        </div>
         <button class="tools-button" type="button" (click)="openToolsModal()">
             <i class="pi pi-wrench"></i>
             <span>Herramientas</span>
@@ -91,25 +79,22 @@
             <span class="chip-label">{{ 'maps.speed' | translate }}</span>
             <span class="chip-value">{{ currentSpeedDisplay }}</span>
         </div>
-        <div class="info-chip" *ngIf="statusClass !== 'online'">
-            <span class="chip-label">{{ 'maps.offlineDuration' | translate }}</span>
-            <span class="chip-value">{{ offlineDuration || ('maps.notAvailable' | translate) }}</span>
-        </div>
         <div class="info-chip" *ngIf="statusClass === 'online'">
             <span class="chip-label">{{ 'maps.distance' | translate }}</span>
             <span class="chip-value">{{ distanceDisplay || ('maps.notAvailable' | translate) }}</span>
         </div>
-        <div class="info-chip stop-time">
+        <div class="info-chip stop-time" *ngIf="statusClass === 'online'">
             <span class="chip-label">{{ 'maps.stopTime' | translate }}</span>
             <span class="chip-value">{{ stopTimeInfoDisplay }}</span>
         </div>
-        <div class="info-chip">
-            <span class="chip-label">{{ 'maps.sim' | translate }}</span>
-            <span class="chip-value">{{ simDisplay }}</span>
-        </div>
         <div class="info-chip time" *ngIf="statusClass !== 'online'">
             <span class="chip-label">{{ 'maps.lastUpdate' | translate }}</span>
-            <span class="chip-value">{{ lastUpdateDisplay }}</span>
+            <span class="chip-value">
+                {{ lastUpdateDisplay }}
+                <span class="offline-duration-inline">
+                    {{ offlineDuration || ('maps.notAvailable' | translate) }}
+                </span>
+            </span>
         </div>
     </div>
 

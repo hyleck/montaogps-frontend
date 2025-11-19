@@ -32,6 +32,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
    distanceDisplay: string = '';
    stopTimeText: string = '';
    isStopTimeMoving: boolean = false;
+   isStopTimeLoading: boolean = false;
    showToolsModal: boolean = false;
    private cachedMarkerIconUrl: string | null = null;
 
@@ -290,19 +291,19 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     let timeText = '';
     if (diffInYears > 0) {
-      timeText = `Última ubicación hace ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
+      timeText = `Hace ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
     } else if (diffInMonths > 0) {
-      timeText = `Última ubicación hace ${diffInMonths} mes${diffInMonths > 1 ? 'es' : ''}`;
+      timeText = `Hace ${diffInMonths} mes${diffInMonths > 1 ? 'es' : ''}`;
     } else if (diffInWeeks > 0) {
-      timeText = `Última ubicación hace ${diffInWeeks} semana${diffInWeeks > 1 ? 's' : ''}`;
+      timeText = `Hace ${diffInWeeks} semana${diffInWeeks > 1 ? 's' : ''}`;
     } else if (diffInDays > 0) {
-      timeText = `Última ubicación hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
+      timeText = `Hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
     } else if (diffInHours > 0) {
-      timeText = `Última ubicación hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+      timeText = `Hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
     } else if (diffInMinutes > 0) {
-      timeText = `Última ubicación hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
+      timeText = `Hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
     } else {
-      timeText = 'Última ubicación hace menos de 1 minuto';
+      timeText = 'Hace menos de 1 minuto';
     }
 
     this.offlineDuration = timeText;
@@ -560,6 +561,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     const requestType = isInitialRequest ? '[INICIAL]' : '[POLLING]';
 
+    const shouldShowLoading = !this.stopTimeText && !this.isStopTimeMoving;
+    if (shouldShowLoading) {
+      this.isStopTimeLoading = true;
+    }
+
     try {
       const stopTimeResult = await this.targetsService.getStopTime(deviceId);
 
@@ -579,10 +585,15 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       if (isInitialRequest && this.preloadedStopTime) {
         this.stopTimeText = this.preloadedStopTime;
       }
+    } finally {
+      this.isStopTimeLoading = false;
     }
   }
 
   get stopTimeInfoDisplay(): string {
+    if (this.isStopTimeLoading) {
+      return 'Cargando...';
+    }
     if (this.stopTimeText) {
       return this.stopTimeText;
     }
@@ -595,6 +606,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   private resetStopTimeInfo(initialValue?: string | null): void {
     this.stopTimeText = initialValue || '';
     this.isStopTimeMoving = false;
+    this.isStopTimeLoading = false;
   }
 
   private destroyMap(): void {

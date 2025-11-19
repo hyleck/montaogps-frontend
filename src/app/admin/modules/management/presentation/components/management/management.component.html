@@ -582,7 +582,6 @@
                                         </th>
                                         <th>{{ 'management.table.name' | translate }}</th>
                                         <th>{{ 'management.table.imei' | translate }}</th>
-                                        <th>{{ 'management.table.sim' | translate }}</th>
                                         <th>{{ 'management.table.expiration' | translate }}</th>
                                         <th>
                                             <!-- {{ 'management.table.actions' | translate }} -->
@@ -643,7 +642,6 @@
                                                 </div>
                                             </div>
                                         </td>
-                                        <td [ngClass]="{'target-inactive': !target.originalTarget?.status}">{{target.sim}}</td>
                                         <td [ngClass]="{
                                           'target-inactive': !target.originalTarget?.status,
                                           'expiration-normal': getExpirationStatus(target.expiration_date) === 'normal',
@@ -750,7 +748,6 @@
                                             </th>
                                             <th>{{ 'management.table.name' | translate }}</th>
                                             <th>{{ 'management.table.imei' | translate }}</th>
-                                            <th>{{ 'management.table.sim' | translate }}</th>
                                             <th></th>
                                         </tr>
                                     </ng-template>
@@ -761,9 +758,6 @@
                                             </td>
                                             <td>
                                                 <p-skeleton [ngStyle]="{ 'width': '120px', 'height': '20px' }"></p-skeleton>
-                                            </td>
-                                            <td>
-                                                <p-skeleton [ngStyle]="{ 'width': '140px', 'height': '20px' }"></p-skeleton>
                                             </td>
                                             <td>
                                                 <p-skeleton [ngStyle]="{ 'width': '100px', 'height': '20px' }"></p-skeleton>
@@ -826,9 +820,6 @@
                 </h4>
                 <p><strong>{{ 'management.targetForm.name' | translate }}:</strong> {{ targetToCancel?.name }}</p>
                 <p><strong>{{ 'management.targetForm.imei' | translate }}:</strong> {{ targetToCancel?.device_imei || targetToCancel?.imei }}</p>
-                <p *ngIf="targetToCancel?.sim_card_number || targetToCancel?.sim">
-                    <strong>{{ 'management.table.sim' | translate }}:</strong> {{ targetToCancel?.sim_card_number || targetToCancel?.sim }}
-                </p>
             </div>
 
             <div class="form-group">

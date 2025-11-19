@@ -2147,22 +2147,17 @@ body .p-dialog-mask {
 .alerts-targets-list {
   max-height: 260px;
   overflow-y: auto;
-  border: 1px solid var(--managementColorBorderInput);
+  border: 1px solid var(--globalColorCardBorderLight, var(--managementColorBorderInput));
   border-radius: 12px;
-  background: var(--managementColorBackground, #0f111a);
+  background: var(--globalColorCardBackground, var(--managementColorCardBackground));
   box-shadow: none;
 }
 
 .alerts-targets-list .target-item {
-  border-bottom: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid var(--globalColorCardBorderLight, rgba(0, 0, 0, 0.08));
   padding: 0.6rem 0.9rem;
   background: transparent;
   transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.alerts-targets-list .target-item:hover {
-  background: rgba(255,255,255,0.03);
-  border-color: rgba(255,255,255,0.08);
 }
 
 .alerts-targets-list .target-item:last-child {
@@ -2180,25 +2175,27 @@ body .p-dialog-mask {
 }
 
 .alerts-targets-list .target-info i {
-  color: var(--managementColorSubtitle);
+  color: var(--globalColorTextDark, var(--managementColorSubtitle));
   font-size: 0.85rem;
-  border: 1px solid var(--managementColorBorderInput);
+  border: 1px solid var(--globalColorCardBorderLight, var(--managementColorBorderInput));
   border-radius: 50%;
   width: 28px;
   height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--globalColorCardBackground, transparent);
 }
 
 .alerts-targets-list .target-name {
   font-size: 0.92rem;
   font-weight: 500;
+  color: var(--globalColorTextDark, var(--managementColorTitle));
 }
 
 .alerts-targets-list .target-imei {
   font-size: 0.78rem;
-  color: var(--managementColorSubtitle);
+  color: var(--globalColorTextMuted, var(--managementColorSubtitle));
   letter-spacing: 0.01em;
 }
 
