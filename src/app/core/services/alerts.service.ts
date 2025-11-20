@@ -28,6 +28,7 @@ export interface AlertResponse {
   targetIds: string[];
   config?: Record<string, any>;
   userTopic?: AlertUserTopic | string;
+  createdBy?: AlertUserTopic | string;
   status: AlertStatus | string;
   createdAt: string;
   updatedAt: string;

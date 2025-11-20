@@ -233,6 +233,11 @@
                                 {{ getAlertRecipientEmail(alert) || ('navbar.notifyRecipientUnknown' | translate) }}
                             </span>
                         </div>
+                        <div class="speed-alert-creator" *ngIf="alert.createdBy">
+                            <i class="pi pi-user"></i>
+                            <span class="speed-alert-creator-label">Creado por:</span>
+                            <span class="speed-alert-creator-name">{{ getCreatorName(alert) }}</span>
+                        </div>
                         <div class="speed-alert-status-row">
                             <span
                                 class="speed-alert-status"

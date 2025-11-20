@@ -2111,6 +2111,23 @@ body .p-dialog-mask {
   word-break: break-all;
 }
 
+.speed-alert-creator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--globalColorTextDark, var(--managementColorSubtitle));
+}
+
+.speed-alert-creator-label {
+  font-weight: 500;
+}
+
+.speed-alert-creator-name {
+  font-weight: 700;
+  color: var(--managementColorTitle);
+}
+
 .speed-alert-status-row {
   display: flex;
   align-items: center;

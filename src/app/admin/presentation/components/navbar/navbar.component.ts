@@ -554,6 +554,21 @@ export class NavbarComponent implements OnInit, OnDestroy {
     return alert.userTopic.email ?? null;
   }
 
+  getCreatorName(alert: AlertResponse): string {
+    if (!alert?.createdBy) {
+      return 'Desconocido';
+    }
+
+    if (typeof alert.createdBy === 'string') {
+      return alert.createdBy;
+    }
+
+    const name = alert.createdBy.name || '';
+    const lastName = alert.createdBy.last_name || '';
+    const fullName = `${name} ${lastName}`.trim();
+    return fullName || 'Desconocido';
+  }
+
   async toggleAlertStatus(alert: AlertResponse): Promise<void> {
     const nextStatus: AlertStatus =
       alert.status === 'active' ? 'inactive' : 'active';
