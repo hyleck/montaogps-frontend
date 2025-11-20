@@ -1,7 +1,7 @@
 <div class="main">
     <div class="maps">
         <div class="maps__map" id="map"></div>
-        <button class="tools-button" type="button" (click)="openToolsModal()">
+        <button class="tools-button" type="button" (click)="openToolsModal()" *ngIf="selectedTarget">
             <i class="pi pi-wrench"></i>
             <span>Herramientas</span>
         </button>
@@ -60,7 +60,7 @@
         </div>
     </div>
 
-    <div class="target-info-panel" *ngIf="selectedTarget; else noTargetInfo">
+    <div class="target-info-panel" *ngIf="selectedTarget">
         <div class="info-chip status">
             <span class="status-dot" [ngClass]="statusClass"></span>
             <span class="chip-value">{{ statusLabel }}</span>
@@ -98,13 +98,4 @@
         </div>
     </div>
 
-    <ng-template #noTargetInfo>
-        <div class="target-info-empty">
-            <i class="pi pi-map-marker"></i>
-            <div>
-                <h4>{{ 'maps.noTargetSelectedTitle' | translate }}</h4>
-                <p>{{ 'maps.noTargetSelected' | translate }}</p>
-            </div>
-        </div>
-    </ng-template>
 </div>

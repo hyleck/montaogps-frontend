@@ -88,6 +88,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private targetsLoadCompletedFlag: boolean = false;
   
   // Propiedades para scroll infinito de targets
+  private readonly initialPageSize: number = 60;
   private currentOffset: number = 0;
   private readonly pageSize: number = 30;
   private hasMoreTargets: boolean = true;
@@ -213,6 +214,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   get providerType(): 'google' | 'mapbox' { return this.mapProviderService.providerType; }
   get providerTheme(): 'light' | 'dark' { return this.mapProviderService.providerTheme; }
   get mapsKey(): string | null { return this.mapProviderService.mapsKey; }
+  get showAdvancedMapOptions(): boolean { return !!this.selectedTargetForMap; }
 
   // Breadcrumb (delegado a BreadcrumbService)
   get items(): MenuItem[] { return this.breadcrumbService.getItems(); }
@@ -656,6 +658,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.removeTargetFromUrl();
       this.selectedTargetForMap = null;
       this.targetIdFromUrl = null;
+      this.enforceDefaultMapWhenNoTarget();
     }
     
     this.uiService.toggleMaps();
@@ -1295,6 +1298,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.targetIdFromUrl = null;
       this.selectedTargetForMap = null;
       this.stopPolling();
+      this.enforceDefaultMapWhenNoTarget();
     }
   }
 
@@ -1582,6 +1586,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         );
       } else {
         // Si no estamos buscando, usar el endpoint normal
+        const parentId = this.managementService.getCurrentUserId();
         await this.loadTargetsForUser(this.selectedUser._id, false);
         console.log(`[SCROLL INFINITO] ✅ Targets cargados exitosamente - total: ${this.targets.length}`);
         
@@ -1800,7 +1805,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Cargar targets propios y compartidos en paralelo
       const userEmail = this.selectedUser?.email;
       
-      const targetsPromise = this.targetsService.getTargetsByUserId(userId, parentId, this.currentOffset, this.pageSize);
+      const pageSizeForRequest = resetPagination ? this.initialPageSize : this.pageSize;
+
+      const targetsPromise = this.targetsService.getTargetsByUserId(
+        userId,
+        parentId,
+        this.currentOffset,
+        pageSizeForRequest,
+      );
       const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
       
       const [targetsResponse, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
@@ -1841,7 +1853,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       
       // Si es la primera carga, reemplazar. Si es scroll infinito, agregar
       if (resetPagination) {
-      this.targets = combinedTargets;
+        this.targets = combinedTargets;
       } else {
         // Para scroll infinito, solo agregar los targets propios (no los compartidos)
         // Los targets compartidos solo se cargan en la primera carga
@@ -1856,8 +1868,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
       });
       
       // Verificar si hay más targets disponibles
-      this.hasMoreTargets = targets.length === this.pageSize;
-      this.currentOffset += this.pageSize;
+      const newOffset = this.currentOffset + targets.length;
+      if (typeof this.totalTargetsCount === 'number' && this.totalTargetsCount > 0) {
+        this.hasMoreTargets = newOffset < this.totalTargetsCount;
+      } else {
+        this.hasMoreTargets = targets.length === pageSizeForRequest;
+      }
+      this.currentOffset = newOffset;
       
       this.showNoTargetMessage = this.targets.length === 0;
       
@@ -1865,7 +1882,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         propios: targets.length,
         compartidos: uniqueSharedTargets.length,
         total: this.targets.length,
-        offset: this.currentOffset - this.pageSize,
+        offset: this.currentOffset - targets.length,
         hasMore: this.hasMoreTargets,
         selectedUserEmail: userEmail,
         selectedUserName: this.selectedUser?.name + ' ' + this.selectedUser?.last_name
@@ -1933,6 +1950,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.findAndSelectTarget(this.targetIdFromUrl);
       }
       
+      if (!this.selectedTargetForMap) {
+        this.enforceDefaultMapWhenNoTarget();
+      }
+      
       
     } catch (error) {
       console.error('❌ Error al cargar objetivos:', error);
@@ -1945,6 +1966,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Desactivar estado de carga específico para targets
       this.loadingTargets = false;
       this.targetsLoadCompletedFlag = true;
+    }
+  }
+
+  private enforceDefaultMapWhenNoTarget(): void {
+    if (!this.selectedTargetForMap && this.selectedMap !== 'google-light') {
+      this.setMapProvider('google-light');
     }
   }
 

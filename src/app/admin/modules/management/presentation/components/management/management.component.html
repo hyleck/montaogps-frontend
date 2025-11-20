@@ -382,12 +382,12 @@
              
                 
                 <div class="map-provider-select-wrapper"
-                     [ngStyle]="{ right: providerType === 'mapbox' ? '20px' : '60px' }">
+                    [ngStyle]="{ right: providerType === 'mapbox' ? '20px' : '60px' }">
                     <select [value]="selectedMap" (change)="onMapProviderChange($event)">
                         <option value="google-light">Mapa 1</option>
                         <option value="google-dark">Mapa 2</option>
-                        <option value="mapbox-light">Mapa 3</option>
-                        <option value="mapbox-dark">Mapa 4</option>
+                        <option value="mapbox-light" *ngIf="showAdvancedMapOptions">Mapa 3</option>
+                        <option value="mapbox-dark" *ngIf="showAdvancedMapOptions">Mapa 4</option>
                     </select>
                 </div>
                 <app-maps *ngIf="mapsKey" 
@@ -395,6 +395,7 @@
                   [provider]="providerType" 
                   [theme]="providerTheme" 
                   [selectedTarget]="selectedTargetForMap" 
+                  [targetsForMap]="targetsList"
                   [vehicleTypeGetter]="getVehicleTypeByModelId.bind(this)"
                   [preloadedStopTime]="selectedTargetStopTime">
                 </app-maps>
@@ -418,7 +419,10 @@
             </div>
 
             <div class="management__controls" *ngIf="shouldShowMapToggleButton">
-                <i (click)="showMapsToggle()" class="pi pi-window-minimize" [title]="translations.showMap | translate"></i>
+                <button class="management__show-map-btn" (click)="showMapsToggle()">
+                    <i class="pi pi-map"></i>
+                    <span>Mapa</span>
+                </button>
             </div>
 
             <div class="management__user">

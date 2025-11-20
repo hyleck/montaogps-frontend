@@ -29,13 +29,39 @@
   color: rgb(255, 122, 28);
 }
 
-.management__controls i{
-  font-size: 16px;
-  color: var(--managementColorIconControls);
-  cursor: pointer;
+.management__controls .management__show-map-btn {
+  margin-left: auto;
 }
-.management__controls i:hover{
-  transform: scale(1.1);
+
+.management__show-map-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 999px 0 0 999px;
+  background: linear-gradient(135deg, #ba3a4b, #932c3a);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  transition: all 0.5s;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.management__show-map-btn i {
+  font-size: 14px;
+  color: #fff;
+}
+
+.management__show-map-btn:hover {
+  transform: translateX(-5px);
+}
+
+.management__show-map-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 14px rgba(255, 122, 28, 0.22);
 }
 
 .management__user {

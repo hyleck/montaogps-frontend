@@ -18,6 +18,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
    @Input() provider: 'google' | 'mapbox' = 'mapbox';
    @Input() theme: 'dark' | 'light' = 'dark';
    @Input() selectedTarget: any = null;
+   @Input() targetsForMap: any[] = [];
    @Input() vehicleTypeGetter: ((modelId: string) => string) | null = null;
    @Input() preloadedStopTime: string | undefined = undefined;
 
@@ -33,6 +34,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
    stopTimeText: string = '';
    isStopTimeMoving: boolean = false;
    isStopTimeLoading: boolean = false;
+   multipleMarkers: any[] = [];
+   private currentPopup: any = null;
    showToolsModal: boolean = false;
    private cachedMarkerIconUrl: string | null = null;
 
@@ -97,6 +100,10 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     if (changes['selectedTarget']) {
       this.updateTargetMarker();
       this.loadDistanceTraveled();
+    }
+
+    if (changes['targetsForMap'] && !this.selectedTarget) {
+      this.renderMultipleTargetsMarkers();
     }
   }
 
@@ -324,6 +331,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         this.currentTargetId = null;
       }
       this.resetStopTimeInfo();
+      this.renderMultipleTargetsMarkers();
       return;
     }
 
@@ -354,6 +362,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         MapUtils.removeMarker(this.currentMarker, this.provider);
         this.currentMarker = null;
       }
+
+      // Limpiar marcadores múltiples si existían
+      this.clearMultipleMarkers();
     }
 
     // Get coordinates from real-time or historical location
@@ -486,7 +497,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
   private createMarker(lat: number, lng: number): void {
     const title = this.selectedTarget?.name || 'Target';
-    const markerIconUrl = this.getMarkerIconUrl();
+    const isOffline =
+      (this.selectedTarget?.traccarStatus || '').toLowerCase() !== 'online';
+    const markerIconUrl = isOffline
+      ? this.getMarkerIconUrlOffline()
+      : this.getMarkerIconUrl();
+    const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
+    const isOnline = statusText === 'online';
 
     if (this.provider === 'google') {
       this.currentMarker = new google.maps.Marker({
@@ -497,7 +514,35 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
           url: markerIconUrl,
           scaledSize: new google.maps.Size(36, 36),
           anchor: new google.maps.Point(18, 35)
+        },
+        opacity: isOffline ? 0.65 : 1,
+      });
+
+      // Popup para marcador seleccionado (Google)
+      const infoWindow = new google.maps.InfoWindow({
+        content: `
+          <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
+            <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${title}</div>
+            <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
+            <div>Estado: ${statusText || 'desconocido'}</div>
+          </div>
+        `,
+      });
+      this.currentPopup = infoWindow;
+      let isOpen = isOnline;
+      if (isOpen) {
+        infoWindow.open(this.map, this.currentMarker);
+      }
+      this.currentMarker.addListener('click', () => {
+        if (isOpen) {
+          infoWindow.close();
+          isOpen = false;
+        } else {
+          infoWindow.open(this.map, this.currentMarker);
         }
+      });
+      infoWindow.addListener('closeclick', () => {
+        isOpen = false;
       });
     } else {
       const mapboxgl = (window as any).mapboxgl;
@@ -513,16 +558,35 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         background-position: center;
         cursor: pointer;
         position: relative;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
-        transform: translateY(-10px);
+        filter: ${isOffline ? 'grayscale(100%) brightness(0.75) drop-shadow(0 2px 4px rgba(0,0,0,0.35))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))'};
       `;
 
       this.currentMarker = new mapboxgl.Marker({
         element: markerElement,
-        offset: [0, -10],
+        anchor: 'bottom',
       })
         .setLngLat([lng, lat])
         .addTo(this.map);
+
+      // Popup para marcador seleccionado (Mapbox)
+      const popup = new mapboxgl.Popup({ offset: 25, closeButton: true }).setHTML(
+        `
+          <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
+            <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${title}</div>
+            <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
+            <div>Estado: ${statusText || 'desconocido'}</div>
+          </div>
+        `,
+      );
+      this.currentPopup = popup;
+      this.currentMarker.setPopup(popup);
+      if (isOnline) {
+        popup.addTo(this.map);
+      }
+      const el = this.currentMarker.getElement();
+      el.addEventListener('click', () => {
+        popup.isOpen() ? popup.remove() : this.currentMarker?.togglePopup();
+      });
     }
   }
 
@@ -530,6 +594,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     if (!this.currentMarker) return;
 
     const title = this.selectedTarget?.name || 'Target';
+    const isOffline =
+      (this.selectedTarget?.traccarStatus || '').toLowerCase() !== 'online';
+    const markerIconUrl = isOffline
+      ? this.getMarkerIconUrlOffline()
+      : this.getMarkerIconUrl();
+    const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
+    const isOnline = statusText === 'online';
 
     if (this.provider === 'google') {
       // Actualizar posición del marcador Google Maps
@@ -537,10 +608,37 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       
       // Actualizar título del marcador
       this.currentMarker.setTitle(title);
+      this.currentMarker.setOpacity(isOffline ? 0.65 : 1);
 
+      // Actualizar popup si existe
+      if (this.currentPopup && this.currentPopup.setContent) {
+        this.currentPopup.setContent(`
+          <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
+            <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${title}</div>
+            <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
+            <div>Estado: ${statusText || 'desconocido'}</div>
+          </div>
+        `);
+      }
     } else {
       // Actualizar posición del marcador Mapbox
       this.currentMarker.setLngLat([lng, lat]);
+      const el = this.currentMarker.getElement?.();
+      if (el) {
+        el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))';
+        el.style.backgroundImage = `url('${markerIconUrl}')`;
+        el.style.transform = 'translate(0, 0)';
+      }
+
+      if (this.currentPopup && this.currentPopup.setHTML) {
+        this.currentPopup.setHTML(`
+          <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
+            <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${title}</div>
+            <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
+            <div>Estado: ${statusText || 'desconocido'}</div>
+          </div>
+        `);
+      }
     }
 
     // Solicitar tiempo de parada actualizado en cada polling
@@ -609,11 +707,101 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     this.isStopTimeLoading = false;
   }
 
+  private clearMultipleMarkers(): void {
+    if (this.multipleMarkers && this.multipleMarkers.length) {
+      this.multipleMarkers.forEach((marker) => {
+        try {
+          marker.remove ? marker.remove() : MapUtils.removeMarker(marker, this.provider);
+        } catch (_) {
+          // silently ignore
+        }
+      });
+    }
+    this.multipleMarkers = [];
+  }
+
+  private renderMultipleTargetsMarkers(): void {
+    if (!this.map) return;
+
+    this.clearMultipleMarkers();
+
+    if (!Array.isArray(this.targetsForMap) || this.targetsForMap.length === 0) {
+      return;
+    }
+
+    const validMarkers: { lat: number; lng: number }[] = [];
+
+    this.targetsForMap.forEach((target) => {
+      const geo = target?.traccarInfo?.geolocation;
+      const historical = target?.historicalLocation;
+      const lat = geo?.latitude ?? historical?.latitude;
+      const lng = geo?.longitude ?? historical?.longitude;
+      const latNum = parseFloat(lat !== undefined ? String(lat) : '');
+      const lngNum = parseFloat(lng !== undefined ? String(lng) : '');
+
+      if (isNaN(latNum) || isNaN(lngNum)) {
+        return;
+      }
+
+      const isOffline =
+        (target?.traccarStatus || '').toLowerCase() !== 'online';
+      const iconUrl = isOffline
+        ? this.getMarkerIconUrlOffline()
+        : this.getMarkerIconUrl();
+      const openByDefault = !isOffline && (this.targetsForMap?.length || 0) <= 100;
+
+      const marker = MapUtils.addMarker(
+        this.map,
+        this.provider,
+        latNum,
+        lngNum,
+        target?.name || 'Target',
+        target?.traccarStatus || 'Desconocido',
+        iconUrl,
+        openByDefault,
+      );
+
+      // Cerrar popups por defecto si hay más de 100 targets
+      if ((this.targetsForMap?.length || 0) > 100 && marker?.getElement) {
+        const el = marker.getElement();
+        el && el.classList.add('mapbox-popup-closed');
+      }
+
+      if (marker) {
+        this.multipleMarkers.push(marker);
+        validMarkers.push({ lat: latNum, lng: lngNum });
+      }
+    });
+
+    if (validMarkers.length) {
+      // Al mostrar múltiples sin selección, usar vista amplia de RD
+      const centerLat = 19.0751848387914;
+      const centerLng = -70.59920843919267
+      const zoom = 9;
+      if (this.provider === 'google') {
+        this.map.setCenter({ lat: centerLat, lng: centerLng });
+        this.map.setZoom(zoom);
+      } else {
+        this.map.setCenter([centerLng, centerLat]);
+        this.map.setZoom(zoom);
+      }
+    }
+  }
+
   private destroyMap(): void {
     if (this.currentMarker) {
       MapUtils.removeMarker(this.currentMarker, this.provider);
       this.currentMarker = null;
     }
+    if (this.currentPopup) {
+      try {
+        this.currentPopup.close ? this.currentPopup.close() : this.currentPopup.remove();
+      } catch (_) {
+        // ignore
+      }
+      this.currentPopup = null;
+    }
+    this.clearMultipleMarkers();
 
     if (this.map) {
       try {
@@ -641,24 +829,31 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     if (typeof window === 'undefined' || typeof document === 'undefined') {
-      this.cachedMarkerIconUrl = '/favicon.ico';
+      this.cachedMarkerIconUrl = '/logo/favicon.png';
       return this.cachedMarkerIconUrl;
     }
 
     const iconLink =
       (document.querySelector("link[rel*='icon']") as HTMLLinkElement | null) ??
       null;
-    const href = iconLink?.href ?? '/favicon.ico';
-    if (href.startsWith('http')) {
-      this.cachedMarkerIconUrl = href;
-    } else {
-      const normalized =
-        href.startsWith('/') || href.startsWith('http')
-          ? href
-          : `/${href}`;
-      this.cachedMarkerIconUrl = `${window.location.origin}${normalized}`;
-    }
+    const href = iconLink?.href ?? '/logo/favicon.png';
+    const normalized = href.startsWith('http')
+      ? href
+      : href.startsWith('/')
+        ? `${window.location.origin}${href}`
+        : `${window.location.origin}/logo/favicon.png`;
+    this.cachedMarkerIconUrl = normalized;
 
     return this.cachedMarkerIconUrl;
+  }
+
+  private getMarkerIconUrlOffline(): string {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return '/logo/favicon-gray.png';
+    }
+
+    // Intentar construir la URL absoluta
+    const base = window.location.origin;
+    return `${base}/logo/favicon-gray.png`;
   }
 }
