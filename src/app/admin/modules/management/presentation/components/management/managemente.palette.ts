@@ -32,7 +32,23 @@ export const managementPalette = {
         managementSharedUserShadowHover: 'rgba(189, 53, 53, 0.15)',
         managementSharedUserBadgeShadow: 'rgba(189, 53, 53, 0.25)',
         managementSharedUserBadgeShadowPulse: 'rgba(189, 53, 53, 0.4)',
-        managementSharedUserShimmer: 'rgba(189, 53, 53, 0.03)'
+        managementSharedUserShimmer: 'rgba(189, 53, 53, 0.03)',
+
+        // Paleta específica para SMS/chat (light)
+        // Fondo general y texto del contenedor (light)
+        managementSmsBackground: '#e8eaef',
+        managementSmsBorder: '#c9cdd8',
+        managementSmsText: '#121622',
+        managementSmsIncomingText: '#eef3ff',
+        managementSmsMuted: '#4f5668',
+        managementSmsStatusDelivered: '#1f8f2f',
+        managementSmsStatusPending: '#6b7280',
+        // Nubes (usar colores oscuros como en dark)
+        managementSmsIncomingBg: '#151924',
+        managementSmsIncomingBorder: '#222836',
+        managementSmsOutgoingBg: '#2f3c52',
+        managementSmsOutgoingBorder: '#263346',
+        managementSmsOutgoingText: '#eef3ff'
        
       },
       
@@ -67,8 +83,20 @@ export const managementPalette = {
          managementSharedUserShadowHover: 'rgba(255, 112, 112, 0.2)',
          managementSharedUserBadgeShadow: 'rgba(255, 112, 112, 0.3)',
          managementSharedUserBadgeShadowPulse: 'rgba(255, 112, 112, 0.5)',
-         managementSharedUserShimmer: 'rgba(255, 112, 112, 0.05)'
+         managementSharedUserShimmer: 'rgba(255, 112, 112, 0.05)',
+
+         // Paleta específica para SMS/chat (dark)
+         managementSmsBackground: '#0f1116',
+         managementSmsBorder: '#1c2029',
+         managementSmsText: '#e8ecf5',
+         managementSmsIncomingText: '#e8ecf5',
+         managementSmsMuted: '#8a92a5',
+         managementSmsIncomingBg: '#151924',
+         managementSmsIncomingBorder: '#222836',
+         managementSmsOutgoingBg: '#2f3c52',
+         managementSmsOutgoingBorder: '#263346',
+         managementSmsOutgoingText: '#eef3ff',
+         managementSmsStatusDelivered: '#24c34a',
+        managementSmsStatusPending: '#8a92a5'
       }
 }
-
-

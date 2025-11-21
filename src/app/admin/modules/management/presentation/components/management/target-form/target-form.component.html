@@ -161,6 +161,12 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            <div class="target-form__field">
+                                                <button style="background:black" type="button" class="button button--primary-flat-negative" (click)="openContacts()">
+                                                    <i class="pi pi-users"></i>
+                                                    <span> Contactos</span>
+                                                </button>
+                                            </div>
                                 </div>
                 
                                    
@@ -823,50 +829,33 @@
                                                 <i class="pi pi-terminal"></i>
                                                 <span>{{ translate('management.targetForm.messageHistory') }}</span>
                                             </div>
-                                            <button 
-                                                type="button" 
-                                                class="terminal-refresh-btn"
-                                                (click)="loadSmsMessages()"
-                                                [disabled]="isLoadingSmsMessages"
-                                                title="Actualizar mensajes"
-                                            >
-                                                <i class="pi" [ngClass]="isLoadingSmsMessages ? 'pi-spinner loading-spinner' : 'pi-refresh'"></i>
-                                            </button>
                                         </div>
                                         
-                                        <div class="terminal-body" #chatMessages>
-                                            <div *ngIf="smsMessages.length === 0" class="terminal-empty-state">
-                                                <div class="terminal-prompt">
-                                                    <span class="terminal-user">sms&#64;device</span>
-                                                    <span class="terminal-symbol">:</span>
-                                                    <span class="terminal-path">~</span>
-                                                    <span class="terminal-symbol">$</span>
-                                                    <span class="terminal-cursor">█</span>
-                                                </div>
-                                                <div class="terminal-message">
-                                                    <span class="terminal-text">No hay mensajes SMS disponibles</span>
-                                                </div>
-                                                <div class="terminal-prompt">
-                                                    <span class="terminal-user">sms&#64;device</span>
-                                                    <span class="terminal-symbol">:</span>
-                                                    <span class="terminal-path">~</span>
-                                                    <span class="terminal-symbol">$</span>
-                                                    <span class="terminal-cursor">█</span>
-                                                </div>
+                                        <div class="terminal-body chat-body" #chatMessages>
+                                            <div *ngIf="isLoadingSmsMessages && !hasLoadedSmsMessages" class="chat-loading">
+                                                <i class="pi pi-spinner chat-spinner"></i>
+                                                <span>Cargando mensajes...</span>
+                                            </div>
+                                            <div *ngIf="smsMessages.length === 0" class="chat-empty">
+                                                <i class="pi pi-comments"></i>
+                                                <span>No hay mensajes SMS disponibles</span>
                                             </div>
                                             
-                                            <div *ngFor="let message of smsMessages; let i = index" class="terminal-line">
-                                                <div class="terminal-prompt">
-                                                    <span class="terminal-user">sms&#64;device</span>
-                                                    <span class="terminal-symbol">:</span>
-                                                    <span class="terminal-path">~</span>
-                                                    <span class="terminal-symbol">$</span>
+                                            <div *ngFor="let message of smsMessages; let i = index" class="chat-row" [ngClass]="{'out': message.type === 'sent', 'in': message.type === 'received'}">
+                                                <div class="chat-meta">
+                                                    <span class="chat-author">{{ getMessageAuthor(message) }}</span>
+                                                    <span class="chat-time">{{ message.timestamp | date:'short' }}</span>
                                                 </div>
-                                                <div class="terminal-command" [class.sent]="message.type === 'sent'" [class.received]="message.type === 'received'">
-                                                    <span class="terminal-arrow">{{ message.type === 'sent' ? '→' : '←' }}</span>
-                                                    <span class="terminal-content">{{ getDisplayMessageContent(message) }}</span>
-                                                    <span class="terminal-timestamp">[{{ message.timestamp | date:'HH:mm:ss' }}]</span>
-                                                    <i *ngIf="message.type === 'sent'" class="pi pi-check terminal-delivery-status"></i>
+                                                <div class="chat-bubble">
+                                                    <span class="chat-text">{{ getDisplayMessageContent(message) }}</span>
+                                                    <div class="chat-footer">
+                                                        <span class="chat-time-inline">{{ message.timestamp | date:'HH:mm' }}</span>
+                                                        <span class="chat-delivery" *ngIf="message.type === 'sent'" [ngClass]="{'delivered': message.delivered}">
+                                                            <i *ngIf="message.pending" class="pi pi-spinner chat-spinner"></i>
+                                                            <i *ngIf="!message.pending" class="pi pi-check"></i>
+                                                            {{ getMessageDeliveryLabel(message) }}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -911,6 +900,19 @@
                     </p-tabPanel>
                 </p-tabView>
 
+                <!-- Modal de contactos -->
+                <p-dialog
+                    [(visible)]="showContactsModal"
+                    [modal]="true"
+                    [draggable]="false"
+                    [resizable]="false"
+                    [style]="{ width: '500px' }"
+                    header="Contactos"
+                    (onHide)="closeContacts()"
+                >
+                                                <app-contacts [referenceId]="target._id || ''"></app-contacts>
+                </p-dialog>
+
                 <!-- Diálogo modal para edición de precios -->
                 <p-dialog 
                     [(visible)]="displayPriceDialog" 
@@ -954,7 +956,7 @@
                         </div>
                         <div class="price-info-content">
                             <!-- Si el precio personalizado es diferente al original, mostrar ambos -->
-                            <ng-container *ngIf="customPrice.amount !== originalPlanPrice.amount; else onlyOriginal">
+                            <ng-container *ngIf="customPrice.amount !== (originalPlanPrice?.amount || customPrice.amount); else onlyOriginal">
                                 <span class="price-amount original">
                                     <span class="strikethrough">{{originalPlanPrice.amount}}</span>
                                 </span>
@@ -964,7 +966,7 @@
                             </ng-container>
                             <!-- Si son iguales, mostrar solo el original -->
                             <ng-template #onlyOriginal>
-                                <span class="price-amount">{{originalPlanPrice.amount}}</span>
+                                    <span class="price-amount">{{originalPlanPrice.amount}}</span>
                                 <span class="price-period">{{ translate('settings.plans.' + originalPlanPrice.payment_period) }}</span>
                             </ng-template>
                         </div>
@@ -1023,7 +1025,7 @@
                             {{ translate('management.targetForm.originalPrice') }}
                         </div>
                         <div class="price-info-content">
-                            <ng-container *ngIf="processCustomPrice.amount !== processOriginalPlanPrice.amount; else processOnlyOriginal">
+                            <ng-container *ngIf="processOriginalPlanPrice && processCustomPrice.amount !== processOriginalPlanPrice.amount; else processOnlyOriginal">
                                 <span class="price-amount original">
                                     <span class="strikethrough">{{processOriginalPlanPrice.amount}}</span>
                                 </span>

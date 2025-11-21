@@ -1,0 +1,71 @@
+<div class="contacts">
+  <div class="contacts__toolbar">
+    <button type="button" class="button button--primary-flat" (click)="openNew()">
+      <i class="pi pi-plus"></i>
+      Nuevo contacto
+    </button>
+  </div>
+
+  <div class="contacts__form" *ngIf="showForm">
+    <h4>{{ editingId ? 'Editar contacto' : 'Agregar contacto' }}</h4>
+    <div class="contacts__grid">
+      <label>
+        Nombre completo
+        <input type="text" [(ngModel)]="form.full_name" placeholder="Ej: Juan Pérez">
+      </label>
+      <label>
+        Teléfono
+        <input type="text" [(ngModel)]="form.phone" placeholder="Ej: +1 809 555 5555">
+      </label>
+      <label>
+        Parentesco
+        <select [(ngModel)]="form.relationship">
+          <option value="">Seleccione</option>
+          <option *ngFor="let rel of relationshipOptions" [value]="rel">{{ rel }}</option>
+        </select>
+      </label>
+      <label class="full">
+        Observación
+        <textarea rows="2" [(ngModel)]="form.observation" placeholder="Notas adicionales"></textarea>
+      </label>
+    </div>
+    <div class="contacts__actions">
+      <button type="button" class="button button--primary-flat" (click)="save()" [disabled]="saving">
+        <i class="pi" [ngClass]="saving ? 'pi-spinner loading-spinner' : 'pi-save'"></i>
+        {{ editingId ? 'Actualizar' : 'Guardar' }}
+      </button>
+      <button *ngIf="editingId" type="button" class="button button--flat" (click)="cancelEdit()" [disabled]="saving">
+        Cancelar
+      </button>
+      <button *ngIf="!editingId" type="button" class="button button--flat" (click)="cancelEdit()" [disabled]="saving">
+        Cerrar
+      </button>
+    </div>
+    <div class="contacts__error" *ngIf="error">{{ error }}</div>
+  </div>
+
+  <div class="contacts__list">
+    <div *ngIf="loading" class="contacts__loading">
+      <i class="pi pi-spinner loading-spinner"></i>
+      Cargando contactos...
+    </div>
+    <div *ngIf="!loading && contacts.length === 0" class="contacts__empty">
+      No hay contactos registrados.
+    </div>
+    <div class="contact-card" *ngFor="let contact of contacts">
+      <div class="contact-card__info">
+        <div class="contact-card__name">{{ contact.full_name }}</div>
+        <div class="contact-card__detail">{{ contact.relationship }} • {{ contact.phone }}</div>
+        <div class="contact-card__obs" *ngIf="contact.observation">{{ contact.observation }}</div>
+      </div>
+      <div class="contact-card__actions">
+        <button type="button" class="button button--flat" (click)="edit(contact)">
+          <i class="pi pi-pencil"></i>
+        </button>
+        <button type="button" class="button button--flat" (click)="delete(contact)">
+          <i class="pi pi-trash"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

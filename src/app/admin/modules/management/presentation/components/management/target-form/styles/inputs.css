@@ -96,7 +96,7 @@
 
 .color-options {
     position: relative;
-    height: 235px;
+    height: 180px;
     width: 100%;
     max-height: 350px;
     background-color: var(--managementColorInputSearch);
@@ -104,7 +104,7 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     z-index: 10;
     /* border: 1px solid var(--globalColorBorderLight); */
-    margin-bottom: 10px;
+    margin-bottom: 18px;
 }
 
 .color-header {
@@ -138,7 +138,7 @@
 
 .color-list {
     overflow-y: auto;
-    max-height: 190px;
+    max-height: 150px;
 }
 
 .color-option {

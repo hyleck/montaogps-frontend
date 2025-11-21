@@ -1,0 +1,112 @@
+.contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  color: var(--globalColorTextDark);
+}
+
+.contacts__form {
+  background: var(--globalColorCardBackground);
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.contacts__toolbar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.contacts__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.contacts__grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--globalColorTextDark);
+}
+
+.contacts__grid label.full {
+  grid-column: 1 / -1;
+}
+
+.contacts__grid input,
+.contacts__grid textarea,
+.contacts__grid select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 6px;
+  background: var(--globalColorInputBackground);
+  color: var(--globalColorTextDark);
+}
+
+.contacts__grid select {
+  height: 36px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 28px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--globalColorTextMuted) 50%), linear-gradient(135deg, var(--globalColorTextMuted) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 50%, calc(100% - 10px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+.contacts__actions {
+  margin-top: 0.5rem;
+}
+
+.contacts__error {
+  margin-top: 0.5rem;
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.contacts__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.contacts__loading,
+.contacts__empty {
+  text-align: center;
+  color: var(--globalColorTextMuted);
+}
+
+.contact-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--globalColorCardBackground);
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.contact-card__actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.contact-card__name {
+  font-weight: 700;
+  color: var(--globalColorTextDark);
+}
+
+.contact-card__detail {
+  font-size: 12px;
+  color: var(--globalColorTextMuted);
+}
+
+.contact-card__obs {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--globalColorTextDark);
+}

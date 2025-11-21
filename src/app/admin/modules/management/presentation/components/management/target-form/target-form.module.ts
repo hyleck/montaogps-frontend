@@ -4,6 +4,7 @@ import { TargetFormComponent } from './target-form.component';
 import { PrimengModule } from '../../../../../../../shareds/libraries/primeng/primeng.module';
 import { FormsModule } from '@angular/forms';
 import { CloudComponent } from '../../../../../../../shareds/components/cloud/cloud.component';
+import { ContactsModule } from '../../../../../contacts/contacts.module';
 
 
 @NgModule({
@@ -14,7 +15,8 @@ import { CloudComponent } from '../../../../../../../shareds/components/cloud/cl
     CommonModule,
     PrimengModule,
     FormsModule,
-    CloudComponent
+    CloudComponent,
+    ContactsModule
   ],
   exports: [
     TargetFormComponent

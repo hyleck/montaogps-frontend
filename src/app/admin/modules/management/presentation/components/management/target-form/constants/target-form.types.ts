@@ -13,6 +13,9 @@ export interface SmsMessage {
   to?: string;
   id?: number;
   read?: boolean;
+  delivered?: boolean;
+  createdby?: string;
+  pending?: boolean;
 }
 
 export interface CustomPrice {

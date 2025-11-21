@@ -148,6 +148,25 @@
     padding: 1rem;
     border-radius: 0.5rem;
     background-color: var(--surface-ground);
+    border: 1px solid var(--globalColorBorderLight);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+}
+
+.process textarea {
+    border: 1px solid var(--globalColorBorderLight);
+    background: #ffffff;
+    color: #1d1f27;
+    border-radius: 8px;
+    padding: 0.75rem;
+    min-height: 80px;
+    resize: vertical;
+    box-shadow: none;
+    border-color: var(--globalColorAccent)!important;
+}
+
+.process textarea:focus {
+    outline: none;
+    border-color: var(--globalColorAccent);
 }
 
 .process__form-main {
@@ -1214,8 +1233,8 @@
     height: 44px;
     border: none;
     border-radius: 50%;
-    background-color: var(--globalColorAccent);
-    color: var(--globalColorTextStrong);
+    background-color: var(--managementSmsOutgoingBg, #2f3c52);
+    color: var(--managementSmsOutgoingText, #eef3ff);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1225,7 +1244,7 @@
 }
 
 .send-button:hover:not(:disabled) {
-    background-color: var(--globalColorHighlight);
+    background-color: var(--managementSmsOutgoingBorder, #263346);
     transform: scale(1.05);
 }
 
@@ -1969,6 +1988,145 @@ textarea[readonly]:focus {
 
 .terminal-body::-webkit-scrollbar-thumb:hover {
     background: #666;
+}
+
+/* Estilo de chat para mensajes SMS */
+.chat-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--managementSmsBackground);
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--managementSmsBorder);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.chat-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--managementSmsMuted);
+    font-size: 13px;
+    padding: 24px 12px;
+}
+
+.chat-empty i {
+    font-size: 16px;
+}
+
+.chat-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--managementSmsMuted);
+    font-size: 13px;
+    padding: 24px 12px;
+}
+
+.chat-row {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+}
+
+.chat-row.out {
+    align-self: flex-end;
+    text-align: right;
+}
+
+.chat-row.in {
+    align-self: flex-start;
+}
+
+.chat-meta {
+    display: flex;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--managementSmsMuted);
+    margin-bottom: 4px;
+}
+
+.chat-author {
+    font-weight: 700;
+    color: var(--managementSmsText);
+}
+
+.chat-bubble {
+    position: relative;
+    padding: 10px 12px;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+    background: var(--managementSmsIncomingBg);
+    color: var(--managementSmsIncomingText, var(--managementSmsText));
+    border: 1px solid var(--managementSmsIncomingBorder);
+}
+
+.chat-row.out .chat-bubble {
+    background: var(--managementSmsOutgoingBg);
+    color: var(--managementSmsOutgoingText);
+    border-color: var(--managementSmsOutgoingBorder);
+}
+
+.chat-text {
+    display: block;
+    font-size: 13px;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.chat-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chat-delivery {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--managementSmsStatusPending);
+}
+
+.chat-spinner {
+    animation: chat-spin 1s linear infinite;
+}
+
+.chat-delivery .pi-spinner {
+    font-size: 12px;
+}
+
+.chat-delivery.delivered {
+    color: var(--managementSmsStatusDelivered);
+}
+
+.chat-footer {
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    font-size: 11px;
+    color: #ffffff;
+}
+
+.chat-time-inline {
+    font-variant-numeric: tabular-nums;
+}
+
+@keyframes chat-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@media screen and (max-width: 768px) {
+    .chat-row {
+        max-width: 100%;
+    }
 }
 
 /* Responsive para móviles */

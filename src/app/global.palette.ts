@@ -118,5 +118,3 @@ export const globalPalette = {
         globalGreen: "#15f915"
       }
 };
-
-

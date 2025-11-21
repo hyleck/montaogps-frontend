@@ -1,7 +1,7 @@
 import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { MessageService } from 'primeng/api';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, interval, Subscription } from 'rxjs';
 import { LangService } from '../../../../../../../shareds/services/langi18/lang.service';
 import { 
   TARGET_FORM_STYLES, 
@@ -52,6 +52,7 @@ import { CommandsService, Command } from 'src/app/core/services/commands.service
 })
 export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterViewInit {
     private destroy$ = new Subject<void>();
+    private smsPollingSub: Subscription | null = null;
 
     @Input() targetInput: TargetDevice | null = null;
     @Output() targetCreated = new EventEmitter<void>();
@@ -130,6 +131,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     lastSentCommand: string = '';
     customSmsMessage: string = '';
     isLoadingSmsMessages: boolean = false;
+    hasLoadedSmsMessages: boolean = false;
     isSendingSms: boolean = false;
     
     // Protocolos y comandos dinámicos
@@ -208,11 +210,20 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     deviceCommands: any[] = [];
     isLoadingCommands: boolean = false;
     isCreatingCommand: boolean = false;
-    newCommand: any = {
-        name: '',
-        description: '',
-        observation: ''
-    };
+  newCommand: any = {
+    name: '',
+    description: '',
+    observation: ''
+  };
+  showContactsModal: boolean = false;
+
+  openContacts(): void {
+    this.showContactsModal = true;
+  }
+
+  closeContacts(): void {
+    this.showContactsModal = false;
+  }
 
     // Propiedades para modal de observación de comandos estáticos
     displayCommandObservationModal: boolean = false;
@@ -677,6 +688,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         if (this.target.sim_card_number && this.target.sim_company) {
             setTimeout(() => {
                 this.loadSmsMessages();
+                this.startSmsPolling();
             }, 500);
         }
 
@@ -1348,7 +1360,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.smsMessages.push({
                 type: 'sent',
                 content: processedMessage,
-                timestamp: new Date()
+                timestamp: new Date(),
+                createdby: 'montaogps',
+                delivered: false,
+                pending: true
             });
 
             this.scrollToBottom();
@@ -1380,6 +1395,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     summary: 'SMS Enviado',
                     detail: response.message || 'Mensaje enviado correctamente al dispositivo'
                 });
+                this.updateTempMessageStatus(processedMessage, { pending: false, delivered: false });
             } else {
                 console.warn('⚠️ Respuesta de error del servidor:', response);
                 this.messageService.add({
@@ -1387,6 +1403,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     summary: 'SMS Enviado',
                     detail: response.message || response.error || 'Mensaje enviado, pero hubo un problema en la entrega'
                 });
+                this.updateTempMessageStatus(processedMessage, { pending: false });
             }
 
         } catch (error: any) {
@@ -1431,6 +1448,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     async loadSmsMessages(): Promise<void> {
+        if (this.isLoadingSmsMessages) {
+            return;
+        }
         if (!this.target.sim_card_number) {
             return;
         }
@@ -1440,8 +1460,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             return;
         }
 
+        const showInitialLoader = !this.hasLoadedSmsMessages;
+
         try {
-            this.isLoadingSmsMessages = true;
+            this.isLoadingSmsMessages = showInitialLoader ? true : this.isLoadingSmsMessages;
 
             const response = await this.targetsService.getMessages(this.target.sim_card_number, provider);
 
@@ -1453,19 +1475,31 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             if (messages && Array.isArray(messages)) {
                 // Convertir mensajes del backend al formato del componente
                 this.smsMessages = messages.map((msg: any) => {
-                    // Determinar tipo de mensaje:
-                    // MT = Mobile Terminated (enviado al dispositivo) = 'sent'
-                    // MO = Mobile Originated (recibido del dispositivo) = 'received'
-                    const messageType = msg.type === 'MT' ? 'sent' : 'received';
+                    const createdBy = (msg.createdby || '').toLowerCase();
+                    // Preferimos createdby para determinar dirección; fallback al tipo MT/MO
+                    const isSent =
+                        createdBy === 'montaogps'
+                            ? true
+                            : createdBy === 'device'
+                            ? false
+                            : msg.type === 'MT';
+                    const messageType: 'sent' | 'received' = isSent ? 'sent' : 'received';
                     
                     return {
                         type: messageType,
                         content: msg.text || msg.body || msg.message || '',
-                        timestamp: new Date(msg.fecha || msg.timestamp || msg.date_created),
+                        timestamp: new Date(
+                            msg.fecha ||
+                            msg.timestamp ||
+                            msg.date_created ||
+                            msg.dateCreated
+                        ),
                         from: msg.from,
                         to: msg.to,
                         id: msg.id,
-                        read: msg.read
+                        read: msg.read,
+                        delivered: msg.delivered,
+                        createdby: msg.createdby
                     };
                 });
 
@@ -1473,6 +1507,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 this.smsMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
                 this.scrollToBottom();
+                this.hasLoadedSmsMessages = true;
             }
 
         } catch (error: any) {
@@ -1483,7 +1518,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 detail: 'No se pudieron cargar los mensajes SMS'
             });
         } finally {
-            this.isLoadingSmsMessages = false;
+            if (showInitialLoader) {
+                this.isLoadingSmsMessages = false;
+            }
         }
     }
 
@@ -1546,45 +1583,58 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     /**
      * Obtiene el nombre del comando para mostrar en la terminal
-     * Si el mensaje coincide con algún comando de la lista, muestra el nombre del comando
-     * En caso contrario, muestra el contenido original
+     * Ahora se muestra exactamente el contenido del mensaje sin reemplazos
      */
     getDisplayMessageContent(message: SmsMessage): string {
-        if (!message.content) return '';
-        
-        const messageContent = message.content.trim();
-        
-        // Debug: mostrar información sobre el mensaje y comandos disponibles
-        console.log('🔍 Analizando mensaje:', messageContent);
-        console.log('📋 Comandos disponibles:', this.availableCommands.map(cmd => ({ name: cmd.name, value: cmd.value })));
-        
-        // Buscar si el contenido del mensaje coincide exactamente con algún comando
-        const exactMatch = this.availableCommands.find(cmd => 
-            cmd.value && messageContent === cmd.value.trim()
+        return message.content ? message.content.trim() : '';
+    }
+
+    getMessageAuthor(message: SmsMessage): string {
+        const createdBy = (message.createdby || '').toLowerCase();
+        if (createdBy === 'montaogps') {
+            return 'Montao GPS';
+        }
+        // Si viene del dispositivo, usar el nombre del target
+        const legacyName = (this.target as any)?.['target_name'];
+        return this.target?.name || legacyName || 'Dispositivo';
+    }
+
+    getMessageDeliveryLabel(message: SmsMessage): string {
+        return message.delivered ? 'Entregado' : 'Pendiente';
+    }
+
+    private updateTempMessageStatus(content: string, updates: Partial<SmsMessage>): void {
+        const lastIndex = [...this.smsMessages].reverse().findIndex(
+            (msg) => msg.type === 'sent' && msg.content === content && msg.pending
         );
-        
-        if (exactMatch) {
-            console.log('✅ Coincidencia exacta encontrada:', exactMatch.name);
-            return `[${exactMatch.name}]`;
+        if (lastIndex !== -1) {
+            // reverse index to actual index
+            const realIndex = this.smsMessages.length - 1 - lastIndex;
+            this.smsMessages[realIndex] = {
+                ...this.smsMessages[realIndex],
+                ...updates,
+            };
         }
-        
-        // Buscar si el contenido del mensaje contiene algún comando (coincidencia parcial)
-        // Ordenar por longitud descendente para priorizar comandos más largos
-        const sortedCommands = this.availableCommands
-            .filter(cmd => cmd.value)
-            .sort((a, b) => (b.value?.length || 0) - (a.value?.length || 0));
-        
-        for (const cmd of sortedCommands) {
-            if (cmd.value && messageContent.includes(cmd.value)) {
-                console.log('✅ Coincidencia parcial encontrada:', cmd.name, 'en mensaje:', messageContent);
-                // Reemplazar el comando encontrado con su nombre
-                return messageContent.replace(cmd.value, `[${cmd.name}]`);
-            }
+    }
+
+    private startSmsPolling(): void {
+        this.stopSmsPolling();
+        const provider = this.getProviderFromSimCompany();
+        if (!this.target.sim_card_number || !provider) {
+            return;
         }
-        
-        console.log('❌ No se encontró coincidencia, mostrando contenido original');
-        // Si no coincide con ningún comando, mostrar el contenido original
-        return messageContent;
+        this.smsPollingSub = interval(15000)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe(() => {
+                this.loadSmsMessages();
+            });
+    }
+
+    private stopSmsPolling(): void {
+        if (this.smsPollingSub) {
+            this.smsPollingSub.unsubscribe();
+            this.smsPollingSub = null;
+        }
     }
 
     ngAfterViewInit() {
@@ -1635,6 +1685,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     ngOnDestroy() {
+        this.stopSmsPolling();
         this.destroy$.next();
         this.destroy$.complete();
     }
