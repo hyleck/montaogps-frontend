@@ -76,6 +76,13 @@
                                             >
                                         </div>
 
+                                        <div class="user-form__field contacts-button-wrapper">
+                                            <button style="background:black!important; text-align: left;" type="button" class="button button--primary-flat" (click)="openContacts()">
+                                                <i class="pi pi-users"></i>
+                                                <span> Contactos</span>
+                                            </button>
+                                        </div>
+
                                         <div class="user-form__field">
                                             <label for="status">{{ 'management.userForm.status' | translate }} <span class="required-label">(Requerido)</span></label>
                                             <select
@@ -180,6 +187,18 @@
                                 </div>
                             </form>
                         </div>
+
+                        <p-dialog
+                            [(visible)]="showContactsModal"
+                            [modal]="true"
+                            [draggable]="false"
+                            [resizable]="false"
+                            [style]="{ width: '500px' }"
+                            header="Contactos"
+                            (onHide)="closeContacts()"
+                        >
+                            <app-contacts [referenceId]="user._id || ''"></app-contacts>
+                        </p-dialog>
                     </p-tabPanel>
 
                     <p-tabPanel *ngIf="isCurrentUserEmployee">

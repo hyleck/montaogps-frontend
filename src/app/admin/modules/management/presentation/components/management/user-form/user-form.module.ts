@@ -11,6 +11,9 @@ import { ButtonModule } from 'primeng/button';
 import { TranslateModule } from '@ngx-translate/core';
 import { ToastModule } from 'primeng/toast';
 import { CloudComponent } from '../../../../../../../shareds/components/cloud/cloud.component';
+import { DialogModule } from 'primeng/dialog';
+import { ContactsModule } from '../../../../../contacts/contacts.module';
+import { PrimengModule } from '../../../../../../../shareds/libraries/primeng/primeng.module';
 
 @NgModule({
   declarations: [
@@ -27,7 +30,10 @@ import { CloudComponent } from '../../../../../../../shareds/components/cloud/cl
     ButtonModule,
     TranslateModule,
     ToastModule,
-    CloudComponent
+    CloudComponent,
+    DialogModule,
+    ContactsModule,
+    PrimengModule
   ],
   exports: [
     UserFormComponent

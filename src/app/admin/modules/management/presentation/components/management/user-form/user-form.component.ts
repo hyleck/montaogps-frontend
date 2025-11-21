@@ -149,6 +149,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     confirmPassword: string = '';
 
     activeTabIndex: number = 0;
+    showContactsModal: boolean = false;
 
     // Agregamos una nueva propiedad para controlar si estamos inicializando el formulario de edición
     private isInitializingEditForm: boolean = false;
@@ -209,6 +210,14 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             affiliation_type_id: 'cliente',
             profile_type_id: 'personal'
         };
+    }
+
+    openContacts(): void {
+        this.showContactsModal = true;
+    }
+
+    closeContacts(): void {
+        this.showContactsModal = false;
     }
 
     ngOnInit() {
