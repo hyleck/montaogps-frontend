@@ -678,8 +678,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
    * Abre el modal de transferencia de targets
    */
   transferSelectedTargets() {
-    const selectedTargets = this.selectionService.selectedTargetsValue;
-    this.targetsToTransfer = selectedTargets;
+    const selectedTargets = this.selectionService.selectedTargetsValue || [];
+    // Crear una copia para evitar referencias residuales
+    this.targetsToTransfer = [...selectedTargets];
+    if (!this.targetsToTransfer.length) {
+      return;
+    }
     this.transferEmailInput = '';
     this.transferEmailError = '';
     this.foundUser = null;
@@ -977,6 +981,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       // Cerrar modal y limpiar selección
       this.transferDialogVisible = false;
       this.selectionService.clearSelection();
+      this.targetsToTransfer = [];
 
       // Notificar que los targets han sido actualizados para recargar en management
       this.selectionService.notifyTargetsUpdated();

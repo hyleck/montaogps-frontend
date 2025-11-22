@@ -780,11 +780,12 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     private formatDateToInput(dateStr: string): string {
         if (!dateStr) return '';
+        // Si ya viene en formato YYYY-MM-DD, devolver tal cual para evitar desfases
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            return dateStr;
+        }
         const date = new Date(dateStr);
         if (isNaN(date.getTime())) return '';
-        // Ajuste para zona horaria si es necesario
-        const offset = date.getTimezoneOffset();
-        date.setMinutes(date.getMinutes() - offset);
         return date.toISOString().slice(0, 10);
     }
 

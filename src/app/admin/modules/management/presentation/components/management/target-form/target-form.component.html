@@ -566,6 +566,18 @@
                                         id="new_renewal_date"
                                         required
                                     >
+                                    <div class="target-form__field" style="margin-top: 8px;">
+                                        <label for="renewal_years">{{ translate('management.targetForm.renewalYears') }}</label>
+                                        <select
+                                            id="renewal_years"
+                                            name="renewal_years"
+                                            [(ngModel)]="processForm.renewalYears"
+                                            (change)="onRenewalYearsChange()"
+                                        >
+                                            <option [ngValue]="null">{{ translate('management.targetForm.selectYears') }}</option>
+                                            <option *ngFor="let y of renewalYearOptions" [ngValue]="y">{{ y }} {{ y === 1 ? 'año' : 'años' }}</option>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <!-- Campo específico para cambio de técnico -->

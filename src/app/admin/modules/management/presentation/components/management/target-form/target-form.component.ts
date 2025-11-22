@@ -115,6 +115,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     availablePrices: ExtendedPlanPrice[] = [];
     filteredColors: SelectOption[] = [];
     availableTechnicians: SelectOption[] = [];
+    renewalYearOptions: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
     
     // Planes específicos para procesos (separados del formulario principal)
     availablePlansForProcess: SelectOption[] = [];
@@ -148,6 +149,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         newInstallationDate: '',
         newExpirationDate: '',
         newRenewalDate: '',
+        renewalYears: null as number | null,
         newTechnician: '',
         newGpsImei: '',
         newGpsModel: '',
@@ -285,6 +287,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             required_check: '',
             installation_details: '',
             creator_id: '',
+            // Prefill installation date as today for alta; editable por el usuario
+            installation_date: this.getTodayInputDate(),
+            // activation_date se calculará a partir de installation_date al guardar si no se especifica
             activation_date: '',
             expiration_date: '',
             last_change_date: '',
@@ -526,7 +531,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.target.installation_date = this.formatDateToInput(this.target.installation_date);
         } else {
             // Solo asignar fecha actual si estamos creando un nuevo target (no en modo edición)
-            this.target.installation_date = this.isEditMode ? '' : new Date().toISOString().substring(0, 10);
+            this.target.installation_date = this.isEditMode ? '' : this.getTodayInputDate();
         }
         
         this.activeTabIndex = 0;
@@ -1044,14 +1049,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         
         // Formatear fechas
         if (targetData.activation_date) {
-            targetData.activation_date = new Date(targetData.activation_date);
+            targetData.activation_date = this.parseLocalDate(targetData.activation_date as any);
+        } else if (targetData.installation_date) {
+            // Si no hay fecha de activación explícita, usar la fecha de instalación seleccionada
+            targetData.activation_date = this.parseLocalDate(targetData.installation_date as any);
         } else if (!this.isEditMode) {
-            // Solo asignar fecha actual si estamos creando un nuevo target
-            targetData.activation_date = new Date();
+            // Solo asignar fecha actual si estamos creando un nuevo target y no hay fechas
+            targetData.activation_date = this.parseLocalDate(this.getTodayInputDate());
         }
         
         if (targetData.expiration_date) {
-            targetData.expiration_date = new Date(targetData.expiration_date);
+            targetData.expiration_date = this.parseLocalDate(targetData.expiration_date as any);
         }
         
         // Actualizar la fecha del último cambio
@@ -1159,11 +1167,20 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         if (!dateStr) return '';
         
         try {
+            // Si viene solo la fecha (YYYY-MM-DD), devolverla tal cual para evitar shifts por zona horaria
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                return dateStr;
+            }
             const date = new Date(dateStr);
             return date.toISOString().substring(0, 10);
         } catch (e) {
             return '';
         }
+    }
+
+    private parseLocalDate(dateStr: string): Date {
+        // Forzar interpretación en hora local evitando shifts de zona horaria
+        return new Date(`${dateStr}T00:00:00`);
     }
 
     private getTodayInputDate(): string {
@@ -1732,9 +1749,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Usar la fecha de activación/instalación como base si existe, o la fecha actual
             let baseDate = new Date();
             if (this.target.activation_date) {
-                baseDate = new Date(this.target.activation_date);
+                baseDate = this.parseLocalDate(this.target.activation_date);
             } else if (this.target.installation_date) {
-                baseDate = new Date(this.target.installation_date);
+                baseDate = this.parseLocalDate(this.target.installation_date);
             }
             
             // Calcular la fecha de expiración sumando los días del período
@@ -2159,28 +2176,36 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
 
             // Validaciones específicas para cambio de fecha de expiración
-            if (this.processForm.type === 'expiration') {
-                if (!this.processForm.newExpirationDate) {
-                    this.messageService.add({
-                        severity: 'warn',
-                        summary: 'Campo requerido',
-                        detail: 'Debe seleccionar una nueva fecha de expiración'
-                    });
-                    return;
-                }
+        if (this.processForm.type === 'expiration') {
+            if (!this.processForm.newExpirationDate) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Campo requerido',
+                    detail: 'Debe seleccionar una nueva fecha de expiración'
+                });
+                return;
             }
+        }
 
-            // Validaciones específicas para renovación de servicio
-            if (this.processForm.type === 'renewal') {
-                if (!this.processForm.newRenewalDate) {
-                    this.messageService.add({
-                        severity: 'warn',
-                        summary: 'Campo requerido',
-                        detail: 'Debe seleccionar una nueva fecha de renovación'
-                    });
-                    return;
-                }
+        // Validaciones específicas para renovación de servicio
+        if (this.processForm.type === 'renewal') {
+            if (!this.processForm.newRenewalDate) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Campo requerido',
+                    detail: 'Debe seleccionar una nueva fecha de renovación'
+                });
+                return;
             }
+            if (!this.processForm.renewalYears) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Campo requerido',
+                    detail: 'Debe seleccionar la duración de la renovación'
+                });
+                return;
+            }
+        }
 
             // Validaciones específicas para cambio de técnico
             if (this.processForm.type === 'technician_change') {
@@ -2334,12 +2359,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 autoDetails = `El usuario ${userName} ha cambiado la fecha de expiración del dispositivo ${targetName} de ${currentExpirationDate} a ${newExpirationDate}${reason}.`;
             }
             
-            if (this.processForm.type === 'renewal') {
-                const currentExpirationDate = this.target.expiration_date || 'no definida';
-                const newRenewalDate = this.processForm.newRenewalDate;
-                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
-                autoDetails = `El usuario ${userName} ha renovado el servicio del dispositivo ${targetName} cambiando la fecha de expiración de ${currentExpirationDate} a ${newRenewalDate}${reason}.`;
-            }
+        if (this.processForm.type === 'renewal') {
+            const currentExpirationDate = this.target.expiration_date || 'no definida';
+            const newRenewalDate = this.processForm.newRenewalDate;
+            const renewalYears = this.processForm.renewalYears || 0;
+            const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+            autoDetails = `El usuario ${userName} ha renovado el servicio del dispositivo ${targetName} cambiando la fecha de expiración de ${currentExpirationDate} a ${newRenewalDate} (${renewalYears} ${renewalYears === 1 ? 'año' : 'años'})${reason}.`;
+        }
             
             if (this.processForm.type === 'technician_change') {
                 const currentTechnicianId = this.target.mechanic_id || '';
@@ -2591,8 +2617,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         target_color: this.target.target_color,
                         target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.target.mechanic_id,
-                        activation_date: new Date(this.processForm.newInstallationDate), // Nueva fecha de instalación
-                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        activation_date: this.parseLocalDate(this.processForm.newInstallationDate), // Nueva fecha de instalación
+                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
                         last_change_date: new Date(),
                         gps_model: this.target.gps_model,
                         ignition_sensor: this.target.ignition_sensor,
@@ -2669,8 +2695,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         target_color: this.target.target_color,
                         target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: new Date(this.processForm.newExpirationDate), // Nueva fecha de expiración
+                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
+                        expiration_date: this.parseLocalDate(this.processForm.newExpirationDate), // Nueva fecha de expiración
                         last_change_date: new Date(),
                         gps_model: this.target.gps_model,
                         ignition_sensor: this.target.ignition_sensor,
@@ -2761,8 +2787,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         target_color: this.target.target_color,
                         target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: new Date(this.processForm.newRenewalDate), // Nueva fecha de renovación
+                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
+                        expiration_date: this.parseLocalDate(this.processForm.newRenewalDate), // Nueva fecha de renovación
                         last_change_date: new Date(),
                         gps_model: this.target.gps_model,
                         ignition_sensor: this.target.ignition_sensor,
@@ -2853,8 +2879,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         target_color: this.target.target_color,
                         target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.processForm.newTechnician, // Nuevo técnico
-                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
                         last_change_date: new Date(),
                         gps_model: this.target.gps_model,
                         ignition_sensor: this.target.ignition_sensor,
@@ -2927,8 +2953,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         target_color: this.target.target_color,
                         target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
                         last_change_date: new Date(),
                         gps_model: this.target.gps_model, // Mantener el valor actual de gps_model
                         ignition_sensor: this.target.ignition_sensor,
@@ -3003,8 +3029,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         target_color: this.target.target_color,
                         target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
                         last_change_date: new Date(),
                         gps_model: this.target.gps_model,
                         ignition_sensor: this.target.ignition_sensor,
@@ -3075,8 +3101,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         target_color: this.target.target_color,
                         target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
                         last_change_date: new Date(),
                         gps_model: this.target.gps_model,
                         ignition_sensor: this.target.ignition_sensor,
@@ -3147,8 +3173,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         target_color: this.target.target_color,
                         target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
                         last_change_date: new Date(),
                         gps_model: this.target.gps_model,
                         ignition_sensor: this.target.ignition_sensor,
@@ -3219,8 +3245,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         target_color: this.target.target_color,
                         target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.target.mechanic_id,
-                        activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        activation_date: this.target.activation_date ? this.parseLocalDate(this.target.activation_date) : undefined,
+                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
                         last_change_date: new Date(),
                         gps_model: this.target.gps_model,
                         ignition_sensor: this.target.ignition_sensor,
@@ -3294,7 +3320,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.target.mechanic_id,
                         activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
                         last_change_date: new Date(),
                         gps_model: this.target.gps_model,
                         ignition_sensor: this.target.ignition_sensor,
@@ -3366,7 +3392,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         target_chassis_number: this.target.target_chassis_number,
                         mechanic_id: this.target.mechanic_id,
                         activation_date: this.target.activation_date ? new Date(this.target.activation_date) : undefined,
-                        expiration_date: this.target.expiration_date ? new Date(this.target.expiration_date) : undefined,
+                        expiration_date: this.target.expiration_date ? this.parseLocalDate(this.target.expiration_date) : undefined,
                         last_change_date: new Date(),
                         gps_model: this.target.gps_model,
                         ignition_sensor: this.target.ignition_sensor,
@@ -3451,6 +3477,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             newInstallationDate: '',
             newExpirationDate: '',
             newRenewalDate: '',
+            renewalYears: null,
             newTechnician: '',
             newGpsImei: '',
             newGpsModel: '',
@@ -3564,6 +3591,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         if (this.processForm.type !== 'renewal') {
             this.processForm.newRenewalDate = '';
+            this.processForm.renewalYears = null;
         }
 
         if (this.processForm.type !== 'technician_change') {
@@ -3601,6 +3629,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.processForm.newSimType = '';
         }
 
+        // Reset de años de renovación salvo cuando es renovación
+        if (this.processForm.type !== 'renewal') {
+            this.processForm.renewalYears = null;
+        }
+
         // Pre-llenar campos con valores actuales del target cuando corresponde
         if (this.processForm.type === 'installation') {
             // Pre-llenar con la fecha de instalación actual
@@ -3621,6 +3654,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             if (this.target.expiration_date) {
                 this.processForm.newRenewalDate = this.target.expiration_date;
             }
+            this.processForm.renewalYears = null;
         }
 
         if (this.processForm.type === 'technician_change') {
@@ -3687,6 +3721,20 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
 
         console.log('🔍 DEBUG: Precio del target DESPUÉS del cambio:', this.target.selectedPrice);
+    }
+
+    onRenewalYearsChange(): void {
+        const years = this.processForm.renewalYears;
+        if (!years) {
+            return;
+        }
+
+        // Base: fecha seleccionada, expiración actual o hoy
+        const baseDateStr = this.processForm.newRenewalDate || this.target.expiration_date || this.getTodayInputDate();
+        const baseDate = this.parseLocalDate(baseDateStr);
+        baseDate.setFullYear(baseDate.getFullYear() + years);
+
+        this.processForm.newRenewalDate = this.formatDateToInput(baseDate.toISOString());
     }
 
     // Método para manejar el cambio de precio en el proceso
