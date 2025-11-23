@@ -76,9 +76,9 @@
             <div class="alerts-options">
                 <button *ngFor="let option of alertsOptions" class="button button--flat-negative alerts-option"
                     type="button"
-                    [disabled]="option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition'"
-                    [ngClass]="{'alerts-option--disabled': option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition'}"
-                    (click)="option.labelKey === 'navbar.alertOptionSpeed' ? openSpeedAlertModal() : (option.labelKey === 'navbar.alertOptionPerimeter' ? openPerimeterAlertModal() : (option.labelKey === 'navbar.alertOptionIgnition' ? openIgnitionAlertModal() : null))">
+                    [disabled]="option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement'"
+                    [ngClass]="{'alerts-option--disabled': option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement'}"
+                    (click)="option.labelKey === 'navbar.alertOptionSpeed' ? openSpeedAlertModal() : (option.labelKey === 'navbar.alertOptionPerimeter' ? openPerimeterAlertModal() : (option.labelKey === 'navbar.alertOptionIgnition' ? openIgnitionAlertModal() : (option.labelKey === 'navbar.alertOptionMovement' ? openMovementAlertModal() : null)))">
                     {{ option.labelKey | translate }}
                 </button>
             </div>
@@ -1045,6 +1045,115 @@
 </p-dialog>
 
 <!-- Diálogo de confirmación removido - usando el global -->
+
+
+
+<!-- Modal de Alerta de Movimiento -->
+<p-dialog header="Alerta de Movimiento" [(visible)]="movementAlertDialogVisible" [modal]="true" [dismissableMask]="true"
+    [closeOnEscape]="true" [draggable]="false" appendTo="body" [style]="{width: '420px', maxWidth: '90vw'}"
+    (onShow)="loadMovementAlerts()">
+    <div class="ignition-alert-modal-content">
+        <form class="ignition-alert-form" (ngSubmit)="createMovementAlert()" #movementAlertForm="ngForm">
+            <div class="form-field">
+                <label for="movementNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
+                <div class="email-input-row">
+                    <input id="movementNotificationEmail" type="email" name="movementNotificationEmail"
+                        class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
+                        [(ngModel)]="movementNotificationEmail" (ngModelChange)="onMovementNotificationEmailChange()"
+                        [disabled]="!!movementNotificationEmailUserId" />
+
+                    <button type="button" class="speed-verify-button" (click)="verifyMovementNotificationEmail()"
+                        [disabled]="!movementNotificationEmail || verifyingMovementNotificationEmail || !!movementNotificationEmailUserId"
+                        [ngClass]="{'speed-verified': !!movementNotificationEmailUserId}">
+                        <i *ngIf="verifyingMovementNotificationEmail" class="pi pi-spin pi-spinner"></i>
+                        <i *ngIf="!verifyingMovementNotificationEmail && !!movementNotificationEmailUserId"
+                            class="pi pi-check"></i>
+                        <span *ngIf="!verifyingMovementNotificationEmail && !movementNotificationEmailUserId">{{
+                            'navbar.verify' | translate }}</span>
+                        <span *ngIf="!verifyingMovementNotificationEmail && !!movementNotificationEmailUserId">{{
+                            'navbar.verified' | translate }}</span>
+                    </button>
+
+                    <button *ngIf="movementNotificationEmailUserId" type="button" class="clear-btn"
+                        (click)="movementNotificationEmailUserId = null; movementNotificationEmail = ''">
+                        <i class="pi pi-times"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="create-alert-btn" [disabled]="creatingMovementAlert">
+                <i *ngIf="creatingMovementAlert" class="pi pi-spin pi-spinner"></i>
+                <span *ngIf="!creatingMovementAlert">{{ 'navbar.createAlert' | translate }}</span>
+                <span *ngIf="creatingMovementAlert">{{ 'navbar.creating' | translate }}</span>
+            </button>
+        </form>
+
+        <div class="ignition-alerts-history">
+            <h4>Historial de Alertas</h4>
+
+            <div *ngIf="loadingMovementAlerts" class="ignition-alerts-loading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando alertas...</span>
+            </div>
+
+            <div *ngIf="!loadingMovementAlerts && visibleMovementAlerts.length === 0" class="ignition-alerts-empty">
+                <i class="pi pi-info-circle"></i>
+                <p>{{ (currentSelectedTargets.length ? 'No hay alertas de movimiento para los dispositivos
+                    seleccionados'
+                    : 'No hay alertas de movimiento creadas') }}</p>
+            </div>
+
+            <div *ngIf="!loadingMovementAlerts && visibleMovementAlerts.length > 0" class="ignition-alerts-list">
+                <div *ngFor="let alert of visibleMovementAlerts" class="ignition-alert-item">
+                    <div class="alert-header">
+                        <span class="alert-trigger">
+                            <i class="pi pi-arrows-alt"></i>
+                            Movimiento
+                        </span>
+                        <span class="alert-status" [class.active]="alert.status === 'active'">
+                            {{ alert.status === 'active' ? 'Activa' : 'Inactiva' }}
+                        </span>
+                    </div>
+
+                    <div class="alert-info">
+                        <span class="alert-targets">
+                            <i class="pi pi-map-marker"></i>
+                            {{ alert.targetIds.length || 0 }} dispositivo(s)
+                        </span>
+                        <span class="alert-date">
+                            <i class="pi pi-calendar"></i>
+                            {{ alert.createdAt | date:'short' }}
+                        </span>
+                    </div>
+
+                    <div class="alert-recipient" *ngIf="getAlertRecipientEmail(alert)">
+                        <i class="pi pi-envelope"></i>
+                        <span>Notifica a: {{ getAlertRecipientEmail(alert) }}</span>
+                    </div>
+
+                    <div class="alert-creator" *ngIf="getCreatorEmail(alert)">
+                        <i class="pi pi-user"></i>
+                        <span>Creada por: {{ getCreatorEmail(alert) }}</span>
+                    </div>
+
+                    <div class="alert-actions">
+                        <button type="button" class="action-btn toggle-btn" (click)="toggleMovementAlertStatus(alert)"
+                            [disabled]="togglingMovementAlertId === alert._id"
+                            [title]="alert.status === 'active' ? 'Desactivar' : 'Activar'">
+                            <i *ngIf="togglingMovementAlertId !== alert._id"
+                                [class]="alert.status === 'active' ? 'pi pi-pause' : 'pi pi-play'"></i>
+                            <i *ngIf="togglingMovementAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
+                        </button>
+                        <button type="button" class="action-btn delete-btn" (click)="deleteMovementAlert(alert._id!)"
+                            [disabled]="deletingMovementAlertId === alert._id" title="Eliminar">
+                            <i *ngIf="deletingMovementAlertId !== alert._id" class="pi pi-trash"></i>
+                            <i *ngIf="deletingMovementAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</p-dialog>
 
 <!-- Toast para mensajes -->
 <p-toast></p-toast>

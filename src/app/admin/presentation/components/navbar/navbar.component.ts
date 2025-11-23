@@ -14,7 +14,10 @@ import { Plan } from '../../../../core/interfaces/plan.interface';
 import { UserService } from '../../../../core/services/user.service';
 import { User } from '../../../../core/interfaces/user.interface';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter, firstValueFrom } from 'rxjs';
-import { AlertsService, AlertResponse, AlertStatus } from '../../../../core/services/alerts.service';
+import { AlertsService, AlertResponse, AlertStatus, CreateAlertDto } from '../../../../core/services/alerts.service';
+
+// ... (inside NavbarComponent class)
+
 import { MapAlertComponent } from '../map-alert/map-alert.component';
 
 @Component({
@@ -127,6 +130,20 @@ export class NavbarComponent implements OnInit, OnDestroy {
   visibleIgnitionAlerts: AlertResponse[] = [];
   togglingIgnitionAlertId: string | null = null;
   deletingIgnitionAlertId: string | null = null;
+
+  // Movement alert variables
+  movementAlertDialogVisible: boolean = false;
+  movementNotificationEmail: string = '';
+  movementNotificationEmailUserId: string | null = null;
+  verifyingMovementNotificationEmail: boolean = false;
+  creatingMovementAlert: boolean = false;
+
+  // Movement alerts list
+  movementAlerts: AlertResponse[] = [];
+  loadingMovementAlerts: boolean = false;
+  visibleMovementAlerts: AlertResponse[] = [];
+  togglingMovementAlertId: string | null = null;
+  deletingMovementAlertId: string | null = null;
 
   // Modal de transferir targets
   transferDialogVisible: boolean = false;
@@ -961,6 +978,213 @@ export class NavbarComponent implements OnInit, OnDestroy {
         return false;
       }
       return alert.targetIds.some(targetId => selectedIds.includes(targetId));
+    });
+  }
+
+  // Métodos para alertas de movimiento
+  openMovementAlertModal(): void {
+    this.movementAlertDialogVisible = true;
+    if (this.currentUser?.email) {
+      this.movementNotificationEmail = this.currentUser.email;
+      if (this.currentUser.id) {
+        this.movementNotificationEmailUserId = this.currentUser.id;
+      }
+    }
+  }
+
+  onMovementNotificationEmailChange(): void {
+    if (
+      this.movementNotificationEmail &&
+      this.currentUser?.email &&
+      this.movementNotificationEmail.trim().toLowerCase() ===
+      this.currentUser.email.toLowerCase() &&
+      this.currentUser?.id
+    ) {
+      this.movementNotificationEmailUserId = this.currentUser.id;
+    } else {
+      this.movementNotificationEmailUserId = null;
+    }
+  }
+
+  async verifyMovementNotificationEmail(): Promise<void> {
+    if (!this.movementNotificationEmail) return;
+
+    this.verifyingMovementNotificationEmail = true;
+    try {
+      // Usar el mismo patrón que en alertas de perímetro/encendido
+      const users = await firstValueFrom(this.userService.getByEmail(this.movementNotificationEmail));
+      if (users && (users as any).length > 0) {
+        this.movementNotificationEmailUserId = (users as any)[0]._id;
+        this.messageService.add({
+          severity: 'success',
+          summary: this.translate.instant('common.success'),
+          detail: this.translate.instant('navbar.emailVerified')
+        });
+      } else {
+        this.movementNotificationEmailUserId = null;
+        this.messageService.add({
+          severity: 'warn',
+          summary: this.translate.instant('common.warning'),
+          detail: this.translate.instant('navbar.emailNotFound')
+        });
+      }
+    } catch (error) {
+      console.error('Error verifying email:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail: this.translate.instant('navbar.errorVerifyingEmail')
+      });
+    } finally {
+      this.verifyingMovementNotificationEmail = false;
+    }
+  }
+
+  async createMovementAlert(): Promise<void> {
+    if (!this.movementNotificationEmail) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: this.translate.instant('navbar.emailRequired')
+      });
+      return;
+    }
+
+    if (!this.currentSelectedTargets || this.currentSelectedTargets.length === 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: this.translate.instant('navbar.noDevicesSelected')
+      });
+      return;
+    }
+
+    this.creatingMovementAlert = true;
+    try {
+      const targetIds = this.currentSelectedTargets
+        .map(t => t?._id || (t as any)?.id)
+        .filter(id => !!id);
+
+      const alertData: CreateAlertDto = {
+        type: 'movement',
+        targetIds: targetIds,
+        userTopic: this.movementNotificationEmailUserId,
+        email: this.movementNotificationEmail
+      } as any;
+
+      await firstValueFrom(this.alertsService.createAlert(alertData));
+
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('common.success'),
+        detail: 'Alerta de movimiento creada correctamente'
+      });
+
+      this.movementNotificationEmail = '';
+      this.movementNotificationEmailUserId = null;
+      this.loadMovementAlerts();
+    } catch (error) {
+      console.error('Error creating movement alert:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail: 'Error al crear la alerta de movimiento'
+      });
+    } finally {
+      this.creatingMovementAlert = false;
+    }
+  }
+
+  async loadMovementAlerts(): Promise<void> {
+    if (!this.currentUser?.id) return;
+
+    this.loadingMovementAlerts = true;
+    try {
+      const alerts = await firstValueFrom(this.alertsService.getAlerts());
+      this.movementAlerts = alerts.filter(alert => alert.type === 'movement');
+      this.filterVisibleMovementAlerts();
+    } catch (error) {
+      console.error('Error loading movement alerts:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail: 'Error al cargar las alertas de movimiento'
+      });
+    } finally {
+      this.loadingMovementAlerts = false;
+    }
+  }
+
+  private filterVisibleMovementAlerts(): void {
+    const selectedIds = (this.currentSelectedTargets || [])
+      .map(t => t?._id || (t as any)?.id)
+      .filter((id): id is string => !!id);
+
+    if (!selectedIds.length) {
+      this.visibleMovementAlerts = this.movementAlerts;
+      return;
+    }
+
+    this.visibleMovementAlerts = this.movementAlerts.filter(alert => {
+      if (!Array.isArray(alert.targetIds) || alert.targetIds.length === 0) {
+        return false;
+      }
+      return alert.targetIds.some(targetId => selectedIds.includes(targetId));
+    });
+  }
+
+  async toggleMovementAlertStatus(alert: AlertResponse): Promise<void> {
+    if (!alert._id) return;
+
+    this.togglingMovementAlertId = alert._id;
+    const newStatus = alert.status === 'active' ? 'inactive' : 'active';
+
+    try {
+      await firstValueFrom(this.alertsService.updateAlertStatus(alert._id, newStatus));
+      alert.status = newStatus;
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('common.success'),
+        detail: `Alerta ${newStatus === 'active' ? 'activada' : 'desactivada'} correctamente`
+      });
+    } catch (error) {
+      console.error('Error updating alert status:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail: 'Error al actualizar el estado de la alerta'
+      });
+    } finally {
+      this.togglingMovementAlertId = null;
+    }
+  }
+
+  deleteMovementAlert(alertId: string): void {
+    this.confirmationService.confirm({
+      message: '¿Estás seguro de que deseas eliminar esta alerta?',
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: async () => {
+        this.deletingMovementAlertId = alertId;
+        try {
+          await firstValueFrom(this.alertsService.deleteAlert(alertId));
+          this.messageService.add({
+            severity: 'success',
+            summary: this.translate.instant('common.success'),
+            detail: 'Alerta eliminada correctamente'
+          });
+          this.loadMovementAlerts();
+        } catch (error) {
+          console.error('Error deleting alert:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: this.translate.instant('common.error'),
+            detail: 'Error al eliminar la alerta'
+          });
+        } finally {
+          this.deletingMovementAlertId = null;
+        }
+      }
     });
   }
 
