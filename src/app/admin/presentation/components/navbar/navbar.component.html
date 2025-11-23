@@ -1,43 +1,32 @@
 <!-- <p-progressbar color="#fa4c4c" *ngIf="loadingTheme" mode="indeterminate" [style]="{ height: '6px' }" /> -->
 <div class="main">
     <div class="navbar">
-   
+
         <div class="navbar__controls">
             <div class="navbar__controls-base">
-                <button 
-                    class="button button--flat-negative"
-                    [class.button--disabled]="!hasSelectedTargets"
-                    [disabled]="!hasSelectedTargets"
-                    (click)="hasSelectedTargets ? openAlertsModal() : null"
+                <button class="button button--flat-negative" [class.button--disabled]="!hasSelectedTargets"
+                    [disabled]="!hasSelectedTargets" (click)="hasSelectedTargets ? openAlertsModal() : null"
                     [title]="hasSelectedTargets ? ('navbar.alertsTooltip' | translate) + ' (' + selectedTargetsCount + ')' : ('navbar.alertsDisabledTooltip' | translate)">
                     <i class="pi pi-bell"></i>
                     {{ 'navbar.alerts' | translate }}
                     <span *ngIf="hasSelectedTargets" class="selection-badge">({{ selectedTargetsCount }})</span>
                 </button>
-                <button 
-                    *ngIf="showCanceledButton"
-                    class="button button--flat-negative"
-                    (click)="openCanceledTargetsDrawer()"
-                    title="{{ 'navbar.canceledTooltip' | translate }}">
+                <button *ngIf="showCanceledButton" class="button button--flat-negative"
+                    (click)="openCanceledTargetsDrawer()" title="{{ 'navbar.canceledTooltip' | translate }}">
                     <i class="pi pi-trash"></i>
                     {{ 'navbar.canceled' | translate }}
-                    <span *ngIf="totalCanceledTargetsCount > 0" class="selection-badge">({{ totalCanceledTargetsCount }})</span>
+                    <span *ngIf="totalCanceledTargetsCount > 0" class="selection-badge">({{ totalCanceledTargetsCount
+                        }})</span>
                 </button>
-                <button 
-                    class="button button--flat-negative"
-                    [class.button--disabled]="!hasSelectedTargets"
-                    [disabled]="!hasSelectedTargets"
-                    (click)="hasSelectedTargets ? transferSelectedTargets() : null"
+                <button class="button button--flat-negative" [class.button--disabled]="!hasSelectedTargets"
+                    [disabled]="!hasSelectedTargets" (click)="hasSelectedTargets ? transferSelectedTargets() : null"
                     [title]="hasSelectedTargets ? ('navbar.transferTooltip' | translate) + ' (' + selectedTargetsCount + ')' : ('navbar.transferDisabledTooltip' | translate)">
                     <i class="pi pi-reply"></i>
                     {{ 'navbar.transfer' | translate }}
                     <span *ngIf="hasSelectedTargets" class="selection-badge">({{ selectedTargetsCount }})</span>
                 </button>
-                <button 
-                    class="button button--flat-negative"
-                    [class.button--disabled]="!hasSelectedTargets"
-                    [disabled]="!hasSelectedTargets"
-                    (click)="hasSelectedTargets ? shareSelectedTargets() : null"
+                <button class="button button--flat-negative" [class.button--disabled]="!hasSelectedTargets"
+                    [disabled]="!hasSelectedTargets" (click)="hasSelectedTargets ? shareSelectedTargets() : null"
                     [title]="hasSelectedTargets ? ('navbar.shareTooltip' | translate) + ' (' + selectedTargetsCount + ')' : ('navbar.shareDisabledTooltip' | translate)">
                     <i class="pi pi-share-alt"></i>
                     {{ 'navbar.share' | translate }}
@@ -49,7 +38,7 @@
                 <p-menu #menu [model]="items" [popup]="true" styleClass="ellipsis-dropdown-menu" />
                 <i (click)="menu.toggle($event)" class="pi pi-ellipsis-v"></i>
             </div>
-         
+
         </div>
         <div class="navbar__info">
             <!-- <i class="pi pi-question-circle"></i> -->
@@ -78,27 +67,18 @@
     </div>
 </div>
 
-<p-dialog
-    header="{{ 'navbar.alerts' | translate }}"
-    [(visible)]="alertsDialogVisible"
-    [modal]="true"
-    [dismissableMask]="true"
-    [closeOnEscape]="true"
-    [draggable]="false"
-    appendTo="body"
-    [style]="{width: '640px', maxWidth: '90vw'}"
-    styleClass="alerts-dialog">
+<p-dialog header="{{ 'navbar.alerts' | translate }}" [(visible)]="alertsDialogVisible" [modal]="true"
+    [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
+    [style]="{width: '640px', maxWidth: '90vw'}" styleClass="alerts-dialog">
     <div class="alerts-modal-content">
         <div class="alerts-column">
             <h4>{{ 'navbar.alertTypes' | translate }}</h4>
             <div class="alerts-options">
-                <button 
-                    *ngFor="let option of alertsOptions"
-                    class="button button--flat-negative alerts-option"
+                <button *ngFor="let option of alertsOptions" class="button button--flat-negative alerts-option"
                     type="button"
-                    [disabled]="option.labelKey !== 'navbar.alertOptionSpeed'"
-                    [ngClass]="{'alerts-option--disabled': option.labelKey !== 'navbar.alertOptionSpeed'}"
-                    (click)="option.labelKey === 'navbar.alertOptionSpeed' ? openSpeedAlertModal() : null">
+                    [disabled]="option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition'"
+                    [ngClass]="{'alerts-option--disabled': option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition'}"
+                    (click)="option.labelKey === 'navbar.alertOptionSpeed' ? openSpeedAlertModal() : (option.labelKey === 'navbar.alertOptionPerimeter' ? openPerimeterAlertModal() : (option.labelKey === 'navbar.alertOptionIgnition' ? openIgnitionAlertModal() : null))">
                     {{ option.labelKey | translate }}
                 </button>
             </div>
@@ -108,11 +88,8 @@
                 {{ 'navbar.selectedTargets' | translate }}
                 ({{ currentSelectedTargets.length }})
             </h4>
-            <div *ngIf="currentSelectedTargets.length; else noSelectedTargets"
-                 class="targets-list alerts-targets-list">
-                <div 
-                    *ngFor="let target of currentSelectedTargets"
-                    class="target-item">
+            <div *ngIf="currentSelectedTargets.length; else noSelectedTargets" class="targets-list alerts-targets-list">
+                <div *ngFor="let target of currentSelectedTargets" class="target-item">
                     <div class="target-info">
                         <i class="pi pi-map-marker"></i>
                         <div class="target-details">
@@ -134,70 +111,55 @@
     </div>
 </p-dialog>
 
-<p-dialog
-    header="{{ 'navbar.alertOptionSpeed' | translate }}"
-    [(visible)]="speedAlertDialogVisible"
-    [modal]="true"
-    [dismissableMask]="true"
-    [closeOnEscape]="true"
-    [draggable]="false"
-    appendTo="body"
+<p-dialog header="{{ 'navbar.alertOptionSpeed' | translate }}" [(visible)]="speedAlertDialogVisible" [modal]="true"
+    [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
     [style]="{width: '420px', maxWidth: '90vw'}">
     <div class="speed-alert-modal-content">
         <form class="speed-alert-form" (ngSubmit)="createSpeedAlert()" #speedAlertForm="ngForm">
             <div class="form-field">
                 <label for="maxSpeedInput">{{ 'navbar.maxSpeedLabel' | translate }}</label>
                 <div class="input-with-unit">
-                    <input
-                        id="maxSpeedInput"
-                        type="number"
-                        min="1"
-                        step="1"
-                        required
-                        [(ngModel)]="maxSpeedValue"
-                        name="maxSpeedValue"
-                        class="input"
-                        placeholder="0" />
+                    <input id="maxSpeedInput" type="number" min="1" step="1" required [(ngModel)]="maxSpeedValue"
+                        name="maxSpeedValue" class="custom-input" placeholder="0" />
                     <span class="unit">km/h</span>
                 </div>
             </div>
             <div class="form-field">
                 <label for="notificationEmailInput">{{ 'navbar.notifyEmailLabel' | translate }}</label>
-                <div class="notification-email-row">
-                    <input
-                        id="notificationEmailInput"
-                        type="email"
-                        name="notificationEmail"
-                        class="input"
-                        [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
-                        [(ngModel)]="notificationEmail"
-                        (ngModelChange)="onNotificationEmailChange()"
-                    />
-                    <button
-                        type="button"
-                        class="button button--flat"
-                        (click)="verifyNotificationEmail()"
-                        [disabled]="verifyingNotificationEmail || !notificationEmail">
-                        <i *ngIf="verifyingNotificationEmail" class="pi pi-spin pi-spinner" style="margin-right: 0.5rem;"></i>
-                        <span>{{ 'navbar.verifyEmail' | translate }}</span>
+                <div class="email-input-row">
+                    <input id="notificationEmailInput" type="email" name="notificationEmail" class="custom-input"
+                        [placeholder]="'navbar.notifyEmailPlaceholder' | translate" [(ngModel)]="notificationEmail"
+                        (ngModelChange)="onNotificationEmailChange()" [disabled]="!!notificationEmailUserId" />
+
+                    <button type="button" class="speed-verify-button" (click)="verifyNotificationEmail()"
+                        [disabled]="!notificationEmail || verifyingNotificationEmail || !!notificationEmailUserId"
+                        [ngClass]="{'speed-verified': !!notificationEmailUserId}">
+                        <i *ngIf="verifyingNotificationEmail" class="pi pi-spin pi-spinner"></i>
+                        <i *ngIf="!verifyingNotificationEmail && !!notificationEmailUserId" class="pi pi-check"></i>
+                        <span *ngIf="!verifyingNotificationEmail && !notificationEmailUserId">{{ 'navbar.verify' |
+                            translate }}</span>
+                        <span *ngIf="!verifyingNotificationEmail && !!notificationEmailUserId">{{
+                            'navbar.verified' |
+                            translate }}</span>
+                    </button>
+
+                    <button *ngIf="notificationEmailUserId" type="button" class="clear-btn"
+                        (click)="notificationEmailUserId = null; notificationEmail = ''">
+                        <i class="pi pi-times"></i>
                     </button>
                 </div>
-                <small *ngIf="notificationEmailUserId" class="verification-success">
-                    {{ 'navbar.verifyEmailSuccessShort' | translate }}
-                </small>
             </div>
-            <button 
-                type="submit" 
-                class="button button--primary full-width"
-                [disabled]="speedAlertForm.invalid || creatingAlert">
-                <i *ngIf="creatingAlert" class="pi pi-spin pi-spinner" style="margin-right: 0.5rem;"></i>
-                <span>{{ 'navbar.createAlert' | translate }}</span>
+            <button type="submit" class="create-alert-btn" [disabled]="speedAlertForm.invalid || creatingAlert">
+                <i *ngIf="creatingAlert" class="pi pi-spin pi-spinner"></i>
+                <span *ngIf="!creatingAlert">{{ 'navbar.createAlert' | translate }}</span>
+                <span *ngIf="creatingAlert">{{ 'navbar.creating' | translate }}</span>
             </button>
         </form>
 
         <div class="speed-alerts-history">
             <h4>
-                {{ (currentSelectedTargets.length ? 'navbar.speedAlertsTitle' : 'navbar.speedAlertsGlobalTitle') | translate }}
+                {{ (currentSelectedTargets.length ? 'navbar.speedAlertsTitle' : 'navbar.speedAlertsGlobalTitle') |
+                translate }}
             </h4>
             <div *ngIf="loadingSpeedAlerts" class="speed-alerts-loading">
                 <i class="pi pi-spin pi-spinner"></i>
@@ -206,68 +168,49 @@
             <ng-container *ngIf="!loadingSpeedAlerts">
                 <div *ngIf="visibleSpeedAlerts.length; else emptySpeedAlerts" class="speed-alerts-list">
                     <div *ngFor="let alert of visibleSpeedAlerts" class="speed-alert-item">
-                        <div class="speed-alert-meta">
-                            <div class="speed-alert-meta-info">
-                                <span class="speed-alert-max">{{ alert.config?.['maxSpeed'] ?? '-' }} km/h</span>
-                                <small>
-                                    {{ alert.createdAt | date:'short' }}
-                                </small>
-                            </div>
-                            <button 
-                                type="button" 
-                                class="speed-alert-delete"
-                                pTooltip="{{ 'navbar.deleteAlert' | translate }}"
-                                tooltipPosition="top"
-                                (click)="confirmDeleteAlert(alert)"
-                                [disabled]="deletingAlertId === alert._id">
-                                <i *ngIf="deletingAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
-                                <i *ngIf="deletingAlertId !== alert._id" class="pi pi-trash"></i>
-                            </button>
-                        </div>
-                        <div class="speed-alert-targets" *ngIf="alert.targetIds?.length">
-                            {{ 'navbar.alertTargetsCount' | translate:{ count: alert.targetIds.length } }}
-                        </div>
-                        <div class="speed-alert-recipient">
-                            {{ 'navbar.notifyRecipientDisplay' | translate }}:
-                            <span class="speed-alert-recipient-email">
-                                {{ getAlertRecipientEmail(alert) || ('navbar.notifyRecipientUnknown' | translate) }}
+                        <div class="alert-header">
+                            <span class="alert-trigger">
+                                <i class="pi pi-gauge"></i>
+                                {{ alert.config?.['maxSpeed'] ?? '-' }} km/h
+                            </span>
+                            <span class="alert-status" [class.active]="alert.status === 'active'">
+                                {{ alert.status === 'active' ? 'Activa' : 'Inactiva' }}
                             </span>
                         </div>
-                        <div class="speed-alert-creator" *ngIf="alert.createdBy">
+
+                        <div class="alert-info">
+                            <span class="alert-targets">
+                                <i class="pi pi-map-marker"></i>
+                                {{ alert.targetIds.length || 0 }} dispositivo(s)
+                            </span>
+                            <span class="alert-date">
+                                <i class="pi pi-calendar"></i>
+                                {{ alert.createdAt | date:'short' }}
+                            </span>
+                        </div>
+
+                        <div class="alert-recipient" *ngIf="getAlertRecipientEmail(alert)">
+                            <i class="pi pi-envelope"></i>
+                            <span>Notifica a: {{ getAlertRecipientEmail(alert) }}</span>
+                        </div>
+
+                        <div class="alert-creator" *ngIf="getCreatorEmail(alert)">
                             <i class="pi pi-user"></i>
-                            <span class="speed-alert-creator-label">Creado por:</span>
-                            <span class="speed-alert-creator-name">{{ getCreatorName(alert) }}</span>
+                            <span>Creada por: {{ getCreatorEmail(alert) }}</span>
                         </div>
-                        <div class="speed-alert-status-row">
-                            <span
-                                class="speed-alert-status"
-                                [ngClass]="{
-                                    'speed-alert-status--inactive': alert.status !== 'active'
-                                }"
-                            >
-                                {{
-                                    alert.status === 'active'
-                                        ? ('navbar.alertStatusActive' | translate)
-                                        : ('navbar.alertStatusInactive' | translate)
-                                }}
-                            </span>
-                            <button
-                                type="button"
-                                class="button button--flat speed-alert-toggle"
-                                (click)="toggleAlertStatus(alert)"
+
+                        <div class="alert-actions">
+                            <button type="button" class="action-btn toggle-btn" (click)="toggleAlertStatus(alert)"
                                 [disabled]="togglingAlertId === alert._id"
-                            >
-                                <i
-                                    *ngIf="togglingAlertId === alert._id"
-                                    class="pi pi-spin pi-spinner"
-                                ></i>
-                                <span *ngIf="togglingAlertId !== alert._id">
-                                    {{
-                                        alert.status === 'active'
-                                            ? ('navbar.disableAlert' | translate)
-                                            : ('navbar.enableAlert' | translate)
-                                    }}
-                                </span>
+                                [title]="alert.status === 'active' ? 'Desactivar' : 'Activar'">
+                                <i *ngIf="togglingAlertId !== alert._id"
+                                    [class]="alert.status === 'active' ? 'pi pi-pause' : 'pi pi-play'"></i>
+                                <i *ngIf="togglingAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
+                            </button>
+                            <button type="button" class="action-btn delete-btn" (click)="confirmDeleteAlert(alert)"
+                                [disabled]="deletingAlertId === alert._id" title="Eliminar">
+                                <i *ngIf="deletingAlertId !== alert._id" class="pi pi-trash"></i>
+                                <i *ngIf="deletingAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
                             </button>
                         </div>
                     </div>
@@ -283,38 +226,268 @@
     </div>
 </p-dialog>
 
+<!-- Modal de Alerta de Encendido -->
+<p-dialog header="Alerta de Encendido" [(visible)]="ignitionAlertDialogVisible" [modal]="true" [dismissableMask]="true"
+    [closeOnEscape]="true" [draggable]="false" appendTo="body" [style]="{width: '420px', maxWidth: '90vw'}"
+    (onShow)="loadIgnitionAlerts()">
+    <div class="ignition-alert-modal-content">
+        <form class="ignition-alert-form" (ngSubmit)="createIgnitionAlert()" #ignitionAlertForm="ngForm">
+            <div class="form-field">
+                <label for="ignitionTrigger">¿Cuándo notificar?</label>
+                <div class="input-with-unit">
+                    <select id="ignitionTrigger" [(ngModel)]="ignitionTrigger" name="ignitionTrigger">
+                        <option value="on">Notificar al encender el motor</option>
+                        <option value="off">Notificar al apagar el motor</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="ignitionNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
+                <div class="email-input-row">
+                    <input id="ignitionNotificationEmail" type="email" name="ignitionNotificationEmail"
+                        class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
+                        [(ngModel)]="ignitionNotificationEmail" (ngModelChange)="onIgnitionNotificationEmailChange()"
+                        [disabled]="!!ignitionNotificationEmailUserId" />
+
+                    <button type="button" class="speed-verify-button" (click)="verifyIgnitionNotificationEmail()"
+                        [disabled]="!ignitionNotificationEmail || verifyingIgnitionNotificationEmail || !!ignitionNotificationEmailUserId"
+                        [ngClass]="{'speed-verified': !!ignitionNotificationEmailUserId}">
+                        <i *ngIf="verifyingIgnitionNotificationEmail" class="pi pi-spin pi-spinner"></i>
+                        <i *ngIf="!verifyingIgnitionNotificationEmail && !!ignitionNotificationEmailUserId"
+                            class="pi pi-check"></i>
+                        <span *ngIf="!verifyingIgnitionNotificationEmail && !ignitionNotificationEmailUserId">{{
+                            'navbar.verify' | translate }}</span>
+                        <span *ngIf="!verifyingIgnitionNotificationEmail && !!ignitionNotificationEmailUserId">{{
+                            'navbar.verified' | translate }}</span>
+                    </button>
+
+                    <button *ngIf="ignitionNotificationEmailUserId" type="button" class="clear-btn"
+                        (click)="ignitionNotificationEmailUserId = null; ignitionNotificationEmail = ''">
+                        <i class="pi pi-times"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="create-alert-btn" [disabled]="creatingIgnitionAlert">
+                <i *ngIf="creatingIgnitionAlert" class="pi pi-spin pi-spinner"></i>
+                <span *ngIf="!creatingIgnitionAlert">{{ 'navbar.createAlert' | translate }}</span>
+                <span *ngIf="creatingIgnitionAlert">{{ 'navbar.creating' | translate }}</span>
+            </button>
+        </form>
+
+        <div class="ignition-alerts-history">
+            <h4>Alertas de encendido</h4>
+            <div *ngIf="loadingIgnitionAlerts" class="ignition-alerts-loading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>{{ 'common.loading' | translate }}...</span>
+            </div>
+            <ng-container *ngIf="!loadingIgnitionAlerts">
+                <div *ngIf="visibleIgnitionAlerts.length; else emptyIgnitionAlerts" class="ignition-alerts-list">
+                    <div *ngFor="let alert of visibleIgnitionAlerts" class="ignition-alert-item">
+                        <div class="alert-header">
+                            <span class="alert-trigger">
+                                <i class="pi pi-power-off"></i>
+                                {{ alert.config?.['ignitionTrigger'] === 'on' ? 'Encendido' : 'Apagado' }}
+                            </span>
+                            <span class="alert-status" [class.active]="alert.status === 'active'">
+                                {{ alert.status === 'active' ? 'Activa' : 'Inactiva' }}
+                            </span>
+                        </div>
+
+                        <div class="alert-info">
+                            <span class="alert-targets">
+                                <i class="pi pi-map-marker"></i>
+                                {{ alert.targetIds.length || 0 }} dispositivo(s)
+                            </span>
+                            <span class="alert-date">
+                                <i class="pi pi-calendar"></i>
+                                {{ alert.createdAt | date:'short' }}
+                            </span>
+                        </div>
+
+                        <div class="alert-recipient" *ngIf="getAlertRecipientEmail(alert)">
+                            <i class="pi pi-envelope"></i>
+                            <span>Notifica a: {{ getAlertRecipientEmail(alert) }}</span>
+                        </div>
+
+                        <div class="alert-creator" *ngIf="getCreatorEmail(alert)">
+                            <i class="pi pi-user"></i>
+                            <span>Creada por: {{ getCreatorEmail(alert) }}</span>
+                        </div>
+
+                        <div class="alert-actions">
+                            <button type="button" class="action-btn toggle-btn"
+                                (click)="toggleIgnitionAlertStatus(alert)"
+                                [disabled]="togglingIgnitionAlertId === alert._id"
+                                [title]="alert.status === 'active' ? 'Desactivar' : 'Activar'">
+                                <i *ngIf="togglingIgnitionAlertId !== alert._id"
+                                    [class]="alert.status === 'active' ? 'pi pi-pause' : 'pi pi-play'"></i>
+                                <i *ngIf="togglingIgnitionAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
+                            </button>
+                            <button type="button" class="action-btn delete-btn" (click)="deleteIgnitionAlert(alert)"
+                                [disabled]="deletingIgnitionAlertId === alert._id" title="Eliminar">
+                                <i *ngIf="deletingIgnitionAlertId !== alert._id" class="pi pi-trash"></i>
+                                <i *ngIf="deletingIgnitionAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <ng-template #emptyIgnitionAlerts>
+                    <div class="ignition-alerts-empty">
+                        <i class="pi pi-info-circle"></i>
+                        <span>No hay alertas de encendido creadas</span>
+                    </div>
+                </ng-template>
+            </ng-container>
+        </div>
+    </div>
+</p-dialog>
+
+<p-dialog header="{{ 'navbar.alertOptionPerimeter' | translate }}" [(visible)]="perimeterAlertDialogVisible"
+    [modal]="true" [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
+    [style]="{width: '900px', maxWidth: '95vw'}" (onShow)="loadPerimeterAlerts()">
+    <div class="perimeter-alert-modal-content">
+        <!-- Columna izquierda: Lista de alertas -->
+        <div class="perimeter-alerts-list">
+            <h4>Alertas activas</h4>
+
+            <div *ngIf="loadingPerimeterAlerts" class="perimeter-alerts-loading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando alertas...</span>
+            </div>
+
+            <div *ngIf="!loadingPerimeterAlerts && visiblePerimeterAlerts.length === 0" class="perimeter-alerts-empty">
+                <i class="pi pi-info-circle"></i>
+                <p>{{ (currentSelectedTargets.length ? 'No hay alertas de perímetro para los dispositivos seleccionados'
+                    : 'No hay alertas de perímetro creadas') }}</p>
+            </div>
+
+            <div *ngIf="!loadingPerimeterAlerts && visiblePerimeterAlerts.length > 0" class="perimeter-alerts-items">
+                <div *ngFor="let alert of visiblePerimeterAlerts" class="perimeter-alert-item">
+                    <div class="alert-header">
+                        <span class="alert-trigger">
+                            <i [class]="alert.config?.['trigger'] === 'enter' ? 'pi pi-sign-in' : 'pi pi-sign-out'"></i>
+                            {{ alert.config?.['trigger'] === 'enter' ? 'Entrada' : 'Salida' }}
+                        </span>
+                        <span class="alert-status" [class.active]="alert.status === 'active'">
+                            {{ alert.status === 'active' ? 'Activa' : 'Inactiva' }}
+                        </span>
+                    </div>
+
+                    <div class="alert-info">
+                        <span class="alert-targets">
+                            <i class="pi pi-map-marker"></i>
+                            {{ alert.targetIds.length || 0 }} dispositivo(s)
+                        </span>
+                        <span class="alert-coordinates">
+                            <i class="pi pi-th-large"></i>
+                            {{ alert.config?.['coordinates']?.length || 0 }} puntos
+                        </span>
+                    </div>
+
+                    <div class="alert-recipient" *ngIf="getAlertRecipientEmail(alert)">
+                        <i class="pi pi-envelope"></i>
+                        <span>Notifica a: {{ getAlertRecipientEmail(alert) }}</span>
+                    </div>
+
+                    <div class="alert-creator" *ngIf="getCreatorEmail(alert)">
+                        <i class="pi pi-user"></i>
+                        <span>Creada por: {{ getCreatorEmail(alert) }}</span>
+                    </div>
+
+                    <div class="alert-actions">
+                        <button type="button" class="action-btn toggle-btn" (click)="togglePerimeterAlertStatus(alert)"
+                            [disabled]="togglingPerimeterAlertId === alert._id"
+                            [title]="alert.status === 'active' ? 'Desactivar' : 'Activar'">
+                            <i *ngIf="togglingPerimeterAlertId !== alert._id"
+                                [class]="alert.status === 'active' ? 'pi pi-pause' : 'pi pi-play'"></i>
+                            <i *ngIf="togglingPerimeterAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
+                        </button>
+                        <button type="button" class="action-btn delete-btn" (click)="deletePerimeterAlert(alert)"
+                            title="Eliminar">
+                            <i class="pi pi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna derecha: Mapa y formulario -->
+        <div class="perimeter-map-form">
+            <app-map-alert provider="google" theme="light"></app-map-alert>
+
+            <form class="perimeter-form-fields" (ngSubmit)="createPerimeterAlert()" #perimeterAlertForm="ngForm">
+                <div class="form-field">
+                    <label for="perimeterNotificationTrigger">¿Cuándo notificar?</label>
+                    <div class="input-with-unit"
+                        style="border: 1px solid var(--globalColorBorderInput, #e5e7eb); background-color: var(--globalColorInputBackground, transparent);">
+                        <select id="perimeterNotificationTrigger" [(ngModel)]="perimeterNotificationTrigger"
+                            name="perimeterNotificationTrigger"
+                            style="flex: 1; border: none; background: transparent; padding: 0.75rem 0.9rem; color: var(--globalColorTextDark, #374151); font-size: 1rem; outline: none;">
+                            <option value="enter">Notificar al entrar al perímetro</option>
+                            <option value="exit">Notificar al salir del perímetro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="perimeterNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
+                    <div class="email-input-row">
+                        <input id="perimeterNotificationEmail" type="email" name="perimeterNotificationEmail"
+                            class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
+                            [(ngModel)]="perimeterNotificationEmail"
+                            (ngModelChange)="onPerimeterNotificationEmailChange()"
+                            [disabled]="!!perimeterNotificationEmailUserId" />
+
+                        <button type="button" class="speed-verify-button" (click)="verifyPerimeterNotificationEmail()"
+                            [disabled]="!perimeterNotificationEmail || verifyingPerimeterNotificationEmail || !!perimeterNotificationEmailUserId"
+                            [ngClass]="{'speed-verified': !!perimeterNotificationEmailUserId}">
+                            <i *ngIf="verifyingPerimeterNotificationEmail" class="pi pi-spin pi-spinner"></i>
+                            <i *ngIf="!verifyingPerimeterNotificationEmail && !!perimeterNotificationEmailUserId"
+                                class="pi pi-check"></i>
+                            <span *ngIf="!verifyingPerimeterNotificationEmail && !perimeterNotificationEmailUserId">{{
+                                'navbar.verify' | translate }}</span>
+                            <span *ngIf="!verifyingPerimeterNotificationEmail && !!perimeterNotificationEmailUserId">{{
+                                'navbar.verified' | translate }}</span>
+                        </button>
+
+                        <button *ngIf="perimeterNotificationEmailUserId" type="button" class="clear-btn"
+                            (click)="perimeterNotificationEmailUserId = null; perimeterNotificationEmail = ''">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="create-alert-btn" [disabled]="creatingPerimeterAlert">
+                    <i *ngIf="creatingPerimeterAlert" class="pi pi-spin pi-spinner"></i>
+                    <span *ngIf="!creatingPerimeterAlert">{{ 'navbar.createAlert' | translate }}</span>
+                    <span *ngIf="creatingPerimeterAlert">{{ 'navbar.creating' | translate }}</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</p-dialog>
+
 <!-- Drawer para targets cancelados -->
-<p-drawer 
-    [(visible)]="canceledDrawerVisible" 
-    [modal]="true" 
-    position="left"
-    [style]="{maxWidth: '650px', width: '100%', height: '100vh'}"
-    styleClass="canceled-targets-drawer">
-    
+<p-drawer [(visible)]="canceledDrawerVisible" [modal]="true" position="left"
+    [style]="{maxWidth: '650px', width: '100%', height: '100vh'}" styleClass="canceled-targets-drawer">
+
     <ng-template pTemplate="header">
         <div style="display: flex; align-items: center; gap: 0.5rem;">
             <i class="pi pi-trash" style="color: var(--managementColorTextUser);"></i>
             <span>{{ 'navbar.canceledTargets' | translate }}</span>
         </div>
     </ng-template>
-    
+
     <ng-template pTemplate="content">
         <div class="canceled-targets-content">
             <!-- Campo de búsqueda -->
             <div class="search-section">
                 <div class="search-input-container">
                     <i class="pi pi-search search-icon"></i>
-                    <input 
-                        type="text" 
-                        [(ngModel)]="canceledSearchTerm"
-                        (input)="onCanceledSearch()"
-                        [placeholder]="'navbar.searchCanceledTargets' | translate"
-                        class="search-input"
+                    <input type="text" [(ngModel)]="canceledSearchTerm" (input)="onCanceledSearch()"
+                        [placeholder]="'navbar.searchCanceledTargets' | translate" class="search-input"
                         autocomplete="off">
-                    <button 
-                        *ngIf="canceledSearchTerm" 
-                        (click)="clearCanceledSearch()" 
-                        class="clear-search-btn"
+                    <button *ngIf="canceledSearchTerm" (click)="clearCanceledSearch()" class="clear-search-btn"
                         title="{{ 'navbar.clearSearch' | translate }}">
                         <i class="pi pi-times"></i>
                     </button>
@@ -330,11 +503,10 @@
                 <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: var(--globalColorAccent);"></i>
                 <p>{{ 'common.loading' | translate }}...</p>
             </div>
-            
+
             <!-- Lista de targets cancelados -->
-            <div *ngIf="!loadingCanceledTargets && displayedCanceledTargets.length > 0" 
-                 class="targets-list"
-                 (scroll)="onCanceledTargetsScroll($event)">
+            <div *ngIf="!loadingCanceledTargets && displayedCanceledTargets.length > 0" class="targets-list"
+                (scroll)="onCanceledTargetsScroll($event)">
                 <div *ngFor="let target of displayedCanceledTargets" class="target-card">
                     <div class="target-header">
                         <div class="target-title">
@@ -342,23 +514,15 @@
                             <span class="canceled-badge">{{ 'common.canceled' | translate }}</span>
                         </div>
                         <div class="target-actions">
-                            <button 
-                                type="button"
-                                class="restore-btn"
-                                (click)="restoreTarget(target._id!)"
+                            <button type="button" class="restore-btn" (click)="restoreTarget(target._id!)"
                                 title="{{ 'navbar.restoreTarget' | translate }}">
                                 <i class="pi pi-refresh"></i>
                             </button>
-                            <button 
-                                type="button"
-                                class="delete-btn"
-                                (click)="deleteTarget(target._id!)"
+                            <button type="button" class="delete-btn" (click)="deleteTarget(target._id!)"
                                 title="{{ 'navbar.deleteTarget' | translate }}">
                                 <i class="pi pi-trash"></i>
                             </button>
-                            <button 
-                                class="details-btn"
-                                (click)="showTargetDetails(target)"
+                            <button class="details-btn" (click)="showTargetDetails(target)"
                                 title="{{ 'navbar.viewDetails' | translate }}">
                                 <i class="pi pi-info-circle"></i>
                             </button>
@@ -379,23 +543,25 @@
                         </p>
                     </div>
                 </div>
-                
+
                 <!-- Indicador de carga para más targets -->
                 <div *ngIf="loadingMoreCanceledTargets" class="loading-more-targets">
                     <i class="pi pi-spin pi-spinner"></i>
                     <span>{{ 'common.loadingMore' | translate }}...</span>
                 </div>
             </div>
-            
+
             <!-- Sin resultados de búsqueda -->
-            <div *ngIf="!loadingCanceledTargets && !isSearchingCanceled && canceledSearchTerm.trim() && displayedCanceledTargets.length === 0" class="empty-state">
+            <div *ngIf="!loadingCanceledTargets && !isSearchingCanceled && canceledSearchTerm.trim() && displayedCanceledTargets.length === 0"
+                class="empty-state">
                 <i class="pi pi-search"></i>
                 <h3>{{ 'navbar.noSearchResults' | translate }}</h3>
                 <p>{{ 'navbar.noSearchResultsMessage' | translate: {term: canceledSearchTerm} }}</p>
             </div>
-            
+
             <!-- Estado vacío (sin targets cancelados) -->
-            <div *ngIf="!loadingCanceledTargets && !isSearchingCanceled && !canceledSearchTerm.trim() && canceledTargets.length === 0" class="empty-state">
+            <div *ngIf="!loadingCanceledTargets && !isSearchingCanceled && !canceledSearchTerm.trim() && canceledTargets.length === 0"
+                class="empty-state">
                 <i class="pi pi-check-circle"></i>
                 <h3>{{ 'navbar.noCanceledTargets' | translate }}</h3>
                 <p>{{ 'navbar.noCanceledTargetsMessage' | translate }}</p>
@@ -405,37 +571,27 @@
 </p-drawer>
 
 <!-- Modal de detalles del target -->
-<p-dialog 
-    [(visible)]="targetDetailsVisible" 
-    [modal]="true" 
-    [resizable]="true" 
-    [draggable]="false"
-    [closable]="true"
-    [closeOnEscape]="true"
-    [dismissableMask]="true"
-    [blockScroll]="true"
-    appendTo="body"
-    [style]="{width: '800px', maxWidth: '95vw'}"
-    styleClass="target-details-dialog">
-    
+<p-dialog [(visible)]="targetDetailsVisible" [modal]="true" [resizable]="true" [draggable]="false" [closable]="true"
+    [closeOnEscape]="true" [dismissableMask]="true" [blockScroll]="true" appendTo="body"
+    [style]="{width: '800px', maxWidth: '95vw'}" styleClass="target-details-dialog">
+
     <ng-template pTemplate="header">
         <div class="dialog-header">
             <i class="pi pi-info-circle"></i>
             <span>{{ 'navbar.targetDetails' | translate }}</span>
         </div>
     </ng-template>
-    
+
     <ng-template pTemplate="content">
         <div *ngIf="selectedTargetDetails" class="target-details-content">
-            
+
             <!-- Header simple -->
             <div class="simple-header">
                 <div class="target-name">{{ selectedTargetDetails.name }}</div>
                 <div class="target-status">
                     <span class="status-simple canceled">{{ 'common.canceled' | translate }}</span>
-                    <span class="status-simple" 
-                          *ngIf="selectedTargetDetails.traccarInfo?.status"
-                          [class.online]="selectedTargetDetails.traccarInfo?.status?.toLowerCase() === 'online'">
+                    <span class="status-simple" *ngIf="selectedTargetDetails.traccarInfo?.status"
+                        [class.online]="selectedTargetDetails.traccarInfo?.status?.toLowerCase() === 'online'">
                         {{ selectedTargetDetails.traccarInfo?.status! | uppercase }}
                     </span>
                 </div>
@@ -458,7 +614,8 @@
                         </div>
                         <div class="field">
                             <span class="field-label">IMEI:</span>
-                            <span class="field-value">{{ selectedTargetDetails.device_imei || selectedTargetDetails.imei }}</span>
+                            <span class="field-value">{{ selectedTargetDetails.device_imei || selectedTargetDetails.imei
+                                }}</span>
                         </div>
                         <div class="field" *ngIf="selectedTargetDetails.gps_model">
                             <span class="field-label">{{ 'management.targetForm.gpsModel' | translate }}:</span>
@@ -468,9 +625,11 @@
                             <span class="field-label">API ID:</span>
                             <span class="field-value">{{ selectedTargetDetails.api_id }}</span>
                         </div>
-                        <div class="field" *ngIf="selectedTargetDetails.sim_card_number || selectedTargetDetails.sim_card">
+                        <div class="field"
+                            *ngIf="selectedTargetDetails.sim_card_number || selectedTargetDetails.sim_card">
                             <span class="field-label">{{ 'management.targetForm.simCard' | translate }}:</span>
-                            <span class="field-value">{{ selectedTargetDetails.sim_card_number || selectedTargetDetails.sim_card }}</span>
+                            <span class="field-value">{{ selectedTargetDetails.sim_card_number ||
+                                selectedTargetDetails.sim_card }}</span>
                         </div>
 
                         <div class="field" *ngIf="selectedTargetDetails.status">
@@ -484,11 +643,14 @@
                         <h4>Características técnicas</h4>
                         <div class="field" *ngIf="selectedTargetDetails.ignition_sensor">
                             <span class="field-label">{{ 'management.targetForm.ignitionSensor' | translate }}:</span>
-                            <span class="field-value">{{ getYesNoDisplayText(selectedTargetDetails.ignition_sensor) }}</span>
+                            <span class="field-value">{{ getYesNoDisplayText(selectedTargetDetails.ignition_sensor)
+                                }}</span>
                         </div>
-                        <div class="field" *ngIf="selectedTargetDetails.engine_shutdown || selectedTargetDetails.shutdown_control">
+                        <div class="field"
+                            *ngIf="selectedTargetDetails.engine_shutdown || selectedTargetDetails.shutdown_control">
                             <span class="field-label">{{ 'management.targetForm.engineShutdown' | translate }}:</span>
-                            <span class="field-value">{{ getYesNoDisplayText(selectedTargetDetails.engine_shutdown || selectedTargetDetails.shutdown_control) }}</span>
+                            <span class="field-value">{{ getYesNoDisplayText(selectedTargetDetails.engine_shutdown ||
+                                selectedTargetDetails.shutdown_control) }}</span>
                         </div>
                     </div>
 
@@ -496,7 +658,8 @@
                     <div class="info-group" *ngIf="selectedTargetDetails.plan">
                         <h4>{{ 'management.targetForm.plan' | translate }}</h4>
                         <div class="field">
-                            <span class="field-value plan-value">{{ getPlanDisplayText(selectedTargetDetails.plan) }}</span>
+                            <span class="field-value plan-value">{{ getPlanDisplayText(selectedTargetDetails.plan)
+                                }}</span>
                         </div>
 
                     </div>
@@ -505,7 +668,8 @@
                 <!-- Columna derecha -->
                 <div class="column-right">
                     <!-- Información del vehículo -->
-                    <div class="info-group" *ngIf="selectedTargetDetails.plate || selectedTargetDetails.brand || selectedTargetDetails.model || selectedTargetDetails.year || selectedTargetDetails.color || selectedTargetDetails.chassis">
+                    <div class="info-group"
+                        *ngIf="selectedTargetDetails.plate || selectedTargetDetails.brand || selectedTargetDetails.model || selectedTargetDetails.year || selectedTargetDetails.color || selectedTargetDetails.chassis">
                         <h4>{{ 'navbar.vehicleInformation' | translate }}</h4>
                         <div class="field" *ngIf="selectedTargetDetails.plate">
                             <span class="field-label">{{ 'management.targetForm.plate' | translate }}:</span>
@@ -525,7 +689,8 @@
                         </div>
                         <div class="field" *ngIf="selectedTargetDetails.color">
                             <span class="field-label">{{ 'management.targetForm.color' | translate }}:</span>
-                            <span class="field-value">{{ getColorDisplayText(selectedTargetDetails.color) || selectedTargetDetails.color }}</span>
+                            <span class="field-value">{{ getColorDisplayText(selectedTargetDetails.color) ||
+                                selectedTargetDetails.color }}</span>
                         </div>
                         <div class="field" *ngIf="selectedTargetDetails.chassis">
                             <span class="field-label">{{ 'management.targetForm.chassis' | translate }}:</span>
@@ -537,16 +702,19 @@
                     <div class="info-group">
                         <h4>Instalación</h4>
                         <div class="field" *ngIf="selectedTargetDetails.installation_location">
-                            <span class="field-label">{{ 'management.targetForm.installationLocation' | translate }}:</span>
+                            <span class="field-label">{{ 'management.targetForm.installationLocation' | translate
+                                }}:</span>
                             <span class="field-value">{{ selectedTargetDetails.installation_location }}</span>
                         </div>
                         <div class="field" *ngIf="selectedTargetDetails.installation_details">
-                            <span class="field-label">{{ 'management.targetForm.installationDetails' | translate }}:</span>
+                            <span class="field-label">{{ 'management.targetForm.installationDetails' | translate
+                                }}:</span>
                             <span class="field-value">{{ selectedTargetDetails.installation_details }}</span>
                         </div>
                         <div class="field" *ngIf="selectedTargetDetails.installation_date">
                             <span class="field-label">{{ 'management.targetForm.installationDate' | translate }}:</span>
-                            <span class="field-value">{{ selectedTargetDetails.installation_date | date:'dd/MM/yyyy' }}</span>
+                            <span class="field-value">{{ selectedTargetDetails.installation_date | date:'dd/MM/yyyy'
+                                }}</span>
                         </div>
                     </div>
 
@@ -555,20 +723,24 @@
                         <h4>Fechas del sistema</h4>
                         <div class="field" *ngIf="selectedTargetDetails.expiration_date">
                             <span class="field-label">{{ 'management.targetForm.expirationDate' | translate }}:</span>
-                            <span class="field-value">{{ selectedTargetDetails.expiration_date | date:'dd/MM/yyyy' }}</span>
+                            <span class="field-value">{{ selectedTargetDetails.expiration_date | date:'dd/MM/yyyy'
+                                }}</span>
                         </div>
                         <div class="field" *ngIf="selectedTargetDetails.created_at">
                             <span class="field-label">{{ 'navbar.createdAt' | translate }}:</span>
-                            <span class="field-value">{{ selectedTargetDetails.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                            <span class="field-value">{{ selectedTargetDetails.created_at | date:'dd/MM/yyyy HH:mm'
+                                }}</span>
                         </div>
                         <div class="field" *ngIf="selectedTargetDetails.updated_at">
                             <span class="field-label">{{ 'navbar.updatedAt' | translate }}:</span>
-                            <span class="field-value">{{ selectedTargetDetails.updated_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                            <span class="field-value">{{ selectedTargetDetails.updated_at | date:'dd/MM/yyyy HH:mm'
+                                }}</span>
                         </div>
                     </div>
 
                     <!-- Información adicional -->
-                    <div class="info-group" *ngIf="selectedTargetDetails.description || selectedTargetDetails.contacts || selectedTargetDetails.user_id">
+                    <div class="info-group"
+                        *ngIf="selectedTargetDetails.description || selectedTargetDetails.contacts || selectedTargetDetails.user_id">
                         <h4>Información adicional</h4>
                         <div class="field" *ngIf="selectedTargetDetails.description">
                             <span class="field-label">{{ 'management.targetForm.description' | translate }}:</span>
@@ -576,7 +748,8 @@
                         </div>
                         <div class="field" *ngIf="selectedTargetDetails.contacts">
                             <span class="field-label">{{ 'management.targetForm.contacts' | translate }}:</span>
-                            <span class="field-value">{{ getContactsDisplayText(selectedTargetDetails.contacts) }}</span>
+                            <span class="field-value">{{ getContactsDisplayText(selectedTargetDetails.contacts)
+                                }}</span>
                         </div>
                         <div class="field" *ngIf="selectedTargetDetails.user_id">
                             <span class="field-label">{{ 'navbar.userId' | translate }}:</span>
@@ -596,20 +769,21 @@
                     <i class="pi pi-history"></i>
                     {{ 'navbar.processHistory' | translate }}
                 </h3>
-                
+
                 <!-- Loading de procesos -->
                 <div *ngIf="loadingTargetProcesses" class="processes-loading">
                     <i class="pi pi-spin pi-spinner"></i>
                     {{ 'common.loading' | translate }}...
                 </div>
-                
+
                 <!-- Lista de procesos -->
                 <div *ngIf="!loadingTargetProcesses && targetProcesses.length > 0" class="processes-list">
                     <div *ngFor="let process of targetProcesses" class="process-item">
                         <div class="process-header">
                             <div class="process-info">
                                 <h4>{{ process.description }}</h4>
-                                <span class="process-date">{{ process.registrationDate | date:'dd/MM/yyyy HH:mm' }}</span>
+                                <span class="process-date">{{ process.registrationDate | date:'dd/MM/yyyy HH:mm'
+                                    }}</span>
                             </div>
                             <span class="process-type">{{ 'navbar.processType' | translate }} {{ process.type }}</span>
                         </div>
@@ -624,7 +798,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Sin procesos -->
                 <div *ngIf="!loadingTargetProcesses && targetProcesses.length === 0" class="no-processes">
                     <i class="pi pi-info-circle"></i>
@@ -633,19 +807,13 @@
             </div>
         </div>
     </ng-template>
-    
+
     <ng-template pTemplate="footer">
-        <button 
-            type="button" 
-            (click)="restoreTarget(selectedTargetDetails?._id!)"
-            class="button button--primary">
+        <button type="button" (click)="restoreTarget(selectedTargetDetails?._id!)" class="button button--primary">
             <i class="pi pi-refresh"></i>
             {{ 'navbar.restoreTarget' | translate }}
         </button>
-        <button 
-            type="button" 
-            (click)="closeTargetDetails()" 
-            class="button button--secondary">
+        <button type="button" (click)="closeTargetDetails()" class="button button--secondary">
             <i class="pi pi-times"></i>
             {{ 'common.close' | translate }}
         </button>
@@ -653,27 +821,17 @@
 </p-dialog>
 
 <!-- Modal de transferir targets -->
-<p-dialog 
-    [(visible)]="transferDialogVisible" 
-    [header]="'Transferir Objetivos'" 
-    [modal]="true" 
-    [closable]="true"
-    [draggable]="false" 
-    [resizable]="false"
-    [style]="{width: '500px'}"
-    [baseZIndex]="999999"
-    [blockScroll]="true"
-    appendTo="body"
-    [dismissableMask]="false"
-    [closeOnEscape]="false">
-    
+<p-dialog [(visible)]="transferDialogVisible" [header]="'Transferir Objetivos'" [modal]="true" [closable]="true"
+    [draggable]="false" [resizable]="false" [style]="{width: '500px'}" [baseZIndex]="999999" [blockScroll]="true"
+    appendTo="body" [dismissableMask]="false" [closeOnEscape]="false">
+
     <ng-template pTemplate="header">
         <div class="dialog-header">
             <i class="pi pi-reply" style="margin-right: 8px; color: var(--globalColorAccent);"></i>
             <span>Transferir Objetivos</span>
         </div>
     </ng-template>
-    
+
     <ng-template pTemplate="content">
         <div class="transfer-dialog-content">
             <!-- Información de targets a transferir -->
@@ -697,25 +855,12 @@
             <div class="user-search-section">
                 <h4><i class="pi pi-search"></i> Buscar usuario destino</h4>
                 <div class="search-input-wrapper">
-                    <input 
-                        type="text" 
-                        [value]="transferEmailInput"
-                        (input)="onTransferEmailInputChange($event)"
-                        (keypress)="onTransferEmailInputKeypress($event)"
-                        (click)="onTransferEmailInputClick($event)"
-                        (focus)="onTransferEmailInputFocus($event)"
-                        placeholder="ejemplo@correo.com" 
-                        class="email-input" 
-                        [class.error]="transferEmailError"
-                        autocomplete="off"
-                        name="transferEmail"
-                        #transferEmailRef>
-                    <button 
-                        type="button" 
-                        class="search-btn" 
-                        (click)="searchUserForTransfer()"
-                        [disabled]="!transferEmailInput.trim() || searchingUser" 
-                        title="Buscar usuario">
+                    <input type="text" [value]="transferEmailInput" (input)="onTransferEmailInputChange($event)"
+                        (keypress)="onTransferEmailInputKeypress($event)" (click)="onTransferEmailInputClick($event)"
+                        (focus)="onTransferEmailInputFocus($event)" placeholder="ejemplo@correo.com" class="email-input"
+                        [class.error]="transferEmailError" autocomplete="off" name="transferEmail" #transferEmailRef>
+                    <button type="button" class="search-btn" (click)="searchUserForTransfer()"
+                        [disabled]="!transferEmailInput.trim() || searchingUser" title="Buscar usuario">
                         <i class="pi" [ngClass]="searchingUser ? 'pi-spin pi-spinner' : 'pi-search'"></i>
                     </button>
                 </div>
@@ -747,7 +892,7 @@
             </div>
         </div>
     </ng-template>
-    
+
     <ng-template pTemplate="footer">
         <div class="modal-footer-content">
             <!-- Indicador de transferencia -->
@@ -755,21 +900,15 @@
                 <i class="pi pi-spin pi-spinner"></i>
                 <span>Transfiriendo objetivos...</span>
             </div>
-            
+
             <!-- Botones -->
             <div class="footer-buttons">
-                <button 
-                    type="button" 
-                    (click)="cancelTransferTargets()" 
-                    class="button button--secondary"
+                <button type="button" (click)="cancelTransferTargets()" class="button button--secondary"
                     [disabled]="transferring">
                     <i class="pi pi-times" style="margin-right: 6px;"></i>
                     Cancelar
                 </button>
-                <button 
-                    type="button" 
-                    (click)="confirmTransferTargets()" 
-                    class="button button--primary"
+                <button type="button" (click)="confirmTransferTargets()" class="button button--primary"
                     [disabled]="!foundUser || transferring">
                     <i class="pi pi-reply" style="margin-right: 6px;"></i>
                     Transferir ({{ targetsToTransfer.length }})
@@ -780,22 +919,17 @@
 </p-dialog>
 
 <!-- Modal de compartir targets -->
-<p-dialog 
-    [(visible)]="shareDialogVisible" 
-    [modal]="true" 
-    [resizable]="false" 
-    [draggable]="false"
-    [style]="{width: '600px'}"
-    [blockScroll]="true"
-    appendTo="body">
-    
+<p-dialog [(visible)]="shareDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
+    [style]="{width: '600px'}" [blockScroll]="true" appendTo="body">
+
     <ng-template pTemplate="header">
         <div style="display: flex; align-items: center;">
-            <i class="pi pi-share-alt" style="margin-right: 10px; color: var(--globalColorAccent); font-size: 18px;"></i>
+            <i class="pi pi-share-alt"
+                style="margin-right: 10px; color: var(--globalColorAccent); font-size: 18px;"></i>
             <span>Compartir Objetivos</span>
         </div>
     </ng-template>
-    
+
     <ng-template pTemplate="content">
         <div class="share-dialog-content">
             <!-- Información de targets a compartir -->
@@ -818,33 +952,24 @@
                     <i class="pi pi-envelope"></i>
                     Agregar correos electrónicos para compartir
                 </h4>
-                
+
                 <div class="email-input-container">
                     <div class="email-input-wrapper">
-                        <input 
-                            type="email" 
-                            [(ngModel)]="newEmailInput"
-                            (keypress)="onEmailKeyPress($event)"
-                            placeholder="ejemplo@correo.com"
-                            class="email-input"
-                            [class.error]="emailInputError"
+                        <input type="email" [(ngModel)]="newEmailInput" (keypress)="onEmailKeyPress($event)"
+                            placeholder="ejemplo@correo.com" class="email-input" [class.error]="emailInputError"
                             autocomplete="off">
-                        <button 
-                            type="button"
-                            class="add-email-btn"
-                            (click)="addEmail()"
-                            [disabled]="!newEmailInput.trim()"
-                            title="Agregar correo">
+                        <button type="button" class="add-email-btn" (click)="addEmail()"
+                            [disabled]="!newEmailInput.trim()" title="Agregar correo">
                             <i class="pi pi-plus"></i>
                         </button>
                     </div>
-                    
+
                     <!-- Error de validación -->
                     <div *ngIf="emailInputError" class="email-error">
                         <i class="pi pi-exclamation-triangle"></i>
                         {{ emailInputError }}
                     </div>
-                    
+
                     <!-- Instrucciones -->
                     <div class="email-instructions">
                         <small>
@@ -870,28 +995,22 @@
                         <i class="pi pi-circle-fill"></i>
                     </span>
                 </h4>
-                
+
                 <div class="selected-emails-list">
                     <div *ngFor="let email of selectedEmails; let i = index" class="email-item">
                         <div class="email-content">
                             <i class="pi pi-envelope"></i>
                             <span>{{ email }}</span>
                         </div>
-                        <button 
-                            type="button" 
-                            class="remove-email-btn" 
-                            (click)="removeEmail(email)"
+                        <button type="button" class="remove-email-btn" (click)="removeEmail(email)"
                             title="Eliminar correo">
                             <i class="pi pi-times"></i>
                         </button>
                     </div>
                 </div>
-                
+
                 <div class="email-actions">
-                    <button 
-                        type="button" 
-                        class="button button--secondary button--small"
-                        (click)="clearAllEmails()">
+                    <button type="button" class="button button--secondary button--small" (click)="clearAllEmails()">
                         <i class="pi pi-trash"></i>
                         Limpiar todos
                     </button>
@@ -906,7 +1025,7 @@
             </div>
         </div>
     </ng-template>
-    
+
     <ng-template pTemplate="footer">
         <div class="modal-footer-content">
             <!-- Indicador de auto-guardado -->
@@ -914,12 +1033,9 @@
                 <i class="pi pi-spin pi-spinner"></i>
                 <span>Guardando cambios...</span>
             </div>
-            
+
             <!-- Botón cerrar -->
-            <button 
-                type="button" 
-                (click)="cancelShareTargets()" 
-                class="button button--secondary"
+            <button type="button" (click)="cancelShareTargets()" class="button button--secondary"
                 [disabled]="autoSaving">
                 <i class="pi pi-times" style="margin-right: 6px;"></i>
                 Cerrar

@@ -15,12 +15,13 @@ import { UserService } from '../../../../core/services/user.service';
 import { User } from '../../../../core/interfaces/user.interface';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter, firstValueFrom } from 'rxjs';
 import { AlertsService, AlertResponse, AlertStatus } from '../../../../core/services/alerts.service';
+import { MapAlertComponent } from '../map-alert/map-alert.component';
 
 @Component({
-    selector: 'app-navbar',
-    templateUrl: './navbar.component.html',
-    styleUrl: './navbar.component.css',
-    standalone: false
+  selector: 'app-navbar',
+  templateUrl: './navbar.component.html',
+  styleUrl: './navbar.component.css',
+  standalone: false
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   items: MenuItem[] = [];
@@ -29,23 +30,23 @@ export class NavbarComponent implements OnInit, OnDestroy {
   loadingTheme: boolean = false;
   currentTheme: string = 'light';
   currentUser: any;
-  
+
   // Control de suscripciones
   private destroy$ = new Subject<void>();
   private searchCanceledSubject$ = new Subject<string>();
-  
+
   // Estado de la selección
   selectedTargetsCount: number = 0;
   hasSelectedTargets: boolean = false;
-  
+
   // Control de visibilidad del botón cancelados
   showCanceledButton: boolean = false;
-  
+
   // Drawer de objetivos cancelados
   canceledDrawerVisible: boolean = false;
   canceledTargets: Target[] = [];
   loadingCanceledTargets: boolean = false;
-  
+
   // Paginación para targets cancelados
   canceledTargetsOffset: number = 0;
   canceledTargetsPageSize: number = 20;
@@ -53,15 +54,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
   hasMoreCanceledTargets: boolean = true;
   loadingMoreCanceledTargets: boolean = false;
   lastLoadedParentId: string | null = null;
-  
+
   // Para los planes
   plans: Plan[] = [];
-  
+
   // Búsqueda de objetivos cancelados
   canceledSearchTerm: string = '';
   canceledSearchResults: Target[] = [];
   isSearchingCanceled: boolean = false;
-  
+
   // Modal de detalles del target
   targetDetailsVisible: boolean = false;
   selectedTargetDetails: Target | null = null;
@@ -80,10 +81,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   // Modal de alertas
   alertsDialogVisible: boolean = false;
   speedAlertDialogVisible: boolean = false;
+  perimeterAlertDialogVisible: boolean = false;
   alertsOptions: { labelKey: string }[] = [
     { labelKey: 'navbar.alertOptionSpeed' },
     { labelKey: 'navbar.alertOptionPerimeter' },
-    { labelKey: 'navbar.alertOptionPower' },
+    { labelKey: 'navbar.alertOptionIgnition' },
     { labelKey: 'navbar.alertOptionMovement' }
   ];
   currentSelectedTargets: Target[] = [];
@@ -98,6 +100,34 @@ export class NavbarComponent implements OnInit, OnDestroy {
   loadingSpeedAlerts: boolean = false;
   togglingAlertId: string | null = null;
 
+  // Perimeter alert variables
+  perimeterNotificationTrigger: string = 'enter';
+  perimeterNotificationEmail: string = '';
+  perimeterNotificationEmailUserId: string | null = null;
+  verifyingPerimeterNotificationEmail: boolean = false;
+  creatingPerimeterAlert: boolean = false;
+
+  // Perimeter alerts list
+  perimeterAlerts: AlertResponse[] = [];
+  loadingPerimeterAlerts: boolean = false;
+  visiblePerimeterAlerts: AlertResponse[] = [];
+  togglingPerimeterAlertId: string | null = null;
+
+  // Ignition alert variables
+  ignitionAlertDialogVisible: boolean = false;
+  ignitionTrigger: string = 'on';
+  ignitionNotificationEmail: string = '';
+  ignitionNotificationEmailUserId: string | null = null;
+  verifyingIgnitionNotificationEmail: boolean = false;
+  creatingIgnitionAlert: boolean = false;
+
+  // Ignition alerts list
+  ignitionAlerts: AlertResponse[] = [];
+  loadingIgnitionAlerts: boolean = false;
+  visibleIgnitionAlerts: AlertResponse[] = [];
+  togglingIgnitionAlertId: string | null = null;
+  deletingIgnitionAlertId: string | null = null;
+
   // Modal de transferir targets
   transferDialogVisible: boolean = false;
   transferEmailInput: string = '';
@@ -109,6 +139,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   // Referencias a elementos del DOM
   @ViewChild('transferEmailRef') transferEmailRef!: ElementRef<HTMLInputElement>;
+  @ViewChild(MapAlertComponent) mapAlertComponent!: MapAlertComponent;
 
   // Mapeo de tipos de proceso a números
   private processTypeMap: { [key: string]: number } = {
@@ -135,6 +166,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.currentTheme = status.getState('theme') as string;
     this.currentUser = this.authService.getCurrentUser();
     this.resetNotificationEmailToCurrentUser();
+    this.resetPerimeterNotificationEmail();
   }
 
   ngOnInit() {
@@ -185,7 +217,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     // Cargar planes para mostrar nombres en lugar de IDs
     this.loadPlans();
-    
+
     // Verificar visibilidad inicial del botón cancelados y cargar targets si es necesario
     this.updateCanceledButtonVisibility();
   }
@@ -203,7 +235,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const parentId = this.getParentIdFromUrl();
     const wasVisible = this.showCanceledButton;
     this.showCanceledButton = !!parentId; // Convertir a boolean: true si existe parentId, false si es null
-    
+
     console.log('🔄 Actualizando visibilidad del botón cancelados:', {
       url: this.router.url,
       parentId,
@@ -217,15 +249,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
       // 1. El botón no estaba visible antes (nueva ruta)
       // 2. O si no hay targets cargados aún
       // 3. O si el parentId cambió (diferente usuario)
-      const shouldLoad = !wasVisible || 
-                        this.canceledTargets.length === 0 || 
-                        this.lastLoadedParentId !== parentId;
-      
+      const shouldLoad = !wasVisible ||
+        this.canceledTargets.length === 0 ||
+        this.lastLoadedParentId !== parentId;
+
       if (shouldLoad) {
         console.log('🚀 Cargando targets cancelados automáticamente:', {
-          reason: !wasVisible ? 'nueva ruta' : 
-                  this.canceledTargets.length === 0 ? 'sin targets cargados' : 
-                  'cambio de usuario',
+          reason: !wasVisible ? 'nueva ruta' :
+            this.canceledTargets.length === 0 ? 'sin targets cargados' :
+              'cambio de usuario',
           parentId,
           lastParentId: this.lastLoadedParentId
         });
@@ -311,7 +343,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const newTheme = this.currentTheme === 'light' ? 'dark' : 'light';
     this.themes.setTheme(newTheme);
     this.currentTheme = newTheme;
-    
+
     // Actualizar el menú después de cambiar el tema
     this.initializeMenus();
   }
@@ -325,12 +357,27 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.speedAlertDialogVisible = true;
   }
 
+  openPerimeterAlertModal(): void {
+    this.perimeterAlertDialogVisible = true;
+  }
+
+  openIgnitionAlertModal(): void {
+    this.ignitionAlertDialogVisible = true;
+    if (this.currentUser?.email) {
+      this.ignitionNotificationEmail = this.currentUser.email;
+      // Verificar automáticamente si es el usuario actual
+      if (this.currentUser.id) {
+        this.ignitionNotificationEmailUserId = this.currentUser.id;
+      }
+    }
+  }
+
   onNotificationEmailChange(): void {
     if (
       this.notificationEmail &&
       this.currentUser?.email &&
       this.notificationEmail.trim().toLowerCase() ===
-        this.currentUser.email.toLowerCase() &&
+      this.currentUser.email.toLowerCase() &&
       this.currentUser?.id
     ) {
       this.notificationEmailUserId = this.currentUser.id;
@@ -487,6 +534,495 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
+  onPerimeterNotificationEmailChange(): void {
+    if (
+      this.perimeterNotificationEmail &&
+      this.currentUser?.email &&
+      this.perimeterNotificationEmail.trim().toLowerCase() ===
+      this.currentUser.email.toLowerCase() &&
+      this.currentUser?.id
+    ) {
+      this.perimeterNotificationEmailUserId = this.currentUser.id;
+    } else {
+      this.perimeterNotificationEmailUserId = null;
+    }
+  }
+
+  async verifyPerimeterNotificationEmail(): Promise<void> {
+    const email = this.perimeterNotificationEmail?.trim();
+    if (!email) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: this.translate.instant('navbar.verifyEmailRequired')
+      });
+      return;
+    }
+
+    // Si coincide con el usuario actual, marcar como verificado sin consultar API
+    if (
+      this.currentUser?.email &&
+      email.toLowerCase() === this.currentUser.email.toLowerCase() &&
+      this.currentUser?.id
+    ) {
+      this.perimeterNotificationEmailUserId = this.currentUser.id;
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('common.success'),
+        detail: this.translate.instant('navbar.verifyEmailSuccess')
+      });
+      return;
+    }
+
+    this.verifyingPerimeterNotificationEmail = true;
+    try {
+      const user = await firstValueFrom(this.userService.getByEmail(email));
+      const userId = user?._id || (user as any)?.id;
+
+      if (userId) {
+        this.perimeterNotificationEmailUserId = userId;
+        this.messageService.add({
+          severity: 'success',
+          summary: this.translate.instant('common.success'),
+          detail: this.translate.instant('navbar.verifyEmailSuccess')
+        });
+      } else {
+        this.perimeterNotificationEmailUserId = null;
+        this.messageService.add({
+          severity: 'warn',
+          summary: this.translate.instant('common.warning'),
+          detail: this.translate.instant('navbar.verifyEmailNotFound')
+        });
+      }
+    } catch (error) {
+      this.perimeterNotificationEmailUserId = null;
+      console.error('❌ Error verificando correo para alerta de perímetro:', error);
+      const detail =
+        (error as any)?.error?.message ||
+        this.translate.instant('navbar.verifyEmailError');
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail
+      });
+    } finally {
+      this.verifyingPerimeterNotificationEmail = false;
+    }
+  }
+
+  onIgnitionNotificationEmailChange(): void {
+    if (
+      this.ignitionNotificationEmail &&
+      this.ignitionNotificationEmailUserId
+    ) {
+      this.ignitionNotificationEmailUserId = null;
+    }
+  }
+
+  async verifyIgnitionNotificationEmail(): Promise<void> {
+    const email = this.ignitionNotificationEmail?.trim();
+    if (!email) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: this.translate.instant('navbar.verifyEmailRequired')
+      });
+      return;
+    }
+
+    // Si coincide con el usuario actual, marcar como verificado sin consultar API
+    if (
+      this.currentUser?.email &&
+      email.toLowerCase() === this.currentUser.email.toLowerCase() &&
+      this.currentUser?.id
+    ) {
+      this.ignitionNotificationEmailUserId = this.currentUser.id;
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('common.success'),
+        detail: this.translate.instant('navbar.verifyEmailSuccess')
+      });
+      return;
+    }
+
+    this.verifyingIgnitionNotificationEmail = true;
+    try {
+      const user = await firstValueFrom(this.userService.getByEmail(email));
+      const userId = user?._id || (user as any)?.id;
+
+      if (userId) {
+        this.ignitionNotificationEmailUserId = userId;
+        this.messageService.add({
+          severity: 'success',
+          summary: this.translate.instant('common.success'),
+          detail: this.translate.instant('navbar.verifyEmailSuccess')
+        });
+      } else {
+        this.ignitionNotificationEmailUserId = null;
+        this.messageService.add({
+          severity: 'warn',
+          summary: this.translate.instant('common.warning'),
+          detail: this.translate.instant('navbar.verifyEmailNotFound')
+        });
+      }
+    } catch (error) {
+      this.ignitionNotificationEmailUserId = null;
+      console.error('❌ Error verificando correo para alerta de encendido:', error);
+      const detail =
+        (error as any)?.error?.message ||
+        this.translate.instant('navbar.verifyEmailError');
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail
+      });
+    } finally {
+      this.verifyingIgnitionNotificationEmail = false;
+    }
+  }
+
+  async createPerimeterAlert(): Promise<void> {
+    // Validar que hay un polígono dibujado
+    const coordinates = this.mapAlertComponent?.getPolygonCoordinates();
+
+    if (!coordinates || coordinates.length < 3) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: 'Debe dibujar un perímetro en el mapa'
+      });
+      return;
+    }
+
+    // Validar email si está presente
+    if (this.perimeterNotificationEmail?.trim() && !this.perimeterNotificationEmailUserId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: this.translate.instant('navbar.verifyEmailPending')
+      });
+      return;
+    }
+
+    const targetIds = (this.currentSelectedTargets || [])
+      .map(target => target?._id || (target as any)?.id)
+      .filter((id): id is string => !!id);
+
+    if (!targetIds.length) {
+      const userIdFromUrl = this.getParentIdFromUrl();
+      if (!userIdFromUrl) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: this.translate.instant('common.warning'),
+          detail: this.translate.instant('navbar.userIdRequired')
+        });
+        return;
+      }
+      targetIds.push(userIdFromUrl);
+    }
+
+    const payload = {
+      type: 'perimeter' as const,
+      coordinates,
+      trigger: this.perimeterNotificationTrigger,
+      targetIds,
+      userTopic: this.perimeterNotificationEmailUserId || undefined
+    };
+
+    this.creatingPerimeterAlert = true;
+
+    try {
+      await firstValueFrom(this.alertsService.createAlert(payload));
+
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('navbar.createAlert'),
+        detail: `${this.translate.instant('navbar.alertOptionPerimeter')} creada exitosamente`
+      });
+
+      // Resetear formulario
+      this.perimeterNotificationTrigger = 'enter';
+      this.resetPerimeterNotificationEmail();
+      this.mapAlertComponent?.clearPerimeter();
+
+      // Recargar lista de alertas
+      await this.loadPerimeterAlerts();
+    } catch (error: any) {
+      console.error('❌ Error al crear la alerta de perímetro:', error);
+      const detail = error?.error?.message ||
+        this.translate.instant('navbar.createAlertError');
+
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail
+      });
+    } finally {
+      this.creatingPerimeterAlert = false;
+    }
+  }
+
+  private resetPerimeterNotificationEmail(): void {
+    if (this.currentUser?.email && this.currentUser?.id) {
+      this.perimeterNotificationEmail = this.currentUser.email;
+      this.perimeterNotificationEmailUserId = this.currentUser.id;
+    } else {
+      this.perimeterNotificationEmail = '';
+      this.perimeterNotificationEmailUserId = null;
+    }
+  }
+
+  async loadPerimeterAlerts(): Promise<void> {
+    this.loadingPerimeterAlerts = true;
+    try {
+      const allAlerts = await firstValueFrom(this.alertsService.getAlerts());
+
+      // Filtrar solo alertas de perímetro
+      this.perimeterAlerts = allAlerts.filter(alert => alert.type === 'perimeter');
+
+      // Filtrar por targets seleccionados
+      this.filterVisiblePerimeterAlerts();
+    } catch (error) {
+      console.error('❌ Error al cargar alertas de perímetro:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail: 'Error al cargar las alertas de perímetro'
+      });
+    } finally {
+      this.loadingPerimeterAlerts = false;
+    }
+  }
+
+  private filterVisiblePerimeterAlerts(): void {
+    const selectedIds = (this.currentSelectedTargets || [])
+      .map(t => t?._id || (t as any)?.id)
+      .filter((id): id is string => !!id);
+
+    if (!selectedIds.length) {
+      this.visiblePerimeterAlerts = this.perimeterAlerts;
+      return;
+    }
+
+    this.visiblePerimeterAlerts = this.perimeterAlerts.filter(alert => {
+      if (!Array.isArray(alert.targetIds) || alert.targetIds.length === 0) {
+        return false;
+      }
+      return alert.targetIds.some(targetId => selectedIds.includes(targetId));
+    });
+  }
+
+  async togglePerimeterAlertStatus(alert: AlertResponse): Promise<void> {
+    if (!alert._id) {
+      return;
+    }
+
+    const newStatus: AlertStatus = alert.status === 'active' ? 'inactive' : 'active';
+    this.togglingPerimeterAlertId = alert._id;
+
+    try {
+      await firstValueFrom(
+        this.alertsService.updateAlertStatus(alert._id, newStatus)
+      );
+
+      alert.status = newStatus;
+
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('common.success'),
+        detail: `Alerta ${newStatus === 'active' ? 'activada' : 'desactivada'}`
+      });
+    } catch (error) {
+      console.error('❌ Error al cambiar estado de alerta:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail: 'Error al cambiar el estado de la alerta'
+      });
+    } finally {
+      this.togglingPerimeterAlertId = null;
+    }
+  }
+
+  async deletePerimeterAlert(alert: AlertResponse): Promise<void> {
+    if (!alert._id) {
+      return;
+    }
+
+    this.confirmationService.confirm({
+      message: '¿Está seguro de eliminar esta alerta de perímetro?',
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, eliminar',
+      rejectLabel: 'Cancelar',
+      accept: async () => {
+        try {
+          await firstValueFrom(this.alertsService.deleteAlert(alert._id!));
+
+          this.messageService.add({
+            severity: 'success',
+            summary: this.translate.instant('common.success'),
+            detail: 'Alerta eliminada correctamente'
+          });
+
+          await this.loadPerimeterAlerts();
+        } catch (error) {
+          console.error('❌ Error al eliminar alerta:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: this.translate.instant('common.error'),
+            detail: 'Error al eliminar la alerta'
+          });
+        }
+      }
+    });
+  }
+
+  async createIgnitionAlert(): Promise<void> {
+    if (this.ignitionNotificationEmail && !this.ignitionNotificationEmailUserId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: 'Debe verificar el correo electrónico antes de crear la alerta'
+      });
+      return;
+    }
+
+    this.creatingIgnitionAlert = true;
+
+    try {
+      const targetIds = this.currentSelectedTargets.length
+        ? this.currentSelectedTargets.map(t => t._id || (t as any).id).filter(id => !!id)
+        : this.currentUser?.id ? [this.currentUser.id] : [];
+
+      const payload: any = {
+        type: 'ignition',
+        ignitionTrigger: this.ignitionTrigger,
+        targetIds,
+        userTopic: this.ignitionNotificationEmailUserId || undefined
+      };
+
+      await firstValueFrom(this.alertsService.createAlert(payload));
+
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('common.success'),
+        detail: 'Alerta de encendido creada exitosamente'
+      });
+
+      await this.loadIgnitionAlerts();
+
+      this.ignitionTrigger = 'on';
+      this.ignitionNotificationEmail = '';
+      this.ignitionNotificationEmailUserId = null;
+    } catch (error) {
+      console.error('❌ Error creando alerta de encendido:', error);
+      const detail = (error as any)?.error?.message || 'Error al crear la alerta';
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail
+      });
+    } finally {
+      this.creatingIgnitionAlert = false;
+    }
+  }
+
+  async loadIgnitionAlerts(): Promise<void> {
+    this.loadingIgnitionAlerts = true;
+    try {
+      const allAlerts = await firstValueFrom(this.alertsService.getAlerts());
+      this.ignitionAlerts = allAlerts.filter(alert => alert.type === 'ignition');
+      this.filterVisibleIgnitionAlerts();
+    } catch (error) {
+      console.error('❌ Error al cargar alertas de encendido:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail: 'Error al cargar las alertas de encendido'
+      });
+    } finally {
+      this.loadingIgnitionAlerts = false;
+    }
+  }
+
+  private filterVisibleIgnitionAlerts(): void {
+    const selectedIds = (this.currentSelectedTargets || [])
+      .map(t => t?._id || (t as any)?.id)
+      .filter((id): id is string => !!id);
+
+    if (!selectedIds.length) {
+      this.visibleIgnitionAlerts = this.ignitionAlerts;
+      return;
+    }
+
+    this.visibleIgnitionAlerts = this.ignitionAlerts.filter(alert => {
+      if (!Array.isArray(alert.targetIds) || alert.targetIds.length === 0) {
+        return false;
+      }
+      return alert.targetIds.some(targetId => selectedIds.includes(targetId));
+    });
+  }
+
+  async toggleIgnitionAlertStatus(alert: AlertResponse): Promise<void> {
+    if (!alert._id) return;
+
+    const newStatus: AlertStatus = alert.status === 'active' ? 'inactive' : 'active';
+    this.togglingIgnitionAlertId = alert._id;
+
+    try {
+      await firstValueFrom(this.alertsService.updateAlertStatus(alert._id, newStatus));
+      alert.status = newStatus;
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('common.success'),
+        detail: `Alerta ${newStatus === 'active' ? 'activada' : 'desactivada'}`
+      });
+    } catch (error) {
+      console.error('❌ Error al cambiar estado de alerta:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail: 'Error al cambiar el estado de la alerta'
+      });
+    } finally {
+      this.togglingIgnitionAlertId = null;
+    }
+  }
+
+  async deleteIgnitionAlert(alert: AlertResponse): Promise<void> {
+    if (!alert._id) return;
+
+    this.confirmationService.confirm({
+      message: '¿Está seguro de eliminar esta alerta de encendido?',
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Sí, eliminar',
+      rejectLabel: 'Cancelar',
+      accept: async () => {
+        this.deletingIgnitionAlertId = alert._id!;
+        try {
+          await firstValueFrom(this.alertsService.deleteAlert(alert._id!));
+          this.messageService.add({
+            severity: 'success',
+            summary: this.translate.instant('common.success'),
+            detail: 'Alerta eliminada correctamente'
+          });
+          await this.loadIgnitionAlerts();
+        } catch (error) {
+          console.error('❌ Error al eliminar alerta:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: this.translate.instant('common.error'),
+            detail: 'Error al eliminar la alerta'
+          });
+        } finally {
+          this.deletingIgnitionAlertId = null;
+        }
+      }
+    });
+  }
+
   private async loadSpeedAlerts(): Promise<void> {
     this.loadingSpeedAlerts = true;
     try {
@@ -555,18 +1091,24 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   getCreatorName(alert: AlertResponse): string {
-    if (!alert?.createdBy) {
+    if (!alert.createdBy) {
       return 'Desconocido';
     }
 
-    if (typeof alert.createdBy === 'string') {
-      return alert.createdBy;
+    const creator = alert.createdBy as any;
+    const firstName = creator.name || '';
+    const lastName = creator.last_name || '';
+
+    return `${firstName} ${lastName}`.trim() || 'Desconocido';
+  }
+
+  getCreatorEmail(alert: AlertResponse): string | null {
+    if (!alert.createdBy) {
+      return null;
     }
 
-    const name = alert.createdBy.name || '';
-    const lastName = alert.createdBy.last_name || '';
-    const fullName = `${name} ${lastName}`.trim();
-    return fullName || 'Desconocido';
+    const creator = alert.createdBy as any;
+    return creator.email || null;
   }
 
   async toggleAlertStatus(alert: AlertResponse): Promise<void> {
@@ -690,7 +1232,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.searchingUser = false;
     this.transferring = false;
     this.transferDialogVisible = true;
-    
+
     // Enfocar el input después de que el modal se abra
     setTimeout(() => {
       this.focusTransferEmailInput();
@@ -703,18 +1245,18 @@ export class NavbarComponent implements OnInit, OnDestroy {
   async shareSelectedTargets() {
     const selectedTargets = this.selectionService.selectedTargetsValue;
     console.log('🔗 Compartiendo objetivos seleccionados:', selectedTargets);
-    
+
     // Asignar targets a compartir
     this.targetsToShare = selectedTargets;
-    
+
     // Resetear estado del modal
     this.newEmailInput = '';
     this.emailInputError = '';
     this.selectedEmails = [];
-    
+
     // Abrir modal primero
     this.shareDialogVisible = true;
-    
+
     // Si solo hay un target seleccionado, consultar sus emails compartidos específicos
     if (selectedTargets.length === 1 && selectedTargets[0]._id) {
       await this.loadSharedEmailsFromAPI(selectedTargets[0]._id);
@@ -733,13 +1275,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
   async loadSharedEmailsFromAPI(targetId: string) {
     try {
       this.loadingSharedEmails = true;
-      
+
       console.log('🔍 Consultando emails compartidos para target:', targetId);
-      
+
       const response = await this.targetsService.getSharedEmails(targetId);
-      
+
       console.log('✅ Respuesta de emails compartidos:', response);
-      
+
       // Cargar los emails compartidos
       if (response.shared && Array.isArray(response.shared)) {
         this.selectedEmails = [...response.shared];
@@ -748,11 +1290,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
         this.selectedEmails = [];
         console.log('📭 No hay emails compartidos para este target');
       }
-      
+
     } catch (error) {
       console.error('❌ Error al cargar emails compartidos:', error);
       this.selectedEmails = [];
-      
+
       // Mostrar mensaje de error si es necesario
       this.messageService.add({
         severity: 'warn',
@@ -777,33 +1319,33 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   async addEmail() {
     const email = this.newEmailInput.trim();
-    
+
     // Limpiar error previo
     this.emailInputError = '';
-    
+
     // Validaciones
     if (!email) {
       this.emailInputError = 'El correo electrónico es requerido';
       return;
     }
-    
+
     if (!this.isValidEmail(email)) {
       this.emailInputError = 'Por favor ingrese un correo electrónico válido';
       return;
     }
-    
+
     if (this.selectedEmails.includes(email)) {
       this.emailInputError = 'Este correo ya está en la lista';
       return;
     }
-    
+
     // Agregar email
     this.selectedEmails.push(email);
     this.newEmailInput = '';
-    
+
     console.log('➕ Email agregado:', email);
     console.log('📧 Lista actual:', this.selectedEmails);
-    
+
     // Auto-guardar cambios
     await this.autoSaveEmailChanges();
   }
@@ -815,7 +1357,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.selectedEmails = this.selectedEmails.filter(e => e !== email);
     console.log('➖ Email eliminado:', email);
     console.log('📧 Lista actual:', this.selectedEmails);
-    
+
     // Auto-guardar cambios
     await this.autoSaveEmailChanges();
   }
@@ -841,7 +1383,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     try {
       this.autoSaving = true;
-      
+
       console.log('💾 Auto-guardando cambios de emails:', {
         targets: this.targetsToShare.map(t => t._id),
         sharedEmails: this.selectedEmails
@@ -880,7 +1422,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   async clearAllEmails() {
     this.selectedEmails = [];
     console.log('🗑️ Todos los emails eliminados');
-    
+
     // Auto-guardar cambios
     await this.autoSaveEmailChanges();
   }
@@ -903,38 +1445,38 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   async searchUserForTransfer() {
     const email = this.transferEmailInput.trim();
-    
+
     // Limpiar error previo
     this.transferEmailError = '';
     this.foundUser = null;
-    
+
     // Validaciones
     if (!email) {
       this.transferEmailError = 'El correo electrónico es requerido';
       return;
     }
-    
+
     if (!this.isValidEmail(email)) {
       this.transferEmailError = 'Por favor ingrese un correo electrónico válido';
       return;
     }
-    
+
     try {
       this.searchingUser = true;
-      
+
       // Buscar usuario por email usando endpoint específico
       const user = await this.userService.getByEmail(email).toPromise();
-      
+
       if (!user) {
         this.transferEmailError = 'No se encontró ningún usuario con ese correo electrónico';
         return;
       }
-      
+
       this.foundUser = user;
-      
+
     } catch (error: any) {
       console.error('❌ Error al buscar usuario:', error);
-      
+
       // Manejar diferentes tipos de error
       if (error.status === 404) {
         this.transferEmailError = 'No se encontró ningún usuario con ese correo electrónico';
@@ -959,7 +1501,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     try {
       this.transferring = true;
-      
+
       console.log('🔄 Transfiriendo targets:', {
         targets: this.targetsToTransfer.map(t => t._id),
         targetUserId: this.foundUser._id,
@@ -1029,7 +1571,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   onTransferEmailInputClick(event: Event) {
     event.stopPropagation();
-    
+
     // Asegurar focus
     const target = event.target as HTMLInputElement;
     target.focus();
@@ -1048,7 +1590,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     try {
       if (this.transferEmailRef && this.transferEmailRef.nativeElement) {
         const input = this.transferEmailRef.nativeElement;
-        
+
         // Asegurar que el input esté habilitado y enfocado
         input.disabled = false;
         input.readOnly = false;
@@ -1076,15 +1618,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
   async loadCanceledTargets() {
     try {
       this.loadingCanceledTargets = true;
-      
+
       // Resetear paginación
       this.canceledTargetsOffset = 0;
       this.canceledTargets = [];
       this.hasMoreCanceledTargets = true;
-      
+
       // Obtener el parent ID desde la URL
       const parentId = this.getParentIdFromUrl();
-      
+
       if (!parentId) {
         console.warn('⚠️ No se pudo obtener el parent ID desde la URL, cancelando carga de objetivos cancelados');
         this.canceledTargets = [];
@@ -1092,25 +1634,25 @@ export class NavbarComponent implements OnInit, OnDestroy {
       }
 
       console.log('🚀 Cargando objetivos cancelados para parent ID:', parentId);
-      
+
       // Cargar primera página de objetivos cancelados
       const response = await this.targetsService.getCanceledTargetsWithPagination(
-        parentId, 
-        this.canceledTargetsOffset, 
+        parentId,
+        this.canceledTargetsOffset,
         this.canceledTargetsPageSize
       );
-      
+
       this.canceledTargets = response.devices;
       this.totalCanceledTargetsCount = response.totalCount;
       this.hasMoreCanceledTargets = this.canceledTargets.length < this.totalCanceledTargetsCount;
       this.canceledTargetsOffset += this.canceledTargetsPageSize;
-      
+
       console.log('✅ Objetivos cancelados cargados exitosamente:', {
         cantidad: this.canceledTargets.length,
         total: this.totalCanceledTargetsCount,
         hasMore: this.hasMoreCanceledTargets
       });
-      
+
     } catch (error) {
       console.error('❌ Error al cargar objetivos cancelados:', error);
       this.canceledTargets = [];
@@ -1131,10 +1673,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     try {
       this.loadingMoreCanceledTargets = true;
-      
+
       // Obtener el parent ID desde la URL
       const parentId = this.getParentIdFromUrl();
-      
+
       if (!parentId) {
         console.warn('⚠️ No se pudo obtener el parent ID desde la URL para cargar más objetivos cancelados');
         return;
@@ -1145,26 +1687,26 @@ export class NavbarComponent implements OnInit, OnDestroy {
         offset: this.canceledTargetsOffset,
         pageSize: this.canceledTargetsPageSize
       });
-      
+
       // Cargar siguiente página de objetivos cancelados
       const response = await this.targetsService.getCanceledTargetsWithPagination(
-        parentId, 
-        this.canceledTargetsOffset, 
+        parentId,
+        this.canceledTargetsOffset,
         this.canceledTargetsPageSize
       );
-      
+
       // Agregar nuevos targets a la lista existente
       this.canceledTargets = [...this.canceledTargets, ...response.devices];
       this.totalCanceledTargetsCount = response.totalCount;
       this.hasMoreCanceledTargets = this.canceledTargets.length < this.totalCanceledTargetsCount;
       this.canceledTargetsOffset += this.canceledTargetsPageSize;
-      
+
       console.log('✅ Más objetivos cancelados cargados:', {
         nuevos: response.devices.length,
         total: this.canceledTargets.length,
         hasMore: this.hasMoreCanceledTargets
       });
-      
+
     } catch (error) {
       console.error('❌ Error al cargar más objetivos cancelados:', error);
     } finally {
@@ -1178,9 +1720,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   onCanceledTargetsScroll(event: Event) {
     const element = event.target as HTMLElement;
     const threshold = 50; // pixels desde el final
-    
+
     const atBottom = element.scrollHeight - element.scrollTop <= element.clientHeight + threshold;
-    
+
     if (atBottom && this.hasMoreCanceledTargets && !this.loadingMoreCanceledTargets) {
       console.log('🔄 Scroll infinito detectado - cargando más targets cancelados');
       this.loadMoreCanceledTargets();
@@ -1193,23 +1735,23 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private getParentIdFromUrl(): string | null {
     const url = this.router.url;
     console.log('🔍 URL actual para extraer parent ID:', url);
-    
+
     // El routing de management es /admin/management/:op/:user
     // Necesitamos extraer el parámetro 'user' que es el segundo después de 'management'
     const managementPattern = /\/admin\/management\/([^\/\?]+)\/([^\/\?]+)/;
     const match = url.match(managementPattern);
-    
+
     if (match && match[2]) {
       const parentId = match[2];
       console.log('✅ Parent ID extraído de la URL:', parentId);
       return parentId;
     }
-    
+
     // Fallback: Si no se encuentra el patrón, intentar obtener desde route.snapshot.params
     try {
       const routeParams = this.route.snapshot.params;
       console.log('📋 Route params como fallback:', routeParams);
-      
+
       if (routeParams['user']) {
         console.log('✅ Parent ID desde route params:', routeParams['user']);
         return routeParams['user'];
@@ -1217,7 +1759,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.warn('⚠️ Error al obtener parámetros de ruta:', error);
     }
-    
+
     console.warn('❌ No se pudo extraer parent ID desde la URL:', url);
     return null;
   }
@@ -1247,7 +1789,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     try {
       this.isSearchingCanceled = true;
-      
+
       const parentId = this.getParentIdFromUrl();
       if (!parentId) {
         console.warn('⚠️ No se puede buscar sin parent ID');
@@ -1260,7 +1802,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       });
 
       this.canceledSearchResults = await this.targetsService.searchCanceledTargets(parentId, searchTerm);
-      
+
       console.log('✅ Resultados de búsqueda de objetivos cancelados:', {
         cantidad: this.canceledSearchResults.length,
         resultados: this.canceledSearchResults
@@ -1286,8 +1828,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
    * Obtiene los objetivos a mostrar (resultados de búsqueda o todos)
    */
   get displayedCanceledTargets(): Target[] {
-    return this.canceledSearchResults.length > 0 || this.canceledSearchTerm.trim() 
-      ? this.canceledSearchResults 
+    return this.canceledSearchResults.length > 0 || this.canceledSearchTerm.trim()
+      ? this.canceledSearchResults
       : this.canceledTargets;
   }
 
@@ -1305,7 +1847,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   async restoreTarget(targetId: string) {
     console.log('🔄 Iniciando restauración de target:', targetId);
-    
+
     if (!targetId) {
       console.error('❌ ID del target es requerido para restaurar');
       return;
@@ -1324,7 +1866,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
             // Llamar al servicio para restaurar
             console.log('📡 Ejecutando restauración...');
             await this.targetsService.restoreTarget(targetId);
-            
+
             // Mostrar mensaje de éxito
             this.messageService.add({
               severity: 'success',
@@ -1337,10 +1879,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
             // Actualizar la lista de cancelados
             await this.loadCanceledTargets();
-            
+
             // Notificar que se han actualizado objetivos para refrescar management
             this.selectionService.notifyTargetsUpdated();
-            
+
             // Cerrar el modal de detalles si está abierto
             if (this.targetDetailsVisible && this.selectedTargetDetails?._id === targetId) {
               this.closeTargetDetails();
@@ -1372,7 +1914,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   async deleteTarget(targetId: string) {
     console.log('🗑️ Iniciando eliminación permanente de target:', targetId);
-    
+
     if (!targetId) {
       console.error('❌ ID del target es requerido para eliminar');
       return;
@@ -1392,7 +1934,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
             // Llamar al servicio para eliminar
             console.log('📡 Ejecutando eliminación permanente...');
             await this.targetsService.deleteTarget(targetId);
-            
+
             // Mostrar mensaje de éxito
             this.messageService.add({
               severity: 'success',
@@ -1405,10 +1947,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
             // Actualizar la lista de cancelados
             await this.loadCanceledTargets();
-            
+
             // Notificar que se han actualizado objetivos para refrescar management
             this.selectionService.notifyTargetsUpdated();
-            
+
             // Cerrar el modal de detalles si está abierto
             if (this.targetDetailsVisible && this.selectedTargetDetails?._id === targetId) {
               this.closeTargetDetails();
@@ -1441,7 +1983,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private async registerRestorationProcess(targetId: string): Promise<void> {
     try {
       console.log('📝 Registrando proceso de restauración para target:', targetId);
-      
+
       // Obtener información del target restaurado
       const targetDetails = this.selectedTargetDetails || this.canceledTargets.find(t => t._id === targetId);
       if (!targetDetails) {
@@ -1498,7 +2040,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private async registerDeletionProcess(targetId: string): Promise<void> {
     try {
       console.log('📝 Registrando proceso de eliminación para target:', targetId);
-      
+
       // Obtener información del target eliminado
       const targetDetails = this.selectedTargetDetails || this.canceledTargets.find(t => t._id === targetId);
       if (!targetDetails) {
@@ -1540,7 +2082,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
       // Crear el proceso
       await this.targetsService.createProcess(processData);
-      
+
       console.log('✅ Proceso de eliminación registrado exitosamente');
 
     } catch (error: any) {
@@ -1556,19 +2098,19 @@ export class NavbarComponent implements OnInit, OnDestroy {
     try {
       this.loadingTargetProcesses = true;
       this.targetProcesses = [];
-      
+
       const targetId = target._id;
       console.log('🔍 Cargando procesos para target:', targetId);
-      
+
       // Cargar procesos usando el ID del target
       this.targetProcesses = await this.targetsService.getProcessesByReference(targetId);
-      
+
       console.log('✅ Procesos del objetivo cargados:', {
         targetId,
         cantidad: this.targetProcesses.length,
         procesos: this.targetProcesses
       });
-      
+
     } catch (error) {
       console.error('❌ Error al cargar procesos del target:', error);
       this.targetProcesses = [];
@@ -1616,17 +2158,17 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   getPlanDisplayText(plan: any): string {
     if (!plan) return 'No asignado';
-    
+
     if (typeof plan === 'string') {
       // Si es un string, podría ser un ID, intentar buscar el nombre
       return this.getPlanNameById(plan);
     }
-    
+
     if (typeof plan === 'object' && plan.id_plan) {
       // Si es un objeto con id_plan, buscar el nombre del plan
       const planName = this.getPlanNameById(plan.id_plan);
       let displayText = planName;
-      
+
       if (plan.selected_price) {
         displayText += ` - $${plan.selected_price.amount}`;
         if (plan.selected_price.payment_period) {
@@ -1635,7 +2177,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       }
       return displayText;
     }
-    
+
     return JSON.stringify(plan);
   }
 
@@ -1644,7 +2186,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   getPriceDisplayText(price: any): string {
     if (!price) return 'No asignado';
-    
+
     if (typeof price === 'object' && price.amount) {
       let displayText = price.amount.toString();
       if (price.payment_period) {
@@ -1652,7 +2194,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       }
       return displayText;
     }
-    
+
     return JSON.stringify(price);
   }
 
@@ -1661,15 +2203,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   getContactsDisplayText(contacts: any): string {
     if (!contacts) return 'No especificado';
-    
+
     if (Array.isArray(contacts)) {
       return contacts.join(', ');
     }
-    
+
     if (typeof contacts === 'string') {
       return contacts;
     }
-    
+
     return JSON.stringify(contacts);
   }
 
@@ -1678,7 +2220,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   getTraccarStatusClass(status: string): string {
     if (!status) return '';
-    
+
     switch (status.toLowerCase()) {
       case 'online':
         return 'online';
@@ -1694,7 +2236,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   getYesNoDisplayText(value: any): string {
     if (!value) return 'No especificado';
-    
+
     if (typeof value === 'string') {
       switch (value.toLowerCase()) {
         case 'yes':
@@ -1709,11 +2251,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
           return value;
       }
     }
-    
+
     if (typeof value === 'boolean') {
       return value ? 'Sí' : 'No';
     }
-    
+
     return String(value);
   }
 
@@ -1722,7 +2264,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   getStatusDisplayText(status: any): string {
     if (!status) return 'No especificado';
-    
+
     if (typeof status === 'string') {
       switch (status.toLowerCase()) {
         case 'active':
@@ -1733,11 +2275,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
           return status;
       }
     }
-    
+
     if (typeof status === 'boolean') {
       return status ? 'Activo' : 'Inactivo';
     }
-    
+
     return String(status);
   }
 
@@ -1766,7 +2308,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
    */
   getColorDisplayText(colorValue: string): string {
     if (!colorValue) return '';
-    
+
     // Si es un valor hex, podrías convertirlo a nombre
     const colorNames: { [key: string]: string } = {
       '#FFFFFF': 'Blanco',
@@ -1780,7 +2322,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       '#A0A0A0': 'Gris',
       '#C0C0C0': 'Plata'
     };
-    
+
     return colorNames[colorValue] || colorValue;
   }
 }

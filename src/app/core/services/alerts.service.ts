@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
-export type AlertType = 'speed' | 'perimeter' | 'power' | 'movement';
+export type AlertType = 'speed' | 'perimeter' | 'power' | 'movement' | 'ignition';
 
 export type AlertStatus = 'active' | 'inactive';
 
@@ -40,7 +40,7 @@ export interface AlertResponse {
 export class AlertsService {
   private apiUrl = `${environment.apiUrl}/alerts`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   createAlert(payload: CreateAlertDto): Observable<any> {
     return this.http.post(this.apiUrl, payload);

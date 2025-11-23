@@ -1,113 +1,113 @@
 export class MapUtils {
-    static getApiConfig(systems: any[], provider: 'google' | 'mapbox') {
-      if (!systems?.length) return null;
-      const mapConfig = provider === 'google' ? systems[0].map_api1 : systems[0].map_api2;
-      return mapConfig?.key && mapConfig?.url ? mapConfig : null;
+  static getApiConfig(systems: any[], provider: 'google' | 'mapbox') {
+    if (!systems?.length) return null;
+    const mapConfig = provider === 'google' ? systems[0].map_api1 : systems[0].map_api2;
+    return mapConfig?.key && mapConfig?.url ? mapConfig : null;
+  }
+
+  static loadMapScript(provider: 'google' | 'mapbox', key: string, url: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // console.log(`Loading ${provider} script...`);
+
+      if (provider === 'google' && typeof google !== 'undefined' && google.maps) {
+        // console.log('Google Maps already loaded');
+        return resolve();
+      }
+      if (provider === 'mapbox' && (window as any).mapboxgl) {
+        // console.log('Mapbox already loaded');
+        return resolve();
+      }
+
+      if (!key || !url) return reject('Clave/API URL no válidas');
+
+      // Limpiar scripts anteriores del proveedor opuesto
+      MapUtils.cleanupPreviousScripts(provider);
+
+      if (provider === 'mapbox') {
+        // Asegurar que el CSS de Mapbox esté cargado
+        const existingLink = document.querySelector('link[href*="mapbox-gl.css"]');
+        if (!existingLink) {
+          // console.log('Loading Mapbox CSS...');
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
+          document.head.appendChild(link);
+        }
+      }
+
+      // Verificar si el script ya existe antes de crearlo
+      const existingScript = document.querySelector(`script[src*="${provider === 'google' ? 'maps.googleapis.com' : 'mapbox-gl.js'}"]`);
+      if (existingScript) {
+        // console.log(`${provider} script already exists in DOM`);
+        setTimeout(() => resolve(), 100);
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = provider === 'google' ? `${url}${key}&libraries=drawing` : `${url}?access_token=${key}`;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        // console.log(`${provider} script loaded successfully`);
+        setTimeout(() => resolve(), 200); // Mayor delay para asegurar que esté disponible
+      };
+      script.onerror = err => {
+        // console.error(`Error loading ${provider} script:`, err);
+        reject(err);
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  static cleanupPreviousScripts(currentProvider: 'google' | 'mapbox'): void {
+    // Cuando cambiamos a Google Maps, no necesitamos limpiar Mapbox porque puede coexistir
+    // Cuando cambiamos a Mapbox, no necesitamos limpiar Google Maps porque puede coexistir
+    // Solo reiniciamos las variables globales si es necesario
+
+    if (currentProvider === 'mapbox') {
+      // Reiniciar cualquier configuración específica de Google Maps si es necesario
+    } else {
+      // Reiniciar cualquier configuración específica de Mapbox si es necesario
     }
-  
-    static loadMapScript(provider: 'google' | 'mapbox', key: string, url: string): Promise<void> {
-      return new Promise((resolve, reject) => {
-        // console.log(`Loading ${provider} script...`);
-        
-        if (provider === 'google' && typeof google !== 'undefined' && google.maps) {
-          // console.log('Google Maps already loaded');
-          return resolve();
-        }
-        if (provider === 'mapbox' && (window as any).mapboxgl) {
-          // console.log('Mapbox already loaded');
-          return resolve();
-        }
+  }
 
-        if (!key || !url) return reject('Clave/API URL no válidas');
+  static getInitialMapCenter(selectedTarget: any) {
+    // Centro por defecto: República Dominicana
+    const defaultLat = 18.7357;
+    const defaultLng = -70.1627;
+    const defaultZoom = 7;
 
-        // Limpiar scripts anteriores del proveedor opuesto
-        MapUtils.cleanupPreviousScripts(provider);
+    if (selectedTarget?.traccarInfo?.geolocation) {
+      return {
+        centerLat: selectedTarget.traccarInfo.geolocation.latitude,
+        centerLng: selectedTarget.traccarInfo.geolocation.longitude,
+        zoomLevel: 16,
+      };
+    }
 
-        if (provider === 'mapbox') {
-          // Asegurar que el CSS de Mapbox esté cargado
-          const existingLink = document.querySelector('link[href*="mapbox-gl.css"]');
-          if (!existingLink) {
-            // console.log('Loading Mapbox CSS...');
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
-            document.head.appendChild(link);
-          }
-        }
+    return { centerLat: defaultLat, centerLng: defaultLng, zoomLevel: defaultZoom };
+  }
 
-        // Verificar si el script ya existe antes de crearlo
-        const existingScript = document.querySelector(`script[src*="${provider === 'google' ? 'maps.googleapis.com' : 'mapbox-gl.js'}"]`);
-        if (existingScript) {
-          // console.log(`${provider} script already exists in DOM`);
-          setTimeout(() => resolve(), 100);
-          return;
-        }
-
-        const script = document.createElement('script');
-        script.src = provider === 'google' ? `${url}${key}` : `${url}?access_token=${key}`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => {
-          // console.log(`${provider} script loaded successfully`);
-          setTimeout(() => resolve(), 200); // Mayor delay para asegurar que esté disponible
-        };
-        script.onerror = err => {
-          // console.error(`Error loading ${provider} script:`, err);
-          reject(err);
-        };
-        document.head.appendChild(script);
+  static createMap(provider: 'google' | 'mapbox', element: HTMLElement, key: string, theme: 'dark' | 'light', lat: number, lng: number, zoom: number): any {
+    if (provider === 'google') {
+      return new google.maps.Map(element, {
+        center: { lat, lng },
+        zoom,
+        styles: theme === 'dark' ? MapUtils.googleDarkTheme() : []
       });
     }
 
-    static cleanupPreviousScripts(currentProvider: 'google' | 'mapbox'): void {
-      // Cuando cambiamos a Google Maps, no necesitamos limpiar Mapbox porque puede coexistir
-      // Cuando cambiamos a Mapbox, no necesitamos limpiar Google Maps porque puede coexistir
-      // Solo reiniciamos las variables globales si es necesario
-      
-      if (currentProvider === 'mapbox') {
-        // Reiniciar cualquier configuración específica de Google Maps si es necesario
-      } else {
-        // Reiniciar cualquier configuración específica de Mapbox si es necesario
-      }
-    }
-  
-    static getInitialMapCenter(selectedTarget: any) {
-      // Centro por defecto: República Dominicana
-      const defaultLat = 18.7357;
-      const defaultLng = -70.1627;
-      const defaultZoom = 7;
+    const mapboxgl = (window as any).mapboxgl;
+    return new mapboxgl.Map({
+      container: element,
+      accessToken: key,
+      style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v10' : 'mapbox://styles/mapbox/streets-v11',
+      center: [lng, lat],
+      zoom
+    });
+  }
 
-      if (selectedTarget?.traccarInfo?.geolocation) {
-        return {
-          centerLat: selectedTarget.traccarInfo.geolocation.latitude,
-          centerLng: selectedTarget.traccarInfo.geolocation.longitude,
-          zoomLevel: 16,
-        };
-      }
-
-      return { centerLat: defaultLat, centerLng: defaultLng, zoomLevel: defaultZoom };
-    }
-  
-    static createMap(provider: 'google' | 'mapbox', element: HTMLElement, key: string, theme: 'dark' | 'light', lat: number, lng: number, zoom: number): any {
-      if (provider === 'google') {
-        return new google.maps.Map(element, {
-          center: { lat, lng },
-          zoom,
-          styles: theme === 'dark' ? MapUtils.googleDarkTheme() : []
-        });
-      }
-  
-      const mapboxgl = (window as any).mapboxgl;
-      return new mapboxgl.Map({
-        container: element,
-        accessToken: key,
-        style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v10' : 'mapbox://styles/mapbox/streets-v11',
-        center: [lng, lat],
-        zoom
-      });
-    }
-  
-        static recenterMap(map: any, provider: 'google' | 'mapbox', lat: number, lng: number) {
+  static recenterMap(map: any, provider: 'google' | 'mapbox', lat: number, lng: number) {
     // console.log('🎯 MapUtils.recenterMap EJECUTADO:', {
     //   provider,
     //   lat: lat.toFixed(6),
@@ -124,7 +124,7 @@ export class MapUtils {
       map.setCenter([lng, lat]);
       map.setZoom(16);
     }
-    
+
     // console.log('✅ MapUtils.recenterMap COMPLETADO');
   }
 
@@ -133,11 +133,11 @@ export class MapUtils {
 
     if (provider === 'google') {
       const bounds = map.getBounds();
-      
+
       if (!bounds) return;
 
       const markerLatLng = new google.maps.LatLng(lat, lng);
-      
+
       // Verificar si el marcador está fuera de los límites visibles
       if (!bounds.contains(markerLatLng)) {
         map.panTo({ lat, lng });
@@ -145,12 +145,12 @@ export class MapUtils {
     } else {
       // Mapbox
       const bounds = map.getBounds();
-      
+
       if (!bounds) return;
 
       // Verificar si el marcador está fuera de los límites visibles
-      if (lng < bounds.getWest() || lng > bounds.getEast() || 
-          lat < bounds.getSouth() || lat > bounds.getNorth()) {
+      if (lng < bounds.getWest() || lng > bounds.getEast() ||
+        lat < bounds.getSouth() || lat > bounds.getNorth()) {
         map.setCenter([lng, lat]);
       }
     }
@@ -166,7 +166,7 @@ export class MapUtils {
     iconUrl?: string,
     openByDefault: boolean = true,
   ): any {
-    
+
     const fallbackIcon =
       'data:image/svg+xml;base64,' +
       btoa(`
@@ -225,7 +225,7 @@ export class MapUtils {
       return marker;
     } else {
       const mapboxgl = (window as any).mapboxgl;
-      
+
       // Crear elemento del marcador
       const markerElement = document.createElement('div');
       markerElement.className = 'custom-marker';
@@ -273,8 +273,8 @@ export class MapUtils {
 
   static removeMarker(marker: any, provider: 'google' | 'mapbox'): void {
     if (!marker) return;
-    
-    
+
+
     if (provider === 'google') {
       marker.setMap(null);
     } else {
@@ -283,19 +283,19 @@ export class MapUtils {
   }
 
   static removeAllMarkers(markers: any[], provider: 'google' | 'mapbox'): void {
-    
+
     markers.forEach(marker => {
       MapUtils.removeMarker(marker, provider);
     });
   }
-  
-    static googleDarkTheme() {
-      return [
-        { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
-        { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
-        { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
-        { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#38414e' }] },
-        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] }
-      ];
-    }
+
+  static googleDarkTheme() {
+    return [
+      { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+      { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+      { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+      { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#38414e' }] },
+      { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] }
+    ];
+  }
 } 

@@ -6,6 +6,7 @@ import { AdminRoutingModule } from './admin-routing.module';
 import { AdminComponent } from './components/admin-layout/admin.component';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
+import { MapAlertComponent } from './components/map-alert/map-alert.component';
 import { PrimengModule } from '../../shareds/libraries/primeng/primeng.module';
 import { TranslateModule } from '@ngx-translate/core';
 
@@ -13,7 +14,8 @@ import { TranslateModule } from '@ngx-translate/core';
   declarations: [
     AdminComponent,
     NavbarComponent,
-    SidebarComponent
+    SidebarComponent,
+    MapAlertComponent
   ],
   imports: [
     CommonModule,
