@@ -2,10 +2,7 @@
     <div class="target-form">
         <div class="target-form__tools">
             <div class="card">
-                <p-tabView
-                    [activeIndex]="activeTabIndex"
-                    (activeIndexChange)="activeTabIndex = $event"
-                >
+                <p-tabView [activeIndex]="activeTabIndex" (activeIndexChange)="activeTabIndex = $event">
                     <p-tabPanel>
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-car"></i>
@@ -13,171 +10,137 @@
                         </ng-template>
                         <div class="target-form__base">
                             <!-- Mensaje informativo eliminado -->
-                            
+
                             <form class="target-form__form" (ngSubmit)="onSubmit()" ngNativeValidate>
                                 <div class="target-form__grid">
 
                                     <!-- Columna Izquierda -->
                                     <div class="target-form__column">
                                         <div class="target-form__field">
-                                            <label for="name">{{ translate(translations.name) }} <span class="required-label">(Requerido)</span></label>
-                                            <input 
-                                                [(ngModel)]="target.name"
-                                                name="name"
-                                                placeholder="Ej: Ford Explorer 2021" 
-                                                type="text" 
-                                                id="name" 
-                                                required
-                                            >
+                                            <label for="name">{{ translate(translations.name) }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <input [(ngModel)]="target.name" name="name"
+                                                placeholder="Ej: Ford Explorer 2021" type="text" id="name" required>
                                         </div>
 
-                                <div class="target-form__field">
-                                            <label for="brand">{{ translate(translations.brand) }} <span class="required-label">(Requerido)</span></label>
-                                            <select
-                                                [(ngModel)]="target.target_brand_id"
-                                                name="target_brand_id"
-                                                id="brand"
-                                                required
-                                                (change)="onBrandChange()"
-                                            >
-                                                <option [ngValue]="''">{{ translate('management.targetForm.selectBrand') }}</option>
+                                        <div class="target-form__field">
+                                            <label for="brand">{{ translate(translations.brand) }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <select [(ngModel)]="target.target_brand_id" name="target_brand_id"
+                                                id="brand" required (change)="onBrandChange()">
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectBrand')
+                                                    }}</option>
                                                 <option *ngFor="let brand of availableBrands" [value]="brand.value">
                                                     {{brand.label}}
                                                 </option>
                                             </select>
-                                </div>
-                            
-                                <div class="target-form__field">
-                                            <label for="model">{{ translate(translations.model) }} <span class="required-label">(Requerido)</span></label>
-                                            <select
-                                                [(ngModel)]="target.target_model_id"
-                                                name="target_model_id"
-                                                id="model"
-                                                required
-                                            >
-                                                <option [ngValue]="''">{{ translate('management.targetForm.selectModel') }}</option>
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="model">{{ translate(translations.model) }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <select [(ngModel)]="target.target_model_id" name="target_model_id"
+                                                id="model" required>
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectModel')
+                                                    }}</option>
                                                 <option *ngFor="let model of availableModels" [value]="model.value">
                                                     {{model.label}}
                                                 </option>
-                                    </select>
-                                </div>
-                            
-                                <div class="target-form__field">
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
                                             <label for="year">{{ translate(translations.year) }}</label>
-                                            <select
-                                                [(ngModel)]="target.target_year"
-                                                name="target_year"
-                                                id="year"
-                                            >
-                                                <option [ngValue]="''">{{ translate('management.targetForm.selectYear') }}</option>
+                                            <select [(ngModel)]="target.target_year" name="target_year" id="year">
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectYear')
+                                                    }}</option>
                                                 <option *ngFor="let year of availableYears" [value]="year.value">
                                                     {{year.label}}
                                                 </option>
-                                    </select>
-                                </div>
-                            
-                                <div class="target-form__field">
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
                                             <label for="status">{{ translate('management.targetForm.status') }}</label>
-                                            <select
-                                                [(ngModel)]="target.status"
-                                                name="status"
-                                                id="status"
-                                            >
-                                                <option value="active">{{ translate('management.targetForm.statusActive') }}</option>
-                                                <option value="inactive">{{ translate('management.targetForm.statusInactive') }}</option>
+                                            <select [(ngModel)]="target.status" name="status" id="status">
+                                                <option value="active">{{
+                                                    translate('management.targetForm.statusActive') }}</option>
+                                                <option value="inactive">{{
+                                                    translate('management.targetForm.statusInactive') }}</option>
                                             </select>
                                         </div>
 
                                         <div class="target-form__field target-form__field--small">
                                             <label for="description">{{ translate(translations.description) }}</label>
-                                            <textarea 
-                                                [(ngModel)]="target.description"
-                                                name="description"
-                                                placeholder="Ej: Vehículo de flota para entregas" 
-                                                id="description"
-                                                rows="3"
-                                            ></textarea>
+                                            <textarea [(ngModel)]="target.description" name="description"
+                                                placeholder="Ej: Vehículo de flota para entregas" id="description"
+                                                rows="3"></textarea>
                                         </div>
-                                </div>
-                            
+                                    </div>
+
                                     <!-- Columna Derecha -->
                                     <div class="target-form__column">
-                                <div class="target-form__field">
-                                            <label for="plate">{{ translate(translations.plate) }} <span class="required-label">(Requerido)</span></label>
-                                    <input 
-                                                [(ngModel)]="target.target_plate_number"
-                                                name="target_plate_number"
-                                        placeholder="Ej: G123456" 
-                                        type="text" 
-                                        id="plate" 
-                                                required
-                                    >
-                                </div>
-                            
-                                <div class="target-form__field">
+                                        <div class="target-form__field">
+                                            <label for="plate">{{ translate(translations.plate) }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <input [(ngModel)]="target.target_plate_number" name="target_plate_number"
+                                                placeholder="Ej: G123456" type="text" id="plate" required>
+                                        </div>
+
+                                        <div class="target-form__field">
                                             <label for="chassis">{{ translate(translations.chassis) }}</label>
-                                    <input 
-                                                [(ngModel)]="target.target_chassis_number"
-                                                name="target_chassis_number"
-                                                placeholder="Ej: 1HGCM82633A123456" 
-                                        type="text" 
-                                                id="chassis"
-                                    >
-                                </div>
-                            
-                                <div class="target-form__field">
+                                            <input [(ngModel)]="target.target_chassis_number"
+                                                name="target_chassis_number" placeholder="Ej: 1HGCM82633A123456"
+                                                type="text" id="chassis">
+                                        </div>
+
+                                        <div class="target-form__field">
                                             <label for="color">{{ translate(translations.color) }}</label>
-                                    <input 
-                                                [(ngModel)]="displayColorName"
-                                                name="colorDisplay"
-                                                id="color"
+                                            <input [(ngModel)]="displayColorName" name="colorDisplay" id="color"
                                                 placeholder="{{ translate('management.targetForm.selectColor') }}"
-                                                type="text"
-                                            >
-                                            <input 
-                                                [(ngModel)]="target.target_color"
-                                                name="target_color"
-                                                type="hidden"
-                                            >
+                                                type="text">
+                                            <input [(ngModel)]="target.target_color" name="target_color" type="hidden">
                                             <div class="color-container">
                                                 <div class="color-options">
                                                     <div class="color-header">
                                                         <span>Colores disponibles</span>
-                                                        <button type="button" class="close-btn" style="visibility: hidden;">
+                                                        <button type="button" class="close-btn"
+                                                            style="visibility: hidden;">
                                                             <i class="pi pi-times"></i>
                                                         </button>
                                                     </div>
                                                     <div class="color-list">
-                                                        <div 
-                                                            *ngFor="let color of filteredColors" 
-                                                            class="color-option" 
+                                                        <div *ngFor="let color of filteredColors" class="color-option"
                                                             [attr.data-value]="color.value"
                                                             [class.selected]="color.value === target.target_color"
-                                                            (click)="selectColor(color)"
-                                                        >
-                                                            <div class="color-swatch" [style.background-color]="color.value"></div>
+                                                            (click)="selectColor(color)">
+                                                            <div class="color-swatch"
+                                                                [style.background-color]="color.value"></div>
                                                             <span>{{color.label}}</span>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="target-form__field">
-                                                <button style="background:black" type="button" class="button button--primary-flat-negative" (click)="openContacts()">
+                                                <button style="background:black" type="button"
+                                                    class="button button--primary-flat-negative"
+                                                    (click)="openContacts()">
                                                     <i class="pi pi-users"></i>
                                                     <span> Contactos</span>
                                                 </button>
                                             </div>
-                                </div>
-                
-                                   
+                                        </div>
 
-                                
-                                  </div>
+
+
+
+                                    </div>
                                 </div>
-                
+
                                 <div class="target-form__actions">
                                     <button type="submit" [disabled]="isLoading">
-                                        <i class="pi" [ngClass]="isLoading ? 'pi-spinner loading-spinner' : (target._id ? 'pi-sync' : 'pi-save')"></i>
+                                        <i class="pi"
+                                            [ngClass]="isLoading ? 'pi-spinner loading-spinner' : (target._id ? 'pi-sync' : 'pi-save')"></i>
                                         {{ translate(target._id ? 'management.targetForm.update' : translations.save) }}
                                     </button>
                                 </div>
@@ -193,142 +156,123 @@
                         <div class="target-form__base">
                             <form class="target-form__form" (ngSubmit)="onSubmit()" ngNativeValidate>
                                 <div class="target-form__grid">
-                                
+
                                     <!-- Columna Izquierda -->
                                     <div class="target-form__column">
                                         <!-- Select de Técnico -->
                                         <div class="target-form__field">
-                                            <label for="technician">{{ translate('management.targetForm.technician') }} <span class="required-label">(Requerido)</span></label>
-                                            <select
-                                                [(ngModel)]="target.mechanic_id"
-                                                name="mechanic_id"
-                                                id="technician"
-                                                required
-                                                [disabled]="isEditMode"
-                                            >
-                                                <option value="" [selected]="!target.mechanic_id">{{ translate('management.targetForm.selectTechnician') }}</option>
+                                            <label for="technician">{{ translate('management.targetForm.technician') }}
+                                                <span class="required-label">(Requerido)</span></label>
+                                            <select [(ngModel)]="target.mechanic_id" name="mechanic_id" id="technician"
+                                                required [disabled]="isEditMode">
+                                                <option value="" [selected]="!target.mechanic_id">{{
+                                                    translate('management.targetForm.selectTechnician') }}</option>
                                                 <option *ngFor="let tech of availableTechnicians" [value]="tech.value">
                                                     {{tech.label}}
                                                 </option>
                                             </select>
                                         </div>
 
-                                <div class="target-form__field">
-                                            <label for="imei">{{ translate(translations.imei) }} <span class="required-label">(Requerido)</span></label>
-                                    <input 
-                                                [(ngModel)]="target.device_imei"
-                                                name="device_imei"
-                                                placeholder="Ej: 990000862471854" 
-                                        type="text" 
-                                                id="imei" 
-                                                required
-                                                [readonly]="isEditMode"
-                                                [disabled]="isEditMode"
-                                    >
-                                </div>
-                            
-                                <div class="target-form__field">
-                                            <label for="sim_company">{{ translate('management.targetForm.simCardType') }}</label>
-                                            <select
-                                                [(ngModel)]="target.sim_company"
-                                                name="sim_company"
-                                                id="sim_company"
-                                                [disabled]="isEditMode"
-                                            >
-                                                <option [ngValue]="''">{{ translate('management.targetForm.selectSimCardType') }}</option>
-                                                <option *ngFor="let simType of availableSimCardTypes" [ngValue]="simType.value">
+                                        <div class="target-form__field">
+                                            <label for="imei">{{ translate(translations.imei) }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <input [(ngModel)]="target.device_imei" name="device_imei"
+                                                placeholder="Ej: 990000862471854" type="text" id="imei" required
+                                                [readonly]="isEditMode" [disabled]="isEditMode">
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="sim_company">{{ translate('management.targetForm.simCardType')
+                                                }}</label>
+                                            <select [(ngModel)]="target.sim_company" name="sim_company" id="sim_company"
+                                                [disabled]="isEditMode">
+                                                <option [ngValue]="''">{{
+                                                    translate('management.targetForm.selectSimCardType') }}</option>
+                                                <option *ngFor="let simType of availableSimCardTypes"
+                                                    [ngValue]="simType.value">
                                                     {{simType.label}}
                                                 </option>
                                             </select>
                                         </div>
 
                                         <div class="target-form__field">
-                                            <label for="sim_card">{{ translate(translations.simCard) }} <span class="required-label">(Requerido)</span></label>
-                                    <input 
-                                                [(ngModel)]="target.sim_card_number"
-                                                name="sim_card_number"
-                                                placeholder="Ej: 8999991234567891234" 
-                                        type="text" 
-                                                id="sim_card" 
-                                                required
-                                                [readonly]="isEditMode"
-                                    >
-                                </div>
-                            
-                                                                        <div class="target-form__field">
+                                            <label for="sim_card">{{ translate(translations.simCard) }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <input [(ngModel)]="target.sim_card_number" name="sim_card_number"
+                                                placeholder="Ej: 8999991234567891234" type="text" id="sim_card" required
+                                                [readonly]="isEditMode">
+                                        </div>
+
+                                        <div class="target-form__field">
                                             <label for="gps_model">{{ translate(translations.gpsModel) }}</label>
-                                            <select
-                                                [(ngModel)]="target.type"
-                                                name="type"
-                                                id="gps_model"
-                                                (change)="onGpsModelChange()"
-                                                [disabled]="isEditMode"
-                                            >
-                                                <option [ngValue]="''">{{ translate('management.targetForm.selectGpsModel') }}</option>
-                                                <option *ngFor="let model of availableGpsModels" [ngValue]="model.value">
+                                            <select [(ngModel)]="target.type" name="type" id="gps_model"
+                                                (change)="onGpsModelChange()" [disabled]="isEditMode">
+                                                <option [ngValue]="''">{{
+                                                    translate('management.targetForm.selectGpsModel') }}</option>
+                                                <option *ngFor="let model of availableGpsModels"
+                                                    [ngValue]="model.value">
                                                     {{model.label}}
                                                 </option>
                                             </select>
-                                </div>
-                            
-                                
+                                        </div>
+
+
                                         <div class="target-form__field">
-                                            <label for="installation_details">{{ translate(translations.installationDetails) }}</label>
-                                            <textarea 
-                                                [(ngModel)]="target.installation_details"
+                                            <label for="installation_details">{{
+                                                translate(translations.installationDetails) }}</label>
+                                            <textarea [(ngModel)]="target.installation_details"
                                                 name="installation_details"
-                                                placeholder="Detalles técnicos de la instalación" 
-                                                id="installation_details"
-                                                rows="3"
-                                                [readonly]="isEditMode"
-                                                [disabled]="isEditMode"
-                                            ></textarea>
+                                                placeholder="Detalles técnicos de la instalación"
+                                                id="installation_details" rows="3" [readonly]="isEditMode"
+                                                [disabled]="isEditMode"></textarea>
                                         </div>
                                     </div>
 
                                     <!-- Columna Derecha -->
                                     <div class="target-form__column">
-                                 
 
-                                <div class="target-form__field">
-                                            <label for="installation_location">{{ translate(translations.installationLocation) }}</label>
-                                            <select
-                                                [(ngModel)]="target.installation_location"
-                                                name="installation_location"
-                                                id="installation_location"
-                                            >
-                                                <option [ngValue]="''">{{ translate('management.targetForm.selectLocation') }}</option>
-                                                <option *ngFor="let location of availableLocations" [ngValue]="location.value">
+
+                                        <div class="target-form__field">
+                                            <label for="installation_location">{{
+                                                translate(translations.installationLocation) }}</label>
+                                            <select [(ngModel)]="target.installation_location"
+                                                name="installation_location" id="installation_location">
+                                                <option [ngValue]="''">{{
+                                                    translate('management.targetForm.selectLocation') }}</option>
+                                                <option *ngFor="let location of availableLocations"
+                                                    [ngValue]="location.value">
                                                     {{location.label}}
                                                 </option>
-                                    </select>
-                                </div>
-                            
-                                <div class="target-form__field">
-                                            <label for="ignition_sensor">{{ translate(translations.ignitionSensor) }}</label>
-                                            <select
-                                                [(ngModel)]="target.ignition_sensor"
-                                                name="ignition_sensor"
-                                                id="ignition_sensor"
-                                            >
-                                                <option [ngValue]="''">{{ translate('management.targetForm.selectOption') }}</option>
-                                                <option [ngValue]="'yes'">{{ translate('management.targetForm.yes') }}</option>
-                                                <option [ngValue]="'no'">{{ translate('management.targetForm.no') }}</option>
-                                    </select>
-                                </div>
-                            
-                                <div class="target-form__field">
-                                            <label for="shutdown_control">{{ translate(translations.shutdownControl) }}</label>
-                                            <select
-                                                [(ngModel)]="target.engine_shutdown"
-                                                name="engine_shutdown"
-                                                id="shutdown_control"
-                                            >
-                                                <option [ngValue]="''">{{ translate('management.targetForm.selectOption') }}</option>
-                                                <option [ngValue]="'yes'">{{ translate('management.targetForm.yes') }}</option>
-                                                <option [ngValue]="'no'">{{ translate('management.targetForm.no') }}</option>
-                                    </select>
-                                </div>
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="ignition_sensor">{{ translate(translations.ignitionSensor)
+                                                }}</label>
+                                            <select [(ngModel)]="target.ignition_sensor" name="ignition_sensor"
+                                                id="ignition_sensor">
+                                                <option [ngValue]="''">{{
+                                                    translate('management.targetForm.selectOption') }}</option>
+                                                <option [ngValue]="'yes'">{{ translate('management.targetForm.yes') }}
+                                                </option>
+                                                <option [ngValue]="'no'">{{ translate('management.targetForm.no') }}
+                                                </option>
+                                            </select>
+                                        </div>
+
+                                        <div class="target-form__field">
+                                            <label for="shutdown_control">{{ translate(translations.shutdownControl)
+                                                }}</label>
+                                            <select [(ngModel)]="target.engine_shutdown" name="engine_shutdown"
+                                                id="shutdown_control">
+                                                <option [ngValue]="''">{{
+                                                    translate('management.targetForm.selectOption') }}</option>
+                                                <option [ngValue]="'yes'">{{ translate('management.targetForm.yes') }}
+                                                </option>
+                                                <option [ngValue]="'no'">{{ translate('management.targetForm.no') }}
+                                                </option>
+                                            </select>
+                                        </div>
 
                                         <!-- Texto condicional para gestión de comandos -->
                                         <div *ngIf="target.engine_shutdown === 'yes'" class="target-form__field">
@@ -338,17 +282,13 @@
                                             </div>
                                         </div>
 
-                                <div class="target-form__field">
-                                            <label for="plan">{{ translate(translations.plan) }} <span class="required-label">(Requerido)</span></label>
-                                            <select
-                                                [(ngModel)]="target.plan"
-                                                name="plan"
-                                                id="plan"
-                                                required
-                                                [disabled]="isEditMode"
-                                                (change)="onPlanChange()"
-                                            >
-                                                <option [ngValue]="''">{{ translate('management.targetForm.selectPlan') }}</option>
+                                        <div class="target-form__field">
+                                            <label for="plan">{{ translate(translations.plan) }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <select [(ngModel)]="target.plan" name="plan" id="plan" required
+                                                [disabled]="isEditMode" (change)="onPlanChange()">
+                                                <option [ngValue]="''">{{ translate('management.targetForm.selectPlan')
+                                                    }}</option>
                                                 <option *ngFor="let plan of availablePlans" [value]="plan.value">
                                                     {{plan.label}}
                                                 </option>
@@ -356,70 +296,63 @@
                                         </div>
 
                                         <!-- Price selector (appears only when a plan is selected and user is employee) -->
-                                        <div class="target-form__field" *ngIf="target.plan && currentUserAffiliationTypeId === 'empleado'">
+                                        <div class="target-form__field"
+                                            *ngIf="target.plan && currentUserAffiliationTypeId === 'empleado'">
                                             <label for="price">
-                                                {{ translate('management.targetForm.selectPrice') }} <span class="required-label">(Requerido)</span>
-                                                <i *ngIf="!isEditMode" class="pi pi-pencil edit-price-icon" (click)="startCustomPriceEdit()" style="color: var(--globalColorPrimaryInmutable); cursor: pointer; margin-left: 5px; font-size: 0.8rem; opacity: 0.7;"></i>
-                                                 <i
-                                                    *ngIf="target.selectedPrice && isPriceCustomized(target.selectedPrice)"
+                                                {{ translate('management.targetForm.selectPrice') }} <span
+                                                    class="required-label">(Requerido)</span>
+                                                <i *ngIf="!isEditMode" class="pi pi-pencil edit-price-icon"
+                                                    (click)="startCustomPriceEdit()"
+                                                    style="color: var(--globalColorPrimaryInmutable); cursor: pointer; margin-left: 5px; font-size: 0.8rem; opacity: 0.7;"></i>
+                                                <i *ngIf="target.selectedPrice && isPriceCustomized(target.selectedPrice)"
                                                     class="pi pi-eye original-price-eye"
                                                     pTooltip="Precio original: {{ getOriginalPriceAmount(target.selectedPrice) }}"
-                                                    tooltipPosition="top"
-                                                 ></i>
+                                                    tooltipPosition="top"></i>
                                             </label>
                                             <div class="price-selector-container">
-                                                <select
-                                                    [(ngModel)]="target.selectedPrice"
-                                                    name="price"
-                                                    id="price"
-                                                    required
-                                                    [disabled]="isEditMode"
-                                                    [compareWith]="comparePrices"
-                                                    (ngModelChange)="onPriceChange()"
-                                                    class="price-select"
-                                                >
-                                                    <option [ngValue]="null">{{ translate('management.targetForm.selectPriceOption') }}</option>
+                                                <select [(ngModel)]="target.selectedPrice" name="price" id="price"
+                                                    required [disabled]="isEditMode" [compareWith]="comparePrices"
+                                                    (ngModelChange)="onPriceChange()" class="price-select">
+                                                    <option [ngValue]="null">{{
+                                                        translate('management.targetForm.selectPriceOption') }}</option>
                                                     <option *ngFor="let price of availablePrices" [ngValue]="price">
-                                                        <ng-container *ngIf="isPriceCustomized(price); else normalPrice">
-                                                            {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }} ({{ translate('management.targetForm.customized') }})
+                                                        <ng-container
+                                                            *ngIf="isPriceCustomized(price); else normalPrice">
+                                                            {{price.amount}} - {{ translate('settings.plans.' +
+                                                            price.payment_period) }} ({{
+                                                            translate('management.targetForm.customized') }})
                                                         </ng-container>
                                                         <ng-template #normalPrice>
-                                                            {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }}
+                                                            {{price.amount}} - {{ translate('settings.plans.' +
+                                                            price.payment_period) }}
                                                         </ng-template>
                                                     </option>
                                                 </select>
                                             </div>
                                         </div>
                                         <div class="target-form__field">
-                                            <label for="installation_date">{{ translate(translations.installationDate) }}</label>
-                                            <input
-                                                [(ngModel)]="target.installation_date"
-                                                name="installation_date"
-                                                type="date"
-                                                id="installation_date"
-                                                [readonly]="isEditMode"
-                                                [disabled]="isEditMode"
-                                            >
+                                            <label for="installation_date">{{ translate(translations.installationDate)
+                                                }}</label>
+                                            <input [(ngModel)]="target.installation_date" name="installation_date"
+                                                type="date" id="installation_date" [readonly]="isEditMode"
+                                                [disabled]="isEditMode">
                                         </div>
-                            
-                                <div class="target-form__field" *ngIf="target.plan && target.selectedPrice">
-                                            <label for="expiration_date">{{ translate(translations.expirationDate) }}</label>
-                                    <input 
-                                                [(ngModel)]="target.expiration_date"
-                                                name="expiration_date"
-                                        type="date" 
-                                                id="expiration_date"
-                                                [readonly]="isEditMode"
-                                                [disabled]="isEditMode"
-                                    >
-                                </div>
-                
+
+                                        <div class="target-form__field" *ngIf="target.plan && target.selectedPrice">
+                                            <label for="expiration_date">{{ translate(translations.expirationDate)
+                                                }}</label>
+                                            <input [(ngModel)]="target.expiration_date" name="expiration_date"
+                                                type="date" id="expiration_date" [readonly]="isEditMode"
+                                                [disabled]="isEditMode">
+                                        </div>
+
                                     </div>
                                 </div>
 
                                 <div class="target-form__actions">
                                     <button type="submit" [disabled]="isLoading">
-                                        <i class="pi" [ngClass]="isLoading ? 'pi-spinner loading-spinner' : (target._id ? 'pi-sync' : 'pi-save')"></i>
+                                        <i class="pi"
+                                            [ngClass]="isLoading ? 'pi-spinner loading-spinner' : (target._id ? 'pi-sync' : 'pi-save')"></i>
                                         {{ translate(target._id ? 'management.targetForm.update' : translations.save) }}
                                     </button>
                                 </div>
@@ -432,311 +365,317 @@
                             <i class="tab-icon pi pi-history"></i>
                             <span class="tab-text">{{ translate(translations.processInfo) }}</span>
                         </ng-template>
-                      <div class="process">
-                        <div class="process__form">
-                            <form class="process__form-main">
+                        <div class="process">
+                            <div class="process__form">
+                                <form class="process__form-main">
                                     <div class="target-form__grid process-grid">
                                         <!-- Columna Izquierda - Campos de formulario -->
                                         <div class="target-form__column process-fields-column">
-                                <div class="target-form__field">
-                                                <label for="process_type">{{ translate('management.targetForm.processType') }}</label>
-                                                <select
-                                                    [(ngModel)]="processForm.type"
-                                                    name="process_type"
-                                                    id="process_type"
-                                                    (change)="onProcessTypeChange()"
-                                                >
-                                                    <option value="">{{ translate('management.targetForm.selectProcessType') }}</option>
-                                                    
+                                            <div class="target-form__field">
+                                                <label for="process_type">{{
+                                                    translate('management.targetForm.processType') }}</label>
+                                                <select [(ngModel)]="processForm.type" name="process_type"
+                                                    id="process_type" (change)="onProcessTypeChange()">
+                                                    <option value="">{{
+                                                        translate('management.targetForm.selectProcessType') }}</option>
+
                                                     <!-- Modificar fechas -->
-                                                    <option value="installation">{{ translate('management.targetForm.processTypeInstallationDateChange') }}</option>
-                                                    <option value="expiration">{{ translate('management.targetForm.processTypeExpirationDateChange') }}</option>
-                                                    
+                                                    <option value="installation">{{
+                                                        translate('management.targetForm.processTypeInstallationDateChange')
+                                                        }}</option>
+                                                    <option value="expiration">{{
+                                                        translate('management.targetForm.processTypeExpirationDateChange')
+                                                        }}</option>
+
                                                     <!-- Modificar datos del técnico -->
-                                                    <option value="technician_change">{{ translate('management.targetForm.processTypeTechnicianChange') }}</option>
-                                                    
+                                                    <option value="technician_change">{{
+                                                        translate('management.targetForm.processTypeTechnicianChange')
+                                                        }}</option>
+
                                                     <!-- Modificar datos del GPS -->
-                                                    <option value="gps_model_change">{{ translate('management.targetForm.processTypeGpsModelChange') }}</option>
-                                                    <option value="imei_change">{{ translate('management.targetForm.processTypeImeiChange') }}</option>
-                                                    
+                                                    <option value="gps_model_change">{{
+                                                        translate('management.targetForm.processTypeGpsModelChange') }}
+                                                    </option>
+                                                    <option value="imei_change">{{
+                                                        translate('management.targetForm.processTypeImeiChange') }}
+                                                    </option>
+
                                                     <!-- Modificar datos de instalación -->
-                                                    <option value="installation_details_change">{{ translate('management.targetForm.processTypeInstallationDetailsChange') }}</option>
-                                                    
+                                                    <option value="installation_details_change">{{
+                                                        translate('management.targetForm.processTypeInstallationDetailsChange')
+                                                        }}</option>
+
                                                     <!-- Modificar datos de SIM -->
-                                                    <option value="sim_number_change">{{ translate('management.targetForm.processTypeSimNumberChange') }}</option>
-                                                    <option value="sim_type_change">{{ translate('management.targetForm.processTypeSimTypeChange') }}</option>
-                                                    
+                                                    <option value="sim_number_change">{{
+                                                        translate('management.targetForm.processTypeSimNumberChange') }}
+                                                    </option>
+                                                    <option value="sim_type_change">{{
+                                                        translate('management.targetForm.processTypeSimTypeChange') }}
+                                                    </option>
+
                                                     <!-- Modificar plan -->
-                                                    <option value="plan_change">{{ translate('management.targetForm.processTypePlanChange') }}</option>
-                                                    
+                                                    <option value="plan_change">{{
+                                                        translate('management.targetForm.processTypePlanChange') }}
+                                                    </option>
+
                                                     <!-- Cambios completos -->
-                                                    <option value="gps_change">{{ translate('management.targetForm.processTypeGpsChange') }}</option>
-                                                    <option value="sim_change">{{ translate('management.targetForm.processTypeSimChange') }}</option>
-                                                    
+                                                    <option value="gps_change">{{
+                                                        translate('management.targetForm.processTypeGpsChange') }}
+                                                    </option>
+                                                    <option value="sim_change">{{
+                                                        translate('management.targetForm.processTypeSimChange') }}
+                                                    </option>
+
                                                     <!-- Procesos especiales -->
-                                                    <option value="renewal">{{ translate('management.targetForm.processTypeServiceRenewal') }}</option>
-                                    </select>
-                                </div>
-                            
+                                                    <option value="renewal">{{
+                                                        translate('management.targetForm.processTypeServiceRenewal') }}
+                                                    </option>
+                                                </select>
+                                            </div>
 
 
-                                <!-- Campos específicos para cambio de plan -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'plan_change'">
-                                    <label for="new_plan">{{ translate('management.targetForm.newPlan') }} <span class="required-label">(Requerido)</span></label>
-                                    <select
-                                        [(ngModel)]="processForm.newPlan"
-                                        name="new_plan"
-                                        id="new_plan"
-                                        required
-                                        (change)="onProcessPlanChange()"
-                                    >
-                                        <option [ngValue]="''">{{ translate('management.targetForm.selectPlan') }}</option>
-                                        <option *ngFor="let plan of availablePlansForProcess" [value]="plan.value">
-                                            {{plan.label}}
-                                        </option>
-                                    </select>
-                                </div>
 
-                                <!-- Price selector for plan change -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'plan_change' && processForm.newPlan">
-                                    <label for="new_price">
-                                        {{ translate('management.targetForm.newPrice') }} <span class="required-label">(Requerido)</span>
-                                    </label>
-                                    <div class="price-input-container">
-                                        <select
-                                            [(ngModel)]="processForm.newPrice"
-                                            name="new_price"
-                                            id="new_price"
-                                            required
-                                            [compareWith]="comparePrices"
-                                            (ngModelChange)="onProcessPriceChange()"
-                                        >
-                                            <option [ngValue]="null">{{ translate('management.targetForm.selectPriceOption') }}</option>
-                                            <option *ngFor="let price of availablePricesForProcess" [ngValue]="price">
-                                                <ng-container *ngIf="isPriceCustomized(price); else normalPrice">
-                                                    {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }} ({{ translate('management.targetForm.customized') }})
-                                                </ng-container>
-                                                <ng-template #normalPrice>
-                                                    {{price.amount}} - {{ translate('settings.plans.' + price.payment_period) }}
-                                                </ng-template>
-                                            </option>
-                                        </select>
-                                        <div class="price-actions" *ngIf="processForm.newPlan && processForm.newPrice">
-                                            <i class="pi pi-pencil edit-price-icon" (click)="startProcessCustomPriceEdit()"></i>
-                                            <i *ngIf="isPriceCustomized(processForm.newPrice)"
-                                               class="pi pi-eye original-price-eye"
-                                               pTooltip="Precio original: {{ getOriginalPriceAmount(processForm.newPrice) }}"
-                                               tooltipPosition="top">
-                                            </i>
-                                        </div>
-                                    </div>
-                                </div>
+                                            <!-- Campos específicos para cambio de plan -->
+                                            <div class="target-form__field" *ngIf="processForm.type === 'plan_change'">
+                                                <label for="new_plan">{{ translate('management.targetForm.newPlan') }}
+                                                    <span class="required-label">(Requerido)</span></label>
+                                                <select [(ngModel)]="processForm.newPlan" name="new_plan" id="new_plan"
+                                                    required (change)="onProcessPlanChange()">
+                                                    <option [ngValue]="''">{{
+                                                        translate('management.targetForm.selectPlan') }}</option>
+                                                    <option *ngFor="let plan of availablePlansForProcess"
+                                                        [value]="plan.value">
+                                                        {{plan.label}}
+                                                    </option>
+                                                </select>
+                                            </div>
 
-                                <!-- Campo específico para cambio de fecha de instalación -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'installation'">
-                                    <label for="new_installation_date">{{ translate('management.targetForm.newInstallationDate') }} <span class="required-label">(Requerido)</span></label>
-                                    <input 
-                                        [(ngModel)]="processForm.newInstallationDate"
-                                        name="new_installation_date"
-                                        type="date" 
-                                        id="new_installation_date"
-                                        required
-                                    >
-                                </div>
+                                            <!-- Price selector for plan change -->
+                                            <div class="target-form__field"
+                                                *ngIf="processForm.type === 'plan_change' && processForm.newPlan">
+                                                <label for="new_price">
+                                                    {{ translate('management.targetForm.newPrice') }} <span
+                                                        class="required-label">(Requerido)</span>
+                                                </label>
+                                                <div class="price-input-container">
+                                                    <select [(ngModel)]="processForm.newPrice" name="new_price"
+                                                        id="new_price" required [compareWith]="comparePrices"
+                                                        (ngModelChange)="onProcessPriceChange()">
+                                                        <option [ngValue]="null">{{
+                                                            translate('management.targetForm.selectPriceOption') }}
+                                                        </option>
+                                                        <option *ngFor="let price of availablePricesForProcess"
+                                                            [ngValue]="price">
+                                                            <ng-container
+                                                                *ngIf="isPriceCustomized(price); else normalPrice">
+                                                                {{price.amount}} - {{ translate('settings.plans.' +
+                                                                price.payment_period) }} ({{
+                                                                translate('management.targetForm.customized') }})
+                                                            </ng-container>
+                                                            <ng-template #normalPrice>
+                                                                {{price.amount}} - {{ translate('settings.plans.' +
+                                                                price.payment_period) }}
+                                                            </ng-template>
+                                                        </option>
+                                                    </select>
+                                                    <div class="price-actions"
+                                                        *ngIf="processForm.newPlan && processForm.newPrice">
+                                                        <i class="pi pi-pencil edit-price-icon"
+                                                            (click)="startProcessCustomPriceEdit()"></i>
+                                                        <i *ngIf="isPriceCustomized(processForm.newPrice)"
+                                                            class="pi pi-eye original-price-eye"
+                                                            pTooltip="Precio original: {{ getOriginalPriceAmount(processForm.newPrice) }}"
+                                                            tooltipPosition="top">
+                                                        </i>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                <!-- Campo específico para cambio de fecha de expiración -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'expiration'">
-                                    <label for="new_expiration_date">{{ translate('management.targetForm.newExpirationDate') }} <span class="required-label">(Requerido)</span></label>
-                                    <input 
-                                        [(ngModel)]="processForm.newExpirationDate"
-                                        name="new_expiration_date"
-                                        type="date" 
-                                        id="new_expiration_date"
-                                        required
-                                    >
-                                </div>
+                                            <!-- Campo específico para cambio de fecha de instalación -->
+                                            <div class="target-form__field" *ngIf="processForm.type === 'installation'">
+                                                <label for="new_installation_date">{{
+                                                    translate('management.targetForm.newInstallationDate') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <input [(ngModel)]="processForm.newInstallationDate"
+                                                    name="new_installation_date" type="date" id="new_installation_date"
+                                                    required>
+                                            </div>
 
-                                <!-- Campo específico para renovación de servicio -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'renewal'">
-                                    <label for="new_renewal_date">{{ translate('management.targetForm.newExpirationDate') }} <span class="required-label">(Requerido)</span></label>
-                                    <input 
-                                        [(ngModel)]="processForm.newRenewalDate"
-                                        name="new_renewal_date"
-                                        type="date" 
-                                        id="new_renewal_date"
-                                        required
-                                    >
-                                    <div class="target-form__field" style="margin-top: 8px;">
-                                        <label for="renewal_years">{{ translate('management.targetForm.renewalYears') }}</label>
-                                        <select
-                                            id="renewal_years"
-                                            name="renewal_years"
-                                            [(ngModel)]="processForm.renewalYears"
-                                            (change)="onRenewalYearsChange()"
-                                        >
-                                            <option [ngValue]="null">{{ translate('management.targetForm.selectYears') }}</option>
-                                            <option *ngFor="let y of renewalYearOptions" [ngValue]="y">{{ y }} {{ y === 1 ? 'año' : 'años' }}</option>
-                                        </select>
-                                    </div>
-                                </div>
+                                            <!-- Campo específico para cambio de fecha de expiración -->
+                                            <div class="target-form__field" *ngIf="processForm.type === 'expiration'">
+                                                <label for="new_expiration_date">{{
+                                                    translate('management.targetForm.newExpirationDate') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <input [(ngModel)]="processForm.newExpirationDate"
+                                                    name="new_expiration_date" type="date" id="new_expiration_date"
+                                                    required>
+                                            </div>
 
-                                <!-- Campo específico para cambio de técnico -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'technician_change'">
-                                    <label for="new_technician">{{ translate('management.targetForm.newTechnician') }} <span class="required-label">(Requerido)</span></label>
-                                    <select 
-                                        [(ngModel)]="processForm.newTechnician"
-                                        name="new_technician"
-                                        id="new_technician"
-                                        required
-                                    >
-                                        <option value="">{{ translate('management.targetForm.selectTechnician') }}</option>
-                                        <option *ngFor="let technician of availableTechnicians" [value]="technician.value">
-                                            {{ technician.label }}
-                                        </option>
-                                    </select>
-                                </div>
+                                            <!-- Campo específico para renovación de servicio -->
+                                            <div class="target-form__field" *ngIf="processForm.type === 'renewal'">
+                                                <label for="new_renewal_date">{{
+                                                    translate('management.targetForm.newExpirationDate') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <input [(ngModel)]="processForm.newRenewalDate" name="new_renewal_date"
+                                                    type="date" id="new_renewal_date" required>
+                                                <div class="target-form__field" style="margin-top: 8px;">
+                                                    <label for="renewal_years">{{
+                                                        translate('management.targetForm.renewalYears') }}</label>
+                                                    <select id="renewal_years" name="renewal_years"
+                                                        [(ngModel)]="processForm.renewalYears"
+                                                        (change)="onRenewalYearsChange()">
+                                                        <option [ngValue]="null">{{
+                                                            translate('management.targetForm.selectYears') }}</option>
+                                                        <option *ngFor="let y of renewalYearOptions" [ngValue]="y">{{ y
+                                                            }} {{ y === 1 ? 'año' : 'años' }}</option>
+                                                    </select>
+                                                </div>
+                                            </div>
 
-                                <!-- Campo específico para cambio de GPS -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'gps_change'">
-                                    <label for="new_gps_imei">{{ translate('management.targetForm.newGpsImei') }} <span class="required-label">(Requerido)</span></label>
-                                    <input 
-                                        [(ngModel)]="processForm.newGpsImei"
-                                        name="new_gps_imei"
-                                        type="text" 
-                                        id="new_gps_imei"
-                                        required
-                                        placeholder="Ingrese el nuevo IMEI del GPS"
-                                    >
-                                </div>
+                                            <!-- Campo específico para cambio de técnico -->
+                                            <div class="target-form__field"
+                                                *ngIf="processForm.type === 'technician_change'">
+                                                <label for="new_technician">{{
+                                                    translate('management.targetForm.newTechnician') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <select [(ngModel)]="processForm.newTechnician" name="new_technician"
+                                                    id="new_technician" required>
+                                                    <option value="">{{
+                                                        translate('management.targetForm.selectTechnician') }}</option>
+                                                    <option *ngFor="let technician of availableTechnicians"
+                                                        [value]="technician.value">
+                                                        {{ technician.label }}
+                                                    </option>
+                                                </select>
+                                            </div>
 
-                                <!-- Campo específico para modelo de GPS -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'gps_change'">
-                                    <label for="new_gps_model">{{ translate('management.targetForm.newGpsModel') }} <span class="required-label">(Requerido)</span></label>
-                                    <select 
-                                        [(ngModel)]="processForm.newGpsModel"
-                                        name="new_gps_model"
-                                        id="new_gps_model"
-                                        required
-                                    >
-                                        <option value="">{{ translate('management.targetForm.selectGpsModel') }}</option>
-                                        <option *ngFor="let gpsModel of availableGpsModels" [value]="gpsModel.value">
-                                            {{ gpsModel.label }}
-                                        </option>
-                                    </select>
-                                </div>
+                                            <!-- Campo específico para cambio de GPS -->
+                                            <div class="target-form__field" *ngIf="processForm.type === 'gps_change'">
+                                                <label for="new_gps_imei">{{
+                                                    translate('management.targetForm.newGpsImei') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <input [(ngModel)]="processForm.newGpsImei" name="new_gps_imei"
+                                                    type="text" id="new_gps_imei" required
+                                                    placeholder="Ingrese el nuevo IMEI del GPS">
+                                            </div>
 
-                                <!-- Campo específico para detalles de instalación -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'gps_change'">
-                                    <label for="new_installation_details">{{ translate('management.targetForm.newInstallationDetails') }} <span class="required-label">(Requerido)</span></label>
-                                    <textarea 
-                                        [(ngModel)]="processForm.newInstallationDetails"
-                                        name="new_installation_details"
-                                        id="new_installation_details"
-                                        required
-                                        placeholder="Ingrese los nuevos detalles de instalación"
-                                        rows="3"
-                                    ></textarea>
-                                </div>
+                                            <!-- Campo específico para modelo de GPS -->
+                                            <div class="target-form__field" *ngIf="processForm.type === 'gps_change'">
+                                                <label for="new_gps_model">{{
+                                                    translate('management.targetForm.newGpsModel') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <select [(ngModel)]="processForm.newGpsModel" name="new_gps_model"
+                                                    id="new_gps_model" required>
+                                                    <option value="">{{
+                                                        translate('management.targetForm.selectGpsModel') }}</option>
+                                                    <option *ngFor="let gpsModel of availableGpsModels"
+                                                        [value]="gpsModel.value">
+                                                        {{ gpsModel.label }}
+                                                    </option>
+                                                </select>
+                                            </div>
 
-                                <!-- Campo específico para modificar detalles de instalación -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'installation_details_change'">
-                                    <label for="installation_details_only">{{ translate('management.targetForm.newInstallationDetails') }} <span class="required-label">(Requerido)</span></label>
-                                    <textarea 
-                                        [(ngModel)]="processForm.newInstallationDetails"
-                                        name="installation_details_only"
-                                        id="installation_details_only"
-                                        required
-                                        placeholder="Ingrese los nuevos detalles de instalación"
-                                        rows="3"
-                                    ></textarea>
-                                </div>
+                                            <!-- Campo específico para detalles de instalación -->
+                                            <div class="target-form__field" *ngIf="processForm.type === 'gps_change'">
+                                                <label for="new_installation_details">{{
+                                                    translate('management.targetForm.newInstallationDetails') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <textarea [(ngModel)]="processForm.newInstallationDetails"
+                                                    name="new_installation_details" id="new_installation_details"
+                                                    required placeholder="Ingrese los nuevos detalles de instalación"
+                                                    rows="3"></textarea>
+                                            </div>
 
-                                <!-- Campo específico para modificar modelo de GPS -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'gps_model_change'">
-                                    <label for="gps_model_only">{{ translate('management.targetForm.newGpsModel') }} <span class="required-label">(Requerido)</span></label>
-                                    <select 
-                                        [(ngModel)]="processForm.newGpsModel"
-                                        name="gps_model_only"
-                                        id="gps_model_only"
-                                        required
-                                    >
-                                        <option [ngValue]="''">{{ translate('management.targetForm.selectGpsModel') }}</option>
-                                        <option *ngFor="let model of availableGpsModels" [value]="model.value">
-                                            {{model.label}}
-                                        </option>
-                                    </select>
-                                </div>
+                                            <!-- Campo específico para modificar detalles de instalación -->
+                                            <div class="target-form__field"
+                                                *ngIf="processForm.type === 'installation_details_change'">
+                                                <label for="installation_details_only">{{
+                                                    translate('management.targetForm.newInstallationDetails') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <textarea [(ngModel)]="processForm.newInstallationDetails"
+                                                    name="installation_details_only" id="installation_details_only"
+                                                    required placeholder="Ingrese los nuevos detalles de instalación"
+                                                    rows="3"></textarea>
+                                            </div>
 
-                                <!-- Campo específico para modificar IMEI / GPS ID -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'imei_change'">
-                                    <label for="imei_only">{{ translate('management.targetForm.newGpsImei') }} <span class="required-label">(Requerido)</span></label>
-                                    <input 
-                                        [(ngModel)]="processForm.newGpsImei"
-                                        name="imei_only"
-                                        type="text" 
-                                        id="imei_only"
-                                        required
-                                        placeholder="Ingrese el nuevo IMEI / GPS ID"
-                                    >
-                                </div>
+                                            <!-- Campo específico para modificar modelo de GPS -->
+                                            <div class="target-form__field"
+                                                *ngIf="processForm.type === 'gps_model_change'">
+                                                <label for="gps_model_only">{{
+                                                    translate('management.targetForm.newGpsModel') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <select [(ngModel)]="processForm.newGpsModel" name="gps_model_only"
+                                                    id="gps_model_only" required>
+                                                    <option [ngValue]="''">{{
+                                                        translate('management.targetForm.selectGpsModel') }}</option>
+                                                    <option *ngFor="let model of availableGpsModels"
+                                                        [value]="model.value">
+                                                        {{model.label}}
+                                                    </option>
+                                                </select>
+                                            </div>
 
-                                <!-- Campo específico para cambio de SIM card -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'sim_change'">
-                                    <label for="sim_only">{{ translate('management.targetForm.newSimCard') }} <span class="required-label">(Requerido)</span></label>
-                                    <input 
-                                        [(ngModel)]="processForm.newSimCard"
-                                        name="sim_only"
-                                        type="text" 
-                                        id="sim_only"
-                                        required
-                                        placeholder="Ingrese el nuevo número de SIM card"
-                                    >
-                                </div>
+                                            <!-- Campo específico para modificar IMEI / GPS ID -->
+                                            <div class="target-form__field" *ngIf="processForm.type === 'imei_change'">
+                                                <label for="imei_only">{{ translate('management.targetForm.newGpsImei')
+                                                    }} <span class="required-label">(Requerido)</span></label>
+                                                <input [(ngModel)]="processForm.newGpsImei" name="imei_only" type="text"
+                                                    id="imei_only" required
+                                                    placeholder="Ingrese el nuevo IMEI / GPS ID">
+                                            </div>
 
-                                <!-- Campo específico para tipo de SIM card -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'sim_change'">
-                                    <label for="sim_company_only">{{ translate('management.targetForm.newSimCompany') }} <span class="required-label">(Requerido)</span></label>
-                                    <select 
-                                        [(ngModel)]="processForm.newSimCompany"
-                                        name="sim_company_only"
-                                        id="sim_company_only"
-                                        required
-                                    >
-                                        <option [ngValue]="''">{{ translate('management.targetForm.selectSimCardType') }}</option>
-                                        <option *ngFor="let simType of availableSimCardTypes" [ngValue]="simType.value">
-                                            {{simType.label}}
-                                        </option>
-                                    </select>
-                                </div>
+                                            <!-- Campo específico para cambio de SIM card -->
+                                            <div class="target-form__field" *ngIf="processForm.type === 'sim_change'">
+                                                <label for="sim_only">{{ translate('management.targetForm.newSimCard')
+                                                    }} <span class="required-label">(Requerido)</span></label>
+                                                <input [(ngModel)]="processForm.newSimCard" name="sim_only" type="text"
+                                                    id="sim_only" required
+                                                    placeholder="Ingrese el nuevo número de SIM card">
+                                            </div>
 
-                                <!-- Campo específico para solo número de SIM -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'sim_number_change'">
-                                    <label for="sim_number_only">{{ translate('management.targetForm.newSimNumber') }} <span class="required-label">(Requerido)</span></label>
-                                    <input 
-                                        [(ngModel)]="processForm.newSimNumber"
-                                        name="sim_number_only"
-                                        type="text" 
-                                        id="sim_number_only"
-                                        required
-                                        placeholder="Ingrese el nuevo número de SIM card"
-                                    >
-                                </div>
+                                            <!-- Campo específico para tipo de SIM card -->
+                                            <div class="target-form__field" *ngIf="processForm.type === 'sim_change'">
+                                                <label for="sim_company_only">{{
+                                                    translate('management.targetForm.newSimCompany') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <select [(ngModel)]="processForm.newSimCompany" name="sim_company_only"
+                                                    id="sim_company_only" required>
+                                                    <option [ngValue]="''">{{
+                                                        translate('management.targetForm.selectSimCardType') }}</option>
+                                                    <option *ngFor="let simType of availableSimCardTypes"
+                                                        [ngValue]="simType.value">
+                                                        {{simType.label}}
+                                                    </option>
+                                                </select>
+                                            </div>
 
-                                <!-- Campo específico para solo tipo de SIM -->
-                                <div class="target-form__field" *ngIf="processForm.type === 'sim_type_change'">
-                                    <label for="sim_type_only">{{ translate('management.targetForm.newSimType') }} <span class="required-label">(Requerido)</span></label>
-                                    <select 
-                                        [(ngModel)]="processForm.newSimType"
-                                        name="sim_type_only"
-                                        id="sim_type_only"
-                                        required
-                                    >
-                                        <option [ngValue]="''">{{ translate('management.targetForm.selectSimCardType') }}</option>
-                                        <option *ngFor="let simType of availableSimCardTypes" [ngValue]="simType.value">
-                                            {{simType.label}}
-                                        </option>
-                                    </select>
-                                </div>
+                                            <!-- Campo específico para solo número de SIM -->
+                                            <div class="target-form__field"
+                                                *ngIf="processForm.type === 'sim_number_change'">
+                                                <label for="sim_number_only">{{
+                                                    translate('management.targetForm.newSimNumber') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <input [(ngModel)]="processForm.newSimNumber" name="sim_number_only"
+                                                    type="text" id="sim_number_only" required
+                                                    placeholder="Ingrese el nuevo número de SIM card">
+                                            </div>
+
+                                            <!-- Campo específico para solo tipo de SIM -->
+                                            <div class="target-form__field"
+                                                *ngIf="processForm.type === 'sim_type_change'">
+                                                <label for="sim_type_only">{{
+                                                    translate('management.targetForm.newSimType') }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <select [(ngModel)]="processForm.newSimType" name="sim_type_only"
+                                                    id="sim_type_only" required>
+                                                    <option [ngValue]="''">{{
+                                                        translate('management.targetForm.selectSimCardType') }}</option>
+                                                    <option *ngFor="let simType of availableSimCardTypes"
+                                                        [ngValue]="simType.value">
+                                                        {{simType.label}}
+                                                    </option>
+                                                </select>
+                                            </div>
 
                                             <!-- Botón para agregar proceso (con el estilo del botón de agregar campos) -->
                                             <div class="add-process-container">
@@ -750,31 +689,27 @@
                                         <!-- Columna Derecha - Notas del proceso -->
                                         <div class="target-form__column">
                                             <div class="target-form__field full-height-field">
-                                                <label for="process_notes">{{ translate('management.targetForm.processNotes') }}</label>
-                                                <textarea 
-                                                    [(ngModel)]="processForm.description"
-                                                    name="process_notes"
+                                                <label for="process_notes">{{
+                                                    translate('management.targetForm.processNotes') }}</label>
+                                                <textarea [(ngModel)]="processForm.description" name="process_notes"
                                                     id="process_notes"
-                                                    placeholder="¿Por qué razón se esta realizando este proceso?" 
-                                                    class="auto-resize-textarea"
-                                                ></textarea>
+                                                    placeholder="¿Por qué razón se esta realizando este proceso?"
+                                                    class="auto-resize-textarea"></textarea>
                                             </div>
                                         </div>
-                                </div>
-                            </form>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="process__logs">
+                                <button type="button" class="view-history-btn" (click)="openProcessesDialog()">
+                                    <i class="pi pi-list"></i>
+                                    Ver historial de procesos
+                                </button>
+                                <p-progressSpinner *ngIf="isLoadingProcesses && displayProcessesDialog"
+                                    [style]="{'width': '20px', 'height': '20px'}" strokeWidth="4">
+                                </p-progressSpinner>
+                            </div>
                         </div>
-                        <div class="process__logs">
-                            <button type="button" class="view-history-btn" (click)="openProcessesDialog()">
-                                <i class="pi pi-list"></i>
-                                Ver historial de procesos
-                            </button>
-                            <p-progressSpinner 
-                                *ngIf="isLoadingProcesses && displayProcessesDialog" 
-                                [style]="{'width': '20px', 'height': '20px'}"
-                                strokeWidth="4">
-                            </p-progressSpinner>
-                        </div>
-                      </div>
                     </p-tabPanel>
 
                     <p-tabPanel *ngIf="hasSimCardTypeSelected() && currentUserAffiliationTypeId === 'empleado'">
@@ -782,7 +717,7 @@
                             <i class="tab-icon pi pi-comments"></i>
                             <span class="tab-text">{{ getSimCardDisplayName() }} SMS</span>
                         </ng-template>
-                        
+
                         <div class="sms-section">
                             <!-- Header con información del dispositivo -->
                             <!-- <div class="sms-header">
@@ -801,7 +736,7 @@
                                     <span>{{ translate(isDeviceOnline() ? 'management.status.online' : 'management.status.offline') }}</span>
                                             </div>
                                         </div> -->
-                                        
+
                             <!-- Layout de 2 columnas para desktop -->
                             <div class="sms-content">
                                 <!-- Columna izquierda: Comandos -->
@@ -811,16 +746,12 @@
                                             <h4>{{ translate('management.targetForm.quickCommands') }}</h4>
                                         </div>
                                         <div class="commands-list">
-                                            <button 
-                                                *ngFor="let command of availableCommands" 
-                                                type="button"
+                                            <button *ngFor="let command of availableCommands" type="button"
                                                 class="command-btn"
                                                 [class.loading]="isSendingSms && selectedSmsCommand === command.name"
-                                                [disabled]="isSendingSms"
-                                             (click)="selectSmsCommand(command.name)" 
-                                            >
-                                            <i class="pi {{ command.icon }}"></i>
-                                            <span>{{ command.name }}</span>
+                                                [disabled]="isSendingSms" (click)="selectSmsCommand(command.name)">
+                                                <i class="pi {{ command.icon }}"></i>
+                                                <span>{{ command.name }}</span>
                                             </button>
                                         </div>
                                     </div>
@@ -839,12 +770,32 @@
                                         <div class="terminal-header">
                                             <div class="terminal-title">
                                                 <i class="pi pi-terminal"></i>
-                                                <span>{{ translate('management.targetForm.messageHistory') }}</span>
+                                                <span *ngIf="!simUsage">{{
+                                                    translate('management.targetForm.messageHistory') }}</span>
+                                                <div *ngIf="simUsage" class="sim-usage-status"
+                                                    style="display: flex; gap: 15px; font-size: 0.9rem;">
+                                                    <span
+                                                        [style.color]="simUsage.simStatus === 'Active' ? 'var(--green-500)' : 'gray'">
+                                                        SIM: {{ simUsage.simStatus === 'Active' ? 'activo' : 'inactivo'
+                                                        }}
+                                                    </span>
+                                                    <span
+                                                        [style.color]="simUsage.dataService === 'Enabled' ? 'var(--green-500)' : 'gray'">
+                                                        Data: {{ simUsage.dataService === 'Enabled' ? 'activa' :
+                                                        'inactiva' }}
+                                                    </span>
+                                                    <span
+                                                        [style.color]="simUsage.smsService === 'Enabled' ? 'var(--green-500)' : 'gray'">
+                                                        SMS: {{ simUsage.smsService === 'Enabled' ? 'activo' :
+                                                        'inactivo' }}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
-                                        
+
                                         <div class="terminal-body chat-body" #chatMessages>
-                                            <div *ngIf="isLoadingSmsMessages && !hasLoadedSmsMessages" class="chat-loading">
+                                            <div *ngIf="isLoadingSmsMessages && !hasLoadedSmsMessages"
+                                                class="chat-loading">
                                                 <i class="pi pi-spinner chat-spinner"></i>
                                                 <span>Cargando mensajes...</span>
                                             </div>
@@ -852,18 +803,24 @@
                                                 <i class="pi pi-comments"></i>
                                                 <span>No hay mensajes SMS disponibles</span>
                                             </div>
-                                            
-                                            <div *ngFor="let message of smsMessages; let i = index" class="chat-row" [ngClass]="{'out': message.type === 'sent', 'in': message.type === 'received'}">
+
+                                            <div *ngFor="let message of smsMessages; let i = index" class="chat-row"
+                                                [ngClass]="{'out': message.type === 'sent', 'in': message.type === 'received'}">
                                                 <div class="chat-meta">
                                                     <span class="chat-author">{{ getMessageAuthor(message) }}</span>
-                                                    <span class="chat-time">{{ message.timestamp | date:'short' }}</span>
+                                                    <span class="chat-time">{{ message.timestamp | date:'short'
+                                                        }}</span>
                                                 </div>
                                                 <div class="chat-bubble">
-                                                    <span class="chat-text">{{ getDisplayMessageContent(message) }}</span>
+                                                    <span class="chat-text">{{ getDisplayMessageContent(message)
+                                                        }}</span>
                                                     <div class="chat-footer">
-                                                        <span class="chat-time-inline">{{ message.timestamp | date:'HH:mm' }}</span>
-                                                        <span class="chat-delivery" *ngIf="message.type === 'sent'" [ngClass]="{'delivered': message.delivered}">
-                                                            <i *ngIf="message.pending" class="pi pi-spinner chat-spinner"></i>
+                                                        <span class="chat-time-inline">{{ message.timestamp |
+                                                            date:'HH:mm' }}</span>
+                                                        <span class="chat-delivery" *ngIf="message.type === 'sent'"
+                                                            [ngClass]="{'delivered': message.delivered}">
+                                                            <i *ngIf="message.pending"
+                                                                class="pi pi-spinner chat-spinner"></i>
                                                             <i *ngIf="!message.pending" class="pi pi-check"></i>
                                                             {{ getMessageDeliveryLabel(message) }}
                                                         </span>
@@ -876,26 +833,18 @@
                                     <!-- Input para mensaje personalizado -->
                                     <div class="message-composer">
                                         <div class="input-container">
-                                            <textarea 
-                                                [(ngModel)]="customSmsMessage"
-                                                name="customSmsMessage"
+                                            <textarea [(ngModel)]="customSmsMessage" name="customSmsMessage"
                                                 placeholder="{{ translate('management.targetForm.typeMessage') }}"
-                                                class="message-input"
-                                                rows="1"
-                                                maxlength="160"
-                                                [disabled]="isSendingSms"
+                                                class="message-input" rows="1" maxlength="160" [disabled]="isSendingSms"
                                                 (keydown)="onEnterKeySimple($event)"
-                                                (input)="autoResizeInput($event)"
-                                            ></textarea>
+                                                (input)="autoResizeInput($event)"></textarea>
                                             <div class="char-counter">{{ customSmsMessage.length }}/160</div>
                                         </div>
-                                        <button 
-                                            type="button" 
-                                            class="send-button"
+                                        <button type="button" class="send-button"
                                             [disabled]="isSendingSms || !customSmsMessage.trim()"
-                                            (click)="sendCustomMessage()"
-                                        >
-                                            <i class="pi" [ngClass]="isSendingSms ? 'pi-spinner loading-spinner' : 'pi-send'"></i>
+                                            (click)="sendCustomMessage()">
+                                            <i class="pi"
+                                                [ngClass]="isSendingSms ? 'pi-spinner loading-spinner' : 'pi-send'"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -913,53 +862,30 @@
                 </p-tabView>
 
                 <!-- Modal de contactos -->
-                <p-dialog
-                    [(visible)]="showContactsModal"
-                    [modal]="true"
-                    [draggable]="false"
-                    [resizable]="false"
-                    [style]="{ width: '500px' }"
-                    header="Contactos"
-                    (onHide)="closeContacts()"
-                >
-                                                <app-contacts [referenceId]="target._id || ''"></app-contacts>
+                <p-dialog [(visible)]="showContactsModal" [modal]="true" [draggable]="false" [resizable]="false"
+                    [style]="{ width: '500px' }" header="Contactos" (onHide)="closeContacts()">
+                    <app-contacts [referenceId]="target._id || ''"></app-contacts>
                 </p-dialog>
 
                 <!-- Diálogo modal para edición de precios -->
-                <p-dialog 
-                    [(visible)]="displayPriceDialog" 
-                    [style]="{width: '500px'}" 
-                    [modal]="true"
-                    [draggable]="false" 
-                    [resizable]="false"
-                    [header]="translate('management.targetForm.customizePriceTitle')"
-                >
+                <p-dialog [(visible)]="displayPriceDialog" [style]="{width: '500px'}" [modal]="true" [draggable]="false"
+                    [resizable]="false" [header]="translate('management.targetForm.customizePriceTitle')">
                     <div class="custom-price-form">
                         <div class="target-form__field custom-price-field">
                             <label for="custom_amount">{{ translate('management.targetForm.amount') }}</label>
-                            <input 
-                                [(ngModel)]="customPrice.amount"
-                                name="custom_amount"
-                                type="number" 
-                                id="custom_amount"
-                                min="0"
-                                step="1"
-                            >
+                            <input [(ngModel)]="customPrice.amount" name="custom_amount" type="number"
+                                id="custom_amount" min="0" step="1">
                         </div>
                         <div class="target-form__field custom-price-field">
                             <label for="custom_period">{{ translate('management.targetForm.period') }}</label>
-                            <select
-                                [(ngModel)]="customPrice.payment_period"
-                                name="custom_period"
-                                id="custom_period"
-                            >
+                            <select [(ngModel)]="customPrice.payment_period" name="custom_period" id="custom_period">
                                 <option value="monthly">{{ translate('settings.plans.monthly') }}</option>
                                 <option value="quarterly">{{ translate('settings.plans.quarterly') }}</option>
                                 <option value="yearly">{{ translate('settings.plans.yearly') }}</option>
                             </select>
                         </div>
                     </div>
-                    
+
                     <!-- Mensaje informativo del precio original del plan -->
                     <div *ngIf="originalPlanPrice" class="original-price-info">
                         <div class="price-info-header">
@@ -968,22 +894,25 @@
                         </div>
                         <div class="price-info-content">
                             <!-- Si el precio personalizado es diferente al original, mostrar ambos -->
-                            <ng-container *ngIf="customPrice.amount !== (originalPlanPrice?.amount || customPrice.amount); else onlyOriginal">
+                            <ng-container
+                                *ngIf="customPrice.amount !== (originalPlanPrice?.amount || customPrice.amount); else onlyOriginal">
                                 <span class="price-amount original">
                                     <span class="strikethrough">{{originalPlanPrice.amount}}</span>
                                 </span>
                                 <span class="price-arrow">→</span>
                                 <span class="price-amount custom">{{customPrice.amount}}</span>
-                                <span class="price-period">{{ translate('settings.plans.' + originalPlanPrice.payment_period) }}</span>
+                                <span class="price-period">{{ translate('settings.plans.' +
+                                    originalPlanPrice.payment_period) }}</span>
                             </ng-container>
                             <!-- Si son iguales, mostrar solo el original -->
                             <ng-template #onlyOriginal>
-                                    <span class="price-amount">{{originalPlanPrice.amount}}</span>
-                                <span class="price-period">{{ translate('settings.plans.' + originalPlanPrice.payment_period) }}</span>
+                                <span class="price-amount">{{originalPlanPrice.amount}}</span>
+                                <span class="price-period">{{ translate('settings.plans.' +
+                                    originalPlanPrice.payment_period) }}</span>
                             </ng-template>
                         </div>
                     </div>
-                    
+
                     <ng-template pTemplate="footer">
                         <button type="button" class="cancel-btn" (click)="cancelCustomPrice()">
                             <i class="pi pi-times"></i>
@@ -995,63 +924,52 @@
                         </button>
                     </ng-template>
                 </p-dialog>
-                
+
                 <!-- Diálogo modal para edición de precio en CAMBIO DE PLAN (proceso) -->
-                <p-dialog 
-                    [(visible)]="displayProcessPriceDialog" 
-                    [style]="{width: '500px'}" 
-                    [modal]="true"
-                    [draggable]="false" 
-                    [resizable]="false"
-                    header="{{ translate('management.targetForm.customizePriceTitle') }}"
-                >
+                <p-dialog [(visible)]="displayProcessPriceDialog" [style]="{width: '500px'}" [modal]="true"
+                    [draggable]="false" [resizable]="false"
+                    header="{{ translate('management.targetForm.customizePriceTitle') }}">
                     <div class="custom-price-form">
                         <div class="target-form__field custom-price-field">
                             <label for="process_custom_amount">{{ translate('management.targetForm.amount') }}</label>
-                            <input 
-                                [(ngModel)]="processCustomPrice.amount"
-                                name="process_custom_amount"
-                                type="number" 
-                                id="process_custom_amount"
-                                min="0"
-                                step="1"
-                            >
+                            <input [(ngModel)]="processCustomPrice.amount" name="process_custom_amount" type="number"
+                                id="process_custom_amount" min="0" step="1">
                         </div>
                         <div class="target-form__field custom-price-field">
                             <label for="process_custom_period">{{ translate('management.targetForm.period') }}</label>
-                            <select
-                                [(ngModel)]="processCustomPrice.payment_period"
-                                name="process_custom_period"
-                                id="process_custom_period"
-                            >
+                            <select [(ngModel)]="processCustomPrice.payment_period" name="process_custom_period"
+                                id="process_custom_period">
                                 <option value="monthly">{{ translate('settings.plans.monthly') }}</option>
                                 <option value="quarterly">{{ translate('settings.plans.quarterly') }}</option>
                                 <option value="yearly">{{ translate('settings.plans.yearly') }}</option>
                             </select>
                         </div>
                     </div>
-                    
+
                     <div *ngIf="processOriginalPlanPrice" class="original-price-info">
                         <div class="price-info-header">
                             <i class="pi pi-tag"></i>
                             {{ translate('management.targetForm.originalPrice') }}
                         </div>
                         <div class="price-info-content">
-                            <ng-container *ngIf="processOriginalPlanPrice && processCustomPrice.amount !== processOriginalPlanPrice.amount; else processOnlyOriginal">
+                            <ng-container
+                                *ngIf="processOriginalPlanPrice && processCustomPrice.amount !== processOriginalPlanPrice.amount; else processOnlyOriginal">
                                 <span class="price-amount original">
                                     <span class="strikethrough">{{processOriginalPlanPrice.amount}}</span>
                                 </span>
                                 <span class="price-arrow">→</span>
                                 <span class="price-amount custom">{{processCustomPrice.amount}}</span>
-                                <span class="price-period">{{ translate('settings.plans.' + processOriginalPlanPrice.payment_period) }}</span>
+                                <span class="price-period">{{ translate('settings.plans.' +
+                                    processOriginalPlanPrice.payment_period) }}</span>
                             </ng-container>
                             <ng-template #processOnlyOriginal>
                                 <span class="price-amount">{{processOriginalPlanPrice.amount}}</span>
-                                <span class="price-period">{{ translate('settings.plans.' + processOriginalPlanPrice.payment_period) }}</span>
+                                <span class="price-period">{{ translate('settings.plans.' +
+                                    processOriginalPlanPrice.payment_period) }}</span>
                             </ng-template>
                         </div>
                     </div>
-                    
+
                     <ng-template pTemplate="footer">
                         <button type="button" class="cancel-btn" (click)="cancelProcessCustomPrice()">
                             <i class="pi pi-times"></i>
@@ -1066,107 +984,103 @@
             </div>
 
             <!-- Modal de historial de procesos -->
-            <p-dialog 
-                [(visible)]="displayProcessesDialog" 
-                [modal]="true" 
-                [draggable]="false"
-                [resizable]="false"
-                [style]="{ width: '900px', maxWidth: '95vw' }"
-                header="Historial de Procesos"
-            >
+            <p-dialog [(visible)]="displayProcessesDialog" [modal]="true" [draggable]="false" [resizable]="false"
+                [style]="{ width: '900px', maxWidth: '95vw' }" header="Historial de Procesos">
                 <ng-container *ngIf="!isLoadingProcesses; else loadingProcessesTpl">
                     <div class="process-modal">
-                    <p-accordion [multiple]="true">
-                        <p-accordionTab *ngFor="let process of processList; trackBy: trackByProcess">
-                            <ng-template pTemplate="header">
-                                <div class="process-header">
-                                    <div class="process-left">
-                                        <div class="process-icon">
-                                            <i [class]="getProcessIcon(process.type)"></i>
-                                        </div>
-                                        <div class="process-info">
-                                            <div class="process-type">
-                                                <span class="type-name">{{ getProcessTypeName(process.type) }}</span>
-                                                <span class="process-status" [class]="getProcessStatusClass(process.type)">
-                                                    {{ getProcessStatusText(process.type) }}
-                                                </span>
+                        <p-accordion [multiple]="true">
+                            <p-accordionTab *ngFor="let process of processList; trackBy: trackByProcess">
+                                <ng-template pTemplate="header">
+                                    <div class="process-header">
+                                        <div class="process-left">
+                                            <div class="process-icon">
+                                                <i [class]="getProcessIcon(process.type)"></i>
                                             </div>
-                                            <div class="process-meta">
-                                                <span class="process-date">
-                                                    <i class="pi pi-calendar"></i>
-                                                    {{ formatDate(process.registrationDate) }}
-                                                </span>
-                                                <span class="process-ref">
-                                                    <i class="pi pi-tag"></i>
-                                                    {{ process.reference }}
-                                                </span>
+                                            <div class="process-info">
+                                                <div class="process-type">
+                                                    <span class="type-name">{{ getProcessTypeName(process.type)
+                                                        }}</span>
+                                                    <span class="process-status"
+                                                        [class]="getProcessStatusClass(process.type)">
+                                                        {{ getProcessStatusText(process.type) }}
+                                                    </span>
+                                                </div>
+                                                <div class="process-meta">
+                                                    <span class="process-date">
+                                                        <i class="pi pi-calendar"></i>
+                                                        {{ formatDate(process.registrationDate) }}
+                                                    </span>
+                                                    <span class="process-ref">
+                                                        <i class="pi pi-tag"></i>
+                                                        {{ process.reference }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </ng-template>
+
+                                <div class="process-details-grid">
+                                    <div class="detail-card" *ngIf="process.details">
+                                        <div class="detail-header">
+                                            <i class="pi pi-align-left"></i>
+                                            <span>Detalles</span>
+                                        </div>
+                                        <div class="detail-content">
+                                            <p>{{ process.details }}</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="detail-card" *ngIf="process.description">
+                                        <div class="detail-header">
+                                            <i class="pi pi-file-edit"></i>
+                                            <span>Descripción del Proceso</span>
+                                        </div>
+                                        <div class="detail-content">
+                                            <p>{{ process.description }}</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="detail-card">
+                                        <div class="detail-header">
+                                            <i class="pi pi-mobile"></i>
+                                            <span>Información del Dispositivo</span>
+                                        </div>
+                                        <div class="detail-content">
+                                            <div class="detail-row" *ngIf="process.target?.name">
+                                                <span class="label">Nombre:</span>
+                                                <span class="value">{{ process.target.name }}</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="label">IMEI:</span>
+                                                <span class="value">{{ process.target.device_imei }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="detail-card">
+                                        <div class="detail-header">
+                                            <i class="pi pi-cog"></i>
+                                            <span>Detalles Técnicos</span>
+                                        </div>
+                                        <div class="detail-content">
+                                            <div class="detail-row">
+                                                <span class="label">ID del Proceso:</span>
+                                                <span class="value technical">{{ process._id }}</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="label">Creado por:</span>
+                                                <span class="value">{{ process.user.email || process.creator }}</span>
+                                            </div>
+                                            <div class="detail-row" *ngIf="process.createdAt">
+                                                <span class="label">Fecha de registro:</span>
+                                                <span class="value">{{ formatDateTime(process.createdAt) }}</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </ng-template>
-
-                            <div class="process-details-grid">
-                                <div class="detail-card" *ngIf="process.details">
-                                    <div class="detail-header">
-                                        <i class="pi pi-align-left"></i>
-                                        <span>Detalles</span>
-                                    </div>
-                                    <div class="detail-content">
-                                        <p>{{ process.details }}</p>
-                                    </div>
-                                </div>
-
-                                <div class="detail-card" *ngIf="process.description">
-                                    <div class="detail-header">
-                                        <i class="pi pi-file-edit"></i>
-                                        <span>Descripción del Proceso</span>
-                                    </div>
-                                    <div class="detail-content">
-                                        <p>{{ process.description }}</p>
-                                    </div>
-                                </div>
-
-                                <div class="detail-card">
-                                    <div class="detail-header">
-                                        <i class="pi pi-mobile"></i>
-                                        <span>Información del Dispositivo</span>
-                                    </div>
-                                    <div class="detail-content">
-                                        <div class="detail-row" *ngIf="process.target?.name">
-                                            <span class="label">Nombre:</span>
-                                            <span class="value">{{ process.target.name }}</span>
-                                        </div>
-                                        <div class="detail-row">
-                                            <span class="label">IMEI:</span>
-                                            <span class="value">{{ process.target.device_imei }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="detail-card">
-                                    <div class="detail-header">
-                                        <i class="pi pi-cog"></i>
-                                        <span>Detalles Técnicos</span>
-                                    </div>
-                                    <div class="detail-content">
-                                        <div class="detail-row">
-                                            <span class="label">ID del Proceso:</span>
-                                            <span class="value technical">{{ process._id }}</span>
-                                        </div>
-                                        <div class="detail-row">
-                                            <span class="label">Creado por:</span>
-                                            <span class="value">{{ process.user.email || process.creator }}</span>
-                                        </div>
-                                        <div class="detail-row" *ngIf="process.createdAt">
-                                            <span class="label">Fecha de registro:</span>
-                                            <span class="value">{{ formatDateTime(process.createdAt) }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </p-accordionTab>
-                    </p-accordion>
+                            </p-accordionTab>
+                        </p-accordion>
                     </div>
 
                     <div class="no-processes" *ngIf="processList.length === 0">
@@ -1182,21 +1096,16 @@
 
                 <ng-template #loadingProcessesTpl>
                     <div style="display:flex;justify-content:center;align-items:center;min-height:120px;">
-                        <p-progressSpinner [style]="{'width': '30px', 'height': '30px'}" strokeWidth="4"></p-progressSpinner>
+                        <p-progressSpinner [style]="{'width': '30px', 'height': '30px'}"
+                            strokeWidth="4"></p-progressSpinner>
                     </div>
                 </ng-template>
             </p-dialog>
 
             <!-- Modal de gestión de comandos -->
-            <p-dialog
-                [(visible)]="displayCommandManagementModal"
-                [modal]="true"
-                [draggable]="false"
-                [resizable]="false"
-                [style]="{ width: '700px', maxWidth: '95vw' }"
-                header="Gestión de Comandos"
-                (onHide)="closeCommandManagementModal()"
-            >
+            <p-dialog [(visible)]="displayCommandManagementModal" [modal]="true" [draggable]="false" [resizable]="false"
+                [style]="{ width: '700px', maxWidth: '95vw' }" header="Gestión de Comandos"
+                (onHide)="closeCommandManagementModal()">
                 <div class="command-management-content">
                     <!-- Sección de acciones rápidas -->
                     <div class="command-actions">
@@ -1205,11 +1114,13 @@
                             Acciones Rápidas
                         </h3>
                         <div class="command-actions-buttons">
-                            <button type="button" class="command-action-btn shutdown-btn" (click)="sendVehicleShutdownCommand()">
+                            <button type="button" class="command-action-btn shutdown-btn"
+                                (click)="sendVehicleShutdownCommand()">
                                 <i class="pi pi-power-off"></i>
                                 <span>Apagar Vehículo</span>
                             </button>
-                            <button type="button" class="command-action-btn ignition-btn" (click)="sendAllowIgnitionCommand()">
+                            <button type="button" class="command-action-btn ignition-btn"
+                                (click)="sendAllowIgnitionCommand()">
                                 <i class="pi pi-key"></i>
                                 <span>Permitir Encendido</span>
                             </button>
@@ -1234,15 +1145,9 @@
             </p-dialog>
 
             <!-- Modal de observación para comandos -->
-            <p-dialog
-                [(visible)]="displayCommandObservationModal"
-                [modal]="true"
-                [draggable]="false"
-                [resizable]="false"
-                [style]="{ width: '500px' }"
-                [header]="commandObservationTitle"
-                (onHide)="closeCommandObservationModal()"
-            >
+            <p-dialog [(visible)]="displayCommandObservationModal" [modal]="true" [draggable]="false"
+                [resizable]="false" [style]="{ width: '500px' }" [header]="commandObservationTitle"
+                (onHide)="closeCommandObservationModal()">
                 <div class="command-observation-content">
                     <div class="command-info">
                         <div class="command-icon">
@@ -1256,11 +1161,8 @@
 
                     <div class="observation-field">
                         <label for="commandObservation">Observación (opcional):</label>
-                        <textarea
-                            id="commandObservation"
-                            [(ngModel)]="commandObservationText"
-                            placeholder="Agregue una observación para este comando..."
-                            rows="3"
+                        <textarea id="commandObservation" [(ngModel)]="commandObservationText"
+                            placeholder="Agregue una observación para este comando..." rows="3"
                             class="observation-textarea">
                         </textarea>
                     </div>
@@ -1271,7 +1173,8 @@
                         <i class="pi pi-times"></i>
                         Cancelar
                     </button>
-                    <button type="button" class="confirm-btn" (click)="confirmSendCommand()" [disabled]="isSendingCommand">
+                    <button type="button" class="confirm-btn" (click)="confirmSendCommand()"
+                        [disabled]="isSendingCommand">
                         <i class="pi pi-send" *ngIf="!isSendingCommand"></i>
                         <i class="pi pi-spin pi-spinner" *ngIf="isSendingCommand"></i>
                         {{ isSendingCommand ? 'Enviando...' : 'Confirmar y Enviar' }}
@@ -1280,50 +1183,30 @@
             </p-dialog>
 
             <!-- Modal para crear comando con observación -->
-            <p-dialog
-                [(visible)]="displayCreateCommandModal"
-                [modal]="true"
-                [draggable]="false"
-                [resizable]="false"
-                [style]="{ width: '500px' }"
-                header="Crear Comando"
-                (onHide)="closeCreateCommandModal()"
-            >
+            <p-dialog [(visible)]="displayCreateCommandModal" [modal]="true" [draggable]="false" [resizable]="false"
+                [style]="{ width: '500px' }" header="Crear Comando" (onHide)="closeCreateCommandModal()">
                 <div class="create-command-content">
                     <form class="create-command-form" (ngSubmit)="createCommand()" #commandForm="ngForm">
                         <div class="target-form__field">
-                            <label for="command_name">Nombre del Comando <span class="required-label">(Requerido)</span></label>
-                            <input
-                                [(ngModel)]="newCommand.name"
-                                name="command_name"
-                                type="text"
-                                id="command_name"
-                                placeholder="Ej: Apagar Motor"
-                                required
-                            >
+                            <label for="command_name">Nombre del Comando <span
+                                    class="required-label">(Requerido)</span></label>
+                            <input [(ngModel)]="newCommand.name" name="command_name" type="text" id="command_name"
+                                placeholder="Ej: Apagar Motor" required>
                         </div>
 
                         <div class="target-form__field">
                             <label for="command_description">Descripción</label>
-                            <textarea
-                                [(ngModel)]="newCommand.description"
-                                name="command_description"
-                                id="command_description"
-                                placeholder="Describe qué hace este comando"
-                                rows="3"
-                            ></textarea>
+                            <textarea [(ngModel)]="newCommand.description" name="command_description"
+                                id="command_description" placeholder="Describe qué hace este comando"
+                                rows="3"></textarea>
                         </div>
 
                         <div class="target-form__field">
-                            <label for="command_observation">Observación <span class="required-label">(Requerido)</span></label>
-                            <textarea
-                                [(ngModel)]="newCommand.observation"
-                                name="command_observation"
-                                id="command_observation"
-                                placeholder="Observaciones adicionales sobre el comando"
-                                rows="3"
-                                required
-                            ></textarea>
+                            <label for="command_observation">Observación <span
+                                    class="required-label">(Requerido)</span></label>
+                            <textarea [(ngModel)]="newCommand.observation" name="command_observation"
+                                id="command_observation" placeholder="Observaciones adicionales sobre el comando"
+                                rows="3" required></textarea>
                         </div>
                     </form>
                 </div>
@@ -1333,7 +1216,8 @@
                         <i class="pi pi-times"></i>
                         Cancelar
                     </button>
-                    <button type="button" class="apply-btn" (click)="createCommand()" [disabled]="!commandForm.form.valid || isCreatingCommand">
+                    <button type="button" class="apply-btn" (click)="createCommand()"
+                        [disabled]="!commandForm.form.valid || isCreatingCommand">
                         <i class="pi" [ngClass]="isCreatingCommand ? 'pi-spinner loading-spinner' : 'pi-check'"></i>
                         {{ isCreatingCommand ? 'Creando...' : 'Crear Comando' }}
                     </button>
@@ -1341,15 +1225,9 @@
             </p-dialog>
 
             <!-- Modal para observación de comandos estáticos -->
-            <p-dialog
-                [(visible)]="displayCommandObservationModal"
-                [modal]="true"
-                [draggable]="false"
-                [resizable]="false"
-                [style]="{ width: '500px' }"
-                [header]="commandObservationTitle"
-                (onHide)="closeCommandObservationModal()"
-            >
+            <p-dialog [(visible)]="displayCommandObservationModal" [modal]="true" [draggable]="false"
+                [resizable]="false" [style]="{ width: '500px' }" [header]="commandObservationTitle"
+                (onHide)="closeCommandObservationModal()">
                 <div class="command-observation-content">
                     <div class="command-info">
                         <div class="command-icon">
@@ -1363,13 +1241,9 @@
 
                     <div class="target-form__field">
                         <label for="command_observation_text">Observación (Opcional)</label>
-                        <textarea
-                            [(ngModel)]="commandObservationText"
-                            name="command_observation_text"
-                            id="command_observation_text"
-                            placeholder="Agregue una observación sobre este comando..."
-                            rows="3"
-                        ></textarea>
+                        <textarea [(ngModel)]="commandObservationText" name="command_observation_text"
+                            id="command_observation_text" placeholder="Agregue una observación sobre este comando..."
+                            rows="3"></textarea>
                     </div>
                 </div>
 
@@ -1378,7 +1252,8 @@
                         <i class="pi pi-times"></i>
                         Cancelar
                     </button>
-                    <button type="button" class="apply-btn" (click)="confirmSendCommand()" [disabled]="isSendingCommand">
+                    <button type="button" class="apply-btn" (click)="confirmSendCommand()"
+                        [disabled]="isSendingCommand">
                         <i class="pi" [ngClass]="isSendingCommand ? 'pi-spinner loading-spinner' : 'pi-send'"></i>
                         {{ isSendingCommand ? 'Enviando...' : 'Enviar Comando' }}
                     </button>
@@ -1386,15 +1261,9 @@
             </p-dialog>
 
             <!-- Modal para historial de comandos -->
-            <p-dialog
-                [(visible)]="displayCommandHistoryModal"
-                [modal]="true"
-                [draggable]="false"
-                [resizable]="false"
-                [style]="{ width: '700px', maxWidth: '95vw' }"
-                header="Historial de Comandos"
-                (onHide)="closeCommandHistoryModal()"
-            >
+            <p-dialog [(visible)]="displayCommandHistoryModal" [modal]="true" [draggable]="false" [resizable]="false"
+                [style]="{ width: '700px', maxWidth: '95vw' }" header="Historial de Comandos"
+                (onHide)="closeCommandHistoryModal()">
                 <div class="command-history-content">
                     <!-- Lista de comandos existentes -->
                     <div class="commands-list" *ngIf="deviceCommands.length > 0">
@@ -1404,21 +1273,26 @@
                                     <div class="command-name">{{ command.name }}</div>
                                     <div class="command-date">{{ formatDateTime(command.createdAt) }}</div>
                                 </div>
-                                <div class="command-description" *ngIf="command.description">{{ command.description }}</div>
+                                <div class="command-description" *ngIf="command.description">{{ command.description }}
+                                </div>
                                 <div class="command-observation" *ngIf="command.observation">
                                     <strong>Observación:</strong> {{ command.observation }}
                                 </div>
                                 <div class="command-status">
                                     <span class="status-badge" [class]="'status-' + command.status">
-                                        <ng-container *ngIf="getCommandStatusText(command.status) !== 'Desconocido'; else creatorInfo">
+                                        <ng-container
+                                            *ngIf="getCommandStatusText(command.status) !== 'Desconocido'; else creatorInfo">
                                             {{ getCommandStatusText(command.status) }}
                                         </ng-container>
                                         <ng-template #creatorInfo>
-                                            <ng-container *ngIf="command.creator && typeof command.creator === 'object'">
-                                                <div>Enviado por {{ command.creator.name }} {{ command.creator.last_name }}</div>
+                                            <ng-container
+                                                *ngIf="command.creator && typeof command.creator === 'object'">
+                                                <div>Enviado por {{ command.creator.name }} {{ command.creator.last_name
+                                                    }}</div>
                                                 <div class="creator-email">{{ command.creator.email }}</div>
                                             </ng-container>
-                                            <ng-container *ngIf="command.creator && typeof command.creator !== 'object'">
+                                            <ng-container
+                                                *ngIf="command.creator && typeof command.creator !== 'object'">
                                                 Enviado por {{ command.creator }}
                                             </ng-container>
                                             <ng-container *ngIf="!command.creator">
@@ -1440,7 +1314,8 @@
 
                     <!-- Estado de carga -->
                     <div class="loading-commands" *ngIf="isLoadingCommands">
-                        <p-progressSpinner [style]="{'width': '40px', 'height': '40px'}" strokeWidth="4"></p-progressSpinner>
+                        <p-progressSpinner [style]="{'width': '40px', 'height': '40px'}"
+                            strokeWidth="4"></p-progressSpinner>
                         <p>Cargando historial de comandos...</p>
                     </div>
                 </div>

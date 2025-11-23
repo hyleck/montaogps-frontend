@@ -3,19 +3,19 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 import { MessageService } from 'primeng/api';
 import { Subject, takeUntil, interval, Subscription } from 'rxjs';
 import { LangService } from '../../../../../../../shareds/services/langi18/lang.service';
-import { 
-  TARGET_FORM_STYLES, 
-  TARGET_FORM_TRANSLATIONS,
-  INSTALLATION_LOCATIONS,
-  SIM_CARD_TYPES,
-  FALLBACK_PLANS,
-  FALLBACK_GPS_MODELS,
-  FIELDS_TO_PRESERVE,
-  YEARS_CONFIG,
-  CUSTOM_PRICE_CONFIG,
-  SelectOption,
-  SmsMessage,
-  CustomPrice
+import {
+    TARGET_FORM_STYLES,
+    TARGET_FORM_TRANSLATIONS,
+    INSTALLATION_LOCATIONS,
+    SIM_CARD_TYPES,
+    FALLBACK_PLANS,
+    FALLBACK_GPS_MODELS,
+    FIELDS_TO_PRESERVE,
+    YEARS_CONFIG,
+    CUSTOM_PRICE_CONFIG,
+    SelectOption,
+    SmsMessage,
+    CustomPrice
 } from './constants/target-form.constants';
 import { CloudComponent } from 'src/app/shareds/components/cloud/cloud.component';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
@@ -60,10 +60,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Flag para mostrar/ocultar la edición personalizada de precio
     isCustomPriceEditing = false;
     customPrice: CustomPrice = { id: '', amount: 0, payment_period: CUSTOM_PRICE_CONFIG.DEFAULT_PAYMENT_PERIOD };
-    
+
     // Precio original del plan, antes de cualquier personalización
     originalPlanPrice: { id: string; amount: number; payment_period: string } | null = null;
-    
+
     // Flag para controlar la visibilidad del diálogo modal
     displayPriceDialog = false;
 
@@ -78,8 +78,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         const normalized = (value || '').toLowerCase();
         this._displayColorName = normalized;
         if (normalized) {
-            this.filteredColors = this.availableColors.filter(color => 
-                color.label.toLowerCase().includes(normalized) || 
+            this.filteredColors = this.availableColors.filter(color =>
+                color.label.toLowerCase().includes(normalized) ||
                 color.value.toLowerCase().includes(normalized)
             );
         } else {
@@ -89,12 +89,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
     showColorOptions: boolean = true;
     isLoading: boolean = false;
-    
+
     // Flag para determinar si estamos editando un target existente
     get isEditMode(): boolean {
         return !!(this.target && this.target._id && this.target._id.trim());
     }
-    
+
     // Opciones para selects
     availableBrands: SelectOption[] = [];
     availableModels: SelectOption[] = [];
@@ -116,16 +116,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     filteredColors: SelectOption[] = [];
     availableTechnicians: SelectOption[] = [];
     renewalYearOptions: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
-    
+
     // Planes específicos para procesos (separados del formulario principal)
     availablePlansForProcess: SelectOption[] = [];
-    
+
     // Precios específicos para procesos (separados del formulario principal)
     availablePricesForProcess: ExtendedPlanPrice[] = [];
-    
+
     // Bandera para evitar recálculo automático de fecha de expiración
     skipExpirationDateRecalculation: boolean = false;
-    
+
     // Propiedades para SMS
     selectedSmsCommand: string = '';
     smsMessages: SmsMessage[] = [];
@@ -134,11 +134,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     isLoadingSmsMessages: boolean = false;
     hasLoadedSmsMessages: boolean = false;
     isSendingSms: boolean = false;
-    
+
     // Protocolos y comandos dinámicos
     loadedProtocols: Protocol[] = [];
     availableCommands: ProtocolCommand[] = [];
-    
+
     // Propiedades para formulario de procesos
     processForm = {
         type: '',
@@ -159,7 +159,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         newSimNumber: '',
         newSimType: ''
     };
-    
+
     // Mapeo de tipos de proceso a números
     private processTypeMap: { [key: string]: number } = {
         'installation': 2, // Modificación de fecha de instalación
@@ -192,7 +192,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     processOriginalPlanPrice: { id: string; amount: number; payment_period: string } | null = null;
     selectedProtocol: Protocol | null = null;
     pendingGpsModel: string = ''; // GPS model a asignar después de cargar protocolos
-    
+
     // Referencias a elementos del DOM
     @ViewChild('smsCommands') smsCommands!: ElementRef;
     @ViewChild('smsChat') smsChat!: ElementRef;
@@ -212,20 +212,20 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     deviceCommands: any[] = [];
     isLoadingCommands: boolean = false;
     isCreatingCommand: boolean = false;
-  newCommand: any = {
-    name: '',
-    description: '',
-    observation: ''
-  };
-  showContactsModal: boolean = false;
+    newCommand: any = {
+        name: '',
+        description: '',
+        observation: ''
+    };
+    showContactsModal: boolean = false;
 
-  openContacts(): void {
-    this.showContactsModal = true;
-  }
+    openContacts(): void {
+        this.showContactsModal = true;
+    }
 
-  closeContacts(): void {
-    this.showContactsModal = false;
-  }
+    closeContacts(): void {
+        this.showContactsModal = false;
+    }
 
     // Propiedades para modal de observación de comandos estáticos
     displayCommandObservationModal: boolean = false;
@@ -236,7 +236,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     commandObservationText: string = '';
     isSendingCommand: boolean = false;
     pendingCommandType: string = ''; // 'shutdown' or 'ignition'
-    
+
+    // Propiedad para almacenar el uso de la SIM
+    simUsage: any = null;
+
     constructor(
         private langService: LangService,
         private messageService: MessageService,
@@ -250,7 +253,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         private authService: AuthService,
         private userService: UserService,
         private commandsService: CommandsService
-    ) {}
+    ) { }
 
     // Métodos de validación de privilegios para devices
     canCreateDevices(): boolean {
@@ -331,24 +334,24 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 const year = YEARS_CONFIG.BASE_YEAR() - i;
                 return { label: year.toString(), value: year.toString() };
             });
-            
+
             // Cargar marcas desde el servicio
             const brands = await this.vehicleBrandsService.getAllBrands();
             this.availableBrands = brands.map((brand: any) => ({
                 label: brand.nombre,
                 value: brand._id
             })).sort((a: any, b: any) => a.label.localeCompare(b.label));
-            
+
             // Cargar colores desde el servicio
             const colors = await this.colorsService.getAllColors();
             this.availableColors = colors.map((color: any) => ({
                 label: color.nombre,
                 value: color.hex
             })).sort((a: any, b: any) => a.label.localeCompare(b.label));
-            
+
             // Inicializar filteredColors con todos los colores
             this.filteredColors = [...this.availableColors];
-            
+
             // Cargar protocolos para modelos de GPS
             this.protocolsService.getAllProtocols()
                 .pipe(takeUntil(this.destroy$))
@@ -356,19 +359,19 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     next: (protocols: Protocol[]) => {
                         // Almacenar protocolos completos para usar en SMS
                         this.loadedProtocols = protocols;
-                        
+
                         // Mapear para select de GPS models
                         this.availableGpsModels = protocols.map(protocol => ({
                             label: protocol.name,
                             value: protocol._id
                         })).sort((a, b) => a.label.localeCompare(b.label));
-                        
+
                         // Si hay un GPS model pendiente de asignar, asignarlo ahora
                         if (this.pendingGpsModel && this.availableGpsModels.some(model => model.value === this.pendingGpsModel)) {
                             this.target.type = this.pendingGpsModel;
                             this.pendingGpsModel = ''; // Limpiar el pendiente
                         }
-                        
+
                         // Si hay un protocolo ya seleccionado, cargar sus comandos
                         this.updateSmsCommands();
                     },
@@ -380,11 +383,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         this.availableCommands = [];
                     }
                 });
-            
+
             // Usar constantes para ubicaciones y tipos de SIM
             this.availableLocations = [...INSTALLATION_LOCATIONS];
             this.availableSimCardTypes = [...SIM_CARD_TYPES];
-            
+
             // Cargar planes desde el servicio
             this.plansService.getAllPlans().subscribe({
                 next: (plans: Plan[]) => {
@@ -413,7 +416,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.availableTechnicians = [];
                 }
             });
-            
+
         } catch (error) {
             console.error('Error al cargar datos iniciales:', error);
             this.messageService.add({
@@ -436,25 +439,25 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     private setupEditTarget(target: TargetDevice) {
-        
+
         // DEBUG: Ver qué datos llegan del backend para edición
-        
+
         // Si el target tiene originalTarget, usar esos datos en su lugar
         let targetData = target;
         if ((target as any)['originalTarget']) {
             targetData = (target as any)['originalTarget'];
         }
-        
-      
-        
+
+
+
         // Rellenar el formulario con los datos del objetivo a editar
         this.target = JSON.parse(JSON.stringify(targetData));
-        
+
         // El backend ya maneja engine_shutdown directamente, no necesita mapeo
-        
+
         // Asegurarse de que los campos estén correctamente formateados
         // y que los valores vacíos tengan el formato adecuado para los selectores
-        
+
         // Para mantener compatibilidad con versiones anteriores,
         // aseguramos que algunos campos siempre tengan un valor
         this.target.device_imei = this.target.device_imei || '';
@@ -464,66 +467,66 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.target.target_brand_id = this.target.target_brand_id || '';
         this.target.target_color = this.target.target_color || '';
         this.target.target_year = this.target.target_year || '';
-        
-      
-        
+
+
+
         // Guardar temporalmente el ID del modelo GPS para asignarlo después de cargar protocolos
         const selectedGpsModel = this.target.type || '';
-        
+
         // Guardar temporalmente el ID del modelo seleccionado
         const selectedModelId = this.target.target_model_id || '';
-        
+
         // Establecer el modelo a string vacía inicialmente hasta que carguemos los modelos disponibles
         this.target.target_model_id = '';
-        
+
         // Para campos de selección, asegurarse de que se muestre la opción por defecto cuando están vacíos
         if (!this.target.type) {
             this.target.type = '';
         }
-        
+
         if (this.target.sim_company === null || this.target.sim_company === undefined) {
             this.target.sim_company = '';
         }
-        
+
         // Asegurar que engine_shutdown tenga un valor válido, preservando el existente
-        if (this.target.engine_shutdown === null || this.target.engine_shutdown === undefined) {    
+        if (this.target.engine_shutdown === null || this.target.engine_shutdown === undefined) {
             this.target.engine_shutdown = '';
         }
         // console.log('🔍 DEBUG setupEditTarget: engine_shutdown cargado:', this.target.engine_shutdown);
-        
+
         if (!this.target.installation_location || this.target.installation_location === '') {
             this.target.installation_location = '';
         }
-        
+
         // Asegurar que ignition_sensor tenga un valor válido, preservando el existente
         if (this.target.ignition_sensor === null || this.target.ignition_sensor === undefined) {
             this.target.ignition_sensor = '';
         }
-        
+
         // Asegurar que mechanic_id tenga un valor válido, preservando el existente
         if (this.target.mechanic_id === null || this.target.mechanic_id === undefined) {
             this.target.mechanic_id = '';
         }
         // console.log('🔍 DEBUG setupEditTarget: ignition_sensor cargado:', this.target.ignition_sensor);
-        
+
         // Ajuste para el estado (status): en DB es boolean, en formulario puede ser string
         if (this.target.status === true || String(this.target.status) === 'true') {
             this.target.status = 'active';
         } else if (this.target.status === false || String(this.target.status) === 'false') {
             this.target.status = 'inactive';
         }
-        
+
         // Formatear fechas para el input HTML
         console.log('🔍 DEBUG setupEditTarget: Fecha de expiración RAW del backend:', this.target.expiration_date);
-        
+
         this.target.activation_date = this.formatDateToInput(this.target.activation_date || '');
-        
+
         if (this.target.expiration_date) {
             const formattedExpirationDate = this.formatDateToInput(this.target.expiration_date);
             console.log('🔍 DEBUG setupEditTarget: Fecha de expiración FORMATEADA:', formattedExpirationDate);
             this.target.expiration_date = formattedExpirationDate;
         }
-        
+
         // Formatear la fecha de instalación (usar activation_date como fuente principal)
         if (this.target.activation_date) {
             this.target.installation_date = this.formatDateToInput(this.target.activation_date);
@@ -533,9 +536,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Solo asignar fecha actual si estamos creando un nuevo target (no en modo edición)
             this.target.installation_date = this.isEditMode ? '' : this.getTodayInputDate();
         }
-        
+
         this.activeTabIndex = 0;
-        
+
         // Actualizar el nombre del color para mostrar
         if (this.target.target_color) {
             const colorObj = this.availableColors.find(c => c.value === this.target.target_color);
@@ -543,7 +546,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         } else {
             this.displayColorName = '';
         }
-        
+
         // Cargar los modelos para la marca seleccionada
         if (this.target.target_brand_id) {
             // Cargar modelos según la marca seleccionada
@@ -553,8 +556,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         label: model.nombre,
                         value: model._id
                     })).sort((a: any, b: any) => a.label.localeCompare(b.label));
-                    
-                    
+
+
                     // Una vez cargados los modelos, establecer el modelo seleccionado
                     if (selectedModelId && this.availableModels.some(m => m.value === selectedModelId)) {
                         this.target.target_model_id = selectedModelId;
@@ -565,17 +568,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.availableModels = [];
                 });
         }
-        
+
         // Configurar el plan si existe
         if (this.target.plan && typeof this.target.plan === 'object') {
             // Extraer el ID del plan
             if ('id_plan' in this.target.plan && this.target.plan.id_plan) {
                 // Guardar el objeto plan original
                 const originalPlan = this.target.plan;
-                
+
                 // Si hay un precio seleccionado, configurarlo antes de convertir el plan a string
                 if (originalPlan.selected_price) {
-                    
+
                     // Crear objeto de precio seleccionado
                     this.target.selectedPrice = {
                         id: originalPlan.selected_price.id,
@@ -583,52 +586,52 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         payment_period: originalPlan.selected_price.payment_period
                     };
                 }
-                
+
                 // Establecer el ID del plan como string para el selector
                 this.target.plan = originalPlan.id_plan as string;
-                
+
                 // Cargar los precios disponibles para este plan
                 // Hacemos esto después de configurar selectedPrice para que no se pierda
                 this.plansService.getPlanById(this.target.plan).subscribe({
                     next: (plan: Plan) => {
-                        
+
                         // Guardar precio seleccionado actual para preservar su valor personalizado
                         const currentSelectedPrice = this.target.selectedPrice ? { ...this.target.selectedPrice } : null;
-                        
+
                         // Mapear precios disponibles
                         this.availablePrices = plan.prices.map(price => ({
                             id: price.id,
                             amount: price.amount,
-                            payment_period: typeof price.payment_period === 'string' ? 
-                                price.payment_period : 
+                            payment_period: typeof price.payment_period === 'string' ?
+                                price.payment_period :
                                 this.mapPeriodToString(price.payment_period)
                         }));
-                        
-                        
+
+
                         // Si hay un precio seleccionado, buscamos su correspondiente en los precios del plan
                         if (currentSelectedPrice) {
-                            const matchedPrice = this.availablePrices.find(price => 
+                            const matchedPrice = this.availablePrices.find(price =>
                                 price.id === currentSelectedPrice.id
                             );
-                            
+
                             if (matchedPrice) {
-                                
+
                                 // Si el precio ha sido modificado, guardamos el original
                                 if (currentSelectedPrice.amount !== matchedPrice.amount) {
-                                    
+
                                     // Guardar el monto original
                                     const customPrice = {
                                         ...matchedPrice,
                                         amount: currentSelectedPrice.amount, // Usar el monto personalizado
                                         originalAmount: matchedPrice.amount  // Guardar el monto original
                                     };
-                                    
+
                                     // Reemplazar el precio en la lista
                                     const priceIndex = this.availablePrices.findIndex(p => p.id === matchedPrice.id);
                                     if (priceIndex >= 0) {
                                         this.availablePrices[priceIndex] = customPrice;
                                     }
-                                    
+
                                     // Actualizar el precio seleccionado
                                     this.target.selectedPrice = customPrice;
                                 } else {
@@ -640,7 +643,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                                     ...currentSelectedPrice,
                                     originalAmount: 0 // No conocemos el original, marcamos como 0
                                 };
-                                
+
                                 // Agregar al inicio de la lista
                                 this.availablePrices = [customPrice, ...this.availablePrices];
                                 this.target.selectedPrice = customPrice;
@@ -656,7 +659,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Si no hay plan, establecer string vacía para mostrar la opción por defecto
             this.target.plan = '';
         }
-        
+
         // Si el plan original del target es diferente al plan actualizado, 
         // actualizar la fecha de expiración SOLO si no hay fecha de expiración establecida
         // o si estamos en modo creación (no edición)
@@ -666,7 +669,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         } else if (this.target.plan && this.isEditMode && this.target.expiration_date) {
             console.log('🔍 DEBUG setupEditTarget: Saltando recálculo automático en modo edición - fecha ya establecida:', this.target.expiration_date);
         }
-        
+
         // Asignar el GPS model después de que los protocolos se hayan cargado
         // Si ya están cargados, asignar inmediatamente, si no, se asignará en el callback de protocolos
         if (selectedGpsModel && this.availableGpsModels.length > 0) {
@@ -681,7 +684,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         } else if (selectedGpsModel) {
             // Guardar el GPS model para asignarlo cuando se carguen los protocolos
             this.pendingGpsModel = selectedGpsModel;
-            
+
             // Intentar asignar inmediatamente si los protocolos ya están cargados
             // (esto puede suceder en navegaciones posteriores)
             setTimeout(() => {
@@ -699,9 +702,21 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         // Cargar datos del servidor asociado al plan del target
         this.loadServerDataFromPlan();
-        
+
         // Cargar lista de procesos del target actual
         this.loadProcessesList();
+
+        // Check SIM usage
+        if (this.target.sim_card_number) {
+            console.log('Checking SIM usage for:', this.target.sim_card_number);
+            this.targetsService.getSimUsage(this.target.sim_card_number, 'myorion').then(usage => {
+                console.log('SIM Usage:', usage);
+                this.simUsage = usage;
+            }).catch(err => {
+                console.error('Error getting SIM usage:', err);
+                this.simUsage = null;
+            });
+        }
     }
 
     /**
@@ -714,8 +729,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             return null;
         }
 
-        const planId = typeof this.target.plan === 'string' ? this.target.plan : 
-                      (this.target.plan as any).id_plan || '';
+        const planId = typeof this.target.plan === 'string' ? this.target.plan :
+            (this.target.plan as any).id_plan || '';
 
         if (!planId) {
             return null;
@@ -724,14 +739,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         try {
             // Obtener datos del plan
             const plan = await this.plansService.getPlanById(planId).toPromise();
-            
+
             if (!plan || !plan.server_id) {
                 return null;
             }
 
             // Obtener datos del servidor
             const server = await this.serversService.getServerById(plan.server_id).toPromise();
-            
+
             return server?.ip || null;
         } catch (error) {
             console.error('❌ Error al obtener IP del servidor:', error);
@@ -749,8 +764,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             return;
         }
 
-        const planId = typeof this.target.plan === 'string' ? this.target.plan : 
-                      (this.target.plan as any).id_plan || '';
+        const planId = typeof this.target.plan === 'string' ? this.target.plan :
+            (this.target.plan as any).id_plan || '';
 
         if (!planId) {
             return;
@@ -762,7 +777,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             .pipe(takeUntil(this.destroy$))
             .subscribe({
                 next: (plan: Plan) => {
-                
+
 
                     // Obtener datos del servidor
                     if (plan.server_id) {
@@ -770,7 +785,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                             .pipe(takeUntil(this.destroy$))
                             .subscribe({
                                 next: (server: Server) => {
-                                 
+
                                 },
                                 error: (error) => {
                                     console.error('❌ Error al cargar datos del servidor:', error);
@@ -797,19 +812,19 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 // Limpiar el modelo seleccionado
                 this.target.target_model_id = '';
                 this.availableModels = [];
-                
+
                 // Mostrar indicador de carga si es necesario
                 // this.isLoadingModels = true;
-                
+
                 // Cargar modelos para la marca seleccionada
                 const models = await this.vehicleBrandsService.getAllModelsByBrand(this.target.target_brand_id);
-                
+
                 if (models && models.length > 0) {
                     this.availableModels = models.map((model: any) => ({
                         label: model.nombre,
                         value: model._id
                     })).sort((a: any, b: any) => a.label.localeCompare(b.label));
-                    
+
                     // console.log(`Cargados ${this.availableModels.length} modelos para la marca seleccionada`);
                 } else {
                     // console.log('No se encontraron modelos para esta marca');
@@ -834,7 +849,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Desactivar indicador de carga si se implementa
             // this.isLoadingModels = false;
         }
-    }   
+    }
 
     async onSubmit() {
         // Validar privilegios antes de proceder
@@ -847,7 +862,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             });
             return;
         }
-        
+
         if (!this.target._id && !this.canCreateDevices()) {
             this.messageService.add({
                 severity: 'error',
@@ -874,9 +889,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         try {
             this.isLoading = true;
             const targetToSave = this.prepareTargetData();
-            
+
             // console.log('Datos preparados para enviar:', targetToSave);
-            
+
             // 🔍 DEBUG: Ver exactamente qué se va a enviar al backend para engine_shutdown
             // console.log('🔍 DEBUG - Campos específicos antes del envío:', {
             //     isUpdate: !!this.target._id,
@@ -884,7 +899,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             //     engine_shutdown_en_payload: targetToSave.engine_shutdown,
             //     ignition_sensor_en_payload: targetToSave.ignition_sensor
             // });
-            
+
             if (this.target._id) {
                 // Actualizar objetivo existente
                 // console.log('Actualizando target existente con ID:', this.target._id);
@@ -897,13 +912,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 // console.log('- engine_shutdown recibido:', (updatedTarget as any).engine_shutdown);
                 // console.log('- ignition_sensor recibido:', (updatedTarget as any).ignition_sensor);
                 // console.log('- Target completo actualizado:', updatedTarget);
-                
+
                 this.messageService.add({
                     severity: 'success',
                     summary: this.translate('management.targetForm.updateSuccess'),
                     detail: this.translate('management.targetForm.updateSuccessDetail')
                 });
-                
+
                 // Emitir evento de actualización
                 this.targetCreated.emit();
             } else {
@@ -913,22 +928,22 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 // console.log('- engine_shutdown recibido:', (newTarget as any).engine_shutdown);
                 // console.log('- ignition_sensor recibido:', (newTarget as any).ignition_sensor);
                 // console.log('- Nuevo target creado exitosamente:', newTarget);
-                
+
                 // Crear automáticamente un proceso de instalación para el nuevo target
                 if (newTarget && newTarget._id) {
                     await this.createInstallationProcess(newTarget as TargetDevice);
                 }
-                
+
                 this.messageService.add({
                     severity: 'success',
                     summary: this.translate('management.targetForm.saveSuccess'),
                     detail: this.translate('management.targetForm.saveSuccessDetail')
                 });
-                
+
                 // Emitir evento de creación
                 this.targetCreated.emit();
             }
-            
+
             // Resetear el formulario solo después de una creación exitosa
             // Para edición, mantenemos los datos para posibles ediciones adicionales
             if (!this.target._id) {
@@ -936,10 +951,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
         } catch (error: any) {
             console.error('Error al guardar el objetivo:', error);
-            
+
             // Mostrar mensaje de error más detallado si está disponible
             let errorMessage = this.translate('management.targetForm.saveError');
-            
+
             if (error.error && error.error.message) {
                 if (Array.isArray(error.error.message)) {
                     // Si hay varios mensajes de error, mostrar el primero
@@ -950,7 +965,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             } else if (error.message) {
                 errorMessage += `: ${error.message}`;
             }
-            
+
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
@@ -969,7 +984,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // Obtener el ID del usuario actual de management service   
         const currentUserId = this.managementService.getCurrentUserId();
         // console.log('ID de usuario actual para parent_id:', currentUserId);
-        
+
         return {
             api_position_id: 'default_position_id',
             api_device_id: 'default_api_device_id',
@@ -988,34 +1003,34 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private prepareTargetData(): CreateTargetDto | UpdateTargetDto {
         // Crear una copia del objeto target con los campos actuales
         const targetData: any = { ...this.target };
-        
+
         // target_plate_number se mantiene con su nombre original
         // El backend espera este campo tal como está
-        
+
         // target_chassis_number se mantiene con su nombre original
         // target_color se mantiene con su nombre original  
         // target_year se mantiene con su nombre original
         // El backend espera estos campos tal como están
-        
+
         // target_brand_id y target_model_id se mantienen con sus nombres originales
         // El backend espera estos campos tal como están
-        
+
         // NO mapear engine_shutdown - el backend ya lo espera con ese nombre
         // Asegurar que engine_shutdown se incluya explícitamente (incluso si está vacío)
         if (targetData.engine_shutdown === undefined || targetData.engine_shutdown === null) {
             targetData.engine_shutdown = '';
         }
-        
+
         // Asegurar que ignition_sensor se incluya explícitamente (incluso si está vacío)
         if (targetData.ignition_sensor === undefined || targetData.ignition_sensor === null) {
             targetData.ignition_sensor = '';
         }
-        
+
         // sim_company y sim_card_number ya tienen los nombres correctos, no necesitan mapeo
-        
+
         // Obtener valores por defecto
         const defaultValues = this.getDefaultValues();
-        
+
         // Estructurar el plan en el formato requerido
         if (targetData.plan && targetData.selectedPrice) {
             // Cuando hay un precio personalizado, conservamos el ID original
@@ -1025,8 +1040,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 selected_price: {
                     id: targetData.selectedPrice.id,
                     amount: targetData.selectedPrice.amount,
-                    payment_period: typeof targetData.selectedPrice.payment_period === 'string' ? 
-                        targetData.selectedPrice.payment_period : 
+                    payment_period: typeof targetData.selectedPrice.payment_period === 'string' ?
+                        targetData.selectedPrice.payment_period :
                         this.mapPeriodToString(targetData.selectedPrice.payment_period)
                 }
             };
@@ -1041,12 +1056,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         } else {
             targetData.plan = null;
         }
-        
+
         // Convertir el array de contactos a string si es necesario
         if (Array.isArray(targetData.contacts)) {
             targetData.contacts = targetData.contacts.join(',');
         }
-        
+
         // Formatear fechas
         if (targetData.activation_date) {
             targetData.activation_date = this.parseLocalDate(targetData.activation_date as any);
@@ -1057,17 +1072,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Solo asignar fecha actual si estamos creando un nuevo target y no hay fechas
             targetData.activation_date = this.parseLocalDate(this.getTodayInputDate());
         }
-        
+
         if (targetData.expiration_date) {
             targetData.expiration_date = this.parseLocalDate(targetData.expiration_date as any);
         }
-        
+
         // Actualizar la fecha del último cambio
         targetData.last_change_date = new Date();
-        
+
         // Convertir status de string a boolean
         targetData.status = targetData.status === 'active';
-        
+
         // Aplicar valores por defecto para campos requeridos pero que podrían estar vacíos
         // Excluir campos que deben mantener su valor original (incluido string vacío)
         for (const key in defaultValues) {
@@ -1075,17 +1090,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 targetData[key] = defaultValues[key];
             }
         }
-        
+
         // Asegurar que sim_company siempre se incluya, incluso si está vacío
         // No aplicar ningún valor por defecto a sim_company
-        
+
         // Eliminar propiedades que no deben enviarse al backend
         delete targetData.selectedPrice;
-        
-      
-        
-       
-        
+
+
+
+
+
         return targetData;
     }
 
@@ -1098,7 +1113,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     summary: this.translate('management.targetForm.validationError'),
                     detail: this.translate('management.targetForm.requiredFieldsMissing')
                 });
-                return false;   
+                return false;
             }
         } else if (this.activeTabIndex === 1) { // Tab de instalación
             if (!this.target.device_imei || !this.target.sim_card_number || !this.target.mechanic_id || !this.target.plan || !this.target.selectedPrice) {
@@ -1110,7 +1125,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 return false;
             }
         }
-        
+
         // Validación específica para el plan y precio
         if (!this.target.plan) {
             this.messageService.add({
@@ -1120,7 +1135,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             });
             return false;
         }
-        
+
         if (!this.target.selectedPrice) {
             this.messageService.add({
                 severity: 'error',
@@ -1129,7 +1144,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             });
             return false;
         }
-        
+
         // Validación específica para el técnico (siempre requerido)
         if (!this.target.mechanic_id) {
             this.messageService.add({
@@ -1139,12 +1154,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             });
             return false;
         }
-        
+
         // Si estamos actualizando, validamos que tengamos un ID
         if (this.target._id === '') {
             //  console.log('Advertencia: Formulario en modo edición pero sin ID de target');
         }
-        
+
         // Validar el formato del IMEI
         if (this.target.device_imei && (this.target.device_imei.length < 10 || !/^[0-9]+$/.test(this.target.device_imei))) {
             this.messageService.add({
@@ -1154,7 +1169,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             });
             // No bloqueamos el guardado, solo advertimos
         }
-        
+
         return true;
     }
 
@@ -1165,7 +1180,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     private formatDateToInput(dateStr: string): string {
         if (!dateStr) return '';
-        
+
         try {
             // Si viene solo la fecha (YYYY-MM-DD), devolverla tal cual para evitar shifts por zona horaria
             if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
@@ -1195,37 +1210,37 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         const target = event.target as HTMLInputElement;
         const value = target.value.toLowerCase();
         this.displayColorName = value;
-        
+
         if (value) {
-            this.filteredColors = this.availableColors.filter(color => 
-                color.label.toLowerCase().includes(value) || 
+            this.filteredColors = this.availableColors.filter(color =>
+                color.label.toLowerCase().includes(value) ||
                 color.value.toLowerCase().includes(value)
             );
         } else {
             this.filteredColors = [...this.availableColors];
             this.target.target_color = '';
         }
-        
+
         // No necesitamos cambiar showColorOptions ya que siempre está visible
     }
-    
+
     // Removed explicit input handler in favor of ngModel setter
-    
+
     selectColor(color: { label: string, value: string }) {
         this.target.target_color = color.value;
         this.displayColorName = color.label;
         // El selector ya está siempre visible
     }
-    
+
     // Estos métodos ya no se usan porque el selector está siempre visible
     onColorInputFocus() {
         // No hacemos nada
     }
-    
+
     onColorInputBlur() {
         // No hacemos nada
     }
-    
+
     closeColorOptions() {
         this.showColorOptions = false;
     }
@@ -1233,10 +1248,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Métodos para SMS
     selectSmsCommand(command: string): void {
         this.selectedSmsCommand = command;
-        
+
         // Enviar comando automáticamente siempre
         this.sendCommand(command);
-        
+
         // Sincronizar altura después de cualquier cambio
         setTimeout(() => {
             this.syncChatHeight();
@@ -1247,7 +1262,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     async sendCommand(commandName: string): Promise<void> {
         // Buscar el comando en los comandos disponibles del protocolo
         const selectedCommand = this.availableCommands.find(cmd => cmd.name === commandName);
-        
+
         if (!selectedCommand) {
             console.error('Comando no encontrado:', commandName);
             this.messageService.add({
@@ -1316,10 +1331,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private async sendSmsMessage(message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<void> {
         // Procesar mensaje para reemplazar variables del servidor
         let processedMessage = message;
-        
+
         try {
             this.isSendingSms = true;
-            
+
             // Verificar si el mensaje contiene {{company}} y validar tipo de SIM card
             if (message.includes('{{company}}')) {
                 // Verificar si es SIM card nacional (no permite comandos con {{company}})
@@ -1332,7 +1347,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     });
                     return;
                 }
-                
+
                 // Reemplazar {{company}} basado en el tipo de SIM card
                 const companyValue = this.getCompanyValueFromSimType();
                 if (companyValue) {
@@ -1347,11 +1362,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     });
                 }
             }
-            
+
             // Verificar si el mensaje contiene {{server}} y reemplazarlo por la IP del servidor
             if (processedMessage.includes('{{server}}')) {
                 const serverIp = await this.getServerIpFromPlan();
-                
+
                 if (serverIp) {
                     processedMessage = processedMessage.replace(/\{\{server\}\}/g, serverIp);
                 } else {
@@ -1401,10 +1416,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
 
             // Manejar diferentes formatos de respuesta
-            const isSuccess = response.success === true || 
-                             response.status === 'success' || 
-                             response.result === 'success' ||
-                             (response.error === undefined && response.success !== false);
+            const isSuccess = response.success === true ||
+                response.status === 'success' ||
+                response.result === 'success' ||
+                (response.error === undefined && response.success !== false);
 
             if (isSuccess) {
                 this.messageService.add({
@@ -1425,7 +1440,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         } catch (error: any) {
             console.error('❌ Error al enviar SMS:', error);
-            
+
             // Remover el mensaje del chat si falló completamente
             if (this.smsMessages.length > 0 && this.smsMessages[this.smsMessages.length - 1].content === processedMessage) {
                 this.smsMessages.pop();
@@ -1487,7 +1502,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
             // Verificar si la respuesta es un array directamente o tiene una estructura con success
             let messages = Array.isArray(response) ? response : (response.messages || response.data || []);
-            
+
 
             if (messages && Array.isArray(messages)) {
                 // Convertir mensajes del backend al formato del componente
@@ -1498,10 +1513,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         createdBy === 'montaogps'
                             ? true
                             : createdBy === 'device'
-                            ? false
-                            : msg.type === 'MT';
+                                ? false
+                                : msg.type === 'MT';
                     const messageType: 'sent' | 'received' = isSent ? 'sent' : 'received';
-                    
+
                     return {
                         type: messageType,
                         content: msg.text || msg.body || msg.message || '',
@@ -1660,7 +1675,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.syncChatHeight();
             this.scrollToBottom();
         }, 100);
-        
+
         // Observar cambios en el tamaño de la lista de comandos
         if (this.smsCommands) {
             const resizeObserver = new ResizeObserver(() => {
@@ -1668,7 +1683,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             });
             resizeObserver.observe(this.smsCommands.nativeElement);
         }
-        
+
         // Listener para cambios de tamaño de ventana
         window.addEventListener('resize', () => {
             setTimeout(() => {
@@ -1684,7 +1699,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 this.smsChat.nativeElement.style.height = 'auto';
                 return;
             }
-            
+
             const commandsHeight = this.smsCommands.nativeElement.offsetHeight;
             const minHeight = 350; // Altura mínima
             const finalHeight = Math.max(commandsHeight, minHeight);
@@ -1735,17 +1750,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private updateExpirationDate(): void {
         console.log('🔍 DEBUG updateExpirationDate: LLAMADO - skipFlag:', this.skipExpirationDateRecalculation);
         console.log('🔍 DEBUG updateExpirationDate: Fecha actual antes del recálculo:', this.target.expiration_date);
-        
+
         // Si la bandera está activada, no recalcular automáticamente
         if (this.skipExpirationDateRecalculation) {
             console.log('🔍 DEBUG: Saltando recálculo automático de fecha de expiración');
             return;
         }
-        
+
         if (this.target.selectedPrice && this.target.selectedPrice.payment_period) {
             // Obtener los días del período de pago
             const periodInDays = this.mapPeriodToNumber(this.target.selectedPrice.payment_period.toString());
-            
+
             // Usar la fecha de activación/instalación como base si existe, o la fecha actual
             let baseDate = new Date();
             if (this.target.activation_date) {
@@ -1753,16 +1768,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             } else if (this.target.installation_date) {
                 baseDate = this.parseLocalDate(this.target.installation_date);
             }
-            
+
             // Calcular la fecha de expiración sumando los días del período
             const expirationDate = new Date(baseDate);
             expirationDate.setDate(expirationDate.getDate() + periodInDays);
-            
+
             // Formatear la fecha de expiración para el input HTML
             const formattedDate = this.formatDateToInput(expirationDate.toISOString());
             console.log('🔍 DEBUG updateExpirationDate: Nueva fecha calculada:', formattedDate);
             this.target.expiration_date = formattedDate;
-            
+
         }
     }
 
@@ -1771,10 +1786,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             try {
                 // Guardar el precio seleccionado actual para restaurarlo si es necesario
                 const currentSelectedPrice = this.target.selectedPrice;
-                
+
                 // Resetear el precio seleccionado temporalmente
                 this.target.selectedPrice = null;
-                
+
                 // Cargar el plan completo con sus precios
                 this.plansService.getPlanById(this.target.plan).subscribe({
                     next: (plan: Plan) => {
@@ -1783,18 +1798,18 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                             return {
                                 id: price.id,
                                 amount: price.amount,
-                                payment_period: typeof price.payment_period === 'string' ? 
-                                    price.payment_period : 
+                                payment_period: typeof price.payment_period === 'string' ?
+                                    price.payment_period :
                                     this.mapPeriodToString(price.payment_period)
                             };
                         });
-                        
+
                         // Restaurar el precio seleccionado si existe y coincide con uno de los precios disponibles
                         if (currentSelectedPrice) {
-                            const matchedPrice = this.availablePrices.find(price => 
+                            const matchedPrice = this.availablePrices.find(price =>
                                 price.id === currentSelectedPrice.id
                             );
-                            
+
                             if (matchedPrice) {
                                 this.target.selectedPrice = matchedPrice;
                                 // Actualizar fecha de expiración según el período de pago
@@ -1822,7 +1837,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.target.selectedPrice = null;
         }
     }
-    
+
     // Método para manejar el cambio de precio seleccionado
     onPriceChange(): void {
         // Actualizar la fecha de expiración basada en el período de pago
@@ -1839,39 +1854,39 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         if (typeof period === 'string') {
             return period;
         }
-        
+
         const periodMap: Record<number, string> = {
             30: 'monthly',
             90: 'quarterly',
             365: 'yearly'
         };
-        
+
         return periodMap[period as number] || 'monthly';
     }
 
     // Método para iniciar la edición personalizada de precio
-    startCustomPriceEdit(): void {  
+    startCustomPriceEdit(): void {
         // Si ya hay un precio seleccionado, tomamos sus valores como base
         if (this.target.selectedPrice && this.target.plan) {
             // console.log('Iniciando edición de precio con ID:', this.target.selectedPrice.id);
-            
+
             // Guardar el precio actual para edición
             this.customPrice = {
                 id: this.target.selectedPrice.id,
                 amount: this.target.selectedPrice.amount,
                 payment_period: this.target.selectedPrice.payment_period as string
             };
-            
+
             // Cargar los precios originales del plan directamente desde el servicio
             // para asegurarnos de tener los valores originales, no los personalizados
             this.plansService.getPlanById(this.target.plan as string).subscribe({
-                next: (plan: Plan) => { 
+                next: (plan: Plan) => {
                     // Buscar el precio original por ID
                     const planOriginalPrice = plan.prices.find(price => price.id === this.target.selectedPrice?.id);
-                    
-                    if (planOriginalPrice) {    
+
+                    if (planOriginalPrice) {
                         // console.log('Precio original encontrado en plan:', planOriginalPrice);
-                        
+
                         // Guardar el precio original para mostrarlo en el modal
                         this.originalPlanPrice = {
                             id: planOriginalPrice.id,
@@ -1890,7 +1905,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.originalPlanPrice = null;
                 }
             });
-            
+
             // console.log('Custom price configurado:', this.customPrice);
         } else {
             // Iniciar con valores por defecto
@@ -1901,7 +1916,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             };
             this.originalPlanPrice = null;
         }
-        
+
         // Mostrar el diálogo modal
         this.displayPriceDialog = true;
     }
@@ -1912,7 +1927,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         if (price && price.originalAmount !== undefined && price.originalAmount !== price.amount && price.originalAmount > 0) {
             return true;
         }
-        
+
         // Si no tiene originalAmount, buscamos el original en la lista para comparar
         const originalPrice = this.availablePrices.find(p => p.id === price?.id && p !== price);
         return originalPrice !== undefined && originalPrice.amount !== price.amount;
@@ -1924,7 +1939,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         if (price && price.originalAmount !== undefined && price.originalAmount > 0) {
             return price.originalAmount;
         }
-        
+
         // Si no, buscar el precio original en la lista
         if (price && price.id) {
             const originalPrice = this.availablePrices.find(p => p.id === price.id && p !== price);
@@ -1932,7 +1947,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 return originalPrice.amount;
             }
         }
-        
+
         // Si no se encuentra, devolver undefined
         return undefined;
     }
@@ -2006,7 +2021,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     updateSmsCommands(): void {
         const gpsModelId = this.target.type;
         let protocolCommands: ProtocolCommand[] = [];
-        
+
         if (gpsModelId && this.loadedProtocols.length > 0) {
             this.selectedProtocol = this.loadedProtocols.find(p => p._id === gpsModelId) || null;
             protocolCommands = this.selectedProtocol?.commands || [];
@@ -2014,9 +2029,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.selectedProtocol = null;
             protocolCommands = [];
         }
-        
+
         this.availableCommands = protocolCommands;
-        
+
         // Sincronizar altura después de cambiar comandos
         setTimeout(() => {
             this.syncChatHeight();
@@ -2032,15 +2047,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     onSimCompanyChange(event: any): void {
         let rawValue = event.target.value;
-        
+
         // Limpiar el valor si Angular añadió un prefijo (ej: "1: nacionales" -> "nacionales")
         let cleanValue = rawValue;
         if (rawValue && rawValue.includes(': ')) {
             cleanValue = rawValue.split(': ')[1] || rawValue;
         }
-        
-      
-        
+
+
+
         // Establecer el valor limpio
         this.target.sim_company = cleanValue;
     }
@@ -2075,7 +2090,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         try {
             const currentUser = this.authService.getCurrentUser();
             const currentDate = new Date().toISOString().substring(0, 10);
-            
+
             const processData: CreateProcessDto = {
                 type: 1, // Tipo 1 = instalación real automática
                 registrationDate: currentDate,
@@ -2176,36 +2191,36 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
 
             // Validaciones específicas para cambio de fecha de expiración
-        if (this.processForm.type === 'expiration') {
-            if (!this.processForm.newExpirationDate) {
-                this.messageService.add({
-                    severity: 'warn',
-                    summary: 'Campo requerido',
-                    detail: 'Debe seleccionar una nueva fecha de expiración'
-                });
-                return;
+            if (this.processForm.type === 'expiration') {
+                if (!this.processForm.newExpirationDate) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe seleccionar una nueva fecha de expiración'
+                    });
+                    return;
+                }
             }
-        }
 
-        // Validaciones específicas para renovación de servicio
-        if (this.processForm.type === 'renewal') {
-            if (!this.processForm.newRenewalDate) {
-                this.messageService.add({
-                    severity: 'warn',
-                    summary: 'Campo requerido',
-                    detail: 'Debe seleccionar una nueva fecha de renovación'
-                });
-                return;
+            // Validaciones específicas para renovación de servicio
+            if (this.processForm.type === 'renewal') {
+                if (!this.processForm.newRenewalDate) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe seleccionar una nueva fecha de renovación'
+                    });
+                    return;
+                }
+                if (!this.processForm.renewalYears) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'Campo requerido',
+                        detail: 'Debe seleccionar la duración de la renovación'
+                    });
+                    return;
+                }
             }
-            if (!this.processForm.renewalYears) {
-                this.messageService.add({
-                    severity: 'warn',
-                    summary: 'Campo requerido',
-                    detail: 'Debe seleccionar la duración de la renovación'
-                });
-                return;
-            }
-        }
 
             // Validaciones específicas para cambio de técnico
             if (this.processForm.type === 'technician_change') {
@@ -2229,7 +2244,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     });
                     return;
                 }
-                
+
                 if (!this.processForm.newGpsModel) {
                     this.messageService.add({
                         severity: 'warn',
@@ -2238,7 +2253,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     });
                     return;
                 }
-                
+
                 if (!this.processForm.newInstallationDetails || this.processForm.newInstallationDetails.trim() === '') {
                     this.messageService.add({
                         severity: 'warn',
@@ -2248,7 +2263,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     return;
                 }
             }
-            
+
             // Validaciones específicas para modificar detalles de instalación
             if (this.processForm.type === 'installation_details_change') {
                 if (!this.processForm.newInstallationDetails || this.processForm.newInstallationDetails.trim() === '') {
@@ -2260,7 +2275,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     return;
                 }
             }
-            
+
             // Validaciones específicas para modificar modelo de GPS
             if (this.processForm.type === 'gps_model_change') {
                 if (!this.processForm.newGpsModel) {
@@ -2272,7 +2287,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     return;
                 }
             }
-            
+
             // Validaciones específicas para modificar IMEI / GPS ID
             if (this.processForm.type === 'imei_change') {
                 if (!this.processForm.newGpsImei || this.processForm.newGpsImei.trim() === '') {
@@ -2284,7 +2299,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     return;
                 }
             }
-            
+
             // Validaciones específicas para cambio de SIM card
             if (this.processForm.type === 'sim_change') {
                 if (!this.processForm.newSimCard || this.processForm.newSimCard.trim() === '') {
@@ -2295,7 +2310,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     });
                     return;
                 }
-                
+
                 if (!this.processForm.newSimCompany || this.processForm.newSimCompany.trim() === '') {
                     this.messageService.add({
                         severity: 'warn',
@@ -2305,7 +2320,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     return;
                 }
             }
-            
+
             // Validaciones específicas para modificar número de SIM card
             if (this.processForm.type === 'sim_number_change') {
                 if (!this.processForm.newSimNumber || this.processForm.newSimNumber.trim() === '') {
@@ -2317,7 +2332,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     return;
                 }
             }
-            
+
             // Validaciones específicas para modificar tipo de SIM card
             if (this.processForm.type === 'sim_type_change') {
                 if (!this.processForm.newSimType || this.processForm.newSimType.trim() === '') {
@@ -2344,29 +2359,29 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha cambiado el plan del dispositivo ${targetName} de ${currentPlanName} a ${newPlanName}${reason}.`;
             }
-            
+
             if (this.processForm.type === 'installation') {
                 const currentInstallationDate = this.target.activation_date || 'no definida';
                 const newInstallationDate = this.processForm.newInstallationDate;
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha cambiado la fecha de instalación del dispositivo ${targetName} de ${currentInstallationDate} a ${newInstallationDate}${reason}.`;
             }
-            
+
             if (this.processForm.type === 'expiration') {
                 const currentExpirationDate = this.target.expiration_date || 'no definida';
                 const newExpirationDate = this.processForm.newExpirationDate;
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha cambiado la fecha de expiración del dispositivo ${targetName} de ${currentExpirationDate} a ${newExpirationDate}${reason}.`;
             }
-            
-        if (this.processForm.type === 'renewal') {
-            const currentExpirationDate = this.target.expiration_date || 'no definida';
-            const newRenewalDate = this.processForm.newRenewalDate;
-            const renewalYears = this.processForm.renewalYears || 0;
-            const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
-            autoDetails = `El usuario ${userName} ha renovado el servicio del dispositivo ${targetName} cambiando la fecha de expiración de ${currentExpirationDate} a ${newRenewalDate} (${renewalYears} ${renewalYears === 1 ? 'año' : 'años'})${reason}.`;
-        }
-            
+
+            if (this.processForm.type === 'renewal') {
+                const currentExpirationDate = this.target.expiration_date || 'no definida';
+                const newRenewalDate = this.processForm.newRenewalDate;
+                const renewalYears = this.processForm.renewalYears || 0;
+                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
+                autoDetails = `El usuario ${userName} ha renovado el servicio del dispositivo ${targetName} cambiando la fecha de expiración de ${currentExpirationDate} a ${newRenewalDate} (${renewalYears} ${renewalYears === 1 ? 'año' : 'años'})${reason}.`;
+            }
+
             if (this.processForm.type === 'technician_change') {
                 const currentTechnicianId = this.target.mechanic_id || '';
                 const currentTechnicianObj = this.availableTechnicians.find(t => t.value === currentTechnicianId);
@@ -2376,7 +2391,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha cambiado el técnico asignado al dispositivo ${targetName} de ${currentTechnicianName} a ${newTechnicianName}${reason}.`;
             }
-            
+
             if (this.processForm.type === 'gps_change') {
                 const currentImei = this.target.device_imei || 'no definido';
                 const newImei = this.processForm.newGpsImei.trim();
@@ -2389,14 +2404,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha realizado un cambio completo de GPS en el dispositivo ${targetName}: IMEI cambiado de ${currentImei} a ${newImei}, modelo de ${currentGpsModelName} a ${newGpsModelName}, y se actualizaron los detalles de instalación${reason}.`;
             }
-            
+
             if (this.processForm.type === 'installation_details_change') {
                 const currentDetails = this.target.installation_details || 'no definidos';
                 const newDetails = this.processForm.newInstallationDetails.trim();
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha actualizado los detalles de instalación del dispositivo ${targetName} de "${currentDetails}" a "${newDetails}"${reason}.`;
             }
-            
+
             if (this.processForm.type === 'gps_model_change') {
                 const currentGpsModelId = this.target.type || ''; // El backend usa 'type' para el modelo GPS
                 const currentGpsModelObj = this.availableGpsModels.find(g => g.value === currentGpsModelId);
@@ -2406,14 +2421,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha cambiado el modelo de GPS del dispositivo ${targetName} de ${currentGpsModelName} a ${newGpsModelName}${reason}.`;
             }
-            
+
             if (this.processForm.type === 'imei_change') {
                 const currentImei = this.target.device_imei || 'no definido';
                 const newImei = this.processForm.newGpsImei.trim();
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha cambiado el IMEI / GPS ID del dispositivo ${targetName} de ${currentImei} a ${newImei}${reason}.`;
             }
-            
+
             if (this.processForm.type === 'sim_change') {
                 const currentSim = this.target.sim_card_number || 'no definido';
                 const currentSimCompany = this.target.sim_company || 'no definida';
@@ -2422,14 +2437,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha cambiado la SIM card del dispositivo ${targetName} de ${currentSim} (${currentSimCompany}) a ${newSim} (${newSimCompany})${reason}.`;
             }
-            
+
             if (this.processForm.type === 'sim_number_change') {
                 const currentSim = this.target.sim_card_number || 'no definido';
                 const newSim = this.processForm.newSimNumber.trim();
                 const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
                 autoDetails = `El usuario ${userName} ha cambiado el número de SIM card del dispositivo ${targetName} de ${currentSim} a ${newSim}${reason}.`;
             }
-            
+
             if (this.processForm.type === 'sim_type_change') {
                 const currentSimCompany = this.target.sim_company || 'no definido';
                 const newSimCompany = this.processForm.newSimType.trim();
@@ -2437,35 +2452,35 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 autoDetails = `El usuario ${userName} ha cambiado el tipo de SIM card del dispositivo ${targetName} de ${currentSimCompany} a ${newSimCompany}${reason}.`;
             }
 
-                    // Preparar los datos del proceso
-        const processData: CreateProcessDto = {
-            type: this.processTypeMap[this.processForm.type] || 1, // Convertir string a number
-            registrationDate: this.processForm.registrationDate,
-            description: this.processForm.description || '',
+            // Preparar los datos del proceso
+            const processData: CreateProcessDto = {
+                type: this.processTypeMap[this.processForm.type] || 1, // Convertir string a number
+                registrationDate: this.processForm.registrationDate,
+                description: this.processForm.description || '',
                 details: autoDetails || undefined,
-            target: {
-                _id: this.target._id,
-                name: this.target.name,
-                device_imei: this.target.device_imei,
-                sim_card_number: this.target.sim_card_number
-            },
-            user: {
-                _id: this.authService.getCurrentUser()?.id || "ejemplo_user_id",
-                name: this.authService.getCurrentUser()?.name || "Usuario Ejemplo",
-                email: this.authService.getCurrentUser()?.email || "usuario@ejemplo.com"
-            },
-            reference: this.target._id, // Referencia usando el ID del target
-            before: {
-                status: "pending",
-                lastProcess: null
-            },
-            after: {
-                status: "completed",
-                processType: this.processForm.type,
-                processDate: this.processForm.registrationDate
-            },
-            creator: this.authService.getCurrentUser()?.id || "creator_ejemplo_id"
-        };
+                target: {
+                    _id: this.target._id,
+                    name: this.target.name,
+                    device_imei: this.target.device_imei,
+                    sim_card_number: this.target.sim_card_number
+                },
+                user: {
+                    _id: this.authService.getCurrentUser()?.id || "ejemplo_user_id",
+                    name: this.authService.getCurrentUser()?.name || "Usuario Ejemplo",
+                    email: this.authService.getCurrentUser()?.email || "usuario@ejemplo.com"
+                },
+                reference: this.target._id, // Referencia usando el ID del target
+                before: {
+                    status: "pending",
+                    lastProcess: null
+                },
+                after: {
+                    status: "completed",
+                    processType: this.processForm.type,
+                    processDate: this.processForm.registrationDate
+                },
+                creator: this.authService.getCurrentUser()?.id || "creator_ejemplo_id"
+            };
 
             // Enviar el proceso al servidor
             const response = await this.targetsService.createProcess(processData);
@@ -2517,7 +2532,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     };
 
                     await this.targetsService.updateTarget(this.target._id, updateData);
-                    
+
                     // Actualizar el objeto target local y UI principal
                     this.target.plan = this.processForm.newPlan;
                     this.target.selectedPrice = this.processForm.newPrice as any;
@@ -2599,7 +2614,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 try {
                     console.log('🔍 DEBUG: Plan antes de actualizar fecha:', this.target.plan);
                     console.log('🔍 DEBUG: Precio antes de actualizar fecha:', this.target.selectedPrice);
-                    
+
                     // Preparar datos para actualizar solo la fecha de instalación
                     const updateData: UpdateTargetDto = {
                         name: this.target.name,
@@ -2630,8 +2645,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Estructurar el plan como objeto según requiere el backend (preservar plan y precio existentes)
-                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
-                            this.target.plan : 
+                        plan: this.target.plan && typeof this.target.plan === 'object' ?
+                            this.target.plan :
                             (this.target.plan && this.target.selectedPrice ? {
                                 id_plan: this.target.plan,
                                 selected_price: {
@@ -2647,7 +2662,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
                     console.log('🔍 DEBUG: Respuesta del backend después de actualizar fecha:', response);
-                    
+
                     // Actualizar el objeto target local (ambos campos para consistencia)
                     this.target.activation_date = this.formatDateToInput(this.processForm.newInstallationDate);
                     this.target.installation_date = this.formatDateToInput(this.processForm.newInstallationDate);
@@ -2677,7 +2692,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 try {
                     console.log('🔍 DEBUG: Plan antes de actualizar fecha de expiración:', this.target.plan);
                     console.log('🔍 DEBUG: Precio antes de actualizar fecha de expiración:', this.target.selectedPrice);
-                    
+
                     // Preparar datos para actualizar solo la fecha de expiración
                     const updateData: UpdateTargetDto = {
                         name: this.target.name,
@@ -2708,8 +2723,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Estructurar el plan como objeto según requiere el backend (preservar plan y precio existentes)
-                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
-                            this.target.plan : 
+                        plan: this.target.plan && typeof this.target.plan === 'object' ?
+                            this.target.plan :
                             (this.target.plan && this.target.selectedPrice ? {
                                 id_plan: this.target.plan,
                                 selected_price: {
@@ -2725,13 +2740,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
                     console.log('🔍 DEBUG: Respuesta del backend después de actualizar fecha de expiración:', response);
-                    
+
                     // Activar bandera para evitar recálculo automático
                     this.skipExpirationDateRecalculation = true;
-                    
+
                     // Actualizar el objeto target local
                     this.target.expiration_date = this.formatDateToInput(this.processForm.newExpirationDate);
-                    
+
                     // Desactivar bandera después de un breve delay
                     setTimeout(() => {
                         this.skipExpirationDateRecalculation = false;
@@ -2753,10 +2768,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     // Activar bandera para evitar recálculo automático
                     this.skipExpirationDateRecalculation = true;
-                    
+
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
                     this.target.expiration_date = this.formatDateToInput(this.processForm.newExpirationDate);
-                    
+
                     // Desactivar bandera después de un breve delay
                     setTimeout(() => {
                         this.skipExpirationDateRecalculation = false;
@@ -2769,7 +2784,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 try {
                     console.log('🔍 DEBUG: Plan antes de renovar servicio:', this.target.plan);
                     console.log('🔍 DEBUG: Precio antes de renovar servicio:', this.target.selectedPrice);
-                    
+
                     // Preparar datos para actualizar solo la fecha de expiración (renovación)
                     const updateData: UpdateTargetDto = {
                         name: this.target.name,
@@ -2800,8 +2815,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Estructurar el plan como objeto según requiere el backend (preservar plan y precio existentes)
-                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
-                            this.target.plan : 
+                        plan: this.target.plan && typeof this.target.plan === 'object' ?
+                            this.target.plan :
                             (this.target.plan && this.target.selectedPrice ? {
                                 id_plan: this.target.plan,
                                 selected_price: {
@@ -2817,13 +2832,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
                     console.log('🔍 DEBUG: Respuesta del backend después de renovar servicio:', response);
-                    
+
                     // Activar bandera para evitar recálculo automático
                     this.skipExpirationDateRecalculation = true;
-                    
+
                     // Actualizar el objeto target local
                     this.target.expiration_date = this.formatDateToInput(this.processForm.newRenewalDate);
-                    
+
                     // Desactivar bandera después de un breve delay
                     setTimeout(() => {
                         this.skipExpirationDateRecalculation = false;
@@ -2845,10 +2860,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     // Activar bandera para evitar recálculo automático
                     this.skipExpirationDateRecalculation = true;
-                    
+
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
                     this.target.expiration_date = this.formatDateToInput(this.processForm.newRenewalDate);
-                    
+
                     // Desactivar bandera después de un breve delay
                     setTimeout(() => {
                         this.skipExpirationDateRecalculation = false;
@@ -2861,7 +2876,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 try {
                     console.log('🔍 DEBUG: Técnico actual:', this.target.mechanic_id);
                     console.log('🔍 DEBUG: Nuevo técnico:', this.processForm.newTechnician);
-                    
+
                     // Preparar datos para actualizar solo el técnico
                     const updateData: UpdateTargetDto = {
                         name: this.target.name,
@@ -2892,8 +2907,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
-                            this.target.plan : 
+                        plan: this.target.plan && typeof this.target.plan === 'object' ?
+                            this.target.plan :
                             (this.target.plan && this.target.selectedPrice ? {
                                 id_plan: this.target.plan,
                                 selected_price: {
@@ -2909,7 +2924,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
                     console.log('🔍 DEBUG: Respuesta del backend después de cambiar técnico:', response);
-                    
+
                     // Actualizar el objeto target local
                     this.target.mechanic_id = this.processForm.newTechnician;
 
@@ -2926,7 +2941,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         summary: 'Error',
                         detail: 'No se pudo actualizar el técnico. El proceso se registró correctamente.'
                     });
-                    
+
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
                     this.target.mechanic_id = this.processForm.newTechnician;
                 }
@@ -2935,7 +2950,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Si es un cambio de GPS, actualizar el target
             if (this.processForm.type === 'gps_change') {
                 try {
-                    
+
                     // Preparar datos para actualizar el IMEI, modelo GPS y detalles de instalación
                     const updateData: UpdateTargetDto = {
                         name: this.target.name,
@@ -2966,8 +2981,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
-                            this.target.plan : 
+                        plan: this.target.plan && typeof this.target.plan === 'object' ?
+                            this.target.plan :
                             (this.target.plan && this.target.selectedPrice ? {
                                 id_plan: this.target.plan,
                                 selected_price: {
@@ -2982,7 +2997,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
-                    
+
                     // Actualizar el objeto target local
                     this.target.device_imei = this.processForm.newGpsImei.trim();
                     this.target.type = this.processForm.newGpsModel; // El backend usa 'type' para el modelo GPS
@@ -3001,14 +3016,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         summary: 'Error',
                         detail: 'No se pudo actualizar el GPS. El proceso se registró correctamente.'
                     });
-                    
+
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
                     this.target.device_imei = this.processForm.newGpsImei.trim();
                     this.target.type = this.processForm.newGpsModel; // El backend usa 'type' para el modelo GPS
                     this.target.installation_details = this.processForm.newInstallationDetails.trim();
                 }
             }
-            
+
             // Si es modificar detalles de instalación, actualizar solo los detalles
             if (this.processForm.type === 'installation_details_change') {
                 try {
@@ -3042,8 +3057,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
-                            this.target.plan : 
+                        plan: this.target.plan && typeof this.target.plan === 'object' ?
+                            this.target.plan :
                             (this.target.plan && this.target.selectedPrice ? {
                                 id_plan: this.target.plan,
                                 selected_price: {
@@ -3058,7 +3073,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
-                    
+
                     // Actualizar el objeto target local
                     this.target.installation_details = this.processForm.newInstallationDetails.trim();
 
@@ -3075,12 +3090,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         summary: 'Error',
                         detail: 'No se pudieron actualizar los detalles de instalación. El proceso se registró correctamente.'
                     });
-                    
+
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
                     this.target.installation_details = this.processForm.newInstallationDetails.trim();
                 }
             }
-            
+
             // Si es modificar modelo de GPS, actualizar solo el modelo
             if (this.processForm.type === 'gps_model_change') {
                 try {
@@ -3114,8 +3129,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
-                            this.target.plan : 
+                        plan: this.target.plan && typeof this.target.plan === 'object' ?
+                            this.target.plan :
                             (this.target.plan && this.target.selectedPrice ? {
                                 id_plan: this.target.plan,
                                 selected_price: {
@@ -3130,7 +3145,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
-                    
+
                     // Actualizar el objeto target local
                     this.target.type = this.processForm.newGpsModel; // El backend usa 'type' para el modelo GPS
 
@@ -3147,12 +3162,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         summary: 'Error',
                         detail: 'No se pudo actualizar el modelo de GPS. El proceso se registró correctamente.'
                     });
-                    
+
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
                     this.target.type = this.processForm.newGpsModel; // El backend usa 'type' para el modelo GPS
                 }
             }
-            
+
             // Si es modificar IMEI / GPS ID, actualizar solo el IMEI
             if (this.processForm.type === 'imei_change') {
                 try {
@@ -3186,8 +3201,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
-                            this.target.plan : 
+                        plan: this.target.plan && typeof this.target.plan === 'object' ?
+                            this.target.plan :
                             (this.target.plan && this.target.selectedPrice ? {
                                 id_plan: this.target.plan,
                                 selected_price: {
@@ -3202,7 +3217,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
-                    
+
                     // Actualizar el objeto target local
                     this.target.device_imei = this.processForm.newGpsImei.trim();
 
@@ -3219,12 +3234,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         summary: 'Error',
                         detail: 'No se pudo actualizar el IMEI / GPS ID. El proceso se registró correctamente.'
                     });
-                    
+
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
                     this.target.device_imei = this.processForm.newGpsImei.trim();
                 }
             }
-            
+
             // Si es cambio de SIM card, actualizar solo la SIM
             if (this.processForm.type === 'sim_change') {
                 try {
@@ -3258,8 +3273,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
-                            this.target.plan : 
+                        plan: this.target.plan && typeof this.target.plan === 'object' ?
+                            this.target.plan :
                             (this.target.plan && this.target.selectedPrice ? {
                                 id_plan: this.target.plan,
                                 selected_price: {
@@ -3274,7 +3289,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
-                    
+
                     // Actualizar el objeto target local
                     this.target.sim_card_number = this.processForm.newSimCard.trim();
                     this.target.sim_company = this.processForm.newSimCompany.trim();
@@ -3292,13 +3307,13 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         summary: 'Error',
                         detail: 'No se pudo actualizar la SIM card. El proceso se registró correctamente.'
                     });
-                    
+
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
                     this.target.sim_card_number = this.processForm.newSimCard.trim();
                     this.target.sim_company = this.processForm.newSimCompany.trim();
                 }
             }
-            
+
             // Si es modificar número de SIM card, actualizar solo el número
             if (this.processForm.type === 'sim_number_change') {
                 try {
@@ -3332,8 +3347,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
-                            this.target.plan : 
+                        plan: this.target.plan && typeof this.target.plan === 'object' ?
+                            this.target.plan :
                             (this.target.plan && this.target.selectedPrice ? {
                                 id_plan: this.target.plan,
                                 selected_price: {
@@ -3348,7 +3363,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
-                    
+
                     // Actualizar el objeto target local
                     this.target.sim_card_number = this.processForm.newSimNumber.trim();
 
@@ -3365,12 +3380,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         summary: 'Error',
                         detail: 'No se pudo actualizar el número de SIM. El proceso se registró correctamente.'
                     });
-                    
+
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
                     this.target.sim_card_number = this.processForm.newSimNumber.trim();
                 }
             }
-            
+
             // Si es modificar tipo de SIM card, actualizar solo el tipo
             if (this.processForm.type === 'sim_type_change') {
                 try {
@@ -3404,8 +3419,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ? 
-                            this.target.plan : 
+                        plan: this.target.plan && typeof this.target.plan === 'object' ?
+                            this.target.plan :
                             (this.target.plan && this.target.selectedPrice ? {
                                 id_plan: this.target.plan,
                                 selected_price: {
@@ -3420,7 +3435,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     };
 
                     const response = await this.targetsService.updateTarget(this.target._id, updateData);
-                    
+
                     // Actualizar el objeto target local
                     this.target.sim_company = this.processForm.newSimType.trim();
 
@@ -3437,7 +3452,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         summary: 'Error',
                         detail: 'No se pudo actualizar el tipo de SIM. El proceso se registró correctamente.'
                     });
-                    
+
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
                     this.target.sim_company = this.processForm.newSimType.trim();
                 }
@@ -3521,7 +3536,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             try {
                 // Resetear el precio seleccionado temporalmente
                 this.processForm.newPrice = null;
-                
+
                 // Cargar el plan completo con sus precios
                 this.plansService.getPlanById(this.processForm.newPlan).subscribe({
                     next: (plan: Plan) => {
@@ -3530,8 +3545,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                             return {
                                 id: price.id,
                                 amount: price.amount,
-                                payment_period: typeof price.payment_period === 'string' ? 
-                                    price.payment_period : 
+                                payment_period: typeof price.payment_period === 'string' ?
+                                    price.payment_period :
                                     this.mapPeriodToString(price.payment_period)
                             };
                         });
@@ -3574,8 +3589,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.loadFilteredPlansForProcess();
         } else {
             // Limpiar campos específicos del cambio de plan cuando no es plan_change
-        this.processForm.newPlan = '';
-        this.processForm.newPrice = null;
+            this.processForm.newPlan = '';
+            this.processForm.newPrice = null;
             this.availablePricesForProcess = []; // Solo limpiar precios de procesos, no del formulario principal
             this.availablePlansForProcess = [];
         }
@@ -3843,9 +3858,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         try {
             this.isLoadingProcesses = true;
             this.processList = await this.targetsService.getProcessesByReference(this.target._id);
-            
+
             // Ordenar procesos por fecha de registro (más recientes primero)
-            this.processList.sort((a, b) => 
+            this.processList.sort((a, b) =>
                 new Date(b.registrationDate).getTime() - new Date(a.registrationDate).getTime()
             );
 

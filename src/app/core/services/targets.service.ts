@@ -71,29 +71,29 @@ export class TargetsService {
   }
 
   async searchTargets(query: string, parentId?: string, offset: number = 0, limit: number = 30): Promise<TargetsResponse> {
-    let params: any = { 
+    let params: any = {
       q: query,
       offset: offset.toString(),
       limit: limit.toString()
     };
-    
+
     if (parentId) {
       params.parent = parentId;
     }
-    
+
     const observable = this.http.get<TargetsResponse>(`${this.apiUrl}/search`, { params });
     return await lastValueFrom(observable);
   }
 
   async getTargetsByUserId(userId: string, parentId?: string, offset: number = 0, limit: number = 30): Promise<TargetsResponse> {
     let url = `${this.apiUrl}?user_id=${userId}`;
-    
+
     if (parentId) {
       url += `&parent=${parentId}`;
     }
-    
+
     url += `&offset=${offset}&limit=${limit}`;
-    
+
     const observable = this.http.get<TargetsResponse>(url);
     return await lastValueFrom(observable);
   }
@@ -149,7 +149,7 @@ export class TargetsService {
   async getMessages(simCardId: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<any> {
     const url = `${environment.apiUrl}/sim-card/messages/${simCardId}`;
     const params = { provider: provider };
-    
+
     const observable = this.http.get<any>(url, { params });
     return await lastValueFrom(observable);
   }
@@ -188,8 +188,8 @@ export class TargetsService {
    * Obtiene los correos compartidos de un target específico
    * @param targetId ID del target
    */
-  async getSharedEmails(targetId: string): Promise<{deviceId: string, deviceName: string, shared: string[]}> {
-    const observable = this.http.get<{deviceId: string, deviceName: string, shared: string[]}>(`${this.apiUrl}/${targetId}/shared`);
+  async getSharedEmails(targetId: string): Promise<{ deviceId: string, deviceName: string, shared: string[] }> {
+    const observable = this.http.get<{ deviceId: string, deviceName: string, shared: string[] }>(`${this.apiUrl}/${targetId}/shared`);
     return await lastValueFrom(observable);
   }
 
@@ -227,6 +227,13 @@ export class TargetsService {
   async getLatestLocationFromHistory(deviceId: string): Promise<any> {
     const url = `${environment.apiUrl}/history/latest-location/${deviceId}`;
     const observable = this.http.get<any>(url);
+    return await lastValueFrom(observable);
+  }
+
+  async getSimUsage(iccid: string, provider: string): Promise<any> {
+    const url = `${environment.apiUrl}/sim-card/usage/${iccid}`;
+    const params = { provider };
+    const observable = this.http.get<any>(url, { params });
     return await lastValueFrom(observable);
   }
 }
