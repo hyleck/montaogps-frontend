@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, Input, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, ElementRef, ViewChild, AfterViewInit, OnChanges } from '@angular/core';
 import { MapUtils } from '../../../../shareds/helpers/map.helper';
 import { SystemService } from '../../../../core/services/system.service';
 
@@ -8,7 +8,7 @@ import { SystemService } from '../../../../core/services/system.service';
     styleUrls: ['./map-alert.component.css'],
     standalone: false
 })
-export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy {
+export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     @Input() provider: 'google' | 'mapbox' = 'google';
     @Input() theme: 'dark' | 'light' = 'light';
 
@@ -60,6 +60,7 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy {
 
                 if (this.provider === 'google') {
                     this.initializeDrawingManager();
+                    this.updateMarkers();
                 }
             }).catch(err => {
                 console.error('Error loading map script:', err);
@@ -141,6 +142,70 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         if (this.drawingManager) {
             this.drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+        }
+    }
+
+    @Input() targets: any[] = [];
+    private markers: any[] = [];
+
+    ngOnChanges(changes: any): void {
+        if (changes.targets && this.map) {
+            this.updateMarkers();
+        }
+    }
+
+    private updateMarkers(): void {
+        // Limpiar marcadores existentes
+        this.markers.forEach(marker => marker.setMap(null));
+        this.markers = [];
+
+        if (!this.targets || this.targets.length === 0) return;
+
+        const bounds = new google.maps.LatLngBounds();
+        let hasValidTargets = false;
+
+        this.targets.forEach(target => {
+            const lat = target.traccarInfo?.geolocation?.latitude || target.traccarInfo?.latitude;
+            const lng = target.traccarInfo?.geolocation?.longitude || target.traccarInfo?.longitude;
+
+            if (lat && lng) {
+                hasValidTargets = true;
+                const position = new google.maps.LatLng(lat, lng);
+
+                const marker = new google.maps.Marker({
+                    position: position,
+                    map: this.map,
+                    title: target.name,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 7,
+                        fillColor: '#4285F4',
+                        fillOpacity: 1,
+                        strokeWeight: 2,
+                        strokeColor: '#FFFFFF',
+                    }
+                });
+
+                const infoWindow = new google.maps.InfoWindow({
+                    content: `<div style="padding: 5px; color: black;"><strong>${target.name}</strong></div>`
+                });
+
+                marker.addListener('click', () => {
+                    infoWindow.open(this.map, marker);
+                });
+
+                this.markers.push(marker);
+                bounds.extend(position);
+            }
+        });
+
+        if (hasValidTargets) {
+            this.map.fitBounds(bounds);
+            // Si solo hay un punto o están muy cerca, evitar zoom excesivo
+            const listener = google.maps.event.addListener(this.map, "idle", () => {
+                if (this.map.getZoom() > 16) this.map.setZoom(16);
+                google.maps.event.removeListener(listener);
+            });
         }
     }
 

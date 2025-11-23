@@ -414,7 +414,7 @@
 
         <!-- Columna derecha: Mapa y formulario -->
         <div class="perimeter-map-form">
-            <app-map-alert provider="google" theme="light"></app-map-alert>
+            <app-map-alert provider="google" theme="light" [targets]="currentSelectedTargets"></app-map-alert>
 
             <form class="perimeter-form-fields" (ngSubmit)="createPerimeterAlert()" #perimeterAlertForm="ngForm">
                 <div class="form-field">
