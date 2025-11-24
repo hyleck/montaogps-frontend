@@ -16,7 +16,8 @@
                 <div class="tools-menu">
                     <div class="tools-menu-card tools-menu-card--half">
                         <div class="card-main">
-                            <button type="button" class="action-btn" (click)="openInGoogleMaps()" [disabled]="!getGoogleMapsUrl()">
+                            <button type="button" class="action-btn" (click)="openInGoogleMaps()"
+                                [disabled]="!getGoogleMapsUrl()">
                                 <span class="action-icon"><i class="pi pi-map-marker"></i></span>
                                 <span>
                                     <strong>Google Maps</strong>
@@ -46,7 +47,8 @@
 
                     <div class="tools-menu-card tools-menu-card--history">
                         <div class="card-main single">
-                            <button type="button" class="action-btn" (click)="openHistory()" [disabled]="!(selectedTarget?._id || selectedTarget?.id)">
+                            <button type="button" class="action-btn" (click)="openHistory()"
+                                [disabled]="!(selectedTarget?._id || selectedTarget?.id)">
                                 <span class="action-icon"><i class="pi pi-history"></i></span>
                                 <span>
                                     <strong>Historial</strong>
@@ -55,6 +57,80 @@
                             </button>
                         </div>
                     </div>
+
+                    <div class="tools-menu-card tools-menu-card--history">
+                        <div class="card-main single">
+                            <button type="button" class="action-btn" (click)="openShareLinkModal()"
+                                [disabled]="!(selectedTarget?._id || selectedTarget?.id)">
+                                <span class="action-icon"><i class="pi pi-share-alt"></i></span>
+                                <span>
+                                    <strong>Generar link en tiempo real</strong>
+                                    <small>Generar enlace público</small>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de configuración de link compartido -->
+        <div class="share-link-modal-overlay" *ngIf="showShareLinkModal" (click)="closeShareLinkModal()">
+            <div class="share-link-modal" (click)="$event.stopPropagation()">
+                <div class="share-link-modal-header">
+                    <h3>Generar Link en Tiempo Real</h3>
+                    <button type="button" class="share-link-modal-close" (click)="closeShareLinkModal()">
+                        <i class="pi pi-times"></i>
+                    </button>
+                </div>
+                <div class="share-link-modal-body">
+                    <div class="form-group">
+                        <label for="expirationTime">Tiempo de expiración</label>
+                        <select id="expirationTime" [(ngModel)]="selectedExpirationTime" class="form-control">
+                            <option value="15m">15 minutos</option>
+                            <option value="30m">30 minutos</option>
+                            <option value="1h">1 hora</option>
+                            <option value="2h">2 horas</option>
+                            <option value="8h">8 horas</option>
+                            <option value="15h">15 horas</option>
+                            <option value="24h" selected>24 horas</option>
+                            <option value="2d">2 días</option>
+                            <option value="3d">3 días</option>
+                            <option value="1w">1 semana</option>
+                            <option value="1M">1 mes</option>
+                        </select>
+                    </div>
+
+                    <!-- Sección de link generado -->
+                    <div class="generated-link-section" *ngIf="generatedLink">
+                        <label>Link generado</label>
+                        <div class="link-display-container">
+                            <div class="link-text">{{ generatedLink }}</div>
+                            <button type="button" class="btn-copy" (click)="copyLinkToClipboard()"
+                                title="Copiar al portapapeles">
+                                <i class="pi pi-copy"></i>
+                            </button>
+                        </div>
+                        <div class="link-info">
+                            <i class="pi pi-info-circle"></i>
+                            <span>El enlace expira en {{ getExpirationText(selectedExpirationTime) }}</span>
+                        </div>
+
+                        <!-- Mensaje de éxito al copiar -->
+                        <div class="copy-success-message" *ngIf="showCopySuccess">
+                            <i class="pi pi-check-circle"></i>
+                            <span>¡Link copiado correctamente!</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="share-link-modal-footer">
+                    <button type="button" class="btn-cancel" (click)="closeShareLinkModal()">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn-generate" (click)="generateRealtimeLink()">
+                        <i class="pi pi-link"></i>
+                        Generar Link
+                    </button>
                 </div>
             </div>
         </div>

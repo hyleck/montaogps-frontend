@@ -45,6 +45,12 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
+  async getPublicTargetById(id: string): Promise<Target> {
+    const url = `${environment.apiUrl}/users-public/realtime/${id}`;
+    const observable = this.http.get<Target>(url);
+    return await lastValueFrom(observable);
+  }
+
   async createTarget(targetData: CreateTargetDto): Promise<Target> {
     const observable = this.http.post<Target>(this.apiUrl, targetData);
     return await lastValueFrom(observable);

@@ -15,29 +15,33 @@ import { MapThemeService } from '../../helpers/map-theme.helper';
   standalone: false
 })
 export class MapsComponent implements OnInit, OnChanges, OnDestroy {
-   @Input() provider: 'google' | 'mapbox' = 'mapbox';
-   @Input() theme: 'dark' | 'light' = 'dark';
-   @Input() selectedTarget: any = null;
-   @Input() targetsForMap: any[] = [];
-   @Input() vehicleTypeGetter: ((modelId: string) => string) | null = null;
-   @Input() preloadedStopTime: string | undefined = undefined;
+  @Input() provider: 'google' | 'mapbox' = 'mapbox';
+  @Input() theme: 'dark' | 'light' = 'dark';
+  @Input() selectedTarget: any = null;
+  @Input() targetsForMap: any[] = [];
+  @Input() vehicleTypeGetter: ((modelId: string) => string) | null = null;
+  @Input() preloadedStopTime: string | undefined = undefined;
 
-   map: any;
-   apiKey: string = '';
-   apiUrl: string = '';
-   currentMarker: any = null;
-   currentTargetId: string | null = null; // Para rastrear cambios de target
-   offlineDuration: string = '';
-   lastUpdateText: string = '';
-   isTargetOffline: boolean = false;
-   distanceDisplay: string = '';
-   stopTimeText: string = '';
-   isStopTimeMoving: boolean = false;
-   isStopTimeLoading: boolean = false;
-   multipleMarkers: any[] = [];
-   private currentPopup: any = null;
-   showToolsModal: boolean = false;
-   private cachedMarkerIconUrl: string | null = null;
+  map: any;
+  apiKey: string = '';
+  apiUrl: string = '';
+  currentMarker: any = null;
+  currentTargetId: string | null = null; // Para rastrear cambios de target
+  offlineDuration: string = '';
+  lastUpdateText: string = '';
+  isTargetOffline: boolean = false;
+  distanceDisplay: string = '';
+  stopTimeText: string = '';
+  isStopTimeMoving: boolean = false;
+  isStopTimeLoading: boolean = false;
+  multipleMarkers: any[] = [];
+  private currentPopup: any = null;
+  showToolsModal: boolean = false;
+  private cachedMarkerIconUrl: string | null = null;
+  showShareLinkModal: boolean = false;
+  selectedExpirationTime: string = '24h';
+  generatedLink: string = '';
+  showCopySuccess: boolean = false;
 
   constructor(
     private _theme: ThemesService,
@@ -45,14 +49,14 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     private targetsService: TargetsService,
     private translate: TranslateService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.initializeNewProvider();
   }
 
   private initializeNewProvider(): void {
-  
+
     this.systemService.getAll().subscribe((systems: SystemSettings[]) => {
       const config = MapUtils.getApiConfig(systems, this.provider);
       if (!config) {
@@ -62,7 +66,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
       this.apiKey = config.key;
       this.apiUrl = config.url;
-   
+
 
       MapUtils.loadMapScript(this.provider, this.apiKey, this.apiUrl)
         .then(async () => {
@@ -72,9 +76,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
           console.error('❌ Error loading script for', this.provider, ':', err);
         });
     },
-    error => {
-      console.error('❌ Error loading system settings:', error);
-    });
+      error => {
+        console.error('❌ Error loading system settings:', error);
+      });
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -148,6 +152,101 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     this.closeToolsModal();
   }
 
+  openShareLinkModal(): void {
+    this.showShareLinkModal = true;
+    this.selectedExpirationTime = '24h'; // Reset to default
+    this.generatedLink = ''; // Reset link
+  }
+
+  closeShareLinkModal(): void {
+    this.showShareLinkModal = false;
+    this.generatedLink = '';
+  }
+
+  generateRealtimeLink(): void {
+    const targetId = this.selectedTarget?._id || this.selectedTarget?.id;
+    if (!targetId) return;
+
+    // Calcular fecha de expiración basada en la selección
+    const expirationDate = new Date();
+    const timeValue = this.selectedExpirationTime;
+
+    if (timeValue.endsWith('m')) {
+      // Minutos
+      const minutes = parseInt(timeValue);
+      expirationDate.setMinutes(expirationDate.getMinutes() + minutes);
+    } else if (timeValue.endsWith('h')) {
+      // Horas
+      const hours = parseInt(timeValue);
+      expirationDate.setHours(expirationDate.getHours() + hours);
+    } else if (timeValue.endsWith('d')) {
+      // Días
+      const days = parseInt(timeValue);
+      expirationDate.setDate(expirationDate.getDate() + days);
+    } else if (timeValue.endsWith('w')) {
+      // Semanas
+      const weeks = parseInt(timeValue);
+      expirationDate.setDate(expirationDate.getDate() + (weeks * 7));
+    } else if (timeValue.endsWith('M')) {
+      // Meses
+      const months = parseInt(timeValue);
+      expirationDate.setMonth(expirationDate.getMonth() + months);
+    }
+
+    const exprcn = expirationDate.toISOString();
+
+    // Crear objeto con los datos a encriptar
+    const linkData = {
+      trgt: targetId,
+      exprcn: exprcn,
+      gkey: this.apiKey
+    };
+
+    // Convertir a JSON y encriptar en base64
+    const jsonData = JSON.stringify(linkData);
+    const encodedData = btoa(jsonData);
+
+    // Construir URL del link en tiempo real con datos encriptados
+    const baseUrl = window.location.origin;
+    const realtimeUrl = `${baseUrl}/realtimelink?data=${encodedData}`;
+
+    // Guardar el link generado para mostrarlo en el modal
+    this.generatedLink = realtimeUrl;
+  }
+
+  copyLinkToClipboard(): void {
+    if (!this.generatedLink) return;
+
+    navigator.clipboard.writeText(this.generatedLink).then(() => {
+      this.showCopySuccess = true;
+
+      // Ocultar mensaje después de 3 segundos
+      setTimeout(() => {
+        this.showCopySuccess = false;
+      }, 3000);
+    }).catch(err => {
+      console.error('Error al copiar al portapapeles:', err);
+      alert('Error al copiar el link al portapapeles');
+    });
+  }
+
+  getExpirationText(timeValue: string): string {
+    const expirationTexts: { [key: string]: string } = {
+      '15m': '15 minutos',
+      '30m': '30 minutos',
+      '1h': '1 hora',
+      '2h': '2 horas',
+      '8h': '8 horas',
+      '15h': '15 horas',
+      '24h': '24 horas',
+      '2d': '2 días',
+      '3d': '3 días',
+      '1w': '1 semana',
+      '1M': '1 mes'
+    };
+    return expirationTexts[timeValue] || timeValue;
+  }
+
   private getCurrentLatLng(): { lat: number; lng: number } | null {
     const geo = this.selectedTarget?.traccarInfo?.geolocation;
     const historical = this.selectedTarget?.historicalLocation;
@@ -187,22 +286,22 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private async initializeMap(): Promise<void> {
-    
+
     const mapElement = document.getElementById('map') as HTMLElement;
     if (!mapElement) {
       console.error('❌ Map element not found!');
       return;
     }
-    
+
     // Usar coordenadas por defecto si no hay target seleccionado
     const { centerLat, centerLng, zoomLevel } = MapUtils.getInitialMapCenter(this.selectedTarget);
-    
-  
+
+
 
     try {
       // Crear mapa básico sin marcadores
       this.map = MapUtils.createMap(this.provider, mapElement, this.apiKey, this.theme, centerLat, centerLng, zoomLevel);
-      
+
       if (this.map) {
         // Agregar marcador inicial si hay target seleccionado
         this.updateTargetMarker();
@@ -605,7 +704,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     if (this.provider === 'google') {
       // Actualizar posición del marcador Google Maps
       this.currentMarker.setPosition({ lat, lng });
-      
+
       // Actualizar título del marcador
       this.currentMarker.setTitle(title);
       this.currentMarker.setOpacity(isOffline ? 0.65 : 1);

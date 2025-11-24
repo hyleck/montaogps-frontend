@@ -1,0 +1,307 @@
+.realtimelink-container {
+    width: 100%;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+}
+
+.map-container {
+    width: 100%;
+    height: 100%;
+}
+
+/* Expiration Timer */
+.expiration-timer {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.expiration-timer.expired {
+    background: rgba(239, 68, 68, 0.95);
+    color: white;
+}
+
+.timer-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #2563eb;
+}
+
+.expiration-timer.expired .timer-icon {
+    color: white;
+}
+
+.timer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.timer-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.expiration-timer.expired .timer-label {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.timer-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #111827;
+    font-family: 'Courier New', monospace;
+}
+
+.expiration-timer.expired .timer-value {
+    color: white;
+}
+
+/* Expired Overlay */
+.expired-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.expired-content {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    max-width: 400px;
+    width: 90%;
+}
+
+.expired-icon {
+    width: 80px;
+    height: 80px;
+    background: #fee2e2;
+    color: #ef4444;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+}
+
+.expired-content h2 {
+    font-size: 24px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 12px;
+}
+
+.expired-content p {
+    font-size: 16px;
+    color: #6b7280;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Custom Popup Styles */
+::ng-deep .custom-popup-overlay {
+    position: absolute;
+    transform: translate(-50%, -100%);
+    z-index: 1000;
+}
+
+::ng-deep .custom-popup {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    min-width: 250px;
+    position: relative;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+::ng-deep .custom-popup::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid white;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.1));
+}
+
+::ng-deep .custom-popup-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: #f3f4f6;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+::ng-deep .custom-popup-close:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+::ng-deep .custom-popup-header {
+    font-weight: 700;
+    font-size: 15px;
+    color: #111827;
+    margin-bottom: 12px;
+    padding-right: 24px;
+}
+
+::ng-deep .custom-popup-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+
+::ng-deep .custom-popup-label {
+    color: #6b7280;
+}
+
+::ng-deep .custom-popup-value {
+    color: #111827;
+}
+
+::ng-deep .custom-popup-address {
+    font-size: 12px;
+    color: #9ca3af;
+    line-height: 1.4;
+}
+
+/* Floating Navigation Buttons */
+.floating-buttons {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 1000;
+}
+
+.nav-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.nav-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.nav-button:active {
+    transform: translateY(0);
+}
+
+.google-maps-btn {
+    background: linear-gradient(135deg, #4285F4 0%, #357AE8 100%);
+}
+
+.google-maps-btn:hover {
+    background: linear-gradient(135deg, #357AE8 0%, #2A63C8 100%);
+}
+
+.waze-btn {
+    background: linear-gradient(135deg, #33CCFF 0%, #00B8E6 100%);
+}
+
+.waze-btn:hover {
+    background: linear-gradient(135deg, #00B8E6 0%, #0099CC 100%);
+}
+
+.nav-button svg {
+    flex-shrink: 0;
+}
+
+.nav-button span {
+    white-space: nowrap;
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 768px) {
+    .expiration-timer {
+        top: 15px;
+        right: 15px;
+        padding: 10px 12px;
+        gap: 10px;
+    }
+
+    .timer-icon svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .timer-label {
+        font-size: 10px;
+    }
+
+    .timer-value {
+        font-size: 14px;
+    }
+
+    .floating-buttons {
+        bottom: 15px;
+        left: 15px;
+        gap: 10px;
+    }
+
+    .nav-button {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+
+    .nav-button svg {
+        width: 18px;
+        height: 18px;
+    }
+}

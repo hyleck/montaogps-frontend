@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { MapsComponent } from './maps.component';
 import { GoogleMapsModule } from '@angular/google-maps';
 import { TranslateModule } from '@ngx-translate/core';
@@ -11,6 +12,7 @@ import { TranslateModule } from '@ngx-translate/core';
   ],
   imports: [
     CommonModule,
+    FormsModule,
     GoogleMapsModule,
     TranslateModule
   ],

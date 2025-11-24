@@ -12,6 +12,10 @@ const routes: Routes = [
     canActivate: [PublicGuard]
   },
   {
+    path: 'realtimelink',
+    loadChildren: () => import('./realtimelink/realtimelink.module').then(m => m.RealtimelinkModule)
+  },
+  {
     path: 'admin',
     redirectTo: '/admin/management',
     pathMatch: 'full'
