@@ -2,10 +2,7 @@
     <div class="user-form">
         <div class="user-form__tools">
             <div class="card">
-                <p-tabView
-                    [activeIndex]="activeTabIndex"
-                    (activeIndexChange)="activeTabIndex = $event"
-                >
+                <p-tabView [activeIndex]="activeTabIndex" (activeIndexChange)="activeTabIndex = $event">
                     <p-tabPanel>
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-user"></i>
@@ -18,81 +15,58 @@
                                     <!-- Columna Izquierda -->
                                     <div class="user-form__column">
                                         <div class="user-form__field">
-                                            <label for="name">{{ translations.name | translate }} <span class="required-label">(Requerido)</span></label>
-                                            <input 
-                                                [(ngModel)]="user.name"
-                                                name="name"
-                                                placeholder="Ej: Juan Carlos" 
-                                                type="text" 
-                                                id="name" 
-                                                required
-                                            >
+                                            <label for="name">{{ translations.name | translate }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <input [(ngModel)]="user.name" name="name" placeholder="Ej: Juan Carlos"
+                                                type="text" id="name" required>
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="last_name">{{ translations.lastName | translate }} <span class="required-label">(Requerido)</span></label>
-                                            <input 
-                                                [(ngModel)]="user.last_name"
-                                                name="last_name"
-                                                placeholder="Ej: Pérez Gómez" 
-                                                type="text" 
-                                                id="last_name" 
-                                                required
-                                            >
+                                            <label for="last_name">{{ translations.lastName | translate }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <input [(ngModel)]="user.last_name" name="last_name"
+                                                placeholder="Ej: Pérez Gómez" type="text" id="last_name" required>
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="email">{{ translations.email | translate }} <span class="required-label">(Requerido)</span></label>
-                                            <input 
-                                                [(ngModel)]="user.email"
-                                                name="email"
-                                                placeholder="Ej: juan.perez@empresa.com" 
-                                                type="email" 
-                                                id="email" 
-                                                required
-                                            >
+                                            <label for="email">{{ translations.email | translate }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <input [(ngModel)]="user.email" name="email"
+                                                placeholder="Ej: juan.perez@empresa.com" type="email" id="email"
+                                                required>
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="phone">{{ translations.phone | translate }} <span class="required-label">(Requerido)</span></label>
-                                            <input 
-                                                [(ngModel)]="user.phone"
-                                                name="phone"
-                                                placeholder="Ej: (809) 555-0123" 
-                                                type="tel" 
-                                                id="phone" 
-                                                required
-                                            >
+                                            <label for="phone">{{ translations.phone | translate }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <input [(ngModel)]="user.phone" name="phone"
+                                                placeholder="Ej: (809) 555-0123" type="tel" id="phone" required>
                                         </div>
 
                                         <div class="user-form__field">
                                             <label for="phone2">{{ translations.phone2 | translate }}</label>
-                                            <input 
-                                                [(ngModel)]="user.phone2"
-                                                name="phone2"
-                                                placeholder="Ej: (809) 555-0124" 
-                                                type="tel" 
-                                                id="phone2" 
-                                            >
+                                            <input [(ngModel)]="user.phone2" name="phone2"
+                                                placeholder="Ej: (809) 555-0124" type="tel" id="phone2">
                                         </div>
 
-                                        <div class="user-form__field contacts-button-wrapper">
-                                            <button style="background:black!important; color:white!important; text-align: left;" type="button" class="button button--primary-flat" (click)="openContacts()">
+                                        <div class="user-form__field contacts-button-wrapper" *ngIf="userInput">
+                                            <button
+                                                style="background:black!important; color:white!important; text-align: left;"
+                                                type="button" class="button button--primary-flat"
+                                                (click)="openContacts()">
                                                 <i class="pi pi-users"></i>
                                                 <span> Contactos</span>
                                             </button>
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="status">{{ 'management.userForm.status' | translate }} <span class="required-label">(Requerido)</span></label>
-                                            <select
-                                                [(ngModel)]="user.status"
-                                                name="status"
-                                                id="status"
-                                                required
-                                            >
-                                                <option [value]="true">{{ 'management.userForm.statusActive' | translate }}</option>
-                                                <option [value]="false">{{ 'management.userForm.statusInactive' | translate }}</option>
+                                            <label for="status">{{ 'management.userForm.status' | translate }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <select [(ngModel)]="user.status" name="status" id="status" required>
+                                                <option [value]="true">{{ 'management.userForm.statusActive' | translate
+                                                    }}</option>
+                                                <option [value]="false">{{ 'management.userForm.statusInactive' |
+                                                    translate }}</option>
                                             </select>
                                         </div>
                                     </div>
@@ -100,40 +74,27 @@
                                     <!-- Columna Derecha -->
                                     <div class="user-form__column">
                                         <div class="user-form__field">
-                                            <label for="dni">{{ translations.dni | translate }} <span class="required-label">(Requerido)</span></label>
-                                            <input 
-                                                [(ngModel)]="user.dni"
-                                                name="dni"
-                                                placeholder="Ej: 001-0000000-0" 
-                                                type="text" 
-                                                id="dni" 
-                                                required
-                                            >
+                                            <label for="dni">{{ translations.dni | translate }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <input [(ngModel)]="user.dni" name="dni" placeholder="Ej: 001-0000000-0"
+                                                type="text" id="dni" required>
                                         </div>
 
                                         <div class="user-form__field">
                                             <label for="address">{{ translations.address | translate }}</label>
-                                            <input 
-                                                [(ngModel)]="user.address"
-                                                name="address"
-                                                placeholder="Ej: Calle Principal #123, Sector, Ciudad" 
-                                                type="text" 
-                                                id="address"
-                                            >
+                                            <input [(ngModel)]="user.address" name="address"
+                                                placeholder="Ej: Calle Principal #123, Sector, Ciudad" type="text"
+                                                id="address">
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="role">{{ translations.role | translate }} <span class="required-label">(Requerido)</span></label>
-                                            <select
-                                                [(ngModel)]="user.role"
-                                                name="role"
-                                                id="role"
-                                                required
-                                                (change)="onRoleChange()"
-                                                #roleInput="ngModel"
-                                                [ngClass]="{'ng-invalid': roleInput.invalid && roleInput.touched}"
-                                            >
-                                                <option [ngValue]="null">{{ 'management.userForm.selectRole' | translate }}</option>
+                                            <label for="role">{{ translations.role | translate }} <span
+                                                    class="required-label">(Requerido)</span></label>
+                                            <select [(ngModel)]="user.role" name="role" id="role" required
+                                                (change)="onRoleChange()" #roleInput="ngModel"
+                                                [ngClass]="{'ng-invalid': roleInput.invalid && roleInput.touched}">
+                                                <option [ngValue]="null">{{ 'management.userForm.selectRole' | translate
+                                                    }}</option>
                                                 <option *ngFor="let role of filteredRoles" [ngValue]="role">
                                                     {{role.name}}
                                                 </option>
@@ -145,36 +106,24 @@
 
                                         <div class="user-form__field">
                                             <label for="birth">{{ translations.birth | translate }}</label>
-                                            <input
-                                                [(ngModel)]="user.birth"
-                                                name="birth"
-                                                type="date"
-                                                id="birth"
-                                            >
+                                            <input [(ngModel)]="user.birth" name="birth" type="date" id="birth">
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="password">{{ 'management.userForm.password' | translate }} <span class="required-label" *ngIf="!userInput">(Requerido)</span></label>
-                                            <input 
-                                                [(ngModel)]="user.password"
-                                                name="password"
-                                                placeholder="Ingrese una contraseña" 
-                                                type="password" 
-                                                id="password" 
-                                                [required]="!userInput"
-                                            >
+                                            <label for="password">{{ 'management.userForm.password' | translate }} <span
+                                                    class="required-label" *ngIf="!userInput">(Requerido)</span></label>
+                                            <input [(ngModel)]="user.password" name="password"
+                                                placeholder="Ingrese una contraseña" type="password" id="password"
+                                                [required]="!userInput">
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="confirmPassword">{{ 'management.userForm.confirmPassword' | translate }} <span class="required-label" *ngIf="!userInput">(Requerido)</span></label>
-                                            <input 
-                                                [(ngModel)]="confirmPassword"
-                                                name="confirmPassword"
-                                                placeholder="Repita la contraseña" 
-                                                type="password" 
-                                                id="confirmPassword" 
-                                                [required]="!userInput"
-                                            >
+                                            <label for="confirmPassword">{{ 'management.userForm.confirmPassword' |
+                                                translate }} <span class="required-label"
+                                                    *ngIf="!userInput">(Requerido)</span></label>
+                                            <input [(ngModel)]="confirmPassword" name="confirmPassword"
+                                                placeholder="Repita la contraseña" type="password" id="confirmPassword"
+                                                [required]="!userInput">
                                         </div>
                                     </div>
                                 </div>
@@ -188,15 +137,8 @@
                             </form>
                         </div>
 
-                        <p-dialog
-                            [(visible)]="showContactsModal"
-                            [modal]="true"
-                            [draggable]="false"
-                            [resizable]="false"
-                            [style]="{ width: '500px' }"
-                            header="Contactos"
-                            (onHide)="closeContacts()"
-                        >
+                        <p-dialog [(visible)]="showContactsModal" [modal]="true" [draggable]="false" [resizable]="false"
+                            [style]="{ width: '500px' }" header="Contactos" (onHide)="closeContacts()">
                             <app-contacts [referenceId]="user._id || ''"></app-contacts>
                         </p-dialog>
                     </p-tabPanel>
@@ -204,7 +146,9 @@
                     <p-tabPanel *ngIf="isCurrentUserEmployee">
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-shield"></i>
-                            <span class="tab-text">{{ user.role ? (translations.privileges | translate) + ' ' + (translations.of | translate) + ' ' + user.role.name : (translations.privileges | translate) }}</span>
+                            <span class="tab-text">{{ user.role ? (translations.privileges | translate) + ' ' +
+                                (translations.of | translate) + ' ' + user.role.name : (translations.privileges |
+                                translate) }}</span>
                         </ng-template>
                         <div class="user-form__base">
                             <div class="modules-privileges" [class.disabled-privileges]="!user.role">
@@ -213,52 +157,46 @@
                                         <div class="module-header">
                                             <i [class]="moduleIcons[module.value]"></i>
                                             <span class="module-name">{{ module.label | translate }}</span>
-                                            <button type="button" class="button-select-all" (click)="toggleAllPrivileges(getPrivilegeByModule(user.role?.privileges || [], module.value))">
-                                                <i class="pi" [ngClass]="isAllSelected(getPrivilegeByModule(user.role?.privileges || [], module.value)) ? 'pi-check-square' : 'pi-square'"></i>
+                                            <button type="button" class="button-select-all"
+                                                (click)="toggleAllPrivileges(getPrivilegeByModule(user.role?.privileges || [], module.value))">
+                                                <i class="pi"
+                                                    [ngClass]="isAllSelected(getPrivilegeByModule(user.role?.privileges || [], module.value)) ? 'pi-check-square' : 'pi-square'"></i>
                                                 <span>{{ 'management.userForm.selectAll' | translate }}</span>
                                             </button>
                                         </div>
-                                        
+
                                         <div class="privileges-group">
                                             <div class="privilege-action">
-                                                <p-checkbox
-                                                    [ngModel]="getPrivilegeActions(module.value).read"
+                                                <p-checkbox [ngModel]="getPrivilegeActions(module.value).read"
                                                     (ngModelChange)="setPrivilegeAction(module.value, 'read', $event)"
-                                                    [name]="'read_' + module.value"
-                                                    [binary]="true"
-                                                    [inputId]="'read_' + module.value"
-                                                />
-                                                <label [for]="'read_' + module.value">{{ 'management.userForm.actions.read' | translate }}</label>
+                                                    [name]="'read_' + module.value" [binary]="true"
+                                                    [inputId]="'read_' + module.value" />
+                                                <label [for]="'read_' + module.value">{{
+                                                    'management.userForm.actions.read' | translate }}</label>
                                             </div>
                                             <div class="privilege-action">
-                                                <p-checkbox
-                                                    [ngModel]="getPrivilegeActions(module.value).create"
+                                                <p-checkbox [ngModel]="getPrivilegeActions(module.value).create"
                                                     (ngModelChange)="setPrivilegeAction(module.value, 'create', $event)"
-                                                    [name]="'create_' + module.value"
-                                                    [binary]="true"
-                                                    [inputId]="'create_' + module.value"
-                                                />
-                                                <label [for]="'create_' + module.value">{{ 'management.userForm.actions.create' | translate }}</label>
+                                                    [name]="'create_' + module.value" [binary]="true"
+                                                    [inputId]="'create_' + module.value" />
+                                                <label [for]="'create_' + module.value">{{
+                                                    'management.userForm.actions.create' | translate }}</label>
                                             </div>
                                             <div class="privilege-action">
-                                                <p-checkbox
-                                                    [ngModel]="getPrivilegeActions(module.value).update"
+                                                <p-checkbox [ngModel]="getPrivilegeActions(module.value).update"
                                                     (ngModelChange)="setPrivilegeAction(module.value, 'update', $event)"
-                                                    [name]="'update_' + module.value"
-                                                    [binary]="true"
-                                                    [inputId]="'update_' + module.value"
-                                                />
-                                                <label [for]="'update_' + module.value">{{ 'management.userForm.actions.update' | translate }}</label>
+                                                    [name]="'update_' + module.value" [binary]="true"
+                                                    [inputId]="'update_' + module.value" />
+                                                <label [for]="'update_' + module.value">{{
+                                                    'management.userForm.actions.update' | translate }}</label>
                                             </div>
                                             <div class="privilege-action">
-                                                <p-checkbox
-                                                    [ngModel]="getPrivilegeActions(module.value).delete"
+                                                <p-checkbox [ngModel]="getPrivilegeActions(module.value).delete"
                                                     (ngModelChange)="setPrivilegeAction(module.value, 'delete', $event)"
-                                                    [name]="'delete_' + module.value"
-                                                    [binary]="true"
-                                                    [inputId]="'delete_' + module.value"
-                                                />
-                                                <label [for]="'delete_' + module.value">{{ 'management.userForm.actions.delete' | translate }}</label>
+                                                    [name]="'delete_' + module.value" [binary]="true"
+                                                    [inputId]="'delete_' + module.value" />
+                                                <label [for]="'delete_' + module.value">{{
+                                                    'management.userForm.actions.delete' | translate }}</label>
                                             </div>
                                         </div>
                                     </div>
@@ -287,18 +225,15 @@
                                                 <i class="pi pi-palette"></i>
                                                 <label for="theme">{{ translations.theme | translate }}</label>
                                             </div>
-                                            <select
-                                                [(ngModel)]="selectedTheme"
-                                                (ngModelChange)="updateSettingValue('theme', $event)"
-                                                name="theme"
-                                                id="theme"
-                                                class="settings-dropdown"
-                                            >
+                                            <select [(ngModel)]="selectedTheme"
+                                                (ngModelChange)="updateSettingValue('theme', $event)" name="theme"
+                                                id="theme" class="settings-dropdown">
                                                 <option *ngFor="let theme of themes" [value]="theme.value">
                                                     {{ theme.label | translate }}
                                                 </option>
                                             </select>
-                                            <small class="settings-description">{{ 'management.userForm.themeDescription' | translate }}</small>
+                                            <small class="settings-description">{{
+                                                'management.userForm.themeDescription' | translate }}</small>
                                         </div>
 
                                         <div class="settings-item">
@@ -306,38 +241,35 @@
                                                 <i class="pi pi-globe"></i>
                                                 <label for="language">{{ translations.language | translate }}</label>
                                             </div>
-                                            <select
-                                                [(ngModel)]="selectedLanguage"
-                                                (ngModelChange)="updateSettingValue('language', $event)"
-                                                name="language"
-                                                id="language"
-                                                class="settings-dropdown"
-                                            >
+                                            <select [(ngModel)]="selectedLanguage"
+                                                (ngModelChange)="updateSettingValue('language', $event)" name="language"
+                                                id="language" class="settings-dropdown">
                                                 <option *ngFor="let lang of languages" [value]="lang.value">
                                                     {{ lang.label | translate }}
                                                 </option>
                                             </select>
-                                            <small class="settings-description">{{ 'management.userForm.languageDescription' | translate }}</small>
+                                            <small class="settings-description">{{
+                                                'management.userForm.languageDescription' | translate }}</small>
                                         </div>
 
                                         <div class="settings-item">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-id-card"></i>
-                                                <label for="affiliation">{{ translations.affiliationType | translate }}</label>
+                                                <label for="affiliation">{{ translations.affiliationType | translate
+                                                    }}</label>
                                             </div>
-                                            <select
-                                                [(ngModel)]="selectedAffiliationType"
+                                            <select [(ngModel)]="selectedAffiliationType"
                                                 (ngModelChange)="updateSettingValue('affiliation_type', $event)"
-                                                name="affiliation"
-                                                id="affiliation"
-                                                class="settings-dropdown"
-                                            >
-                                                <option value="">{{ 'management.userForm.selectAffiliation' | translate }}</option>
+                                                name="affiliation" id="affiliation" class="settings-dropdown">
+                                                <option value="">{{ 'management.userForm.selectAffiliation' | translate
+                                                    }}</option>
                                                 <option *ngFor="let type of affiliationTypes" [value]="type.value">
-                                                    {{ 'management.userForm.affiliationTypes.' + type.value | translate }}
+                                                    {{ 'management.userForm.affiliationTypes.' + type.value | translate
+                                                    }}
                                                 </option>
                                             </select>
-                                            <small class="settings-description">{{ 'management.userForm.affiliationDescription' | translate }}</small>
+                                            <small class="settings-description">{{
+                                                'management.userForm.affiliationDescription' | translate }}</small>
                                         </div>
 
                                         <div class="settings-item">
@@ -345,74 +277,74 @@
                                                 <i class="pi pi-user-edit"></i>
                                                 <label for="profile">{{ translations.profileType | translate }}</label>
                                             </div>
-                                            <select
-                                                [(ngModel)]="selectedProfileType"
+                                            <select [(ngModel)]="selectedProfileType"
                                                 (ngModelChange)="updateSettingValue('profile_type', $event)"
-                                                name="profile"
-                                                id="profile"
-                                                class="settings-dropdown"
-                                                [disabled]="isProfileTypeDisabled()"
-                                            >
-                                                <option value="">{{ 'management.userForm.selectProfile' | translate }}</option>
-                                                <option *ngFor="let type of getAvailableProfileTypes()" [value]="type.value">
+                                                name="profile" id="profile" class="settings-dropdown"
+                                                [disabled]="isProfileTypeDisabled()">
+                                                <option value="">{{ 'management.userForm.selectProfile' | translate }}
+                                                </option>
+                                                <option *ngFor="let type of getAvailableProfileTypes()"
+                                                    [value]="type.value">
                                                     {{ 'management.userForm.profileTypes.' + type.value | translate }}
                                                 </option>
                                             </select>
-                                            <small class="settings-description">{{ getProfileDescription() | translate }}</small>
+                                            <small class="settings-description">{{ getProfileDescription() | translate
+                                                }}</small>
                                         </div>
 
                                         <!-- Sección visible solo para Técnicos -->
-                                        <div class="settings-item tech-item" *ngIf="selectedAffiliationType === 'tecnico_empleado' || selectedAffiliationType === 'tecnico_independiente'">
+                                        <div class="settings-item tech-item"
+                                            *ngIf="selectedAffiliationType === 'tecnico_empleado' || selectedAffiliationType === 'tecnico_independiente'">
                                             <div class="tech-location-grid">
                                                 <div class="tech-field">
                                                     <div class="settings-item__header">
                                                         <i class="pi pi-map-marker"></i>
-                                                        <label for="province">{{ 'management.userForm.province' | translate }}</label>
+                                                        <label for="province">{{ 'management.userForm.province' |
+                                                            translate }}</label>
                                                     </div>
-                                                    <select
-                                                        [(ngModel)]="selectedProvince"
-                                                        (ngModelChange)="onProvinceChange()"
-                                                        name="province"
-                                                        id="province"
-                                                        class="settings-dropdown"
-                                                    >
-                                                        <option *ngFor="let p of provinces" [value]="p.value">{{ p.label }}</option>
+                                                    <select [(ngModel)]="selectedProvince"
+                                                        (ngModelChange)="onProvinceChange()" name="province"
+                                                        id="province" class="settings-dropdown">
+                                                        <option *ngFor="let p of provinces" [value]="p.value">{{ p.label
+                                                            }}</option>
                                                     </select>
                                                 </div>
                                                 <div class="tech-field">
                                                     <div class="settings-item__header">
                                                         <i class="pi pi-compass"></i>
-                                                        <label for="municipality">{{ 'management.userForm.municipality' | translate }}</label>
+                                                        <label for="municipality">{{ 'management.userForm.municipality'
+                                                            | translate }}</label>
                                                     </div>
-                                                    <select
-                                                        *ngIf="municipalities && municipalities.length"
-                                                        [(ngModel)]="selectedMunicipality"
-                                                        name="municipality"
-                                                        id="municipality"
-                                                        class="settings-dropdown"
-                                                        [ngModelOptions]="{standalone: true}"
-                                                        #municipalitySelect
-                                                    >
-                                                        <option *ngFor="let m of municipalities" [value]="m.value" [selected]="m.value === selectedMunicipality">{{ m.label }}</option>
+                                                    <select *ngIf="municipalities && municipalities.length"
+                                                        [(ngModel)]="selectedMunicipality" name="municipality"
+                                                        id="municipality" class="settings-dropdown"
+                                                        [ngModelOptions]="{standalone: true}" #municipalitySelect>
+                                                        <option *ngFor="let m of municipalities" [value]="m.value"
+                                                            [selected]="m.value === selectedMunicipality">{{ m.label }}
+                                                        </option>
                                                     </select>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div class="settings-item tech-item" *ngIf="selectedAffiliationType === 'tecnico_empleado' || selectedAffiliationType === 'tecnico_independiente'">
+                                        <div class="settings-item tech-item"
+                                            *ngIf="selectedAffiliationType === 'tecnico_empleado' || selectedAffiliationType === 'tecnico_independiente'">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-briefcase"></i>
                                                 <label>{{ 'management.userForm.services' | translate }}</label>
                                             </div>
                                             <div class="services-grid">
-                                                <div class="services-field" *ngFor="let srv of technicianServicesOptions">
-                                                    <p-checkbox [(ngModel)]="technicianServices" [inputId]="'srv_'+srv.id" name="technician_services" [value]="srv.id"/>
+                                                <div class="services-field"
+                                                    *ngFor="let srv of technicianServicesOptions">
+                                                    <p-checkbox [(ngModel)]="technicianServices"
+                                                        [inputId]="'srv_'+srv.id" name="technician_services"
+                                                        [value]="srv.id" />
                                                     <label [for]="'srv_'+srv.id">{{ srv.i18nKey | translate }}</label>
                                                 </div>
                                             </div>
                                         </div>
 
-                                      
+
 
                                         <div class="settings-item">
                                             <div class="settings-item__header">
@@ -420,34 +352,27 @@
                                                 <label>{{ translations.notifications | translate }}</label>
                                             </div>
                                             <div class="settings-toggle">
-                                                <p-checkbox
-                                                    [(ngModel)]="notificationsEnabled"
+                                                <p-checkbox [(ngModel)]="notificationsEnabled"
                                                     (ngModelChange)="updateSettingValue('notifications', $event)"
-                                                    name="notifications"
-                                                    [binary]="true"
-                                                    class="settings-checkbox"
-                                                />
+                                                    name="notifications" [binary]="true" class="settings-checkbox" />
                                                 <span>{{ 'management.userForm.notificationsEnable' | translate }}</span>
                                             </div>
-                                            <small class="settings-description">{{ 'management.userForm.notificationsDescription' | translate }}</small>
+                                            <small class="settings-description">{{
+                                                'management.userForm.notificationsDescription' | translate }}</small>
                                         </div>
 
                                         <div class="settings-item">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-user"></i>
-                                                <label for="photo">{{ 'management.userForm.photo.title' | translate }}</label>
+                                                <label for="photo">{{ 'management.userForm.photo.title' | translate
+                                                    }}</label>
                                             </div>
                                             <div class="settings-file-upload">
-                                                <input 
-                                                    [(ngModel)]="user.photo"
-                                                    name="photo"
-                                                    type="file" 
-                                                    id="photo" 
-                                                    accept="image/*"
-                                                    class="settings-file-input"
-                                                >
+                                                <input [(ngModel)]="user.photo" name="photo" type="file" id="photo"
+                                                    accept="image/*" class="settings-file-input">
                                             </div>
-                                            <small class="settings-description">{{ 'management.userForm.photo.description' | translate }}</small>
+                                            <small class="settings-description">{{
+                                                'management.userForm.photo.description' | translate }}</small>
                                         </div>
                                     </div>
                                 </div>

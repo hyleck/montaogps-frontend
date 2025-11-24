@@ -34,12 +34,13 @@ export class ContactsComponent implements OnChanges {
   form: CreateContactDto = {
     full_name: '',
     phone: '',
+    dni: '',
     relationship: '',
     observation: '',
     reference: ''
   };
 
-  constructor(private contactsService: ContactsService) {}
+  constructor(private contactsService: ContactsService) { }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['referenceId'] && this.referenceId) {
@@ -79,6 +80,7 @@ export class ContactsComponent implements OnChanges {
     this.form = {
       full_name: contact.full_name,
       phone: contact.phone,
+      dni: contact.dni || '',
       relationship: contact.relationship,
       observation: contact.observation || '',
       reference: this.referenceId || contact.reference || '',
@@ -148,7 +150,7 @@ export class ContactsComponent implements OnChanges {
   }
 
   private resetForm(): void {
-    this.form = { full_name: '', phone: '', relationship: '', observation: '', reference: this.referenceId || '' };
+    this.form = { full_name: '', phone: '', dni: '', relationship: '', observation: '', reference: this.referenceId || '' };
     this.editingId = null;
     this.error = null;
   }

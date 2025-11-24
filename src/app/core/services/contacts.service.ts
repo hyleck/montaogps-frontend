@@ -7,6 +7,7 @@ export interface Contact {
   _id?: string;
   full_name: string;
   phone: string;
+  dni?: string;
   relationship: string;
   observation?: string;
   reference: string;
@@ -17,12 +18,13 @@ export interface Contact {
 export interface CreateContactDto {
   full_name: string;
   phone: string;
+  dni?: string;
   relationship: string;
   observation?: string;
   reference: string;
 }
 
-export interface UpdateContactDto extends Partial<CreateContactDto> {}
+export interface UpdateContactDto extends Partial<CreateContactDto> { }
 
 @Injectable({
   providedIn: 'root'
@@ -30,7 +32,7 @@ export interface UpdateContactDto extends Partial<CreateContactDto> {}
 export class ContactsService {
   private apiUrl = `${environment.apiUrl}/contacts`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   getAll(reference?: string, limit?: number): Observable<Contact[]> {
     const params: any = {};

@@ -18,6 +18,10 @@
         <input type="text" [(ngModel)]="form.phone" placeholder="Ej: +1 809 555 5555">
       </label>
       <label>
+        Cédula/RNC
+        <input type="text" [(ngModel)]="form.dni" placeholder="Ej: 001-0000000-0">
+      </label>
+      <label>
         Parentesco
         <select [(ngModel)]="form.relationship">
           <option value="">Seleccione</option>
@@ -56,6 +60,7 @@
       <div class="contact-card__info">
         <div class="contact-card__name">{{ contact.full_name }}</div>
         <div class="contact-card__detail">{{ contact.relationship }} • {{ contact.phone }}</div>
+        <div class="contact-card__detail" *ngIf="contact.dni">Cédula/RNC: {{ contact.dni }}</div>
         <div class="contact-card__obs" *ngIf="contact.observation">{{ contact.observation }}</div>
       </div>
       <div class="contact-card__actions">
