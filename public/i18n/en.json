@@ -141,6 +141,7 @@
     "alertOptionIgnition": "Ignition On/Off",
     "alertOptionPower": "Power Cut",
     "alertOptionMovement": "Movement",
+    "alertOptionConnection": "Connection",
     "maxSpeedLabel": "Maximum speed (km/h)",
     "createAlert": "Create alert",
     "notifyEmailLabel": "Notify",

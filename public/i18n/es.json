@@ -195,6 +195,7 @@
     "alertOptionIgnition": "Encendido/Apagado",
     "alertOptionPower": "Batería desconectada",
     "alertOptionMovement": "Movimiento",
+    "alertOptionConnection": "Conexión",
     "maxSpeedLabel": "Velocidad máxima (km/h)",
     "createAlert": "Crear alerta",
     "notifyEmailLabel": "Notificar a",

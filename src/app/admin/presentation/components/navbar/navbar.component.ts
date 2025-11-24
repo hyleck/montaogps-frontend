@@ -89,7 +89,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     { labelKey: 'navbar.alertOptionSpeed' },
     { labelKey: 'navbar.alertOptionPerimeter' },
     { labelKey: 'navbar.alertOptionIgnition' },
-    { labelKey: 'navbar.alertOptionMovement' }
+    { labelKey: 'navbar.alertOptionMovement' },
+    { labelKey: 'navbar.alertOptionConnection' }
   ];
   currentSelectedTargets: Target[] = [];
   maxSpeedValue: number | null = null;
@@ -145,6 +146,21 @@ export class NavbarComponent implements OnInit, OnDestroy {
   togglingMovementAlertId: string | null = null;
   deletingMovementAlertId: string | null = null;
 
+  // Connection alert variables
+  connectionAlertDialogVisible: boolean = false;
+  connectionAlertType: 'online' | 'offline' = 'online';
+  connectionNotificationEmail: string = '';
+  connectionNotificationEmailUserId: string | null = null;
+  verifyingConnectionNotificationEmail: boolean = false;
+  creatingConnectionAlert: boolean = false;
+
+  // Connection alerts list
+  connectionAlerts: AlertResponse[] = [];
+  loadingConnectionAlerts: boolean = false;
+  visibleConnectionAlerts: AlertResponse[] = [];
+  togglingConnectionAlertId: string | null = null;
+  deletingConnectionAlertId: string | null = null;
+
   // Modal de transferir targets
   transferDialogVisible: boolean = false;
   transferEmailInput: string = '';
@@ -184,6 +200,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.currentUser = this.authService.getCurrentUser();
     this.resetNotificationEmailToCurrentUser();
     this.resetPerimeterNotificationEmail();
+    this.resetConnectionNotificationEmail();
   }
 
   ngOnInit() {
@@ -2548,5 +2565,263 @@ export class NavbarComponent implements OnInit, OnDestroy {
     };
 
     return colorNames[colorValue] || colorValue;
+  }
+
+  // Connection Alert Methods
+
+  openConnectionAlertModal(): void {
+    this.connectionAlertDialogVisible = true;
+    if (this.currentUser?.email) {
+      this.connectionNotificationEmail = this.currentUser.email;
+      if (this.currentUser.id) {
+        this.connectionNotificationEmailUserId = this.currentUser.id;
+      }
+    }
+    this.loadConnectionAlerts();
+  }
+
+  onConnectionNotificationEmailChange(): void {
+    if (
+      this.connectionNotificationEmail &&
+      this.currentUser?.email &&
+      this.connectionNotificationEmail.trim().toLowerCase() ===
+      this.currentUser.email.toLowerCase() &&
+      this.currentUser?.id
+    ) {
+      this.connectionNotificationEmailUserId = this.currentUser.id;
+    } else {
+      this.connectionNotificationEmailUserId = null;
+    }
+  }
+
+  async verifyConnectionNotificationEmail(): Promise<void> {
+    const email = this.connectionNotificationEmail?.trim();
+    if (!email) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: this.translate.instant('navbar.verifyEmailRequired')
+      });
+      return;
+    }
+
+    if (
+      this.currentUser?.email &&
+      email.toLowerCase() === this.currentUser.email.toLowerCase() &&
+      this.currentUser?.id
+    ) {
+      this.connectionNotificationEmailUserId = this.currentUser.id;
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('common.success'),
+        detail: this.translate.instant('navbar.verifyEmailSuccess')
+      });
+      return;
+    }
+
+    this.verifyingConnectionNotificationEmail = true;
+    try {
+      const user = await firstValueFrom(this.userService.getByEmail(email));
+      const userId = user?._id || (user as any)?.id;
+
+      if (userId) {
+        this.connectionNotificationEmailUserId = userId;
+        this.messageService.add({
+          severity: 'success',
+          summary: this.translate.instant('common.success'),
+          detail: this.translate.instant('navbar.verifyEmailSuccess')
+        });
+      } else {
+        this.connectionNotificationEmailUserId = null;
+        this.messageService.add({
+          severity: 'warn',
+          summary: this.translate.instant('common.warning'),
+          detail: this.translate.instant('navbar.verifyEmailNotFound')
+        });
+      }
+    } catch (error) {
+      this.connectionNotificationEmailUserId = null;
+      console.error('❌ Error verificando correo para alerta de conexión:', error);
+      const detail =
+        (error as any)?.error?.message ||
+        this.translate.instant('navbar.verifyEmailError');
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail
+      });
+    } finally {
+      this.verifyingConnectionNotificationEmail = false;
+    }
+  }
+
+  async createConnectionAlert(): Promise<void> {
+    const targetIds = (this.currentSelectedTargets || [])
+      .map(target => target?._id || (target as any)?.id)
+      .filter((id): id is string => !!id);
+
+    if (!targetIds.length) {
+      const userIdFromUrl = this.getParentIdFromUrl();
+      if (!userIdFromUrl) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: this.translate.instant('common.warning'),
+          detail: this.translate.instant('navbar.userIdRequired')
+        });
+        return;
+      }
+      targetIds.push(userIdFromUrl);
+    }
+
+    if (this.connectionNotificationEmail?.trim() && !this.connectionNotificationEmailUserId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: this.translate.instant('navbar.verifyEmailPending')
+      });
+      return;
+    }
+
+    const payload = {
+      type: 'connection' as const,
+      connectionAlertType: this.connectionAlertType,
+      targetIds,
+      userTopic: this.connectionNotificationEmailUserId || undefined,
+      email: this.connectionNotificationEmail || undefined
+    };
+
+    this.creatingConnectionAlert = true;
+
+    try {
+      await firstValueFrom(this.alertsService.createAlert(payload));
+
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('navbar.createAlert'),
+        detail: `${this.translate.instant('navbar.alertOptionConnection')} creada exitosamente`
+      });
+
+      this.resetConnectionNotificationEmail();
+      await this.loadConnectionAlerts();
+    } catch (error: any) {
+      console.error('❌ Error al crear la alerta de conexión:', error);
+      const detail = error?.error?.message ||
+        this.translate.instant('navbar.createAlertError');
+
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail
+      });
+    } finally {
+      this.creatingConnectionAlert = false;
+    }
+  }
+
+  private resetConnectionNotificationEmail(): void {
+    if (this.currentUser?.email && this.currentUser?.id) {
+      this.connectionNotificationEmail = this.currentUser.email;
+      this.connectionNotificationEmailUserId = this.currentUser.id;
+    } else {
+      this.connectionNotificationEmail = '';
+      this.connectionNotificationEmailUserId = null;
+    }
+  }
+
+  async loadConnectionAlerts(): Promise<void> {
+    this.loadingConnectionAlerts = true;
+    try {
+      const allAlerts = await firstValueFrom(this.alertsService.getAlerts());
+      this.connectionAlerts = allAlerts.filter(alert => alert.type === 'connection');
+      this.filterConnectionAlertsForSelection();
+    } catch (error) {
+      console.error('Error loading connection alerts:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudieron cargar las alertas de conexión'
+      });
+    } finally {
+      this.loadingConnectionAlerts = false;
+    }
+  }
+
+  filterConnectionAlertsForSelection(): void {
+    if (!this.connectionAlerts.length) {
+      this.visibleConnectionAlerts = [];
+      return;
+    }
+
+    const selectedIds = new Set(
+      this.currentSelectedTargets
+        .map(t => t._id || (t as any).id)
+        .filter(id => !!id)
+    );
+
+    if (selectedIds.size === 0) {
+      const parentId = this.getParentIdFromUrl();
+      if (parentId) {
+        this.visibleConnectionAlerts = this.connectionAlerts.filter(alert =>
+          alert.targetIds && alert.targetIds.includes(parentId)
+        );
+      } else {
+        this.visibleConnectionAlerts = [];
+      }
+      return;
+    }
+
+    this.visibleConnectionAlerts = this.connectionAlerts.filter(alert => {
+      if (!alert.targetIds || alert.targetIds.length === 0) return false;
+      return alert.targetIds.some(id => selectedIds.has(id));
+    });
+  }
+
+  async toggleConnectionAlert(alert: AlertResponse): Promise<void> {
+    if (!alert._id) return;
+
+    this.togglingConnectionAlertId = alert._id;
+    const newStatus = alert.status === 'active' ? 'inactive' : 'active';
+
+    try {
+      await firstValueFrom(this.alertsService.updateAlertStatus(alert._id, newStatus));
+      alert.status = newStatus;
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Actualizado',
+        detail: `Alerta ${newStatus === 'active' ? 'activada' : 'desactivada'}`
+      });
+    } catch (error) {
+      console.error('Error toggling alert:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo actualizar el estado de la alerta'
+      });
+    } finally {
+      this.togglingConnectionAlertId = null;
+    }
+  }
+
+  async deleteConnectionAlert(alertId: string): Promise<void> {
+    this.deletingConnectionAlertId = alertId;
+    try {
+      await firstValueFrom(this.alertsService.deleteAlert(alertId));
+      this.connectionAlerts = this.connectionAlerts.filter(a => a._id !== alertId);
+      this.filterConnectionAlertsForSelection();
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Eliminado',
+        detail: 'Alerta eliminada exitosamente'
+      });
+    } catch (error) {
+      console.error('Error deleting alert:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo eliminar la alerta'
+      });
+    } finally {
+      this.deletingConnectionAlertId = null;
+    }
   }
 }

@@ -95,6 +95,7 @@
     "alertOptionIgnition": "Allumage/Extinction",
     "alertOptionPower": "Coupure de courant",
     "alertOptionMovement": "Mouvement",
+    "alertOptionConnection": "Connexion",
     "maxSpeedLabel": "Vitesse maximale (km/h)",
     "createAlert": "Créer une alerte",
     "maxSpeedRequired": "Entrez une vitesse maximale valide",

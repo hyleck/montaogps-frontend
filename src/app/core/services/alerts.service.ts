@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
-export type AlertType = 'speed' | 'perimeter' | 'power' | 'movement' | 'ignition';
+export type AlertType = 'speed' | 'perimeter' | 'power' | 'movement' | 'ignition' | 'connection';
 
 export type AlertStatus = 'active' | 'inactive';
 
@@ -13,6 +13,8 @@ export interface CreateAlertDto {
   maxSpeed?: number;
   targetIds?: string[];
   userTopic?: string;
+  email?: string;
+  connectionAlertType?: 'online' | 'offline';
 }
 
 export interface AlertUserTopic {

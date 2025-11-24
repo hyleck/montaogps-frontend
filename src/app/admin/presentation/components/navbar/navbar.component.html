@@ -76,9 +76,9 @@
             <div class="alerts-options">
                 <button *ngFor="let option of alertsOptions" class="button button--flat-negative alerts-option"
                     type="button"
-                    [disabled]="option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement'"
-                    [ngClass]="{'alerts-option--disabled': option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement'}"
-                    (click)="option.labelKey === 'navbar.alertOptionSpeed' ? openSpeedAlertModal() : (option.labelKey === 'navbar.alertOptionPerimeter' ? openPerimeterAlertModal() : (option.labelKey === 'navbar.alertOptionIgnition' ? openIgnitionAlertModal() : (option.labelKey === 'navbar.alertOptionMovement' ? openMovementAlertModal() : null)))">
+                    [disabled]="option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement' && option.labelKey !== 'navbar.alertOptionConnection'"
+                    [ngClass]="{'alerts-option--disabled': option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement' && option.labelKey !== 'navbar.alertOptionConnection'}"
+                    (click)="option.labelKey === 'navbar.alertOptionSpeed' ? openSpeedAlertModal() : (option.labelKey === 'navbar.alertOptionPerimeter' ? openPerimeterAlertModal() : (option.labelKey === 'navbar.alertOptionIgnition' ? openIgnitionAlertModal() : (option.labelKey === 'navbar.alertOptionMovement' ? openMovementAlertModal() : (option.labelKey === 'navbar.alertOptionConnection' ? openConnectionAlertModal() : null))))">
                     {{ option.labelKey | translate }}
                 </button>
             </div>
@@ -1151,6 +1151,125 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</p-dialog>
+
+<!-- Modal de Alerta de Conexión -->
+<p-dialog header="Alerta de Conexión" [(visible)]="connectionAlertDialogVisible" [modal]="true" [dismissableMask]="true"
+    [closeOnEscape]="true" [draggable]="false" appendTo="body" [style]="{width: '420px', maxWidth: '90vw'}"
+    (onShow)="loadConnectionAlerts()">
+    <div class="ignition-alert-modal-content">
+        <form class="ignition-alert-form" (ngSubmit)="createConnectionAlert()" #connectionAlertForm="ngForm">
+            <div class="form-field">
+                <label for="connectionAlertType">¿Cuándo notificar?</label>
+                <div class="input-with-unit">
+                    <select id="connectionAlertType" [(ngModel)]="connectionAlertType" name="connectionAlertType">
+                        <option value="online">Notificar al entrar en línea</option>
+                        <option value="offline">Notificar al salir de línea</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-field">
+                <label for="connectionNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
+                <div class="email-input-row">
+                    <input id="connectionNotificationEmail" type="email" name="connectionNotificationEmail"
+                        class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
+                        [(ngModel)]="connectionNotificationEmail"
+                        (ngModelChange)="onConnectionNotificationEmailChange()"
+                        [disabled]="!!connectionNotificationEmailUserId" />
+
+                    <button type="button" class="speed-verify-button" (click)="verifyConnectionNotificationEmail()"
+                        [disabled]="!connectionNotificationEmail || verifyingConnectionNotificationEmail || !!connectionNotificationEmailUserId"
+                        [ngClass]="{'speed-verified': !!connectionNotificationEmailUserId}">
+                        <i *ngIf="verifyingConnectionNotificationEmail" class="pi pi-spin pi-spinner"></i>
+                        <i *ngIf="!verifyingConnectionNotificationEmail && !!connectionNotificationEmailUserId"
+                            class="pi pi-check"></i>
+                        <span *ngIf="!verifyingConnectionNotificationEmail && !connectionNotificationEmailUserId">{{
+                            'navbar.verify' | translate }}</span>
+                        <span *ngIf="!verifyingConnectionNotificationEmail && !!connectionNotificationEmailUserId">{{
+                            'navbar.verified' | translate }}</span>
+                    </button>
+
+                    <button *ngIf="connectionNotificationEmailUserId" type="button" class="clear-btn"
+                        (click)="connectionNotificationEmailUserId = null; connectionNotificationEmail = ''">
+                        <i class="pi pi-times"></i>
+                    </button>
+                </div>
+            </div>
+            <button type="submit" class="create-alert-btn" [disabled]="creatingConnectionAlert">
+                <i *ngIf="creatingConnectionAlert" class="pi pi-spin pi-spinner"></i>
+                <span *ngIf="!creatingConnectionAlert">{{ 'navbar.createAlert' | translate }}</span>
+                <span *ngIf="creatingConnectionAlert">{{ 'navbar.creating' | translate }}</span>
+            </button>
+        </form>
+
+        <div class="ignition-alerts-history">
+            <h4>Alertas de conexión</h4>
+            <div *ngIf="loadingConnectionAlerts" class="ignition-alerts-loading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>{{ 'common.loading' | translate }}...</span>
+            </div>
+            <ng-container *ngIf="!loadingConnectionAlerts">
+                <div *ngIf="visibleConnectionAlerts.length; else emptyConnectionAlerts" class="ignition-alerts-list">
+                    <div *ngFor="let alert of visibleConnectionAlerts" class="ignition-alert-item">
+                        <div class="alert-header">
+                            <span class="alert-trigger">
+                                <i class="pi pi-wifi"></i>
+                                {{ alert.config?.['connectionAlertType'] === 'online' ? 'En línea' :
+                                (alert.config?.['connectionAlertType'] === 'offline' ? 'Fuera de línea' : 'Ambos') }}
+                            </span>
+                            <span class="alert-status" [class.active]="alert.status === 'active'">
+                                {{ alert.status === 'active' ? 'Activa' : 'Inactiva' }}
+                            </span>
+                        </div>
+
+                        <div class="alert-info">
+                            <span class="alert-targets">
+                                <i class="pi pi-map-marker"></i>
+                                {{ alert.targetIds.length || 0 }} dispositivo(s)
+                            </span>
+                            <span class="alert-date">
+                                <i class="pi pi-calendar"></i>
+                                {{ alert.createdAt | date:'short' }}
+                            </span>
+                        </div>
+
+                        <div class="alert-recipient" *ngIf="getAlertRecipientEmail(alert)">
+                            <i class="pi pi-envelope"></i>
+                            <span>Notifica a: {{ getAlertRecipientEmail(alert) }}</span>
+                        </div>
+
+                        <div class="alert-creator" *ngIf="getCreatorEmail(alert)">
+                            <i class="pi pi-user"></i>
+                            <span>Creada por: {{ getCreatorEmail(alert) }}</span>
+                        </div>
+
+                        <div class="alert-actions">
+                            <button type="button" class="action-btn toggle-btn" (click)="toggleConnectionAlert(alert)"
+                                [disabled]="togglingConnectionAlertId === alert._id"
+                                [title]="alert.status === 'active' ? 'Desactivar' : 'Activar'">
+                                <i *ngIf="togglingConnectionAlertId !== alert._id"
+                                    [class]="alert.status === 'active' ? 'pi pi-pause' : 'pi pi-play'"></i>
+                                <i *ngIf="togglingConnectionAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
+                            </button>
+                            <button type="button" class="action-btn delete-btn"
+                                (click)="deleteConnectionAlert(alert._id!)"
+                                [disabled]="deletingConnectionAlertId === alert._id" title="Eliminar">
+                                <i *ngIf="deletingConnectionAlertId !== alert._id" class="pi pi-trash"></i>
+                                <i *ngIf="deletingConnectionAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <ng-template #emptyConnectionAlerts>
+                    <div class="ignition-alerts-empty">
+                        <i class="pi pi-info-circle"></i>
+                        <span>No hay alertas de conexión creadas</span>
+                    </div>
+                </ng-template>
+            </ng-container>
         </div>
     </div>
 </p-dialog>
