@@ -76,9 +76,10 @@
             <div class="alerts-options">
                 <button *ngFor="let option of alertsOptions" class="button button--flat-negative alerts-option"
                     type="button"
-                    [disabled]="option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement' && option.labelKey !== 'navbar.alertOptionConnection'"
-                    [ngClass]="{'alerts-option--disabled': option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement' && option.labelKey !== 'navbar.alertOptionConnection'}"
+                    [disabled]="(option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement' && option.labelKey !== 'navbar.alertOptionConnection') || (option.labelKey === 'navbar.alertOptionIgnition' && !allSelectedTargetsHaveIgnitionSensor)"
+                    [ngClass]="{'alerts-option--disabled': (option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement' && option.labelKey !== 'navbar.alertOptionConnection') || (option.labelKey === 'navbar.alertOptionIgnition' && !allSelectedTargetsHaveIgnitionSensor)}"
                     (click)="option.labelKey === 'navbar.alertOptionSpeed' ? openSpeedAlertModal() : (option.labelKey === 'navbar.alertOptionPerimeter' ? openPerimeterAlertModal() : (option.labelKey === 'navbar.alertOptionIgnition' ? openIgnitionAlertModal() : (option.labelKey === 'navbar.alertOptionMovement' ? openMovementAlertModal() : (option.labelKey === 'navbar.alertOptionConnection' ? openConnectionAlertModal() : null))))">
+                    >
                     {{ option.labelKey | translate }}
                 </button>
             </div>

@@ -203,6 +203,16 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.resetConnectionNotificationEmail();
   }
 
+  /**
+   * Verifica si todos los targets seleccionados tienen sensor de ignición
+   */
+  get allSelectedTargetsHaveIgnitionSensor(): boolean {
+    if (!this.currentSelectedTargets || this.currentSelectedTargets.length === 0) {
+      return false;
+    }
+    return this.currentSelectedTargets.every(target => target.ignition_sensor?.toLowerCase() === 'yes');
+  }
+
   ngOnInit() {
     this.status.statusChanges$.subscribe((newStatus) => {
       if (newStatus && newStatus.theme) {
