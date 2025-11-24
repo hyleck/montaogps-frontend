@@ -116,6 +116,108 @@ export class NavbarComponent implements OnInit, OnDestroy {
   loadingPerimeterAlerts: boolean = false;
   visiblePerimeterAlerts: AlertResponse[] = [];
   togglingPerimeterAlertId: string | null = null;
+  deletingPerimeterAlertId: string | null = null;
+
+  // Perimeter alert edit mode
+  editingPerimeterAlertId: string | null = null;
+  editingPerimeterCoordinates: any[] = [];
+  savingPerimeterAlert: boolean = false;
+
+  /**
+   * Entra en modo de edición para una alerta de perímetro
+   */
+  editPerimeterAlert(alert: AlertResponse): void {
+    this.editingPerimeterAlertId = alert._id;
+    this.editingPerimeterCoordinates = [...(alert.config?.['coordinates'] || [])];
+
+    // Cargar el trigger (entrada/salida) desde la configuración de la alerta
+    this.perimeterNotificationTrigger = alert.config?.['trigger'] || 'enter';
+
+    // Cargar el email de notificación si existe
+    const userTopic = alert.userTopic;
+    if (userTopic && typeof userTopic === 'object' && 'email' in userTopic) {
+      this.perimeterNotificationEmail = userTopic.email || '';
+      this.perimeterNotificationEmailUserId = userTopic._id || null;
+    } else {
+      this.perimeterNotificationEmail = '';
+      this.perimeterNotificationEmailUserId = null;
+    }
+
+    // Dibujar el perímetro existente en el mapa para edición
+    if (this.mapAlertComponent && this.editingPerimeterCoordinates.length >= 3) {
+      setTimeout(() => {
+        this.mapAlertComponent.setPerimeter(this.editingPerimeterCoordinates);
+      }, 100);
+    }
+
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Modo de edición',
+      detail: 'Modifica el perímetro en el mapa arrastrando los puntos o dibuja uno nuevo'
+    });
+  }
+
+  /**
+   * Guarda los cambios de una alerta de perímetro editada
+   */
+  async savePerimeterAlert(): Promise<void> {
+    if (!this.editingPerimeterAlertId) return;
+
+    // Obtener las coordenadas actuales del mapa
+    const updatedCoordinates = this.mapAlertComponent?.getPolygonCoordinates();
+
+    if (!updatedCoordinates || updatedCoordinates.length < 3) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: this.translate.instant('common.warning'),
+        detail: 'Debes dibujar un perímetro válido con al menos 3 puntos'
+      });
+      return;
+    }
+
+    this.savingPerimeterAlert = true;
+    try {
+      await firstValueFrom(
+        this.alertsService.updateAlert(this.editingPerimeterAlertId, {
+          config: {
+            coordinates: updatedCoordinates,
+            trigger: this.perimeterNotificationTrigger
+          }
+        })
+      );
+
+      this.messageService.add({
+        severity: 'success',
+        summary: this.translate.instant('common.success'),
+        detail: 'Alerta de perímetro actualizada correctamente'
+      });
+
+      this.cancelPerimeterEdit();
+      await this.loadPerimeterAlerts();
+    } catch (error) {
+      console.error('Error updating perimeter alert:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('common.error'),
+        detail: 'Error al actualizar la alerta'
+      });
+    } finally {
+      this.savingPerimeterAlert = false;
+    }
+  }
+
+  /**
+   * Cancela el modo de edición de alerta de perímetro
+   */
+  cancelPerimeterEdit(): void {
+    this.editingPerimeterAlertId = null;
+    this.editingPerimeterCoordinates = [];
+
+    // Limpiar el perímetro del mapa
+    if (this.mapAlertComponent) {
+      this.mapAlertComponent.clearPerimeter();
+    }
+  }
 
   // Ignition alert variables
   ignitionAlertDialogVisible: boolean = false;

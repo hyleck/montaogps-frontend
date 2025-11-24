@@ -2172,6 +2172,35 @@ body .p-dialog-mask {
   cursor: not-allowed;
 }
 
+/* Finish editing button */
+.finish-edit-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: none;
+  background-color: #28a745;
+  color: white;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  margin-top: 1.5rem;
+}
+
+.finish-edit-btn:hover:not(:disabled) {
+  background-color: #218838;
+  transform: translateY(-1px);
+}
+
+.finish-edit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Perimeter modal two-column layout */
 .perimeter-alert-modal-content {
   display: flex;
@@ -2372,6 +2401,63 @@ body .p-dialog-mask {
   background-color: rgba(220, 38, 38, 0.1);
   border-color: var(--globalColorAccent, #dc2626);
   color: var(--globalColorAccent, #dc2626);
+}
+
+/* Edit mode banner */
+.alert-edit-mode {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #856404;
+}
+
+.alert-edit-mode i {
+  color: #ffc107;
+}
+
+/* Edit button */
+.action-btn.edit-btn {
+  background-color: #17a2b8;
+  color: white;
+  border-color: #17a2b8;
+}
+
+.action-btn.edit-btn:hover:not(:disabled) {
+  background-color: #138496;
+  border-color: #117a8b;
+  color: white;
+}
+
+/* Save button */
+.action-btn.save-btn {
+  background-color: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.action-btn.save-btn:hover:not(:disabled) {
+  background-color: #218838;
+  border-color: #1e7e34;
+  color: white;
+}
+
+/* Cancel button */
+.action-btn.cancel-btn {
+  background-color: #6c757d;
+  color: white;
+  border-color: #6c757d;
+}
+
+.action-btn.cancel-btn:hover:not(:disabled) {
+  background-color: #5a6268;
+  border-color: #545b62;
+  color: white;
 }
 
 .notification-email-row {

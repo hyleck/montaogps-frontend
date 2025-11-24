@@ -145,6 +145,51 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
         }
     }
 
+    /**
+     * Dibuja un perímetro existente en el mapa para edición
+     */
+    setPerimeter(coordinates: Array<{ lat: number; lng: number }>): void {
+        if (!coordinates || coordinates.length < 3) {
+            console.warn('Se necesitan al menos 3 coordenadas para dibujar un perímetro');
+            return;
+        }
+
+        // Limpiar polígono existente
+        if (this.currentPolygon) {
+            this.currentPolygon.setMap(null);
+        }
+
+        // Crear nuevo polígono con las coordenadas proporcionadas
+        this.currentPolygon = new google.maps.Polygon({
+            paths: coordinates,
+            fillColor: '#1a73e8',
+            fillOpacity: 0.3,
+            strokeWeight: 2,
+            strokeColor: '#1a73e8',
+            clickable: true,
+            editable: true,
+            draggable: true,
+            zIndex: 1
+        });
+
+        this.currentPolygon.setMap(this.map);
+
+        // Desactivar modo dibujo
+        if (this.drawingManager) {
+            this.drawingManager.setDrawingMode(null);
+        }
+
+        // Agregar listeners para detectar cambios
+        this.addPolygonListeners(this.currentPolygon);
+
+        // Centrar mapa en el polígono
+        const bounds = new google.maps.LatLngBounds();
+        coordinates.forEach(coord => {
+            bounds.extend(new google.maps.LatLng(coord.lat, coord.lng));
+        });
+        this.map.fitBounds(bounds);
+    }
+
     @Input() targets: any[] = [];
     private markers: any[] = [];
 

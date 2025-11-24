@@ -60,6 +60,12 @@ export class AlertsService {
       .pipe(map((response) => response.data));
   }
 
+  updateAlert(id: string, payload: { config?: Record<string, any>; targetIds?: string[] }): Observable<AlertResponse> {
+    return this.http
+      .put<{ data: AlertResponse }>(`${this.apiUrl}/${id}`, payload)
+      .pipe(map((response) => response.data));
+  }
+
   deleteAlert(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }

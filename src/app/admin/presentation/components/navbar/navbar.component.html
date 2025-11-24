@@ -396,17 +396,51 @@
                         <span>Creada por: {{ getCreatorEmail(alert) }}</span>
                     </div>
 
+
+                    <!-- NUEVO: Mostrar modo de edición -->
+                    <div *ngIf="editingPerimeterAlertId === alert._id" class="alert-edit-mode">
+                        <i class="pi pi-pencil"></i>
+                        <span>Modo de edición: Dibuja un nuevo perímetro en el mapa</span>
+                    </div>
+
                     <div class="alert-actions">
-                        <button type="button" class="action-btn toggle-btn" (click)="togglePerimeterAlertStatus(alert)"
-                            [disabled]="togglingPerimeterAlertId === alert._id"
+                        <!-- Botón de editar (solo si NO está en modo edición) -->
+                        <button *ngIf="editingPerimeterAlertId !== alert._id" type="button" class="action-btn edit-btn"
+                            (click)="editPerimeterAlert(alert)" [disabled]="editingPerimeterAlertId !== null"
+                            title="Editar">
+                            <i class="pi pi-pencil"></i>
+                        </button>
+
+                        <!-- Botón de guardar (solo si está en modo edición) -->
+                        <button *ngIf="editingPerimeterAlertId === alert._id" type="button" class="action-btn save-btn"
+                            (click)="savePerimeterAlert()" [disabled]="savingPerimeterAlert" title="Guardar cambios">
+                            <i *ngIf="!savingPerimeterAlert" class="pi pi-check"></i>
+                            <i *ngIf="savingPerimeterAlert" class="pi pi-spin pi-spinner"></i>
+                        </button>
+
+                        <!-- Botón de cancelar (solo si está en modo edición) -->
+                        <button *ngIf="editingPerimeterAlertId === alert._id" type="button"
+                            class="action-btn cancel-btn" (click)="cancelPerimeterEdit()"
+                            [disabled]="savingPerimeterAlert" title="Cancelar">
+                            <i class="pi pi-times"></i>
+                        </button>
+
+                        <!-- Botones existentes de toggle y delete (solo si NO está en modo edición) -->
+                        <button *ngIf="editingPerimeterAlertId !== alert._id" type="button"
+                            class="action-btn toggle-btn" (click)="togglePerimeterAlertStatus(alert)"
+                            [disabled]="togglingPerimeterAlertId === alert._id || editingPerimeterAlertId !== null"
                             [title]="alert.status === 'active' ? 'Desactivar' : 'Activar'">
                             <i *ngIf="togglingPerimeterAlertId !== alert._id"
                                 [class]="alert.status === 'active' ? 'pi pi-pause' : 'pi pi-play'"></i>
                             <i *ngIf="togglingPerimeterAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
                         </button>
-                        <button type="button" class="action-btn delete-btn" (click)="deletePerimeterAlert(alert)"
+
+                        <button *ngIf="editingPerimeterAlertId !== alert._id" type="button"
+                            class="action-btn delete-btn" (click)="deletePerimeterAlert(alert)"
+                            [disabled]="deletingPerimeterAlertId === alert._id || editingPerimeterAlertId !== null"
                             title="Eliminar">
-                            <i class="pi pi-trash"></i>
+                            <i *ngIf="deletingPerimeterAlertId !== alert._id" class="pi pi-trash"></i>
+                            <i *ngIf="deletingPerimeterAlertId === alert._id" class="pi pi-spin pi-spinner"></i>
                         </button>
                     </div>
                 </div>
@@ -458,10 +492,22 @@
                         </button>
                     </div>
                 </div>
-                <button type="submit" class="create-alert-btn" [disabled]="creatingPerimeterAlert">
+
+                <!-- Botón de Crear Alerta (solo si NO está en modo edición) -->
+                <button *ngIf="!editingPerimeterAlertId" type="submit" class="create-alert-btn"
+                    [disabled]="creatingPerimeterAlert">
                     <i *ngIf="creatingPerimeterAlert" class="pi pi-spin pi-spinner"></i>
                     <span *ngIf="!creatingPerimeterAlert">{{ 'navbar.createAlert' | translate }}</span>
                     <span *ngIf="creatingPerimeterAlert">{{ 'navbar.creating' | translate }}</span>
+                </button>
+
+                <!-- Botón de Finalizar Edición (solo si está en modo edición) -->
+                <button *ngIf="editingPerimeterAlertId" type="button" class="finish-edit-btn"
+                    (click)="savePerimeterAlert()" [disabled]="savingPerimeterAlert">
+                    <i *ngIf="savingPerimeterAlert" class="pi pi-spin pi-spinner"></i>
+                    <i *ngIf="!savingPerimeterAlert" class="pi pi-check-circle"></i>
+                    <span *ngIf="!savingPerimeterAlert">Finalizar Edición</span>
+                    <span *ngIf="savingPerimeterAlert">Guardando...</span>
                 </button>
             </form>
         </div>
