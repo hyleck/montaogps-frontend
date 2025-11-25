@@ -1,6 +1,9 @@
 .realtimelink-container {
     width: 100%;
     height: 100vh;
+    /* Fallback for browsers that don't support dvh */
+    height: 100dvh;
+    /* Dynamic viewport height for mobile browsers */
     margin: 0;
     padding: 0;
     overflow: hidden;

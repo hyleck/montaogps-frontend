@@ -225,6 +225,9 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
             // Actualizar popup
             this.updatePopup(newLat, newLng);
 
+            // Recentrar mapa si el marcador sale de la vista
+            MapUtils.recenterMapIfOutOfView(this.map, this.provider, newLat, newLng);
+
         } catch (err: any) {
             console.error('Error updating target location:', err);
         }
