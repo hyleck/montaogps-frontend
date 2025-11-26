@@ -3483,6 +3483,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Recargar la lista de procesos
             this.loadProcessesList();
 
+            // Emitir evento de creación/actualización para que el padre recargue la lista de targets
+            this.targetCreated.emit();
+
         } catch (error) {
             console.error('Error al crear proceso:', error);
             this.messageService.add({

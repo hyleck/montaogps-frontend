@@ -1039,6 +1039,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
       })
     );
 
+    // Suscribirse a cambios en la selección desde el servicio (para limpiar desde navbar)
+    this.subscriptions.push(
+      this.selectionService.selectedTargets$.subscribe(selectedTargets => {
+        // Si el servicio reporta 0 seleccionados pero localmente tenemos seleccionados,
+        // significa que se limpió desde otro componente (ej: Navbar)
+        if (selectedTargets.length === 0 && this.targetsSelected.length > 0) {
+          console.log('🧹 Limpiando selección local de targets (sincronización con servicio)');
+          this.targetsSelected = [];
+        }
+      })
+    );
+
     // Suscribirse a cambios de UI state
     this.subscriptions.push(
       this.uiService.uiState$.subscribe(uiState => {
