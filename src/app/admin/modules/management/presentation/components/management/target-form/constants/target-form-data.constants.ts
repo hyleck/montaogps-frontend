@@ -51,7 +51,7 @@ export const FIELDS_TO_PRESERVE = ['sim_company', 'engine_shutdown', 'ignition_s
 
 // Configuración para generación de años
 export const YEARS_CONFIG = {
-  YEARS_TO_GENERATE: 30,
+  YEARS_TO_GENERATE: 60,
   BASE_YEAR: () => new Date().getFullYear()
 } as const;
 
