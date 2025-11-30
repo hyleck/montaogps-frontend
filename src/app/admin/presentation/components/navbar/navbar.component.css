@@ -2807,3 +2807,92 @@ body .p-dialog-mask {
     flex-direction: column;
   }
 }
+
+/* Estilos para el modal de notificaciones */
+:host ::ng-deep .notifications-dialog {
+  background-color: var(--globalColorBackgroundMain) !important;
+}
+
+:host ::ng-deep .notifications-dialog .p-dialog-header {
+  background: linear-gradient(135deg, var(--globalColorCardBackground), rgba(255, 255, 255, 0.8)) !important;
+  border-bottom: 1px solid var(--globalColorBorderLight) !important;
+  color: var(--globalColorTextDark) !important;
+  padding: 1.5rem 2rem !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+:host ::ng-deep .notifications-dialog .p-dialog-content {
+  background-color: var(--globalColorBackgroundMain) !important;
+  padding: 0 !important;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.notifications-content {
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+.notifications-loading,
+.notifications-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: 1rem;
+  color: var(--globalColorTextMuted);
+}
+
+.notifications-loading i,
+.notifications-empty i {
+  font-size: 2rem;
+  color: var(--globalColorAccent);
+  opacity: 0.6;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-item {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--globalColorBorderLight);
+  transition: background-color 0.2s ease;
+}
+
+.notification-item:last-child {
+  border-bottom: none;
+}
+
+.notification-item:hover {
+  background-color: var(--surface-hover);
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+  gap: 1rem;
+}
+
+.notification-title {
+  font-weight: 600;
+  color: var(--globalColorTextDark);
+  font-size: 1rem;
+}
+
+.notification-date {
+  font-size: 0.75rem;
+  color: var(--globalColorTextMuted);
+  white-space: nowrap;
+}
+
+.notification-body {
+  color: var(--globalColorTextMuted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}

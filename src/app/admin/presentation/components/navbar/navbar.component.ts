@@ -19,6 +19,7 @@ import { AlertsService, AlertResponse, AlertStatus, CreateAlertDto } from '../..
 // ... (inside NavbarComponent class)
 
 import { MapAlertComponent } from '../map-alert/map-alert.component';
+import { FirebaseNotificationsService, NotificationLog } from '../../../../core/services/firebase-notifications.service';
 
 @Component({
   selector: 'app-navbar',
@@ -282,6 +283,35 @@ export class NavbarComponent implements OnInit, OnDestroy {
     'deletion': 17 // Nuevo tipo de proceso para eliminación permanente
   };
 
+  // Notificaciones
+  notificationsDialogVisible: boolean = false;
+  notifications: NotificationLog[] = [];
+  loadingNotifications: boolean = false;
+
+  openNotificationsModal() {
+    this.notificationsDialogVisible = true;
+    this.loadNotifications();
+  }
+
+  loadNotifications() {
+    this.loadingNotifications = true;
+    this.firebaseNotificationsService.getMyNotifications().subscribe({
+      next: (notifications) => {
+        this.notifications = notifications;
+        this.loadingNotifications = false;
+      },
+      error: (error) => {
+        console.error('Error loading notifications', error);
+        this.loadingNotifications = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudieron cargar las notificaciones'
+        });
+      }
+    });
+  }
+
   constructor(
     private status: StatusService,
     private themes: ThemesService,
@@ -296,7 +326,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private userService: UserService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
-    private alertsService: AlertsService
+    private alertsService: AlertsService,
+    private firebaseNotificationsService: FirebaseNotificationsService
   ) {
     this.currentTheme = status.getState('theme') as string;
     this.currentUser = this.authService.getCurrentUser();
@@ -424,7 +455,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.items = [
       {
         label: this.translate.instant('navbar.alerts'),
-        icon: 'pi pi-bell',
+        icon: 'pi pi-cog',
         disabled: !this.hasSelectedTargets,
         command: this.hasSelectedTargets ? () => this.openAlertsModal() : undefined
       },

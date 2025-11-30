@@ -176,6 +176,8 @@
   },
   "navbar": {
     "alerts": "Alertas",
+    "notifications": "Actividad",
+    "noNotifications": "No hay actividad reciente",
     "canceled": "Cancelados",
     "transfer": "Transferir",
     "transferTooltip": "Transferir objetivos seleccionados",
@@ -1516,7 +1518,6 @@
       "errorDelete": "No se pudo eliminar el usuario",
       "backToPersonalInfo": "Volver a información personal"
     },
-    "confirmDeleteUser": "¿Estás seguro de que deseas eliminar este usuario?",
     "noUsers": "Esta cuenta no tiene usuarios.",
     "noTargets": "No hay dispositivos disponibles"
   }

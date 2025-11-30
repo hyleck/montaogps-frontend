@@ -12,6 +12,18 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 
+export interface NotificationLog {
+  _id: string;
+  topic: string;
+  title: string;
+  body: string;
+  data?: Record<string, any>;
+  alertId?: string;
+  messageId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -24,7 +36,7 @@ export class FirebaseNotificationsService {
   constructor(
     private readonly http: HttpClient,
     private readonly authService: AuthService
-  ) {}
+  ) { }
 
   private ensureInitialized(): void {
     if (this.initialized) {
@@ -152,5 +164,9 @@ export class FirebaseNotificationsService {
     } catch (error) {
       console.error('Error mostrando notificación en primer plano', error);
     }
+  }
+
+  getMyNotifications() {
+    return this.http.get<NotificationLog[]>(`${environment.apiUrl}/notifications/my-notifications`);
   }
 }

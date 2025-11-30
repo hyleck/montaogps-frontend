@@ -7,9 +7,14 @@
                 <button class="button button--flat-negative" [class.button--disabled]="!hasSelectedTargets"
                     [disabled]="!hasSelectedTargets" (click)="hasSelectedTargets ? openAlertsModal() : null"
                     [title]="hasSelectedTargets ? ('navbar.alertsTooltip' | translate) + ' (' + selectedTargetsCount + ')' : ('navbar.alertsDisabledTooltip' | translate)">
-                    <i class="pi pi-bell"></i>
+                    <i class="pi pi-cog"></i>
                     {{ 'navbar.alerts' | translate }}
                     <span *ngIf="hasSelectedTargets" class="selection-badge">({{ selectedTargetsCount }})</span>
+                </button>
+                <button class="button button--flat-negative" (click)="openNotificationsModal()"
+                    title="{{ 'navbar.notifications' | translate }}">
+                    <i class="pi pi-bell"></i>
+                    {{ 'navbar.notifications' | translate }}
                 </button>
                 <button *ngIf="showCanceledButton" class="button button--flat-negative"
                     (click)="openCanceledTargetsDrawer()" title="{{ 'navbar.canceledTooltip' | translate }}">
@@ -1323,3 +1328,45 @@
 
 <!-- Toast para mensajes -->
 <p-toast></p-toast>
+
+<!-- Modal de notificaciones -->
+<p-dialog [(visible)]="notificationsDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
+    [closable]="true" [closeOnEscape]="true" [dismissableMask]="true" [blockScroll]="true" appendTo="body"
+    [style]="{width: '500px', maxWidth: '95vw'}" styleClass="notifications-dialog">
+
+    <ng-template pTemplate="header">
+        <div class="dialog-header">
+            <i class="pi pi-bell"></i>
+            <span>{{ 'navbar.notifications' | translate }}</span>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="content">
+        <div class="notifications-content">
+            <!-- Loading State -->
+            <div *ngIf="loadingNotifications" class="notifications-loading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>{{ 'common.loading' | translate }}...</span>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="!loadingNotifications && notifications.length === 0" class="notifications-empty">
+                <i class="pi pi-bell-slash"></i>
+                <span>{{ 'navbar.noNotifications' | translate }}</span>
+            </div>
+
+            <!-- Notifications List -->
+            <div *ngIf="!loadingNotifications && notifications.length > 0" class="notifications-list">
+                <div *ngFor="let notification of notifications" class="notification-item">
+                    <div class="notification-header">
+                        <span class="notification-title">{{ notification.title }}</span>
+                        <span class="notification-date">{{ notification.createdAt | date:'short' }}</span>
+                    </div>
+                    <div class="notification-body">
+                        {{ notification.body }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+</p-dialog>

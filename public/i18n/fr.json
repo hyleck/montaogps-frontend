@@ -80,6 +80,8 @@
   },
   "navbar": {
     "alerts": "Alertes",
+    "notifications": "Activité",
+    "noNotifications": "Aucune activité récente",
     "canceled": "Annulés",
     "transfer": "Transférer",
     "share": "Partager",

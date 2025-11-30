@@ -126,6 +126,8 @@
   },
   "navbar": {
     "alerts": "Alerts",
+    "notifications": "Activity",
+    "noNotifications": "No recent activity",
     "canceled": "Canceled",
     "transfer": "Transfer",
     "share": "Share",
@@ -1155,7 +1157,6 @@
       "selectOption": "Select an option",
       "selectProcessType": "Select a process type",
       "selectTechnician": "Select a technician",
-      "selectGpsModel": "Select a GPS model",
       "confirmDeleteHeader": "Confirm Deletion",
       "yes": "Yes",
       "no": "No",
