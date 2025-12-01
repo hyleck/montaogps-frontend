@@ -2,14 +2,15 @@ import { Component, OnInit } from '@angular/core';
 import { StatusService } from '../../../../shareds/services/status.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { SystemService } from '../../../../core/services/system.service';
+import { UserService } from '../../../../core/services/user.service';
 import { TranslateService } from '@ngx-translate/core';
 import { LangService } from '../../../../shareds/services/langi18/lang.service';
 
 @Component({
-    selector: 'app-sidebar',
-    templateUrl: './sidebar.component.html',
-    styleUrl: './sidebar.component.css',
-    standalone: false
+  selector: 'app-sidebar',
+  templateUrl: './sidebar.component.html',
+  styleUrl: './sidebar.component.css',
+  standalone: false
 })
 export class SidebarComponent implements OnInit {
 
@@ -21,29 +22,32 @@ export class SidebarComponent implements OnInit {
   sidaberOptions = {
     favoriteTitle: '',
     favoriteItems: [
-      { label: '', path: '/admin/dashboard', icon:'pi pi-objects-column', badge: 5 },
+      { label: '', path: '/admin/dashboard', icon: 'pi pi-objects-column', badge: 5 },
     ],
     principalTitle: '',
     principalItems: [
-      { label: '', path: '/admin/management/' , icon:'pi pi-book', badge: 0},
-      { label: '', path: '/admin/inventory', icon:'pi pi-database', badge: 0 },
-      { label: '', path: '/admin/macro', icon:'pi pi-cog', badge: 0 },
-      { label: '', path: '/admin/monitoring', icon:'pi pi-eye', badge: 0 },
-      { label: '', path: '/admin/server-costs', icon:'pi pi-wallet', badge: 0 },
+      { label: '', path: '/admin/management/', icon: 'pi pi-book', badge: 0 },
+      { label: '', path: '/admin/inventory', icon: 'pi pi-database', badge: 0 },
+      { label: '', path: '/admin/macro', icon: 'pi pi-cog', badge: 0 },
+      { label: '', path: '/admin/monitoring', icon: 'pi pi-eye', badge: 0 },
+      { label: '', path: '/admin/server-costs', icon: 'pi pi-wallet', badge: 0 },
     ],
     profileTitle: '',
     profileItems: [
-      { label: '', path: '/admin/settings', icon:'pi pi-cog',badge: 0 },
-      { label: '', path: '/admin/profile', icon:'pi pi-user',badge: 0 },
+      { label: '', path: '/admin/settings', icon: 'pi pi-cog', badge: 0 },
+      { label: '', path: '/admin/profile', icon: 'pi pi-user', badge: 0 },
     ]
   }
+
+  userPhotoUrl: string | null = null;
 
   constructor(
     private status: StatusService,
     private authService: AuthService,
     private systemService: SystemService,
     private translate: TranslateService,
-    private langService: LangService
+    private langService: LangService,
+    private userService: UserService // Inject UserService
   ) {
     this.sidebarDisplayed = status.getState('sidebar') as boolean;
   }
@@ -51,6 +55,7 @@ export class SidebarComponent implements OnInit {
   ngOnInit() {
     this.updateTranslations();
     this.loadSystemSettings();
+    this.loadUserProfile(); // Load user profile
 
     const user = this.authService.getCurrentUser();
     if (user) {
@@ -72,6 +77,23 @@ export class SidebarComponent implements OnInit {
     this.translate.onLangChange.subscribe(() => {
       this.updateTranslations();
     });
+  }
+
+  loadUserProfile() {
+    const currentUser = this.authService.getCurrentUser();
+
+    if (currentUser && currentUser.id) {
+      this.userService.getById(currentUser.id).subscribe({
+        next: (userData: any) => {
+          if (userData.photo) {
+            this.userPhotoUrl = userData.photo;
+          }
+        },
+        error: (error) => {
+          console.error('Error loading user profile for sidebar:', error);
+        }
+      });
+    }
   }
 
   updateTranslations() {

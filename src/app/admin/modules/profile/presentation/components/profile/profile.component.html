@@ -5,7 +5,7 @@
 </div>
 
 <div class="profile-container">
-  
+
 
     <div class="profile-content">
         <p-tabView>
@@ -25,7 +25,10 @@
                                 </div>
                                 <div class="profile-photo-container">
                                     <div class="profile-photo" [class.no-photo]="!userPhotoUrl">
-                                        <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" [alt]="'profile.settings.photo.alt' | translate" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <img *ngIf="userPhotoUrl" [src]="userPhotoUrl"
+                                            [alt]="'profile.settings.photo.alt' | translate"
+                                            (error)="onImageError($event)"
+                                            style="width: 100%; height: 100%; object-fit: cover;">
                                         <i *ngIf="!userPhotoUrl" class="pi pi-user"></i>
                                     </div>
                                     <div class="photo-actions">
@@ -33,12 +36,9 @@
                                             <i class="pi pi-camera"></i>
                                             <span>{{ 'profile.settings.photo.change' | translate }}</span>
                                         </label>
-                                        <input
-                                            type="file"
-                                            id="photo-upload"
-                                            accept="image/*"
-                                            (change)="onPhotoSelected($event)"
-                                            style="display: none;">
+                                        <input type="file" id="photo-upload" accept="image/*"
+                                            (change)="onPhotoSelected($event)" style="display: none;">
+
                                         <button class="remove-photo-btn" *ngIf="userPhotoUrl" (click)="removePhoto()">
                                             <i class="pi pi-trash"></i>
                                             <span>{{ 'profile.settings.photo.remove' | translate }}</span>
@@ -57,7 +57,8 @@
                             </div>
                             <div class="form-group required">
                                 <label for="last_name">{{ 'profile.personal_info.last_name' | translate }}</label>
-                                <input [(ngModel)]="user.last_name" name="last_name" type="text" id="last_name" required>
+                                <input [(ngModel)]="user.last_name" name="last_name" type="text" id="last_name"
+                                    required>
                             </div>
                             <div class="form-group required">
                                 <label for="email">{{ 'profile.personal_info.email' | translate }}</label>
@@ -96,20 +97,21 @@
             </p-tabPanel>
 
             <!-- Pestaña de Configuración -->
-             <!-- tap personalizado para que abra por defecto   -->
-             <p-tabPanel [header]="'profile.settings.title' | translate" >
+            <!-- tap personalizado para que abra por defecto   -->
+            <p-tabPanel [header]="'profile.settings.title' | translate">
 
                 <div class="settings-grid">
-                  
-                   
 
-                   
+
+
+
                     <div class="settings-item">
                         <div class="settings-header">
                             <i class="pi pi-globe"></i>
                             <h3>{{ 'language.selectLanguage' | translate }}</h3>
                         </div>
-                        <select [(ngModel)]="user.settings.language" (change)="onLanguageChange(user.settings.language)" name="language" class="settings-select">
+                        <select [(ngModel)]="user.settings.language" (change)="onLanguageChange(user.settings.language)"
+                            name="language" class="settings-select">
                             <option *ngFor="let lang of languages" [value]="lang.value">
                                 {{lang.label}}
                             </option>
@@ -123,7 +125,8 @@
                             <h3>{{ 'profile.settings.notifications.title' | translate }}</h3>
                         </div>
                         <div class="settings-toggle">
-                            <p-checkbox [(ngModel)]="user.settings.notifications" [binary]="true" (onChange)="onNotificationsChange($event)"></p-checkbox>
+                            <p-checkbox [(ngModel)]="user.settings.notifications" [binary]="true"
+                                (onChange)="onNotificationsChange($event)"></p-checkbox>
                             <span>{{ 'profile.settings.notifications.enable' | translate }}</span>
                         </div>
                         <small>{{ 'profile.settings.notifications.description' | translate }}</small>
@@ -137,7 +140,8 @@
                             <option *ngFor="let theme of themes" [value]="theme.value">{{ theme.label }}</option>
                         </select>
                         <div class="theme-preview">
-                            <div class="theme-box light" [class.active]="selectedTheme === 'light'" (click)="selectedTheme = 'light'; onThemeChange()">
+                            <div class="theme-box light" [class.active]="selectedTheme === 'light'"
+                                (click)="selectedTheme = 'light'; onThemeChange()">
                                 <div class="theme-header">
                                     <div class="theme-dots">
                                         <span></span>
@@ -157,7 +161,8 @@
                                 </div>
                                 <div class="theme-label">{{ 'theme.toggleLight' | translate }}</div>
                             </div>
-                            <div class="theme-box dark" [class.active]="selectedTheme === 'dark'" (click)="selectedTheme = 'dark'; onThemeChange()">
+                            <div class="theme-box dark" [class.active]="selectedTheme === 'dark'"
+                                (click)="selectedTheme = 'dark'; onThemeChange()">
                                 <div class="theme-header">
                                     <div class="theme-dots">
                                         <span></span>
@@ -189,26 +194,17 @@
                             <form (ngSubmit)="onChangePassword()" ngNativeValidate>
                                 <div class="form-group">
                                     <label for="newPassword">{{ 'profile.settings.password.new' | translate }}</label>
-                                    <p-password 
-                                        [(ngModel)]="newPassword" 
-                                        [feedback]="false" 
-                                        [toggleMask]="true" 
-                                        name="newPassword" 
-                                        required
-                                        [style]="{'width': '100%'}"
+                                    <p-password [(ngModel)]="newPassword" [feedback]="false" [toggleMask]="true"
+                                        name="newPassword" required [style]="{'width': '100%'}"
                                         [inputStyle]="{'width': '100%'}"
                                         [placeholder]="'profile.settings.password.new_placeholder' | translate">
                                     </p-password>
                                 </div>
                                 <div class="form-group">
-                                    <label for="confirmPassword">{{ 'profile.settings.password.confirm' | translate }}</label>
-                                    <p-password 
-                                        [(ngModel)]="confirmPassword" 
-                                        [feedback]="false" 
-                                        [toggleMask]="true" 
-                                        name="confirmPassword" 
-                                        required
-                                        [style]="{'width': '100%'}"
+                                    <label for="confirmPassword">{{ 'profile.settings.password.confirm' | translate
+                                        }}</label>
+                                    <p-password [(ngModel)]="confirmPassword" [feedback]="false" [toggleMask]="true"
+                                        name="confirmPassword" required [style]="{'width': '100%'}"
                                         [inputStyle]="{'width': '100%'}"
                                         [placeholder]="'profile.settings.password.confirm_placeholder' | translate">
                                     </p-password>
@@ -227,4 +223,3 @@
         </p-tabView>
     </div>
 </div>
-

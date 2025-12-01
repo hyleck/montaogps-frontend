@@ -312,14 +312,17 @@ export class NavbarComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ... existing properties
+  userPhotoUrl: string | null = null;
+
   constructor(
     private status: StatusService,
     private themes: ThemesService,
-    private authService: AuthService,
+    public authService: AuthService, // Changed to public to access it in template if needed, though we use currentUser
     private router: Router,
     private route: ActivatedRoute,
     private langService: LangService,
-    private translate: TranslateService,
+    public translate: TranslateService,
     private selectionService: SelectionService,
     private targetsService: TargetsService,
     private plansService: PlansService,
@@ -334,6 +337,26 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.resetNotificationEmailToCurrentUser();
     this.resetPerimeterNotificationEmail();
     this.resetConnectionNotificationEmail();
+
+    // Load user profile to get photo
+    this.loadUserProfile();
+  }
+
+  private loadUserProfile() {
+    const currentUser = this.authService.getCurrentUser();
+
+    if (currentUser && currentUser.id) {
+      this.userService.getById(currentUser.id).subscribe({
+        next: (userData: any) => {
+          if (userData.photo) {
+            this.userPhotoUrl = userData.photo;
+          }
+        },
+        error: (error) => {
+          console.error('Error loading user profile for navbar:', error);
+        }
+      });
+    }
   }
 
   /**

@@ -1,6 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpEventType, HttpClient, HttpBackend, HttpHeaders, HttpRequest } from '@angular/common/http';
+import { finalize } from 'rxjs/operators';
+import { environment } from 'src/environments/environment';
 import { MenuItem, MessageService } from 'primeng/api';
 import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { TabViewModule } from 'primeng/tabview';
@@ -51,7 +55,7 @@ export class ProfileComponent implements OnInit {
             notifications: true
         }
     };
-    userPhotoUrl: string | null = null;
+    userPhotoUrl: string | SafeUrl | null = null;
     newPassword: string = '';
     confirmPassword: string = '';
     selectedTheme: string;
@@ -73,10 +77,136 @@ export class ProfileComponent implements OnInit {
         private authService: AuthService,
         private userService: UserService,
         private cloudService: CloudService,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private cdr: ChangeDetectorRef,
+        private sanitizer: DomSanitizer
     ) {
+        console.log('📸 DEBUG - ProfileComponent CONSTRUCTOR initialized');
         this.selectedTheme = this.themesService.getCurrentTheme();
         this.user.settings.language = this.translate.currentLang || this.translate.getDefaultLang();
+    }
+
+    // ... (ngOnInit and other methods)
+
+    onPhotoSelected(event: any) {
+        console.log('📸 DEBUG - onPhotoSelected triggered', event);
+        const file = event.target.files[0];
+        if (file) {
+            console.log('📸 DEBUG - File selected:', file.name, file.type, file.size);
+
+            // Show local preview immediately
+            this.userPhotoUrl = null; // Clear current photo to force update
+            this.cdr.detectChanges();
+
+            const reader = new FileReader();
+            reader.onload = (e: any) => {
+                console.log('📸 DEBUG - Reader loaded');
+                // Sanitize the URL to be safe
+                const unsafeUrl = e.target.result;
+                console.log('📸 DEBUG - Unsafe URL length:', unsafeUrl.length);
+
+                // Revert to TrustUrl (ResourceUrl is for iframes/scripts)
+                this.userPhotoUrl = this.sanitizer.bypassSecurityTrustUrl(unsafeUrl);
+                console.log('📸 DEBUG - userPhotoUrl updated (sanitized TrustUrl):', this.userPhotoUrl);
+
+                setTimeout(() => {
+                    this.cdr.detectChanges(); // Force update in next tick
+                }, 0);
+            };
+            reader.readAsDataURL(file);
+
+            this.uploadProfilePhoto(file);
+        } else {
+            console.log('📸 DEBUG - No file selected');
+        }
+    }
+
+    onImageError(event: any) {
+        console.error('📸 DEBUG - Image load error', event);
+        this.userPhotoUrl = null; // Fallback to icon
+    }
+
+    private async uploadProfilePhoto(file: File) {
+        console.log('📸 DEBUG - Starting uploadProfilePhoto (Native Fetch)');
+        // Validate file type and size
+        if (!file.type.startsWith('image/')) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('Solo se permiten archivos de imagen')
+            });
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('La imagen no puede ser mayor a 5MB')
+            });
+            return;
+        }
+
+        const currentUser = this.authService.getCurrentUser();
+        const ownerId = currentUser?.id;
+
+        if (!ownerId) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('No se pudo determinar el propietario para subir la imagen')
+            });
+            return;
+        }
+
+        // Prepare FormData
+        const formData = new FormData();
+        formData.append('files', file);
+        formData.append('owner', ownerId);
+        formData.append('private', 'false');
+
+        const token = localStorage.getItem('authtoken');
+        const apiUrl = `${environment.apiUrl}/cloud/upload`;
+        console.log('📸 DEBUG - API URL:', apiUrl);
+
+        try {
+            console.log('📸 DEBUG - Sending fetch request');
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            console.log('📸 DEBUG - Fetch response status:', response.status);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log('📸 DEBUG - Fetch response data:', data);
+
+            const uploadedFile = data.data?.[0];
+            if (uploadedFile?.location_cdn) {
+                console.log('📸 DEBUG - Setting user photo:', uploadedFile.location_cdn);
+                this.user.photo = uploadedFile.location_cdn;
+                this.userPhotoUrl = uploadedFile.location_cdn;
+                this.updateUserProfile({ photo: uploadedFile.location_cdn });
+                this.cdr.detectChanges();
+            } else {
+                console.warn('📸 DEBUG - location_cdn not found in response');
+            }
+
+        } catch (error) {
+            console.error('📸 DEBUG - Error uploading photo:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('Error al subir la foto de perfil')
+            });
+        }
     }
 
     // Lifecycle Hooks
@@ -126,12 +256,7 @@ export class ProfileComponent implements OnInit {
         this.updateUserSettings();
     }
 
-    onPhotoSelected(event: any) {
-        const file = event.target.files[0];
-        if (file) {
-            this.uploadProfilePhoto(file);
-        }
-    }
+
 
     removePhoto() {
         this.user.photo = '';
@@ -139,59 +264,7 @@ export class ProfileComponent implements OnInit {
         this.updateUserProfile({ photo: '' });
     }
 
-    private uploadProfilePhoto(file: File) {
-        // Validate file type and size
-        if (!file.type.startsWith('image/')) {
-            this.messageService.add({
-                severity: 'error',
-                summary: this.translate.instant('Error'),
-                detail: this.translate.instant('Solo se permiten archivos de imagen')
-            });
-            return;
-        }
 
-        if (file.size > 5 * 1024 * 1024) { // 5MB limit
-            this.messageService.add({
-                severity: 'error',
-                summary: this.translate.instant('Error'),
-                detail: this.translate.instant('La imagen no puede ser mayor a 5MB')
-            });
-            return;
-        }
-
-        const currentUser = this.authService.getCurrentUser();
-        if (!currentUser?.id) {
-            this.messageService.add({
-                severity: 'error',
-                summary: this.translate.instant('Error'),
-                detail: this.translate.instant('Usuario no autenticado')
-            });
-            return;
-        }
-
-        // Upload to cloud storage
-        this.cloudService.uploadFile(file, currentUser.id).subscribe({
-            next: (event) => {
-                // Handle upload progress if needed
-                if (event.type === 4 && event.body) { // HttpEventType.Response
-                    const uploadedFile = event.body.data?.[0];
-                    if (uploadedFile?.location_cdn) {
-                        this.user.photo = uploadedFile.location_cdn;
-                        this.userPhotoUrl = uploadedFile.location_cdn;
-                        this.updateUserProfile({ photo: uploadedFile.location_cdn });
-                    }
-                }
-            },
-            error: (error) => {
-                console.error('Error uploading photo:', error);
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.translate.instant('Error'),
-                    detail: this.translate.instant('Error al subir la foto de perfil')
-                });
-            }
-        });
-    }
 
     // Métodos Privados
     private loadCachedProfile() {
@@ -204,7 +277,7 @@ export class ProfileComponent implements OnInit {
 
     private loadUserProfile() {
         const currentUser = this.authService.getCurrentUser();
-        
+
         if (currentUser && currentUser.id) {
             this.userService.getById(currentUser.id).subscribe({
                 next: (userData: any) => {
@@ -229,7 +302,7 @@ export class ProfileComponent implements OnInit {
     private processUserData(userData: any): any {
         const userSettingsArray = userData.settings || [];
         const userSettingsData = userSettingsArray.length > 0 ? userSettingsArray[0] : {};
-        
+
         if (userSettingsData.theme) {
             this.selectedTheme = userSettingsData.theme;
             this.themesService.setTheme(userSettingsData.theme);

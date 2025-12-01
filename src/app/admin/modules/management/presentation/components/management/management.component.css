@@ -17,10 +17,10 @@
   grid-area: header;
   opacity: 0.5;
   margin-left: -10px;
-  
+
 }
 
-.management__controls{
+.management__controls {
   grid-area: controls;
   display: flex;
   padding-top: 10px;
@@ -152,7 +152,7 @@
   color: var(--managementColorTextUser);
 }
 
-.management__card-user > div {
+.management__card-user>div {
   margin-bottom: 10px;
 }
 
@@ -176,6 +176,13 @@
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+.card-user-photo {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .management__card-user-img i {
@@ -271,7 +278,8 @@
     grid-template-columns: 1fr 1fr;
   }
 }
-.management__content-cards--maps{
+
+.management__content-cards--maps {
   grid-template-columns: 1fr;
   grid-auto-rows: auto;
 }
@@ -284,8 +292,9 @@
   display: grid;
   grid-template-rows: 60px auto auto auto auto;
 }
-.management__user-card--maps{
-  grid-template-rows:  auto auto auto ;
+
+.management__user-card--maps {
+  grid-template-rows: auto auto auto;
   padding-top: 10px;
   gap: 15px;
 }
@@ -308,9 +317,23 @@
 }
 
 .management__user-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--managementColorInputSearch);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  margin: 20px auto 0;
+  /* 20px top, auto horizontal, 0 bottom */
+  color: var(--managementColorIconUser);
+  overflow: hidden;
+}
+
+.user-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .management__user-card-icon i {
@@ -325,6 +348,7 @@
   font-size: 14px;
   max-width: 170px;
   margin: 0 auto;
+  margin-top: 20px !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -387,15 +411,15 @@
   transform: scale(1.3);
 }
 
-.management__content-table{
+.management__content-table {
   width: 100%;
   height: 100%;
   position: relative;
- 
+
 
 }
 
-.management__content-table > div {
+.management__content-table>div {
   top: 0;
   position: absolute;
   width: 100%;
@@ -410,32 +434,33 @@
   /* background: var(--managementColorCardBackground); */
 }
 
-.management__user-table-controls i{
+.management__user-table-controls i {
   font-size: 18px;
   color: var(--managementColorTextUser);
   opacity: 0.5;
   /* transition: all 0.3s; */
 }
 
-.management__user-table-controls i:hover{
+.management__user-table-controls i:hover {
   opacity: 1;
   /* transform: scale(1.1); */
 }
+
 .management__content-table-tr {
   background: var(--globalColorNone);
   color: var(--globalColorTextMuted);
 }
 
-.management__content-table-tr td{
-  font-size: 14px!important;
-  transition: none!important;
+.management__content-table-tr td {
+  font-size: 14px !important;
+  transition: none !important;
   border-bottom: 1px solid var(--globalColorBorderDark);
 }
 
-.management__user-table-controls--maps{
+.management__user-table-controls--maps {
   display: grid;
-  grid-template-columns: 1fr ;
-  
+  grid-template-columns: 1fr;
+
 }
 
 
@@ -485,305 +510,326 @@
 
 /* MAPA */
 .management__maps {
-height: 100%;
-display: grid;
-grid-template-areas: "header header controls" "user content content";
-grid-template-columns: 300px 1fr 70px;
-grid-template-rows: 38px calc(100% - 55px);
-gap: 10px;
-padding-left: 10px;
-padding-right: 10px;
+  height: 100%;
+  display: grid;
+  grid-template-areas: "header header controls" "user content content";
+  grid-template-columns: 300px 1fr 70px;
+  grid-template-rows: 38px calc(100% - 55px);
+  gap: 10px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .management__user-control {
-grid-area: user;
-background: var(--managementColorCardBackground);
-display: grid;
-grid-template-columns: 50px 1fr;
-grid-template-rows: auto 1fr;
-gap: 10px;
-grid-template-areas: "user_header user_header" "user_content user_content";
-position: relative;
+  grid-area: user;
+  background: var(--managementColorCardBackground);
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+  grid-template-areas: "user_header user_header" "user_content user_content";
+  position: relative;
 }
 
 .management__user-control-display-button {
-position: absolute;
-width: 30px;
-height: 30px;
-display: flex;
-justify-content: center;
-align-items: center;
-color: var(--managementColorIconUser);
-cursor: pointer;
-right: 5px;
-top: 5px;
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--managementColorIconUser);
+  cursor: pointer;
+  right: 5px;
+  top: 5px;
 }
-.management__user-control-back-button{
-position: absolute;
-width: 30px;
-height: 30px;
-display: flex;
-justify-content: center;
-align-items: center;
-color: var(--globalColorIconMuted);
-cursor: pointer;
-right: 5px;
-top: 32px;
+
+.management__user-control-back-button {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--globalColorIconMuted);
+  cursor: pointer;
+  right: 5px;
+  top: 32px;
 
 }
+
 @media (max-width: 760px) {
-.management__user-control-back-button{
+  .management__user-control-back-button {
 
-  top: 22px;
-  
-}
+    top: 22px;
+
+  }
 }
 
-.management__user-control-back-button i{
-font-size: 13px;
+.management__user-control-back-button i {
+  font-size: 13px;
 }
+
 .management__content-maps {
-grid-area: content;
-position: relative;
-background: var(--managementColorContentBackground);
-border-radius: 5px;
-overflow: hidden;
-border: 3px solid var(--globalColorInputBorderAccent);
+  grid-area: content;
+  position: relative;
+  background: var(--managementColorContentBackground);
+  border-radius: 5px;
+  overflow: hidden;
+  border: 3px solid var(--globalColorInputBorderAccent);
 
 }
 
 @media (max-width: 760px) {
-.management__maps{
-  grid-template-areas: "user";
-grid-template-columns: calc(100% - 10px);
-grid-template-rows: 100%;
-padding-top: 10px;
-padding-right: 0;
-}
-/* Comentado: ahora la visibilidad se controla desde Angular
+  .management__maps {
+    grid-template-areas: "user";
+    grid-template-columns: calc(100% - 10px);
+    grid-template-rows: 100%;
+    padding-top: 10px;
+    padding-right: 0;
+  }
+
+  /* Comentado: ahora la visibilidad se controla desde Angular
 .management__content-maps{
   display: none;
 }
 */
 
-.management__route {
-  display: none;
-}
+  .management__route {
+    display: none;
+  }
 
-.management__user-control-display-button {
-  display: none;
-}
+  .management__user-control-display-button {
+    display: none;
+  }
 }
 
 .management__user-control-header {
-grid-area: user_header;
-display: grid;
-border: 1px solid var(--managementColorBorderInput);
-background: var(--managementColorBackgroundUser);
-padding: 10px;
-border-radius: 5px;
-gap: 10px;
-grid-template-columns: 50px 1fr;
-grid-auto-rows: auto;
-grid-template-areas: 
-  "user_control_icon user_control_title"
-  "user_control_icon user_control_subtitle"
-  "user_control_controls user_control_controls";
+  grid-area: user_header;
+  display: grid;
+  border: 1px solid var(--managementColorBorderInput);
+  background: var(--managementColorBackgroundUser);
+  padding: 10px;
+  border-radius: 5px;
+  gap: 10px;
+  grid-template-columns: 50px 1fr;
+  grid-auto-rows: auto;
+  grid-template-areas:
+    "user_control_icon user_control_title"
+    "user_control_icon user_control_subtitle"
+    "user_control_controls user_control_controls";
 }
 
 .management__user-control-icon {
-grid-area: user_control_icon;
-background: var(--managementColorIconBackground, rgb(222, 57, 57));
-border-radius: 5px;
-display: flex;
-justify-content: center;
-align-items: center;
+  grid-area: user_control_icon;
+  background: var(--managementColorIconBackground, rgb(222, 57, 57));
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.user-control-photo {
+  width: 100%;
+  height: 50px;
+  object-fit: cover;
 }
 
 .management__user-control-icon i {
-font-size: 20px;
-color: var(--managementColorTextIcon, rgb(255, 255, 255));
+  font-size: 20px;
+  color: var(--managementColorTextIcon, rgb(255, 255, 255));
 }
 
 .management__user-control-title {
-grid-area: user_control_title;
+  grid-area: user_control_title;
 }
 
 .management__user-control-title strong {
-font-size: 15px;
-color: var(--managementColorTitleUser);
+  font-size: 15px;
+  color: var(--managementColorTitleUser);
 }
 
 .management__user-control-subtitle {
-font-size: 13px;
-grid-area: user_control_subtitle;
-color: var(--managementColorTextUser);
+  font-size: 13px;
+  grid-area: user_control_subtitle;
+  color: var(--managementColorTextUser);
 }
 
 .management__user-control-footer {
-font-size: 13px;
-grid-area: user_control_footer;
-color: var(--managementColorTextUser);
+  font-size: 13px;
+  grid-area: user_control_footer;
+  color: var(--managementColorTextUser);
 }
 
 .management__user-control-controls {
-grid-area: user_control_controls;
-display: grid;
-grid-template-columns: 1fr 1fr;
-border-top: 1px solid var(--managementColorBorderInput);
+  grid-area: user_control_controls;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--managementColorBorderInput);
 }
 
 .management__user-control-content {
-grid-area: user_content;
+  grid-area: user_content;
 }
 
 .management__content-table-link {
-color: var(--managementOnlineStatus);
-padding-bottom: 5px;
-display: block;
-cursor: pointer;
+  color: var(--managementOnlineStatus);
+  padding-bottom: 5px;
+  display: block;
+  cursor: pointer;
 }
 
 .management__content-table-link:hover {
-/* text-decoration: underline; */
+  /* text-decoration: underline; */
 }
 
 .management__content-table-link i {
-font-size: 13px;
-opacity: 0.5;
-/* transform: scale(0.8); escalar */
+  font-size: 13px;
+  opacity: 0.5;
+  /* transform: scale(0.8); escalar */
 }
 
 .management__content--maps {
-width: 100%;
+  width: 100%;
 }
 
 /* Estilos para .no-users-message eliminados - ahora usa .no-targets-message */
 
 /* Estilos para móvil */
 @media screen and (max-width: 768px) {
+
   /* Estilos para los datos del usuario */
   .management__user-card-title,
   .management__user-card-subtitle,
   .management__user-card-footer,
   .management__user-control-title strong,
   .management__user-control-subtitle span {
-      display: block;
-      width: 100%;
-      max-width: 120px;
-      box-sizing: border-box;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      text-align: left;
+    display: block;
+    width: 100%;
+    max-width: 120px;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
   }
 
   .management__user-card {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 12px 10px;
-      margin-bottom: 14px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      border-radius: 8px;
-      min-width: 0;
-      background: var(--globalColorCardBackground, #222);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 10px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    min-width: 0;
+    background: var(--globalColorCardBackground, #222);
   }
+
   .management__user-card-icon {
-      margin-bottom: 8px;
-      align-self: center;
+    margin-bottom: 8px;
+    align-self: center;
   }
+
   .management__user-card-title,
   .management__user-card-title strong,
   .management__user-card-subtitle,
   .management__user-card-subtitle span,
   .management__user-card-footer {
-      text-align: left;
-      width: 100%;
-      margin-bottom: 2px;
+    text-align: left;
+    width: 100%;
+    margin-bottom: 2px;
   }
+
   .management__user-card-footer {
-      margin-bottom: 6px;
+    margin-bottom: 6px;
   }
+
   .management__user-card-controls {
-      width: 100%;
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      gap: 6px;
-      margin-top: 8px;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 8px;
   }
+
   .management__user-card-controls button {
-      flex: 1 1 0;
-      min-width: 0;
-      padding: 0.3rem 0.2rem;
-      font-size: 0.7rem;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.3rem 0.2rem;
+    font-size: 0.7rem;
   }
 
   /* Estilos para los botones */
   .button .button-text {
-      display: none;
+    display: none;
   }
 
   .button {
-      padding: 0.5rem;
-      min-width: 2.5rem;
-      justify-content: center;
+    padding: 0.5rem;
+    min-width: 2.5rem;
+    justify-content: center;
   }
 
   .button i {
-      padding-right: 0;
+    padding-right: 0;
   }
 
   .management__user-control-controls .button,
   .management__user-options .button {
-      font-size: 0.65rem;
-      padding: 0.25rem 0.4rem;
-      min-width: 2rem;
+    font-size: 0.65rem;
+    padding: 0.25rem 0.4rem;
+    min-width: 2rem;
   }
 
   .management__user-control-controls .button i,
   .management__user-options .button i {
-      font-size: 0.75rem;
-      margin-right: 0.15rem;
+    font-size: 0.75rem;
+    margin-right: 0.15rem;
   }
 
   .management__user-control-controls .button span,
   .management__user-options .button span {
-      font-size: 0.6rem;
+    font-size: 0.6rem;
   }
 
   /* Tarjeta de usuario destacada */
   .management__card-user {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 14px 12px;
-      margin-bottom: 16px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.10);
-      border-radius: 10px;
-      min-width: 0;
-      background: var(--globalColorCardBackground, #222);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.10);
+    border-radius: 10px;
+    min-width: 0;
+    background: var(--globalColorCardBackground, #222);
   }
+
   .management__card-user-img {
-      align-self: center;
-      margin-bottom: 10px;
+    align-self: center;
+    margin-bottom: 10px;
   }
+
   .management__card-user-title,
   .management__card-user-title strong,
   .management__card-user-subtitle,
   .management__card-user-subtitle span,
   .management__card-user-footer {
-      text-align: left;
-      width: 100%;
-      margin-bottom: 2px;
+    text-align: left;
+    width: 100%;
+    margin-bottom: 2px;
   }
+
   .management__card-user-footer {
-      margin-bottom: 6px;
+    margin-bottom: 6px;
   }
 }
 
 @media screen and (max-width: 340px) {
+
   .management__user-card-title,
   .management__user-card-title strong,
   .management__user-card-subtitle,
@@ -797,8 +843,8 @@ width: 100%;
   .management__user-control-controls .button,
   .management__user-control-controls .button i,
   .management__user-control-controls .button span {
-      font-size: 0.55rem !important;
-      max-width: 80px;
+    font-size: 0.55rem !important;
+    max-width: 80px;
   }
 }
 
@@ -812,15 +858,15 @@ width: 100%;
 }
 
 @media (max-width: 760px) {
-.management__content-cards {
-  grid-template-columns: 1fr 1fr;
-}
+  .management__content-cards {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 490px) {
-.management__content-cards {
-  grid-template-columns: 1fr;
-}
+  .management__content-cards {
+    grid-template-columns: 1fr;
+  }
 }
 
 
@@ -832,39 +878,41 @@ width: 100%;
 .management__route ::ng-deep .p-breadcrumb .p-menuitem-icon,
 .management__route ::ng-deep .p-breadcrumb li,
 .management__route ::ng-deep .p-breadcrumb a {
-cursor: pointer !important;
+  cursor: pointer !important;
 }
 
 /* Aplicar cursor también al elemento raíz home */
 .management__route ::ng-deep .p-breadcrumb .p-breadcrumb-home,
 .management__route ::ng-deep .p-breadcrumb .p-breadcrumb-home-icon {
-cursor: pointer !important;
+  cursor: pointer !important;
 }
 
 /* Estilo hover */
 .management__route ::ng-deep .p-menuitem-link:hover .p-menuitem-text {
-text-decoration: underline;
+  text-decoration: underline;
 }
 
 /* Estado de carga para breadcrumb */
 .breadcrumb-loading {
-opacity: 0.15; /* Muy opaco durante la carga */
-transition: opacity 0.3s ease;
-pointer-events: none; /* Desactivar interacción mientras carga */
+  opacity: 0.15;
+  /* Muy opaco durante la carga */
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  /* Desactivar interacción mientras carga */
 }
 
 .map-provider-select-wrapper {
   position: absolute;
   top: 10px;
-  
+
   z-index: 10;
   background: var(--globalColorCardBackground, #fff);
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
   padding: 0.4rem 0.8rem;
   display: flex;
   align-items: center;
-  transition: right 0.3s cubic-bezier(0.4,0,0.2,1);
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Selector de proveedor de mapas ahora visible en todas las pantallas */
@@ -877,26 +925,30 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   color: var(--globalColorTextLight, #fff);
   outline: none;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
   transition: background 0.2s, color 0.2s, border 0.2s;
 }
 
 .target-offline {
-    color: rgb(134, 134, 134); /* globalColorTextMuted del tema claro */
+  color: rgb(134, 134, 134);
+  /* globalColorTextMuted del tema claro */
 }
 
 .dark .target-offline {
-    color: #a1a1a1; /* globalColorTextMuted del tema oscuro */
+  color: #a1a1a1;
+  /* globalColorTextMuted del tema oscuro */
 }
 
 .target-online {
-    color: #22c55e; /* Verde para dispositivos online - tema claro */
-    font-weight: 500;
+  color: #22c55e;
+  /* Verde para dispositivos online - tema claro */
+  font-weight: 500;
 }
 
 .dark .target-online {
-    color: #34d399; /* Verde más claro para tema oscuro */
-    font-weight: 500;
+  color: #34d399;
+  /* Verde más claro para tema oscuro */
+  font-weight: 500;
 }
 
 /* Si se necesita agregar contenido existente, añadir aquí */
@@ -905,46 +957,50 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
 /* Fila completa del target seleccionado */
 .target-selected-for-map {
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.04)) !important;
-    border: 1px solid rgba(34, 197, 94, 0.3) !important;
-    border-radius: 6px !important;
-    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15) !important;
-    transform: translateY(-1px) !important;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.04)) !important;
+  border: 1px solid rgba(34, 197, 94, 0.3) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15) !important;
+  transform: translateY(-1px) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .dark .target-selected-for-map {
-    background: linear-gradient(135deg, rgba(52, 211, 153, 0.12), rgba(52, 211, 153, 0.06)) !important;
-    border: 1px solid rgba(52, 211, 153, 0.4) !important;
-    box-shadow: 0 2px 8px rgba(52, 211, 153, 0.2) !important;
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.12), rgba(52, 211, 153, 0.06)) !important;
+  border: 1px solid rgba(52, 211, 153, 0.4) !important;
+  box-shadow: 0 2px 8px rgba(52, 211, 153, 0.2) !important;
 }
 
 /* Nombre del target cuando está mostrándose en mapa - RESPETANDO ESTADO ONLINE/OFFLINE */
 
 /* Target seleccionado Y online - mantiene color verde intenso */
 .target-showing-on-map.target-online {
-    font-weight: 600 !important;
-    color: #16a34a !important; /* Verde más intenso para online seleccionado */
-    text-shadow: 0 1px 2px rgba(22, 163, 74, 0.1) !important;
-    transition: all 0.3s ease !important;
+  font-weight: 600 !important;
+  color: #16a34a !important;
+  /* Verde más intenso para online seleccionado */
+  text-shadow: 0 1px 2px rgba(22, 163, 74, 0.1) !important;
+  transition: all 0.3s ease !important;
 }
 
 .dark .target-showing-on-map.target-online {
-    color: #4ade80 !important; /* Verde más brillante para tema oscuro */
-    text-shadow: 0 1px 2px rgba(74, 222, 128, 0.15) !important;
+  color: #4ade80 !important;
+  /* Verde más brillante para tema oscuro */
+  text-shadow: 0 1px 2px rgba(74, 222, 128, 0.15) !important;
 }
 
 /* Target seleccionado Y offline - mantiene color gris pero más intenso */
 .target-showing-on-map.target-offline {
-    font-weight: 600 !important;
-    color: #6b7280 !important; /* Gris más intenso para offline seleccionado */
-    text-shadow: 0 1px 2px rgba(107, 114, 128, 0.1) !important;
-    transition: all 0.3s ease !important;
+  font-weight: 600 !important;
+  color: #6b7280 !important;
+  /* Gris más intenso para offline seleccionado */
+  text-shadow: 0 1px 2px rgba(107, 114, 128, 0.1) !important;
+  transition: all 0.3s ease !important;
 }
 
 .dark .target-showing-on-map.target-offline {
-    color: #9ca3af !important; /* Gris más claro para tema oscuro */
-    text-shadow: 0 1px 2px rgba(156, 163, 175, 0.15) !important;
+  color: #9ca3af !important;
+  /* Gris más claro para tema oscuro */
+  text-shadow: 0 1px 2px rgba(156, 163, 175, 0.15) !important;
 }
 
 /* ================================
@@ -953,401 +1009,429 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
 /* Fila completa del target de usuario externo - SOLO COLORES */
 .external-user-target {
-    background-color: rgba(249, 115, 22, 0.05) !important;
-    border-left: 3px solid rgba(249, 115, 22, 0.6) !important;
+  background-color: rgba(249, 115, 22, 0.05) !important;
+  border-left: 3px solid rgba(249, 115, 22, 0.6) !important;
 }
 
-  .dark .external-user-target {
-      background-color: rgba(251, 146, 60, 0.08) !important;
-      border-left: 3px solid rgba(251, 146, 60, 0.7) !important;
-  }
+.dark .external-user-target {
+  background-color: rgba(251, 146, 60, 0.08) !important;
+  border-left: 3px solid rgba(251, 146, 60, 0.7) !important;
+}
 
-  /* Estilo específico para el icono del botón de usuario externo */
-  .external-user-target .button--primary-flat-icon .pi-user {
-      color: #f97316 !important; /* Naranja para diferenciar del botón eliminar */
-  }
+/* Estilo específico para el icono del botón de usuario externo */
+.external-user-target .button--primary-flat-icon .pi-user {
+  color: #f97316 !important;
+  /* Naranja para diferenciar del botón eliminar */
+}
 
-  .dark .external-user-target .button--primary-flat-icon .pi-user {
-      color: #fb923c !important; /* Naranja más claro para tema oscuro */
-  }
+.dark .external-user-target .button--primary-flat-icon .pi-user {
+  color: #fb923c !important;
+  /* Naranja más claro para tema oscuro */
+}
 
-  /* Estilo específico para el icono de eliminar */
-  .button--primary-flat-icon .pi-trash {
-      color: #dc3545 !important; /* Rojo para indicar acción destructiva */
-  }
+/* Estilo específico para el icono de eliminar */
+.button--primary-flat-icon .pi-trash {
+  color: #dc3545 !important;
+  /* Rojo para indicar acción destructiva */
+}
 
-  .dark .button--primary-flat-icon .pi-trash {
-      color: #ef4444 !important; /* Rojo más claro para tema oscuro */
-  }
+.dark .button--primary-flat-icon .pi-trash {
+  color: #ef4444 !important;
+  /* Rojo más claro para tema oscuro */
+}
 
 
 
 /* Fallback para target seleccionado sin clase específica de estado */
 .target-showing-on-map:not(.target-online):not(.target-offline) {
-    font-weight: 600 !important;
-    color: #16a34a !important; /* Verde por defecto */
-    text-shadow: 0 1px 2px rgba(22, 163, 74, 0.1) !important;
-    transition: all 0.3s ease !important;
+  font-weight: 600 !important;
+  color: #16a34a !important;
+  /* Verde por defecto */
+  text-shadow: 0 1px 2px rgba(22, 163, 74, 0.1) !important;
+  transition: all 0.3s ease !important;
 }
 
 .dark .target-showing-on-map:not(.target-online):not(.target-offline) {
-    color: #4ade80 !important;
-    text-shadow: 0 1px 2px rgba(74, 222, 128, 0.15) !important;
+  color: #4ade80 !important;
+  text-shadow: 0 1px 2px rgba(74, 222, 128, 0.15) !important;
 }
 
 /* Icono de map-marker cuando está activo */
 .map-marker-active {
-    color: #dc2626 !important; /* Rojo más intenso para el marcador */
-    animation: pulse-marker 2s infinite !important;
-    font-size: 1.1em !important;
-    transform: scale(1.1) !important;
+  color: #dc2626 !important;
+  /* Rojo más intenso para el marcador */
+  animation: pulse-marker 2s infinite !important;
+  font-size: 1.1em !important;
+  transform: scale(1.1) !important;
 }
 
 .dark .map-marker-active {
-    color: #f87171 !important; /* Rojo más claro para tema oscuro */
+  color: #f87171 !important;
+  /* Rojo más claro para tema oscuro */
 }
 
 /* Indicador de "ojo" que aparece junto al nombre */
 .target-map-indicator {
-    color: #2563eb !important; /* Azul para el ojo */
-    margin-left: 8px !important;
-    animation: blink-eye 1.5s infinite !important;
-    font-size: 0.9em !important;
+  color: #2563eb !important;
+  /* Azul para el ojo */
+  margin-left: 8px !important;
+  animation: blink-eye 1.5s infinite !important;
+  font-size: 0.9em !important;
 }
 
 .dark .target-map-indicator {
-    color: #60a5fa !important; /* Azul más claro para tema oscuro */
+  color: #60a5fa !important;
+  /* Azul más claro para tema oscuro */
 }
 
 /* Contenedor del IMEI */
 .imei-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
 }
 
 .target-name {
-    font-weight: 500;
-    font-size: 14px;
-    line-height: 1.2;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.2;
 }
 
 /* Contenedor de información offline */
 .offline-info-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
 }
 
 .target-offline-time {
-    font-size: 10px;
-    color: #6b7280; /* Gris más opaco para indicar tiempo offline */
-    font-weight: 400;
-    opacity: 0.6;
-    line-height: 1.1;
-    font-style: italic;
+  font-size: 10px;
+  color: #6b7280;
+  /* Gris más opaco para indicar tiempo offline */
+  font-weight: 400;
+  opacity: 0.6;
+  line-height: 1.1;
+  font-style: italic;
 }
 
 .target-offline-date {
-    font-size: 9px;
-    color: #e8a215; /* Naranja dorado para la fecha */
-    font-weight: 400;
-    opacity: 0.8;
-    line-height: 1.1;
-    font-family: 'Courier New', monospace; /* Fuente monoespaciada para fechas */
+  font-size: 9px;
+  color: #e8a215;
+  /* Naranja dorado para la fecha */
+  font-weight: 400;
+  opacity: 0.8;
+  line-height: 1.1;
+  font-family: 'Courier New', monospace;
+  /* Fuente monoespaciada para fechas */
 }
 
 .dark .target-offline-time {
-    color: #9ca3af; /* Gris más claro para tema oscuro */
+  color: #9ca3af;
+  /* Gris más claro para tema oscuro */
 }
 
 .dark .target-offline-date {
-    color: #f59e0b; /* Naranja más claro para tema oscuro */
+  color: #f59e0b;
+  /* Naranja más claro para tema oscuro */
 }
 
 /* Estilos para targets inactivos (status = false) */
 .management__content-table-link .target-inactive,
 .target-inactive {
-    color: #1569e8 !important;
+  color: #1569e8 !important;
 }
 
 /* Estilos para el texto de suspendido */
 .target-suspended-text {
-    font-size: 10px;
-    color: #1569e8;
-    font-weight: 500;
-    font-style: italic;
-    display: block;
-    margin-top: 2px;
-    opacity: 0.8;
+  font-size: 10px;
+  color: #1569e8;
+  font-weight: 500;
+  font-style: italic;
+  display: block;
+  margin-top: 2px;
+  opacity: 0.8;
 }
 
 .dark .target-suspended-text {
-    color: #60a5fa; /* Azul más claro para tema oscuro */
+  color: #60a5fa;
+  /* Azul más claro para tema oscuro */
 }
 
 /* Indicador de target compartido */
 .target-shared-indicator {
-    color: #3b82f6 !important; /* Azul para targets compartidos */
-    margin-left: 6px !important;
-    font-size: 10px !important;
-    animation: pulse-shared 2s infinite !important;
+  color: #3b82f6 !important;
+  /* Azul para targets compartidos */
+  margin-left: 6px !important;
+  font-size: 10px !important;
+  animation: pulse-shared 2s infinite !important;
 }
 
 .dark .target-shared-indicator {
-    color: #60a5fa !important; /* Azul más claro para tema oscuro */
+  color: #60a5fa !important;
+  /* Azul más claro para tema oscuro */
 }
 
 /* Estilos para filas de targets compartidos */
 .shared-target-row {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.02)) !important;
-    border-left: 4px solid #3b82f6 !important;
-    opacity: 0.85;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.02)) !important;
+  border-left: 4px solid #3b82f6 !important;
+  opacity: 0.85;
 }
 
 .dark .shared-target-row {
-    background: linear-gradient(135deg, rgba(96, 165, 250, 0.08), rgba(96, 165, 250, 0.04)) !important;
-    border-left: 4px solid #60a5fa !important;
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.08), rgba(96, 165, 250, 0.04)) !important;
+  border-left: 4px solid #60a5fa !important;
 }
 
 .shared-target-row:hover {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)) !important;
-    opacity: 1;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)) !important;
+  opacity: 1;
 }
 
 .dark .shared-target-row:hover {
-    background: linear-gradient(135deg, rgba(96, 165, 250, 0.12), rgba(96, 165, 250, 0.06)) !important;
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.12), rgba(96, 165, 250, 0.06)) !important;
 }
 
 /* Controles para targets compartidos */
 .target-controls-shared {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
 }
 
 .shared-target-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #3b82f6;
-    background: rgba(59, 130, 246, 0.1);
-    padding: 4px 8px;
-    border-radius: 12px;
-    border: 1px solid rgba(59, 130, 246, 0.2);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .dark .shared-target-label {
-    color: #60a5fa;
-    background: rgba(96, 165, 250, 0.12);
-    border: 1px solid rgba(96, 165, 250, 0.25);
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1px solid rgba(96, 165, 250, 0.25);
 }
 
 .shared-target-label i {
-    font-size: 10px;
+  font-size: 10px;
 }
 
 /* Icono de checkbox para targets compartidos */
 .shared-checkbox-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    background: rgba(59, 130, 246, 0.1);
-    border: 2px solid #3b82f6;
-    border-radius: 4px;
-    margin-left: 10px;
-    color: #3b82f6;
-    font-size: 12px;
-    transition: all 0.2s ease;
-    cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 2px solid #3b82f6;
+  border-radius: 4px;
+  margin-left: 10px;
+  color: #3b82f6;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  cursor: default;
 }
 
 .shared-checkbox-icon:hover {
-    background: rgba(59, 130, 246, 0.15);
-    transform: scale(1.05);
+  background: rgba(59, 130, 246, 0.15);
+  transform: scale(1.05);
 }
 
 .dark .shared-checkbox-icon {
-    background: rgba(96, 165, 250, 0.12);
-    border: 2px solid #60a5fa;
-    color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  border: 2px solid #60a5fa;
+  color: #60a5fa;
 }
 
 .dark .shared-checkbox-icon:hover {
-    background: rgba(96, 165, 250, 0.18);
+  background: rgba(96, 165, 250, 0.18);
 }
 
 .shared-checkbox-cell {
-    width: 4rem;
-    text-align: center;
-    padding: 8px;
+  width: 4rem;
+  text-align: center;
+  padding: 8px;
 }
 
 /* Animaciones */
 @keyframes pulse-marker {
-    0%, 100% {
-        transform: scale(1.1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.2);
-        opacity: 0.8;
-    }
+
+  0%,
+  100% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
 }
 
 @keyframes blink-eye {
-    0%, 80%, 100% {
-        opacity: 1;
-    }
-    40%, 60% {
-        opacity: 0.3;
-    }
+
+  0%,
+  80%,
+  100% {
+    opacity: 1;
+  }
+
+  40%,
+  60% {
+    opacity: 0.3;
+  }
 }
 
 @keyframes pulse-shared {
-    0%, 100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scale(1.1);
-    }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
 }
 
 /* Efecto hover mejorado para target seleccionado */
 .target-selected-for-map:hover {
-    background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.08)) !important;
-    border-color: rgba(34, 197, 94, 0.5) !important;
-    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25) !important;
-    transform: translateY(-2px) !important;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(34, 197, 94, 0.08)) !important;
+  border-color: rgba(34, 197, 94, 0.5) !important;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25) !important;
+  transform: translateY(-2px) !important;
 }
 
 .dark .target-selected-for-map:hover {
-    background: linear-gradient(135deg, rgba(52, 211, 153, 0.16), rgba(52, 211, 153, 0.10)) !important;
-    border-color: rgba(52, 211, 153, 0.6) !important;
-    box-shadow: 0 4px 12px rgba(52, 211, 153, 0.3) !important;
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.16), rgba(52, 211, 153, 0.10)) !important;
+  border-color: rgba(52, 211, 153, 0.6) !important;
+  box-shadow: 0 4px 12px rgba(52, 211, 153, 0.3) !important;
 }
 
 /* Responsive - ajustes para móviles */
 @media screen and (max-width: 768px) {
-    .imei-container {
-        gap: 1px;
-    }
-    
-    .target-name {
-        font-size: 13px;
-    }
-    
-    .offline-info-container {
-        gap: 0.5px;
-    }
-    
-    .target-offline-time {
-        font-size: 9px;
-    }
-    
-    .target-offline-date {
-        font-size: 8px;
-    }
-    
-    .target-map-indicator {
-        margin-left: 4px !important;
-        font-size: 0.8em !important;
-    }
-    
-    .target-shared-indicator {
-        margin-left: 4px !important;
-        font-size: 11px !important;
-    }
-    
-    .shared-target-label {
-        font-size: 10px !important;
-        padding: 3px 6px !important;
-        gap: 4px !important;
-    }
-    
-    .shared-target-label i {
-        font-size: 9px !important;
-    }
-    
-    .shared-checkbox-icon {
-        width: 18px !important;
-        height: 18px !important;
-        font-size: 11px !important;
-    }
-    
-    .shared-checkbox-cell {
-        width: 3rem !important;
-        padding: 6px !important;
-    }
-    
-    .map-marker-active {
-        font-size: 1em !important;
-    }
-    
-    .target-selected-for-map {
-        transform: none !important;
-        box-shadow: 0 1px 4px rgba(34, 197, 94, 0.15) !important;
-    }
+  .imei-container {
+    gap: 1px;
+  }
+
+  .target-name {
+    font-size: 13px;
+  }
+
+  .offline-info-container {
+    gap: 0.5px;
+  }
+
+  .target-offline-time {
+    font-size: 9px;
+  }
+
+  .target-offline-date {
+    font-size: 8px;
+  }
+
+  .target-map-indicator {
+    margin-left: 4px !important;
+    font-size: 0.8em !important;
+  }
+
+  .target-shared-indicator {
+    margin-left: 4px !important;
+    font-size: 11px !important;
+  }
+
+  .shared-target-label {
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+    gap: 4px !important;
+  }
+
+  .shared-target-label i {
+    font-size: 9px !important;
+  }
+
+  .shared-checkbox-icon {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 11px !important;
+  }
+
+  .shared-checkbox-cell {
+    width: 3rem !important;
+    padding: 6px !important;
+  }
+
+  .map-marker-active {
+    font-size: 1em !important;
+  }
+
+  .target-selected-for-map {
+    transform: none !important;
+    box-shadow: 0 1px 4px rgba(34, 197, 94, 0.15) !important;
+  }
 }
 
 /* ✨ ESTILOS PARA VELOCIDAD DEL DISPOSITIVO - DISEÑO MINIMALISTA */
 
 /* Display de velocidad - tema claro (solo texto) */
 .device-speed-display {
-    font-size: 14px;
-    color: #9ca3af;
-    font-weight: 400;
-    padding: 0;
-    background: none;
-    border: none;
-    display: inline-block;
-    opacity: 0.8;
+  font-size: 14px;
+  color: #9ca3af;
+  font-weight: 400;
+  padding: 0;
+  background: none;
+  border: none;
+  display: inline-block;
+  opacity: 0.8;
 }
 
 /* Display de velocidad - tema oscuro (solo texto) */
 .dark .device-speed-display {
-    color: #6b7280;
-    background: none;
-    border: none;
+  color: #6b7280;
+  background: none;
+  border: none;
 }
 
 /* Variante compacta para tabla (debajo del badge) */
 .device-speed-display--compact {
-    font-size: 13px;
-    padding: 0;
-    background: none;
-    border: none;
-    opacity: 0.7;
+  font-size: 13px;
+  padding: 0;
+  background: none;
+  border: none;
+  opacity: 0.7;
 }
 
 .dark .device-speed-display--compact {
-    background: none;
-    border: none;
+  background: none;
+  border: none;
 }
 
 /* Variante inline (al lado del badge) */
 .device-speed-display--inline {
-    font-size: 10px;
-    padding: 0;
-    background: none;
-    border: none;
-    opacity: 0.75;
+  font-size: 10px;
+  padding: 0;
+  background: none;
+  border: none;
+  opacity: 0.75;
 }
 
 .dark .device-speed-display--inline {
-    background: none;
-    border: none;
+  background: none;
+  border: none;
 }
 
 /* ===================================
@@ -1362,7 +1446,8 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   padding-top: 10px;
   min-height: 250px;
   width: 100%;
-  opacity: 0.6; /* Reducir opacidad general */
+  opacity: 0.6;
+  /* Reducir opacidad general */
 }
 
 .no-targets-content {
@@ -1370,65 +1455,85 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   max-width: 400px;
   width: 100%;
   background: var(--managementColorBackgroundUser);
-  border-radius: 8px; /* Bordes menos pronunciados */
-  padding: 24px 20px; /* Padding reducido */
-  border: 1px solid transparent; /* Borde casi invisible */
-  box-shadow: none; /* Sin sombra para que pase desapercibido */
-  opacity: 0.7; /* Contenido más opaco */
+  border-radius: 8px;
+  /* Bordes menos pronunciados */
+  padding: 24px 20px;
+  /* Padding reducido */
+  border: 1px solid transparent;
+  /* Borde casi invisible */
+  box-shadow: none;
+  /* Sin sombra para que pase desapercibido */
+  opacity: 0.7;
+  /* Contenido más opaco */
 }
 
 .no-targets-icon {
-  margin-bottom: 12px; /* Menos espacio */
+  margin-bottom: 12px;
+  /* Menos espacio */
 }
 
 .no-targets-icon i {
-  font-size: 1.2rem; /* Icono más pequeño */
+  font-size: 1.2rem;
+  /* Icono más pequeño */
   color: var(--managementColorTextUser);
   display: block;
-  opacity: 0.4; /* Icono muy opaco */
+  opacity: 0.4;
+  /* Icono muy opaco */
 }
 
 .no-targets-content h3 {
-  font-size: 1rem; /* Título más pequeño */
-  font-weight: 400; /* Menos peso */
+  font-size: 1rem;
+  /* Título más pequeño */
+  font-weight: 400;
+  /* Menos peso */
   color: var(--managementColorTextUser);
   margin: 0 0 6px 0;
   line-height: 1.3;
-  opacity: 0.6; /* Título opaco */
+  opacity: 0.6;
+  /* Título opaco */
 }
 
 .no-targets-content p {
-  font-size: 0.8rem; /* Texto más pequeño */
+  font-size: 0.8rem;
+  /* Texto más pequeño */
   color: var(--managementColorTextUser);
   margin: 0 0 16px 0;
   line-height: 1.4;
-  opacity: 0.5; /* Texto muy opaco */
+  opacity: 0.5;
+  /* Texto muy opaco */
 }
 
 .no-targets-content .button {
   background: var(--managementColorTextUser);
   color: var(--managementColorBackgroundUser);
   border: none;
-  padding: 6px 12px; /* Botón más pequeño */
+  padding: 6px 12px;
+  /* Botón más pequeño */
   border-radius: 6px;
-  font-size: 0.75rem; /* Texto del botón más pequeño */
-  font-weight: 400; /* Menos peso */
+  font-size: 0.75rem;
+  /* Texto del botón más pequeño */
+  font-weight: 400;
+  /* Menos peso */
   cursor: pointer;
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   text-decoration: none;
-  opacity: 0.6; /* Botón opaco */
+  opacity: 0.6;
+  /* Botón opaco */
 }
 
 .no-targets-content .button:hover {
-  opacity: 0.8; /* Ligero aumento en hover */
-  transform: none; /* Sin transformación */
+  opacity: 0.8;
+  /* Ligero aumento en hover */
+  transform: none;
+  /* Sin transformación */
 }
 
 .no-targets-content .button i {
-  font-size: 0.8rem; /* Icono del botón más pequeño */
+  font-size: 0.8rem;
+  /* Icono del botón más pequeño */
 }
 
 /* Animación de entrada más sutil */
@@ -1439,10 +1544,13 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 @keyframes fadeInSubtle {
   from {
     opacity: 0;
-    transform: translateY(10px); /* Movimiento más sutil */
+    transform: translateY(10px);
+    /* Movimiento más sutil */
   }
+
   to {
-    opacity: 0.6; /* Opacidad final reducida */
+    opacity: 0.6;
+    /* Opacidad final reducida */
     transform: translateY(0);
   }
 }
@@ -1450,36 +1558,40 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 /* Responsive para móviles */
 @media (max-width: 768px) {
   .no-targets-message {
-    padding: 24px 12px; /* Padding reducido */
-    min-height: 150px; /* Altura menor */
-    opacity: 0.7; /* Ligeramente más visible en móviles */
+    padding: 24px 12px;
+    /* Padding reducido */
+    min-height: 150px;
+    /* Altura menor */
+    opacity: 0.7;
+    /* Ligeramente más visible en móviles */
   }
-  
+
   .no-targets-content {
     padding: 20px 16px;
     max-width: 100%;
   }
-  
+
   .no-targets-icon i {
-    font-size: 1rem; /* Icono aún más pequeño en móvil */
+    font-size: 1rem;
+    /* Icono aún más pequeño en móvil */
   }
-  
+
   .no-targets-content h3 {
     font-size: 0.9rem;
   }
-  
+
   .no-targets-content p {
     font-size: 0.75rem;
   }
-  
+
   .no-targets-content .button {
     padding: 5px 10px;
     font-size: 0.7rem;
   }
 }
 
-.p-datatable-table-container{
-  overflow: hidden!important;
+.p-datatable-table-container {
+  overflow: hidden !important;
 }
 
 /* Tema oscuro - Ya manejado por las variables CSS de management */
@@ -1565,7 +1677,7 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 .management__user-card--shared {
   border: 1px solid var(--managementSharedUserBorder) !important;
   background: linear-gradient(135deg, var(--managementSharedUserBackground) 0%, var(--managementSharedUserBackgroundEnd) 100%) !important;
-  box-shadow: 
+  box-shadow:
     0 4px 16px var(--managementSharedUserShadow),
     0 1px 4px var(--managementSharedUserShadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
@@ -1583,12 +1695,10 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   left: -50%;
   width: 200%;
   height: 200%;
-  background: linear-gradient(
-    45deg, 
-    transparent 30%, 
-    var(--managementSharedUserShimmer) 50%, 
-    transparent 70%
-  );
+  background: linear-gradient(45deg,
+      transparent 30%,
+      var(--managementSharedUserShimmer) 50%,
+      transparent 70%);
   pointer-events: none;
   border-radius: inherit;
   animation: shimmer-shared 3s ease-in-out infinite;
@@ -1613,7 +1723,7 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 .management__user-card--shared .management__user-card-icon {
   background: linear-gradient(135deg, var(--managementSharedUserIconBackground), var(--managementSharedUserIconBackgroundEnd)) !important;
   color: white !important;
-  box-shadow: 
+  box-shadow:
     0 4px 12px var(--managementSharedUserBadgeShadow),
     0 2px 4px rgba(0, 0, 0, 0.1) !important;
   border: 2px solid rgba(255, 255, 255, 0.2);
@@ -1651,7 +1761,7 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   font-size: 0.7rem;
   font-weight: 600;
   margin-left: 8px;
-  box-shadow: 
+  box-shadow:
     0 3px 8px var(--managementSharedUserBadgeShadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   animation: pulse-shared 3s ease-in-out infinite;
@@ -1688,10 +1798,13 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
 /* Animaciones mejoradas */
 @keyframes shimmer-shared {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateX(-50%) translateY(-50%) rotate(0deg);
     opacity: 0;
   }
+
   50% {
     transform: translateX(-50%) translateY(-50%) rotate(180deg);
     opacity: 1;
@@ -1699,32 +1812,41 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 }
 
 @keyframes icon-shine {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateX(-100%) translateY(-100%) rotate(45deg);
   }
+
   50% {
     transform: translateX(100%) translateY(100%) rotate(45deg);
   }
 }
 
 @keyframes badge-slide {
-  0%, 100% {
+
+  0%,
+  100% {
     left: -100%;
   }
+
   50% {
     left: 100%;
   }
 }
 
 @keyframes pulse-shared {
-  0%, 100% {
-    box-shadow: 
+
+  0%,
+  100% {
+    box-shadow:
       0 3px 8px var(--managementSharedUserBadgeShadow),
       inset 0 1px 0 rgba(255, 255, 255, 0.2);
     transform: scale(1);
   }
+
   50% {
-    box-shadow: 
+    box-shadow:
       0 4px 12px var(--managementSharedUserBadgeShadowPulse),
       inset 0 1px 0 rgba(255, 255, 255, 0.3);
     transform: scale(1.02);
@@ -1734,7 +1856,7 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 /* Hover effect mejorado para usuarios compartidos */
 .management__user-card--shared:hover {
   transform: translateY(-4px) scale(1.02);
-  box-shadow: 
+  box-shadow:
     0 8px 30px var(--managementSharedUserShadowHover),
     0 4px 12px var(--managementSharedUserShadow),
     inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
@@ -1864,7 +1986,7 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   display: flex;
   flex-direction: column;
   border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 :host ::ng-deep .cancel-target-dialog .target-info h4 {
@@ -2003,13 +2125,13 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 .cancel-target-dialog .button--danger {
   background: var(--globalColorAccent);
   color: var(--globalColorTextStrong);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .cancel-target-dialog .button--danger:hover:not(:disabled) {
   background: var(--globalColorButtonBackground);
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .cancel-target-dialog .button--danger:disabled {
@@ -2026,11 +2148,11 @@ pointer-events: none; /* Desactivar interacción mientras carga */
     width: 95% !important;
     margin: 0 auto;
   }
-  
+
   :host ::ng-deep .cancel-target-dialog .p-dialog-content {
     padding: 1rem;
   }
-  
+
   .cancel-target-dialog .dialog-footer .button {
     padding: 10px 16px;
     font-size: 13px;
@@ -2147,7 +2269,8 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
 /* Estilo para el enlace de monitoreo */
 .monitoring-link {
-  color: #2563eb !important; /* Azul para el enlace */
+  color: #2563eb !important;
+  /* Azul para el enlace */
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
@@ -2155,16 +2278,19 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 }
 
 .monitoring-link:hover {
-  color: #1d4ed8 !important; /* Azul más oscuro en hover */
+  color: #1d4ed8 !important;
+  /* Azul más oscuro en hover */
   text-decoration: underline;
 }
 
 .dark .monitoring-link {
-  color: #60a5fa !important; /* Azul más claro para tema oscuro */
+  color: #60a5fa !important;
+  /* Azul más claro para tema oscuro */
 }
 
 .dark .monitoring-link:hover {
-  color: #93c5fd !important; /* Azul aún más claro en hover para tema oscuro */
+  color: #93c5fd !important;
+  /* Azul aún más claro en hover para tema oscuro */
 }
 
 /* ====================================
@@ -2173,18 +2299,21 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
 /* Verde: Más de 1 mes restante */
 .expiration-normal {
-  color: #16a34a !important; /* Verde intenso */
+  color: #16a34a !important;
+  /* Verde intenso */
   font-weight: 500;
   background: linear-gradient(135deg, rgba(71, 250, 21, 0.039), rgba(93, 250, 21, 0));
 }
 
 .dark .expiration-normal {
-  color: #4ade80 !important; /* Verde más claro para tema oscuro */
+  color: #4ade80 !important;
+  /* Verde más claro para tema oscuro */
 }
 
 /* Amarillo: Menos de 15 días restante */
 .expiration-warning {
-  color: #ca8a04 !important; /* Amarillo dorado */
+  color: #ca8a04 !important;
+  /* Amarillo dorado */
   font-weight: 600;
   background: linear-gradient(135deg, rgba(250, 204, 21, 0.1), rgba(250, 204, 21, 0.05));
   /* padding: 2px 4px; */
@@ -2193,14 +2322,16 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 }
 
 .dark .expiration-warning {
-  color: #facc15 !important; /* Amarillo más claro para tema oscuro */
+  color: #facc15 !important;
+  /* Amarillo más claro para tema oscuro */
   background: linear-gradient(135deg, rgba(250, 204, 21, 0.15), rgba(250, 204, 21, 0.08));
   /* border: 1px solid rgba(250, 204, 21, 0.3); */
 }
 
 /* Rojo: Ya vencido */
 .expiration-expired {
-  color: #dc2626 !important; /* Rojo intenso */
+  color: #dc2626 !important;
+  /* Rojo intenso */
   font-weight: 600;
   background: linear-gradient(135deg, rgba(220, 38, 38, 0.1), rgba(220, 38, 38, 0.05));
   /* padding: 2px 4px; */
@@ -2210,7 +2341,8 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 }
 
 .dark .expiration-expired {
-  color: #f87171 !important; /* Rojo más claro para tema oscuro */
+  color: #f87171 !important;
+  /* Rojo más claro para tema oscuro */
   background: linear-gradient(135deg, rgba(220, 38, 38, 0.15), rgba(220, 38, 38, 0.08));
   border: 1px solid rgba(220, 38, 38, 0.3);
 }
@@ -2229,12 +2361,14 @@ pointer-events: none; /* Desactivar interacción mientras carga */
 
 /* Estilo para nombres de targets expirados */
 .target-expired {
-  color: #dc2626 !important; /* Rojo intenso para targets expirados */
+  color: #dc2626 !important;
+  /* Rojo intenso para targets expirados */
   font-weight: 600 !important;
 }
 
 .dark .target-expired {
-  color: #f87171 !important; /* Rojo más claro para tema oscuro */
+  color: #f87171 !important;
+  /* Rojo más claro para tema oscuro */
 }
 
 /* Contenedor para contenido expirado */
@@ -2268,8 +2402,9 @@ pointer-events: none; /* Desactivar interacción mientras carga */
   opacity: 0.9;
 }
 
-.expiration-normal, .expiration-warning {
- 
+.expiration-normal,
+.expiration-warning {
+
   text-align: center;
   line-height: 1.2;
   opacity: 0.9;

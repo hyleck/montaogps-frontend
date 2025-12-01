@@ -65,7 +65,8 @@
             <div class="user-menu">
                 <p-menu #userMenu [model]="userMenuItems" [popup]="true" styleClass="user-dropdown-menu" />
                 <button class="button button--flat-negative" (click)="userMenu.toggle($event)">
-                    <i class="pi pi-user"></i>
+                    <img *ngIf="userPhotoUrl" [src]="userPhotoUrl" alt="User Photo" class="navbar-user-photo">
+                    <i *ngIf="!userPhotoUrl" class="pi pi-user"></i>
                 </button>
             </div>
         </div>

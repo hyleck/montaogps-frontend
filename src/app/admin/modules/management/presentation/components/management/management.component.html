@@ -1,157 +1,178 @@
 <p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
 <div class="main">
-        <div *ngIf="showMaps" class="management__maps">
-            <div class="management__route">
+    <div *ngIf="showMaps" class="management__maps">
+        <div class="management__route">
 
-                <p-breadcrumb 
-                
-                [model]="items" 
-                [home]="home" />
-            </div>
-            
+            <p-breadcrumb [model]="items" [home]="home" />
+        </div>
 
-            <div class="management__controls">
-          
-            </div>
 
-            <div class="management__user-control">
-                <div class="management__user-control-display-button" *ngIf="shouldShowMapToggleButton">  <i (click)="showMapsToggle()" class="pi pi-window-maximize"></i></div>
-                <div class="management__user-control-back-button" *ngIf="canNavigateBack()">  <i (click)="goToParent()" class="pi pi-arrow-left"></i></div>
-                <div class="management__user-control-header">
-                    <div class="management__user-control-icon">
-                        <i class="pi pi-user"></i>
-                    </div>
-                    <div class="management__user-control-title">
-                        <strong *ngIf="!loading">{{ selectedUser?.name }} {{ selectedUser?.last_name }}</strong>
-                        <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '150px', 'height': '24px' }"></p-skeleton>
-                    </div>
-                    <div class="management__user-control-subtitle">
-                        <span *ngIf="!loading">{{ selectedUser?.email }}</span>
-                        <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '120px', 'height': '18px' }"></p-skeleton>
-                    </div>
-                
-             
-                    <div class="management__user-control-controls" *ngIf="!loading">
-                        <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} {{ totalUsersCountDisplay }} </button>
-                        <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} {{ totalTargetsCountDisplay }} </button>
-                    </div>
+        <div class="management__controls">
+
+        </div>
+
+        <div class="management__user-control">
+            <div class="management__user-control-display-button" *ngIf="shouldShowMapToggleButton"> <i
+                    (click)="showMapsToggle()" class="pi pi-window-maximize"></i></div>
+            <div class="management__user-control-back-button" *ngIf="canNavigateBack()"> <i (click)="goToParent()"
+                    class="pi pi-arrow-left"></i></div>
+            <div class="management__user-control-header">
+                <div class="management__user-control-icon">
+                    <img *ngIf="selectedUser?.photo" [src]="selectedUser?.photo" [alt]="selectedUser?.name"
+                        class="user-control-photo">
+                    <i *ngIf="!selectedUser?.photo" class="pi pi-user"></i>
                 </div>
-                <div class="management__user-control-content">
-                    <div class="management__content management__content--maps" 
-                         [ngStyle]="{ 'display': isMobileView && showMobileMapFullscreen ? 'none' : 'block' }">
+                <div class="management__user-control-title">
+                    <strong *ngIf="!loading">{{ selectedUser?.name }} {{ selectedUser?.last_name }}</strong>
+                    <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '150px', 'height': '24px' }"></p-skeleton>
+                </div>
+                <div class="management__user-control-subtitle">
+                    <span *ngIf="!loading">{{ selectedUser?.email }}</span>
+                    <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '120px', 'height': '18px' }"></p-skeleton>
+                </div>
 
-                        <div *ngIf="managementService.getOp() === 'u'" class="management__search">
-                            <div  class="management__input-search">
-                                <label for="management-search"><i class="pi pi-search"></i></label>
-                                <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text" [placeholder]="translations.searchUsers | translate">
-                                
-                            </div>
-                            <button (click)="showUserForm()" class="button button--primary-flat-red" *ngIf="canCreateUsers()">
-                                <i class="pi pi-user-plus"></i>
-                                <!-- <span class="button-text">{{ translations.newUser | translate }}</span> -->
-                            </button>
-                            <div *ngIf="!canCreateUsers()" class="no-create-permission">
-                                <i class="pi pi-lock" style="opacity: 0.5;"></i>
-                            </div>
-                        </div>
-    
-                        <div *ngIf="managementService.getOp() === 't'" class="management__search">
-                            <div  class="management__input-search">
-                                <label for="management-search"><i class="pi pi-search"></i></label>
-                                <input (keyup)="searchTargets()" [(ngModel)]="searchTargetsTerm" id="management-search" type="text" [placeholder]="translations.searchTargets | translate">
 
-                            </div>
-                            <button (click)="showTargetForm()" class="button button--primary-flat-red" *ngIf="currentUserAffiliationTypeId === 'empleado'">
-                                <i class="pi pi-plus"></i>
-                                <!-- <span class="button-text">{{ translations.newTarget | translate }}</span> -->
-                            </button>
+                <div class="management__user-control-controls" *ngIf="!loading">
+                    <button (click)="setOp('u')"
+                        [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }"
+                        class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} {{
+                        totalUsersCountDisplay }} </button>
+                    <button (click)="setOp('t')"
+                        [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }"
+                        class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets |
+                        translate }} {{ totalTargetsCountDisplay }} </button>
+                </div>
+            </div>
+            <div class="management__user-control-content">
+                <div class="management__content management__content--maps"
+                    [ngStyle]="{ 'display': isMobileView && showMobileMapFullscreen ? 'none' : 'block' }">
+
+                    <div *ngIf="managementService.getOp() === 'u'" class="management__search">
+                        <div class="management__input-search">
+                            <label for="management-search"><i class="pi pi-search"></i></label>
+                            <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search"
+                                type="text" [placeholder]="translations.searchUsers | translate">
+
                         </div>
-    
-    
-    
+                        <button (click)="showUserForm()" class="button button--primary-flat-red"
+                            *ngIf="canCreateUsers()">
+                            <i class="pi pi-user-plus"></i>
+                            <!-- <span class="button-text">{{ translations.newUser | translate }}</span> -->
+                        </button>
+                        <div *ngIf="!canCreateUsers()" class="no-create-permission">
+                            <i class="pi pi-lock" style="opacity: 0.5;"></i>
+                        </div>
+                    </div>
+
+                    <div *ngIf="managementService.getOp() === 't'" class="management__search">
+                        <div class="management__input-search">
+                            <label for="management-search"><i class="pi pi-search"></i></label>
+                            <input (keyup)="searchTargets()" [(ngModel)]="searchTargetsTerm" id="management-search"
+                                type="text" [placeholder]="translations.searchTargets | translate">
+
+                        </div>
+                        <button (click)="showTargetForm()" class="button button--primary-flat-red"
+                            *ngIf="currentUserAffiliationTypeId === 'empleado'">
+                            <i class="pi pi-plus"></i>
+                            <!-- <span class="button-text">{{ translations.newTarget | translate }}</span> -->
+                        </button>
+                    </div>
+
+
+
                     <div class="management__content-body" (scroll)="onScroll($event)">
-                        <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards management__content-cards--maps">
+                        <div *ngIf="managementService.getOp() === 'u'"
+                            class="management__content-cards management__content-cards--maps">
                             <ng-container *ngIf="!loading; else loadingSkeletonsMaps">
-                                <div *ngIf="!loading && users.length === 0" 
-                                     class="no-targets-message fade-in-message"
-                                     [@fadeInOut]>
+                                <div *ngIf="!loading && users.length === 0" class="no-targets-message fade-in-message"
+                                    [@fadeInOut]>
                                     <div class="no-targets-content">
                                         <div class="no-targets-icon">
                                             <i class="pi pi-users"></i>
                                         </div>
-                                       
+
                                         <p>Aún no tienes usuarios configurados en este nivel</p>
-                                        <button (click)="showUserForm()" 
-                                                class="button button--primary">
+                                        <button (click)="showUserForm()" class="button button--primary">
                                             <i class="pi pi-user-plus"></i>
                                             <span>Agregar usuario</span>
                                         </button>
                                     </div>
                                 </div>
-                                <div *ngFor="let user of users" class="management__user-card management__user-card--maps" [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
-                                    <div class="management__user-card-title"> 
+                                <div *ngFor="let user of users"
+                                    class="management__user-card management__user-card--maps"
+                                    [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
+                                    <div class="management__user-card-title">
                                         <strong>{{ user.name }} {{ user.last_name }}</strong>
-                                        
+
                                     </div>
                                     <div class="management__user-card-subtitle"><span>{{ user.email }}</span></div>
                                     <div class="management__user-card-phone" *ngIf="user.phone">
                                         <span> {{ user.phone }}</span>
                                     </div>
                                     <div class="management__user-card-controls">
-                                        <button (click)="enterUser(user)" class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
-                                        <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario" *ngIf="canUpdateUsers()"> <i class="pi pi-pencil" ></i> </button>
-                                        <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers()"> <i class="pi pi-trash" ></i> </button>
+                                        <button (click)="enterUser(user)" class="button button--primary-flat"
+                                            title="Entrar al usuario"> <i class="pi pi-sign-in "></i> </button>
+                                        <button (click)="editUser(user)" class="button button--primary-flat"
+                                            title="Editar usuario" *ngIf="canUpdateUsers()"> <i
+                                                class="pi pi-pencil"></i> </button>
+                                        <button class="button button--primary-flat" title="Eliminar usuario"
+                                            (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers()"> <i
+                                                class="pi pi-trash"></i> </button>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Loading para scroll infinito de usuarios - vista móvil -->
                                 <ng-container *ngIf="isLoadingMoreUsers">
-                                    <div *ngFor="let skel of [1,2,3,4,5,6,7,8,9,10]" class="management__user-card management__user-card--maps">
-                                        <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton>
-                                        <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton>
+                                    <div *ngFor="let skel of [1,2,3,4,5,6,7,8,9,10]"
+                                        class="management__user-card management__user-card--maps">
+                                        <p-skeleton
+                                            [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton>
+                                        <p-skeleton
+                                            [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton>
                                         <div class="management__user-card-controls">
                                         </div>
                                     </div>
                                 </ng-container>
                             </ng-container>
                             <ng-template #loadingSkeletonsMaps>
-                                <div *ngFor="let skel of [1,2]" class="management__user-card management__user-card--maps">
-                                    <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton>
-                                    <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton>
+                                <div *ngFor="let skel of [1,2]"
+                                    class="management__user-card management__user-card--maps">
+                                    <p-skeleton
+                                        [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton>
+                                    <p-skeleton
+                                        [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton>
                                     <div class="management__user-card-controls">
                                     </div>
                                 </div>
                             </ng-template>
                         </div>
-    
-                        <div  *ngIf="managementService.getOp() === 't'" class="management__content-table">
-    
-                            <div class="card" >
-                                <p-table 
-                                    [value]="loading ? [] : targetsList" 
-                                    [(selection)]="targetsSelected" 
-                                    dataKey="_id" 
-                                    [loading]="loading"
-                                    loadingIcon="pi pi-spinner loading-spinner"
-                                    >
-                                    <ng-template  pTemplate="emptymessage"  >
+
+                        <div *ngIf="managementService.getOp() === 't'" class="management__content-table">
+
+                            <div class="card">
+                                <p-table [value]="loading ? [] : targetsList" [(selection)]="targetsSelected"
+                                    dataKey="_id" [loading]="loading" loadingIcon="pi pi-spinner loading-spinner">
+                                    <ng-template pTemplate="emptymessage">
                                         <tr>
                                             <td colspan="6" style="padding: 0;">
-                                                <div class="no-targets-message fade-in-message" 
-                                                     [@fadeInOut] 
-                                                     style="min-height: 150px; padding: 20px 10px;">
-                                                    <div class="no-targets-content" style="text-align: center; margin: 0 auto;">
+                                                <div class="no-targets-message fade-in-message" [@fadeInOut]
+                                                    style="min-height: 150px; padding: 20px 10px;">
+                                                    <div class="no-targets-content"
+                                                        style="text-align: center; margin: 0 auto;">
                                                         <div class="no-targets-icon">
                                                             <i class="pi pi-map-marker"></i>
                                                         </div>
-                                                        <div *ngIf="!showNoTargetMessage" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                                                            <i class="pi pi-spinner loading-spinner" style="font-size: 1.2rem; color: #6b7280;"></i>
+                                                        <div *ngIf="!showNoTargetMessage"
+                                                            style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                                                            <i class="pi pi-spinner loading-spinner"
+                                                                style="font-size: 1.2rem; color: #6b7280;"></i>
                                                             <p style="margin: 0;">Cargando dispositivos GPS...</p>
                                                         </div>
-                                                        <p *ngIf="showNoTargetMessage">No se encontraron dispositivos GPS configurados</p>
-                                                        <button (click)="showTargetForm()" 
-                                                                class="button button--primary">
+                                                        <p *ngIf="showNoTargetMessage">No se encontraron dispositivos
+                                                            GPS configurados</p>
+                                                        <button (click)="showTargetForm()"
+                                                            class="button button--primary">
                                                             <i class="pi pi-plus"></i>
                                                             <span>Agregar dispositivo</span>
                                                         </button>
@@ -161,176 +182,194 @@
                                         </tr>
                                     </ng-template>
 
-                                     <ng-template pTemplate="loadingbody" >
-                                         <tr *ngFor="let skel of [1,2,3]">
-                                             <td style="font-size: 13px!important; padding: 16px;">
-                                                 <!-- Skeleton para el nombre del target -->
-                                                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                                                     <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px', 'border-radius': '50%' }"></p-skeleton>
-                                                     <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '120px' : skel === 2 ? '150px' : '100px'), 'height': '18px' }"></p-skeleton>
-                                                 </div>
+                                    <ng-template pTemplate="loadingbody">
+                                        <tr *ngFor="let skel of [1,2,3]">
+                                            <td style="font-size: 13px!important; padding: 16px;">
+                                                <!-- Skeleton para el nombre del target -->
+                                                <div
+                                                    style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '16px', 'height': '16px', 'border-radius': '50%' }"></p-skeleton>
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': (skel === 1 ? '120px' : skel === 2 ? '150px' : '100px'), 'height': '18px' }"></p-skeleton>
+                                                </div>
 
-                                                 <!-- Skeleton para IMEI -->
-                                                 <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '180px' : skel === 2 ? '160px' : '200px'), 'height': '14px', 'margin-bottom': '12px' }"></p-skeleton>
+                                                <!-- Skeleton para IMEI -->
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': (skel === 1 ? '180px' : skel === 2 ? '160px' : '200px'), 'height': '14px', 'margin-bottom': '12px' }"></p-skeleton>
 
-                                                 <!-- Skeleton para estado y velocidad -->
-                                                 <div style="display: flex; align-items: center; gap: 6px;">
-                                                     <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px' }"></p-skeleton>
-                                                     <p-skeleton [ngStyle]="{ 'width': '80px', 'height': '16px' }"></p-skeleton>
-                                                 </div>
-                                             </td>
-                                             <td style="width: 1rem; padding: 16px;">
-                                                 <div style="display: flex; gap: 4px;">
-                                                     <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
-                                                     <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
-                                                 </div>
-                                             </td>
-                                         </tr>
-                                     </ng-template>
+                                                <!-- Skeleton para estado y velocidad -->
+                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '16px', 'height': '16px' }"></p-skeleton>
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '80px', 'height': '16px' }"></p-skeleton>
+                                                </div>
+                                            </td>
+                                            <td style="width: 1rem; padding: 16px;">
+                                                <div style="display: flex; gap: 4px;">
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </ng-template>
 
                                     <!-- Template para skeleton de loading -->
-                                     <ng-template pTemplate="loadingbody" ngIf="!showNoTargetMessage">
-                                         <tr *ngFor="let skel of [1,2,3]">
-                                             <td style="font-size: 13px!important; padding: 16px;">
-                                                 <!-- Skeleton para el nombre del target -->
-                                                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                                                     <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px', 'border-radius': '50%' }"></p-skeleton>
-                                                     <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '120px' : skel === 2 ? '150px' : '100px'), 'height': '18px' }"></p-skeleton>
-                                                 </div>
+                                    <ng-template pTemplate="loadingbody" ngIf="!showNoTargetMessage">
+                                        <tr *ngFor="let skel of [1,2,3]">
+                                            <td style="font-size: 13px!important; padding: 16px;">
+                                                <!-- Skeleton para el nombre del target -->
+                                                <div
+                                                    style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '16px', 'height': '16px', 'border-radius': '50%' }"></p-skeleton>
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': (skel === 1 ? '120px' : skel === 2 ? '150px' : '100px'), 'height': '18px' }"></p-skeleton>
+                                                </div>
 
-                                                 <!-- Skeleton para IMEI -->
-                                                 <p-skeleton [ngStyle]="{ 'width': (skel === 1 ? '180px' : skel === 2 ? '160px' : '200px'), 'height': '14px', 'margin-bottom': '12px' }"></p-skeleton>
+                                                <!-- Skeleton para IMEI -->
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': (skel === 1 ? '180px' : skel === 2 ? '160px' : '200px'), 'height': '14px', 'margin-bottom': '12px' }"></p-skeleton>
 
-                                                 <!-- Skeleton para estado y velocidad -->
-                                                 <div style="display: flex; align-items: center; gap: 6px;">
-                                                     <p-skeleton [ngStyle]="{ 'width': '16px', 'height': '16px' }"></p-skeleton>
-                                                     <p-skeleton [ngStyle]="{ 'width': '80px', 'height': '16px' }"></p-skeleton>
-                                                 </div>
-                                             </td>
-                                             <td style="width: 1rem; padding: 16px;">
-                                                 <div style="display: flex; gap: 4px;">
-                                                     <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
-                                                     <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
-                                                 </div>
-                                             </td>
-                                         </tr>
-                                     </ng-template>
-                                      
-                                        <ng-template pTemplate="body" let-target>
-                                            <tr class="management__content-table-tr"
-                                                [ngClass]="{
+                                                <!-- Skeleton para estado y velocidad -->
+                                                <div style="display: flex; align-items: center; gap: 6px;">
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '16px', 'height': '16px' }"></p-skeleton>
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '80px', 'height': '16px' }"></p-skeleton>
+                                                </div>
+                                            </td>
+                                            <td style="width: 1rem; padding: 16px;">
+                                                <div style="display: flex; gap: 4px;">
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </ng-template>
+
+                                    <ng-template pTemplate="body" let-target>
+                                        <tr class="management__content-table-tr" [ngClass]="{
                                                   'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
                                                   'target-selected-from-url': isTargetSelectedFromUrl(target._id),
                                                   'external-user-target': shouldShowParentUserButton(target),
                                                   'shared-target-row': target.isShared
                                                 }"
-                                                [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
-                                                [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
-                                                [style.box-shadow]="isTargetSelectedFromUrl(target._id) ? '0 0 10px rgba(34, 197, 94, 0.3)' : ''"
-                                                [title]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'TARGET SELECCIONADO VISTA MAPA - ID: ' + target._id : ''">
-                                            
-                                                <td style="font-size: 13px!important;"> 
-                                                    <span (click)="handleTargetClick(target, $event)"
-                                                          class="management__content-table-link" 
-                                                          [ngClass]="{
+                                            [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
+                                            [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
+                                            [style.box-shadow]="isTargetSelectedFromUrl(target._id) ? '0 0 10px rgba(34, 197, 94, 0.3)' : ''"
+                                            [title]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'TARGET SELECCIONADO VISTA MAPA - ID: ' + target._id : ''">
+
+                                            <td style="font-size: 13px!important;">
+                                                <span (click)="handleTargetClick(target, $event)"
+                                                    class="management__content-table-link" [ngClass]="{
                                                             'target-online': target.traccarStatus === 'online',
                                                             'target-offline': target.traccarStatus !== 'online',
                                                             'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
                                                             'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
                                                           }"
-                                                          title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña">
-                                                        <i class="pi pi-map-marker"
-                                                           [ngClass]="{
+                                                    title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña">
+                                                    <i class="pi pi-map-marker" [ngClass]="{
                                                              'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
-                                                           }"></i> 
-                                                        <span class="target-name" [ngClass]="{
+                                                           }"></i>
+                                                    <span class="target-name" [ngClass]="{
                                                           'target-inactive': !target.originalTarget?.status,
                                                           'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
                                                         }">{{target.name}}</span>
-                                                        
-                                                        <i *ngIf="target.isShared" 
-                                                           class="pi pi-share-alt target-shared-indicator" 
-                                                           title="Objetivo compartido"
-                                                           style="color: #3b82f6; margin-left: 4px; font-size: 12px;"></i>
-                                                        <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id" 
-                                                           class="pi pi-eye target-map-indicator" 
-                                                           title="Mostrando en mapa"></i>
-                                                        <i *ngIf="isTargetSelectedFromUrl(target._id)" 
-                                                           class="pi pi-link target-url-indicator" 
-                                                           title="Seleccionado desde URL"
-                                                           style="color: #22c55e; margin-left: 4px;"></i>
-                                                    </span>
-                                                    <div style="margin-bottom: 10px;">
-                                                    <span style="display: block;"
-                                                          [ngClass]="{
+
+                                                    <i *ngIf="target.isShared"
+                                                        class="pi pi-share-alt target-shared-indicator"
+                                                        title="Objetivo compartido"
+                                                        style="color: #3b82f6; margin-left: 4px; font-size: 12px;"></i>
+                                                    <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id"
+                                                        class="pi pi-eye target-map-indicator"
+                                                        title="Mostrando en mapa"></i>
+                                                    <i *ngIf="isTargetSelectedFromUrl(target._id)"
+                                                        class="pi pi-link target-url-indicator"
+                                                        title="Seleccionado desde URL"
+                                                        style="color: #22c55e; margin-left: 4px;"></i>
+                                                </span>
+                                                <div style="margin-bottom: 10px;">
+                                                    <span style="display: block;" [ngClass]="{
                                                                 'target-inactive': !target.originalTarget?.status,
                                                                 'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
                                                               }">IMEI: {{target.imei}}</span>
-                                                        <span style="display: block;"
-                                                              class="target-sim-info"
-                                                              *ngIf="target.sim || target.sim_card_number">
-                                                            SIM: {{ target.sim || target.sim_card_number }}
-                                                        </span>
-                                                        <span *ngIf="!target.originalTarget?.status" class="target-suspended-text">(Suspendido)</span>
-                                                        <div *ngIf="target.offlineTimeText" class="offline-info-container">
-                                                            <span class="target-offline-time">{{target.offlineTimeText}}</span>
-                                                            <span class="target-offline-date">{{target.offlineDateText}}</span>
-                                                        </div>
+                                                    <span style="display: block;" class="target-sim-info"
+                                                        *ngIf="target.sim || target.sim_card_number">
+                                                        SIM: {{ target.sim || target.sim_card_number }}
+                                                    </span>
+                                                    <span *ngIf="!target.originalTarget?.status"
+                                                        class="target-suspended-text">(Suspendido)</span>
+                                                    <div *ngIf="target.offlineTimeText" class="offline-info-container">
+                                                        <span
+                                                            class="target-offline-time">{{target.offlineTimeText}}</span>
+                                                        <span
+                                                            class="target-offline-date">{{target.offlineDateText}}</span>
                                                     </div>
-                                                    
-                                                    
-                                                    
-                                                    <!-- Estado y velocidad combinados -->
-                                                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
-                                                        <p-tableCheckbox [value]="target" *ngIf="!target.isShared" />
-                                                        <div *ngIf="target.isShared" class="shared-checkbox-icon" title="Objetivo compartido">
-                                                            <i class="pi pi-share-alt"></i>
-                                                        </div>
-                                                        <!-- <p-badge [style]="{transform: 'scale(0.8)'}" [value]="target.status" [severity]="target.status == translate.instant('management.status.online') ? 'success' : 'secondary'" /> -->
-                                                        <span class="device-speed-display device-speed-display--inline">
-                                                            🚗 {{ getDeviceSpeed(target) }}
-                                                        </span>
-                                                    </div>
-                                                </td>
+                                                </div>
 
-                                                <td style="width: 1rem">
-                                                    <div style="transform: scale(0.8)" class="management__user-table-controls management__user-table-controls--maps">
-                                                        <div *ngIf="!target.isShared" class="target-controls-own">
-                                                            <button (click)="showTargetForm(target)" class="button button--primary-flat" title="Editar objetivo" *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square" ></i> </button>
-                                                            <button
-                                                                *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices() && currentUserAffiliationTypeId === 'empleado'"
-                                                                class="button button--primary-flat-icon"
-                                                                title="Cancelar objetivo"
-                                                                (click)="confirmCancelTarget(target)">
-                                                                <i class="pi pi-ban" ></i>
-                                                            </button>
-                                                            <button 
-                                                                *ngIf="isCurrentUserRoot"
-                                                                class="button button--primary-flat-icon" 
-                                                                title="Eliminar permanentemente" 
-                                                                (click)="deleteTarget(target)"> 
-                                                                <i class="pi pi-trash" ></i> 
-                                                            </button>
-                                                            <button 
-                                                                *ngIf="shouldShowParentUserButton(target)"
-                                                                class="button button--primary-flat-icon" 
-                                                                title="Abrir usuario propietario (Ctrl+click para nueva pestaña)" 
-                                                                (click)="navigateToParentUser(target, $event)"> 
-                                                                <i class="pi pi-user" ></i> 
-                                                            </button>
-                                                        </div>
-                                                        <div *ngIf="target.isShared" class="target-controls-shared">
-                                                            <span class="shared-target-label">
-                                                                <i class="pi pi-share-alt"></i>
-                                                                
-                                                            </span>
-                                                        </div>
+
+
+                                                <!-- Estado y velocidad combinados -->
+                                                <div
+                                                    style="display: flex; align-items: center; gap: 6px; margin-top: 8px;">
+                                                    <p-tableCheckbox [value]="target" *ngIf="!target.isShared" />
+                                                    <div *ngIf="target.isShared" class="shared-checkbox-icon"
+                                                        title="Objetivo compartido">
+                                                        <i class="pi pi-share-alt"></i>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        </ng-template>
+                                                    <!-- <p-badge [style]="{transform: 'scale(0.8)'}" [value]="target.status" [severity]="target.status == translate.instant('management.status.online') ? 'success' : 'secondary'" /> -->
+                                                    <span class="device-speed-display device-speed-display--inline">
+                                                        🚗 {{ getDeviceSpeed(target) }}
+                                                    </span>
+                                                </div>
+                                            </td>
+
+                                            <td style="width: 1rem">
+                                                <div style="transform: scale(0.8)"
+                                                    class="management__user-table-controls management__user-table-controls--maps">
+                                                    <div *ngIf="!target.isShared" class="target-controls-own">
+                                                        <button (click)="showTargetForm(target)"
+                                                            class="button button--primary-flat" title="Editar objetivo"
+                                                            *ngIf="canUpdateDevices()"> <i
+                                                                class="pi pi-pen-to-square"></i> </button>
+                                                        <button
+                                                            *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices() && currentUserAffiliationTypeId === 'empleado'"
+                                                            class="button button--primary-flat-icon"
+                                                            title="Cancelar objetivo"
+                                                            (click)="confirmCancelTarget(target)">
+                                                            <i class="pi pi-ban"></i>
+                                                        </button>
+                                                        <button *ngIf="isCurrentUserRoot"
+                                                            class="button button--primary-flat-icon"
+                                                            title="Eliminar permanentemente"
+                                                            (click)="deleteTarget(target)">
+                                                            <i class="pi pi-trash"></i>
+                                                        </button>
+                                                        <button *ngIf="shouldShowParentUserButton(target)"
+                                                            class="button button--primary-flat-icon"
+                                                            title="Abrir usuario propietario (Ctrl+click para nueva pestaña)"
+                                                            (click)="navigateToParentUser(target, $event)">
+                                                            <i class="pi pi-user"></i>
+                                                        </button>
+                                                    </div>
+                                                    <div *ngIf="target.isShared" class="target-controls-shared">
+                                                        <span class="shared-target-label">
+                                                            <i class="pi pi-share-alt"></i>
+
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </ng-template>
                                 </p-table>
-                                
+
                                 <!-- Loading para scroll infinito - vista de mapa -->
                                 <div *ngIf="isLoadingMoreTargets" class="loading-more-targets">
                                     <!-- Skeleton de targets para vista móvil -->
@@ -338,23 +377,27 @@
                                         <div class="skeleton-target-card" *ngFor="let item of [1,2,3]">
                                             <div class="skeleton-target-card-header">
                                                 <!-- <p-skeleton [ngStyle]="{ 'width': '24px', 'height': '24px', 'border-radius': '50%' }"></p-skeleton> -->
-                                                <p-skeleton [ngStyle]="{ 'width': '120px', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '120px', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
                                             </div>
                                             <div class="skeleton-target-card-body">
-                                                <p-skeleton [ngStyle]="{ 'width': '100%', 'height': '16px', 'border-radius': '4px' }"></p-skeleton>
-                                                <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '14px', 'border-radius': '4px', 'margin-top': '8px' }"></p-skeleton>
-                                                <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '14px', 'border-radius': '4px', 'margin-top': '4px' }"></p-skeleton>
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '100%', 'height': '16px', 'border-radius': '4px' }"></p-skeleton>
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '80%', 'height': '14px', 'border-radius': '4px', 'margin-top': '8px' }"></p-skeleton>
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '60%', 'height': '14px', 'border-radius': '4px', 'margin-top': '4px' }"></p-skeleton>
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <!-- Loading original -->
                                     <div class="loading-content">
                                         <i class="pi pi-spinner loading-spinner"></i>
                                         <span>Cargando más dispositivos...</span>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Indicador de fin de lista - vista de mapa -->
                                 <div *ngIf="!hasMoreTargetsToLoad && targetsList.length > 25" class="end-of-list">
                                     <div class="end-content">
@@ -363,73 +406,65 @@
                                     </div>
                                 </div>
                             </div>
-                              
+
                         </div>
                     </div>
                 </div>
-                </div>
-           </div>  
-            <div class="management__content-maps" 
-                 [style.display]="mapDisplayStyle"
-                 [style.width.px]="isMobileView && showMobileMapFullscreen ? window.innerWidth : null"
-                 [style.height.px]="isMobileView && showMobileMapFullscreen ? window.innerHeight : null"
-                 [style.position]="isMobileView && showMobileMapFullscreen ? 'fixed' : 'relative'"
-                 [style.top.px]="isMobileView && showMobileMapFullscreen ? 0 : null"
-                 [style.left.px]="isMobileView && showMobileMapFullscreen ? 0 : null"
-                 [style.z-index]="isMobileView && showMobileMapFullscreen ? 9998 : null">
-                
-                <!-- Botón de regreso para móvil -->
-             
-                
-                <div class="map-provider-select-wrapper"
-                    [ngStyle]="{ right: providerType === 'mapbox' ? '20px' : '60px' }">
-                    <select [value]="selectedMap" (change)="onMapProviderChange($event)">
-                        <option value="google-light">Mapa 1</option>
-                        <option value="google-dark">Mapa 2</option>
-                        <option value="mapbox-light" *ngIf="showAdvancedMapOptions">Mapa 3</option>
-                        <option value="mapbox-dark" *ngIf="showAdvancedMapOptions">Mapa 4</option>
-                    </select>
-                </div>
-                <app-maps *ngIf="mapsKey" 
-                  [attr.data-key]="mapsKey"
-                  [provider]="providerType" 
-                  [theme]="providerTheme" 
-                  [selectedTarget]="selectedTargetForMap" 
-                  [targetsForMap]="targetsList"
-                  [vehicleTypeGetter]="getVehicleTypeByModelId.bind(this)"
-                  [preloadedStopTime]="selectedTargetStopTime">
-                </app-maps>
-            </div>
-            <div *ngIf="isMobileView && showMobileMapFullscreen" class="mobile-back-button">
-                <button (click)="hideMobileMapFullscreen()" class="button button--primary-flat">
-                    <i class="pi pi-arrow-left"></i>
-                    <span>Volver a la lista</span>
-                </button>
             </div>
         </div>
+        <div class="management__content-maps" [style.display]="mapDisplayStyle"
+            [style.width.px]="isMobileView && showMobileMapFullscreen ? window.innerWidth : null"
+            [style.height.px]="isMobileView && showMobileMapFullscreen ? window.innerHeight : null"
+            [style.position]="isMobileView && showMobileMapFullscreen ? 'fixed' : 'relative'"
+            [style.top.px]="isMobileView && showMobileMapFullscreen ? 0 : null"
+            [style.left.px]="isMobileView && showMobileMapFullscreen ? 0 : null"
+            [style.z-index]="isMobileView && showMobileMapFullscreen ? 9998 : null">
+
+            <!-- Botón de regreso para móvil -->
 
 
-        <div *ngIf="!showMaps" class="management">
-            <div class="management__route">
-
-                <p-breadcrumb 
-                
-                [model]="items" 
-                [home]="home" />
+            <div class="map-provider-select-wrapper" [ngStyle]="{ right: providerType === 'mapbox' ? '20px' : '60px' }">
+                <select [value]="selectedMap" (change)="onMapProviderChange($event)">
+                    <option value="google-light">Mapa 1</option>
+                    <option value="google-dark">Mapa 2</option>
+                    <option value="mapbox-light" *ngIf="showAdvancedMapOptions">Mapa 3</option>
+                    <option value="mapbox-dark" *ngIf="showAdvancedMapOptions">Mapa 4</option>
+                </select>
             </div>
+            <app-maps *ngIf="mapsKey" [attr.data-key]="mapsKey" [provider]="providerType" [theme]="providerTheme"
+                [selectedTarget]="selectedTargetForMap" [targetsForMap]="targetsList"
+                [vehicleTypeGetter]="getVehicleTypeByModelId.bind(this)" [preloadedStopTime]="selectedTargetStopTime">
+            </app-maps>
+        </div>
+        <div *ngIf="isMobileView && showMobileMapFullscreen" class="mobile-back-button">
+            <button (click)="hideMobileMapFullscreen()" class="button button--primary-flat">
+                <i class="pi pi-arrow-left"></i>
+                <span>Volver a la lista</span>
+            </button>
+        </div>
+    </div>
 
-            <div class="management__controls" *ngIf="shouldShowMapToggleButton">
-                <button class="management__show-map-btn" (click)="showMapsToggle()">
-                    <i class="pi pi-map"></i>
-                    <span>Mapa</span>
-                </button>
-            </div>
 
-            <div class="management__user">
-             
-               <div class="management__card-user">
+    <div *ngIf="!showMaps" class="management">
+        <div class="management__route">
+
+            <p-breadcrumb [model]="items" [home]="home" />
+        </div>
+
+        <div class="management__controls" *ngIf="shouldShowMapToggleButton">
+            <button class="management__show-map-btn" (click)="showMapsToggle()">
+                <i class="pi pi-map"></i>
+                <span>Mapa</span>
+            </button>
+        </div>
+
+        <div class="management__user">
+
+            <div class="management__card-user">
                 <div class="management__card-user-img">
-                    <i class="pi pi-user"></i>
+                    <img *ngIf="selectedUser?.photo" [src]="selectedUser?.photo" [alt]="selectedUser?.name"
+                        class="card-user-photo">
+                    <i *ngIf="!selectedUser?.photo" class="pi pi-user"></i>
                 </div>
                 <div class="management__user-title">
                     <strong *ngIf="!loading">{{ selectedUser?.name }} {{ selectedUser?.last_name }}</strong>
@@ -443,150 +478,179 @@
                     <span *ngIf="!loading">{{ selectedUser?.access_level_id?.name | titlecase }}</span>
                     <p-skeleton *ngIf="loading" [ngStyle]="{ 'width': '120px', 'height': '18px' }"></p-skeleton>
                 </div>
-                <div class="management__user-monitoring" *ngIf="!loading && currentUserAffiliationTypeId === 'empleado'">
+                <div class="management__user-monitoring"
+                    *ngIf="!loading && currentUserAffiliationTypeId === 'empleado'">
                     <span (click)="selectedUser && navigateToMonitoring(selectedUser!._id)" class="monitoring-link">
                         <i class="pi pi-eye"></i>
                         Monitoreo
                     </span>
                 </div>
-                <div class="management__user-actions" *ngIf="!loading && selectedUser && currentUserAffiliationTypeId === 'empleado' && canUpdateUsers() && !isSelectedUserCurrentUser">
-                    <button (click)="editUser(selectedUser!)" class="button button--primary-flat" title="Editar usuario">
+                <div class="management__user-actions"
+                    *ngIf="!loading && selectedUser && currentUserAffiliationTypeId === 'empleado' && canUpdateUsers() && !isSelectedUserCurrentUser">
+                    <button (click)="editUser(selectedUser!)" class="button button--primary-flat"
+                        title="Editar usuario">
                         <i class="pi pi-pencil"></i>
                         <span>Modificar</span>
                     </button>
                 </div>
-         
-           
-               </div>
 
-               <div class="management__user-controls" *ngIf="!loading">
-                <div class="management__user-options">
-                    <button (click)="setOp('u')" [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }" class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( {{ totalUsersCountDisplay }} )</button>
-                    <button (click)="setOp('t')" [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }" class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets | translate }} ( {{ totalTargetsCountDisplay }} )</button>
-                </div>
-                <div class="management__user-back-button" *ngIf="canNavigateBack()">
-                    <button (click)="goToParent()" class="button button--flat"> <i class="pi pi-arrow-left"></i> {{ translations.back | translate }}</button>
-                </div>
-               </div>
 
             </div>
-            <div class="management__content">
-                    <div *ngIf="managementService.getOp() === 'u' && canReadUsers()" class="management__search">
-                        <div  class="management__input-search">
-                            <label for="management-search"><i class="pi pi-search"></i></label>
-                            <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text" [placeholder]="translations.searchUsers | translate">
-                            
-                        </div>
-                        <button (click)="showUserForm()" class="button button--primary-flat-red">
-                            <i class="pi pi-user-plus"></i>
-                            <span class="button-text">{{ translations.newUser | translate }}</span>
-                        </button>
-                    </div>
 
-                    <div *ngIf="managementService.getOp() === 't'" class="management__search">
-                        <div  class="management__input-search">
-                            <label for="management-search"><i class="pi pi-search"></i></label>
-                            <input (keyup)="searchTargets()" [(ngModel)]="searchTargetsTerm" id="management-search" type="text" [placeholder]="translations.searchTargets | translate">
+            <div class="management__user-controls" *ngIf="!loading">
+                <div class="management__user-options">
+                    <button (click)="setOp('u')"
+                        [ngClass]="{'button--primary-flat': managementService.getOp() === 'u', 'button--flat': managementService.getOp() !== 'u' }"
+                        class="button"> <i class="pi pi-users"></i> {{ translations.users | translate }} ( {{
+                        totalUsersCountDisplay }} )</button>
+                    <button (click)="setOp('t')"
+                        [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }"
+                        class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets |
+                        translate }} ( {{ totalTargetsCountDisplay }} )</button>
+                </div>
+                <div class="management__user-back-button" *ngIf="canNavigateBack()">
+                    <button (click)="goToParent()" class="button button--flat"> <i class="pi pi-arrow-left"></i> {{
+                        translations.back | translate }}</button>
+                </div>
+            </div>
 
-                        </div>
-                        <button (click)="showTargetForm()" class="button button--primary-flat-red" *ngIf="currentUserAffiliationTypeId === 'empleado'">
-                            <i class="pi pi-plus"></i>
-                            <span class="button-text">{{ translations.newTarget | translate }}</span>
-                        </button>
-                    </div>
+        </div>
+        <div class="management__content">
+            <div *ngIf="managementService.getOp() === 'u' && canReadUsers()" class="management__search">
+                <div class="management__input-search">
+                    <label for="management-search"><i class="pi pi-search"></i></label>
+                    <input (keyup)="searchUser()" [(ngModel)]="searchUsersTerm" id="management-search" type="text"
+                        [placeholder]="translations.searchUsers | translate">
+
+                </div>
+                <button (click)="showUserForm()" class="button button--primary-flat-red">
+                    <i class="pi pi-user-plus"></i>
+                    <span class="button-text">{{ translations.newUser | translate }}</span>
+                </button>
+            </div>
+
+            <div *ngIf="managementService.getOp() === 't'" class="management__search">
+                <div class="management__input-search">
+                    <label for="management-search"><i class="pi pi-search"></i></label>
+                    <input (keyup)="searchTargets()" [(ngModel)]="searchTargetsTerm" id="management-search" type="text"
+                        [placeholder]="translations.searchTargets | translate">
+
+                </div>
+                <button (click)="showTargetForm()" class="button button--primary-flat-red"
+                    *ngIf="currentUserAffiliationTypeId === 'empleado'">
+                    <i class="pi pi-plus"></i>
+                    <span class="button-text">{{ translations.newTarget | translate }}</span>
+                </button>
+            </div>
 
 
 
-                <div class="management__content-body" (scroll)="onScroll($event)">
-                    <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards">
-                        <ng-container *ngIf="!loading; else loadingSkeletons">
-                            <div *ngIf="!loading && users.length === 0" 
-                                 class="no-targets-message fade-in-message"
-                                 [@fadeInOut]>
-                                <div class="no-targets-content">
-                                    <div class="no-targets-icon">
-                                        <i class="pi pi-users"></i>
-                                    </div>
-                                    
-                                    <p>No hay usuarios configurados en este nivel</p>
-                             
+            <div class="management__content-body" (scroll)="onScroll($event)">
+                <div *ngIf="managementService.getOp() === 'u'" class="management__content-cards">
+                    <ng-container *ngIf="!loading; else loadingSkeletons">
+                        <div *ngIf="!loading && users.length === 0" class="no-targets-message fade-in-message"
+                            [@fadeInOut]>
+                            <div class="no-targets-content">
+                                <div class="no-targets-icon">
+                                    <i class="pi pi-users"></i>
                                 </div>
+
+                                <p>No hay usuarios configurados en este nivel</p>
+
                             </div>
-                            <div *ngFor="let user of users" class="management__user-card" [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
-                                <div class="management__user-card-icon"> 
-                                    <i class="pi" [ngClass]="isSharedUser(user) ? 'pi-share-alt' : 'pi-user'"></i> 
-                                </div>
-                                <div class="management__user-card-title"> 
-                                    <strong>{{ user.name }} {{ user.last_name }}</strong>
-                                   
-                                </div>
-                                <div class="management__user-card-subtitle"> <span>{{ user.email }}</span> </div>
-                                <div class="management__user-card-footer">{{ user.phone }}</div>
-                                <div class="management__user-card-controls">
-                                    <button (click)="enterUser(user)" class="button button--primary-flat" title="Entrar al usuario"> <i class="pi pi-sign-in " ></i> </button>
-                                    <button (click)="editUser(user)" class="button button--primary-flat" title="Editar usuario" *ngIf="canUpdateUsers()"> <i class="pi pi-pencil" ></i> </button>
-                                    <button class="button button--primary-flat" title="Eliminar usuario" (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers()"> <i class="pi pi-trash" ></i> </button>
-                                </div>
+                        </div>
+                        <div *ngFor="let user of users" class="management__user-card"
+                            [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
+                            <div class="management__user-card-icon">
+                                <img *ngIf="user.photo" [src]="user.photo" [alt]="user.name" class="user-card-image">
+                                <i *ngIf="!user.photo" class="pi"
+                                    [ngClass]="isSharedUser(user) ? 'pi-share-alt' : 'pi-user'"></i>
                             </div>
-                            
-                            <!-- Loading para scroll infinito de usuarios - vista escritorio -->
-                            <ng-container *ngIf="isLoadingMoreUsers">
-                                <div *ngFor="let skel of [1,2,3,4,5]" class="management__user-card">
-                                    <div class="management__user-card-icon"> <p-skeleton [ngStyle]="{ 'width': '40px', 'height': '40px', 'shape': 'circle' }"></p-skeleton> </div>
-                                    <div class="management__user-card-title"> <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton> </div>
-                                    <div class="management__user-card-subtitle"> <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton> </div>
-                                    <div class="management__user-card-footer"><p-skeleton [ngStyle]="{ 'width': '50%', 'height': '16px' }"></p-skeleton></div>
-                                    <div class="management__user-card-controls">
-                                        <!-- Opciones removidas, solo barra -->
-                                    </div>
+                            <div class="management__user-card-title">
+                                <strong>{{ user.name }} {{ user.last_name }}</strong>
+
+                            </div>
+                            <div class="management__user-card-subtitle"> <span>{{ user.email }}</span> </div>
+                            <div class="management__user-card-footer">{{ user.phone }}</div>
+                            <div class="management__user-card-controls">
+                                <button (click)="enterUser(user)" class="button button--primary-flat"
+                                    title="Entrar al usuario"> <i class="pi pi-sign-in "></i> </button>
+                                <button (click)="editUser(user)" class="button button--primary-flat"
+                                    title="Editar usuario" *ngIf="canUpdateUsers()"> <i class="pi pi-pencil"></i>
+                                </button>
+                                <button class="button button--primary-flat" title="Eliminar usuario"
+                                    (click)="confirmDeleteUser(user)" *ngIf="canDeleteUsers()"> <i
+                                        class="pi pi-trash"></i> </button>
+                            </div>
+                        </div>
+
+                        <!-- Loading para scroll infinito de usuarios - vista escritorio -->
+                        <ng-container *ngIf="isLoadingMoreUsers">
+                            <div *ngFor="let skel of [1,2,3,4,5]" class="management__user-card">
+                                <div class="management__user-card-icon"> <p-skeleton
+                                        [ngStyle]="{ 'width': '40px', 'height': '40px', 'shape': 'circle' }"></p-skeleton>
                                 </div>
-                            </ng-container>
-                        </ng-container>
-                        <ng-template #loadingSkeletons>
-                            <div *ngFor="let skel of [1,2]" class="management__user-card">
-                                <div class="management__user-card-icon"> <p-skeleton [ngStyle]="{ 'width': '40px', 'height': '40px', 'shape': 'circle' }"></p-skeleton> </div>
-                                <div class="management__user-card-title"> <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton> </div>
-                                <div class="management__user-card-subtitle"> <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton> </div>
-                                <div class="management__user-card-footer"><p-skeleton [ngStyle]="{ 'width': '50%', 'height': '16px' }"></p-skeleton></div>
+                                <div class="management__user-card-title"> <p-skeleton
+                                        [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton>
+                                </div>
+                                <div class="management__user-card-subtitle"> <p-skeleton
+                                        [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton>
+                                </div>
+                                <div class="management__user-card-footer"><p-skeleton
+                                        [ngStyle]="{ 'width': '50%', 'height': '16px' }"></p-skeleton></div>
                                 <div class="management__user-card-controls">
                                     <!-- Opciones removidas, solo barra -->
                                 </div>
                             </div>
-                        </ng-template>
-                    </div>
+                        </ng-container>
+                    </ng-container>
+                    <ng-template #loadingSkeletons>
+                        <div *ngFor="let skel of [1,2]" class="management__user-card">
+                            <div class="management__user-card-icon"> <p-skeleton
+                                    [ngStyle]="{ 'width': '40px', 'height': '40px', 'shape': 'circle' }"></p-skeleton>
+                            </div>
+                            <div class="management__user-card-title"> <p-skeleton
+                                    [ngStyle]="{ 'width': '80%', 'height': '24px', 'margin-bottom': '8px' }"></p-skeleton>
+                            </div>
+                            <div class="management__user-card-subtitle"> <p-skeleton
+                                    [ngStyle]="{ 'width': '60%', 'height': '18px', 'margin-bottom': '8px' }"></p-skeleton>
+                            </div>
+                            <div class="management__user-card-footer"><p-skeleton
+                                    [ngStyle]="{ 'width': '50%', 'height': '16px' }"></p-skeleton></div>
+                            <div class="management__user-card-controls">
+                                <!-- Opciones removidas, solo barra -->
+                            </div>
+                        </div>
+                    </ng-template>
+                </div>
 
-                    <div  *ngIf="managementService.getOp() === 't' && canReadDevices()" class="management__content-table">
-                      
-                        <ng-container *ngIf="!loadingTargetsState || isLoadingMoreTargets; else loadingTargetsSkeletons">
-                            <div *ngIf="targetsLoadCompleted && targetsList.length === 0" 
-                                 class="no-targets-message fade-in-message"
-                                 [@fadeInOut]>
-                                <div class="no-targets-content">
-                                    <div class="no-targets-icon">
-                                        <i class="pi pi-map-marker"></i>
-                                    </div>
-                                    <h3>No hay dispositivos disponibles</h3>
-                                    <p>Aún no tienes dispositivos GPS configurados</p>
-                                    <button (click)="showTargetForm()" 
-                                            class="button button--primary"
-                                            *ngIf="canCreateDevices()">
-                                        <i class="pi pi-plus"></i>
-                                        <span>Agregar dispositivo</span>
-                                    </button>
-                                    <div *ngIf="!canCreateDevices()" class="no-create-permission">
-                                        <i class="pi pi-lock" style="opacity: 0.5;"></i>
-                                    </div>
+                <div *ngIf="managementService.getOp() === 't' && canReadDevices()" class="management__content-table">
+
+                    <ng-container *ngIf="!loadingTargetsState || isLoadingMoreTargets; else loadingTargetsSkeletons">
+                        <div *ngIf="targetsLoadCompleted && targetsList.length === 0"
+                            class="no-targets-message fade-in-message" [@fadeInOut]>
+                            <div class="no-targets-content">
+                                <div class="no-targets-icon">
+                                    <i class="pi pi-map-marker"></i>
+                                </div>
+                                <h3>No hay dispositivos disponibles</h3>
+                                <p>Aún no tienes dispositivos GPS configurados</p>
+                                <button (click)="showTargetForm()" class="button button--primary"
+                                    *ngIf="canCreateDevices()">
+                                    <i class="pi pi-plus"></i>
+                                    <span>Agregar dispositivo</span>
+                                </button>
+                                <div *ngIf="!canCreateDevices()" class="no-create-permission">
+                                    <i class="pi pi-lock" style="opacity: 0.5;"></i>
                                 </div>
                             </div>
-                            <div class="card" *ngIf="targetsList.length > 0">
-                            <p-table 
-                                [value]="targetsList" 
-                                [(selection)]="targetsSelected" 
-                                dataKey="_id" 
+                        </div>
+                        <div class="card" *ngIf="targetsList.length > 0">
+                            <p-table [value]="targetsList" [(selection)]="targetsSelected" dataKey="_id"
                                 [tableStyle]="{'min-width': '50rem'}">
-                                <ng-template pTemplate="header" >
-                                    <tr  >
-                                        <th  style="width: 4rem" *ngIf="canUpdateDevices()">
+                                <ng-template pTemplate="header">
+                                    <tr>
+                                        <th style="width: 4rem" *ngIf="canUpdateDevices()">
                                             <!-- <p-tableHeaderCheckbox /> Checkbox "seleccionar todos" ocultado -->
                                         </th>
                                         <th>{{ 'management.table.name' | translate }}</th>
@@ -600,8 +664,7 @@
                                     </tr>
                                 </ng-template>
                                 <ng-template pTemplate="body" let-target>
-                                    <tr class="management__content-table-tr" 
-                                        [ngClass]="{
+                                    <tr class="management__content-table-tr" [ngClass]="{
                                           'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
                                           'external-user-target': shouldShowParentUserButton(target),
                                           'shared-target-row': target.isShared
@@ -619,33 +682,34 @@
                                         </td>
                                         <td>
                                             <span (click)="handleTargetClick(target, $event)"
-                                              class="management__content-table-link"
-                                              [ngClass]="{
+                                                class="management__content-table-link" [ngClass]="{
                                                 'target-online': target.traccarStatus === 'online',
                                                 'target-offline': target.traccarStatus !== 'online',
                                                 'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
                                                 'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
-                                              }"
-                                              title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña">
-                                                <i class="pi pi-map-marker" 
-                                                   [ngClass]="{
+                                              }" title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña">
+                                                <i class="pi pi-map-marker" [ngClass]="{
                                                      'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
-                                                   }"> </i> 
-                                                 <span class="target-name" [ngClass]="{'target-inactive': !target.originalTarget?.status}"> {{target.name}}</span>
-                                                
-                                                <i *ngIf="target.isShared" 
-                                                   class="pi pi-share-alt target-shared-indicator" 
-                                                   title="Objetivo compartido"
-                                                   style="color: #3b82f6; margin-left: 9px; font-size: 12px;"></i>
-                                                <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id" 
-                                                   class="pi pi-eye target-map-indicator" 
-                                                   title="Mostrando en mapa"></i>
+                                                   }"> </i>
+                                                <span class="target-name"
+                                                    [ngClass]="{'target-inactive': !target.originalTarget?.status}">
+                                                    {{target.name}}</span>
+
+                                                <i *ngIf="target.isShared"
+                                                    class="pi pi-share-alt target-shared-indicator"
+                                                    title="Objetivo compartido"
+                                                    style="color: #3b82f6; margin-left: 9px; font-size: 12px;"></i>
+                                                <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id"
+                                                    class="pi pi-eye target-map-indicator"
+                                                    title="Mostrando en mapa"></i>
                                             </span>
                                         </td>
                                         <td>
                                             <div class="imei-container">
-                                                <span [ngClass]="{'target-inactive': !target.originalTarget?.status}">{{target.imei}}</span>
-                                                <span *ngIf="!target.originalTarget?.status" class="target-suspended-text">(Suspendido)</span>
+                                                <span
+                                                    [ngClass]="{'target-inactive': !target.originalTarget?.status}">{{target.imei}}</span>
+                                                <span *ngIf="!target.originalTarget?.status"
+                                                    class="target-suspended-text">(Suspendido)</span>
                                                 <div *ngIf="target.offlineTimeText" class="offline-info-container">
                                                     <span class="target-offline-time">{{target.offlineTimeText}}</span>
                                                     <span class="target-offline-date">{{target.offlineDateText}}</span>
@@ -661,39 +725,41 @@
                                           'expiration-warning': getExpirationStatus(target.expiration_date) === 'warning',
                                           'expiration-expired': getExpirationStatus(target.expiration_date) === 'expired'
                                         }">
-                                          <div *ngIf="getExpirationStatus(target.expiration_date) === 'expired'" class="expiration-expired-content">
-                                            <span class="expiration-label">EXPIRADO</span>
-                                            <span class="expiration-date">{{target.expiration_date | date:'dd/MM/yyyy'}}</span>
-                                          </div>
-                                          <span *ngIf="getExpirationStatus(target.expiration_date) !== 'expired'">
-                                            {{target.expiration_date ? (target.expiration_date | date:'dd/MM/yyyy') : '-'}}
-                                          </span>
+                                            <div *ngIf="getExpirationStatus(target.expiration_date) === 'expired'"
+                                                class="expiration-expired-content">
+                                                <span class="expiration-label">EXPIRADO</span>
+                                                <span class="expiration-date">{{target.expiration_date |
+                                                    date:'dd/MM/yyyy'}}</span>
+                                            </div>
+                                            <span *ngIf="getExpirationStatus(target.expiration_date) !== 'expired'">
+                                                {{target.expiration_date ? (target.expiration_date | date:'dd/MM/yyyy')
+                                                : '-'}}
+                                            </span>
                                         </td>
                                         <td>
                                             <div class="management__user-table-controls">
                                                 <div *ngIf="!target.isShared" class="target-controls-own">
-                                                    <button class="button button--primary-flat" (click)="showTargetForm(target)" title="Editar objetivo" *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square" ></i> </button>
+                                                    <button class="button button--primary-flat"
+                                                        (click)="showTargetForm(target)" title="Editar objetivo"
+                                                        *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square"></i>
+                                                    </button>
                                                     <button
                                                         *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices() && currentUserAffiliationTypeId === 'empleado'"
                                                         class="button button--primary-flat-icon"
-                                                        title="Cancelar objetivo"
-                                                        (click)="confirmCancelTarget(target)">
-                                                        <i class="pi pi-ban" ></i>
+                                                        title="Cancelar objetivo" (click)="confirmCancelTarget(target)">
+                                                        <i class="pi pi-ban"></i>
                                                     </button>
-                                                    <button 
-                                                        *ngIf="isCurrentUserRoot"
-                                                        class="button button--primary-flat-icon" 
-                                                        title="Eliminar permanentemente" 
-                                                        (click)="deleteTarget(target)"> 
-                                                        <i class="pi pi-trash" ></i> 
+                                                    <button *ngIf="isCurrentUserRoot"
+                                                        class="button button--primary-flat-icon"
+                                                        title="Eliminar permanentemente" (click)="deleteTarget(target)">
+                                                        <i class="pi pi-trash"></i>
                                                     </button>
-                                                            <button 
-                                                                *ngIf="shouldShowParentUserButton(target)"
-                                                                class="button button--primary-flat-icon" 
-                                                                title="Abrir usuario propietario (Ctrl+click para nueva pestaña)" 
-                                                                (click)="navigateToParentUser(target, $event)"> 
-                                                                <i class="pi pi-user" ></i> 
-                                                            </button>
+                                                    <button *ngIf="shouldShowParentUserButton(target)"
+                                                        class="button button--primary-flat-icon"
+                                                        title="Abrir usuario propietario (Ctrl+click para nueva pestaña)"
+                                                        (click)="navigateToParentUser(target, $event)">
+                                                        <i class="pi pi-user"></i>
+                                                    </button>
                                                 </div>
                                                 <div *ngIf="target.isShared" class="target-controls-shared">
                                                     <span class="shared-target-label">
@@ -706,7 +772,7 @@
                                     </tr>
                                 </ng-template>
                             </p-table>
-                            
+
                             <!-- Loading para scroll infinito - aparece debajo de los targets existentes -->
                             <div *ngIf="isLoadingMoreTargets" class="loading-more-targets">
                                 <!-- Skeleton de targets -->
@@ -714,33 +780,39 @@
                                     <div class="skeleton-target-row" *ngFor="let item of [1,2,3,4,5,6,7,8,9,10]">
                                         <div class="skeleton-target-cell">
                                             <!-- <p-skeleton [ngStyle]="{ 'width': '100%', 'height': '20px', 'border-radius': '4px' }"></p-skeleton> -->
-                                            <p-skeleton [ngStyle]="{ 'width': '80%', 'height': '16px', 'border-radius': '4px', 'margin-top': '4px' }"></p-skeleton>
+                                            <p-skeleton
+                                                [ngStyle]="{ 'width': '80%', 'height': '16px', 'border-radius': '4px', 'margin-top': '4px' }"></p-skeleton>
                                         </div>
                                         <div class="skeleton-target-cell">
-                                            <p-skeleton [ngStyle]="{ 'width': '60%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
+                                            <p-skeleton
+                                                [ngStyle]="{ 'width': '60%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
                                         </div>
                                         <div class="skeleton-target-cell">
-                                            <p-skeleton [ngStyle]="{ 'width': '40%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
+                                            <p-skeleton
+                                                [ngStyle]="{ 'width': '40%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
                                         </div>
                                         <div class="skeleton-target-cell">
-                                            <p-skeleton [ngStyle]="{ 'width': '30%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
+                                            <p-skeleton
+                                                [ngStyle]="{ 'width': '30%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
                                         </div>
                                         <div class="skeleton-target-cell">
                                             <div style="display: flex; gap: 4px;">
-                                                <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
-                                                <p-skeleton [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <!-- Loading original -->
                                 <div class="loading-content">
                                     <i class="pi pi-spinner loading-spinner"></i>
                                     <span>Cargando más dispositivos...</span>
                                 </div>
                             </div>
-                            
+
                             <!-- Indicador de fin de lista -->
                             <div *ngIf="!hasMoreTargetsToLoad && targetsList.length > 25" class="end-of-list">
                                 <div class="end-content">
@@ -749,60 +821,64 @@
                                 </div>
                             </div>
                         </div>
-                        </ng-container>
-                        
-                        <ng-template #loadingTargetsSkeletons>
-                            <div class="card">
-                                <p-table [value]="[1,2,3,4,5]" [tableStyle]="{'min-width': '50rem'}">
-                                    <ng-template pTemplate="header">
-                                        <tr>
-                                            <th style="width: 4rem">
-                                                <p-skeleton [ngStyle]="{ 'width': '20px', 'height': '20px' }"></p-skeleton>
-                                            </th>
-                                            <th>{{ 'management.table.name' | translate }}</th>
-                                            <th>{{ 'management.table.imei' | translate }}</th>
-                                            <th>{{ 'management.table.sim' | translate }}</th>
-                                            <th></th>
-                                        </tr>
-                                    </ng-template>
-                                    <ng-template pTemplate="body" let-skel>
-                                        <tr>
-                                            <td>
-                                                <p-skeleton [ngStyle]="{ 'width': '20px', 'height': '20px' }"></p-skeleton>
-                                            </td>
-                                            <td>
-                                                <p-skeleton [ngStyle]="{ 'width': '120px', 'height': '20px' }"></p-skeleton>
-                                            </td>
-                                            <td>
-                                                <p-skeleton [ngStyle]="{ 'width': '100px', 'height': '20px' }"></p-skeleton>
-                                            </td>
-                                            <td>
-                                                <div style="display: flex; gap: 8px;">
-                                                    <p-skeleton [ngStyle]="{ 'width': '32px', 'height': '32px', 'border-radius': '4px' }"></p-skeleton>
-                                                    <p-skeleton [ngStyle]="{ 'width': '32px', 'height': '32px', 'border-radius': '4px' }"></p-skeleton>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </ng-template>
-                                </p-table>
-                            </div>
-                        </ng-template>
-                          
-                    </div>
+                    </ng-container>
+
+                    <ng-template #loadingTargetsSkeletons>
+                        <div class="card">
+                            <p-table [value]="[1,2,3,4,5]" [tableStyle]="{'min-width': '50rem'}">
+                                <ng-template pTemplate="header">
+                                    <tr>
+                                        <th style="width: 4rem">
+                                            <p-skeleton [ngStyle]="{ 'width': '20px', 'height': '20px' }"></p-skeleton>
+                                        </th>
+                                        <th>{{ 'management.table.name' | translate }}</th>
+                                        <th>{{ 'management.table.imei' | translate }}</th>
+                                        <th>{{ 'management.table.sim' | translate }}</th>
+                                        <th></th>
+                                    </tr>
+                                </ng-template>
+                                <ng-template pTemplate="body" let-skel>
+                                    <tr>
+                                        <td>
+                                            <p-skeleton [ngStyle]="{ 'width': '20px', 'height': '20px' }"></p-skeleton>
+                                        </td>
+                                        <td>
+                                            <p-skeleton [ngStyle]="{ 'width': '120px', 'height': '20px' }"></p-skeleton>
+                                        </td>
+                                        <td>
+                                            <p-skeleton [ngStyle]="{ 'width': '100px', 'height': '20px' }"></p-skeleton>
+                                        </td>
+                                        <td>
+                                            <div style="display: flex; gap: 8px;">
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '32px', 'height': '32px', 'border-radius': '4px' }"></p-skeleton>
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '32px', 'height': '32px', 'border-radius': '4px' }"></p-skeleton>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </ng-template>
+                            </p-table>
+                        </div>
+                    </ng-template>
+
                 </div>
             </div>
         </div>
+    </div>
 </div>
 
 
 
 <div class="card flex justify-content-center">
-   
-    <p-dialog header="Configuración de objetivo" [modal]="true" [visible]="targetFormDisplay" (onHide)="onHideTargetForm()" (visibleChange)="!$event && onHideTargetForm()">
+
+    <p-dialog header="Configuración de objetivo" [modal]="true" [visible]="targetFormDisplay"
+        (onHide)="onHideTargetForm()" (visibleChange)="!$event && onHideTargetForm()">
         <app-target-form [targetInput]="targetToEdit" (targetCreated)="onTargetCreated()"></app-target-form>
     </p-dialog>
 
-    <p-dialog header="Formulario de usuario" [modal]="true" [visible]="userFormDisplay" (onHide)="onHideUserForm()" (visibleChange)="!$event && onHideUserForm()">
+    <p-dialog header="Formulario de usuario" [modal]="true" [visible]="userFormDisplay" (onHide)="onHideUserForm()"
+        (visibleChange)="!$event && onHideUserForm()">
         <app-user-form [userInput]="userToEdit" (userCreated)="onUserCreated()"></app-user-form>
     </p-dialog>
 </div>
@@ -810,21 +886,17 @@
 <!-- Confirm dialog removido - usando el global -->
 
 <!-- Modal de cancelación de objetivo -->
-<p-dialog 
-    [(visible)]="cancelDialogVisible" 
-    [modal]="true" 
-    [resizable]="false" 
-    [draggable]="false"
-    [style]="{width: '500px'}"
-    styleClass="cancel-target-dialog">
-    
+<p-dialog [(visible)]="cancelDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
+    [style]="{width: '500px'}" styleClass="cancel-target-dialog">
+
     <ng-template pTemplate="header">
         <div style="display: flex; align-items: center;">
-            <i class="pi pi-info-circle" style="margin-right: 10px; color: var(--managementColorTextUser); font-size: 18px; opacity: 0.7;"></i>
+            <i class="pi pi-info-circle"
+                style="margin-right: 10px; color: var(--managementColorTextUser); font-size: 18px; opacity: 0.7;"></i>
             <span>{{ 'management.cancelTarget' | translate }}</span>
         </div>
     </ng-template>
-    
+
     <ng-template pTemplate="content">
         <div class="cancel-form">
             <div class="target-info">
@@ -833,15 +905,13 @@
                     {{ 'management.cancelTargetInfo' | translate }}
                 </h4>
                 <p><strong>{{ 'management.targetForm.name' | translate }}:</strong> {{ targetToCancel?.name }}</p>
-                <p><strong>{{ 'management.targetForm.imei' | translate }}:</strong> {{ targetToCancel?.device_imei || targetToCancel?.imei }}</p>
+                <p><strong>{{ 'management.targetForm.imei' | translate }}:</strong> {{ targetToCancel?.device_imei ||
+                    targetToCancel?.imei }}</p>
             </div>
 
             <div class="form-group">
                 <label for="cancelReason">{{ 'management.cancelReason' | translate }} *</label>
-                <select 
-                    id="cancelReason"
-                    [(ngModel)]="cancelForm.reason"
-                    class="form-control form-select">
+                <select id="cancelReason" [(ngModel)]="cancelForm.reason" class="form-control form-select">
                     <option value="" disabled>{{ 'management.selectCancelReason' | translate }}</option>
                     <option *ngFor="let reason of cancelReasons" [value]="reason.value">
                         {{ reason.label }}
@@ -851,14 +921,9 @@
 
             <div class="form-group">
                 <label for="cancelDescription">{{ 'management.cancelDescription' | translate }} *</label>
-                <textarea 
-                    id="cancelDescription"
-                    [(ngModel)]="cancelForm.description"
-                    [placeholder]="'management.cancelDescriptionPlaceholder' | translate"
-                    rows="4"
-                    class="form-control"
-                    maxlength="500"
-                    style="resize: none;">
+                <textarea id="cancelDescription" [(ngModel)]="cancelForm.description"
+                    [placeholder]="'management.cancelDescriptionPlaceholder' | translate" rows="4" class="form-control"
+                    maxlength="500" style="resize: none;">
                 </textarea>
                 <small style="color: var(--globalColorTextMuted); font-size: 12px; margin-top: 4px; display: block;">
                     {{ cancelForm.description.length || 0 }}/500 caracteres
@@ -866,19 +931,13 @@
             </div>
         </div>
     </ng-template>
-    
+
     <ng-template pTemplate="footer">
-        <button 
-            type="button" 
-            (click)="cancelCancelation()" 
-            class="button button--secondary">
+        <button type="button" (click)="cancelCancelation()" class="button button--secondary">
             <i class="pi pi-times" style="margin-right: 6px;"></i>
             {{ 'management.targetForm.cancel' | translate }}
         </button>
-        <button 
-            type="button" 
-            (click)="confirmCancelation()" 
-            class="button button--danger"
+        <button type="button" (click)="confirmCancelation()" class="button button--danger"
             [disabled]="!cancelForm.reason || !cancelForm.description.trim()">
             <i class="pi pi-check" style="margin-right: 6px;"></i>
             {{ 'management.confirmCancelTarget' | translate }}
