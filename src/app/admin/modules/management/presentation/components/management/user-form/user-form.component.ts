@@ -11,8 +11,9 @@ import { AuthService } from '@core/services/auth.service';
 import { PrivilegeService } from './services/privilege.service';
 import { Subject, takeUntil } from 'rxjs';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
+import { CloudService } from '@core/services/cloud.service';
 
-import { 
+import {
     AVAILABLE_MODULES, // Lista de módulos disponibles
     MODULE_ICONS, // Iconos de los módulos
     THEMES, // Temas disponibles
@@ -165,8 +166,77 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         private route: ActivatedRoute,
         private privilegeService: PrivilegeService,
         private brandsService: VehicleBrandsService,
-        private cdr: ChangeDetectorRef
-    ) {}
+        private cdr: ChangeDetectorRef,
+        private cloudService: CloudService
+    ) { }
+
+    onPhotoSelected(event: any) {
+        const file = event.target.files[0];
+        if (file) {
+            this.uploadProfilePhoto(file);
+        }
+    }
+
+    removePhoto() {
+        this.user.photo = '';
+        this.currentPhotoUrl = null;
+    }
+
+    private uploadProfilePhoto(file: File) {
+        // Validate file type and size
+        if (!file.type.startsWith('image/')) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('Solo se permiten archivos de imagen')
+            });
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('La imagen no puede ser mayor a 5MB')
+            });
+            return;
+        }
+
+        const currentUser = this.authService.getCurrentUser();
+        // Use the user being edited ID if available, otherwise the current user (creator) ID
+        const ownerId = this.userInput?._id || currentUser?.id;
+
+        if (!ownerId) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('Error'),
+                detail: this.translate.instant('No se pudo determinar el propietario para subir la imagen')
+            });
+            return;
+        }
+
+        // Upload to cloud storage
+        this.cloudService.uploadFile(file, ownerId).subscribe({
+            next: (event) => {
+                // Handle upload progress if needed
+                if (event.type === 4 && event.body) { // HttpEventType.Response
+                    const uploadedFile = event.body.data?.[0];
+                    if (uploadedFile?.location_cdn) {
+                        this.user.photo = uploadedFile.location_cdn;
+                        this.currentPhotoUrl = uploadedFile.location_cdn;
+                    }
+                }
+            },
+            error: (error) => {
+                console.error('Error uploading photo:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translate.instant('Error'),
+                    detail: this.translate.instant('Error al subir la foto de perfil')
+                });
+            }
+        });
+    }
 
     // Métodos de validación de privilegios
     canCreateUsers(): boolean {
@@ -237,7 +307,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             .then(list => {
                 this.provinces = [{ label: this.translate.instant('management.userForm.selectAffiliation'), value: '' }, ...list.map((p: any) => ({ label: p.name, value: String(p.code) }))];
             })
-            .catch(() => {});
+            .catch(() => { });
     }
 
     private resetForm() {
@@ -249,14 +319,16 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.selectedProfileType = 'personal';
         this.confirmPassword = '';
         this.user.password = '';
+        this.user.password = '';
         this.activeTabIndex = 0;
+        this.currentPhotoUrl = null;
     }
 
     ngOnChanges(changes: SimpleChanges) {
         if (changes['userInput']) {
             if (changes['userInput'].currentValue) {
                 const user = changes['userInput'].currentValue;
-                
+
                 // Primero cargamos los roles si no están cargados
                 if (!this.roles || this.roles.length === 0) {
                     this.loadRoles().then(() => {
@@ -271,22 +343,28 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
     }
 
+    // Propiedad para mostrar la foto actual
+    currentPhotoUrl: string | null = null;
+
     private setupEditUser(user: ExtendedUser) {
-        console.log(user,'holaaaaa4')
+        console.log(user, 'holaaaaa4')
         // Rellenar el formulario con los datos del usuario a editar
         this.user = JSON.parse(JSON.stringify(user));
         this.user.birth = this.formatDateToInput(user.birth);
         this.selectedTheme = this.user.settings?.theme || 'light';
         this.selectedLanguage = this.user.settings?.language || 'es';
         this.notificationsEnabled = this.user.settings?.notifications ?? true;
-        
+
+        // Establecer la URL de la foto actual
+        this.currentPhotoUrl = user.photo || null;
+
         // Asignamos explícitamente los valores para el tipo de afiliación y perfil
         this.selectedAffiliationType = user.affiliation_type_id || 'cliente';
         this.selectedProfileType = user.profile_type_id || 'personal';
-        
+
         // Forzar detección de cambios
         this.cdr.detectChanges();
-        
+
 
 
         // Detectar si debe considerarse técnico por datos existentes aunque la afiliación venga como 'cliente'
@@ -325,27 +403,27 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             this.municipalities = MUNICIPALITIES[''];
             this.technicianServices = [];
         }
-        
+
         this.confirmPassword = '';
-        
+
         // Preservar los privilegios personalizados si existen
         const userPrivileges = user.privileges;
-        
+
         // Seleccionar el rol correcto de la lista de roles
         if (user.access_level_id && user.access_level_id._id && this.roles && Array.isArray(this.roles)) {
             const roleId = user.access_level_id._id;
             const foundRole = this.roles.find(r => r._id === roleId);
-            
+
             if (foundRole) {
                 this.user.role = foundRole;
-                
+
                 // Invocar onRoleChange para inicializar correctamente, pero sin borrar privilegios personalizados
                 setTimeout(() => {
                     // Conservar la bandera de que estamos en modo edición para no borrar privilegios personalizados
                     this.isInitializingEditForm = true;
                     this.onRoleChange();
                     this.isInitializingEditForm = false;
-                    
+
                     // Restaurar los privilegios personalizados después de inicializar el rol
                     if (userPrivileges) {
                         this.user.privileges = userPrivileges;
@@ -353,7 +431,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 }, 0);
             }
         }
-        
+
         this.activeTabIndex = 0;
     }
 
@@ -364,7 +442,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 .subscribe({
                     next: (roles) => {
                         this.roles = roles;
-                
+
                         resolve();
                     },
                     error: (error) => {
@@ -400,26 +478,26 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     toggleAllPrivileges(privilege: Privilege | undefined): void {
         if (!privilege) return;
-        
+
         // Modificar el privilegio sin crear una nueva referencia
         this.privilegeService.toggleAllPrivileges(privilege);
-        
+
         // Si estamos trabajando con privilegios personalizados del usuario
         if (this.user.privileges && Array.isArray(this.user.privileges)) {
             const userPrivilegeIndex = this.user.privileges.findIndex(p => p.module === privilege.module);
             if (userPrivilegeIndex >= 0) {
                 // Actualizar el privilegio personalizado
-                this.user.privileges[userPrivilegeIndex] = {...privilege};
+                this.user.privileges[userPrivilegeIndex] = { ...privilege };
                 return; // Salimos para no actualizar también los privilegios del rol
             }
         }
-        
+
         // Si llegamos aquí, actualizamos los privilegios del rol
         if (this.user.role && this.user.role.privileges) {
             const rolePrivilegeIndex = this.user.role.privileges.findIndex(p => p.module === privilege.module);
             if (rolePrivilegeIndex >= 0) {
                 // Actualizar el privilegio del rol
-                this.user.role.privileges[rolePrivilegeIndex] = {...privilege};
+                this.user.role.privileges[rolePrivilegeIndex] = { ...privilege };
             }
         }
     }
@@ -448,7 +526,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             });
             return;
         }
-        
+
         if (!this.userInput && !this.canCreateUsers()) {
             this.messageService.add({
                 severity: 'error',
@@ -505,12 +583,12 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
         const currentUser = this.authService.getCurrentUser();
         const parentId = this.route.snapshot.params['user'];
-        
+
         this.user.affiliation_type_id = this.selectedAffiliationType;
         this.user.profile_type_id = this.selectedProfileType;
         this.user.settings.affiliation_type = this.selectedAffiliationType;
         this.user.settings.profile_type = this.selectedProfileType;
-        
+
         // Asegurar que settings sea un objeto, no array
         const settingsObject = {
             ...this.user.settings,
@@ -550,7 +628,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 ...normalizedUserPayload,
                 password: normalizedUserPayload.password || undefined
             };
-            
+
             this.userService.update(this.userInput._id, updateUserDto)
                 .pipe(takeUntil(this.destroy$))
                 .subscribe({
@@ -610,13 +688,13 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         if (!this.user.role) {
             return;
         }
-        
+
         // Buscar el role original en el array de roles
         const originalRole = this.roles.find(r => r._id === this.user.role?._id);
         if (originalRole) {
             // Mantener la referencia al objeto original del array roles
             this.user.role = originalRole;
-            
+
             // Limpiar los privilegios personalizados del usuario SOLO si no estamos inicializando el formulario de edición
             if (!this.isInitializingEditForm) {
                 this.user.privileges = undefined;
@@ -625,7 +703,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     onSaveSettings() {
-        
+
     }
 
     getSettingValue(key: keyof UserSettings): string | boolean {
@@ -732,7 +810,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                     let match = opts.find(o => o.value === pending)?.value;
                     // 2) Try province+pending padded (e.g., '05' + '05' => '0505' or '0501')
                     if (!match) {
-                        const candidate1 = `${this.selectedProvince}${pending.padStart(2,'0')}`;
+                        const candidate1 = `${this.selectedProvince}${pending.padStart(2, '0')}`;
                         match = opts.find(o => o.value === candidate1)?.value;
                     }
                     // 3) startsWith province and endsWith pending (e.g., '0501' ends with '01')
@@ -741,7 +819,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                     }
                     // 3.1) endsWith last two digits of pending (robusto en códigos largos)
                     if (!match) {
-                        const pending2 = pending.padStart(2,'0');
+                        const pending2 = pending.padStart(2, '0');
                         match = opts.find(o => o.value.slice(-2) === pending2)?.value;
                     }
                     // 4) label contains pending (fallback)
@@ -811,17 +889,17 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         if (this.selectedProfileType === 'compartido') {
             // Obtener el usuario logueado
             const loggedUser = this.authService.getCurrentUser();
-            
+
             // Si no hay usuario logueado, deshabilitar por seguridad
             if (!loggedUser) {
                 return true;
             }
-            
+
             // Verificar si el usuario logueado tiene la propiedad root=true
             // Si no tiene root=true, deshabilitar el campo
             return !loggedUser.root;
         }
-        
+
         // Si no es perfil compartido, permitir edición normal
         return false;
     }
@@ -832,21 +910,21 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
      */
     getAvailableProfileTypes(): ProfileTypeOption[] {
         const loggedUser = this.authService.getCurrentUser();
-        
+
         // Si no hay usuario logueado, filtrar 'compartido'
         if (!loggedUser) {
             return this.profileTypes.filter(type => type.value !== 'compartido');
         }
-        
+
         // Verificar si tiene root=true (manejando tanto string como boolean)
         const userRoot = loggedUser.root as any; // Cast temporal para evitar error de TypeScript
         const hasRootPermission = userRoot === true || userRoot === "true";
-        
+
         // Si no tiene permisos root, filtrar 'compartido'
         if (!hasRootPermission) {
             return this.profileTypes.filter(type => type.value !== 'compartido');
         }
-        
+
         // Si tiene root=true, mostrar todos los tipos incluido 'compartido'
         return this.profileTypes;
     }

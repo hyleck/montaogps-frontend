@@ -220,6 +220,29 @@
                             <div class="settings-container">
                                 <div class="settings-section">
                                     <div class="settings-grid">
+                                        <div class="settings-item profile-photo-section">
+                                            <div class="profile-photo-container">
+                                                <div class="profile-photo" [class.no-photo]="!currentPhotoUrl">
+                                                    <img *ngIf="currentPhotoUrl" [src]="currentPhotoUrl"
+                                                        [alt]="'profile.settings.photo.alt' | translate">
+                                                    <i *ngIf="!currentPhotoUrl" class="pi pi-user"></i>
+                                                </div>
+                                                <div class="photo-actions">
+                                                    <label class="change-photo-btn" for="photo-upload">
+                                                        <i class="pi pi-camera"></i>
+                                                        <span>{{ 'profile.settings.photo.change' | translate }}</span>
+                                                    </label>
+                                                    <input type="file" id="photo-upload" accept="image/*"
+                                                        (change)="onPhotoSelected($event)" style="display: none;">
+                                                    <button class="remove-photo-btn" *ngIf="currentPhotoUrl"
+                                                        (click)="removePhoto()" type="button">
+                                                        <i class="pi pi-trash"></i>
+                                                        <span>{{ 'profile.settings.photo.remove' | translate }}</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div class="settings-item">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-palette"></i>
@@ -361,28 +384,15 @@
                                                 'management.userForm.notificationsDescription' | translate }}</small>
                                         </div>
 
-                                        <div class="settings-item">
-                                            <div class="settings-item__header">
-                                                <i class="pi pi-user"></i>
-                                                <label for="photo">{{ 'management.userForm.photo.title' | translate
-                                                    }}</label>
-                                            </div>
-                                            <div class="settings-file-upload">
-                                                <input [(ngModel)]="user.photo" name="photo" type="file" id="photo"
-                                                    accept="image/*" class="settings-file-input">
-                                            </div>
-                                            <small class="settings-description">{{
-                                                'management.userForm.photo.description' | translate }}</small>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="user-form__actions">
-                                <button type="button" (click)="activeTabIndex = 0" class="back-button">
-                                    <i class="pi pi-arrow-left"></i>
-                                    {{ 'management.userForm.backToPersonalInfo' | translate }}
-                                </button>
-                            </div>
+                        </div>
+                        <div class="user-form__actions">
+                            <button type="button" (click)="activeTabIndex = 0" class="back-button">
+                                <i class="pi pi-arrow-left"></i>
+                                {{ 'management.userForm.backToPersonalInfo' | translate }}
+                            </button>
                         </div>
                     </p-tabPanel>
 
@@ -398,4 +408,3 @@
             </div>
         </div>
     </div>
-</div>
