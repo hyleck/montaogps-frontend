@@ -126,6 +126,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     isLoadingSmsMessages: boolean = false;
     hasLoadedSmsMessages: boolean = false;
     isSendingSms: boolean = false;
+    isAutoSubmitting: boolean = false;
 
     // Protocolos y comandos dinámicos
     loadedProtocols: Protocol[] = [];
@@ -994,6 +995,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             });
         } finally {
             this.isLoading = false;
+            this.isAutoSubmitting = false;
         }
     }
 
@@ -1023,6 +1025,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     private checkAndAutoSubmit() {
         if ((this.target as any).autoSubmit) {
+            this.isAutoSubmitting = true;
             // Pequeño timeout para asegurar que la UI se haya actualizado si es necesario
             setTimeout(() => {
                 console.log('🚀 Auto-submitting target form...');
