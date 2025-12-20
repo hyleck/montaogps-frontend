@@ -60,7 +60,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private statusService: StatusService,
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     if (!this.canReadInventory()) {
@@ -74,6 +74,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     }
 
     this.loadProtocols();
+    this.loadWarehouses();
     this.loadDefaultInstallationEmail();
 
     this.routeSub = this.route.paramMap.subscribe((params) => {
@@ -126,7 +127,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     this.currentPackageId = packageId;
     this.inventoryService.getDevicesByPackage(packageId).subscribe({
       next: (devices) => {
-        this.packageDevices = devices || [];
+        this.packageDevices = (devices || []).map(d => ({ ...d, storage_id: d.storage_id || null }));
         this.loading = false;
       },
       error: () => {
@@ -382,22 +383,46 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     }, 100);
   }
 
+  selectedWarehouseFilter = '';
+  // ... (rest of class) ...
+
   searchPackageDevices(): void {
     if (!this.currentPackageId) {
       return;
     }
 
-    if (!this.packageSearchQuery.trim()) {
+    if (!this.packageSearchQuery.trim() && !this.selectedWarehouseFilter) {
       this.clearPackageSearch();
       return;
     }
 
+    // If query is empty but filter is selected, we might want to handle it.
+    // However, the backend route requires a :query param. 
+    // We can use a wildcard or handle empty query if we change route.
+    // For now, let's assume user types something OR we pass a dummy query if empty but filtered? 
+    // Actually, typically search requires input. If user wants to just filter all, they usually expect that.
+    // But route is search/:query. Let's pass a special char or handle empty in UI?
+    // Let's keep require query for now or use whitespace if backend allows (regex matches all?). 
+    // The previous code required query.trim(). 
+
+    // Improving: If query is empty but filter is active, pass ' ' (space) to match all by regex?
+    // Backend: new RegExp(query, 'i') -> new RegExp(' ', 'i') matches everything containing space? No. 
+    // new RegExp('', 'i') matches everything.
+    // Let's relax the check.
+
+    const query = this.packageSearchQuery.trim() || '.*';
+    // Backend param is string. Empty string might be issue in route path //search//?
+    // Let's stick to requiring query OR use a placeholder. 
+    // Wait, the user asked to "add a filter to the search", implying search is primary.
+
+    // Check removed to allow filter-only search
+
     this.isSearchingPackage = true;
     this.inventoryService
-      .searchDevicesByPackage(this.currentPackageId, this.packageSearchQuery.trim())
+      .searchDevicesByPackage(this.currentPackageId, query, this.selectedWarehouseFilter)
       .subscribe({
         next: (results) => {
-          this.packageDevices = results || [];
+          this.packageDevices = (results || []).map(d => ({ ...d, storage_id: d.storage_id || null }));
           this.isSearchingPackage = false;
         },
         error: () => {
@@ -540,5 +565,43 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
 
   isDeviceInstalled(device: InventoryItem): boolean {
     return !!device?.installed;
+  }
+
+  // Warehouse Logic
+  warehouses: any[] = [];
+
+  loadWarehouses(): void {
+    this.inventoryService.getWarehouses().subscribe({
+      next: (data) => {
+        this.warehouses = data;
+      },
+      error: () => {
+        console.error('Error loading warehouses');
+      }
+    });
+  }
+
+  updateDeviceStorage(device: InventoryItem, newStorageId: string | null): void {
+
+    if (!device._id) return;
+
+    this.inventoryService.update(device._id, { storage_id: newStorageId }).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Actualizado',
+          detail: 'Almacén asignado correctamente'
+        });
+        device.storage_id = newStorageId;
+      },
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudo asignar el almacén'
+        });
+        // Revert change if needed or reload
+      }
+    });
   }
 }

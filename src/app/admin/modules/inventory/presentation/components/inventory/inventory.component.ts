@@ -6,9 +6,11 @@ import {
   InventoryItem,
   InventoryService,
   Package,
+  Warehouse,
 } from 'src/app/core/services/inventory.service';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { AuthService } from 'src/app/core/services/auth.service';
+import { UserService } from 'src/app/core/services/user.service';
 
 @Component({
   selector: 'app-inventory',
@@ -22,17 +24,32 @@ export class InventoryComponent implements OnInit {
   home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
   packages: Package[] = [];
+  warehouses: Warehouse[] = [];
   selectedPackage: Package | null = null;
+  selectedWarehouse: Warehouse | null = null;
   packageDialogVisible = false;
+  warehouseDialogVisible = false;
   isEditPackageMode = false;
+  isEditMode = false;
+  isEditWarehouseMode = false;
 
   loading = true;
+  loadingWarehouses = false;
   protocols: { label: string; value: string }[] = [];
 
   globalSearchQuery = '';
   isSearchingGlobal = false;
   allDevicesSearchResults: InventoryItem[] = [];
   showingSearchResults = false;
+
+  // Device Management Properties
+  deviceDialogVisible = false;
+  installDialogVisible = false;
+  selectedDevice: InventoryItem | null = null;
+  deviceToInstall: InventoryItem | null = null;
+  installationEmail = '';
+  isEditDeviceMode = false;
+
 
   constructor(
     private inventoryService: InventoryService,
@@ -41,8 +58,11 @@ export class InventoryComponent implements OnInit {
     private confirmationService: ConfirmationService,
     private translate: TranslateService,
     private authService: AuthService,
+    private userService: UserService,
     private router: Router,
-  ) {}
+  ) { }
+
+
 
   ngOnInit(): void {
     if (!this.canReadInventory()) {
@@ -314,5 +334,325 @@ export class InventoryComponent implements OnInit {
 
   isDeviceInstalled(device: InventoryItem): boolean {
     return !!device?.installed;
+  }
+
+  // Warehouse Methods
+  loadWarehouses(): void {
+    this.loadingWarehouses = true;
+    this.inventoryService.getWarehouses().subscribe({
+      next: (data) => {
+        this.warehouses = data;
+        this.loadingWarehouses = false;
+      },
+      error: () => {
+        this.loadingWarehouses = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Error al cargar almacenes'
+        });
+      }
+    });
+  }
+
+  openWarehouses(): void {
+    this.loadWarehouses();
+    this.warehouseDialogVisible = true;
+  }
+
+  openNewWarehouse(): void {
+    this.selectedWarehouse = { name: '', description: '' };
+    this.isEditWarehouseMode = false;
+  }
+
+  editWarehouse(warehouse: Warehouse): void {
+    this.selectedWarehouse = { ...warehouse };
+    this.isEditWarehouseMode = true;
+  }
+
+  saveWarehouse(): void {
+    if (!this.selectedWarehouse || !this.selectedWarehouse.name) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Error',
+        detail: 'El nombre del almacén es requerido'
+      });
+      return;
+    }
+
+    const request = this.isEditWarehouseMode
+      ? this.inventoryService.updateWarehouse(this.selectedWarehouse._id!, this.selectedWarehouse)
+      : this.inventoryService.createWarehouse(this.selectedWarehouse);
+
+    request.subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: this.isEditWarehouseMode ? 'Almacén actualizado' : 'Almacén creado'
+        });
+        this.loadWarehouses();
+        this.selectedWarehouse = null; // Clear form/selection
+      },
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudo guardar el almacén'
+        });
+      }
+    });
+  }
+
+  deleteWarehouse(warehouse: Warehouse): void {
+    this.confirmationService.confirm({
+      message: `¿Está seguro de eliminar el almacén ${warehouse.name}?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        this.inventoryService.deleteWarehouse(warehouse._id!).subscribe({
+          next: () => {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Eliminado',
+              detail: 'Almacén eliminado'
+            });
+            this.loadWarehouses();
+          },
+          error: () => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: 'No se pudo eliminar el almacén'
+            });
+          }
+        });
+      }
+    });
+  }
+
+  cancelWarehouseEdit(): void {
+    this.selectedWarehouse = null;
+  }
+
+  // Device Management Methods
+  editDevice(device: InventoryItem): void {
+    if (!this.canUpdateInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_update_permission'),
+        detail: this.translate.instant('inventory.contact_admin'),
+      });
+      return;
+    }
+
+    // Exact mapping from InventoryPackageDevicesComponent to flatten objects
+    this.selectedDevice = {
+      _id: device._id,
+      imei: device.IMEI || device.imei || '',
+      sim: device.SIM || device.sim || '',
+      protocol: typeof device.Protocol === 'object' ? device.Protocol._id : device.Protocol || device.protocol || '',
+      package: typeof device.package === 'object' ? device.package._id : device.package,
+      // packageId: device.packageId // Optional, if needed
+    };
+
+    this.isEditDeviceMode = true;
+    this.deviceDialogVisible = true;
+  }
+
+  saveDevice(): void {
+    if (!this.canUpdateInventory()) return;
+
+    if (!this.selectedDevice) {
+      this.messageService.add({ severity: 'warn', summary: 'Error', detail: 'No hay dispositivo seleccionado' });
+      return;
+    }
+
+    if (!this.selectedDevice.imei) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Validación',
+        detail: 'El IMEI es requerido',
+      });
+      return;
+    }
+
+    if (!this.selectedDevice.protocol) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Validación',
+        detail: 'El protocolo es requerido',
+      });
+      return;
+    }
+
+    // Construct payload strictly as executed in the working component
+    // Note: InventoryPackageDevicesComponent relies on this.currentPackageId.
+    // Here we must rely on the device's existing package field.
+    if (!this.selectedDevice.package) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'El dispositivo no pertenece a ningún paquete conocido.'
+      });
+      return;
+    }
+
+    const devicePayload: any = {
+      IMEI: (this.selectedDevice.imei || '').trim(),
+      SIM: (this.selectedDevice.sim || '').trim(),
+      Protocol: this.selectedDevice.protocol,
+      package: this.selectedDevice.package,
+    };
+
+    const request = this.isEditDeviceMode && this.selectedDevice._id
+      ? this.inventoryService.update(this.selectedDevice._id, devicePayload)
+      : this.inventoryService.create(devicePayload);
+
+    request.subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: this.isEditDeviceMode ? 'Dispositivo actualizado' : 'Dispositivo creado',
+        });
+        this.hideDeviceDialog();
+        // Refresh search if active
+        if (this.showingSearchResults && this.globalSearchQuery) {
+          this.searchAllInventory();
+        }
+      },
+      error: (err) => {
+        let errorMessage = 'No se pudo guardar el dispositivo';
+        if (err.error?.message) {
+          errorMessage = Array.isArray(err.error.message) ? err.error.message.join(', ') : err.error.message;
+        }
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: errorMessage,
+        });
+      },
+    });
+  }
+
+  deleteDevice(device: InventoryItem): void {
+    if (!this.canDeleteInventory()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('inventory.no_delete_permission'),
+        detail: this.translate.instant('inventory.contact_admin'),
+      });
+      return;
+    }
+
+    const imei = device.IMEI || device.imei || 'Sin IMEI';
+
+    this.confirmationService.confirm({
+      message: `¿Está seguro de eliminar el dispositivo IMEI: ${imei}?`,
+      header: 'Confirmar eliminación',
+      icon: 'pi pi-exclamation-triangle',
+      accept: () => {
+        if (device._id) {
+          this.inventoryService.delete(device._id).subscribe({
+            next: () => {
+              this.messageService.add({
+                severity: 'success',
+                summary: 'Eliminado',
+                detail: 'Dispositivo eliminado',
+              });
+              if (this.showingSearchResults && this.globalSearchQuery) {
+                this.searchAllInventory();
+              }
+            },
+            error: () => {
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo eliminar el dispositivo',
+              });
+            },
+          });
+        }
+      },
+    });
+  }
+
+  hideDeviceDialog(): void {
+    this.deviceDialogVisible = false;
+    this.selectedDevice = null;
+    this.isEditDeviceMode = false;
+  }
+
+  // Installation Methods
+  installDevice(device: InventoryItem): void {
+    if (device.installed) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Aviso',
+        detail: 'El dispositivo ya está instalado',
+      });
+      return;
+    }
+    this.deviceToInstall = device;
+    this.installationEmail = '';
+    this.installDialogVisible = true;
+  }
+
+  confirmInstallation(): void {
+    if (!this.installationEmail?.trim()) {
+      this.messageService.add({ severity: 'warn', summary: 'Email requerido', detail: 'Por favor ingrese una dirección de correo electrónico' });
+      return;
+    }
+
+    // Email validation regex as in original component
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.installationEmail)) {
+      this.messageService.add({ severity: 'error', summary: 'Email inválido', detail: 'Por favor ingrese una dirección de correo electrónico válida' });
+      return;
+    }
+
+    if (!this.deviceToInstall || !this.deviceToInstall._id) return;
+
+    const targetEmail = this.installationEmail.trim();
+
+    this.userService.getByEmail(targetEmail).subscribe({
+      next: (foundUser: any) => {
+        const deviceInstallationData = {
+          imei: this.deviceToInstall!.IMEI || this.deviceToInstall!.imei || '',
+          sim: this.deviceToInstall!.SIM || this.deviceToInstall!.sim || '',
+          protocol: this.deviceToInstall!.Protocol || this.deviceToInstall!.protocol || '',
+          userId: foundUser._id,
+          timestamp: new Date().toISOString(),
+        };
+
+        // Store in session storage for the management module to pick up
+        sessionStorage.setItem('deviceInstallationData', JSON.stringify(deviceInstallationData));
+
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Usuario encontrado',
+          detail: `Navegando a management del usuario: ${foundUser.name} ${foundUser.last_name}`,
+        });
+
+        this.cancelInstallation();
+        // Navigate to management module
+        this.router.navigate(['/admin/management/t', foundUser._id]);
+      },
+      error: () => {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Usuario no encontrado',
+          detail: `No se encontró un usuario con el email ${targetEmail}.`
+        });
+      }
+    });
+
+  }
+
+  cancelInstallation(): void {
+    this.installDialogVisible = false;
+    this.deviceToInstall = null;
+    this.installationEmail = '';
   }
 }

@@ -15,6 +15,8 @@ export interface InventoryItem {
   Protocol?: string | any; // Can be string ID or Protocol object
   package?: string | any; // Reference to the package (can be string ID or Package object)
   packageId?: string; // For frontend convenience, maps to 'package'
+  user?: string; // Added field
+  storage_id?: string | null; // Added field for warehouse
   createdAt?: string;
   updatedAt?: string;
   installed?: boolean;
@@ -31,12 +33,19 @@ export interface Package {
   updatedAt?: string;
 }
 
+export interface Warehouse {
+  _id?: string;
+  name: string;
+  description?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class InventoryService {
   private readonly apiUrl = `${environment.apiUrl}/inventory`;
   private readonly packagesUrl = `${environment.apiUrl}/inventory/packages`;
+  private readonly warehouseUrl = `${environment.apiUrl}/inventory/warehouses`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // Device/Item methods
   create(item: InventoryItem): Observable<InventoryItem> {
@@ -85,7 +94,7 @@ export class InventoryService {
     const url = `${this.packagesUrl}/${packageId}/devices`;
     console.log('getDevicesByPackage - URL:', url);
     console.log('getDevicesByPackage - Package ID:', packageId);
-    
+
     return this.http.get<InventoryItem[]>(url);
   }
 
@@ -95,9 +104,29 @@ export class InventoryService {
     return this.http.get<InventoryItem[]>(url);
   }
 
-  searchDevicesByPackage(packageId: string, query: string): Observable<InventoryItem[]> {
-    const url = `${this.packagesUrl}/${packageId}/devices/search/${encodeURIComponent(query)}`;
+  searchDevicesByPackage(packageId: string, query: string, storageId?: string): Observable<InventoryItem[]> {
+    let url = `${this.packagesUrl}/${packageId}/devices/search/${encodeURIComponent(query)}`;
+    if (storageId) {
+      url += `?storage_id=${storageId}`;
+    }
     return this.http.get<InventoryItem[]>(url);
+  }
+
+  // Warehouse methods
+  getWarehouses(): Observable<Warehouse[]> {
+    return this.http.get<Warehouse[]>(this.warehouseUrl);
+  }
+
+  createWarehouse(warehouse: Warehouse): Observable<Warehouse> {
+    return this.http.post<Warehouse>(this.warehouseUrl, warehouse);
+  }
+
+  updateWarehouse(id: string, warehouse: Warehouse): Observable<Warehouse> {
+    return this.http.patch<Warehouse>(`${this.warehouseUrl}/${id}`, warehouse);
+  }
+
+  deleteWarehouse(id: string): Observable<any> {
+    return this.http.delete(`${this.warehouseUrl}/${id}`);
   }
 }
 

@@ -618,8 +618,10 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             municipality: this.selectedAffiliationType?.startsWith('tecnico') ? this.selectedMunicipality : undefined,
             services: this.selectedAffiliationType?.startsWith('tecnico') ? (this.technicianServices || []) : []
         };
+        console.log('User to submit:', userToSubmit);
 
         const normalizedUserPayload = this.normalizeUserPayload(userToSubmit);
+        console.log('Normalized payload:', normalizedUserPayload);
 
 
         if (this.userInput) {

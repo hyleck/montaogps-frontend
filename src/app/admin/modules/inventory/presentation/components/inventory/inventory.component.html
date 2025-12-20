@@ -12,35 +12,28 @@
 
 <div class="inventory-container" *ngIf="canReadInventory()">
   <div class="global-search-section">
-    <div class="search-container">
+    <div class="search-container" style="flex: 1;">
       <div class="search-field">
         <label for="globalSearch">Buscar en todos los inventarios</label>
         <form (ngSubmit)="searchAllInventory()" class="search-form">
           <div class="search-input-group">
-            <input
-              type="text"
-              id="globalSearch"
-              [(ngModel)]="globalSearchQuery"
-              name="globalSearch"
-              placeholder="Buscar por IMEI o SIM..."
-              class="form-input search-input"
-              [disabled]="isSearchingGlobal"
-            />
+            <input type="text" id="globalSearch" [(ngModel)]="globalSearchQuery" name="globalSearch"
+              placeholder="Buscar por IMEI o SIM..." class="form-input search-input" [disabled]="isSearchingGlobal" />
             <button type="submit" class="search-button" [disabled]="isSearchingGlobal">
               <i class="pi pi-search" *ngIf="!isSearchingGlobal"></i>
               <i class="pi pi-spin pi-spinner" *ngIf="isSearchingGlobal"></i>
             </button>
-            <button
-              type="button"
-              class="clear-button"
-              (click)="clearGlobalSearch()"
-              *ngIf="globalSearchQuery || showingSearchResults"
-            >
+            <button type="button" class="clear-button" (click)="clearGlobalSearch()"
+              *ngIf="globalSearchQuery || showingSearchResults">
               <i class="pi pi-times"></i>
             </button>
           </div>
         </form>
       </div>
+    </div>
+    <div class="actions-container pb-1">
+      <button pButton pRipple label="Almacenes" icon="pi pi-building" class="p-button-outlined"
+        (click)="openWarehouses()"></button>
     </div>
   </div>
 
@@ -60,11 +53,7 @@
         <tbody>
           <tr *ngFor="let device of allDevicesSearchResults">
             <td class="imei-cell">
-              <i
-                *ngIf="isDeviceInstalled(device)"
-                class="pi pi-check-circle installed-icon"
-                title="Instalado"
-              ></i>
+              <i *ngIf="isDeviceInstalled(device)" class="pi pi-check-circle installed-icon" title="Instalado"></i>
               <span>{{ device.IMEI || device.imei || 'N/A' }}</span>
               <span *ngIf="isDeviceInstalled(device)" class="installed-label">
                 (Instalado)
@@ -74,13 +63,20 @@
             <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
             <td>{{ getPackageTitle(device) }}</td>
             <td>
-              <button
-                class="action-button edit-button"
-                (click)="navigateToDevicePackage(device)"
-                title="Ver paquete"
-              >
-                <i class="pi pi-arrow-right-arrow-left"></i>
-              </button>
+              <div class="device-actions flex gap-2">
+                <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success p-button-text"
+                  (click)="editDevice(device)" pTooltip="Editar" tooltipPosition="top"
+                  *ngIf="canUpdateInventory()"></button>
+                <button pButton pRipple icon="pi pi-send" class="p-button-rounded p-button-info p-button-text"
+                  (click)="installDevice(device)" pTooltip="Instalar" tooltipPosition="top"
+                  *ngIf="canUpdateInventory() && !isDeviceInstalled(device)"></button>
+                <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning p-button-text"
+                  (click)="deleteDevice(device)" pTooltip="Eliminar" tooltipPosition="top"
+                  *ngIf="canDeleteInventory()"></button>
+                <button pButton pRipple icon="pi pi-arrow-right-arrow-left"
+                  class="p-button-rounded p-button-secondary p-button-text" (click)="navigateToDevicePackage(device)"
+                  pTooltip="Ver paquete" tooltipPosition="top"></button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -92,6 +88,8 @@
   </div>
 
   <div class="packages-view" *ngIf="!showingSearchResults">
+
+
     <div class="package-form-section">
       <div class="form-header">
         <h2>Formulario de paquete</h2>
@@ -102,70 +100,41 @@
           <div class="form-row">
             <div class="form-field">
               <label for="packageTitle">Título del paquete</label>
-              <input
-                type="text"
-                id="packageTitle"
-                [ngModel]="selectedPackage?.title"
+              <input type="text" id="packageTitle" [ngModel]="selectedPackage?.title"
                 (ngModelChange)="selectedPackage && (selectedPackage.title = $event)"
-                placeholder="Ingrese el título del paquete"
-                class="form-input"
-              />
+                placeholder="Ingrese el título del paquete" class="form-input" />
             </div>
 
             <div class="form-field">
               <label for="packageDate">Fecha</label>
-              <input
-                type="date"
-                id="packageDate"
-                [ngModel]="selectedPackage?.date"
-                (ngModelChange)="selectedPackage && (selectedPackage.date = $event)"
-                class="form-input"
-              />
+              <input type="date" id="packageDate" [ngModel]="selectedPackage?.date"
+                (ngModelChange)="selectedPackage && (selectedPackage.date = $event)" class="form-input" />
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-field">
               <label for="packagePrice">Precio</label>
-              <input
-                type="number"
-                id="packagePrice"
-                [ngModel]="selectedPackage?.price"
-                (ngModelChange)="selectedPackage && (selectedPackage.price = $event)"
-                placeholder="0.00"
-                class="form-input"
-                step="0.01"
-              />
+              <input type="number" id="packagePrice" [ngModel]="selectedPackage?.price"
+                (ngModelChange)="selectedPackage && (selectedPackage.price = $event)" placeholder="0.00"
+                class="form-input" step="0.01" />
             </div>
 
             <div class="form-field">
               <label for="packageDescription">Descripción</label>
-              <textarea
-                id="packageDescription"
-                [ngModel]="selectedPackage?.description"
+              <textarea id="packageDescription" [ngModel]="selectedPackage?.description"
                 (ngModelChange)="selectedPackage && (selectedPackage.description = $event)"
-                placeholder="Descripción opcional"
-                class="form-input"
-                rows="3"
-              ></textarea>
+                placeholder="Descripción opcional" class="form-input" rows="3"></textarea>
             </div>
           </div>
 
           <div class="form-actions">
-            <button
-              pButton
-              pRipple
-              label="Guardar Paquete"
-              icon="pi pi-save"
-              class="p-button-success"
-              (click)="savePackage()"
-              [disabled]="
+            <button pButton pRipple label="Guardar Paquete" icon="pi pi-save" class="p-button-success"
+              (click)="savePackage()" [disabled]="
                 !selectedPackage?.title ||
                 (!canCreateInventory() && !isEditPackageMode) ||
                 (!canUpdateInventory() && isEditPackageMode)
-              "
-              *ngIf="canCreateInventory() || canUpdateInventory()"
-            ></button>
+              " *ngIf="canCreateInventory() || canUpdateInventory()"></button>
             <div *ngIf="!canCreateInventory() && !canUpdateInventory()" class="no-save-permission">
               <i class="pi pi-lock" style="opacity: 0.5;"></i>
               <span style="font-size: 0.875rem; opacity: 0.6;">
@@ -173,14 +142,8 @@
               </span>
             </div>
 
-            <button
-              pButton
-              pRipple
-              label="Limpiar"
-              icon="pi pi-refresh"
-              class="p-button-secondary"
-              (click)="openNewPackage()"
-            ></button>
+            <button pButton pRipple label="Limpiar" icon="pi pi-refresh" class="p-button-secondary"
+              (click)="openNewPackage()"></button>
           </div>
         </div>
       </div>
@@ -192,32 +155,17 @@
       </div>
 
       <div class="packages-grid">
-        <div
-          *ngFor="let package of packages"
-          class="package-card"
-          (click)="viewPackageDevices(package)"
-        >
+        <div *ngFor="let package of packages" class="package-card" (click)="viewPackageDevices(package)">
           <div class="package-card-header">
             <h3>{{ package.title }}</h3>
             <div class="package-actions">
-              <button
-                pButton
-                pRipple
-                icon="pi pi-pencil"
-                class="p-button-rounded p-button-text p-button-sm"
-                (click)="editPackage(package); $event.stopPropagation()"
-                pTooltip="Editar paquete"
-                *ngIf="canUpdateInventory()"
-              ></button>
-              <button
-                pButton
-                pRipple
-                icon="pi pi-trash"
+              <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm"
+                (click)="editPackage(package); $event.stopPropagation()" pTooltip="Editar paquete"
+                *ngIf="canUpdateInventory()"></button>
+              <button pButton pRipple icon="pi pi-trash"
                 class="p-button-rounded p-button-text p-button-sm p-button-danger"
-                (click)="deletePackage(package); $event.stopPropagation()"
-                pTooltip="Eliminar paquete"
-                *ngIf="canDeleteInventory()"
-              ></button>
+                (click)="deletePackage(package); $event.stopPropagation()" pTooltip="Eliminar paquete"
+                *ngIf="canDeleteInventory()"></button>
             </div>
           </div>
 
@@ -255,6 +203,136 @@
     <p-progressSpinner></p-progressSpinner>
     <p>Cargando...</p>
   </div>
+
+  <!-- DIALOGO DE GESTIÓN DE ALMACENES -->
+  <p-dialog [(visible)]="warehouseDialogVisible" [style]="{width: '700px'}" header="Gestión de Almacenes" [modal]="true"
+    styleClass="p-fluid">
+    <ng-template pTemplate="content">
+      <div class="card">
+        <!-- Toolbar dentro del modal -->
+        <div class="flex justify-content-end mb-3">
+          <button pButton pRipple label="Nuevo Almacén" icon="pi pi-plus" class="p-button-success"
+            (click)="openNewWarehouse()"></button>
+        </div>
+
+        <!-- Tabla de almacenes -->
+        <p-table [value]="warehouses" [loading]="loadingWarehouses" [rowHover]="true" styleClass="p-datatable-sm">
+          <ng-template pTemplate="header">
+            <tr>
+              <th>Nombre</th>
+              <th>Descripción</th>
+              <th style="width: 100px">Acciones</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-warehouse>
+            <tr>
+              <td>{{warehouse.name}}</td>
+              <td>{{warehouse.description}}</td>
+              <td>
+                <div class="flex gap-2">
+                  <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success p-button-text"
+                    (click)="editWarehouse(warehouse)"></button>
+                  <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning p-button-text"
+                    (click)="deleteWarehouse(warehouse)"></button>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="3" class="text-center p-4">No hay almacenes registrados.</td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+
+      <!-- Formulario para crear/editar (visible cuando se selecciona uno) -->
+      <div *ngIf="selectedWarehouse" class="mt-4 p-4 surface-100 border-round">
+        <h4 class="m-0 mb-3">{{ isEditWarehouseMode ? 'Editar Almacén' : 'Nuevo Almacén' }}</h4>
+        <div class="field">
+          <label for="wName">Nombre</label>
+          <input type="text" pInputText id="wName" [(ngModel)]="selectedWarehouse.name" required autofocus />
+        </div>
+        <div class="field">
+          <label for="wDesc">Descripción</label>
+          <textarea id="wDesc" pInputTextarea [(ngModel)]="selectedWarehouse.description" rows="3"></textarea>
+        </div>
+        <div class="flex justify-content-end gap-2">
+          <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
+            (click)="cancelWarehouseEdit()"></button>
+          <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text"
+            (click)="saveWarehouse()"></button>
+        </div>
+      </div>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Device Management Dialogs -->
+  <p-dialog [(visible)]="deviceDialogVisible" [style]="{width: '450px'}" header="Dispositivo" [modal]="true"
+    styleClass="p-fluid">
+    <ng-template pTemplate="content">
+      <form (ngSubmit)="saveDevice()" #deviceForm="ngForm">
+        <div class="field" *ngIf="selectedDevice">
+          <label for="deviceImei">IMEI</label>
+          <input type="text" id="deviceImei" [(ngModel)]="selectedDevice.imei" name="imei" required #imeiInput
+            class="form-input" placeholder="Ingrese el IMEI" />
+        </div>
+
+        <div class="field" *ngIf="selectedDevice">
+          <label for="deviceSim">SIM</label>
+          <input type="text" id="deviceSim" [(ngModel)]="selectedDevice.sim" name="sim" class="form-input"
+            placeholder="Ingrese el SIM (opcional)" />
+        </div>
+
+        <div class="field" *ngIf="selectedDevice">
+          <label for="deviceProtocol">Protocolo</label>
+          <select id="deviceProtocol" [(ngModel)]="selectedDevice.protocol" name="protocol" required class="form-input">
+            <option value="">Seleccionar protocolo</option>
+            <option *ngFor="let protocol of protocols" [value]="protocol.value">
+              {{ protocol.label }}
+            </option>
+          </select>
+        </div>
+
+        <button type="submit" style="display: none;"></button>
+      </form>
+    </ng-template>
+    <ng-template pTemplate="footer">
+      <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
+        (click)="hideDeviceDialog()"></button>
+      <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text" (click)="saveDevice()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <p-dialog header="Instalar Dispositivo" [(visible)]="installDialogVisible" [modal]="true" [style]="{width: '450px'}"
+    (onHide)="cancelInstallation()">
+    <div class="install-dialog-content">
+      <div class="device-info" *ngIf="deviceToInstall">
+        <h4>Dispositivo a instalar:</h4>
+        <p><strong>IMEI:</strong> {{ deviceToInstall.IMEI || deviceToInstall.imei || 'N/A' }}</p>
+        <p><strong>SIM:</strong> {{ deviceToInstall.SIM || deviceToInstall.sim || 'N/A' }}</p>
+        <p>
+          <strong>Protocolo:</strong>
+          {{ getProtocolLabel(deviceToInstall.Protocol || deviceToInstall.protocol) }}
+        </p>
+      </div>
+
+      <div class="email-input-section">
+        <label for="installationEmail" class="form-label">
+          <strong>Correo electrónico del cliente: *</strong>
+        </label>
+        <input id="installationEmail" type="email" pInputText [(ngModel)]="installationEmail"
+          placeholder="Ingrese el email del cliente" class="w-full" [class.ng-invalid]="!installationEmail"
+          autocomplete="email" />
+      </div>
+    </div>
+    <ng-template pTemplate="footer">
+      <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
+        (click)="cancelInstallation()"></button>
+      <button pButton pRipple label="Confirmar Instalación" icon="pi pi-check" class="p-button-primary"
+        (click)="confirmInstallation()" [disabled]="!installationEmail"></button>
+    </ng-template>
+  </p-dialog>
 </div>
 
 <p-confirmDialog></p-confirmDialog>

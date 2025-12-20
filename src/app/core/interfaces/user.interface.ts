@@ -49,6 +49,7 @@ export interface User {
   settings?: UserSettings[];
   profile_type_id?: string;
   root?: boolean;
+  status?: boolean;
 }
 
 export interface UserSettings {
@@ -79,25 +80,25 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
 }
 
 export function convertToExtendedUser(user: User): ExtendedUser {
-    return {
-        ...user,
-        verified_email: false,
-        role: null,
-        status: true,
-        affiliation_type_id: (user as any).affiliation_type_id || 'cliente',
-        profile_type_id: (user as any).profile_type_id || 'personal',
-        dni: user.dni || '',
-        birth: user.birth || '',
-        address: user.address || '',
-        photo: user.photo || '',
-        phone: user.phone || '',
-        phone2: user.phone2 || '',
-        settings: {
-            theme: user.settings?.[0]?.theme || 'light',
-            language: user.settings?.[0]?.language || 'es',
-            notifications: user.settings?.[0]?.notifications ?? true,
-            affiliation_type: (user as any).affiliation_type_id || 'cliente',
-            profile_type: (user as any).profile_type_id || 'personal'
-        }
-    };
+  return {
+    ...user,
+    verified_email: false,
+    role: null,
+    status: user.status !== undefined ? user.status : true,
+    affiliation_type_id: (user as any).affiliation_type_id || 'cliente',
+    profile_type_id: (user as any).profile_type_id || 'personal',
+    dni: user.dni || '',
+    birth: user.birth || '',
+    address: user.address || '',
+    photo: user.photo || '',
+    phone: user.phone || '',
+    phone2: user.phone2 || '',
+    settings: {
+      theme: user.settings?.[0]?.theme || 'light',
+      language: user.settings?.[0]?.language || 'es',
+      notifications: user.settings?.[0]?.notifications ?? true,
+      affiliation_type: (user as any).affiliation_type_id || 'cliente',
+      profile_type: (user as any).profile_type_id || 'personal'
+    }
+  };
 } 

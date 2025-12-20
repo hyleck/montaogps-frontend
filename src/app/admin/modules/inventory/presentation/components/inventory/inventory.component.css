@@ -9,7 +9,9 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 30px;
-  height: 100%;
+  height: calc(100vh - 270px);
+
+  /* height: 100%; */
 }
 
 .package-form-section {
@@ -134,7 +136,7 @@ textarea.form-input {
   background: var(--managementColorCardBackground);
   border-radius: 12px;
   border: 1px solid var(--managementFieldsBorder);
-  overflow: hidden;
+  overflow: auto;
 }
 
 .list-header {
@@ -293,6 +295,10 @@ textarea.form-input {
   border: 1px solid var(--managementFieldsBorder);
   padding: 20px;
   margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
 }
 
 .search-container {
@@ -483,7 +489,7 @@ textarea.form-input {
     grid-template-columns: 1fr;
     gap: 20px;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -494,20 +500,20 @@ textarea.form-input {
   .inventory-container {
     padding: 15px;
   }
-  
+
   .package-card-header {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .package-actions {
     align-self: flex-end;
   }
-  
+
   .form-actions {
     flex-direction: column;
   }
-  
+
   .devices-header {
     flex-direction: column;
     align-items: flex-start;

@@ -63,9 +63,10 @@
                                             <label for="status">{{ 'management.userForm.status' | translate }} <span
                                                     class="required-label">(Requerido)</span></label>
                                             <select [(ngModel)]="user.status" name="status" id="status" required>
-                                                <option [value]="true">{{ 'management.userForm.statusActive' | translate
+                                                <option [ngValue]="true">{{ 'management.userForm.statusActive' |
+                                                    translate
                                                     }}</option>
-                                                <option [value]="false">{{ 'management.userForm.statusInactive' |
+                                                <option [ngValue]="false">{{ 'management.userForm.statusInactive' |
                                                     translate }}</option>
                                             </select>
                                         </div>

@@ -158,9 +158,9 @@ export class SidebarComponent implements OnInit {
       if (item.path === '/admin/server-costs') {
         return this.isRootUser;
       }
-      // Si es inventory, solo mostrar si el usuario es root
+      // Si es inventory, mostrar si es root o tiene permisos de lectura
       if (item.path === '/admin/inventory') {
-        return this.isRootUser;
+        return this.isRootUser || this.authService.hasPrivilege('inventory', 'read');
       }
       // Para otros elementos, mostrar siempre
       return true;
