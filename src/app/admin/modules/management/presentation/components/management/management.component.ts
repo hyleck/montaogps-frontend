@@ -515,6 +515,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
       sim_card_number: deviceData.sim,
       type: deviceData.protocol._id, // Usar solo el _id del protocolo
       status: 'active',
+      name: deviceData.name || '',
+      target_brand_id: deviceData.brand || '',
+      target_model_id: deviceData.model || '',
+      plan: deviceData.plan || '',
+      expiration_date: deviceData.expiration_date || '',
+      mechanic_id: deviceData.technician_id || '',
+      installation_details: deviceData.installation_details || '',
+      target_plate_number: deviceData.plate_number || '',
+      sim_company: deviceData.sim_company || '',
+      autoSubmit: true,
       // Otros campos pueden ser pre-cargados según sea necesario
     };
 

@@ -14,9 +14,12 @@ import {
   InventoryItem,
   InventoryService,
 } from 'src/app/core/services/inventory.service';
+import { PlansService } from 'src/app/core/services/plans.service';
+import { Plan } from 'src/app/core/interfaces/plan.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { UserService } from 'src/app/core/services/user.service';
 import { StatusService } from 'src/app/shareds/services/status.service';
+import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 
 @Component({
   selector: 'app-inventory-package-devices',
@@ -46,11 +49,16 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   deviceToInstall: InventoryItem | null = null;
   installationEmail = '';
   defaultInstallationEmail = '';
+  installationSimType = '';
+  availableSimCardTypes = SIM_CARD_TYPES;
+  installationPlanId = '';
+  availablePlans: any[] = [];
 
   private routeSub?: Subscription;
 
   constructor(
     private inventoryService: InventoryService,
+    private plansService: PlansService,
     private protocolsService: ProtocolsService,
     private messageService: MessageService,
     private confirmationService: ConfirmationService,
@@ -76,6 +84,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     this.loadProtocols();
     this.loadWarehouses();
     this.loadDefaultInstallationEmail();
+    this.loadPlans();
 
     this.routeSub = this.route.paramMap.subscribe((params) => {
       const packageId = params.get('packageId');
@@ -456,6 +465,8 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
 
     this.deviceToInstall = device;
     this.installationEmail = this.defaultInstallationEmail || '';
+    this.installationSimType = '';
+    this.installationPlanId = '';
     this.installDialogVisible = true;
   }
 
@@ -501,6 +512,15 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
           protocol: this.deviceToInstall!.Protocol || this.deviceToInstall!.protocol || '',
           userId: foundUser._id,
           timestamp: new Date().toISOString(),
+          name: `EN_ESPERA-${this.deviceToInstall!.IMEI || this.deviceToInstall!.imei || ''}`,
+          brand: '6945e94df8034f4089c27394',
+          model: '6945e987f8034f4089c2739e',
+          plan: this.installationPlanId || '68e23db7015d99b2bd1b25c2',
+          expiration_date: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString(),
+          technician_id: '68c68dba49db10f3cb6e3f8d',
+          installation_details: 'EN_ESPERA',
+          plate_number: `EN_ESPERA-${this.deviceToInstall!.IMEI || this.deviceToInstall!.imei || ''}`,
+          sim_company: this.installationSimType || '',
         };
 
         sessionStorage.setItem('deviceInstallationData', JSON.stringify(deviceInstallationData));
@@ -528,6 +548,8 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     this.installDialogVisible = false;
     this.deviceToInstall = null;
     this.installationEmail = '';
+    this.installationSimType = '';
+    this.installationPlanId = '';
   }
 
   goBackToPackages(): void {
@@ -577,6 +599,20 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
       },
       error: () => {
         console.error('Error loading warehouses');
+      }
+    });
+  }
+
+  loadPlans(): void {
+    this.plansService.getAllPlans().subscribe({
+      next: (plans: Plan[]) => {
+        this.availablePlans = plans.map(plan => ({
+          label: plan.plan_name,
+          value: plan._id
+        })).sort((a, b) => a.label.localeCompare(b.label));
+      },
+      error: (error) => {
+        console.error('Error loading plans', error);
       }
     });
   }

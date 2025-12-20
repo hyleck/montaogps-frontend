@@ -184,6 +184,30 @@
         placeholder="Ingrese el email del cliente" class="w-full" [class.ng-invalid]="!installationEmail"
         autocomplete="email" />
     </div>
+
+    <div class="field" style="margin-top: 1rem;">
+      <label for="installationSimType" class="form-label">
+        <strong>Tipo de SIM Card: (Opcional)</strong>
+      </label>
+      <select id="installationSimType" [(ngModel)]="installationSimType" name="simType" class="form-input w-full">
+        <option value="">Seleccionar tipo</option>
+        <option *ngFor="let type of availableSimCardTypes" [value]="type.value">
+          {{ type.label }}
+        </option>
+      </select>
+    </div>
+
+    <div class="field" style="margin-top: 1rem;">
+      <label for="installationPlan" class="form-label">
+        <strong>Plan Inicial: (Opcional)</strong>
+      </label>
+      <select id="installationPlan" [(ngModel)]="installationPlanId" name="plan" class="form-input w-full">
+        <option value="">Seleccionar plan</option>
+        <option *ngFor="let plan of availablePlans" [value]="plan.value">
+          {{ plan.label }}
+        </option>
+      </select>
+    </div>
   </div>
 
   <ng-template pTemplate="footer">

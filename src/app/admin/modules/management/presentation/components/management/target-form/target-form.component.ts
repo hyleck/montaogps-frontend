@@ -7,7 +7,6 @@ import {
     TARGET_FORM_STYLES,
     TARGET_FORM_TRANSLATIONS,
     INSTALLATION_LOCATIONS,
-    SIM_CARD_TYPES,
     FALLBACK_PLANS,
     FALLBACK_GPS_MODELS,
     FIELDS_TO_PRESERVE,
@@ -17,6 +16,7 @@ import {
     SmsMessage,
     CustomPrice
 } from './constants/target-form.constants';
+import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import { CloudComponent } from 'src/app/shareds/components/cloud/cloud.component';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { ColorsService } from 'src/app/core/services/colors.service';
@@ -102,15 +102,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     availableGpsModels: SelectOption[] = [];
     availableLocations: SelectOption[] = [];
     availableColors: SelectOption[] = [];
-    availableSimCardTypes: SelectOption[] = [
-        { value: 'tigo', label: 'Tigo' },
-        { value: 'entel', label: 'Entel' },
-        { value: 'viva', label: 'Viva' },
-        { value: 'telecel', label: 'Telecel' },
-        { value: 'boliviatel', label: 'Boliviatel' },
-        { value: 'global-m2', label: 'Global M2' },
-        { value: 'other', label: 'Otro' }
-    ];
+    availableSimCardTypes: SelectOption[] = SIM_CARD_TYPES;
     availablePlans: SelectOption[] = [];
     availablePrices: ExtendedPlanPrice[] = [];
     filteredColors: SelectOption[] = [];
@@ -240,6 +232,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     // Propiedad para almacenar el uso de la SIM
     simUsage: any = null;
 
+    private brandsLoaded!: Promise<void>;
+    private brandsLoadedResolve!: () => void;
+
     constructor(
         private langService: LangService,
         private messageService: MessageService,
@@ -308,6 +303,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     ngOnInit() {
+        this.brandsLoaded = new Promise<void>((resolve) => {
+            this.brandsLoadedResolve = resolve;
+        });
         this.loadInitialData();
         this.target = this.getEmptyTarget();
         this.activeTabIndex = 0;
@@ -341,6 +339,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 label: brand.nombre,
                 value: brand._id
             })).sort((a: any, b: any) => a.label.localeCompare(b.label));
+
+            this.brandsLoadedResolve();
 
             // Cargar colores desde el servicio
             const colors = await this.colorsService.getAllColors();
@@ -438,7 +438,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
     }
 
-    private setupEditTarget(target: TargetDevice) {
+    private async setupEditTarget(target: TargetDevice) {
+
+        await this.brandsLoaded;
 
         // DEBUG: Ver qué datos llegan del backend para edición
 
@@ -548,57 +550,94 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
 
         // Cargar los modelos para la marca seleccionada
-        if (this.target.target_brand_id) {
-            // Cargar modelos según la marca seleccionada
-            this.vehicleBrandsService.getAllModelsByBrand(this.target.target_brand_id)
-                .then((models: any) => {
-                    this.availableModels = models.map((model: any) => ({
-                        label: model.nombre,
-                        value: model._id
-                    })).sort((a: any, b: any) => a.label.localeCompare(b.label));
+        // Cargar modelos y planes en paralelo
+        const modelsPromise = new Promise<void>((resolve) => {
+            if (this.target.target_brand_id) {
+                this.vehicleBrandsService.getAllModelsByBrand(this.target.target_brand_id)
+                    .then((models: any) => {
+                        this.availableModels = models.map((model: any) => ({
+                            label: model.nombre,
+                            value: model._id
+                        })).sort((a: any, b: any) => a.label.localeCompare(b.label));
 
+                        if (selectedModelId && this.availableModels.some(m => m.value === selectedModelId)) {
+                            this.target.target_model_id = selectedModelId;
+                        }
+                        resolve();
+                    })
+                    .catch(error => {
+                        console.error('❌ Error al cargar modelos para edición:', error);
+                        this.availableModels = [];
+                        resolve();
+                    });
+            } else {
+                resolve();
+            }
+        });
 
-                    // Una vez cargados los modelos, establecer el modelo seleccionado
-                    if (selectedModelId && this.availableModels.some(m => m.value === selectedModelId)) {
-                        this.target.target_model_id = selectedModelId;
+        const plansPromise = new Promise<void>((resolve) => {
+            if (this.target.plan && typeof this.target.plan === 'object') {
+                if ('id_plan' in this.target.plan && this.target.plan.id_plan) {
+                    const originalPlan = this.target.plan;
+                    if (originalPlan.selected_price) {
+                        this.target.selectedPrice = {
+                            id: originalPlan.selected_price.id,
+                            amount: originalPlan.selected_price.amount,
+                            payment_period: originalPlan.selected_price.payment_period
+                        };
                     }
-                })
-                .catch(error => {
-                    console.error('❌ Error al cargar modelos para edición:', error);
-                    this.availableModels = [];
-                });
-        }
+                    this.target.plan = originalPlan.id_plan as string;
 
-        // Configurar el plan si existe
-        if (this.target.plan && typeof this.target.plan === 'object') {
-            // Extraer el ID del plan
-            if ('id_plan' in this.target.plan && this.target.plan.id_plan) {
-                // Guardar el objeto plan original
-                const originalPlan = this.target.plan;
+                    this.plansService.getPlanById(this.target.plan).subscribe({
+                        next: (plan: Plan) => {
+                            const currentSelectedPrice = this.target.selectedPrice ? { ...this.target.selectedPrice } : null;
+                            this.availablePrices = plan.prices.map(price => ({
+                                id: price.id,
+                                amount: price.amount,
+                                payment_period: typeof price.payment_period === 'string' ?
+                                    price.payment_period :
+                                    this.mapPeriodToString(price.payment_period)
+                            }));
 
-                // Si hay un precio seleccionado, configurarlo antes de convertir el plan a string
-                if (originalPlan.selected_price) {
-
-                    // Crear objeto de precio seleccionado
-                    this.target.selectedPrice = {
-                        id: originalPlan.selected_price.id,
-                        amount: originalPlan.selected_price.amount,
-                        payment_period: originalPlan.selected_price.payment_period
-                    };
+                            if (currentSelectedPrice) {
+                                const matchedPrice = this.availablePrices.find(price => price.id === currentSelectedPrice.id);
+                                if (matchedPrice) {
+                                    if (currentSelectedPrice.amount !== matchedPrice.amount) {
+                                        const customPrice = {
+                                            ...matchedPrice,
+                                            amount: currentSelectedPrice.amount,
+                                            originalAmount: matchedPrice.amount
+                                        };
+                                        const priceIndex = this.availablePrices.findIndex(p => p.id === matchedPrice.id);
+                                        if (priceIndex >= 0) {
+                                            this.availablePrices[priceIndex] = customPrice;
+                                        }
+                                        this.target.selectedPrice = customPrice;
+                                    } else {
+                                        this.target.selectedPrice = matchedPrice;
+                                    }
+                                } else {
+                                    const customPrice = {
+                                        ...currentSelectedPrice,
+                                        originalAmount: 0
+                                    };
+                                    this.availablePrices = [customPrice, ...this.availablePrices];
+                                    this.target.selectedPrice = customPrice;
+                                }
+                            }
+                            resolve();
+                        },
+                        error: (error) => {
+                            console.error('Error al cargar el plan:', error);
+                            resolve();
+                        }
+                    });
+                } else {
+                    resolve();
                 }
-
-                // Establecer el ID del plan como string para el selector
-                this.target.plan = originalPlan.id_plan as string;
-
-                // Cargar los precios disponibles para este plan
-                // Hacemos esto después de configurar selectedPrice para que no se pierda
+            } else if (this.target.plan && typeof this.target.plan === 'string') {
                 this.plansService.getPlanById(this.target.plan).subscribe({
                     next: (plan: Plan) => {
-
-                        // Guardar precio seleccionado actual para preservar su valor personalizado
-                        const currentSelectedPrice = this.target.selectedPrice ? { ...this.target.selectedPrice } : null;
-
-                        // Mapear precios disponibles
                         this.availablePrices = plan.prices.map(price => ({
                             id: price.id,
                             amount: price.amount,
@@ -607,58 +646,28 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                                 this.mapPeriodToString(price.payment_period)
                         }));
 
-
-                        // Si hay un precio seleccionado, buscamos su correspondiente en los precios del plan
-                        if (currentSelectedPrice) {
-                            const matchedPrice = this.availablePrices.find(price =>
-                                price.id === currentSelectedPrice.id
-                            );
-
-                            if (matchedPrice) {
-
-                                // Si el precio ha sido modificado, guardamos el original
-                                if (currentSelectedPrice.amount !== matchedPrice.amount) {
-
-                                    // Guardar el monto original
-                                    const customPrice = {
-                                        ...matchedPrice,
-                                        amount: currentSelectedPrice.amount, // Usar el monto personalizado
-                                        originalAmount: matchedPrice.amount  // Guardar el monto original
-                                    };
-
-                                    // Reemplazar el precio en la lista
-                                    const priceIndex = this.availablePrices.findIndex(p => p.id === matchedPrice.id);
-                                    if (priceIndex >= 0) {
-                                        this.availablePrices[priceIndex] = customPrice;
-                                    }
-
-                                    // Actualizar el precio seleccionado
-                                    this.target.selectedPrice = customPrice;
-                                } else {
-                                    this.target.selectedPrice = matchedPrice;
-                                }
-                            } else {
-                                // Si no encontramos el precio en la lista, lo agregamos como personalizado
-                                const customPrice = {
-                                    ...currentSelectedPrice,
-                                    originalAmount: 0 // No conocemos el original, marcamos como 0
-                                };
-
-                                // Agregar al inicio de la lista
-                                this.availablePrices = [customPrice, ...this.availablePrices];
-                                this.target.selectedPrice = customPrice;
-                            }
+                        if (this.availablePrices.length > 0 && !this.target.selectedPrice) {
+                            this.target.selectedPrice = this.availablePrices[0];
                         }
+                        resolve();
                     },
                     error: (error) => {
-                        console.error('Error al cargar el plan:', error);
+                        console.error('Error al cargar precios del plan:', error);
+                        resolve();
                     }
                 });
+            } else {
+                if (!this.target.plan) {
+                    this.target.plan = '';
+                }
+                resolve();
             }
-        } else if (!this.target.plan) {
-            // Si no hay plan, establecer string vacía para mostrar la opción por defecto
-            this.target.plan = '';
-        }
+        });
+
+        await Promise.all([modelsPromise, plansPromise]);
+
+        // Verificar si se debe auto-enviar el formulario
+        this.checkAndAutoSubmit();
 
         // Si el plan original del target es diferente al plan actualizado, 
         // actualizar la fecha de expiración SOLO si no hay fecha de expiración establecida
@@ -1010,6 +1019,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             ignition_sensor: '', // Valor por defecto para sensor de encendido
             engine_shutdown: '' // Valor por defecto para control de apagado
         };
+    }
+
+    private checkAndAutoSubmit() {
+        if ((this.target as any).autoSubmit) {
+            // Pequeño timeout para asegurar que la UI se haya actualizado si es necesario
+            setTimeout(() => {
+                console.log('🚀 Auto-submitting target form...');
+                delete (this.target as any).autoSubmit; // Limpiar flag para evitar dobles envíos
+                this.onSubmit();
+            }, 500);
+        }
     }
 
     private prepareTargetData(): CreateTargetDto | UpdateTargetDto {
