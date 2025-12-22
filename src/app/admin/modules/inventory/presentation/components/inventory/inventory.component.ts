@@ -453,6 +453,7 @@ export class InventoryComponent implements OnInit {
       sim: device.SIM || device.sim || '',
       protocol: typeof device.Protocol === 'object' ? device.Protocol._id : device.Protocol || device.protocol || '',
       package: typeof device.package === 'object' ? device.package._id : device.package,
+      storage_id: device.storage_id || null, // Map storage_id
       // packageId: device.packageId // Optional, if needed
     };
 
@@ -503,6 +504,7 @@ export class InventoryComponent implements OnInit {
       SIM: (this.selectedDevice.sim || '').trim(),
       Protocol: this.selectedDevice.protocol,
       package: this.selectedDevice.package,
+      storage_id: this.selectedDevice.storage_id || null,
     };
 
     const request = this.isEditDeviceMode && this.selectedDevice._id

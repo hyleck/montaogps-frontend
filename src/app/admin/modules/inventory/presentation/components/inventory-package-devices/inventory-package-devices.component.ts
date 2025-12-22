@@ -38,6 +38,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   selectedDevice: InventoryItem | null = null;
   deviceDialogVisible = false;
   isEditDeviceMode = false;
+  lastSelectedStorageId: string | null = null;
 
   currentPackageId: string | null = null;
   loading = true;
@@ -176,6 +177,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
       protocol: '',
       package: this.currentPackageId,
       packageId: this.currentPackageId,
+      storage_id: this.lastSelectedStorageId || (this.warehouses.length > 0 ? this.warehouses[0]._id : null),
     } as InventoryItem;
 
     this.isEditDeviceMode = false;
@@ -274,6 +276,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
       SIM: (this.selectedDevice.sim || '').trim(),
       Protocol: this.selectedDevice.protocol || '',
       package: this.currentPackageId,
+      storage_id: this.selectedDevice.storage_id || null,
     };
 
     if (!devicePayload.IMEI || !devicePayload.Protocol || !devicePayload.package) {
@@ -297,6 +300,11 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
           summary: 'Éxito',
           detail: this.isEditDeviceMode ? 'Dispositivo actualizado' : 'Dispositivo agregado',
         });
+
+        // Save the last selected storage_id for sticky selection
+        if (devicePayload.storage_id) {
+          this.lastSelectedStorageId = devicePayload.storage_id;
+        }
 
         if (this.isEditDeviceMode) {
           this.hideDeviceDialog();
@@ -383,6 +391,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
       protocol: currentProtocol,
       package: this.currentPackageId,
       packageId: this.currentPackageId,
+      storage_id: this.lastSelectedStorageId || (this.warehouses.length > 0 ? this.warehouses[0]._id : null),
     } as InventoryItem;
 
     setTimeout(() => {

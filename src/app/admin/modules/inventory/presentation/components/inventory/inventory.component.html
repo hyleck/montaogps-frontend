@@ -285,6 +285,16 @@
         </div>
 
         <div class="field" *ngIf="selectedDevice">
+          <label for="deviceStorage">Almacén</label>
+          <select id="deviceStorage" [(ngModel)]="selectedDevice.storage_id" name="storage_id" class="form-input">
+            <option [ngValue]="null">Seleccionar almacén (Opcional)</option>
+            <option *ngFor="let w of warehouses" [value]="w._id">
+              {{ w.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field" *ngIf="selectedDevice">
           <label for="deviceProtocol">Protocolo</label>
           <select id="deviceProtocol" [(ngModel)]="selectedDevice.protocol" name="protocol" required class="form-input">
             <option value="">Seleccionar protocolo</option>
