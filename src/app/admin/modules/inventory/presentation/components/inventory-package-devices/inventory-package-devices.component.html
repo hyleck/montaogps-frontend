@@ -186,37 +186,30 @@
       </p>
     </div>
 
-    <div class="email-input-section">
-      <label for="installationEmail" class="form-label">
+    <div class="field">
+      <label for="installationEmail" class="block font-bold mb-2">
         <strong>Correo electrónico del cliente: *</strong>
       </label>
       <input id="installationEmail" type="email" pInputText [(ngModel)]="installationEmail"
         placeholder="Ingrese el email del cliente" class="w-full" [class.ng-invalid]="!installationEmail"
-        autocomplete="email" />
+        autocomplete="email" style="width: 100%" />
     </div>
 
     <div class="field" style="margin-top: 1rem;">
-      <label for="installationSimType" class="form-label">
+      <label for="installationSimType" class="block font-bold mb-2">
         <strong>Tipo de SIM Card: (Opcional)</strong>
       </label>
-      <select id="installationSimType" [(ngModel)]="installationSimType" name="simType" class="form-input w-full">
-        <option value="">Seleccionar tipo</option>
-        <option *ngFor="let type of availableSimCardTypes" [value]="type.value">
-          {{ type.label }}
-        </option>
-      </select>
+      <p-dropdown id="installationSimType" [options]="availableSimCardTypes" [(ngModel)]="installationSimType"
+        optionLabel="label" optionValue="value" placeholder="Seleccionar tipo" [style]="{'width':'100%'}"
+        appendTo="body"></p-dropdown>
     </div>
 
     <div class="field" style="margin-top: 1rem;">
-      <label for="installationPlan" class="form-label">
+      <label for="installationPlan" class="block font-bold mb-2">
         <strong>Plan Inicial: (Opcional)</strong>
       </label>
-      <select id="installationPlan" [(ngModel)]="installationPlanId" name="plan" class="form-input w-full">
-        <option value="">Seleccionar plan</option>
-        <option *ngFor="let plan of availablePlans" [value]="plan.value">
-          {{ plan.label }}
-        </option>
-      </select>
+      <p-dropdown id="installationPlan" [options]="availablePlans" [(ngModel)]="installationPlanId" optionLabel="label"
+        optionValue="value" placeholder="Seleccionar plan" [style]="{'width':'100%'}" appendTo="body"></p-dropdown>
     </div>
   </div>
 

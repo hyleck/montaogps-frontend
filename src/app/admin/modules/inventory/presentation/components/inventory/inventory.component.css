@@ -85,7 +85,8 @@
   opacity: 0.6;
 }
 
-/* Estilos específicos para select nativo */
+/* Estilos específicos para select nativo - REMOVED for PrimeNG */
+/* 
 .form-input[type="select-one"],
 select.form-input {
   cursor: pointer;
@@ -97,7 +98,8 @@ select.form-input {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
-}
+} 
+*/
 
 /* Estilos específicos para textarea nativo */
 textarea.form-input {
