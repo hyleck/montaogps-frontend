@@ -104,6 +104,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   visibleSpeedAlerts: AlertResponse[] = [];
   loadingSpeedAlerts: boolean = false;
   togglingAlertId: string | null = null;
+  speedAlertMessage: string = '';
 
   // Perimeter alert variables
   perimeterNotificationTrigger: string = 'enter';
@@ -235,6 +236,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   visibleIgnitionAlerts: AlertResponse[] = [];
   togglingIgnitionAlertId: string | null = null;
   deletingIgnitionAlertId: string | null = null;
+  ignitionAlertMessage: string = '';
 
   // Movement alert variables
   movementAlertDialogVisible: boolean = false;
@@ -249,6 +251,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   visibleMovementAlerts: AlertResponse[] = [];
   togglingMovementAlertId: string | null = null;
   deletingMovementAlertId: string | null = null;
+  movementAlertMessage: string = '';
 
   // Connection alert variables
   connectionAlertDialogVisible: boolean = false;
@@ -264,6 +267,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   visibleConnectionAlerts: AlertResponse[] = [];
   togglingConnectionAlertId: string | null = null;
   deletingConnectionAlertId: string | null = null;
+  connectionAlertMessage: string = '';
 
   // Modal de transferir targets
   transferDialogVisible: boolean = false;
@@ -692,7 +696,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       type: 'speed' as const,
       maxSpeed: this.maxSpeedValue,
       targetIds,
-      userTopic: this.notificationEmailUserId || undefined
+      userTopic: this.notificationEmailUserId || undefined,
+      message: this.speedAlertMessage?.trim() || undefined
     };
 
     this.creatingAlert = true;
@@ -707,6 +712,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       });
 
       this.maxSpeedValue = null;
+      this.speedAlertMessage = '';
       this.resetNotificationEmailToCurrentUser();
       await this.loadSpeedAlerts();
     } catch (error: any) {
@@ -1102,7 +1108,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
         type: 'ignition',
         ignitionTrigger: this.ignitionTrigger,
         targetIds,
-        userTopic: this.ignitionNotificationEmailUserId || undefined
+        userTopic: this.ignitionNotificationEmailUserId || undefined,
+        message: this.ignitionAlertMessage?.trim() || undefined
       };
 
       await firstValueFrom(this.alertsService.createAlert(payload));
@@ -1116,6 +1123,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       await this.loadIgnitionAlerts();
 
       this.ignitionTrigger = 'on';
+      this.ignitionAlertMessage = '';
       this.ignitionNotificationEmail = '';
       this.ignitionNotificationEmailUserId = null;
     } catch (error) {
@@ -1255,7 +1263,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
         type: 'movement',
         targetIds: targetIds,
         userTopic: this.movementNotificationEmailUserId,
-        email: this.movementNotificationEmail
+        email: this.movementNotificationEmail,
+        message: this.movementAlertMessage?.trim() || undefined
       } as any;
 
       await firstValueFrom(this.alertsService.createAlert(alertData));
@@ -1267,6 +1276,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       });
 
       this.movementNotificationEmail = '';
+      this.movementAlertMessage = '';
       this.movementNotificationEmailUserId = null;
       this.loadMovementAlerts();
     } catch (error) {
@@ -2856,7 +2866,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       connectionAlertType: this.connectionAlertType,
       targetIds,
       userTopic: this.connectionNotificationEmailUserId || undefined,
-      email: this.connectionNotificationEmail || undefined
+      email: this.connectionNotificationEmail || undefined,
+      message: this.connectionAlertMessage?.trim() || undefined
     };
 
     this.creatingConnectionAlert = true;
@@ -2870,6 +2881,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
         detail: `${this.translate.instant('navbar.alertOptionConnection')} creada exitosamente`
       });
 
+      this.connectionAlertMessage = '';
       this.resetConnectionNotificationEmail();
       await this.loadConnectionAlerts();
     } catch (error: any) {

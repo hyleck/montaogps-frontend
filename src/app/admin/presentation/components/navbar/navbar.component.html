@@ -156,6 +156,14 @@
                     </button>
                 </div>
             </div>
+
+            <div class="form-field">
+                <label for="speedAlertMessage">Mensaje personalizado (opcional)</label>
+                <input id="speedAlertMessage" type="text" name="speedAlertMessage" class="custom-input"
+                    placeholder="Ej: Exceso de velocidad detectado" [(ngModel)]="speedAlertMessage"
+                    style="width: 100%;" />
+            </div>
+
             <button type="submit" class="create-alert-btn" [disabled]="speedAlertForm.invalid || creatingAlert">
                 <i *ngIf="creatingAlert" class="pi pi-spin pi-spinner"></i>
                 <span *ngIf="!creatingAlert">{{ 'navbar.createAlert' | translate }}</span>
@@ -275,6 +283,14 @@
                     </button>
                 </div>
             </div>
+
+            <div class="form-field">
+                <label for="ignitionAlertMessage">Mensaje personalizado (opcional)</label>
+                <input id="ignitionAlertMessage" type="text" name="ignitionAlertMessage" class="custom-input"
+                    [placeholder]="ignitionTrigger === 'on' ? 'Ej: El motor se ha encendido' : 'Ej: El motor se ha apagado'"
+                    [(ngModel)]="ignitionAlertMessage" style="width: 100%;" />
+            </div>
+
             <button type="submit" class="create-alert-btn" [disabled]="creatingIgnitionAlert">
                 <i *ngIf="creatingIgnitionAlert" class="pi pi-spin pi-spinner"></i>
                 <span *ngIf="!creatingIgnitionAlert">{{ 'navbar.createAlert' | translate }}</span>
@@ -1141,6 +1157,14 @@
                     </button>
                 </div>
             </div>
+
+            <div class="form-field">
+                <label for="movementAlertMessage">Mensaje personalizado (opcional)</label>
+                <input id="movementAlertMessage" type="text" name="movementAlertMessage" class="custom-input"
+                    placeholder="Ej: El dispositivo se ha movido" [(ngModel)]="movementAlertMessage"
+                    style="width: 100%;" />
+            </div>
+
             <button type="submit" class="create-alert-btn" [disabled]="creatingMovementAlert">
                 <i *ngIf="creatingMovementAlert" class="pi pi-spin pi-spinner"></i>
                 <span *ngIf="!creatingMovementAlert">{{ 'navbar.createAlert' | translate }}</span>
@@ -1259,6 +1283,14 @@
                     </button>
                 </div>
             </div>
+
+            <div class="form-field">
+                <label for="connectionAlertMessage">Mensaje personalizado (opcional)</label>
+                <input id="connectionAlertMessage" type="text" name="connectionAlertMessage" class="custom-input"
+                    [placeholder]="connectionAlertType === 'online' ? 'Ej: El dispositivo está en línea' : 'Ej: El dispositivo está fuera de línea'"
+                    [(ngModel)]="connectionAlertMessage" style="width: 100%;" />
+            </div>
+
             <button type="submit" class="create-alert-btn" [disabled]="creatingConnectionAlert">
                 <i *ngIf="creatingConnectionAlert" class="pi pi-spin pi-spinner"></i>
                 <span *ngIf="!creatingConnectionAlert">{{ 'navbar.createAlert' | translate }}</span>
