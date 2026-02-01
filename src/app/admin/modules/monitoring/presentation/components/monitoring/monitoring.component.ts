@@ -361,7 +361,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   set selectedConnectionFilter(value: string) {
     if (this._selectedConnectionFilter !== value) {
       this._selectedConnectionFilter = value;
-      
+
       if (value !== 'offline') {
         this._selectedOfflineDurationFilter = '';
       }
@@ -1235,18 +1235,18 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     if (this.isDeviceOnline(device)) {
       return 'En línea';
     }
-   
-    
-const isTraccar = device?.traccarInfo;
 
-     if (!isTraccar) {
- console.log(device,
-      '[pokemon]'
-    )
+
+    const isTraccar = device?.traccarInfo;
+
+    if (!isTraccar) {
+      console.log(device,
+        '[pokemon]'
+      )
 
       return 'Error';
     }
-const lastUpdate = device?.traccarInfo?.lastUpdate;
+    const lastUpdate = device?.traccarInfo?.lastUpdate;
 
     if (!lastUpdate) {
       return 'Fuera de línea (estado inicial)';
@@ -1538,20 +1538,27 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
     const worksheet = workbook.addWorksheet('Monitoreo');
 
     // Set column widths
-    worksheet.columns = [
+    const cols = [
       { key: 'col1', width: 5 }, // Empty column for spacing
       { key: 'col2', width: 25 },
-      { key: 'col3', width: 20 },
-      { key: 'col4', width: 15 },
-      { key: 'col5', width: 12 },
-      { key: 'col6', width: 15 },
-      { key: 'col7', width: 15 },
-      { key: 'col8', width: 15 },
-      { key: 'col9', width: 15 },
-      { key: 'col10', width: includeMileage ? 24 : 2 }
+      { key: 'col3', width: 15 }, // Placa
+      { key: 'col4', width: 20 }, // IMEI
+      { key: 'col5', width: 15 }, // Protocolo
+      { key: 'col6', width: 12 }, // Estado
+      { key: 'col7', width: 15 }, // Conexión
+      { key: 'col8', width: 15 }, // Fecha Instalación
+      { key: 'col9', width: 15 }, // Fecha Expiración
+      { key: 'col10', width: 15 } // Número SIM
     ];
 
-    const lastColumnLetter = includeMileage ? 'J' : 'I';
+    if (includeMileage) {
+      cols.push({ key: 'col11', width: 24 });
+    }
+
+    worksheet.columns = cols;
+
+    const lastColumnLetter = includeMileage ? 'K' : 'J';
+    const lastColIndex = includeMileage ? 11 : 10;
 
     let currentRow = 1; // Start from row 1
 
@@ -1613,18 +1620,14 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
         : 'Sin nombre';
 
       // Add user title row
-      const titleRow = worksheet.addRow({
+      const titleRowData: any = {
         col1: '',
         col2: `Usuario: ${userName}`,
-        col3: '',
-        col4: '',
-        col5: '',
-        col6: '',
-        col7: '',
-        col8: '',
-        col9: '',
-        col10: ''
-      });
+        col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
+      };
+      if (includeMileage) titleRowData.col11 = '';
+
+      const titleRow = worksheet.addRow(titleRowData);
 
       // Style user title
       titleRow.getCell(2).fill = {
@@ -1644,18 +1647,13 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
       currentRow++;
 
       // Add hierarchy info
-      const hierarchyRow = worksheet.addRow({
+      const hierarchyRowData: any = {
         col1: '',
         col2: `Jerarquía: ${userHierarchy}`,
-        col3: '',
-        col4: '',
-        col5: '',
-        col6: '',
-        col7: '',
-        col8: '',
-        col9: '',
-        col10: ''
-      });
+        col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
+      };
+      if (includeMileage) hierarchyRowData.col11 = '';
+      const hierarchyRow = worksheet.addRow(hierarchyRowData);
 
       hierarchyRow.getCell(2).font = {
         italic: true,
@@ -1666,18 +1664,13 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
       currentRow++;
 
       // Add device count
-      const deviceCountRow = worksheet.addRow({
+      const deviceCountRowData: any = {
         col1: '',
         col2: `Total de dispositivos: ${userData.devices.length}`,
-        col3: '',
-        col4: '',
-        col5: '',
-        col6: '',
-        col7: '',
-        col8: '',
-        col9: '',
-        col10: ''
-      });
+        col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
+      };
+      if (includeMileage) deviceCountRowData.col11 = '';
+      const deviceCountRow = worksheet.addRow(deviceCountRowData);
 
       deviceCountRow.getCell(2).font = {
         bold: true,
@@ -1688,42 +1681,36 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
       currentRow++;
 
       // Add empty row for spacing
-      worksheet.addRow({
-        col1: '',
-        col2: '',
-        col3: '',
-        col4: '',
-        col5: '',
-        col6: '',
-        col7: '',
-        col8: '',
-        col9: '',
-        col10: ''
-      });
+      const spacerRowData: any = { col1: '', col2: '', col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: '' };
+      if (includeMileage) spacerRowData.col11 = '';
+      worksheet.addRow(spacerRowData);
       currentRow++;
 
       // Add device table headers
-      const headerRow = worksheet.addRow({
+      const headerRowData: any = {
         col1: '',
         col2: 'Nombre Dispositivo',
-        col3: 'IMEI',
-        col4: 'Protocolo',
-        col5: 'Estado',
-        col6: 'Conexión',
-        col7: 'Fecha Instalación',
-        col8: 'Fecha Expiración',
-        col9: 'Número SIM',
-        col10: includeMileage ? 'Distancia' : ''
-      });
+        col3: 'Placa',
+        col4: 'IMEI',
+        col5: 'Protocolo',
+        col6: 'Estado',
+        col7: 'Conexión',
+        col8: 'Fecha Instalación',
+        col9: 'Fecha Expiración',
+        col10: 'Número SIM'
+      };
+      if (includeMileage) headerRowData.col11 = 'Distancia';
+
+      const headerRow = worksheet.addRow(headerRowData);
 
       // Style header row
       headerRow.eachCell((cell, colNumber) => {
-          if (colNumber > 1 && (!includeMileage || colNumber <= 10)) { // Skip first column (empty)
-            cell.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'FF007BFF' } // Blue background
-            };
+        if (colNumber > 1 && colNumber <= lastColIndex) { // Skip first column (empty)
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF007BFF' } // Blue background
+          };
           cell.font = {
             bold: true,
             color: { argb: 'FFFFFFFF' }, // White text
@@ -1742,24 +1729,28 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
 
       // Add device data rows
       userData.devices.forEach((device, deviceIndex) => {
-        const dataRow = worksheet.addRow({
+        const dataRowData: any = {
           col1: '',
           col2: device.name || '',
-          col3: device.device_imei || '',
-          col4: this.getProtocolName(device.type) || '',
-          col5: device.status ? 'Activo' : 'Inactivo',
-          col6: this.getConnectionDisplay(device),
-          col7: this.formatActivationDate(device.activation_date) || '',
-          col8: this.formatExpirationDate(device.expiration_date) || '',
-          col9: device.sim_card_number || '',
-          col10: includeMileage
-            ? `${this.formatDeviceDistance(device)} ${this.formatDistanceRange(device) ? '(' + this.formatDistanceRange(device) + ')' : ''}`
-            : ''
-        });
+          col3: device.target_plate_number || '',
+          col4: device.device_imei || '',
+          col5: this.getProtocolName(device.type) || '',
+          col6: device.status ? 'Activo' : 'Inactivo',
+          col7: this.getConnectionDisplay(device),
+          col8: this.formatActivationDate(device.activation_date) || '',
+          col9: this.formatExpirationDate(device.expiration_date) || '',
+          col10: device.sim_card_number || '',
+        };
+
+        if (includeMileage) {
+          dataRowData.col11 = `${this.formatDeviceDistance(device)} ${this.formatDistanceRange(device) ? '(' + this.formatDistanceRange(device) + ')' : ''}`;
+        }
+
+        const dataRow = worksheet.addRow(dataRowData);
 
         // Style data row
         dataRow.eachCell((cell, colNumber) => {
-          if (colNumber > 1 && (!includeMileage || colNumber <= 10)) { // Skip first column (empty)
+          if (colNumber > 1 && colNumber <= lastColIndex) { // Skip first column (empty)
             const isEvenRow = deviceIndex % 2 === 0;
             const backgroundColor = isEvenRow ? 'FFF8F9FA' : 'FFFFFFFF';
 
@@ -1782,8 +1773,8 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
           }
         });
 
-        // Special styling for status column (column E - Estado)
-        const statusCell = dataRow.getCell(5);
+        // Special styling for status column (column F - Estado)
+        const statusCell = dataRow.getCell(6);
         if (device.status) {
           statusCell.fill = {
             type: 'pattern',
@@ -1808,8 +1799,8 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
           };
         }
 
-        // Special styling for connection column (column F - Conexión)
-        const connectionCell = dataRow.getCell(6);
+        // Special styling for connection column (column G - Conexión)
+        const connectionCell = dataRow.getCell(7);
         if (this.isDeviceOnline(device)) {
           connectionCell.fill = {
             type: 'pattern',
@@ -1834,8 +1825,8 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
           };
         }
 
-        // Special styling for expiration column (column G - Fecha Expiración)
-        const expirationCell = dataRow.getCell(8);
+        // Special styling for expiration column (column I - Fecha Expiración)
+        const expirationCell = dataRow.getCell(9);
         if (device.expiration_date) {
           if (this.isExpired(device.expiration_date)) {
             expirationCell.fill = {
@@ -1904,7 +1895,7 @@ const lastUpdate = device?.traccarInfo?.lastUpdate;
 
     // Generate filename with current date
     const now = new Date();
-    const filename = `monitoreo_${now.getFullYear()}${(now.getMonth()+1).toString().padStart(2,'0')}${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}${now.getMinutes().toString().padStart(2,'0')}.xlsx`;
+    const filename = `monitoreo_${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}.xlsx`;
 
     // Save file
     try {

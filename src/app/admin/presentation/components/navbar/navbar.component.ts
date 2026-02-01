@@ -109,6 +109,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   perimeterNotificationTrigger: string = 'enter';
   perimeterNotificationEmail: string = '';
   perimeterNotificationEmailUserId: string | null = null;
+  perimeterNotificationMessage: string = '';
   verifyingPerimeterNotificationEmail: boolean = false;
   creatingPerimeterAlert: boolean = false;
 
@@ -926,7 +927,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       coordinates,
       trigger: this.perimeterNotificationTrigger,
       targetIds,
-      userTopic: this.perimeterNotificationEmailUserId || undefined
+      userTopic: this.perimeterNotificationEmailUserId || undefined,
+      message: this.perimeterNotificationMessage?.trim() || undefined
     };
 
     this.creatingPerimeterAlert = true;
@@ -942,6 +944,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
       // Resetear formulario
       this.perimeterNotificationTrigger = 'enter';
+      this.perimeterNotificationMessage = '';
       this.resetPerimeterNotificationEmail();
       this.mapAlertComponent?.clearPerimeter();
 

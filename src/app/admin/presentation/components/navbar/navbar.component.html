@@ -499,6 +499,14 @@
                     </div>
                 </div>
 
+                <div class="form-field">
+                    <label for="perimeterNotificationMessage">Mensaje personalizado (opcional)</label>
+                    <input id="perimeterNotificationMessage" type="text" name="perimeterNotificationMessage"
+                        class="custom-input"
+                        [placeholder]="perimeterNotificationTrigger === 'enter' ? 'Ej: Ha llegado a su casa' : 'Ej: Ha salido de su casa'"
+                        [(ngModel)]="perimeterNotificationMessage" style="width: 100%;" />
+                </div>
+
                 <!-- Botón de Crear Alerta (solo si NO está en modo edición) -->
                 <button *ngIf="!editingPerimeterAlertId" type="submit" class="create-alert-btn"
                     [disabled]="creatingPerimeterAlert">

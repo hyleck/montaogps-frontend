@@ -6,42 +6,22 @@
         {{ monitoringPanelTitle | titlecase }}
       </h2>
       <p class="header-subtitle">{{ monitoringPanelSubtitle }}</p>
-   
+
     </div>
     <div class="header-actions">
-      <p-button
-        *ngIf="!monitoringResult"
-        label="Nuevo monitoreo"
-        icon="pi pi-plus"
-        (onClick)="openUserSearchModal()"
+      <p-button *ngIf="!monitoringResult" label="Nuevo monitoreo" icon="pi pi-plus" (onClick)="openUserSearchModal()"
         styleClass="p-button-primary">
       </p-button>
-      <p-button
-        *ngIf="monitoringResult"
-        [label]="'Volver a Reportes'"
-        icon="pi pi-arrow-left"
-        (onClick)="backToReports()"
+      <p-button *ngIf="monitoringResult" [label]="'Volver a Reportes'" icon="pi pi-arrow-left"
+        (onClick)="backToReports()" styleClass="p-button-outlined">
+      </p-button>
+      <p-button *ngIf="monitoringResult" label="Nuevo monitoreo" icon="pi pi-plus" (onClick)="openUserSearchModal()"
         styleClass="p-button-outlined">
       </p-button>
-      <p-button
-        *ngIf="monitoringResult"
-        label="Nuevo monitoreo"
-        icon="pi pi-plus"
-        (onClick)="openUserSearchModal()"
-        styleClass="p-button-outlined">
+      <p-button [label]="'MONITORING.FILTERS_BUTTON' | translate" icon="pi pi-filter" (onClick)="openFiltersDrawer()"
+        [disabled]="loading || loadingReports" styleClass="p-button-secondary">
       </p-button>
-      <p-button
-        [label]="'MONITORING.FILTERS_BUTTON' | translate"
-        icon="pi pi-filter"
-        (onClick)="openFiltersDrawer()"
-        [disabled]="loading || loadingReports"
-        styleClass="p-button-secondary">
-      </p-button>
-      <p-button
-        *ngIf="monitoringResult"
-        label="Excel"
-        icon="pi pi-file-excel"
-        (onClick)="exportToExcel()"
+      <p-button *ngIf="monitoringResult" label="Excel" icon="pi pi-file-excel" (onClick)="exportToExcel()"
         styleClass="p-button-success">
       </p-button>
     </div>
@@ -57,9 +37,7 @@
 
   <!-- Monitoring Reports Section -->
   <div *ngIf=" !monitoringResult && !loadingReports && !loading" class="monitoring-reports-section">
-    <div
-      *ngIf="reportGenerationStatus && reportGenerationStatus.status !== 'idle'"
-      class="monitoring-status-card"
+    <div *ngIf="reportGenerationStatus && reportGenerationStatus.status !== 'idle'" class="monitoring-status-card"
       [ngClass]="reportGenerationStatus.status">
       <div class="status-card-header">
         <div class="status-card-icon">
@@ -67,43 +45,30 @@
         </div>
         <div class="status-card-texts">
           <span class="status-card-title">{{ getMonitoringStatusTitle(reportGenerationStatus) }}</span>
-          <span
-            class="status-card-subtitle"
-            *ngIf="getStatusCreatorLabel(reportGenerationStatus) as creatorLabel">
+          <span class="status-card-subtitle" *ngIf="getStatusCreatorLabel(reportGenerationStatus) as creatorLabel">
             {{ 'MONITORING.STATUS_EXECUTED_BY' | translate:{ user: creatorLabel } }}
           </span>
-          <span
-            class="status-card-subtitle status-card-error"
+          <span class="status-card-subtitle status-card-error"
             *ngIf="reportGenerationStatus?.error && reportGenerationStatus.status === 'failed'">
             {{ reportGenerationStatus.error }}
           </span>
         </div>
       </div>
       <div class="status-card-progress" *ngIf="reportGenerationStatus.status !== 'failed'">
-          <div
-            class="status-progress-track"
-            [ngClass]="{ 'indeterminate': reportGenerationStatus.status === 'pending' }">
-            <div
-              class="status-progress-value"
-              [style.width.%]="reportGenerationStatus.status === 'in-progress' ? reportGenerationStatus.progress : 0">
-            </div>
+        <div class="status-progress-track" [ngClass]="{ 'indeterminate': reportGenerationStatus.status === 'pending' }">
+          <div class="status-progress-value"
+            [style.width.%]="reportGenerationStatus.status === 'in-progress' ? reportGenerationStatus.progress : 0">
           </div>
+        </div>
       </div>
-      <div
-        class="status-card-hint"
+      <div class="status-card-hint"
         *ngIf="reportGenerationStatus.status === 'pending' || reportGenerationStatus.status === 'in-progress'">
         <i class="pi pi-info-circle"></i>
         <span>{{ 'MONITORING.STATUS_BACKGROUND_HINT' | translate }}</span>
       </div>
-      <div
-        class="status-card-actions"
-        *ngIf="reportGenerationStatus.status === 'in-progress'">
-        <p-button
-          [label]="'MONITORING.STATUS_CANCEL_BUTTON' | translate"
-          icon="pi pi-times"
-          (onClick)="cancelMonitoringStatus()"
-          [loading]="cancellingStatus"
-          [disabled]="cancellingStatus"
+      <div class="status-card-actions" *ngIf="reportGenerationStatus.status === 'in-progress'">
+        <p-button [label]="'MONITORING.STATUS_CANCEL_BUTTON' | translate" icon="pi pi-times"
+          (onClick)="cancelMonitoringStatus()" [loading]="cancellingStatus" [disabled]="cancellingStatus"
           styleClass="p-button-danger p-button-sm p-button-outlined">
         </p-button>
       </div>
@@ -120,8 +85,7 @@
           <div class="report-message-main" [ngClass]="{ 'report-latest': idx === 0 && !reportGenerationStatus }">
             <i [ngClass]="idx === 0 && !reportGenerationStatus ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
             <span>Monitoreo registrado {{ getTimeAgo(report.createdAt) }}</span>
-            <span
-              *ngIf="idx === 0 && isReportNew(report.createdAt) && !reportGenerationStatus"
+            <span *ngIf="idx === 0 && isReportNew(report.createdAt) && !reportGenerationStatus"
               class="report-badge-new">
               Nuevo
             </span>
@@ -134,15 +98,12 @@
             </div>
             <div class="report-detail-item">
               <span class="detail-label">Creado por:</span>
-              <span class="detail-value">{{ report.creator?.name }} {{ report.creator?.last_name }} ({{ report.creator?.email }})</span>
+              <span class="detail-value">{{ report.creator?.name }} {{ report.creator?.last_name }} ({{
+                report.creator?.email }})</span>
             </div>
             <div class="report-actions">
-              <p-button
-                *ngIf="report.reportId as reportId"
-                label="Abrir"
-                icon="pi pi-eye"
-                (onClick)="openReport(reportId)"
-                styleClass="p-button-primary p-button-sm">
+              <p-button *ngIf="report.reportId as reportId" label="Abrir" icon="pi pi-eye"
+                (onClick)="openReport(reportId)" styleClass="p-button-primary p-button-sm">
               </p-button>
             </div>
           </div>
@@ -171,14 +132,16 @@
             <div class="summary-stat summary-stat-online">
               <div class="summary-stat-icon"><i class="pi pi-wifi"></i></div>
               <div class="summary-stat-info">
-                <span class="summary-stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_ONLINE_DEVICES' | translate }}</span>
+                <span class="summary-stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_ONLINE_DEVICES' | translate
+                  }}</span>
                 <span class="summary-stat-value">{{ report.activeValidOnlineDevices }}</span>
               </div>
             </div>
             <div class="summary-stat summary-stat-offline">
               <div class="summary-stat-icon"><i class="pi pi-ban"></i></div>
               <div class="summary-stat-info">
-                <span class="summary-stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_OFFLINE_DEVICES' | translate }}</span>
+                <span class="summary-stat-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_OFFLINE_DEVICES' | translate
+                  }}</span>
                 <span class="summary-stat-value">{{ report.activeValidOfflineDevices }}</span>
               </div>
             </div>
@@ -196,75 +159,41 @@
   </div>
 
   <!-- User Search Modal -->
-  <p-dialog
-    header="Nuevo monitoreo"
-    [(visible)]="showUserSearchModal"
-    [modal]="true"
-    [closable]="true"
-    [style]="{width: '500px'}"
-    [draggable]="false"
-    [resizable]="false">
+  <p-dialog header="Nuevo monitoreo" [(visible)]="showUserSearchModal" [modal]="true" [closable]="true"
+    [style]="{width: '500px'}" [draggable]="false" [resizable]="false">
 
     <div class="search-form">
       <div class="p-field checkbox-field">
         <label class="checkbox-label">
-          <input
-            type="checkbox"
-            [(ngModel)]="includeMileage"
-            [disabled]="searchingUser || loading"
-            (ngModelChange)="onMileageToggle($event)"
-          />
+          <input type="checkbox" [(ngModel)]="includeMileage" [disabled]="searchingUser || loading"
+            (ngModelChange)="onMileageToggle($event)" />
           Incluir kilometraje
         </label>
       </div>
       <div class="p-field" *ngIf="isMileageMonitoring">
         <label for="mileageFrom">Desde</label>
-        <input
-          id="mileageFrom"
-          type="datetime-local"
-          class="monitoring-date-input"
-          [(ngModel)]="mileageFrom"
+        <input id="mileageFrom" type="datetime-local" class="monitoring-date-input" [(ngModel)]="mileageFrom"
           [disabled]="searchingUser || loading">
       </div>
       <div class="p-field" *ngIf="isMileageMonitoring">
         <label for="mileageTo">Hasta</label>
-        <input
-          id="mileageTo"
-          type="datetime-local"
-          class="monitoring-date-input"
-          [(ngModel)]="mileageTo"
+        <input id="mileageTo" type="datetime-local" class="monitoring-date-input" [(ngModel)]="mileageTo"
           [disabled]="searchingUser || loading">
       </div>
       <div class="p-field">
         <label for="userEmail">{{ 'MONITORING.EMAIL_LABEL' | translate }}</label>
-        <input
-          id="userEmail"
-          type="email"
-          pInputText
-          [(ngModel)]="userEmail"
-          [placeholder]="'MONITORING.EMAIL_PLACEHOLDER' | translate"
-          (keyup.enter)="searchUserByEmail()"
-          [disabled]="searchingUser || loading"
-          class="email-input">
+        <input id="userEmail" type="email" pInputText [(ngModel)]="userEmail"
+          [placeholder]="'MONITORING.EMAIL_PLACEHOLDER' | translate" (keyup.enter)="searchUserByEmail()"
+          [disabled]="searchingUser || loading" class="email-input">
       </div>
 
       <div class="search-actions">
-        <p-button
-          [label]="'MONITORING.SEARCH_BUTTON' | translate"
-          icon="pi pi-search"
-          (onClick)="searchUserByEmail()"
-          [loading]="searchingUser"
-          [disabled]="!userEmail || loading"
-          styleClass="p-button-primary">
+        <p-button [label]="'MONITORING.SEARCH_BUTTON' | translate" icon="pi pi-search" (onClick)="searchUserByEmail()"
+          [loading]="searchingUser" [disabled]="!userEmail || loading" styleClass="p-button-primary">
         </p-button>
 
-        <p-button
-          *ngIf="userFound || monitoringResult"
-          [label]="'MONITORING.NEW_SEARCH_BUTTON' | translate"
-          icon="pi pi-refresh"
-          (onClick)="resetSearch()"
-          [disabled]="loading"
-          styleClass="p-button-secondary">
+        <p-button *ngIf="userFound || monitoringResult" [label]="'MONITORING.NEW_SEARCH_BUTTON' | translate"
+          icon="pi pi-refresh" (onClick)="resetSearch()" [disabled]="loading" styleClass="p-button-secondary">
         </p-button>
       </div>
 
@@ -286,9 +215,7 @@
 
       <!-- Selected User Reports (shown in modal) -->
       <div *ngIf="selectedUserReports.length > 0" class="selected-user-reports-modal">
-        <div
-          *ngIf="reportGenerationStatus && reportGenerationStatus.status !== 'idle'"
-          class="monitoring-status-card"
+        <div *ngIf="reportGenerationStatus && reportGenerationStatus.status !== 'idle'" class="monitoring-status-card"
           [ngClass]="reportGenerationStatus.status">
           <div class="status-card-header">
             <div class="status-card-icon">
@@ -296,44 +223,33 @@
             </div>
             <div class="status-card-texts">
               <span class="status-card-title">{{ getMonitoringStatusTitle(reportGenerationStatus) }}</span>
-              <span class="status-card-subtitle" *ngIf="reportGenerationStatus?.message">{{ reportGenerationStatus.message }}</span>
-              <span
-                class="status-card-subtitle"
-                *ngIf="getStatusCreatorLabel(reportGenerationStatus) as creatorLabel">
+              <span class="status-card-subtitle" *ngIf="reportGenerationStatus?.message">{{
+                reportGenerationStatus.message }}</span>
+              <span class="status-card-subtitle" *ngIf="getStatusCreatorLabel(reportGenerationStatus) as creatorLabel">
                 {{ 'MONITORING.STATUS_EXECUTED_BY' | translate:{ user: creatorLabel } }}
               </span>
-              <span
-                class="status-card-subtitle status-card-error"
+              <span class="status-card-subtitle status-card-error"
                 *ngIf="reportGenerationStatus?.error && reportGenerationStatus.status === 'failed'">
                 {{ reportGenerationStatus.error }}
               </span>
             </div>
           </div>
           <div class="status-card-progress" *ngIf="reportGenerationStatus.status !== 'failed'">
-            <div
-              class="status-progress-track"
+            <div class="status-progress-track"
               [ngClass]="{ 'indeterminate': reportGenerationStatus.status === 'pending' }">
-              <div
-                class="status-progress-value"
+              <div class="status-progress-value"
                 [style.width.%]="reportGenerationStatus.status === 'in-progress' ? reportGenerationStatus.progress : 0">
               </div>
             </div>
           </div>
-          <div
-            class="status-card-hint"
+          <div class="status-card-hint"
             *ngIf="reportGenerationStatus.status === 'pending' || reportGenerationStatus.status === 'in-progress'">
             <i class="pi pi-info-circle"></i>
             <span>{{ 'MONITORING.STATUS_BACKGROUND_HINT' | translate }}</span>
           </div>
-          <div
-            class="status-card-actions"
-            *ngIf="reportGenerationStatus.status === 'in-progress'">
-            <p-button
-              [label]="'MONITORING.STATUS_CANCEL_BUTTON' | translate"
-              icon="pi pi-times"
-              (onClick)="cancelMonitoringStatus()"
-              [loading]="cancellingStatus"
-              [disabled]="cancellingStatus"
+          <div class="status-card-actions" *ngIf="reportGenerationStatus.status === 'in-progress'">
+            <p-button [label]="'MONITORING.STATUS_CANCEL_BUTTON' | translate" icon="pi pi-times"
+              (onClick)="cancelMonitoringStatus()" [loading]="cancellingStatus" [disabled]="cancellingStatus"
               styleClass="p-button-danger p-button-sm p-button-outlined">
             </p-button>
           </div>
@@ -341,7 +257,8 @@
 
         <div class="reports-summary">
           <i class="pi pi-chart-line"></i>
-          <span class="reports-count">{{ selectedUserReports.length }} monitoreo{{ selectedUserReports.length !== 1 ? 's' : '' }} registrado{{ selectedUserReports.length !== 1 ? 's' : '' }}</span>
+          <span class="reports-count">{{ selectedUserReports.length }} monitoreo{{ selectedUserReports.length !== 1 ?
+            's' : '' }} registrado{{ selectedUserReports.length !== 1 ? 's' : '' }}</span>
         </div>
         <div class="reports-grid-modal">
           <div *ngFor="let report of selectedUserReports" class="report-card-modal">
@@ -394,12 +311,8 @@
               </div>
             </div>
             <div class="report-summary-actions">
-              <p-button
-                *ngIf="report.reportId as reportId"
-                label="Ver detalles"
-                icon="pi pi-eye"
-                (onClick)="openReport(reportId)"
-                styleClass="p-button-link">
+              <p-button *ngIf="report.reportId as reportId" label="Ver detalles" icon="pi pi-eye"
+                (onClick)="openReport(reportId)" styleClass="p-button-link">
               </p-button>
             </div>
           </div>
@@ -408,31 +321,18 @@
     </div>
 
     <ng-template pTemplate="footer">
-      <p-button
-        [label]="'MONITORING.START_BUTTON' | translate"
-        icon="pi pi-play"
-        (onClick)="startMonitoring()"
-        [loading]="loading"
-        [disabled]="!userFound || loading"
-        styleClass="p-button-success">
+      <p-button [label]="'MONITORING.START_BUTTON' | translate" icon="pi pi-play" (onClick)="startMonitoring()"
+        [loading]="loading" [disabled]="!userFound || loading" styleClass="p-button-success">
       </p-button>
-      <p-button
-        [label]="'MONITORING.CANCEL_BUTTON' | translate"
-        icon="pi pi-times"
-        (onClick)="closeUserSearchModal()"
+      <p-button [label]="'MONITORING.CANCEL_BUTTON' | translate" icon="pi pi-times" (onClick)="closeUserSearchModal()"
         styleClass="p-button-secondary">
       </p-button>
     </ng-template>
   </p-dialog>
 
   <!-- Filters Drawer -->
-  <p-drawer
-    [header]="'MONITORING.FILTERS_TITLE' | translate"
-    [(visible)]="isFiltersDrawerVisible"
-    [position]="'right'"
-    [modal]="true"
-    [style]="{ width: '420px' }"
-    (onHide)="closeFiltersDrawer()">
+  <p-drawer [header]="'MONITORING.FILTERS_TITLE' | translate" [(visible)]="isFiltersDrawerVisible" [position]="'right'"
+    [modal]="true" [style]="{ width: '420px' }" (onHide)="closeFiltersDrawer()">
 
     <div class="filters-form">
       <div class="filters-section">
@@ -440,9 +340,7 @@
 
         <div class="field">
           <label>{{ 'MONITORING.FILTERS_AFFILIATION' | translate }}</label>
-          <select
-            [(ngModel)]="selectedAffiliationFilter"
-            class="filter-select">
+          <select [(ngModel)]="selectedAffiliationFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_AFFILIATIONS' | translate }}</option>
             <option *ngFor="let option of affiliationFilterOptions" [value]="option">
               {{ 'management.userForm.affiliationTypes.' + option | translate }}
@@ -452,9 +350,7 @@
 
         <div class="field">
           <label>{{ 'MONITORING.FILTERS_PROFILE' | translate }}</label>
-          <select
-            [(ngModel)]="selectedProfileFilter"
-            class="filter-select">
+          <select [(ngModel)]="selectedProfileFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_PROFILES' | translate }}</option>
             <option *ngFor="let option of profileFilterOptions" [value]="option">
               {{ 'management.userForm.profileTypes.' + option | translate }}
@@ -464,9 +360,7 @@
 
         <div class="field">
           <label>{{ 'MONITORING.ACCOUNT_SIZE_FILTER' | translate }}</label>
-          <select
-            [(ngModel)]="selectedAccountSizeFilter"
-            class="filter-select">
+          <select [(ngModel)]="selectedAccountSizeFilter" class="filter-select">
             <option [ngValue]="null">{{ 'MONITORING.ACCOUNT_SIZE_ALL' | translate }}</option>
             <option *ngFor="let threshold of accountSizeThresholds" [ngValue]="threshold">
               {{ 'MONITORING.ACCOUNT_SIZE_OPTION' | translate:{ count: threshold } }}
@@ -480,9 +374,7 @@
 
         <div class="field">
           <label>{{ 'MONITORING.FILTERS_STATUS' | translate }}</label>
-          <select
-            [(ngModel)]="selectedStatusFilter"
-            class="filter-select">
+          <select [(ngModel)]="selectedStatusFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_STATUSES' | translate }}</option>
             <option value="active">{{ 'MONITORING.FILTERS_ACTIVE' | translate }}</option>
             <option value="inactive">{{ 'MONITORING.FILTERS_INACTIVE' | translate }}</option>
@@ -491,9 +383,7 @@
 
         <div class="field">
           <label>{{ 'MONITORING.FILTERS_CONNECTION' | translate }}</label>
-          <select
-            [(ngModel)]="selectedConnectionFilter"
-            class="filter-select">
+          <select [(ngModel)]="selectedConnectionFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_CONNECTIONS' | translate }}</option>
             <option value="online">{{ 'MONITORING.FILTERS_ONLINE' | translate }}</option>
             <option value="offline">{{ 'MONITORING.FILTERS_OFFLINE' | translate }}</option>
@@ -502,9 +392,7 @@
 
         <div class="field" *ngIf="selectedConnectionFilter === 'offline'">
           <label>{{ 'MONITORING.FILTERS_OFFLINE_DURATION' | translate }}</label>
-          <select
-            [(ngModel)]="selectedOfflineDurationFilter"
-            class="filter-select">
+          <select [(ngModel)]="selectedOfflineDurationFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_OFFLINE_DURATION_ANY' | translate }}</option>
             <option *ngFor="let option of offlineDurationOptions" [value]="option.value">
               {{ option.label | translate }}
@@ -514,9 +402,7 @@
 
         <div class="field">
           <label>{{ 'MONITORING.FILTERS_PROTOCOL' | translate }}</label>
-          <select
-            [(ngModel)]="selectedProtocolFilter"
-            class="filter-select">
+          <select [(ngModel)]="selectedProtocolFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_PROTOCOLS' | translate }}</option>
             <option *ngFor="let protocol of protocols" [value]="protocol._id">
               {{ protocol.name }}
@@ -526,9 +412,7 @@
 
         <div class="field">
           <label>{{ 'MONITORING.FILTERS_SIM_COMPANY' | translate }}</label>
-          <select
-            [(ngModel)]="selectedSimCompanyFilter"
-            class="filter-select">
+          <select [(ngModel)]="selectedSimCompanyFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_SIM_COMPANIES' | translate }}</option>
             <option *ngFor="let company of availableSimCompanies" [value]="company">
               {{ company }}
@@ -538,9 +422,7 @@
 
         <div class="field" *ngIf="selectedSimCompanyFilter === 'global-m'">
           <label>{{ 'MONITORING.FILTERS_SIM_STATUS' | translate }}</label>
-          <select
-            [(ngModel)]="selectedSimStatusFilter"
-            class="filter-select">
+          <select [(ngModel)]="selectedSimStatusFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_SIM_STATUSES' | translate }}</option>
             <option value="active">{{ 'MONITORING.FILTERS_SIM_ACTIVE' | translate }}</option>
             <option value="suspended">{{ 'MONITORING.FILTERS_SIM_SUSPENDED' | translate }}</option>
@@ -552,9 +434,7 @@
 
           <div class="field">
             <label>{{ 'MONITORING.FILTERS_ACTIVATION' | translate }}</label>
-            <select
-              [(ngModel)]="selectedActivationFilter"
-              class="filter-select">
+            <select [(ngModel)]="selectedActivationFilter" class="filter-select">
               <option value="all">{{ 'MONITORING.FILTERS_ACTIVATION_ALL' | translate }}</option>
               <option value="range">{{ 'MONITORING.FILTERS_ACTIVATION_RANGE' | translate }}</option>
             </select>
@@ -562,19 +442,13 @@
 
           <div class="field" *ngIf="selectedActivationFilter === 'range'">
             <label>{{ 'MONITORING.FILTERS_ACTIVATION_FROM' | translate }}</label>
-            <input
-              type="date"
-              [(ngModel)]="activationFromDate"
-              class="date-input"
+            <input type="date" [(ngModel)]="activationFromDate" class="date-input"
               [placeholder]="'MONITORING.FILTERS_ACTIVATION_FROM' | translate">
           </div>
 
           <div class="field" *ngIf="selectedActivationFilter === 'range'">
             <label>{{ 'MONITORING.FILTERS_ACTIVATION_TO' | translate }}</label>
-            <input
-              type="date"
-              [(ngModel)]="activationToDate"
-              class="date-input"
+            <input type="date" [(ngModel)]="activationToDate" class="date-input"
               [placeholder]="'MONITORING.FILTERS_ACTIVATION_TO' | translate">
           </div>
         </div>
@@ -584,9 +458,7 @@
 
           <div class="field">
             <label>{{ 'MONITORING.FILTERS_EXPIRATION' | translate }}</label>
-            <select
-              [(ngModel)]="selectedExpirationFilter"
-              class="filter-select">
+            <select [(ngModel)]="selectedExpirationFilter" class="filter-select">
               <option value="">{{ 'MONITORING.FILTERS_ALL_EXPIRATIONS' | translate }}</option>
               <option value="valid">{{ 'MONITORING.FILTERS_VALID' | translate }}</option>
               <option value="expired">{{ 'MONITORING.FILTERS_EXPIRED' | translate }}</option>
@@ -595,19 +467,13 @@
 
           <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
             <label>{{ 'MONITORING.FILTERS_EXPIRATION_FROM' | translate }}</label>
-            <input
-              type="date"
-              [(ngModel)]="expirationFromDate"
-              class="date-input"
+            <input type="date" [(ngModel)]="expirationFromDate" class="date-input"
               [placeholder]="'MONITORING.FILTERS_EXPIRATION_FROM' | translate">
           </div>
 
           <div class="field" *ngIf="selectedExpirationFilter === 'expired' || selectedExpirationFilter === 'valid'">
             <label>{{ 'MONITORING.FILTERS_EXPIRATION_TO' | translate }}</label>
-            <input
-              type="date"
-              [(ngModel)]="expirationToDate"
-              class="date-input"
+            <input type="date" [(ngModel)]="expirationToDate" class="date-input"
               [placeholder]="'MONITORING.FILTERS_EXPIRATION_TO' | translate">
           </div>
         </div>
@@ -633,146 +499,146 @@
   <!-- Monitoring Results -->
   <div *ngIf="monitoringResult && !loading" class="monitoring-content">
     <ng-container *ngIf="filteredMonitoringData as monitoringData">
-    <div class="monitoring-summary" *ngIf="monitoringResult">
-      <div class="summary-card summary-users">
-        <div class="summary-icon">
-          <i class="pi pi-users"></i>
+      <div class="monitoring-summary" *ngIf="monitoringResult">
+        <div class="summary-card summary-users">
+          <div class="summary-icon">
+            <i class="pi pi-users"></i>
+          </div>
+          <div class="summary-content">
+            <span class="summary-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}</span>
+            <span class="summary-value">{{ monitoringSummaryStats.totalUsers }}</span>
+          </div>
         </div>
-        <div class="summary-content">
-          <span class="summary-label">{{ 'MONITORING.SUMMARY_USERS' | translate }}</span>
-          <span class="summary-value">{{ monitoringSummaryStats.totalUsers }}</span>
+        <div class="summary-card summary-devices">
+          <div class="summary-icon">
+            <i class="pi pi-table"></i>
+          </div>
+          <div class="summary-content">
+            <span class="summary-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}</span>
+            <span class="summary-value">{{ monitoringSummaryStats.totalDevices }}</span>
+          </div>
         </div>
-      </div>
-      <div class="summary-card summary-devices">
-        <div class="summary-icon">
-          <i class="pi pi-table"></i>
+        <div class="summary-card summary-active-online">
+          <div class="summary-icon">
+            <i class="pi pi-wifi"></i>
+          </div>
+          <div class="summary-content">
+            <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_ONLINE_DEVICES' | translate }}</span>
+            <span class="summary-value">{{ monitoringSummaryStats.activeValidOnlineDevices }}</span>
+          </div>
         </div>
-        <div class="summary-content">
-          <span class="summary-label">{{ 'MONITORING.SUMMARY_DEVICES' | translate }}</span>
-          <span class="summary-value">{{ monitoringSummaryStats.totalDevices }}</span>
+        <div class="summary-card summary-active-offline">
+          <div class="summary-icon">
+            <i class="pi pi-ban"></i>
+          </div>
+          <div class="summary-content">
+            <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_OFFLINE_DEVICES' | translate }}</span>
+            <span class="summary-value">{{ monitoringSummaryStats.activeValidOfflineDevices }}</span>
+          </div>
         </div>
-      </div>
-      <div class="summary-card summary-active-online">
-        <div class="summary-icon">
-          <i class="pi pi-wifi"></i>
-        </div>
-        <div class="summary-content">
-          <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_ONLINE_DEVICES' | translate }}</span>
-          <span class="summary-value">{{ monitoringSummaryStats.activeValidOnlineDevices }}</span>
-        </div>
-      </div>
-      <div class="summary-card summary-active-offline">
-        <div class="summary-icon">
-          <i class="pi pi-ban"></i>
-        </div>
-        <div class="summary-content">
-          <span class="summary-label">{{ 'MONITORING.SUMMARY_ACTIVE_VALID_OFFLINE_DEVICES' | translate }}</span>
-          <span class="summary-value">{{ monitoringSummaryStats.activeValidOfflineDevices }}</span>
-        </div>
-      </div>
-      <div class="summary-card summary-expired">
-        <div class="summary-icon">
-          <i class="pi pi-calendar-times"></i>
-        </div>
-        <div class="summary-content">
-          <span class="summary-label">{{ 'MONITORING.SUMMARY_EXPIRED_DEVICES' | translate }}</span>
-          <span class="summary-value">{{ monitoringSummaryStats.totalExpiredDevices }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- No users with devices message -->
-    <div *ngIf="monitoringData.length === 0" class="no-data-container">
-      <p-card header="No Devices Found">
-        <p>No users with devices were found in the monitoring results.</p>
-      </p-card>
-    </div>
-
-    <!-- Users with devices -->
-    <div *ngFor="let userData of monitoringData; let i = index; trackBy: trackByUser" class="monitoring-block">
-      <!-- User Path as Breadcrumbs -->
-      <div *ngIf="userData.route && userData.route.length > 0" class="user-breadcrumbs">
-        <div class="breadcrumb-container">
-          <ng-container *ngFor="let pathItem of userData.route; let j = index; let isLast = last">
-            <span class="breadcrumb-item" [class.active]="isLast">
-              {{ pathItem.fullName }}
-            </span>
-            <span *ngIf="!isLast" class="breadcrumb-separator">></span>
-          </ng-container>
+        <div class="summary-card summary-expired">
+          <div class="summary-icon">
+            <i class="pi pi-calendar-times"></i>
+          </div>
+          <div class="summary-content">
+            <span class="summary-label">{{ 'MONITORING.SUMMARY_EXPIRED_DEVICES' | translate }}</span>
+            <span class="summary-value">{{ monitoringSummaryStats.totalExpiredDevices }}</span>
+          </div>
         </div>
       </div>
 
-      <!-- Devices as Content -->
-      <div class="devices-content">
-        <div class="devices-count">Devices: {{ userData.devices.length }}</div>
-        <p-table [value]="userData.devices" [paginator]="userData.devices.length > 10" [rows]="10"
-                  [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-                  [dataKey]="'klk'+i">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Name</th>
-              <th>IMEI</th>
-              <th>Protocol</th>
-              <th>Status</th>
-              <th>Conexión</th>
-              <th>{{ 'MONITORING.TABLE_INSTALLATION' | translate }}</th>
-              <th>Expiration Date</th>
-              <th>SIM Card</th>
-              <th *ngIf="isMileageMonitoring">Distancia recorrido</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-device>
-            <tr>
-              <td>{{ device.name }}</td>
-              <td>{{ device.device_imei }}</td>
-              <td>{{ getProtocolName(device.type) }}</td>
-              <td>
-                <span class="device-status" [class.active]="device.status" [class.inactive]="!device.status">
-                  {{ device.status ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-              <td>
-                <span class="connection-status" [class.online]="isDeviceOnline(device)" [class.offline]="!isDeviceOnline(device)">
-                  {{ getConnectionDisplay(device) }}
-                </span>
-              </td>
-              <td>
-                <span class="activation-date">
-                  {{ formatActivationDate(device.activation_date) }}
-                </span>
-              </td>
-              <td>
-                <span class="expiration-date"
-                      [class.expired]="isExpired(device.expiration_date)"
-                      [class.expiring-soon]="isExpiringSoon(device.expiration_date)"
-                      [class.valid]="isValid(device.expiration_date)">
-                  {{ formatExpirationDate(device.expiration_date) }}
-                </span>
-              </td>
-              <td>
-                <div class="sim-card-cell">
-                  <span [class]="getSimStatusClass(device)">{{ device.sim_card_number || '-' }}</span>
-                  <p-badge *ngIf="device.sim_company"
-                          [value]="device.sim_company"
-                          severity="info"
-                          styleClass="sim-company-badge">
-                  </p-badge>
-                </div>
-              </td>
-              <td *ngIf="isMileageMonitoring">
-                <div class="distance-report" *ngIf="device.distanceReport; else noDistance">
-                  <span class="distance-value">{{ formatDeviceDistance(device) }}</span>
-                  <small class="distance-range">{{ formatDistanceRange(device) }}</small>
-                </div>
-                <ng-template #noDistance>
-                  <span class="distance-empty">N/D</span>
-                </ng-template>
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
+      <!-- No users with devices message -->
+      <div *ngIf="monitoringData.length === 0" class="no-data-container">
+        <p-card header="No Devices Found">
+          <p>No users with devices were found in the monitoring results.</p>
+        </p-card>
       </div>
-    </div>
+
+      <!-- Users with devices -->
+      <div *ngFor="let userData of monitoringData; let i = index; trackBy: trackByUser" class="monitoring-block">
+        <!-- User Path as Breadcrumbs -->
+        <div *ngIf="userData.route && userData.route.length > 0" class="user-breadcrumbs">
+          <div class="breadcrumb-container">
+            <ng-container *ngFor="let pathItem of userData.route; let j = index; let isLast = last">
+              <span class="breadcrumb-item" [class.active]="isLast">
+                {{ pathItem.fullName }}
+              </span>
+              <span *ngIf="!isLast" class="breadcrumb-separator">></span>
+            </ng-container>
+          </div>
+        </div>
+
+        <!-- Devices as Content -->
+        <div class="devices-content">
+          <div class="devices-count">Devices: {{ userData.devices.length }}</div>
+          <p-table [value]="userData.devices" [paginator]="userData.devices.length > 10" [rows]="10"
+            [showCurrentPageReport]="true"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" [dataKey]="'klk'+i">
+            <ng-template pTemplate="header">
+              <tr>
+                <th>Name</th>
+                <th>Placa</th>
+                <th>IMEI</th>
+                <th>Protocol</th>
+                <th>Status</th>
+                <th>Conexión</th>
+                <th>{{ 'MONITORING.TABLE_INSTALLATION' | translate }}</th>
+                <th>Expiration Date</th>
+                <th>SIM Card</th>
+                <th *ngIf="isMileageMonitoring">Distancia recorrido</th>
+              </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-device>
+              <tr>
+                <td>{{ device.name }}</td>
+                <td>{{ device.target_plate_number }}</td>
+                <td>{{ device.device_imei }}</td>
+                <td>{{ getProtocolName(device.type) }}</td>
+                <td>
+                  <span class="device-status" [class.active]="device.status" [class.inactive]="!device.status">
+                    {{ device.status ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="connection-status" [class.online]="isDeviceOnline(device)"
+                    [class.offline]="!isDeviceOnline(device)">
+                    {{ getConnectionDisplay(device) }}
+                  </span>
+                </td>
+                <td>
+                  <span class="activation-date">
+                    {{ formatActivationDate(device.activation_date) }}
+                  </span>
+                </td>
+                <td>
+                  <span class="expiration-date" [class.expired]="isExpired(device.expiration_date)"
+                    [class.expiring-soon]="isExpiringSoon(device.expiration_date)"
+                    [class.valid]="isValid(device.expiration_date)">
+                    {{ formatExpirationDate(device.expiration_date) }}
+                  </span>
+                </td>
+                <td>
+                  <div class="sim-card-cell">
+                    <span [class]="getSimStatusClass(device)">{{ device.sim_card_number || '-' }}</span>
+                    <p-badge *ngIf="device.sim_company" [value]="device.sim_company" severity="info"
+                      styleClass="sim-company-badge">
+                    </p-badge>
+                  </div>
+                </td>
+                <td *ngIf="isMileageMonitoring">
+                  <div class="distance-report" *ngIf="device.distanceReport; else noDistance">
+                    <span class="distance-value">{{ formatDeviceDistance(device) }}</span>
+                    <small class="distance-range">{{ formatDistanceRange(device) }}</small>
+                  </div>
+                  <ng-template #noDistance>
+                    <span class="distance-empty">N/D</span>
+                  </ng-template>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </div>
+      </div>
     </ng-container>
   </div>
 </div>
