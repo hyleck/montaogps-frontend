@@ -26,6 +26,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     ProtocolsSettingsDisplay: boolean = false;
     HistorialesSettingsDisplay: boolean = false;
     SectorsSettingsDisplay: boolean = false;
+    SupportSettingsDisplay: boolean = false;
 
     // Estado del análisis de historiales
     isHistorialesAnalysisRunning: boolean = false;
@@ -100,6 +101,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
             icon: 'pi pi-history',
             action: () => this.HistorialesSettingsDisplay = true,
             descriptionKey: 'settings.historiales.description'
+        },
+        {
+            titleKey: 'settings.support.title',
+            icon: 'pi pi-question-circle',
+            action: () => this.SupportSettingsDisplay = true,
+            descriptionKey: 'settings.support.description'
         }
     ];
 
@@ -118,7 +125,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.translate.onLangChange.subscribe(() => {
             this.initializeBreadcrumb();
         });
-        
+
         // Iniciar monitoreo del estado de historiales
         this.startHistorialesStatusMonitoring();
     }
@@ -126,65 +133,65 @@ export class SettingsComponent implements OnInit, OnDestroy {
     // Método para verificar si tiene algún permiso en plans
     hasAnyPlanPermission(): boolean {
         return this.authService.hasPrivilege('plans', 'create') ||
-               this.authService.hasPrivilege('plans', 'read') ||
-               this.authService.hasPrivilege('plans', 'update') ||
-               this.authService.hasPrivilege('plans', 'delete');
+            this.authService.hasPrivilege('plans', 'read') ||
+            this.authService.hasPrivilege('plans', 'update') ||
+            this.authService.hasPrivilege('plans', 'delete');
     }
 
     // Método para verificar si tiene algún permiso en system
     hasAnySystemPermission(): boolean {
         return this.authService.hasPrivilege('system', 'create') ||
-               this.authService.hasPrivilege('system', 'read') ||
-               this.authService.hasPrivilege('system', 'update') ||
-               this.authService.hasPrivilege('system', 'delete');
+            this.authService.hasPrivilege('system', 'read') ||
+            this.authService.hasPrivilege('system', 'update') ||
+            this.authService.hasPrivilege('system', 'delete');
     }
 
     // Método para verificar si tiene algún permiso en colors
     hasAnyColorPermission(): boolean {
         return this.authService.hasPrivilege('colors', 'create') ||
-               this.authService.hasPrivilege('colors', 'read') ||
-               this.authService.hasPrivilege('colors', 'update') ||
-               this.authService.hasPrivilege('colors', 'delete');
+            this.authService.hasPrivilege('colors', 'read') ||
+            this.authService.hasPrivilege('colors', 'update') ||
+            this.authService.hasPrivilege('colors', 'delete');
     }
 
     // Método para verificar si tiene algún permiso en servers
     hasAnyServerPermission(): boolean {
         return this.authService.hasPrivilege('servers', 'create') ||
-               this.authService.hasPrivilege('servers', 'read') ||
-               this.authService.hasPrivilege('servers', 'update') ||
-               this.authService.hasPrivilege('servers', 'delete');
+            this.authService.hasPrivilege('servers', 'read') ||
+            this.authService.hasPrivilege('servers', 'update') ||
+            this.authService.hasPrivilege('servers', 'delete');
     }
 
     // Método para verificar si tiene algún permiso en sectors
     hasAnySectorPermission(): boolean {
         return this.authService.hasPrivilege('sectors', 'create') ||
-               this.authService.hasPrivilege('sectors', 'read') ||
-               this.authService.hasPrivilege('sectors', 'update') ||
-               this.authService.hasPrivilege('sectors', 'delete');
+            this.authService.hasPrivilege('sectors', 'read') ||
+            this.authService.hasPrivilege('sectors', 'update') ||
+            this.authService.hasPrivilege('sectors', 'delete');
     }
 
     // Método para verificar si tiene algún permiso en protocols
     hasAnyProtocolPermission(): boolean {
         return this.authService.hasPrivilege('protocols', 'create') ||
-               this.authService.hasPrivilege('protocols', 'read') ||
-               this.authService.hasPrivilege('protocols', 'update') ||
-               this.authService.hasPrivilege('protocols', 'delete');
+            this.authService.hasPrivilege('protocols', 'read') ||
+            this.authService.hasPrivilege('protocols', 'update') ||
+            this.authService.hasPrivilege('protocols', 'delete');
     }
 
     // Método para verificar si tiene algún permiso en brands
     hasAnyBrandPermission(): boolean {
         return this.authService.hasPrivilege('brands', 'create') ||
-               this.authService.hasPrivilege('brands', 'read') ||
-               this.authService.hasPrivilege('brands', 'update') ||
-               this.authService.hasPrivilege('brands', 'delete');
+            this.authService.hasPrivilege('brands', 'read') ||
+            this.authService.hasPrivilege('brands', 'update') ||
+            this.authService.hasPrivilege('brands', 'delete');
     }
 
     // Método para verificar si tiene algún permiso en models
     hasAnyModelPermission(): boolean {
         return this.authService.hasPrivilege('models', 'create') ||
-               this.authService.hasPrivilege('models', 'read') ||
-               this.authService.hasPrivilege('models', 'update') ||
-               this.authService.hasPrivilege('models', 'delete');
+            this.authService.hasPrivilege('models', 'read') ||
+            this.authService.hasPrivilege('models', 'update') ||
+            this.authService.hasPrivilege('models', 'delete');
     }
 
     // Método para verificar si el usuario es root
@@ -196,9 +203,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
     // Método para verificar si tiene algún permiso en roles
     hasAnyRolePermission(): boolean {
         return this.authService.hasPrivilege('roles', 'create') ||
-               this.authService.hasPrivilege('roles', 'read') ||
-               this.authService.hasPrivilege('roles', 'update') ||
-               this.authService.hasPrivilege('roles', 'delete');
+            this.authService.hasPrivilege('roles', 'read') ||
+            this.authService.hasPrivilege('roles', 'update') ||
+            this.authService.hasPrivilege('roles', 'delete');
     }
 
     // Getter para obtener las tarjetas filtradas según permisos
@@ -259,7 +266,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private startHistorialesStatusMonitoring(): void {
         // Verificar inmediatamente
         this.checkHistorialesStatus();
-        
+
         // Verificar cada 5 segundos
         this.historialStatusSubscription = interval(5000).subscribe(() => {
             this.checkHistorialesStatus();

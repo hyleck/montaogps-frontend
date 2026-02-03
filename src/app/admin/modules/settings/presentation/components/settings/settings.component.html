@@ -1,23 +1,18 @@
 <div class="management__route">
-    <p-breadcrumb 
-    
-    [model]="items" 
-    [home]="home" />
+    <p-breadcrumb [model]="items" [home]="home" />
 </div>
 
 <!-- Tarjetas de configuración, listas de las diferentes configuraciones que se pueden hacer -->
 <div class="settings">
-    <div *ngFor="let card of filteredSettingsCards" 
-         class="settings__card" 
-         [ngClass]="{'settings__card--disabled': card.disabled}"
-         (click)="!card.disabled && navigateTo(card.route, card.action)">
+    <div *ngFor="let card of filteredSettingsCards" class="settings__card"
+        [ngClass]="{'settings__card--disabled': card.disabled}"
+        (click)="!card.disabled && navigateTo(card.route, card.action)">
         <div class="settings__card-header">
             <i [class]="card.icon"></i>
             <h3>
                 {{ card.titleKey | translate }}
-                <i class="pi pi-spin pi-spinner analysis-spinner" 
-                   *ngIf="isHistorialesCard(card) && isHistorialesAnalysisRunning"
-                   title="Análisis en progreso"></i>
+                <i class="pi pi-spin pi-spinner analysis-spinner"
+                    *ngIf="isHistorialesCard(card) && isHistorialesAnalysisRunning" title="Análisis en progreso"></i>
             </h3>
         </div>
         <p class="settings__card-description">{{ card.descriptionKey | translate }}</p>
@@ -29,90 +24,60 @@
 
 
 <div class="card flex justify-content-center">
-   
-    <p-dialog [header]="'settings.dialogs.roles' | translate" [modal]="true" [(visible)]="RolesFormDisplay" >
+
+    <p-dialog [header]="'settings.dialogs.roles' | translate" [modal]="true" [(visible)]="RolesFormDisplay">
         <app-user-roles-settings></app-user-roles-settings>
     </p-dialog>
 
-    <p-dialog [header]="'settings.dialogs.system' | translate" 
-             [modal]="true" 
-             [(visible)]="SystemSettingsDisplay"
-             [style]="{width: '70vw', maxWidth: '900px'}"
-             [contentStyle]="{overflow: 'auto'}"
-             styleClass="app-dark-dialog">
+    <p-dialog [header]="'settings.dialogs.system' | translate" [modal]="true" [(visible)]="SystemSettingsDisplay"
+        [style]="{width: '70vw', maxWidth: '900px'}" [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
         <app-system-settings></app-system-settings>
     </p-dialog>
 
-    <p-dialog [header]="'settings.dialogs.servers' | translate" 
-             [modal]="true" 
-             [(visible)]="ServersSettingsDisplay"
-             [style]="{width: '70vw', maxWidth: '900px'}"
-             [contentStyle]="{overflow: 'auto'}"
-             styleClass="app-dark-dialog">
+    <p-dialog [header]="'settings.dialogs.servers' | translate" [modal]="true" [(visible)]="ServersSettingsDisplay"
+        [style]="{width: '70vw', maxWidth: '900px'}" [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
         <app-servers-settings></app-servers-settings>
     </p-dialog>
 
-    <p-dialog [header]="'settings.dialogs.plans' | translate" 
-             [modal]="true" 
-             [(visible)]="PlansSettingsDisplay"
-             [style]="{width: '80vw', maxWidth: '950px'}"
-             [contentStyle]="{overflow: 'auto'}"
-             styleClass="app-dark-dialog">
+    <p-dialog [header]="'settings.dialogs.plans' | translate" [modal]="true" [(visible)]="PlansSettingsDisplay"
+        [style]="{width: '80vw', maxWidth: '950px'}" [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
         <app-plans-settings></app-plans-settings>
     </p-dialog>
 
-    <p-dialog [header]="'settings.dialogs.colors' | translate" 
-             [modal]="true" 
-             [(visible)]="ColorsSettingsDisplay"
-             [style]="{width: '70vw', maxWidth: '900px'}"
-             [contentStyle]="{overflow: 'auto'}"
-             styleClass="app-dark-dialog">
+    <p-dialog [header]="'settings.dialogs.colors' | translate" [modal]="true" [(visible)]="ColorsSettingsDisplay"
+        [style]="{width: '70vw', maxWidth: '900px'}" [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
         <app-colors-settings></app-colors-settings>
     </p-dialog>
 
-    <p-dialog [header]="'settings.dialogs.brands' | translate" 
-             [modal]="true" 
-             [(visible)]="VehicleBrandsSettingsDisplay"
-             [style]="{width: '80vw', maxWidth: '950px'}"
-             [contentStyle]="{overflow: 'auto'}"
-             styleClass="app-dark-dialog">
+    <p-dialog [header]="'settings.dialogs.brands' | translate" [modal]="true" [(visible)]="VehicleBrandsSettingsDisplay"
+        [style]="{width: '80vw', maxWidth: '950px'}" [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
         <app-vehicle-brands-settings></app-vehicle-brands-settings>
     </p-dialog>
 
-    <p-dialog [header]="'settings.dialogs.models' | translate" 
-             [modal]="true" 
-             [(visible)]="VehicleModelsSettingsDisplay"
-             [style]="{width: '80vw', maxWidth: '950px'}"
-             [contentStyle]="{overflow: 'auto'}"
-             styleClass="app-dark-dialog">
+    <p-dialog [header]="'settings.dialogs.models' | translate" [modal]="true" [(visible)]="VehicleModelsSettingsDisplay"
+        [style]="{width: '80vw', maxWidth: '950px'}" [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
         <app-vehicle-models-settings></app-vehicle-models-settings>
     </p-dialog>
 
-    <p-dialog [header]="'settings.sectors.title' | translate" 
-             [modal]="true" 
-             [(visible)]="SectorsSettingsDisplay"
-             [style]="{width: '80vw', maxWidth: '950px'}"
-             [contentStyle]="{overflow: 'auto'}"
-             styleClass="app-dark-dialog">
+    <p-dialog [header]="'settings.sectors.title' | translate" [modal]="true" [(visible)]="SectorsSettingsDisplay"
+        [style]="{width: '80vw', maxWidth: '950px'}" [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
         <app-sectors-settings></app-sectors-settings>
     </p-dialog>
 
-    <p-dialog [header]="'settings.dialogs.protocols' | translate" 
-             [modal]="true" 
-             [(visible)]="ProtocolsSettingsDisplay"
-             [style]="{width: '80vw', maxWidth: '950px'}"
-             [contentStyle]="{overflow: 'auto'}"
-             styleClass="app-dark-dialog">
+    <p-dialog [header]="'settings.dialogs.protocols' | translate" [modal]="true" [(visible)]="ProtocolsSettingsDisplay"
+        [style]="{width: '80vw', maxWidth: '950px'}" [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
         <app-protocols-settings></app-protocols-settings>
     </p-dialog>
 
-    <p-dialog [header]="'settings.dialogs.historiales' | translate" 
-             [modal]="true" 
-             [(visible)]="HistorialesSettingsDisplay"
-             [style]="{width: '70vw', maxWidth: '900px'}"
-             [contentStyle]="{overflow: 'auto'}"
-             styleClass="app-dark-dialog">
+    <p-dialog [header]="'settings.dialogs.historiales' | translate" [modal]="true"
+        [(visible)]="HistorialesSettingsDisplay" [style]="{width: '70vw', maxWidth: '900px'}"
+        [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
         <app-historiales-settings></app-historiales-settings>
+    </p-dialog>
+
+    <p-dialog [header]="'settings.support.title' | translate" [modal]="true" [(visible)]="SupportSettingsDisplay"
+        [style]="{width: '60vw', maxWidth: '1000px'}" [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
+        <app-support-settings></app-support-settings>
     </p-dialog>
 
 </div>

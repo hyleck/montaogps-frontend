@@ -553,6 +553,10 @@
       "no_update_permission": "No update permissions",
       "no_delete_permission": "No delete permissions"
     },
+    "support": {
+      "title": "Support",
+      "description": "Technical support management"
+    },
     "historiales": {
       "title": "History",
       "description": "GPS device history analysis and management",

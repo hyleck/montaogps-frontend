@@ -1,0 +1,204 @@
+.support-container {
+    padding: 1.5rem;
+}
+
+/* ============================================
+   SUPPORT FORM - CLEAN MODERN DESIGN
+   ============================================ */
+
+/* Clean Form Header */
+:host ::ng-deep .text-center {
+    padding: 2rem 0 1.5rem !important;
+    border-bottom: 2px solid rgba(16, 185, 129, 0.2) !important;
+    margin-bottom: 2rem !important;
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%) !important;
+}
+
+:host ::ng-deep .text-center i {
+    color: #10b981 !important;
+    font-size: 3rem !important;
+    margin-bottom: 1rem !important;
+    display: block !important;
+}
+
+:host ::ng-deep .text-muted {
+    color: #d1d5db !important;
+    font-size: 1rem !important;
+    font-weight: 400 !important;
+    line-height: 1.5 !important;
+    margin: 0 !important;
+}
+
+/* Form Field Container */
+:host ::ng-deep .field {
+    margin-bottom: 1.5rem !important;
+}
+
+/* Beautiful Labels */
+:host ::ng-deep .field label {
+    display: block !important;
+    margin-bottom: 0.6rem !important;
+    font-weight: 500 !important;
+    color: #e5e7eb !important;
+    font-size: 0.875rem !important;
+}
+
+/* Clean Input Fields */
+:host ::ng-deep .p-inputtext {
+    background: rgba(55, 65, 81, 0.5) !important;
+    border: 1.5px solid rgba(107, 114, 128, 0.4) !important;
+    color: #f9fafb !important;
+    padding: 0.65rem 1rem !important;
+    font-size: 0.95rem !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    font-weight: 400 !important;
+    width: 100% !important;
+}
+
+:host ::ng-deep .p-dropdown {
+    background: rgba(55, 65, 81, 0.5) !important;
+    border: 1.5px solid rgba(107, 114, 128, 0.4) !important;
+    padding: 0.65rem 1rem !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    width: 100% !important;
+}
+
+:host ::ng-deep .p-inputtextarea {
+    background: rgba(55, 65, 81, 0.5) !important;
+    border: 1.5px solid rgba(107, 114, 128, 0.4) !important;
+    color: #f9fafb !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.95rem !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease !important;
+    font-weight: 400 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    resize: vertical !important;
+    min-height: 140px !important;
+    line-height: 1.6 !important;
+}
+
+:host ::ng-deep .p-inputtext::placeholder,
+:host ::ng-deep .p-inputtextarea::placeholder {
+    color: #9ca3af !important;
+    opacity: 0.8 !important;
+}
+
+/* Hover State */
+:host ::ng-deep .p-inputtext:enabled:hover,
+:host ::ng-deep .p-dropdown:not(.p-disabled):hover,
+:host ::ng-deep .p-inputtextarea:enabled:hover {
+    border-color: rgba(16, 185, 129, 0.6) !important;
+    background: rgba(55, 65, 81, 0.7) !important;
+}
+
+/* Focus State */
+:host ::ng-deep .p-inputtext:enabled:focus,
+:host ::ng-deep .p-dropdown:not(.p-disabled).p-focus,
+:host ::ng-deep .p-inputtextarea:enabled:focus {
+    border-color: #10b981 !important;
+    background: rgba(55, 65, 81, 0.8) !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+    outline: none !important;
+}
+
+/* Dropdown Specific */
+:host ::ng-deep .p-dropdown .p-dropdown-label {
+    padding: 0 !important;
+    color: #f9fafb !important;
+}
+
+:host ::ng-deep .p-dropdown .p-dropdown-trigger {
+    color: #10b981 !important;
+}
+
+:host ::ng-deep .p-dropdown-panel {
+    background: #374151 !important;
+    border: 1.5px solid rgba(16, 185, 129, 0.3) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+}
+
+:host ::ng-deep .p-dropdown-panel .p-dropdown-item {
+    color: #e5e7eb !important;
+    padding: 0.75rem 1rem !important;
+    transition: all 0.15s ease !important;
+}
+
+:host ::ng-deep .p-dropdown-panel .p-dropdown-item:hover {
+    background: rgba(16, 185, 129, 0.15) !important;
+    color: #10b981 !important;
+}
+
+:host ::ng-deep .p-dropdown-panel .p-dropdown-item.p-highlight {
+    background: rgba(16, 185, 129, 0.2) !important;
+    color: #10b981 !important;
+    font-weight: 500 !important;
+}
+
+/* Footer */
+:host ::ng-deep .p-dialog-footer {
+    display: flex !important;
+    gap: 0.75rem !important;
+    justify-content: flex-end !important;
+    padding: 1.5rem !important;
+    border-top: 2px solid rgba(16, 185, 129, 0.2) !important;
+    background: linear-gradient(0deg, rgba(16, 185, 129, 0.03) 0%, transparent 100%) !important;
+}
+
+:host ::ng-deep .p-dialog-footer .p-button {
+    font-weight: 600 !important;
+    padding: 0.75rem 1.5rem !important;
+    border-radius: 8px !important;
+    font-size: 0.95rem !important;
+    border: none !important;
+    transition: all 0.2s ease !important;
+}
+
+:host ::ng-deep .p-dialog-footer .p-button-primary {
+    background: #10b981 !important;
+    color: white !important;
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+}
+
+:host ::ng-deep .p-dialog-footer .p-button-primary:hover {
+    background: #059669 !important;
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4) !important;
+    transform: translateY(-1px) !important;
+}
+
+:host ::ng-deep .p-dialog-footer .p-button-primary:active {
+    transform: translateY(0) !important;
+}
+
+:host ::ng-deep .p-dialog-footer .p-button-text,
+:host ::ng-deep .p-dialog-footer .p-button-secondary {
+    color: #d1d5db !important;
+    background: transparent !important;
+}
+
+:host ::ng-deep .p-dialog-footer .p-button-text:hover,
+:host ::ng-deep .p-dialog-footer .p-button-secondary:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #f3f4f6 !important;
+}
+
+/* Ticket Header in View Dialog */
+.ticket-header {
+    border-left: 4px solid var(--primary-color, #10b981);
+    padding-left: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.description-box {
+    line-height: 1.6;
+    color: #e5e7eb;
+    background: rgba(31, 41, 55, 0.5);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    min-height: 100px;
+}

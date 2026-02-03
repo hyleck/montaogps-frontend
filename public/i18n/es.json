@@ -625,6 +625,10 @@
       "no_update_permission": "Sin permisos para actualizar",
       "no_delete_permission": "Sin permisos para eliminar"
     },
+    "support": {
+      "title": "Soporte",
+      "description": "Gestión de soporte técnico"
+    },
     "historiales": {
       "title": "Historiales",
       "description": "Análisis y gestión de historiales de dispositivos GPS",

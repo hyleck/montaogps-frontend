@@ -26,6 +26,9 @@ import { TagModule } from 'primeng/tag';
 import { ToolbarModule } from 'primeng/toolbar';
 import { DrawerModule } from 'primeng/drawer';
 import { SplitButtonModule } from 'primeng/splitbutton';
+import { Textarea } from 'primeng/inputtextarea';
+import { DividerModule } from 'primeng/divider';
+import { Breadcrumb } from 'primeng/breadcrumb';
 
 import { ConfirmationService, MessageService } from 'primeng/api';
 
@@ -34,6 +37,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
   imports: [
     CommonModule,
     BadgeModule,
+    BreadcrumbModule,
+    Breadcrumb,
     TooltipModule,
     TableModule,
     MenuModule,
@@ -45,6 +50,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     ProgressBarModule,
     CardModule,
     InputTextModule,
+    Textarea,
     DropdownModule,
     ConfirmDialogModule,
     ToastModule,
@@ -57,11 +63,13 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     TagModule,
     ToolbarModule,
     DrawerModule,
-    SplitButtonModule
+    SplitButtonModule,
+    DividerModule
   ],
   exports: [
     BadgeModule,
     BreadcrumbModule,
+    Breadcrumb,
     TooltipModule,
     TableModule,
     MenuModule,
@@ -73,6 +81,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     ProgressBarModule,
     CardModule,
     InputTextModule,
+    Textarea,
     DropdownModule,
     ConfirmDialogModule,
     ToastModule,
@@ -85,7 +94,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     TagModule,
     ToolbarModule,
     DrawerModule,
-    SplitButtonModule
+    SplitButtonModule,
+    DividerModule
   ],
   providers: []
 })

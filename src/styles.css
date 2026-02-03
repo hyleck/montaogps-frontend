@@ -4,8 +4,13 @@
 
 /* Animación global para spinners de carga */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-spinner {
@@ -13,7 +18,8 @@
 }
 
 /* Globales */
-body, html {
+body,
+html {
   height: 100%;
   font-family: 'Roboto', sans-serif;
   padding: 0;
@@ -22,15 +28,18 @@ body, html {
 }
 
 * {
-  
+
   /* transition: color 0.5s, background 0.2s; */
-  scrollbar-width: thin; /* Ancho de la barra */
-  scrollbar-color: var(--globalColorScrollThumb) var(--globalColorNone); /* Colores de scroll */
+  scrollbar-width: thin;
+  /* Ancho de la barra */
+  scrollbar-color: var(--globalColorScrollThumb) var(--globalColorNone);
+  /* Colores de scroll */
 }
 
 /* Scroll personalizado */
 ::-webkit-scrollbar {
-  width: 12px; /* Ancho de la barra de scroll */
+  width: 12px;
+  /* Ancho de la barra de scroll */
 }
 
 ::-webkit-scrollbar-track {
@@ -132,13 +141,16 @@ body, html {
 
 .p-datatable-thead .p-checkbox-box,
 .p-checkbox-box {
-  background: var(--globalColorBorderDark)!important;
+  background: var(--globalColorBorderDark) !important;
   border-color: var(--globalColorNone) !important;
 }
-.p-datatable-thead .p-checkbox-box .p-checkbox-icon, .p-checkbox-box .p-checkbox-icon{
-  color:var(--globalGreen)!important;
+
+.p-datatable-thead .p-checkbox-box .p-checkbox-icon,
+.p-checkbox-box .p-checkbox-icon {
+  color: var(--globalGreen) !important;
   transform: scale(1);
 }
+
 .p-checkbox .p-checkbox-box.p-highlight {
   background: var(--backgroundCheckBox) !important;
   border-color: var(--globalColorMainBackgroundStart2) !important;
@@ -156,52 +168,388 @@ body, html {
 }
 
 .p-menu .p-menuitem-link {
-  color: var(--globalColorTextStrong)!important;
+  color: var(--globalColorTextStrong) !important;
 }
 
-.p-menu .p-menuitem-text, .p-menu .p-menuitem-icon {
+.p-menu .p-menuitem-text,
+.p-menu .p-menuitem-icon {
   color: var(--globalColorTextStrong);
 }
 
 
-.p-tabview-title{
+.p-tabview-title {
   color: var(--globalColorSelectOption);
   font-size: 13px;
 }
 
-.p-tabview-nav-link{
-  color: var(--globalColorSelectOption)!important;
-  
+.p-tabview-nav-link {
+  color: var(--globalColorSelectOption) !important;
+
 }
 
-.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link{
+.p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
   border-bottom: 3px solid var(--globalColorPrimaryInmutable);
 }
 
 
-body .p-toast .p-toast-close-button::before {
-  content: "×";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.2rem;
-  color: #ffffff;
-  pointer-events: none; /* para que siga clickeable el botón */
+/* Glassmorphism-lite for dialogs */
+.app-dark-dialog .p-dialog-content {
+  background: rgba(28, 28, 30, 0.98) !important;
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #e0e0e0 !important;
 }
 
-
-
-.gm-style-iw-d{
-  overflow: hidden!important;
+.app-dark-dialog .p-dialog-header {
+  background: linear-gradient(to right, #1c1c1e, #2c2c2e) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+  padding: 1.5rem !important;
 }
 
+.app-dark-dialog .p-dialog-footer {
+  background: #1c1c1e !important;
+  padding: 1rem 1.5rem !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
 
-.woot-widget-bubble{
-  display: flex!important;
+.app-dark-dialog .p-dialog-header .p-dialog-title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Table styling refinement */
+.app-dark-table {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.app-dark-table .p-datatable-thead>tr>th {
+  background: rgba(255, 255, 255, 0.03) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  padding: 1.25rem 1rem !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.app-dark-table .p-datatable-tbody>tr {
+  background: transparent !important;
+  color: #bdbdbd !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+}
+
+.app-dark-table .p-datatable-tbody>tr:hover {
+  background: rgba(255, 255, 255, 0.02) !important;
+  color: #ffffff !important;
+}
+
+/* ============================================
+   SUPPORT FORM - CLEAN MODERN DESIGN
+   ============================================ */
+
+/* Hide input group addons for cleaner look */
+.app-dark-dialog .p-inputgroup-addon {
+  display: none !important;
+}
+
+/* Clean Form Header */
+.app-dark-dialog .text-center {
+  padding: 2rem 0 1.5rem !important;
+  border-bottom: 2px solid rgba(16, 185, 129, 0.2) !important;
+  margin-bottom: 2rem !important;
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%) !important;
+}
+
+.app-dark-dialog .text-center i {
+  color: #10b981 !important;
+  font-size: 3rem !important;
+  margin-bottom: 1rem !important;
+  display: block !important;
+}
+
+.app-dark-dialog .text-muted {
+  color: #d1d5db !important;
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+}
+
+/* Form Field Container */
+.app-dark-dialog .field {
+  margin-bottom: 1.75rem !important;
+}
+
+/* Beautiful Labels */
+.app-dark-dialog .field label {
+  display: block !important;
+  margin-bottom: 0.5rem !important;
+  font-weight: 500 !important;
+  color: #e5e7eb !important;
+  font-size: 0.9rem !important;
+  letter-spacing: 0.01em !important;
+}
+
+/* Clean Input Fields */
+.app-dark-dialog .p-inputtext,
+.app-dark-dialog .p-dropdown {
+  background: rgba(55, 65, 81, 0.4) !important;
+  border: 1.5px solid rgba(107, 114, 128, 0.3) !important;
+  color: #f9fafb !important;
+  padding: 0.625rem 1rem !important;
+  font-size: 0.95rem !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  font-weight: 400 !important;
+  width: 100% !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.app-dark-dialog .p-inputtextarea {
+  background: rgba(55, 65, 81, 0.4) !important;
+  border: 1.5px solid rgba(107, 114, 128, 0.3) !important;
+  color: #f9fafb !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 0.95rem !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  font-weight: 400 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.app-dark-dialog .p-inputtext::placeholder,
+.app-dark-dialog .p-inputtextarea::placeholder {
+  color: #9ca3af !important;
+  opacity: 1 !important;
+}
+
+/* Hover State */
+.app-dark-dialog .p-inputtext:enabled:hover,
+.app-dark-dialog .p-dropdown:not(.p-disabled):hover,
+.app-dark-dialog .p-inputtextarea:enabled:hover {
+  border-color: rgba(16, 185, 129, 0.5) !important;
+  background: rgba(55, 65, 81, 0.6) !important;
+}
+
+/* Focus State */
+.app-dark-dialog .p-inputtext:enabled:focus,
+.app-dark-dialog .p-dropdown:not(.p-disabled).p-focus,
+.app-dark-dialog .p-inputtextarea:enabled:focus {
+  border-color: #10b981 !important;
+  background: rgba(55, 65, 81, 0.7) !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1) !important;
+  outline: none !important;
+}
+
+/* Dropdown */
+.app-dark-dialog .p-dropdown {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.app-dark-dialog .p-dropdown .p-dropdown-label {
+  padding: 0 !important;
+  color: #f9fafb !important;
+}
+
+.app-dark-dialog .p-dropdown .p-dropdown-trigger {
+  color: #10b981 !important;
+}
+
+.p-dropdown-panel {
+  background: #374151 !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.3) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+}
+
+.p-dropdown-panel .p-dropdown-item {
+  color: #e5e7eb !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.p-dropdown-panel .p-dropdown-item:hover {
+  background: rgba(16, 185, 129, 0.1) !important;
+  color: #10b981 !important;
+}
+
+.p-dropdown-panel .p-dropdown-item.p-highlight {
+  background: rgba(16, 185, 129, 0.15) !important;
+  color: #10b981 !important;
+}
+
+/* Textarea */
+.app-dark-dialog .p-inputtextarea {
+  resize: vertical !important;
+  min-height: 120px !important;
+  line-height: 1.6 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Footer */
+.app-dark-dialog .p-dialog-footer {
+  display: flex !important;
+  gap: 0.75rem !important;
+  justify-content: flex-end !important;
+  padding: 1.5rem !important;
+  border-top: 2px solid rgba(16, 185, 129, 0.2) !important;
+  background: linear-gradient(0deg, rgba(16, 185, 129, 0.03) 0%, transparent 100%) !important;
+}
+
+.app-dark-dialog .p-dialog-footer .p-button {
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 8px !important;
+  font-size: 0.95rem !important;
+  border: none !important;
+}
+
+.app-dark-dialog .p-dialog-footer .p-button-primary {
+  background: #10b981 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3) !important;
+}
+
+.app-dark-dialog .p-dialog-footer .p-button-primary:hover {
+  background: #059669 !important;
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.app-dark-dialog .p-dialog-footer .p-button-text {
+  color: #d1d5db !important;
+  background: transparent !important;
+}
+
+.app-dark-dialog .p-dialog-footer .p-button-text:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #f3f4f6 !important;
+}
+
+.p-tag {
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  padding: 0.25rem 0.6rem !important;
+}
+
+.woot-widget-bubble {
+  display: flex !important;
   position: absolute;
   top: 0px;
   margin-right: 30px;
-   right: 100px;
-   transform: scale(0.7)!important;
- }
+  right: 100px;
+  transform: scale(0.7) !important;
+}/* ============================================
+   SUPPORT FORM STYLES - APPLIED GLOBALLY
+   ============================================ */
+
+/* Form Header */
+.app-dark-dialog .text-center {
+    padding: 2rem 0 1.5rem !important;
+    border-bottom: 2px solid rgba(16, 185, 129, 0.2) !important;
+    margin-bottom: 2rem !important;
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, transparent 100%) !important;
+}
+
+.app-dark-dialog .text-center i {
+    color: #10b981 !important;
+    font-size: 3rem !important;
+    margin-bottom: 1rem !important;
+    display: block !important;
+}
+
+.app-dark-dialog .text-muted {
+    color: #d1d5db !important;
+    font-size: 1rem !important;
+    font-weight: 400 !important;
+    line-height: 1.5 !important;
+    margin: 0 !important;
+}
+
+/* Form Fields */
+.app-dark-dialog .field {
+    margin-bottom: 1.5rem !important;
+}
+
+.app-dark-dialog .field label {
+    display: block !important;
+    margin-bottom: 0.6rem !important;
+    font-weight: 500 !important;
+    color: #e5e7eb !important;
+    font-size: 0.875rem !important;
+}
+
+/* Input Styles */
+.app-dark-dialog .p-inputtext {
+    background: rgba(55, 65, 81, 0.5) !important;
+    border: 1.5px solid rgba(107, 114, 128, 0.4) !important;
+    color: #f9fafb !important;
+    padding: 0.65rem 1rem !important;
+    font-size: 0.95rem !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+}
+
+.app-dark-dialog .p-dropdown {
+    background: rgba(55, 65, 81, 0.5) !important;
+    border: 1.5px solid rgba(107, 114, 128, 0.4) !important;
+    padding: 0.65rem 1rem !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+}
+
+.app-dark-dialog .p-inputtextarea {
+    background: rgba(55, 65, 81, 0.5) !important;
+    border: 1.5px solid rgba(107, 114, 128, 0.4) !important;
+    color: #f9fafb !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.95rem !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    min-height: 140px !important;
+    line-height: 1.6 !important;
+}
+
+.app-dark-dialog .p-inputtext::placeholder,
+.app-dark-dialog .p-inputtextarea::placeholder {
+    color: #9ca3af !important;
+}
+
+.app-dark-dialog .p-inputtext:focus,
+.app-dark-dialog .p-dropdown.p-focus,
+.app-dark-dialog .p-inputtextarea:focus {
+    border-color: #10b981 !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important;
+    outline: none !important;
+}
+
+.app-dark-dialog .p-dropdown .p-dropdown-label {
+    padding: 0 !important;
+    color: #f9fafb !important;
+}
+
+.app-dark-dialog .p-dropdown .p-dropdown-trigger {
+    color: #10b981 !important;
+}
+
+/* Footer Buttons */
+.app-dark-dialog .p-dialog-footer {
+    padding: 1.5rem !important;
+    border-top: 2px solid rgba(16, 185, 129, 0.2) !important;
+}
+
+.app-dark-dialog .p-dialog-footer .p-button-primary {
+    background: #10b981 !important;
+    border: none !important;
+    padding: 0.75rem 1.5rem !important;
+}
+
+.app-dark-dialog .p-dialog-footer .p-button-primary:hover {
+    background: #059669 !important;
+}
