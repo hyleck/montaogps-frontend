@@ -31,8 +31,9 @@
                     *ngFor="let item of filteredPrincipalItems" class="sidebar__option ">
                     <div class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
                     <div class="sidebar__option-text"> <span>{{ item.label }}</span></div>
-                    <div *ngIf="item.badge > 0" class="sidebar__option-badge"><p-badge severity="info"
-                            [value]="item.badge" /></div>
+                    <div *ngIf="item.badge > 0" class="sidebar__option-badge"><p-badge
+                            [severity]="item.path === '/admin/inventory' ? 'warn' : 'info'" [value]="item.badge" />
+                    </div>
                 </div>
 
 

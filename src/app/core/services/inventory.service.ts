@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, BehaviorSubject, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface InventoryItem {
@@ -37,6 +37,8 @@ export interface Warehouse {
   _id?: string;
   name: string;
   description?: string;
+  min_quantity?: number;
+  stock?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -44,6 +46,8 @@ export class InventoryService {
   private readonly apiUrl = `${environment.apiUrl}/inventory`;
   private readonly packagesUrl = `${environment.apiUrl}/inventory/packages`;
   private readonly warehouseUrl = `${environment.apiUrl}/inventory/warehouses`;
+
+  public lowStockCount$ = new BehaviorSubject<number>(0);
 
   constructor(private http: HttpClient) { }
 
@@ -90,31 +94,48 @@ export class InventoryService {
   }
 
   // Get devices by package
-  getDevicesByPackage(packageId: string): Observable<InventoryItem[]> {
-    const url = `${this.packagesUrl}/${packageId}/devices`;
-    console.log('getDevicesByPackage - URL:', url);
-    console.log('getDevicesByPackage - Package ID:', packageId);
-
-    return this.http.get<InventoryItem[]>(url);
+  getDevicesByPackage(packageId: string, page = 1, limit = 20): Observable<{ data: InventoryItem[]; total: number; page: number; lastPage: number }> {
+    const url = `${this.packagesUrl}/${packageId}/devices?page=${page}&limit=${limit}`;
+    return this.http.get<{ data: InventoryItem[]; total: number; page: number; lastPage: number }>(url);
   }
 
   // Search methods
-  searchAllDevices(query: string): Observable<InventoryItem[]> {
-    const url = `${this.apiUrl}/search/all/${encodeURIComponent(query)}`;
-    return this.http.get<InventoryItem[]>(url);
+  searchAllDevices(query: string, storageId?: string, page = 1, limit = 20, status?: string): Observable<{ data: InventoryItem[]; total: number; page: number; lastPage: number }> {
+    let url = `${this.apiUrl}/search/global?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`;
+    if (storageId) {
+      url += `&storage_id=${storageId}`;
+    }
+    if (status) {
+      url += `&status=${status}`;
+    }
+    return this.http.get<{ data: InventoryItem[]; total: number; page: number; lastPage: number }>(url);
   }
 
-  searchDevicesByPackage(packageId: string, query: string, storageId?: string): Observable<InventoryItem[]> {
-    let url = `${this.packagesUrl}/${packageId}/devices/search/${encodeURIComponent(query)}`;
+  searchDevicesByPackage(packageId: string, query: string, storageId?: string, page = 1, limit = 20, status?: string): Observable<{ data: InventoryItem[]; total: number; page: number; lastPage: number }> {
+    let url = `${this.packagesUrl}/${packageId}/devices/search/${encodeURIComponent(query)}?page=${page}&limit=${limit}`;
     if (storageId) {
-      url += `?storage_id=${storageId}`;
+      url += `&storage_id=${storageId}`;
     }
-    return this.http.get<InventoryItem[]>(url);
+    if (status) {
+      url += `&status=${status}`;
+    }
+    return this.http.get<{ data: InventoryItem[]; total: number; page: number; lastPage: number }>(url);
   }
 
   // Warehouse methods
   getWarehouses(): Observable<Warehouse[]> {
-    return this.http.get<Warehouse[]>(this.warehouseUrl);
+    return this.http.get<Warehouse[]>(this.warehouseUrl).pipe(
+      tap(warehouses => {
+        if (warehouses) {
+          const count = warehouses.filter(w => (w.stock || 0) < (w.min_quantity || 0)).length;
+          this.lowStockCount$.next(count);
+        }
+      })
+    );
+  }
+
+  checkLowStock(): void {
+    this.getWarehouses().subscribe();
   }
 
   createWarehouse(warehouse: Warehouse): Observable<Warehouse> {

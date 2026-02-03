@@ -5,6 +5,7 @@ import { SystemService } from '../../../../core/services/system.service';
 import { UserService } from '../../../../core/services/user.service';
 import { TranslateService } from '@ngx-translate/core';
 import { LangService } from '../../../../shareds/services/langi18/lang.service';
+import { InventoryService } from '../../../../core/services/inventory.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -47,7 +48,8 @@ export class SidebarComponent implements OnInit {
     private systemService: SystemService,
     private translate: TranslateService,
     private langService: LangService,
-    private userService: UserService // Inject UserService
+    private userService: UserService,
+    private inventoryService: InventoryService
   ) {
     this.sidebarDisplayed = status.getState('sidebar') as boolean;
   }
@@ -55,7 +57,18 @@ export class SidebarComponent implements OnInit {
   ngOnInit() {
     this.updateTranslations();
     this.loadSystemSettings();
-    this.loadUserProfile(); // Load user profile
+    this.loadUserProfile();
+
+    // Check inventory stock
+    if (this.authService.hasPrivilege('inventory', 'read') || this.isRootUser) {
+      this.inventoryService.checkLowStock();
+      this.inventoryService.lowStockCount$.subscribe((count: number) => {
+        const inventoryItem = this.sidaberOptions.principalItems.find(i => i.path === '/admin/inventory');
+        if (inventoryItem) {
+          inventoryItem.badge = count;
+        }
+      });
+    }
 
     const user = this.authService.getCurrentUser();
     if (user) {

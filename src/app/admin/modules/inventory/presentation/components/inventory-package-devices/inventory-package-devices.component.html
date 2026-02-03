@@ -24,14 +24,18 @@
           <label for="packageSearch">Buscar en este paquete</label>
           <form (ngSubmit)="searchPackageDevices()" class="search-form">
             <div class="search-input-group">
-              <select class="form-select filter-select" [(ngModel)]="selectedWarehouseFilter" name="warehouseFilter"
-                style="max-width: 150px; margin-right: 0.5rem;" [disabled]="isSearchingPackage"
-                (change)="searchPackageDevices()">
-                <option value="">Todos los almacenes</option>
-                <option *ngFor="let w of warehouses" [value]="w._id">
-                  {{ w.name }}
-                </option>
-              </select>
+              <p-dropdown [options]="warehouses" [(ngModel)]="selectedWarehouseFilter" name="warehouseFilter"
+                optionLabel="name" optionValue="_id" placeholder="Todos los almacenes" [showClear]="true"
+                [style]="{'width':'200px', 'margin-right': '0.5rem'}" [disabled]="isSearchingPackage"
+                (onChange)="searchPackageDevices()" appendTo="body"></p-dropdown>
+
+              <p-dropdown
+                [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
+                [(ngModel)]="packageSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
+                placeholder="Estado" [style]="{'width':'150px', 'margin-right': '0.5rem'}" appendTo="body"
+                [disabled]="isSearchingPackage" (onChange)="searchPackageDevices()">
+              </p-dropdown>
+
               <input type="text" id="packageSearch" [(ngModel)]="packageSearchQuery" name="packageSearch"
                 placeholder="Buscar por IMEI o SIM..." class="form-input search-input"
                 [disabled]="isSearchingPackage" />
@@ -61,9 +65,14 @@
       </ng-template>
     </p-toolbar>
 
-    <p-table [value]="packageDevices" [paginator]="true" [rows]="10" [loading]="loading"
-      styleClass="p-datatable-sm p-datatable-gridlines">
+    <p-table [value]="packageDevices" [scrollable]="true" scrollHeight="60vh" [virtualScroll]="false"
+      (onScroll)="onScroll($event)" styleClass="p-datatable-sm p-datatable-gridlines">
       <ng-template pTemplate="header">
+        <tr>
+          <th colspan="7" class="total-count-header">
+            Total Resultados: {{ totalItems }}
+          </th>
+        </tr>
         <tr>
           <th>IMEI</th>
           <th>SIM</th>
@@ -85,14 +94,10 @@
           <td>{{ device.SIM || device.sim || 'N/A' }}</td>
           <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
           <td>
-            <select class="form-select status-select" [ngModel]="device.storage_id"
-              (ngModelChange)="device.storage_id = $event; updateDeviceStorage(device, $event)"
-              [disabled]="!canUpdateInventory()">
-              <option [ngValue]="null">Sin almacén</option>
-              <option *ngFor="let w of warehouses" [value]="w._id">
-                {{ w.name }}
-              </option>
-            </select>
+            <p-dropdown [options]="warehouses" [(ngModel)]="device.storage_id" optionLabel="name" optionValue="_id"
+              placeholder="Sin almacén" [showClear]="true" [style]="{'width':'100%', 'min-width': '150px'}"
+              appendTo="body" (onChange)="updateDeviceStorage(device, $event.value)"
+              [disabled]="!canUpdateInventory()"></p-dropdown>
           </td>
           <td class="device-actions">
             <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2"
@@ -114,10 +119,15 @@
 
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="4" class="text-center">No hay dispositivos en este paquete</td>
+          <td colspan="5" class="text-center">No hay dispositivos en este paquete</td>
         </tr>
       </ng-template>
     </p-table>
+
+    <div *ngIf="isLoadingMore" class="loading-more-container text-center p-2">
+      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+      <span>Cargando más resultados...</span>
+    </div>
   </div>
 
   <div *ngIf="loading" class="loading-container">

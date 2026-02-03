@@ -32,6 +32,7 @@ export class InventoryComponent implements OnInit {
   selectedWarehouse: Warehouse | null = null;
   packageDialogVisible = false;
   warehouseDialogVisible = false;
+  warehouseFormDialogVisible = false;
   isEditPackageMode = false;
   isEditMode = false;
   isEditWarehouseMode = false;
@@ -41,15 +42,24 @@ export class InventoryComponent implements OnInit {
   protocols: { label: string; value: string }[] = [];
 
   globalSearchQuery = '';
+  globalSearchStorageId: string | null = null;
+  globalSearchStatus: string = '';
   isSearchingGlobal = false;
   allDevicesSearchResults: InventoryItem[] = [];
   showingSearchResults = false;
+
+  // Pagination
+  currentPage = 1;
+  itemsPerPage = 20;
+  totalItems = 0;
+  isLoadingMore = false;
 
   // Device Management Properties
   deviceDialogVisible = false;
   installDialogVisible = false;
   selectedDevice: InventoryItem | null = null;
   deviceToInstall: InventoryItem | null = null;
+  lowStockCount = 0;
   installationEmail = '';
   installationSimType = '';
   availableSimCardTypes = SIM_CARD_TYPES;
@@ -83,10 +93,11 @@ export class InventoryComponent implements OnInit {
       return;
     }
 
-    this.openNewPackage();
+
     this.loadProtocols();
     this.loadPackages();
     this.loadPlans();
+    this.loadWarehouses();
   }
 
   // Privilege helpers
@@ -287,23 +298,52 @@ export class InventoryComponent implements OnInit {
     this.router.navigate(['/admin/inventory', pkg._id]);
   }
 
-  searchAllInventory(): void {
-    if (!this.globalSearchQuery.trim()) {
+  searchAllInventory(resetPage = true, onComplete?: () => void): void {
+    const hasQuery = !!this.globalSearchQuery.trim();
+    const hasStorage = !!this.globalSearchStorageId;
+    const hasStatus = !!this.globalSearchStatus;
+
+    if (!hasQuery && !hasStorage && !hasStatus) {
       this.clearGlobalSearch();
       return;
     }
 
-    this.isSearchingGlobal = true;
-    this.inventoryService.searchAllDevices(this.globalSearchQuery.trim()).subscribe({
-      next: (results) => {
-        this.allDevicesSearchResults = results || [];
+    if (resetPage) {
+      this.currentPage = 1;
+      this.allDevicesSearchResults = [];
+      this.isSearchingGlobal = true;
+    } else {
+      this.isLoadingMore = true;
+    }
+
+    this.inventoryService.searchAllDevices(
+      this.globalSearchQuery.trim(),
+      this.globalSearchStorageId || undefined,
+      this.currentPage,
+      this.itemsPerPage,
+      this.globalSearchStatus || undefined
+    ).subscribe({
+      next: (response) => {
+        if (resetPage) {
+          this.allDevicesSearchResults = response.data || [];
+        } else {
+          this.allDevicesSearchResults = [...this.allDevicesSearchResults, ...(response.data || [])];
+        }
+
+        this.totalItems = response.total;
         this.showingSearchResults = true;
         this.isSearchingGlobal = false;
+        this.isLoadingMore = false;
+        if (onComplete) onComplete();
       },
       error: () => {
-        this.allDevicesSearchResults = [];
-        this.showingSearchResults = false;
+        if (resetPage) {
+          this.allDevicesSearchResults = [];
+          this.showingSearchResults = false;
+        }
         this.isSearchingGlobal = false;
+        this.isLoadingMore = false;
+        if (onComplete) onComplete();
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
@@ -313,11 +353,26 @@ export class InventoryComponent implements OnInit {
     });
   }
 
+  onSearchResultsScroll(event: any): void {
+    const element = event.target;
+    // Check if we reached the bottom (with a small threshold)
+    if (element.scrollHeight - element.scrollTop <= element.clientHeight + 50) {
+      if (!this.isLoadingMore && !this.isSearchingGlobal && this.allDevicesSearchResults.length < this.totalItems) {
+        this.currentPage++;
+        this.searchAllInventory(false);
+      }
+    }
+  }
+
   clearGlobalSearch(): void {
     this.globalSearchQuery = '';
+    this.globalSearchStorageId = null;
+    this.globalSearchStatus = '';
     this.allDevicesSearchResults = [];
     this.showingSearchResults = false;
     this.isSearchingGlobal = false;
+    this.currentPage = 1;
+    this.totalItems = 0;
   }
 
   navigateToDevicePackage(device: InventoryItem): void {
@@ -344,6 +399,13 @@ export class InventoryComponent implements OnInit {
     return 'N/A';
   }
 
+  getWarehouseName(device: InventoryItem): string {
+    if (device.storage_id && typeof device.storage_id === 'object' && (device.storage_id as any).name) {
+      return (device.storage_id as any).name;
+    }
+    return 'N/A';
+  }
+
   getProtocolLabel(protocolData: any): string {
     if (protocolData && typeof protocolData === 'object' && protocolData.name) {
       return protocolData.name;
@@ -360,12 +422,38 @@ export class InventoryComponent implements OnInit {
   }
 
   // Warehouse Methods
+  get attentionWarehouses(): Warehouse[] {
+    return this.warehouses ? this.warehouses.filter(w => (w.stock || 0) < (w.min_quantity || 0)) : [];
+  }
+
+  get regularWarehouses(): Warehouse[] {
+    return this.warehouses ? this.warehouses.filter(w => (w.stock || 0) >= (w.min_quantity || 0)) : [];
+  }
+
   loadWarehouses(): void {
     this.loadingWarehouses = true;
     this.inventoryService.getWarehouses().subscribe({
       next: (data) => {
         this.warehouses = data;
         this.loadingWarehouses = false;
+
+        // Calculate and notify low stock
+        if (this.warehouses) {
+          const lowStockWarehouses = this.warehouses.filter(w => (w.stock || 0) < (w.min_quantity || 0));
+          this.lowStockCount = lowStockWarehouses.length;
+
+          // Show toast for each low stock warehouse
+          lowStockWarehouses.forEach(w => {
+            this.messageService.add({
+              severity: 'warn',
+              summary: 'Stock Bajo detectado',
+              detail: `El almacén "${w.name}" tiene ${w.stock || 0} dispositivos (Mínimo: ${w.min_quantity || 0})`,
+              life: 5000
+            });
+          });
+        } else {
+          this.lowStockCount = 0;
+        }
       },
       error: () => {
         this.loadingWarehouses = false;
@@ -383,14 +471,29 @@ export class InventoryComponent implements OnInit {
     this.warehouseDialogVisible = true;
   }
 
+  loadingWarehouseId: string | null = null;
+
+  filterByWarehouse(warehouse: Warehouse): void {
+    if (!warehouse._id) return;
+    this.loadingWarehouseId = warehouse._id;
+    this.globalSearchStorageId = warehouse._id;
+    this.globalSearchStatus = 'available';
+    this.searchAllInventory(true, () => {
+      this.loadingWarehouseId = null;
+      this.warehouseDialogVisible = false;
+    });
+  }
+
   openNewWarehouse(): void {
     this.selectedWarehouse = { name: '', description: '' };
     this.isEditWarehouseMode = false;
+    this.warehouseFormDialogVisible = true;
   }
 
   editWarehouse(warehouse: Warehouse): void {
     this.selectedWarehouse = { ...warehouse };
     this.isEditWarehouseMode = true;
+    this.warehouseFormDialogVisible = true;
   }
 
   saveWarehouse(): void {
@@ -415,7 +518,8 @@ export class InventoryComponent implements OnInit {
           detail: this.isEditWarehouseMode ? 'Almacén actualizado' : 'Almacén creado'
         });
         this.loadWarehouses();
-        this.selectedWarehouse = null; // Clear form/selection
+        this.warehouseFormDialogVisible = false;
+        this.selectedWarehouse = null;
       },
       error: () => {
         this.messageService.add({
@@ -456,6 +560,7 @@ export class InventoryComponent implements OnInit {
 
   cancelWarehouseEdit(): void {
     this.selectedWarehouse = null;
+    this.warehouseFormDialogVisible = false;
   }
 
   // Device Management Methods

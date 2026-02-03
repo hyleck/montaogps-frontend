@@ -19,6 +19,19 @@
           <div class="search-input-group">
             <input type="text" id="globalSearch" [(ngModel)]="globalSearchQuery" name="globalSearch"
               placeholder="Buscar por IMEI o SIM..." class="form-input search-input" [disabled]="isSearchingGlobal" />
+
+            <p-dropdown [options]="warehouses" [(ngModel)]="globalSearchStorageId" optionLabel="name" optionValue="_id"
+              name="warehouseFilter" placeholder="Filtrar por almacén" [showClear]="true" [style]="{'width':'200px'}"
+              appendTo="body" [disabled]="isSearchingGlobal" (onChange)="searchAllInventory()">
+            </p-dropdown>
+
+            <p-dropdown
+              [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
+              [(ngModel)]="globalSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
+              placeholder="Estado" [style]="{'width':'150px'}" appendTo="body" [disabled]="isSearchingGlobal"
+              (onChange)="searchAllInventory()">
+            </p-dropdown>
+
             <button type="submit" class="search-button" [disabled]="isSearchingGlobal">
               <i class="pi pi-search" *ngIf="!isSearchingGlobal"></i>
               <i class="pi pi-spin pi-spinner" *ngIf="isSearchingGlobal"></i>
@@ -31,15 +44,21 @@
         </form>
       </div>
     </div>
-    <div class="actions-container pb-1">
-      <button pButton pRipple label="Almacenes" icon="pi pi-building" class="p-button-outlined"
-        (click)="openWarehouses()"></button>
+    <div class="actions-container pb-1 flex gap-2 align-items-center">
+      <i *ngIf="lowStockCount > 0 && !loadingWarehouses" class="pi pi-arrow-right text-red-500 mr-1 blink-arrow"
+        style="font-size: 1.5rem; font-weight: bold;"></i>
+      <p-button label="Almacenes" [icon]="lowStockCount > 0 ? 'pi pi-exclamation-triangle' : 'pi pi-building'"
+        [outlined]="true" [severity]="lowStockCount > 0 ? 'danger' : 'secondary'" (click)="openWarehouses()"
+        [badge]="lowStockCount > 0 ? lowStockCount.toString() : undefined" badgeClass="p-badge-danger"
+        [loading]="loadingWarehouses"></p-button>
+      <button pButton pRipple label="Nuevo Paquete" icon="pi pi-plus" class="p-button-success"
+        style="margin-left: 10px;" (click)="openNewPackage()" *ngIf="canCreateInventory()"></button>
     </div>
   </div>
 
   <div *ngIf="showingSearchResults" class="search-results-section">
-    <h3>Resultados de búsqueda ({{ allDevicesSearchResults.length }} dispositivos)</h3>
-    <div class="search-results-table">
+    <h3>Resultados de búsqueda ({{ totalItems }} dispositivos)</h3>
+    <div class="search-results-table" (scroll)="onSearchResultsScroll($event)">
       <table class="devices-table">
         <thead>
           <tr>
@@ -47,6 +66,7 @@
             <th>SIM</th>
             <th>Protocolo</th>
             <th>Paquete</th>
+            <th>Almacén</th>
             <th>Acción</th>
           </tr>
         </thead>
@@ -62,6 +82,7 @@
             <td>{{ device.SIM || device.sim || 'N/A' }}</td>
             <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
             <td>{{ getPackageTitle(device) }}</td>
+            <td>{{ getWarehouseName(device) }}</td>
             <td>
               <div class="device-actions flex gap-2">
                 <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success p-button-text"
@@ -81,7 +102,13 @@
           </tr>
         </tbody>
       </table>
-      <div *ngIf="allDevicesSearchResults.length === 0" class="no-results">
+
+      <div *ngIf="isLoadingMore" class="loading-more-container">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+        <span>Cargando más resultados...</span>
+      </div>
+
+      <div *ngIf="allDevicesSearchResults.length === 0 && !isLoadingMore" class="no-results">
         No se encontraron dispositivos con esa búsqueda
       </div>
     </div>
@@ -90,70 +117,56 @@
   <div class="packages-view" *ngIf="!showingSearchResults">
 
 
-    <div class="package-form-section">
-      <div class="form-header">
-        <h2>Formulario de paquete</h2>
-      </div>
 
-      <div class="package-form-card">
-        <div class="form-grid">
-          <div class="form-row">
-            <div class="form-field">
-              <label for="packageTitle">Título del paquete</label>
-              <input type="text" id="packageTitle" [ngModel]="selectedPackage?.title"
-                (ngModelChange)="selectedPackage && (selectedPackage.title = $event)"
-                placeholder="Ingrese el título del paquete" class="form-input" />
-            </div>
 
-            <div class="form-field">
-              <label for="packageDate">Fecha</label>
-              <input type="date" id="packageDate" [ngModel]="selectedPackage?.date"
-                (ngModelChange)="selectedPackage && (selectedPackage.date = $event)" class="form-input" />
-            </div>
+    <!-- Package Form Dialog -->
+    <p-dialog [(visible)]="packageDialogVisible" [style]="{width: '500px'}" header="Detalles del Paquete" [modal]="true"
+      styleClass="p-fluid" (onHide)="hidePackageDialog()">
+      <ng-template pTemplate="content">
+        <div class="field mb-3">
+          <label for="packageTitle" class="font-bold">Título del paquete</label>
+          <input type="text" pInputText id="packageTitle" [ngModel]="selectedPackage?.title"
+            (ngModelChange)="selectedPackage && (selectedPackage.title = $event)" required autofocus
+            placeholder="Ej. Plan Mensual" class="w-full" style="width: 100%" />
+          <small class="p-error" *ngIf="!selectedPackage?.title" style="display: block; margin-top: 5px;">El título es
+            requerido.</small>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="packageDate" class="font-bold">Fecha</label>
+            <p-calendar id="packageDate" [ngModel]="selectedPackage?.date"
+              (ngModelChange)="selectedPackage && (selectedPackage.date = $event)" dateFormat="yy-mm-dd" appendTo="body"
+              [showIcon]="true" [style]="{'width':'100%'}" inputStyleClass="w-full"></p-calendar>
           </div>
 
-          <div class="form-row">
-            <div class="form-field">
-              <label for="packagePrice">Precio</label>
-              <input type="number" id="packagePrice" [ngModel]="selectedPackage?.price"
-                (ngModelChange)="selectedPackage && (selectedPackage.price = $event)" placeholder="0.00"
-                class="form-input" step="0.01" />
-            </div>
-
-            <div class="form-field">
-              <label for="packageDescription">Descripción</label>
-              <textarea id="packageDescription" [ngModel]="selectedPackage?.description"
-                (ngModelChange)="selectedPackage && (selectedPackage.description = $event)"
-                placeholder="Descripción opcional" class="form-input" rows="3"></textarea>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <button pButton pRipple label="Guardar Paquete" icon="pi pi-save" class="p-button-success"
-              (click)="savePackage()" [disabled]="
-                !selectedPackage?.title ||
-                (!canCreateInventory() && !isEditPackageMode) ||
-                (!canUpdateInventory() && isEditPackageMode)
-              " *ngIf="canCreateInventory() || canUpdateInventory()"></button>
-            <div *ngIf="!canCreateInventory() && !canUpdateInventory()" class="no-save-permission">
-              <i class="pi pi-lock" style="opacity: 0.5;"></i>
-              <span style="font-size: 0.875rem; opacity: 0.6;">
-                {{ 'inventory.no_save_permission' | translate }}
-              </span>
-            </div>
-
-            <button pButton pRipple label="Limpiar" icon="pi pi-refresh" class="p-button-secondary"
-              (click)="openNewPackage()"></button>
+          <div class="field">
+            <label for="packagePrice" class="font-bold">Precio</label>
+            <p-inputNumber id="packagePrice" [ngModel]="selectedPackage?.price"
+              (ngModelChange)="selectedPackage && (selectedPackage.price = $event)" mode="currency" currency="USD"
+              locale="en-US" placeholder="$0.00" [style]="{'width':'100%'}" inputStyleClass="w-full"></p-inputNumber>
           </div>
         </div>
-      </div>
-    </div>
+
+        <div class="field mb-3">
+          <label for="packageDescription" class="font-bold">Descripción</label>
+          <textarea id="packageDescription" pInputTextarea [ngModel]="selectedPackage?.description"
+            (ngModelChange)="selectedPackage && (selectedPackage.description = $event)" rows="4" autoResize="autoResize"
+            placeholder="Descripción opcional del paquete..." class="w-full" style="width: 100%"></textarea>
+        </div>
+      </ng-template>
+
+      <ng-template pTemplate="footer">
+        <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text p-button-secondary"
+          (click)="hidePackageDialog()"></button>
+        <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-primary"
+          (click)="savePackage()"></button>
+      </ng-template>
+    </p-dialog>
+
+
 
     <div class="packages-list-section">
-      <div class="list-header">
-        <h2>Listado de paquetes</h2>
-      </div>
-
       <div class="packages-grid">
         <div *ngFor="let package of packages" class="package-card" (click)="viewPackageDevices(package)">
           <div class="package-card-header">
@@ -205,7 +218,7 @@
   </div>
 
   <!-- DIALOGO DE GESTIÓN DE ALMACENES -->
-  <p-dialog [(visible)]="warehouseDialogVisible" [style]="{width: '700px'}" header="Gestión de Almacenes" [modal]="true"
+  <p-dialog [(visible)]="warehouseDialogVisible" [style]="{width: '900px'}" header="Gestión de Almacenes" [modal]="true"
     styleClass="p-fluid">
     <ng-template pTemplate="content">
       <div class="card">
@@ -216,56 +229,158 @@
         </div>
 
         <!-- Tabla de almacenes -->
-        <p-table [value]="warehouses" [loading]="loadingWarehouses" [rowHover]="true" styleClass="p-datatable-sm">
-          <ng-template pTemplate="header">
-            <tr>
-              <th>Nombre</th>
-              <th>Descripción</th>
-              <th style="width: 100px">Acciones</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-warehouse>
-            <tr>
-              <td>{{warehouse.name}}</td>
-              <td>{{warehouse.description}}</td>
-              <td>
-                <div class="flex gap-2">
-                  <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success p-button-text"
-                    (click)="editWarehouse(warehouse)"></button>
-                  <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning p-button-text"
-                    (click)="deleteWarehouse(warehouse)"></button>
+        <!-- Grid de Tarjetas de Almacén -->
+        <!-- Grid de Tarjetas de Almacén -->
+        <div *ngIf="warehouses && warehouses.length > 0; else noWarehouses">
+
+          <!-- Sección de Atención -->
+          <div *ngIf="attentionWarehouses.length > 0" class="mb-4">
+            <h3 class="text-red-500 flex align-items-center mb-2">
+              <i class="pi pi-exclamation-triangle mr-2"></i>
+              Almacenes que requieren atención ({{attentionWarehouses.length}})
+            </h3>
+            <div class="warehouse-grid">
+              <div class="warehouse-card attention" *ngFor="let warehouse of attentionWarehouses">
+                <!-- Card Content (Repetido - Idealmente refactorizar a componente, pero mantenemos inline por rapidez) -->
+                <div class="warehouse-header">
+                  <div class="warehouse-icon">
+                    <i class="pi pi-box"></i>
+                  </div>
+                  <h3 class="warehouse-title" [title]="warehouse.name">{{warehouse.name}}</h3>
                 </div>
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="emptymessage">
-            <tr>
-              <td colspan="3" class="text-center p-4">No hay almacenes registrados.</td>
-            </tr>
-          </ng-template>
-        </p-table>
+
+                <div class="warehouse-body">
+                  <p class="warehouse-desc" [title]="warehouse.description || 'Sin descripción'">
+                    {{warehouse.description || 'Sin descripción'}}
+                  </p>
+                  <div class="warehouse-metrics">
+                    <div class="metric">
+                      <span class="metric-label">Min. Req</span>
+                      <span class="metric-value">{{warehouse.min_quantity || 0}}</span>
+                    </div>
+                    <div class="metric">
+                      <span class="metric-label">Stock Actual</span>
+                      <span class="metric-value warning">
+                        {{warehouse.stock || 0}}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="warehouse-footer">
+                  <button pButton pRipple type="button" label="Ver Stock"
+                    class="p-button-sm p-button-outlined p-button-danger stock-btn"
+                    [loading]="loadingWarehouseId === warehouse._id" (click)="filterByWarehouse(warehouse)"
+                    style="flex: 1; margin-right: 10px;"></button>
+
+                  <div class="flex gap-1">
+                    <button pButton pRipple icon="pi pi-pencil"
+                      class="p-button-rounded p-button-text p-button-secondary"
+                      (click)="editWarehouse(warehouse)"></button>
+                    <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-text p-button-secondary"
+                      (click)="deleteWarehouse(warehouse)"></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sección Normal -->
+          <div *ngIf="regularWarehouses.length > 0">
+            <h3 class="text-gray-700 mb-2 mt-2" *ngIf="attentionWarehouses.length > 0">Mis Almacenes</h3>
+            <div class="warehouse-grid">
+              <div class="warehouse-card" *ngFor="let warehouse of regularWarehouses">
+                <div class="warehouse-header">
+                  <div class="warehouse-icon">
+                    <i class="pi pi-box"></i>
+                  </div>
+                  <h3 class="warehouse-title" [title]="warehouse.name">{{warehouse.name}}</h3>
+                </div>
+
+                <div class="warehouse-body">
+                  <p class="warehouse-desc" [title]="warehouse.description || 'Sin descripción'">
+                    {{warehouse.description || 'Sin descripción'}}
+                  </p>
+                  <div class="warehouse-metrics">
+                    <div class="metric">
+                      <span class="metric-label">Min. Req</span>
+                      <span class="metric-value">{{warehouse.min_quantity || 0}}</span>
+                    </div>
+                    <div class="metric">
+                      <span class="metric-label">Stock Actual</span>
+                      <span class="metric-value safe">
+                        {{warehouse.stock || 0}}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="warehouse-footer">
+                  <button pButton pRipple type="button" label="Ver Stock"
+                    class="p-button-sm p-button-outlined p-button-success stock-btn"
+                    [loading]="loadingWarehouseId === warehouse._id" (click)="filterByWarehouse(warehouse)"
+                    style="flex: 1; margin-right: 10px;"></button>
+
+                  <div class="flex gap-1">
+                    <button pButton pRipple icon="pi pi-pencil"
+                      class="p-button-rounded p-button-text p-button-secondary"
+                      (click)="editWarehouse(warehouse)"></button>
+                    <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-text p-button-secondary"
+                      (click)="deleteWarehouse(warehouse)"></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <ng-template #noWarehouses>
+          <div class="text-center p-4">
+            <i class="pi pi-info-circle text-4xl mb-3 text-gray-500"></i>
+            <p>No hay almacenes registrados.</p>
+          </div>
+        </ng-template>
       </div>
 
-      <!-- Formulario para crear/editar (visible cuando se selecciona uno) -->
-      <div *ngIf="selectedWarehouse" class="mt-4 p-4 surface-100 border-round">
-        <h4 class="m-0 mb-3">{{ isEditWarehouseMode ? 'Editar Almacén' : 'Nuevo Almacén' }}</h4>
-        <div class="field">
-          <label for="wName">Nombre</label>
-          <input type="text" pInputText id="wName" [(ngModel)]="selectedWarehouse.name" required autofocus />
+
+    </ng-template>
+  </p-dialog>
+
+  <!-- DIALOGO DE FORMULARIO DE ALMACÉN (Nuevo/Editar) -->
+  <p-dialog [(visible)]="warehouseFormDialogVisible" [style]="{width: '600px'}"
+    [header]="isEditWarehouseMode ? 'Editar Almacén' : 'Nuevo Almacén'" [modal]="true" styleClass="p-fluid"
+    (onHide)="cancelWarehouseEdit()">
+    <ng-template pTemplate="content">
+      <div *ngIf="selectedWarehouse">
+        <div class="field mb-3">
+          <label for="wName" class="font-bold">Nombre</label>
+          <input type="text" pInputText id="wName" [(ngModel)]="selectedWarehouse.name" required autofocus
+            class="w-full" style="width: 100%" placeholder="Ej. Almacén Central" />
+          <small class="p-error" *ngIf="!selectedWarehouse.name && warehouseFormDialogVisible"
+            style="display: block; margin-top: 5px;">El nombre es requerido.</small>
         </div>
-        <div class="field">
-          <label for="wDesc">Descripción</label>
-          <textarea id="wDesc" pInputTextarea [(ngModel)]="selectedWarehouse.description" rows="3"></textarea>
+        <div class="field mb-3">
+          <label for="wDesc" class="font-bold">Descripción</label>
+          <textarea id="wDesc" pInputTextarea [(ngModel)]="selectedWarehouse.description" rows="3" class="w-full"
+            style="width: 100%" placeholder="Descripción opcional del almacén..."></textarea>
         </div>
-        <div class="flex justify-content-end gap-2">
-          <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
-            (click)="cancelWarehouseEdit()"></button>
-          <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text"
-            (click)="saveWarehouse()"></button>
+        <div class="field mb-3">
+          <label for="wMinQty" class="font-bold">Cantidad Mínima</label>
+          <p-inputNumber id="wMinQty" [(ngModel)]="selectedWarehouse.min_quantity" [min]="0" styleClass="w-full"
+            placeholder="0"></p-inputNumber>
         </div>
       </div>
     </ng-template>
+
+    <ng-template pTemplate="footer">
+      <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text p-button-secondary"
+        (click)="cancelWarehouseEdit()"></button>
+      <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-primary"
+        (click)="saveWarehouse()"></button>
+    </ng-template>
   </p-dialog>
+
 
   <!-- Device Management Dialogs -->
   <p-dialog [(visible)]="deviceDialogVisible" [style]="{width: '450px'}" header="Dispositivo" [modal]="true"
@@ -364,4 +479,4 @@
 </div>
 
 <p-confirmDialog></p-confirmDialog>
-<p-toast></p-toast>
+<p-toast position="bottom-right"></p-toast>

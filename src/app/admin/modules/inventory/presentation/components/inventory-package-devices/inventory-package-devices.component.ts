@@ -44,7 +44,14 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   loading = true;
   protocols: { label: string; value: string }[] = [];
   packageSearchQuery = '';
+  packageSearchStatus: string = '';
   isSearchingPackage = false;
+
+  // Pagination
+  currentPage = 1;
+  itemsPerPage = 20;
+  totalItems = 0;
+  isLoadingMore = false;
 
   installDialogVisible = false;
   deviceToInstall: InventoryItem | null = null;
@@ -132,17 +139,36 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadPackageDevices(packageId: string): void {
-    this.loading = true;
+  private loadPackageDevices(packageId: string, resetPage = true): void {
+    if (resetPage) {
+      this.loading = true;
+      this.currentPage = 1;
+      this.packageDevices = [];
+    } else {
+      this.isLoadingMore = true;
+    }
+
     this.currentPackageId = packageId;
-    this.inventoryService.getDevicesByPackage(packageId).subscribe({
-      next: (devices) => {
-        this.packageDevices = (devices || []).map(d => ({ ...d, storage_id: d.storage_id || null }));
+    this.inventoryService.getDevicesByPackage(packageId, this.currentPage, this.itemsPerPage).subscribe({
+      next: (response) => {
+        const mappedDevices = (response.data || []).map(d => ({ ...d, storage_id: d.storage_id || null }));
+
+        if (resetPage) {
+          this.packageDevices = mappedDevices;
+        } else {
+          this.packageDevices = [...this.packageDevices, ...mappedDevices];
+        }
+
+        this.totalItems = response.total;
         this.loading = false;
+        this.isLoadingMore = false;
       },
       error: () => {
-        this.packageDevices = [];
+        if (resetPage) {
+          this.packageDevices = [];
+        }
         this.loading = false;
+        this.isLoadingMore = false;
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
@@ -404,47 +430,52 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   selectedWarehouseFilter = '';
   // ... (rest of class) ...
 
-  searchPackageDevices(): void {
+  searchPackageDevices(resetPage = true): void {
     if (!this.currentPackageId) {
       return;
     }
 
-    if (!this.packageSearchQuery.trim() && !this.selectedWarehouseFilter) {
+    if (!this.packageSearchQuery.trim() && !this.selectedWarehouseFilter && !this.packageSearchStatus) {
       this.clearPackageSearch();
       return;
     }
 
-    // If query is empty but filter is selected, we might want to handle it.
-    // However, the backend route requires a :query param. 
-    // We can use a wildcard or handle empty query if we change route.
-    // For now, let's assume user types something OR we pass a dummy query if empty but filtered? 
-    // Actually, typically search requires input. If user wants to just filter all, they usually expect that.
-    // But route is search/:query. Let's pass a special char or handle empty in UI?
-    // Let's keep require query for now or use whitespace if backend allows (regex matches all?). 
-    // The previous code required query.trim(). 
-
-    // Improving: If query is empty but filter is active, pass ' ' (space) to match all by regex?
-    // Backend: new RegExp(query, 'i') -> new RegExp(' ', 'i') matches everything containing space? No. 
-    // new RegExp('', 'i') matches everything.
-    // Let's relax the check.
-
     const query = this.packageSearchQuery.trim() || '.*';
-    // Backend param is string. Empty string might be issue in route path //search//?
-    // Let's stick to requiring query OR use a placeholder. 
-    // Wait, the user asked to "add a filter to the search", implying search is primary.
 
-    // Check removed to allow filter-only search
+    if (resetPage) {
+      this.currentPage = 1;
+      this.packageDevices = [];
+      this.isSearchingPackage = true;
+    } else {
+      this.isLoadingMore = true;
+    }
 
-    this.isSearchingPackage = true;
     this.inventoryService
-      .searchDevicesByPackage(this.currentPackageId, query, this.selectedWarehouseFilter)
+      .searchDevicesByPackage(
+        this.currentPackageId,
+        query,
+        this.selectedWarehouseFilter,
+        this.currentPage,
+        this.itemsPerPage,
+        this.packageSearchStatus || undefined
+      )
       .subscribe({
-        next: (results) => {
-          this.packageDevices = (results || []).map(d => ({ ...d, storage_id: d.storage_id || null }));
+        next: (response) => {
+          const mappedDevices = (response.data || []).map(d => ({ ...d, storage_id: d.storage_id || null }));
+
+          if (resetPage) {
+            this.packageDevices = mappedDevices;
+          } else {
+            this.packageDevices = [...this.packageDevices, ...mappedDevices];
+          }
+
+          this.totalItems = response.total;
           this.isSearchingPackage = false;
+          this.isLoadingMore = false;
         },
         error: () => {
           this.isSearchingPackage = false;
+          this.isLoadingMore = false;
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
@@ -454,9 +485,27 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
       });
   }
 
+  onScroll(event: any): void {
+    const element = event.target;
+    if (element.scrollHeight - element.scrollTop <= element.clientHeight + 50) {
+      if (!this.isLoadingMore && !this.loading && this.packageDevices.length < this.totalItems) {
+        this.currentPage++;
+        if (this.packageSearchQuery.trim() || this.selectedWarehouseFilter || this.packageSearchStatus) {
+          this.searchPackageDevices(false);
+        } else {
+          this.loadPackageDevices(this.currentPackageId!, false);
+        }
+      }
+    }
+  }
+
   clearPackageSearch(): void {
     this.packageSearchQuery = '';
+    this.selectedWarehouseFilter = '';
+    this.packageSearchStatus = '';
     this.isSearchingPackage = false;
+    this.currentPage = 1;
+    this.totalItems = 0;
     if (this.currentPackageId) {
       this.loadPackageDevices(this.currentPackageId);
     }
