@@ -795,8 +795,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
     if (!target && !this.canCreateDevices()) {
       this.messageService.add({
-        severity: 'error',
-        summary: this.translate.instant('management.devices.no_create_permission'),
         detail: this.translate.instant('management.devices.contact_admin')
       });
       return;
@@ -804,6 +802,101 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
     this.targetToEdit = target || null;
     this.uiService.showTargetForm();
+  }
+
+  showFiltersDialog: boolean = false;
+  filterStatus: 'all' | 'online' | 'offline' = 'all';
+
+  toggleFilters() {
+    this.showFiltersDialog = true;
+  }
+
+  onFilterChange() {
+    this.showFiltersDialog = false;
+    if (this.selectedUser) {
+      this.loadingTargets = true;
+      this.loadTargetsForUser(this.selectedUser._id, true);
+    }
+  }
+
+  // Método auxiliar para mapear targets a la vista
+  private mapTargetsToView(targets: Target[]): any[] {
+    if (!targets || targets.length === 0) {
+      return [];
+    }
+
+    // Crear un Set con los IDs de targets compartidos para verificación rápida (si es posible obtenerlo aquí, 
+    // si no, asumimos que ya viene marcado o lo calculamos de nuevo si es necesario, pero idealmente usamos el que ya tenemos)
+    // Para simplificar y dado que mapTargetsToView se llama despues de cargar, 
+    // podemos re-utilizar la logica de isShared si ya está en el objeto o recalcularla.
+    // En loadTargetsForUser ya se identificaron los compartidos.
+    // Sin embargo, targets contiene los objetos "crudos".
+    // Necesitamos saber cuales son compartidos.
+    // Una opción es que 'targets' ya tenga la propiedad isShared? No, targets es Target[].
+
+    // Solución: Recalcular isShared basándonos en si el usuario logueado es el dueño o no, 
+    // o confiar en que esta info viene del backend o de la carga inicial.
+    // En loadTargetsForUser se hace `const isShared = sharedTargetIds.has(target._id);`
+
+    // Para no complicar el refactor, pasaremos 'allTargets' o asumiremos que podemos determinar 'isShared' de otra forma.
+    // O mejor, dejemos que mapTargetsToView reciba el set de sharedIds si es necesario, 
+    // PERO 'targets' en 'this.targets' son los objetos originales.
+
+    // Vamos a iterar y usar una logica genérica o recalcular.
+    // Afortunadamente, 'this.targets' es acumulativo.
+    // Cuando cargamos targets, calculamos 'isShared'. 
+    // Sería mejor guardar esa info en el objeto 'target' en 'this.targets' si fuera extensible,
+    // o mantener 'this.targets' limpio y recalcular.
+
+    // Revisando loadTargetsForUser, 'combinedTargets' se asigna a 'this.targets'.
+    // 'combinedTargets' son objetos Target.
+
+    // IMPORTANTE: En el código original de loadTargetsForUser, se calculaba 'isShared' usando 'uniqueSharedTargets'.
+    // Si queremos filtrar posteriomente, necesitamos mantener esa info.
+    // Lo mejor es que 'this.targets' guarde objetos que YA tengan esa metadata si es posible, 
+    // o que mapTargetsToView pueda acceder a ello.
+
+    // VOY A MODIFICAR loadTargetsForUser para que extienda los objetos en 'this.targets' con 'isShared' 
+    // antes de guardarlos, así mapTargetsToView es simple.
+
+    const currentUserEmail = this.selectedUser?.email;
+
+    return targets.map(target => {
+      const traccarStatus = target.traccarInfo?.status || 'offline';
+      const isOnline = traccarStatus === 'online';
+
+      // Intentamos recuperar isShared si fue inyectado, o lo deducimos (menos fiable sin el contexto de sharedTargets original)
+      // Pero espera, en loadTargetsForUser original:
+      // const isShared = sharedTargetIds.has(target._id);
+      // Si guardamos 'isShared' en el target dentro de 'this.targets', todo es más fácil.
+      // Asumiremos que 'target' tiene la propiedad 'isShared' inyectada (lo haré en el siguiente paso).
+      const isShared = (target as any).isShared === true;
+
+      // Calcular tiempo offline
+      let offlineTimeText = '';
+      let offlineDateText = '';
+      if (!isOnline && target.traccarInfo?.['lastUpdate']) {
+        const offlineInfo = this.calculateOfflineTime(target.traccarInfo['lastUpdate']);
+        offlineTimeText = offlineInfo.timeText;
+        offlineDateText = offlineInfo.dateText;
+      }
+
+      return {
+        name: target.name,
+        status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
+        imei: target.device_imei || target.imei,
+        sim: target.sim_card_number || target.sim_card,
+        expiration_date: target.expiration_date,
+        _id: target._id,
+        traccarStatus: traccarStatus,
+        traccarInfo: target.traccarInfo,
+        ignition_sensor: (target as any).ignition_sensor,
+        originalTarget: target,
+        isShared: isShared,
+        offlineTimeText: offlineTimeText,
+        offlineDateText: offlineDateText
+      };
+    });
   }
 
   onHideTargetForm() {
@@ -1605,7 +1698,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.searchTargetsTerm,
           parentId,
           this.currentOffset,
-          this.pageSize
+          this.pageSize,
+          this.filterStatus // Pasar filtro
         );
       } else {
         // Si no estamos buscando, usar el endpoint normal
@@ -1623,32 +1717,23 @@ export class ManagementComponent implements OnInit, OnDestroy {
       }
 
       if (response) {
-        this.targets = [...this.targets, ...response.devices];
+        // Marcar los nuevos targets como no compartidos (ya que el scroll infinito trae targets propios)
+        const newDevices = response.devices.map((d: any) => {
+          d.isShared = false;
+          return d;
+        });
+
+        this.targets = [...this.targets, ...newDevices];
         this.totalTargetsCount = response.totalCount;
         this.hasMoreTargets = this.targets.length < this.totalTargetsCount;
         this.currentOffset += this.pageSize;
 
-        // Transformar targets para la lista
-        if (this.targets && this.targets.length > 0) {
-          this.targetsList = this.targets.map((target: Target) => {
-            const traccarStatus = target.traccarInfo?.status || 'offline';
-            const isOnline = traccarStatus === 'online';
-
-            return {
-              name: target.name,
-              _id: target._id,
-              device_imei: target.device_imei,
-              target_plate_number: (target as any).target_plate_number || target.plate,
-              status: isOnline ? 'online' : 'offline',
-              traccarInfo: target.traccarInfo,
-              shared: (target as any).shared || [],
-              isShared: ((target as any).shared || []).length > 0,
-              expiration_date: target.expiration_date
-            };
-          });
-        }
-
         console.log(`[SCROLL INFINITO] ✅ Cargados ${response.devices.length} targets más. Total: ${this.targets.length}/${this.totalTargetsCount}`);
+
+        // Transformar targets para la lista directamente
+        if (this.targets && this.targets.length > 0) {
+          this.targetsList = this.mapTargetsToView(this.targets);
+        }
       }
 
       // Subir el scroll 300px después de cargar nuevos targets
@@ -1835,15 +1920,27 @@ export class ManagementComponent implements OnInit, OnDestroy {
         parentId,
         this.currentOffset,
         pageSizeForRequest,
+        this.filterStatus // Pasar filtro al backend
       );
       const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
 
       const [targetsResponse, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
 
+      // Filtrar targets compartidos manualmente (frontend) ya que la API de shared no soporta filtro por status aún
+      let filteredSharedTargets = sharedTargets;
+      if (this.filterStatus !== 'all') {
+        filteredSharedTargets = sharedTargets.filter(t => {
+          const traccarStatus = t.traccarInfo?.status || 'offline';
+          const isOnline = traccarStatus === 'online';
+          return this.filterStatus === 'online' ? isOnline : !isOnline;
+        });
+      }
+
       // 🔍 CONSOLE LOG PARA DEBUG: Ver cómo llegan los targets
       console.log('🔍 [DEBUG] Respuesta completa del servicio de targets:', {
         targetsResponse: targetsResponse,
         sharedTargets: sharedTargets,
+        filteredSharedTargets: filteredSharedTargets,
         userId: userId,
         parentId: parentId,
         currentOffset: this.currentOffset,
@@ -1854,41 +1951,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const targets = targetsResponse.devices;
       this.totalTargetsCount = targetsResponse.totalCount;
 
-      // 🔍 CONSOLE LOG PARA DEBUG: Ver los targets extraídos
-      console.log('🔍 [DEBUG] Targets extraídos:', {
-        targets: targets,
-        totalCount: this.totalTargetsCount,
-        targetsLength: targets?.length || 0
-      });
-
       // Combinar targets: compartidos primero, luego propios (evitando duplicados)
       const ownTargetIds = new Set(targets.map(t => t._id));
-      const uniqueSharedTargets = sharedTargets.filter(t => !ownTargetIds.has(t._id));
+      const uniqueSharedTargets = filteredSharedTargets.filter(t => !ownTargetIds.has(t._id));
       const combinedTargets = [...uniqueSharedTargets, ...targets];
-
-      // 🔍 CONSOLE LOG PARA DEBUG: Ver targets combinados
-      console.log('🔍 [DEBUG] Targets combinados:', {
-        ownTargetIds: Array.from(ownTargetIds),
-        uniqueSharedTargets: uniqueSharedTargets,
-        combinedTargets: combinedTargets,
-        combinedLength: combinedTargets.length
-      });
 
       // Si es la primera carga, reemplazar. Si es scroll infinito, agregar
       if (resetPagination) {
         this.targets = combinedTargets;
       } else {
         // Para scroll infinito, solo agregar los targets propios (no los compartidos)
-        // Los targets compartidos solo se cargan en la primera carga
         this.targets = [...this.targets, ...targets];
       }
-
-      // 🔍 CONSOLE LOG PARA DEBUG: Ver targets finales
-      console.log('🔍 [DEBUG] Targets finales después de combinar:', {
-        targets: this.targets,
-        targetsLength: this.targets.length,
-        resetPagination: resetPagination
-      });
 
       // Verificar si hay más targets disponibles
       const newOffset = this.currentOffset + targets.length;
@@ -1901,62 +1975,22 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
       this.showNoTargetMessage = this.targets.length === 0;
 
-      console.log('📋 Targets cargados:', {
-        propios: targets.length,
-        compartidos: uniqueSharedTargets.length,
-        total: this.targets.length,
-        offset: this.currentOffset - targets.length,
-        hasMore: this.hasMoreTargets,
-        selectedUserEmail: userEmail,
-        selectedUserName: this.selectedUser?.name + ' ' + this.selectedUser?.last_name
-      });
-
       if (this.targets && this.targets.length > 0) {
         // Crear un Set con los IDs de targets compartidos para verificación rápida
         const sharedTargetIds = new Set(uniqueSharedTargets.map(t => t._id));
 
-        this.targetsList = this.targets.map((target, index) => {
-          const traccarStatus = target.traccarInfo?.status || 'offline';
-          const isOnline = traccarStatus === 'online';
-
-          // Determinar si es un target compartido
-          const isShared = sharedTargetIds.has(target._id);
-
-          // Calcular tiempo offline si no está online
-          let offlineTimeText = '';
-          let offlineDateText = '';
-          if (!isOnline && target.traccarInfo?.['lastUpdate']) {
-            const offlineInfo = this.calculateOfflineTime(target.traccarInfo['lastUpdate']);
-            offlineTimeText = offlineInfo.timeText;
-            offlineDateText = offlineInfo.dateText;
-          }
-
-          return {
-            name: target.name,
-            status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
-            imei: target.device_imei || target.imei,
-            sim: target.sim_card_number || target.sim_card,
-            expiration_date: target.expiration_date,
-            _id: target._id,
-            traccarStatus: traccarStatus,
-            traccarInfo: target.traccarInfo,
-            ignition_sensor: (target as any).ignition_sensor,
-            originalTarget: target,
-            isShared: isShared,
-            offlineTimeText: offlineTimeText,
-            offlineDateText: offlineDateText
-          };
+        // Inyectar propiedad isShared en los objetos raw para que mapTargetsToView pueda usarla
+        this.targets.forEach(t => {
+          (t as any).isShared = sharedTargetIds.has(t._id);
         });
 
-        // 🔍 CONSOLE LOG PARA DEBUG: Ver la lista final de targets para la UI
-        console.log('🔍 [DEBUG] Lista final de targets para la UI (targetsList):', {
-          targetsList: this.targetsList,
-          targetsListLength: this.targetsList.length,
-          sharedTargetIds: Array.from(sharedTargetIds)
-        });
+        // Mapear directamente a la vista (el filtrado ya se hizo en backend/manual)
+        this.targetsList = this.mapTargetsToView(this.targets);
       } else {
         this.targetsList = [];
       }
+
+
 
       // Actualizar visibilidad de mapas si es necesario
       this.uiService.autoShowMapsIfMobileAndHasTargets(this.targetsList.length > 0);

@@ -1,5 +1,26 @@
 <p-toast></p-toast>
 <p-confirmDialog></p-confirmDialog>
+
+<p-dialog header="Filtros" [(visible)]="showFiltersDialog" [modal]="true" [style]="{width: '300px'}" [draggable]="false"
+    [resizable]="false">
+    <div style="display: flex; flex-direction: column; gap: 15px; padding: 10px;">
+        <div class="field-checkbox" style="display: flex; align-items: center; gap: 8px;">
+            <p-radioButton name="status" value="all" [(ngModel)]="filterStatus" (onClick)="onFilterChange()"
+                inputId="status_all"></p-radioButton>
+            <label for="status_all" style="cursor: pointer;">Todos</label>
+        </div>
+        <div class="field-checkbox" style="display: flex; align-items: center; gap: 8px;">
+            <p-radioButton name="status" value="online" [(ngModel)]="filterStatus" (onClick)="onFilterChange()"
+                inputId="status_online"></p-radioButton>
+            <label for="status_online" style="cursor: pointer;">{{ 'management.status.online' | translate }}</label>
+        </div>
+        <div class="field-checkbox" style="display: flex; align-items: center; gap: 8px;">
+            <p-radioButton name="status" value="offline" [(ngModel)]="filterStatus" (onClick)="onFilterChange()"
+                inputId="status_offline"></p-radioButton>
+            <label for="status_offline" style="cursor: pointer;">{{ 'management.status.offline' | translate }}</label>
+        </div>
+    </div>
+</p-dialog>
 <div class="main">
     <div *ngIf="showMaps" class="management__maps">
         <div class="management__route">
@@ -536,11 +557,16 @@
                         [placeholder]="translations.searchTargets | translate">
 
                 </div>
-                <button (click)="showTargetForm()" class="button button--primary-flat-red"
-                    *ngIf="currentUserAffiliationTypeId === 'empleado'">
-                    <i class="pi pi-plus"></i>
-                    <span class="button-text">{{ translations.newTarget | translate }}</span>
-                </button>
+                <div class="management__header-actions" style="display: flex; gap: 8px;">
+                    <button (click)="toggleFilters()" class="button button--flat" title="Filtros">
+                        <i class="pi pi-filter" style="color: orange;"></i>
+                    </button>
+                    <button (click)="showTargetForm()" class="button button--primary-flat-red"
+                        *ngIf="currentUserAffiliationTypeId === 'empleado'">
+                        <i class="pi pi-plus"></i>
+                        <span class="button-text">{{ translations.newTarget | translate }}</span>
+                    </button>
+                </div>
             </div>
 
 

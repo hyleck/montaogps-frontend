@@ -29,6 +29,7 @@ import { SplitButtonModule } from 'primeng/splitbutton';
 import { Textarea } from 'primeng/inputtextarea';
 import { DividerModule } from 'primeng/divider';
 import { Breadcrumb } from 'primeng/breadcrumb';
+import { RadioButtonModule } from 'primeng/radiobutton';
 
 import { ConfirmationService, MessageService } from 'primeng/api';
 
@@ -64,7 +65,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     ToolbarModule,
     DrawerModule,
     SplitButtonModule,
-    DividerModule
+    DividerModule,
+    RadioButtonModule
   ],
   exports: [
     BadgeModule,
@@ -95,7 +97,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     ToolbarModule,
     DrawerModule,
     SplitButtonModule,
-    DividerModule
+    DividerModule,
+    RadioButtonModule
   ],
   providers: []
 })
