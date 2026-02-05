@@ -1,0 +1,78 @@
+<div class="card">
+    <p-toast></p-toast>
+    <p-toolbar styleClass="mb-4">
+        <ng-template pTemplate="left">
+            <button pButton pRipple label="{{ 'settings.tags.new' | translate }}" icon="pi pi-plus"
+                class="p-button-success mr-2" (click)="openNew()"></button>
+        </ng-template>
+    </p-toolbar>
+
+    <p-table [value]="tags" [rows]="10" [paginator]="true" [rowHover]="true" dataKey="_id"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" [showCurrentPageReport]="true">
+        <ng-template pTemplate="header">
+            <tr>
+                <th pSortableColumn="name">{{ 'settings.tags.name' | translate }} <p-sortIcon field="name"></p-sortIcon>
+                </th>
+                <th pSortableColumn="description">{{ 'settings.tags.description_label' | translate }} <p-sortIcon
+                        field="description"></p-sortIcon></th>
+                <th pSortableColumn="color">{{ 'settings.tags.color' | translate }} <p-sortIcon
+                        field="color"></p-sortIcon></th>
+                <th></th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-tag>
+            <tr>
+                <td>{{tag.name}}</td>
+                <td>{{tag.description}}</td>
+                <td>
+                    <div [style.background-color]="tag.color" [style.width.px]="20" [style.height.px]="20"
+                        style="border-radius: 50%; border: 1px solid #ccc;"></div>
+                </td>
+                <td>
+                    <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2"
+                        (click)="editTag(tag)"></button>
+                    <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning"
+                        (click)="deleteTag(tag)"></button>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="summary">
+            <div class="flex align-items-center justify-content-between">
+                In total there are {{tags ? tags.length : 0 }} tags.
+            </div>
+        </ng-template>
+    </p-table>
+</div>
+
+<p-dialog [(visible)]="tagDialog" [style]="{width: '450px'}" header="{{ 'settings.tags.details' | translate }}"
+    [modal]="true" appendTo="body">
+    <ng-template pTemplate="content">
+        <div class="field flex flex-column gap-2 mb-5">
+            <label for="name" class="font-bold">{{ 'settings.tags.name' | translate }}</label>
+            <input type="text" pInputText id="name" [(ngModel)]="tag.name" required autofocus style="width: 100%"
+                placeholder="{{ 'settings.tags.name_placeholder' | translate }}" />
+            <small class="p-error" *ngIf="submitted && !tag.name">Name is required.</small>
+        </div>
+        <div class="field flex flex-column gap-2 mb-5">
+            <label for="description" class="font-bold">{{ 'settings.tags.description_label' | translate }}</label>
+            <textarea id="description" pInputTextarea [(ngModel)]="tag.description" required rows="3"
+                style="width: 100%" placeholder="{{ 'settings.tags.description_placeholder' | translate }}"></textarea>
+        </div>
+        <div class="field flex flex-column gap-2 mb-5">
+            <label for="color" class="font-bold">{{ 'settings.tags.color' | translate }}</label>
+            <div class="flex align-items-center gap-2">
+                <p-colorPicker [(ngModel)]="tag.color" appendTo="body"></p-colorPicker>
+                <span class="text-sm text-500">{{ tag.color }}</span>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <button pButton pRipple label="{{ 'settings.common.cancel' | translate }}" icon="pi pi-times"
+            class="p-button-text" (click)="hideDialog()"></button>
+        <button pButton pRipple label="{{ 'settings.common.save' | translate }}" icon="pi pi-check"
+            class="p-button-text" (click)="saveTag()"></button>
+    </ng-template>
+</p-dialog>
+
+<p-confirmDialog [style]="{width: '450px'}"></p-confirmDialog>

@@ -27,88 +27,104 @@ export class SettingsComponent implements OnInit, OnDestroy {
     HistorialesSettingsDisplay: boolean = false;
     SectorsSettingsDisplay: boolean = false;
     SupportSettingsDisplay: boolean = false;
+    CustomizerSettingsDisplay: boolean = false;
+    TagsSettingsDisplay: boolean = false;
 
     // Estado del análisis de historiales
     isHistorialesAnalysisRunning: boolean = false;
     historialStatusSubscription: Subscription | null = null;
 
-    settingsCards = [
-        {
-            titleKey: 'settings.system.title',
-            icon: 'pi pi-cog',
-            action: () => this.SystemSettingsDisplay = true,
-            descriptionKey: 'settings.system.description'
-        },
-        {
-            titleKey: 'settings.roles.title',
-            icon: 'pi pi-users',
-            action: () => this.RolesFormDisplay = true,
-            descriptionKey: 'settings.roles.description'
-        },
-        {
-            icon: 'pi pi-server',
-            titleKey: 'settings.cards.servers.title',
-            descriptionKey: 'settings.cards.servers.description',
-            action: () => this.ServersSettingsDisplay = true
-        },
-        {
-            icon: 'pi pi-list',
-            titleKey: 'settings.cards.plans.title',
-            descriptionKey: 'settings.cards.plans.description',
-            action: () => this.PlansSettingsDisplay = true
-        },
-        {
-            titleKey: 'settings.colors.title',
-            icon: 'pi pi-palette',
-            action: () => this.ColorsSettingsDisplay = true,
-            descriptionKey: 'settings.colors.description'
-        },
-        {
-            titleKey: 'settings.sectors.title',
-            icon: 'pi pi-map',
-            action: () => this.SectorsSettingsDisplay = true,
-            descriptionKey: 'settings.sectors.description'
-        },
-        {
-            titleKey: 'settings.tags.title',
-            icon: 'pi pi-tags',
-            route: '/admin/settings/tags',
-            descriptionKey: 'settings.tags.description',
-            disabled: true
-        },
-        {
-            titleKey: 'settings.protocols.title',
-            icon: 'pi pi-shield',
-            action: () => this.ProtocolsSettingsDisplay = true,
-            descriptionKey: 'settings.protocols.description',
-            disabled: false
-        },
-        {
-            titleKey: 'settings.brands.title',
-            icon: 'pi pi-car',
-            action: () => this.VehicleBrandsSettingsDisplay = true,
-            descriptionKey: 'settings.brands.description'
-        },
-        {
-            titleKey: 'settings.models.title',
-            icon: 'pi pi-truck',
-            action: () => this.VehicleModelsSettingsDisplay = true,
-            descriptionKey: 'settings.models.description',
-            disabled: false
-        },
-        {
-            titleKey: 'settings.historiales.title',
-            icon: 'pi pi-history',
-            action: () => this.HistorialesSettingsDisplay = true,
-            descriptionKey: 'settings.historiales.description'
-        },
-        {
-            titleKey: 'settings.support.title',
-            icon: 'pi pi-question-circle',
-            action: () => this.SupportSettingsDisplay = true,
-            descriptionKey: 'settings.support.description'
-        }
-    ];
+    settingsCards: {
+        titleKey: string;
+        icon: string;
+        action?: () => void;
+        route?: string;
+        descriptionKey: string;
+        disabled?: boolean;
+    }[] = [
+            {
+                titleKey: 'settings.system.title',
+                icon: 'pi pi-cog',
+                action: () => this.SystemSettingsDisplay = true,
+                descriptionKey: 'settings.system.description'
+            },
+            {
+                titleKey: 'settings.roles.title',
+                icon: 'pi pi-users',
+                action: () => this.RolesFormDisplay = true,
+                descriptionKey: 'settings.roles.description'
+            },
+            {
+                icon: 'pi pi-server',
+                titleKey: 'settings.cards.servers.title',
+                descriptionKey: 'settings.cards.servers.description',
+                action: () => this.ServersSettingsDisplay = true
+            },
+            {
+                icon: 'pi pi-list',
+                titleKey: 'settings.cards.plans.title',
+                descriptionKey: 'settings.cards.plans.description',
+                action: () => this.PlansSettingsDisplay = true
+            },
+            {
+                titleKey: 'settings.colors.title',
+                icon: 'pi pi-palette',
+                action: () => this.ColorsSettingsDisplay = true,
+                descriptionKey: 'settings.colors.description'
+            },
+            {
+                titleKey: 'settings.sectors.title',
+                icon: 'pi pi-map',
+                action: () => this.SectorsSettingsDisplay = true,
+                descriptionKey: 'settings.sectors.description'
+            },
+            {
+                titleKey: 'settings.tags.title',
+                icon: 'pi pi-tags',
+                action: () => this.TagsSettingsDisplay = true,
+                descriptionKey: 'settings.tags.description',
+                disabled: false
+            },
+            {
+                titleKey: 'settings.protocols.title',
+                icon: 'pi pi-shield',
+                action: () => this.ProtocolsSettingsDisplay = true,
+                descriptionKey: 'settings.protocols.description',
+                disabled: false
+            },
+            {
+                titleKey: 'settings.brands.title',
+                icon: 'pi pi-car',
+                action: () => this.VehicleBrandsSettingsDisplay = true,
+                descriptionKey: 'settings.brands.description'
+            },
+            {
+                titleKey: 'settings.models.title',
+                icon: 'pi pi-truck',
+                action: () => this.VehicleModelsSettingsDisplay = true,
+                descriptionKey: 'settings.models.description',
+                disabled: false
+            },
+            {
+                titleKey: 'settings.historiales.title',
+                icon: 'pi pi-history',
+                action: () => this.HistorialesSettingsDisplay = true,
+                descriptionKey: 'settings.historiales.description'
+            },
+            {
+                titleKey: 'settings.support.title',
+                icon: 'pi pi-question-circle',
+                action: () => this.SupportSettingsDisplay = true,
+                descriptionKey: 'settings.support.description'
+            },
+            {
+                titleKey: 'settings.customizer.title',
+                icon: 'pi pi-code',
+                descriptionKey: 'settings.customizer.description',
+                action: () => this.CustomizerSettingsDisplay = true
+            }
+
+        ];
 
     constructor(
         private router: Router,

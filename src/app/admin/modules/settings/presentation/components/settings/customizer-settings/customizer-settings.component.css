@@ -1,0 +1,22 @@
+.field {
+    margin-bottom: 1.5rem;
+}
+
+.form-fields-container {
+    margin-top: 2rem;
+    border-top: 1px solid var(--surface-border);
+    padding-top: 1rem;
+}
+
+.field-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 6px;
+}
+
+.full-width {
+    width: 100%;
+}

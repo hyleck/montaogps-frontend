@@ -16,6 +16,8 @@ import { ProtocolsSettingsComponent } from './components/settings/protocols-sett
 import { HistorialesSettingsComponent } from './components/settings/historiales-settings/historiales-settings.component';
 import { SectorsSettingsComponent } from './components/settings/sectors-settings/sectors-settings.component';
 import { SupportSettingsComponent } from './components/settings/support-settings/support-settings.component';
+import { TagsSettingsComponent } from './components/settings/tags-settings/tags-settings.component';
+import { CustomizerSettingsComponent } from './components/settings/customizer-settings/customizer-settings.component';
 
 @NgModule({
   declarations: [
@@ -37,7 +39,9 @@ import { SupportSettingsComponent } from './components/settings/support-settings
     FormsModule,
     PrimengModule,
     SettingsRoutingModule,
-    TranslateModule
+    TranslateModule,
+    TagsSettingsComponent,
+    CustomizerSettingsComponent
   ]
 })
 export class SettingsModule { }

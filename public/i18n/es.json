@@ -484,6 +484,10 @@
     }
   },
   "settings": {
+    "common": {
+      "save": "Guardar",
+      "cancel": "Cancelar"
+    },
     "roles": {
       "title": "Roles",
       "description": "Gestión de roles y permisos",
@@ -511,7 +515,18 @@
     },
     "tags": {
       "title": "Etiquetas",
-      "description": "Administración de etiquetas"
+      "description": "Administración de etiquetas",
+      "new": "Nueva Etiqueta",
+      "name": "Nombre",
+      "name_placeholder": "Ingrese el nombre de la etiqueta",
+      "description_label": "Descripción",
+      "description_placeholder": "Ingrese una descripción",
+      "color": "Color",
+      "details": "Detalles de Etiqueta",
+      "confirm_delete": "¿Está seguro de eliminar la etiqueta {{name}}?",
+      "create_success": "Etiqueta creada",
+      "update_success": "Etiqueta actualizada",
+      "delete_success": "Etiqueta eliminada"
     },
     "protocols": {
       "title": "Protocolos",
@@ -628,6 +643,25 @@
     "support": {
       "title": "Soporte",
       "description": "Gestión de soporte técnico"
+    },
+    "customizer": {
+      "title": "Personalizador",
+      "description": "Edite formularios de soporte y otros formularios dinámicos",
+      "new": "Nuevo Formulario",
+      "name": "Nombre",
+      "name_placeholder": "Nombre del formulario",
+      "description_label": "Descripción",
+      "description_placeholder": "Descripción del formulario",
+      "tag": "Etiqueta",
+      "tag_placeholder": "Seleccione una etiqueta",
+      "details": "Detalles del Formulario",
+      "fields": "Campos del Formulario",
+      "add_field": "Agregar Campo",
+      "field_label": "Etiqueta del Campo",
+      "field_type": "Tipo de Campo",
+      "field_placeholder": "Placeholder",
+      "field_required": "Requerido",
+      "confirm_delete": "¿Está seguro de eliminar el formulario {{name}}?"
     },
     "historiales": {
       "title": "Historiales",
