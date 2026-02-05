@@ -679,7 +679,15 @@
                                         <th style="width: 4rem" *ngIf="canUpdateDevices()">
                                             <!-- <p-tableHeaderCheckbox /> Checkbox "seleccionar todos" ocultado -->
                                         </th>
-                                        <th>{{ 'management.table.name' | translate }}</th>
+                                        <th>
+                                            {{ 'management.table.name' | translate }}
+                                            <span *ngIf="filterStatus === 'online'"
+                                                style="font-weight: normal; font-size: 0.8em; color: orange"> ( filtro:
+                                                Solo en linea )</span>
+                                            <span *ngIf="filterStatus === 'offline'"
+                                                style="font-weight: normal; font-size: 0.8em; color: orange"> ( filtro:
+                                                Solo offline )</span>
+                                        </th>
                                         <th>{{ 'management.table.imei' | translate }}</th>
                                         <th>{{ 'management.table.sim' | translate }}</th>
                                         <th>{{ 'management.table.expiration' | translate }}</th>
