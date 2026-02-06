@@ -1372,6 +1372,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     private parseLocalDate(dateStr: string): Date {
+        // Si la fecha ya viene en formato ISO o con hora (tiene 'T'), la usamos directamente
+        if (dateStr && dateStr.includes('T')) {
+            return new Date(dateStr);
+        }
+
         // Forzar interpretación en hora local evitando shifts de zona horaria
         return new Date(`${dateStr}T00:00:00`);
     }
