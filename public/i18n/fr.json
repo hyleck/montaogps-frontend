@@ -258,6 +258,8 @@
       "updated": "Appareil mis à jour avec succès",
       "deleted": "Appareil supprimé avec succès",
       "noDevices": "Aucun appareil dans ce paquet",
+      "storageDate": "Date de sortie",
+      "warehouse": "Entrepôt",
       "selectPackage": "Sélectionnez d'abord un paquet",
       "completeFields": "Complétez tous les champs de l'appareil"
     },

@@ -17,6 +17,7 @@ export interface InventoryItem {
   packageId?: string; // For frontend convenience, maps to 'package'
   user?: string; // Added field
   storage_id?: string | null; // Added field for warehouse
+  storageDate?: string; // Date when warehouse was assigned
   createdAt?: string;
   updatedAt?: string;
   installed?: boolean;

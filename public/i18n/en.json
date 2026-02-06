@@ -320,6 +320,8 @@
       "updated": "Device updated successfully",
       "deleted": "Device deleted successfully",
       "noDevices": "No devices in this package",
+      "storageDate": "Exit Date",
+      "warehouse": "Warehouse",
       "selectPackage": "Select a package first",
       "completeFields": "Complete all device fields"
     },

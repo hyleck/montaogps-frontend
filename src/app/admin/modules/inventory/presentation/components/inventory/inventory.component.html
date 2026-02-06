@@ -64,10 +64,11 @@
           <tr>
             <th>IMEI</th>
             <th>SIM</th>
-            <th>Protocolo</th>
+            <th>{{ 'inventory.device.protocol' | translate }}</th>
             <th>Paquete</th>
-            <th>Almacén</th>
-            <th>Acción</th>
+            <th>{{ 'inventory.device.warehouse' | translate }}</th>
+            <th>{{ 'inventory.device.storageDate' | translate }}</th>
+            <th>{{ 'inventory.device.actions' | translate }}</th>
           </tr>
         </thead>
         <tbody>
@@ -83,6 +84,7 @@
             <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
             <td>{{ getPackageTitle(device) }}</td>
             <td>{{ getWarehouseName(device) }}</td>
+            <td>{{ (device.storageDate | date: 'dd/MM/yyyy HH:mm') || 'N/A' }}</td>
             <td>
               <div class="device-actions flex gap-2">
                 <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success p-button-text"
@@ -219,7 +221,7 @@
 
   <!-- DIALOGO DE GESTIÓN DE ALMACENES -->
   <p-dialog [(visible)]="warehouseDialogVisible" [style]="{width: '900px'}" header="Gestión de Almacenes" [modal]="true"
-    styleClass="p-fluid">
+    styleClass="p-fluid app-dark-dialog">
     <ng-template pTemplate="content">
       <div class="card">
         <!-- Toolbar dentro del modal -->
@@ -349,8 +351,8 @@
 
   <!-- DIALOGO DE FORMULARIO DE ALMACÉN (Nuevo/Editar) -->
   <p-dialog [(visible)]="warehouseFormDialogVisible" [style]="{width: '600px'}"
-    [header]="isEditWarehouseMode ? 'Editar Almacén' : 'Nuevo Almacén'" [modal]="true" styleClass="p-fluid"
-    (onHide)="cancelWarehouseEdit()">
+    [header]="isEditWarehouseMode ? 'Editar Almacén' : 'Nuevo Almacén'" [modal]="true"
+    styleClass="p-fluid app-dark-dialog" (onHide)="cancelWarehouseEdit()">
     <ng-template pTemplate="content">
       <div *ngIf="selectedWarehouse">
         <div class="field mb-3">
@@ -384,7 +386,7 @@
 
   <!-- Device Management Dialogs -->
   <p-dialog [(visible)]="deviceDialogVisible" [style]="{width: '450px'}" header="Dispositivo" [modal]="true"
-    styleClass="p-fluid">
+    styleClass="p-fluid app-dark-dialog">
     <ng-template pTemplate="content">
       <form (ngSubmit)="saveDevice()" #deviceForm="ngForm">
         <div class="field" *ngIf="selectedDevice">
@@ -430,7 +432,7 @@
   </p-dialog>
 
   <p-dialog header="Instalar Dispositivo" [(visible)]="installDialogVisible" [modal]="true" [style]="{width: '450px'}"
-    (onHide)="cancelInstallation()">
+    styleClass="app-dark-dialog" (onHide)="cancelInstallation()">
     <div class="install-dialog-content">
       <div class="device-info" *ngIf="deviceToInstall">
         <h4>Dispositivo a instalar:</h4>

@@ -74,11 +74,12 @@
           </th>
         </tr>
         <tr>
-          <th>IMEI</th>
-          <th>SIM</th>
-          <th>Protocolo</th>
-          <th>Almacén</th>
-          <th>Acciones</th>
+          <th>{{ 'inventory.device.imei' | translate }}</th>
+          <th>{{ 'inventory.device.sim' | translate }}</th>
+          <th>{{ 'inventory.device.protocol' | translate }}</th>
+          <th>{{ 'inventory.device.warehouse' | translate }}</th>
+          <th>{{ 'inventory.device.storageDate' | translate }}</th>
+          <th>{{ 'inventory.device.actions' | translate }}</th>
         </tr>
       </ng-template>
 
@@ -99,6 +100,7 @@
               appendTo="body" (onChange)="updateDeviceStorage(device, $event.value)"
               [disabled]="!canUpdateInventory()"></p-dropdown>
           </td>
+          <td>{{ (device.storageDate | date: 'dd/MM/yyyy HH:mm') || 'N/A' }}</td>
           <td class="device-actions">
             <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2"
               (click)="editDevice(device)" pTooltip="Editar" *ngIf="canUpdateInventory()"></button>

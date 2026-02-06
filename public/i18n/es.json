@@ -432,6 +432,8 @@
       "updated": "Dispositivo actualizado correctamente",
       "deleted": "Dispositivo eliminado correctamente",
       "noDevices": "No hay dispositivos en este paquete",
+      "storageDate": "Fecha de salida",
+      "warehouse": "Almacén",
       "selectPackage": "Selecciona un paquete primero",
       "completeFields": "Complete todos los campos del dispositivo"
     },

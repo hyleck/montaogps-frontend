@@ -680,13 +680,14 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     if (!device._id) return;
 
     this.inventoryService.update(device._id, { storage_id: newStorageId }).subscribe({
-      next: () => {
+      next: (updatedDevice) => {
         this.messageService.add({
           severity: 'success',
           summary: 'Actualizado',
           detail: 'Almacén asignado correctamente'
         });
         device.storage_id = newStorageId;
+        device.storageDate = updatedDevice.storageDate;
       },
       error: () => {
         this.messageService.add({
