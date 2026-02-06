@@ -1,11 +1,18 @@
+.form-fields-container {
+    margin-top: 2rem;
+    border-top: 1px solid var(--globalColorBorderDark);
+    padding-top: 1.5rem;
+}
+
 .field {
     margin-bottom: 1.5rem;
 }
 
-.form-fields-container {
-    margin-top: 2rem;
-    border-top: 1px solid var(--surface-border);
-    padding-top: 1rem;
+.field label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.85rem;
 }
 
 .field-row {
@@ -13,8 +20,19 @@
     align-items: center;
     gap: 1rem;
     margin-bottom: 1rem;
-    padding: 1rem;
-    border-radius: 6px;
+    padding: 1.25rem;
+    border-radius: 12px;
+    background: var(--managementColorInputSearch);
+    border: 1px solid var(--globalColorBorderDark);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px var(--globalColorShadow);
+}
+
+.field-row:hover {
+    border-color: var(--globalColorPrimaryInmutable);
+    background: var(--globalColorCardBackground);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--globalColorShadow);
 }
 
 .full-width {

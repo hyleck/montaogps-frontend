@@ -23,7 +23,7 @@ export class AuthService {
   private authStateSubject = new BehaviorSubject<boolean>(false);
 
   constructor(
-    private _httpClient: HttpClient, 
+    private _httpClient: HttpClient,
     private _router: Router,
     private themesService: ThemesService,
     private translate: TranslateService,
@@ -59,13 +59,13 @@ export class AuthService {
         if (response.user) {
           console.log('🔍 DEBUG - USUARIO EN RESPUESTA DEL LOGIN:', response.user);
         }
-        
-          if (response.access_token) {
-            this.saveToken(response.access_token);
-            if (response.user) {
-              // Guardar solo la información básica del usuario
-              this.saveUser(response.user);
-            }
+
+        if (response.access_token) {
+          this.saveToken(response.access_token);
+          if (response.user) {
+            // Guardar solo la información básica del usuario
+            this.saveUser(response.user);
+          }
         }
       }),
       switchMap(response => {
@@ -91,7 +91,7 @@ export class AuthService {
   private configureUserSettings(userData: any) {
     if (userData.settings && Array.isArray(userData.settings) && userData.settings.length > 0) {
       const userSettings = userData.settings[0];
-      
+
       // Configurar tema
       if (userSettings.theme) {
         this.themesService.setTheme(userSettings.theme);
@@ -121,10 +121,12 @@ export class AuthService {
 
   private saveUser(user: BasicUser): void {
     try {
-      // Convertir root de string a boolean si es necesario
+      // Convertir root y developer de string a boolean si es necesario
       // Manejamos tanto string como boolean del backend
-      const userRoot = user.root as any; // Cast temporal para evitar error de TypeScript
+      const userRoot = user.root as any;
+      const userDeveloper = (user as any).developer as any;
       const rootBoolean = userRoot === "true" || userRoot === true;
+      const developerBoolean = userDeveloper === "true" || userDeveloper === true;
 
       // Guardar solo la información básica del usuario
       const basicUserInfo = {
@@ -134,7 +136,8 @@ export class AuthService {
         email: this.normalizeEmail(user.email),
         access_level_id: user.access_level_id,
         affiliation_type_id: (user as any).affiliation_type_id || (user as any).affiliation_type,
-        root: rootBoolean
+        root: rootBoolean,
+        developer: developerBoolean
       };
 
       // 🔍 DEBUG: Imprimir información del usuario que se va a guardar
@@ -185,7 +188,7 @@ export class AuthService {
     const modules = [
       'users',
       'devices',
-      'roles', 
+      'roles',
       'system',
       'protocols',
       'plans',
@@ -217,9 +220,9 @@ export class AuthService {
     try {
       const userStr = localStorage.getItem(this.USER_KEY);
       const user = userStr ? JSON.parse(userStr) : null;
-      
+
       // 🔍 DEBUG: Imprimir toda la información del usuario logueado
-      
+
       return user;
     } catch (error) {
       console.error('Error al obtener usuario:', error);

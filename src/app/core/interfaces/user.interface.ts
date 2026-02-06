@@ -31,6 +31,7 @@ export interface BasicUser {
   access_level_id: AccessLevel;
   affiliation_type_id?: string;
   root?: boolean;
+  developer?: boolean;
   privileges?: UserPrivilege[];
 }
 
@@ -49,6 +50,7 @@ export interface User {
   settings?: UserSettings[];
   profile_type_id?: string;
   root?: boolean;
+  developer?: boolean;
   status?: boolean;
   tag?: string;
 }
@@ -78,6 +80,7 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
   affiliation_type_id: string;
   profile_type_id: string;
   root?: boolean;
+  developer?: boolean;
   tag?: string;
 }
 

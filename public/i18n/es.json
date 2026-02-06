@@ -269,7 +269,47 @@
     "processType": "Tipo",
     "noProcesses": "No hay procesos registrados para este target",
     "myProfile": "Mi Perfil",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "support": "Soporte Técnico"
+  },
+  "support": {
+    "title": "Soporte",
+    "description": "Gestión de soporte técnico",
+    "newTicket": "Nuevo Ticket",
+    "createTicket": "Crear Nuevo Ticket",
+    "ticketTitle": "Título del Problema",
+    "ticketTitlePlaceholder": "Ej: Error en los reportes de paradas",
+    "priority": "Prioridad de Atención",
+    "selectPriority": "Seleccione la prioridad",
+    "descriptionLabel": "Descripción Detallada",
+    "descriptionPlaceholder": "Brinde la mayor cantidad de información posible para ayudarle mejor...",
+    "sendTicket": "Enviar Ticket",
+    "cancel": "Cancelar",
+    "viewDetails": "Detalles del Ticket",
+    "close": "Cerrar",
+    "success": "Ticket enviado correctamente",
+    "error": "No se pudo enviar el ticket",
+    "myTickets": "Mis Tickets",
+    "noTickets": "Aún no tienes tickets de soporte",
+    "back": "Volver",
+    "status": {
+      "open": "Abierto",
+      "in_progress": "En Progreso",
+      "resolved": "Resuelto",
+      "closed": "Cerrado"
+    },
+    "table": {
+      "title": "Asunto",
+      "priority": "Prioridad",
+      "status": "Estado",
+      "date": "Fecha"
+    },
+    "priorities": {
+      "low": "Baja",
+      "medium": "Media",
+      "high": "Alta",
+      "critical": "Crítica"
+    }
   },
   "maps": {
     "infoTitle": "Información del objetivo",
@@ -616,6 +656,10 @@
       "no_save_permission": "Sin permisos para guardar",
       "no_actions_permission": "Sin acciones"
     },
+    "support": {
+      "title": "Soporte",
+      "description": "Gestión de soporte técnico"
+    },
     "models": {
       "title": "Modelos",
       "description": "Gestión de modelos",
@@ -639,10 +683,6 @@
       "no_create_permission": "Sin permisos para crear",
       "no_update_permission": "Sin permisos para actualizar",
       "no_delete_permission": "Sin permisos para eliminar"
-    },
-    "support": {
-      "title": "Soporte",
-      "description": "Gestión de soporte técnico"
     },
     "customizer": {
       "title": "Personalizador",

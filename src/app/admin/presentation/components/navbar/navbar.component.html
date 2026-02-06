@@ -37,6 +37,11 @@
                     {{ 'navbar.share' | translate }}
                     <span *ngIf="hasSelectedTargets" class="selection-badge">({{ selectedTargetsCount }})</span>
                 </button>
+                <button class="button button--flat-negative" (click)="openSupportModal()"
+                    [title]="'navbar.support' | translate">
+                    <i class="pi pi-question-circle"></i>
+                    {{ 'navbar.support' | translate }}
+                </button>
             </div>
 
             <div class="card flex justify-content-center navbar__drupdown">
@@ -1365,6 +1370,120 @@
             </ng-container>
         </div>
     </div>
+</p-dialog>
+
+<!-- Modal para crear ticket de soporte -->
+<p-dialog [(visible)]="supportDialogVisible" [modal]="true" [style]="{width: '550px', maxWidth: '95vw'}"
+    styleClass="app-dark-dialog" appendTo="body">
+
+    <!-- Header Personalizado con Tabs -->
+    <ng-template pTemplate="header">
+        <div class="flex items-center gap-4 w-full">
+            <button (click)="showCreateForm()" [class.active-tab]="activeSupportTab === 'create'" class="tab-btn">
+                {{ 'support.createTicket' | translate }}
+            </button>
+            <button (click)="showTicketList()" [class.active-tab]="activeSupportTab === 'list'" class="tab-btn">
+                {{ 'support.myTickets' | translate }}
+            </button>
+        </div>
+    </ng-template>
+
+    <div class="support-content-container">
+        <!-- FORMULARIO DE CREACIÓN -->
+        <div *ngIf="activeSupportTab === 'create'" class="support-form-content p-2">
+            <!-- Título -->
+            <div class="field mb-4">
+                <label for="support-title" class="font-bold block mb-2">
+                    {{ 'support.ticketTitle' | translate }}
+                </label>
+                <input id="support-title" type="text" [(ngModel)]="newTicket.title" class="native-input w-full"
+                    [placeholder]="'support.ticketTitlePlaceholder' | translate" />
+            </div>
+
+            <!-- Prioridad -->
+            <div class="field mb-4">
+                <label for="support-priority" class="font-bold block mb-2">
+                    {{ 'support.priority' | translate }}
+                </label>
+                <select id="support-priority" [(ngModel)]="newTicket.priority" class="native-select w-full">
+                    <option value="" disabled>{{ 'support.selectPriority' | translate }}</option>
+                    <option *ngFor="let p of priorities" [value]="p.value">{{ p.label }}</option>
+                </select>
+            </div>
+
+            <!-- Descripción -->
+            <div class="field mb-1">
+                <label for="support-description" class="font-bold block mb-2">
+                    {{ 'support.descriptionLabel' | translate }}
+                </label>
+                <textarea id="support-description" [(ngModel)]="newTicket.description" rows="6"
+                    class="native-textarea w-full"
+                    [placeholder]="'support.descriptionPlaceholder' | translate"></textarea>
+            </div>
+        </div>
+
+        <!-- LISTADO DE TICKETS (Tabla) -->
+        <div *ngIf="activeSupportTab === 'list'" class="support-list-content">
+            <div *ngIf="loadingTickets" class="flex justify-center p-8">
+                <i class="pi pi-spin pi-spinner text-4xl" style="color: var(--globalColorPrimaryInmutable)"></i>
+            </div>
+
+            <div *ngIf="!loadingTickets && userTickets.length === 0" class="empty-state p-8 text-center">
+                <i class="pi pi-inbox text-5xl mb-3 opacity-30"></i>
+                <p class="text-xl opacity-60">{{ 'support.noTickets' | translate }}</p>
+                <button pButton [label]="'support.newTicket' | translate" class="p-button-text mt-4"
+                    (click)="showCreateForm()"></button>
+            </div>
+
+            <div *ngIf="!loadingTickets && userTickets.length > 0" class="tickets-table-container">
+                <table class="native-table w-full">
+                    <thead>
+                        <tr>
+                            <th class="text-left px-4 py-3">{{ 'support.table.title' | translate }}</th>
+                            <th class="text-center px-4 py-3">{{ 'support.table.priority' | translate }}</th>
+                            <th class="text-center px-4 py-3">{{ 'support.table.status' | translate }}</th>
+                            <th class="text-right px-4 py-3">{{ 'support.table.date' | translate }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let ticket of userTickets" class="table-row-item">
+                            <td class="px-4 py-3">
+                                <div class="ticket-info-cell">
+                                    <span class="ticket-id-small">#{{ ticket._id.substring(ticket._id.length - 6)
+                                        }}</span>
+                                    <span class="ticket-title-truncate">{{ ticket.title }}</span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span class="priority-text-small">
+                                    {{ getPriorityLabel(ticket.priority) | translate }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <span [class]="'status-badge-compact ' + getStatusClass(ticket.status)">
+                                    {{ getStatusLabel(ticket.status) | translate }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-right text-sm opacity-60">
+                                {{ ticket.createdAt | date:'shortDate' }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer (Solo visible en pestaña de creación) -->
+    <ng-template pTemplate="footer">
+        <div *ngIf="activeSupportTab === 'create'">
+            <button pButton pRipple [label]="'support.cancel' | translate" icon="pi pi-times" class="p-button-text"
+                (click)="supportDialogVisible = false" [disabled]="savingTicket"></button>
+            <button pButton pRipple [label]="'support.sendTicket' | translate"
+                [icon]="savingTicket ? 'pi pi-spin pi-spinner' : 'pi pi-send'" class="p-button-primary"
+                (click)="saveSupportTicket()" [disabled]="savingTicket"></button>
+        </div>
+    </ng-template>
 </p-dialog>
 
 <!-- Toast para mensajes -->

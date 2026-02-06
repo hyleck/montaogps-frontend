@@ -60,8 +60,15 @@
                 </div>
                 <div>
                     <label class="text-xs uppercase font-bold opacity-60 block mb-1">Estado</label>
-                    <p-tag [value]="selectedTicket.status | titlecase"
+                    <!-- Mostrar tag si NO es desarrollador -->
+                    <p-tag *ngIf="!currentUser?.developer" [value]="selectedTicket.status | titlecase"
                         [severity]="getStatusSeverity(selectedTicket.status)"></p-tag>
+
+                    <!-- Mostrar select nativo si ES desarrollador -->
+                    <select *ngIf="currentUser?.developer" [(ngModel)]="selectedTicket.status"
+                        (ngModelChange)="onStatusChange(selectedTicket)" class="native-select">
+                        <option *ngFor="let opt of statusOptions" [value]="opt.value">{{ opt.label }}</option>
+                    </select>
                 </div>
             </div>
 
@@ -89,53 +96,42 @@
 
 
     <!-- Form -->
-    <div class="p-fluid">
+    <div>
         <!-- Título -->
-        <div style="margin-bottom: 1.5rem;">
-            <label for="title"
-                style="display: block; margin-bottom: 0.6rem; font-weight: 500; color: #e5e7eb; font-size: 0.875rem;">
+        <div class="field mb-4">
+            <label for="title" class="font-bold">
                 Título del Problema
             </label>
-            <input id="title" type="text" pInputText [(ngModel)]="newTicket.title"
-                placeholder="Ej: Error en los reportes de paradas"
-                style="background: rgba(55, 65, 81, 0.5) !important; border: 1.5px solid rgba(107, 114, 128, 0.4) !important; color: #f9fafb !important; padding: 0.65rem 1rem !important; font-size: 0.95rem !important; border-radius: 8px !important; width: 100% !important;" />
+            <input id="title" type="text" [(ngModel)]="newTicket.title" class="native-input"
+                placeholder="Ej: Error en los reportes de paradas" />
         </div>
 
         <!-- Prioridad -->
-        <div style="margin-bottom: 1.5rem;">
-            <label for="priority"
-                style="display: block; margin-bottom: 0.6rem; font-weight: 500; color: #e5e7eb; font-size: 0.875rem;">
+        <div class="field mb-4">
+            <label for="priority" class="font-bold">
                 Prioridad de Atención
             </label>
-            <p-dropdown id="priority" [options]="priorities" [(ngModel)]="newTicket.priority" optionLabel="label"
-                optionValue="value" appendTo="body" placeholder="Seleccione la prioridad"
-                [style]="{'background': 'rgba(55, 65, 81, 0.5)', 'border': '1.5px solid rgba(107, 114, 128, 0.4)', 'border-radius': '8px', 'width': '100%'}">
-            </p-dropdown>
+            <select id="priority" [(ngModel)]="newTicket.priority" class="native-select">
+                <option value="" disabled selected>Seleccione la prioridad</option>
+                <option *ngFor="let p of priorities" [value]="p.value">{{ p.label }}</option>
+            </select>
         </div>
 
         <!-- Descripción -->
-        <div style="margin-bottom: 1rem;">
-            <label for="description"
-                style="display: block; margin-bottom: 0.6rem; font-weight: 500; color: #e5e7eb; font-size: 0.875rem;">
+        <div class="field mb-3">
+            <label for="description" class="font-bold">
                 Descripción Detallada
             </label>
-            <textarea id="description" pInputTextarea [(ngModel)]="newTicket.description" rows="6" autoResize="true"
-                placeholder="Brinde la mayor cantidad de información posible para ayudarle mejor..."
-                style="background: rgba(55, 65, 81, 0.5) !important; border: 1.5px solid rgba(107, 114, 128, 0.4) !important; color: #f9fafb !important; padding: 0.75rem 1rem !important; font-size: 0.95rem !important; border-radius: 8px !important; width: 100% !important; min-height: 140px !important; line-height: 1.6 !important; box-sizing: border-box !important;">
-            </textarea>
+            <textarea id="description" [(ngModel)]="newTicket.description" rows="6" class="native-textarea"
+                placeholder="Brinde la mayor cantidad de información posible para ayudarle mejor..."></textarea>
         </div>
     </div>
 
     <!-- Footer -->
     <ng-template pTemplate="footer">
-        <div
-            style="display: flex; gap: 0.75rem; justify-content: flex-end; padding: 1.5rem; border-top: 2px solid rgba(16, 185, 129, 0.2);">
-            <button pButton pRipple label="Cancelar" icon="pi pi-times" (click)="displayDialog = false"
-                style="color: #d1d5db; background: transparent; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600;">
-            </button>
-            <button pButton pRipple label="Enviar Ticket" icon="pi pi-send" (click)="saveTicket()"
-                style="background: #10b981 !important; color: white !important; border: none !important; padding: 0.75rem 1.5rem !important; border-radius: 8px !important; font-weight: 600 !important;">
-            </button>
-        </div>
+        <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
+            (click)="displayDialog = false"></button>
+        <button pButton pRipple label="Enviar Ticket" icon="pi pi-send" class="p-button-primary"
+            (click)="saveTicket()"></button>
     </ng-template>
 </p-dialog>

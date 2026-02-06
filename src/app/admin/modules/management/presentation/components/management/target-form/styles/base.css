@@ -2759,3 +2759,56 @@ textarea[readonly]:focus {
         grid-template-columns: 1fr 1fr;
     }
 }
+
+/* Custom Form Description Font Size */
+.custom-form-description-text {
+    font-size: 13px !important;
+    line-height: 1.4;
+}
+
+/* Final UI Polish for Custom Forms */
+:host-context(:not(.app-dark)) .custom-form-grid fieldset {
+    border: 1px solid #e5e7eb !important;
+    /* Softer, lighter border */
+    background-color: #f9fafb !important;
+    /* Slightly off-white background */
+    box-shadow: none !important;
+}
+
+/* High-Visibility Input Borders for Custom Forms */
+.custom-form-grid input:not([type="checkbox"]),
+.custom-form-grid .p-calendar input {
+    border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
+    /* Clearly defined in dark mode */
+    border-radius: 6px !important;
+    padding: 0.75rem !important;
+    transition: all 0.2s ease !important;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+:host-context(:not(.app-dark)) .custom-form-grid input:not([type="checkbox"]),
+:host-context(:not(.app-dark)) .custom-form-grid .p-calendar input {
+    border: 1.5px solid #9ca3af !important;
+    /* Darker, thicker border for Light Mode */
+    background-color: #ffffff !important;
+    /* Pure white background to stand out */
+    color: #111827 !important;
+}
+
+:host-context(:not(.app-dark)) .custom-form-grid input:focus,
+:host-context(:not(.app-dark)) .custom-form-grid .p-calendar input:focus-within {
+    border-color: var(--globalColorAccent) !important;
+    box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.15) !important;
+}
+
+:host-context(:not(.app-dark)) .custom-form-grid label {
+    color: #1f2937 !important;
+    /* Even darker labels for maximum contrast */
+    font-weight: 700 !important;
+}
+
+:host-context(:not(.app-dark)) .custom-form-description-text {
+    color: #4b5563 !important;
+    /* Darker description text */
+    font-weight: 500 !important;
+}

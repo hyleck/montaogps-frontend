@@ -11,17 +11,17 @@
     <p-table #dt [value]="forms" [rows]="10" [paginator]="true" [loading]="loading"
         [globalFilterFields]="['name','description']" [tableStyle]="{'min-width': '50rem'}" [rowHover]="true"
         dataKey="_id" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
-        [showCurrentPageReport]="true">
+        [showCurrentPageReport]="true" styleClass="app-dark-table">
         <ng-template pTemplate="caption">
             <div class="flex align-items-center justify-content-between">
-                <h5 class="m-0">Manage Forms</h5>
+                <h5 class="m-0 font-medium">Administrar Formularios</h5>
             </div>
         </ng-template>
         <ng-template pTemplate="header">
             <tr>
-                <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
-                <th pSortableColumn="description">Description <p-sortIcon field="description"></p-sortIcon></th>
-                <th>Actions</th>
+                <th pSortableColumn="name">Nombre <p-sortIcon field="name"></p-sortIcon></th>
+                <th pSortableColumn="description">Descripción <p-sortIcon field="description"></p-sortIcon></th>
+                <th>Acciones</th>
             </tr>
         </ng-template>
         <ng-template pTemplate="body" let-form>
@@ -29,82 +29,109 @@
                 <td>{{form.name}}</td>
                 <td>{{form.description}}</td>
                 <td>
-                    <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2"
-                        (click)="editForm(form)"></button>
-                    <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning"
-                        (click)="deleteForm(form)"></button>
+                    <div style="display: flex; gap: 12px; justify-content: center; align-items: center;">
+                        <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success"
+                            (click)="editForm(form)"></button>
+                        <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-danger"
+                            (click)="deleteForm(form)"></button>
+                    </div>
                 </td>
             </tr>
         </ng-template>
     </p-table>
 
-    <p-dialog [(visible)]="formDialog" [style]="{width: '90vw', maxWidth: '600px', 'max-height': '90vh'}"
-        [breakpoints]="{'960px': '75vw', '640px': '95vw'}" header="Form Details" [modal]="true"
-        [contentStyle]="{overflow: 'auto', 'max-height': '80vh'}" styleClass="app-dark-dialog" appendTo="body">
+    <p-dialog [(visible)]="formDialog" [style]="{width: '95vw', maxWidth: '1000px', 'max-height': '90vh'}"
+        [breakpoints]="{'1100px': '90vw', '960px': '95vw'}" header="Detalles del Formulario" [modal]="true"
+        [contentStyle]="{overflow: 'auto', 'max-height': '80vh'}" styleClass="app-dark-dialog customizer-dialog"
+        appendTo="body">
         <ng-template pTemplate="content">
-            <div class="field mb-4">
-                <label for="name"
-                    style="display: block; margin-bottom: 0.6rem; font-weight: 500; color: #e5e7eb; font-size: 0.875rem;">Name</label>
-                <input type="text" pInputText id="name" [(ngModel)]="form.name" required autofocus
-                    style="background: rgba(55, 65, 81, 0.5) !important; border: 1.5px solid rgba(107, 114, 128, 0.4) !important; color: #f9fafb !important; padding: 0.65rem 1rem !important; font-size: 0.95rem !important; border-radius: 8px !important; width: 100% !important;" />
-                <small class="p-error block mt-1" *ngIf="submitted && !form.name">Name is required.</small>
-            </div>
+            <div class="customizer-grid">
+                <!-- Column 1: Main Details -->
+                <div class="customizer-col main-details">
+                    <h3 class="m-0 mb-4 text-xl font-bold opacity-80">Información General</h3>
 
-            <div class="field mb-4">
-                <label for="description"
-                    style="display: block; margin-bottom: 0.6rem; font-weight: 500; color: #e5e7eb; font-size: 0.875rem;">Description</label>
-                <textarea id="description" pInputTextarea [(ngModel)]="form.description" rows="3" autoResize="true"
-                    style="background: rgba(55, 65, 81, 0.5) !important; border: 1.5px solid rgba(107, 114, 128, 0.4) !important; color: #f9fafb !important; padding: 0.75rem 1rem !important; font-size: 0.95rem !important; border-radius: 8px !important; width: 100% !important; line-height: 1.6 !important; box-sizing: border-box !important;">
-                </textarea>
-            </div>
+                    <div class="field mb-4">
+                        <label for="name" class="font-bold block mb-2">Nombre del Formulario</label>
+                        <input id="name" type="text" [(ngModel)]="form.name" required autofocus
+                            class="native-input w-full" placeholder="Ej: Reporte de Mantenimiento" />
+                        <small class="p-error block mt-1" *ngIf="submitted && !form.name">El nombre es
+                            requerido.</small>
+                    </div>
 
-            <div class="field mb-4">
-                <label for="tag"
-                    style="display: block; margin-bottom: 0.6rem; font-weight: 500; color: #e5e7eb; font-size: 0.875rem;">Tag</label>
-                <p-dropdown id="tag" [options]="tags" [(ngModel)]="form.tag" optionLabel="name" optionValue="_id"
-                    placeholder="Select a Tag" appendTo="body"
-                    [style]="{'width':'100%', 'background': 'rgba(55, 65, 81, 0.5)', 'border': '1.5px solid rgba(107, 114, 128, 0.4)', 'border-radius': '8px'}"></p-dropdown>
-            </div>
+                    <div class="field mb-4">
+                        <label for="description" class="font-bold block mb-2">Descripción</label>
+                        <textarea id="description" [(ngModel)]="form.description" required rows="5"
+                            class="native-textarea w-full"
+                            placeholder="Describa para qué sirve este formulario..."></textarea>
+                    </div>
 
-            <div class="form-fields-container mt-4"
-                style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
-                <div class="flex justify-content-between align-items-center mb-3">
-                    <h5 class="m-0 text-white font-medium">Form Fields</h5>
-                    <button pButton pRipple type="button" icon="pi pi-plus" label="Add Field"
-                        class="p-button-sm p-button-success" style="border-radius: 6px;" (click)="addField()"></button>
+                    <div class="field mb-4">
+                        <label for="tag" class="font-bold block mb-2">Etiqueta Vinculada (Tag)</label>
+                        <select id="tag" [(ngModel)]="form.tag" class="native-select w-full">
+                            <option [ngValue]="null">Ninguna (Global)</option>
+                            <option *ngFor="let tag of tags" [value]="tag._id">{{ tag.name }}</option>
+                        </select>
+                        <small class="text-sm opacity-60 mt-1 block">Los dispositivos con este tag podrán usar el
+                            formulario.</small>
+                    </div>
                 </div>
 
-                <div *ngFor="let field of form.fields; let i = index"
-                    class="field-row mb-3 p-3 flex align-items-center gap-3"
-                    style="background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
-                    <div class="flex-1">
-                        <span class="p-float-label">
-                            <input pInputText [(ngModel)]="field.label" placeholder="Label"
-                                style="width: 100%; background: rgba(0,0,0,0.2) !important; border: 1px solid rgba(255,255,255,0.1) !important; border-radius: 4px;" />
-                        </span>
+                <!-- Column 2: Dynamic Fields -->
+                <div class="customizer-col fields-list">
+                    <div class="flex justify-content-between align-items-center mb-4">
+                        <h3 class="m-0 text-xl font-bold opacity-80">Configuración de Campos</h3>
+                        <button pButton pRipple type="button" label="Nuevo Campo" icon="pi pi-plus"
+                            class="p-button-sm p-button-success" style="border-radius: 6px;"
+                            (click)="addField()"></button>
                     </div>
-                    <div class="flex-1">
-                        <p-dropdown [options]="fieldTypes" [(ngModel)]="field.type" placeholder="Type" appendTo="body"
-                            [style]="{'width':'100%', 'background': 'rgba(0,0,0,0.2)', 'border': '1px solid rgba(255,255,255,0.1)', 'border-radius': '4px'}"></p-dropdown>
-                    </div>
-                    <div class="flex align-items-center gap-2">
-                        <p-checkbox [(ngModel)]="field.required" [binary]="true" label="Req"></p-checkbox>
-                    </div>
-                    <button pButton pRipple type="button" icon="pi pi-trash"
-                        class="p-button-rounded p-button-danger p-button-text" (click)="removeField(i)"></button>
-                </div>
 
-                <div *ngIf="form.fields.length === 0" class="text-center p-4"
-                    style="background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1);">
-                    <small class="text-400">No fields added yet. Click "Add Field" to start.</small>
+                    <div class="fields-scroll-container">
+                        <div class="field-row true-row p-2 mb-2 border-round-lg shadow-1"
+                            *ngFor="let field of form.fields; let i = index">
+                            <!-- Title -->
+                            <div class="flex-field-title">
+                                <input type="text" [(ngModel)]="field.label" placeholder="Título"
+                                    class="native-input native-input-small no-w-full" />
+                            </div>
+
+                            <!-- Type -->
+                            <div class="flex-field-type">
+                                <select [(ngModel)]="field.type" class="native-select native-select-small no-w-full">
+                                    <option *ngFor="let type of fieldTypes" [value]="type.value">{{ type.label }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- Placeholder -->
+                            <div class="flex-field-placeholder">
+                                <input type="text" [(ngModel)]="field.placeholder" placeholder="Ayuda / Placeholder"
+                                    class="native-input native-input-small no-w-full" />
+                            </div>
+
+
+                            <!-- Delete -->
+                            <div class="no-shrink">
+                                <button pButton pRipple icon="pi pi-trash"
+                                    class="p-button-rounded p-button-danger p-button-text p-button-sm"
+                                    (click)="removeField(i)"></button>
+                            </div>
+                        </div>
+
+                        <div *ngIf="form.fields.length === 0" class="text-center p-5 border-round-xl empty-fields-card">
+                            <i class="pi pi-list text-4xl opacity-20 mb-3 block"></i>
+                            <span class="opacity-50">No hay campos configurados</span>
+                            <p class="text-sm opacity-40 mt-1">Haga clic en "Nuevo Campo" para comenzar</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </ng-template>
 
         <ng-template pTemplate="footer">
-            <button pButton pRipple label="Cancel" icon="pi pi-times" class="p-button-text"
+            <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-secondary p-button-outlined"
                 (click)="hideDialog()"></button>
-            <button pButton pRipple label="Save" icon="pi pi-check" class="p-button-text" (click)="saveForm()"></button>
+            <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-success"
+                (click)="saveForm()"></button>
         </ng-template>
     </p-dialog>
 </div>

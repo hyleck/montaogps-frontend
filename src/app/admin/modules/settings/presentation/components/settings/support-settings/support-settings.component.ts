@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { SupportService } from '@core/services/support.service';
 import { Ticket, CreateTicketDto } from '@core/interfaces/support.interface';
 import { MessageService } from 'primeng/api';
+import { AuthService } from '@core/services/auth.service';
 
 @Component({
     selector: 'app-support-settings',
@@ -15,6 +16,7 @@ export class SupportSettingsComponent implements OnInit {
     displayDialog: boolean = false;
     viewDialog: boolean = false;
     selectedTicket: Ticket | null = null;
+    currentUser: any = null;
 
     newTicket: CreateTicketDto = {
         title: '',
@@ -29,10 +31,20 @@ export class SupportSettingsComponent implements OnInit {
         { label: 'Crítica', value: 'critical' }
     ];
 
+    statusOptions = [
+        { label: 'Abierto', value: 'open' },
+        { label: 'En Progreso', value: 'in_progress' },
+        { label: 'Resuelto', value: 'resolved' },
+        { label: 'Cerrado', value: 'closed' }
+    ];
+
     constructor(
         private supportService: SupportService,
-        private messageService: MessageService
-    ) { }
+        private messageService: MessageService,
+        private authService: AuthService
+    ) {
+        this.currentUser = this.authService.getCurrentUser();
+    }
 
     ngOnInit(): void {
         this.loadTickets();
@@ -103,5 +115,20 @@ export class SupportSettingsComponent implements OnInit {
             case 'critical': return 'danger';
             default: return 'info';
         }
+    }
+
+    onStatusChange(ticket: Ticket): void {
+        if (!ticket || !ticket._id) return;
+
+        console.log(`[SUPPORT] Frontend: Changing ticket ${ticket._id} status to: ${ticket.status}`);
+
+        this.supportService.updateTicket(ticket._id, { status: ticket.status }).subscribe({
+            next: () => {
+                this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Estado del ticket actualizado correctamente' });
+            },
+            error: () => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar el estado del ticket' });
+            }
+        });
     }
 }

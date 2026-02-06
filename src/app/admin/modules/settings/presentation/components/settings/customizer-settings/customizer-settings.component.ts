@@ -12,6 +12,7 @@ import { Textarea } from 'primeng/inputtextarea';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { DropdownModule } from 'primeng/dropdown';
 import { CheckboxModule } from 'primeng/checkbox';
+import { DividerModule } from 'primeng/divider';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 
 import { FormsService } from '@core/services/forms.service';
@@ -37,7 +38,8 @@ import { Tag } from '@core/interfaces/tag.interface';
         Textarea,
         DropdownModule,
         CheckboxModule,
-        ConfirmDialogModule
+        ConfirmDialogModule,
+        DividerModule
     ],
     providers: [MessageService, ConfirmationService]
 })

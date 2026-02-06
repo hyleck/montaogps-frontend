@@ -29,10 +29,12 @@
                         style="border-radius: 50%; border: 1px solid #ccc;"></div>
                 </td>
                 <td>
-                    <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2"
-                        (click)="editTag(tag)"></button>
-                    <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning"
-                        (click)="deleteTag(tag)"></button>
+                    <div style="display: flex; gap: 12px; justify-content: center; align-items: center;">
+                        <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success"
+                            (click)="editTag(tag)"></button>
+                        <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-danger"
+                            (click)="deleteTag(tag)"></button>
+                    </div>
                 </td>
             </tr>
         </ng-template>

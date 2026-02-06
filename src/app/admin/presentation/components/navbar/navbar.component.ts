@@ -20,6 +20,8 @@ import { AlertsService, AlertResponse, AlertStatus, CreateAlertDto } from '../..
 
 import { MapAlertComponent } from '../map-alert/map-alert.component';
 import { FirebaseNotificationsService, NotificationLog } from '../../../../core/services/firebase-notifications.service';
+import { SupportService } from '../../../../core/services/support.service';
+import { CreateTicketDto } from '../../../../core/interfaces/support.interface';
 
 @Component({
   selector: 'app-navbar',
@@ -293,6 +295,28 @@ export class NavbarComponent implements OnInit, OnDestroy {
   notifications: NotificationLog[] = [];
   loadingNotifications: boolean = false;
 
+  // Soporte técnico
+  supportDialogVisible: boolean = false;
+  savingTicket: boolean = false;
+  newTicket: CreateTicketDto = {
+    title: '',
+    description: '',
+    priority: 'medium'
+  };
+  priorities: any[] = [];
+  activeSupportTab: 'create' | 'list' = 'create';
+  userTickets: any[] = [];
+  loadingTickets: boolean = false;
+
+  initializePriorities() {
+    this.priorities = [
+      { label: this.translate.instant('support.priorities.low'), value: 'low' },
+      { label: this.translate.instant('support.priorities.medium'), value: 'medium' },
+      { label: this.translate.instant('support.priorities.high'), value: 'high' },
+      { label: this.translate.instant('support.priorities.critical'), value: 'critical' }
+    ];
+  }
+
   openNotificationsModal() {
     this.notificationsDialogVisible = true;
     this.loadNotifications();
@@ -317,6 +341,109 @@ export class NavbarComponent implements OnInit, OnDestroy {
     });
   }
 
+  openSupportModal() {
+    console.log('[SUPPORT] Opening technical support modal from navbar');
+    this.newTicket = {
+      title: '',
+      description: '',
+      priority: 'medium'
+    };
+    this.activeSupportTab = 'create';
+    this.supportDialogVisible = true;
+  }
+
+  showTicketList() {
+    this.activeSupportTab = 'list';
+    this.loadUserTickets();
+  }
+
+  showCreateForm() {
+    this.activeSupportTab = 'create';
+  }
+
+  loadUserTickets() {
+    this.loadingTickets = true;
+    this.supportService.getTickets().subscribe({
+      next: (tickets) => {
+        this.userTickets = tickets;
+        this.loadingTickets = false;
+      },
+      error: (err) => {
+        console.error('Error loading user tickets:', err);
+        this.loadingTickets = false;
+      }
+    });
+  }
+
+  getStatusLabel(status: string): string {
+    const statusKeys: any = {
+      'open': 'support.status.open',
+      'in_progress': 'support.status.in_progress',
+      'resolved': 'support.status.resolved',
+      'closed': 'support.status.closed'
+    };
+    return statusKeys[status] || status;
+  }
+
+  getPriorityLabel(priority: string): string {
+    const priorityKeys: any = {
+      'low': 'support.priorities.low',
+      'medium': 'support.priorities.medium',
+      'high': 'support.priorities.high',
+      'critical': 'support.priorities.critical'
+    };
+    return priorityKeys[priority] || priority;
+  }
+
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'open': return 'status-badge-open';
+      case 'in_progress': return 'status-badge-progress';
+      case 'resolved': return 'status-badge-resolved';
+      case 'closed': return 'status-badge-closed';
+      default: return '';
+    }
+  }
+
+  saveSupportTicket() {
+    if (!this.newTicket.title || !this.newTicket.description) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Atención',
+        detail: 'Por favor complete el título y la descripción'
+      });
+      return;
+    }
+
+    this.savingTicket = true;
+    this.supportService.createTicket(this.newTicket).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: 'Ticket creado correctamente'
+        });
+
+        // Refrescar lista y cambiar a pestaña de listado
+        this.loadUserTickets();
+        setTimeout(() => {
+          this.activeSupportTab = 'list';
+        }, 500);
+
+        this.savingTicket = false;
+      },
+      error: (err) => {
+        console.error('Error creating ticket from navbar:', err);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudo crear el ticket de soporte'
+        });
+        this.savingTicket = false;
+      }
+    });
+  }
+
   // ... existing properties
   userPhotoUrl: string | null = null;
 
@@ -335,7 +462,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
     private alertsService: AlertsService,
-    private firebaseNotificationsService: FirebaseNotificationsService
+    private firebaseNotificationsService: FirebaseNotificationsService,
+    private supportService: SupportService
   ) {
     this.currentTheme = status.getState('theme') as string;
     this.currentUser = this.authService.getCurrentUser();
@@ -382,10 +510,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
     });
 
     this.initializeMenus();
+    this.initializePriorities();
 
     // Suscribirse a cambios de idioma para actualizar los menús
     this.translate.onLangChange.subscribe(() => {
       this.initializeMenus();
+      this.initializePriorities();
     });
 
     // Suscribirse a cambios en la selección de objetivos

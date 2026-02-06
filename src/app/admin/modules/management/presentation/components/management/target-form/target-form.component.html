@@ -1380,7 +1380,8 @@
                     <div *ngFor="let form of tagForms" class="pb-3">
                         <fieldset class="border-1 surface-border border-round-xl p-4 h-full surface-card">
                             <legend class="text-xl font-bold px-3">{{ form.name | titlecase }}</legend>
-                            <p class="text-color-secondary mt-0 mb-4 text-xs px-2" style="opacity: 0.6;">{{
+                            <p class="custom-form-description-text text-color-secondary mt-0 mb-4 px-2"
+                                style="opacity: 0.6;">{{
                                 (form.description || 'Sin descripción') | titlecase }}</p>
 
                             <div class="form-fields-grid grid" style="grid-gap: 1rem;">
@@ -1402,16 +1403,16 @@
                                         <!-- Date Field (Calendar) -->
                                         <p-calendar *ngIf="field.type === 'date'" [id]="field.label + '_' + form._id"
                                             [(ngModel)]="field.value" [showIcon]="true" appendTo="body"
-                                            dateFormat="dd/mm/yy" placeholder="Seleccione una fecha"
+                                            dateFormat="dd/mm/yy"
+                                            [placeholder]="field.placeholder || 'Seleccione una fecha'"
                                             class="w-full custom-calendar" styleClass="w-full"></p-calendar>
 
                                         <!-- Standard Field (Text/Number/etc) -->
                                         <input *ngIf="field.type !== 'boolean' && field.type !== 'date'" pInputText
                                             [id]="field.label + '_' + form._id" [type]="field.type || 'text'"
                                             [(ngModel)]="field.value"
-                                            [placeholder]="(field.label | titlecase) + ' De ' + (form.name | titlecase)"
-                                            class="w-full text-base p-2 border-1 surface-border border-round appearance-none outline-none focus:border-primary transition-colors transition-duration-200"
-                                            style="background-color: var(--managementColorInputSearch); color: var(--managementColorTextUser);">
+                                            [placeholder]="field.placeholder || ((field.label | titlecase) + ' de ' + (form.name | titlecase))"
+                                            class="w-full text-base p-2 border-1 surface-border border-round appearance-none outline-none focus:border-primary transition-colors transition-duration-200">
                                     </div>
                                 </div>
                             </div>
