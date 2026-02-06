@@ -3,6 +3,7 @@ export interface FormField {
     type: string;
     placeholder: string;
     required: boolean;
+    value?: any;
 }
 
 export interface Form {

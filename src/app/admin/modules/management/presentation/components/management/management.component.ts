@@ -2,7 +2,7 @@
 import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subscription, Subject, forkJoin, from } from 'rxjs';
+import { Subscription, Subject, forkJoin, from, lastValueFrom } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap, map } from 'rxjs/operators';
 
 // Third-party imports
@@ -12,6 +12,7 @@ import { TranslateService } from '@ngx-translate/core';
 // Application imports
 import { User, BasicUser, ExtendedUser, convertToExtendedUser } from '@core/interfaces';
 import { Target } from '@core/interfaces/target.interface';
+import { Tag } from '@core/interfaces/tag.interface';
 import { AuthService } from '@core/services/auth.service';
 import { UserService, UsersResponse } from '@core/services/user.service';
 import { TargetsService, TargetsResponse } from '@core/services/targets.service';
@@ -25,6 +26,7 @@ import { BreadcrumbService } from '@management/presentation/services/breadcrumb.
 import { VehicleDataService } from '@management/presentation/services/vehicle-data.service';
 import { ManagementUIService } from '@management/presentation/services/management-ui.service';
 import { SelectionService } from '@core/services/selection.service';
+import { TagsService } from '@core/services/tags.service';
 
 @Component({
   selector: 'app-management',
@@ -139,6 +141,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   // Propiedad para el tipo de afiliación del usuario actual
   currentUserAffiliationTypeId: string = '';
+
+  // ====================================
+  // PROPIEDADES PARA ETIQUETAS
+  // ====================================
+  tagDialogVisible: boolean = false;
+  availableTags: Tag[] = [];
+  selectedItemForTag: any = null;
+  itemTypeForTag: 'user' | 'target' | null = null;
+  selectedTagId: string | null = null;
+  loadingTags: boolean = false;
 
   // ====================================
   // PROPIEDADES PÚBLICAS - TRADUCCIONES
@@ -259,12 +271,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private status: StatusService,
     private authService: AuthService,
     private userService: UserService,
+    private targetsService: TargetsService,
+    private tagsService: TagsService,
     public translate: TranslateService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
     public managementService: ManagementService,
     private screenService: ScreenService,
-    private targetsService: TargetsService,
     // Servicios especializados
     private mapProviderService: MapProviderService,
     private breadcrumbService: BreadcrumbService,
@@ -411,7 +424,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Nota: El status polling ahora está integrado en el polling principal de 10s
 
     // Verificar si hay datos de instalación de dispositivo en sessionStorage
+    // Verificar si hay datos de instalación de dispositivo en sessionStorage
     this.checkDeviceInstallationData();
+
+    // Cargar etiquetas disponibles para mostrar colores
+    this.loadAvailableTags();
   }
 
   ngOnDestroy(): void {
@@ -699,6 +716,63 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.cdr.detectChanges();
   }
 
+  // ====================================
+  // MÉTODOS PÚBLICOS - ETIQUETAS
+  // ====================================
+
+  managementTags(item: any, type: 'user' | 'target') {
+    this.selectedItemForTag = item;
+    this.itemTypeForTag = type;
+    this.selectedTagId = item.tag || null;
+    this.loadAvailableTags();
+    this.tagDialogVisible = true;
+  }
+
+  loadAvailableTags() {
+    this.loadingTags = true;
+    this.tagsService.getAllTags().subscribe({
+      next: (tags) => {
+        this.availableTags = tags;
+        this.loadingTags = false;
+      },
+      error: (err) => {
+        console.error('Error loading tags:', err);
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar las etiquetas' });
+        this.loadingTags = false;
+      }
+    });
+  }
+
+  getTagColor(tagId: string | undefined | null): string {
+    if (!tagId) return '';
+    const tag = this.availableTags.find(t => t._id === tagId);
+    return tag ? tag.color : '';
+  }
+
+  async saveTagSelection() {
+    if (!this.selectedItemForTag || !this.itemTypeForTag) return;
+
+    try {
+      if (this.itemTypeForTag === 'user') {
+        await lastValueFrom(this.userService.update(this.selectedItemForTag._id, { tag: this.selectedTagId || null } as any));
+        this.selectedItemForTag.tag = this.selectedTagId;
+      } else {
+        await this.targetsService.updateTarget(this.selectedItemForTag._id, { tag: this.selectedTagId || null } as any);
+        this.selectedItemForTag.tag = this.selectedTagId;
+        // También actualizar el objeto original para que no se pierda al re-mapear
+        if (this.selectedItemForTag.originalTarget) {
+          this.selectedItemForTag.originalTarget.tag = this.selectedTagId;
+        }
+      }
+
+      this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Etiqueta actualizada correctamente' });
+      this.tagDialogVisible = false;
+    } catch (error) {
+      console.error('Error saving tag:', error);
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar la etiqueta' });
+    }
+  }
+
   // Método para manejar cambios del ngModel
   onMapSelectionChange(value: string): void {
     this.setMapProvider(value);
@@ -806,6 +880,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   showFiltersDialog: boolean = false;
   filterStatus: 'all' | 'online' | 'offline' = 'all';
+  filterTag: string | null = null;
 
   toggleFilters() {
     this.showFiltersDialog = true;
@@ -894,7 +969,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         originalTarget: target,
         isShared: isShared,
         offlineTimeText: offlineTimeText,
-        offlineDateText: offlineDateText
+        offlineDateText: offlineDateText,
+        tag: target.tag
       };
     });
   }
@@ -1699,7 +1775,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           parentId,
           this.currentOffset,
           this.pageSize,
-          this.filterStatus // Pasar filtro
+          this.filterStatus, // Pasar filtro
+          this.filterTag || undefined
         );
       } else {
         // Si no estamos buscando, usar el endpoint normal
@@ -1920,7 +1997,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         parentId,
         this.currentOffset,
         pageSizeForRequest,
-        this.filterStatus // Pasar filtro al backend
+        this.filterStatus, // Pasar filtro al backend
+        this.filterTag || undefined
       );
       const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
 
@@ -1934,6 +2012,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
           const isOnline = traccarStatus === 'online';
           return this.filterStatus === 'online' ? isOnline : !isOnline;
         });
+      }
+
+      if (this.filterTag) {
+        filteredSharedTargets = filteredSharedTargets.filter(t => t.tag === this.filterTag);
       }
 
       // 🔍 CONSOLE LOG PARA DEBUG: Ver cómo llegan los targets

@@ -4,4 +4,5 @@ export interface UpdateUserDto {
   last_name?: string;
   password?: string;
   isActive?: boolean;
-} 
+  tag?: string;
+}

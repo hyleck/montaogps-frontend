@@ -34,12 +34,13 @@
                     <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning"
                         (click)="deleteForm(form)"></button>
                 </td>
+            </tr>
         </ng-template>
     </p-table>
 
-    <p-dialog [(visible)]="formDialog" [style]="{width: '600px', 'max-height': '90vh'}" header="Form Details"
-        [modal]="true" [contentStyle]="{overflow: 'auto', 'max-height': '80vh'}" styleClass="app-dark-dialog"
-        appendTo="body">
+    <p-dialog [(visible)]="formDialog" [style]="{width: '90vw', maxWidth: '600px', 'max-height': '90vh'}"
+        [breakpoints]="{'960px': '75vw', '640px': '95vw'}" header="Form Details" [modal]="true"
+        [contentStyle]="{overflow: 'auto', 'max-height': '80vh'}" styleClass="app-dark-dialog" appendTo="body">
         <ng-template pTemplate="content">
             <div class="field mb-4">
                 <label for="name"

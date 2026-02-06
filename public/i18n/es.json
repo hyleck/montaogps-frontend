@@ -1439,7 +1439,8 @@
       "typeMessageFirst": "Escribe un mensaje primero",
       "messageTooLong": "El mensaje es demasiado largo (máx. 320 caracteres)",
       "sendMultipleSms": "Se enviarán {{count}} SMS",
-      "parked": "Estacionado"
+      "parked": "Estacionado",
+      "manageTags": "Gestionar etiquetas"
     },
     "userForm": {
       "title": "Formulario de Usuario",

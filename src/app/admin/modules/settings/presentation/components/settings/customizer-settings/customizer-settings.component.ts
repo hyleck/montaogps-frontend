@@ -129,6 +129,10 @@ export class CustomizerSettingsComponent implements OnInit {
 
     editForm(form: Form) {
         this.form = JSON.parse(JSON.stringify(form));
+        // Handle populated tag object
+        if (this.form.tag && typeof this.form.tag === 'object') {
+            this.form.tag = (this.form.tag as any)._id;
+        }
         this.formDialog = true;
     }
 

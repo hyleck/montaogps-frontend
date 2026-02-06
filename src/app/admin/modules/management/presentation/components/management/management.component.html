@@ -19,6 +19,27 @@
                 inputId="status_offline"></p-radioButton>
             <label for="status_offline" style="cursor: pointer;">{{ 'management.status.offline' | translate }}</label>
         </div>
+        <div style="height: 1px; background-color: #e5e7eb; margin: 5px 0;"></div>
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-weight: 500;">Etiqueta</label>
+            <p-dropdown [options]="availableTags" [(ngModel)]="filterTag" optionLabel="name" optionValue="_id"
+                placeholder="Cualquiera" (onChange)="onFilterChange()" [showClear]="true" appendTo="body"
+                [style]="{'width':'100%'}">
+                <ng-template let-item pTemplate="item">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="pi pi-tag" [style.color]="item.color"></i>
+                        <span>{{item.name}}</span>
+                    </div>
+                </ng-template>
+                <ng-template let-selected pTemplate="selectedItem">
+                    <div style="display: flex; align-items: center; gap: 8px;" *ngIf="selected">
+                        <i class="pi pi-tag" [style.color]="selected.color"></i>
+                        <span>{{selected.name}}</span>
+                    </div>
+                    <span *ngIf="!selected">Cualquiera</span>
+                </ng-template>
+            </p-dropdown>
+        </div>
     </div>
 </p-dialog>
 <div class="main">
@@ -359,6 +380,11 @@
                                                             class="button button--primary-flat" title="Editar objetivo"
                                                             *ngIf="canUpdateDevices()"> <i
                                                                 class="pi pi-pen-to-square"></i> </button>
+                                                        <button (click)="managementTags(target, 'target')"
+                                                            class="button button--primary-flat"
+                                                            [title]="'management.targetForm.manageTags' | translate"> <i
+                                                                class="pi pi-tag"
+                                                                [style.color]="getTagColor(target.tag)"></i> </button>
                                                         <button
                                                             *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices() && currentUserAffiliationTypeId === 'empleado'"
                                                             class="button button--primary-flat-icon"
@@ -777,6 +803,11 @@
                                                         (click)="showTargetForm(target)" title="Editar objetivo"
                                                         *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square"></i>
                                                     </button>
+                                                    <button (click)="managementTags(target, 'target')"
+                                                        class="button button--primary-flat"
+                                                        [title]="'management.targetForm.manageTags' | translate"> <i
+                                                            class="pi pi-tag"
+                                                            [style.color]="getTagColor(target.tag)"></i> </button>
                                                     <button
                                                         *ngIf="!shouldShowParentUserButton(target) && canDeleteDevices() && currentUserAffiliationTypeId === 'empleado'"
                                                         class="button button--primary-flat-icon"
@@ -976,5 +1007,38 @@
             <i class="pi pi-check" style="margin-right: 6px;"></i>
             {{ 'management.confirmCancelTarget' | translate }}
         </button>
+    </ng-template>
+</p-dialog>
+
+<!-- Dialogo para gestionar etiquetas -->
+<p-dialog [header]="'management.targetForm.manageTags' | translate" [(visible)]="tagDialogVisible" [modal]="true"
+    [style]="{width: '350px'}" [draggable]="false" [resizable]="false">
+    <div style="display: flex; flex-direction: column; gap: 20px; padding: 15px 10px;">
+        <div class="field">
+            <label style="display: block; margin-bottom: 8px; font-weight: 500;">Seleccionar Etiqueta</label>
+            <p-dropdown [options]="availableTags" [(ngModel)]="selectedTagId" optionLabel="name" optionValue="_id"
+                [showClear]="true" placeholder="Sin etiqueta" [style]="{'width':'100%'}" appendTo="body"
+                [loading]="loadingTags">
+                <ng-template pTemplate="item" let-tag>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div [style.background-color]="tag.color"
+                            style="width: 15px; height: 15px; border-radius: 50%; border: 1px solid #ccc;"></div>
+                        <span>{{tag.name}}</span>
+                    </div>
+                </ng-template>
+                <ng-template pTemplate="selectedItem" let-tag>
+                    <div *ngIf="tag" style="display: flex; align-items: center; gap: 10px;">
+                        <div [style.background-color]="tag.color"
+                            style="width: 15px; height: 15px; border-radius: 50%; border: 1px solid #ccc;"></div>
+                        <span>{{tag.name}}</span>
+                    </div>
+                    <span *ngIf="!tag">Sin etiqueta</span>
+                </ng-template>
+            </p-dropdown>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button (click)="tagDialogVisible = false" class="button button--flat">Cancelar</button>
+        <button (click)="saveTagSelection()" class="button button--primary" [disabled]="loadingTags">Guardar</button>
     </ng-template>
 </p-dialog>

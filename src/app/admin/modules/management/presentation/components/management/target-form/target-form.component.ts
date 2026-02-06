@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy, ViewChild, ElementRef, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { MessageService } from 'primeng/api';
 import { Subject, takeUntil, interval, Subscription } from 'rxjs';
@@ -34,6 +34,10 @@ import { ManagementService } from 'src/app/admin/modules/management/presentation
 import { UserService } from 'src/app/core/services/user.service';
 import { User } from 'src/app/core/interfaces/user.interface';
 import { CommandsService, Command } from 'src/app/core/services/commands.service';
+import { TagsService } from 'src/app/core/services/tags.service';
+import { Tag } from 'src/app/core/interfaces/tag.interface';
+import { FormsService } from 'src/app/core/services/forms.service';
+import { Form } from 'src/app/core/interfaces/form.interface';
 
 
 
@@ -107,6 +111,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     availablePrices: ExtendedPlanPrice[] = [];
     filteredColors: SelectOption[] = [];
     availableTechnicians: SelectOption[] = [];
+    availableTags: Tag[] = [];
     renewalYearOptions: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
 
     // Planes específicos para procesos (separados del formulario principal)
@@ -212,6 +217,129 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     };
     showContactsModal: boolean = false;
 
+
+    // Propiedad para el diálogo de formulario personalizado
+    displayCustomFormDialog: boolean = false;
+    tagForms: Form[] = [];
+    isLoadingForms: boolean = false;
+
+    openCustomFormDialog(): void {
+        this.displayCustomFormDialog = true;
+        this.loadTagForms();
+    }
+
+    loadTagForms(): void {
+        const tagInput = this.target['tag'];
+        if (!tagInput) {
+            this.tagForms = [];
+            return;
+        }
+
+        const tagId = typeof tagInput === 'object' ? tagInput._id : tagInput;
+        this.isLoadingForms = true;
+
+        this.formsService.getAllForms().subscribe({
+            next: (forms: Form[]) => {
+                this.tagForms = forms.filter(form => {
+                    const formTagId = typeof form.tag === 'object' ? form.tag._id : form.tag;
+                    return formTagId === tagId;
+                });
+
+                // Pre-fill values if customs exist
+                console.log('🔍 DEBUG loadTagForms: Customs data from target:', this.target.customs);
+                if (this.target.customs) {
+                    this.tagForms.forEach(form => {
+                        // Safe check for form._id presence
+                        if (form._id && this.target.customs[form._id]) {
+                            const savedFormData = this.target.customs[form._id];
+                            console.log(`🔍 DEBUG loadTagForms: Found saved data for form ${form._id}:`, savedFormData);
+                            form.fields.forEach(field => {
+                                if (savedFormData[field.label] !== undefined) {
+                                    console.log(`🔍 DEBUG loadTagForms: Pre-filling field "${field.label}" with value:`, savedFormData[field.label]);
+
+                                    // Convertir strings a Date para campos de tipo fecha
+                                    if (field.type === 'date' && savedFormData[field.label]) {
+                                        field.value = new Date(savedFormData[field.label]);
+                                    } else {
+                                        field.value = savedFormData[field.label];
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
+
+                this.isLoadingForms = false;
+                this.cdr.detectChanges();
+
+                // Forzar re-calculo de posición del modal de PrimeNG
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('resize'));
+                }, 100);
+            },
+            error: (error) => {
+                console.error('Error al cargar formularios:', error);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'No se pudieron cargar los formularios'
+                });
+                this.isLoadingForms = false;
+            }
+        });
+    }
+
+    async saveCustomForms(): Promise<void> {
+        const customsData = this.target.customs ? JSON.parse(JSON.stringify(this.target.customs)) : {};
+
+        this.tagForms.forEach(form => {
+            if (form._id) {
+                const formData: any = {};
+                form.fields.forEach(field => {
+                    formData[field.label] = field.value;
+                });
+                customsData[form._id] = formData;
+            }
+        });
+
+        const payload: any = {
+            customs: customsData
+        };
+
+        this.isLoadingForms = true;
+
+        if (this.target && this.target._id) {
+            try {
+                await this.targetsService.updateTarget(this.target._id, payload);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Éxito',
+                    detail: 'Formularios guardados correctamente'
+                });
+
+                // Update local target
+                this.target.customs = customsData;
+                this.isLoadingForms = false;
+                this.displayCustomFormDialog = false;
+            } catch (err: any) {
+                console.error('Error al guardar formularios:', err);
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'No se pudieron guardar los formularios'
+                });
+                this.isLoadingForms = false;
+            }
+        } else {
+            this.isLoadingForms = false;
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Atención',
+                detail: 'No se puede guardar: Dispositivo no identificado'
+            });
+        }
+    }
+
     openContacts(): void {
         this.showContactsModal = true;
     }
@@ -248,7 +376,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         private managementService: ManagementService,
         private authService: AuthService,
         private userService: UserService,
-        private commandsService: CommandsService
+        private commandsService: CommandsService,
+        private tagsService: TagsService,
+        private formsService: FormsService,
+        private cdr: ChangeDetectorRef
     ) { }
 
     // Métodos de validación de privilegios para devices
@@ -418,6 +549,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 }
             });
 
+            // Cargar tags
+            this.tagsService.getAllTags().pipe(takeUntil(this.destroy$)).subscribe({
+                next: (tags: Tag[]) => {
+                    this.availableTags = tags;
+                },
+                error: (error) => {
+                    console.error('Error al cargar tags:', error);
+                    this.availableTags = [];
+                }
+            });
+
         } catch (error) {
             console.error('Error al cargar datos iniciales:', error);
             this.messageService.add({
@@ -451,7 +593,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             targetData = (target as any)['originalTarget'];
         }
 
-
+        console.log('🔍 DEBUG setupEditTarget: Data received for edition:', targetData);
+        console.log('🔍 DEBUG setupEditTarget: Customs in data:', targetData.customs);
 
         // Rellenar el formulario con los datos del objetivo a editar
         this.target = JSON.parse(JSON.stringify(targetData));
@@ -4288,5 +4431,41 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         } finally {
             this.isSendingCommand = false;
         }
+    }
+
+    // Método para obtener el color del tag
+    getTagColor(tagInput: any): string {
+        if (!tagInput) return '';
+
+        // Si es un objeto tag completo
+        if (typeof tagInput === 'object' && tagInput.color) {
+            return tagInput.color;
+        }
+
+        // Si es un ID, buscar en availableTags
+        if (typeof tagInput === 'string') {
+            const tag = this.availableTags.find(t => t._id === tagInput);
+            return tag ? tag.color : '';
+        }
+
+        return '';
+    }
+
+    // Método para obtener el nombre del tag
+    getTagName(tagInput: any): string {
+        if (!tagInput) return '';
+
+        // Si es un objeto tag completo
+        if (typeof tagInput === 'object' && tagInput.name) {
+            return tagInput.name;
+        }
+
+        // Si es un ID, buscar en availableTags
+        if (typeof tagInput === 'string') {
+            const tag = this.availableTags.find(t => t._id === tagInput);
+            return tag ? tag.name : '';
+        }
+
+        return '';
     }
 }

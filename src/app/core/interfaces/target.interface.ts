@@ -1,124 +1,127 @@
 import { User } from './user.interface';
 
 export interface TraccarInfo {
-    status: 'online' | 'offline' | string;
-    [key: string]: any; // Para otras propiedades que pueda tener traccarInfo
+  status: 'online' | 'offline' | string;
+  [key: string]: any; // Para otras propiedades que pueda tener traccarInfo
 }
 
 export interface Target {
-    _id: string;
-    name: string;
-    imei: string;
-    device_imei: string;
-    api_id?: string | null;
-    sim_card: string;
-    sim_card_number: string;
-    description?: string;
-    plate: string;
-    contacts?: string[];
-    year?: string | null;
-    installation_location?: string | null;
-    brand?: string | null;
-    model?: string | null;
-    color?: string;
-    chassis?: string;
-    installation_date?: string;
-    expiration_date?: string;
-    gps_model?: string | null;
-    ignition_sensor?: string | null;
-    shutdown_control?: string | null;
-    engine_shutdown?: string | null;
-    installation_details?: string;
-    status: 'active' | 'inactive' | null;
-    plan?: string | null;
-    user_id?: string;
-    created_at?: string;
-    updated_at?: string;
-    traccarInfo?: TraccarInfo;
+  _id: string;
+  name: string;
+  imei: string;
+  device_imei: string;
+  api_id?: string | null;
+  sim_card: string;
+  sim_card_number: string;
+  description?: string;
+  plate: string;
+  contacts?: string[];
+  year?: string | null;
+  installation_location?: string | null;
+  brand?: string | null;
+  model?: string | null;
+  color?: string;
+  chassis?: string;
+  installation_date?: string;
+  expiration_date?: string;
+  gps_model?: string | null;
+  ignition_sensor?: string | null;
+  shutdown_control?: string | null;
+  engine_shutdown?: string | null;
+  installation_details?: string;
+  status: 'active' | 'inactive' | null;
+  plan?: string | null;
+  user_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  traccarInfo?: TraccarInfo;
+  tag?: string;
 }
 
 export interface CreateTargetDto {
-    name: string;
-    device_imei: string;
-    api_device_id: string;
-    api_position_id: string;
-    type: string;
-    sim_card_number: string;
-    sim_company: string;
-    description?: string;
-    target_plate_number: string;
-    contacts: string;
-    target_year?: string | null;
-    installation_location?: string | null;
-    target_brand_id?: string | null;
-    target_model_id?: string | null;
-    target_color?: string;
-    target_chassis_number?: string;
-    activation_date: Date;
-    expiration_date?: Date;
-    last_change_date: Date;
-    gps_model?: string | null;
-    ignition_sensor?: string | null;
-    shutdown_control?: string | null;
-    engine_shutdown?: string | null;
-    installation_details?: string;
-    status: boolean;
-    canceled: boolean;
-    delete: boolean;
-    index: string;
-    plan?: string | null;
-    creator_id: string;
-    parent_id: string;
-    user_id?: string;
+  name: string;
+  device_imei: string;
+  api_device_id: string;
+  api_position_id: string;
+  type: string;
+  sim_card_number: string;
+  sim_company: string;
+  description?: string;
+  target_plate_number: string;
+  contacts: string;
+  target_year?: string | null;
+  installation_location?: string | null;
+  target_brand_id?: string | null;
+  target_model_id?: string | null;
+  target_color?: string;
+  target_chassis_number?: string;
+  activation_date: Date;
+  expiration_date?: Date;
+  last_change_date: Date;
+  gps_model?: string | null;
+  ignition_sensor?: string | null;
+  shutdown_control?: string | null;
+  engine_shutdown?: string | null;
+  installation_details?: string;
+  status: boolean;
+  canceled: boolean;
+  delete: boolean;
+  index: string;
+  plan?: string | null;
+  creator_id: string;
+  parent_id: string;
+  user_id?: string;
 }
 
 export interface UpdateTargetDto {
-    name?: string;
-    device_imei?: string;
-    api_device_id?: string;
-    api_position_id?: string;
-    type?: string;
-    sim_card_number?: string;
-    sim_company?: string;
-    description?: string;
-    target_plate_number?: string;
-    contacts?: string;
-    target_year?: string | null;
-    installation_location?: string | null;
-    target_brand_id?: string | null;
-    target_model_id?: string | null;
-    target_color?: string;
-    target_chassis_number?: string;
-    mechanic_id?: string;
-    activation_date?: Date | string;
-    expiration_date?: Date | string;
-    installation_date?: Date | string;
-    last_change_date?: Date;
-    gps_model?: string | null;
-    ignition_sensor?: string | null;
-    shutdown_control?: string | null;
-    engine_shutdown?: string | null;
-    installation_details?: string;
-    status?: boolean | 'active' | 'inactive';
-    canceled?: boolean;
-    delete?: boolean;
-    index?: string;
-    plan?: string | {
-        id_plan: string;
-        selected_price: {
-            id: string;
-            amount: number;
-            payment_period: string | number;
-        }
-    } | null;
-    selectedPrice?: {
-        id: string;
-        amount: number;
-        payment_period: string | number;
-    } | null;
-    creator_id?: string;
-    parent_id?: string;
-    user_id?: string;
+  name?: string;
+  device_imei?: string;
+  api_device_id?: string;
+  api_position_id?: string;
+  type?: string;
+  sim_card_number?: string;
+  sim_company?: string;
+  description?: string;
+  target_plate_number?: string;
+  contacts?: string;
+  target_year?: string | null;
+  installation_location?: string | null;
+  target_brand_id?: string | null;
+  target_model_id?: string | null;
+  target_color?: string;
+  target_chassis_number?: string;
+  mechanic_id?: string;
+  activation_date?: Date | string;
+  expiration_date?: Date | string;
+  installation_date?: Date | string;
+  last_change_date?: Date;
+  gps_model?: string | null;
+  ignition_sensor?: string | null;
+  shutdown_control?: string | null;
+  engine_shutdown?: string | null;
+  installation_details?: string;
+  status?: boolean | 'active' | 'inactive';
+  canceled?: boolean;
+  delete?: boolean;
+  index?: string;
+  plan?: string | {
+    id_plan: string;
+    selected_price: {
+      id: string;
+      amount: number;
+      payment_period: string | number;
+    }
+  } | null;
+  selectedPrice?: {
+    id: string;
+    amount: number;
+    payment_period: string | number;
+  } | null;
+  creator_id?: string;
+  parent_id?: string;
+  user_id?: string;
+  tag?: string;
+  customs?: any;
 }
 
 // Interface para el formulario de target (más completa que Target básica)
@@ -135,6 +138,7 @@ export interface TargetDevice {
   sim_company: string;
   target_plate_number: string;
   target_chassis_number: string;
+  customs?: any;
   contacts: string | string[];
   mechanic_id?: string;
   target_brand_id: string;

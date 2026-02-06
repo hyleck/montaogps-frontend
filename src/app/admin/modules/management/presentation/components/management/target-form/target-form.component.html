@@ -84,9 +84,22 @@
                                             <div class="target-form__field target-form__field--small">
                                                 <label for="description">{{ translate(translations.description)
                                                     }}</label>
-                                                <textarea [(ngModel)]="target.description" name="description"
+                                                <input [(ngModel)]="target.description" name="description"
                                                     placeholder="Ej: Vehículo de flota para entregas" id="description"
-                                                    rows="3"></textarea>
+                                                    type="text">
+                                            </div>
+
+                                            <div class="target-form__field" style="margin-top: 5px;">
+                                                <button type="button" class="button button--primary-flat-negative"
+                                                    [disabled]="!target['tag']" (click)="openCustomFormDialog()"
+                                                    [style.border]="target['tag'] ? '2px solid ' + getTagColor(target['tag']) : 'none'"
+                                                    [style.opacity]="target['tag'] ? '1' : '0.5'"
+                                                    [style.cursor]="target['tag'] ? 'pointer' : 'not-allowed'"
+                                                    style="width: 100%; justify-content: center; background: black;">
+                                                    <i class="pi pi-file-edit"></i>
+                                                    {{ target['tag'] ? (getTagName(target['tag']) | titlecase) :
+                                                    'Formulario personalizado' }}
+                                                </button>
                                             </div>
                                         </div>
 
@@ -1345,3 +1358,72 @@
             </p-dialog>
         </div>
     </div>
+
+    <!-- Diálogo Formulario Personalizado -->
+    <p-dialog [header]="'Formularios de ' + (getTagName(target['tag']) | titlecase)"
+        [(visible)]="displayCustomFormDialog" [modal]="true" appendTo="body"
+        [style]="{width: '50vw', maxWidth: '600px'}" [breakpoints]="{'960px': '75vw', '640px': '90vw'}"
+        [draggable]="false" [resizable]="false">
+
+        <div *ngIf="isLoadingForms" class="flex justify-content-center p-4">
+            <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+        </div>
+
+        <div *ngIf="!isLoadingForms && tagForms.length === 0" class="text-center p-4">
+            <p>No hay formularios disponibles para esta etiqueta.</p>
+        </div>
+
+        <div *ngIf="!isLoadingForms && tagForms.length > 0" class="flex flex-column" style="max-height: 70vh;">
+
+            <div class="overflow-y-auto custom-scrollbar flex-grow-1 pr-2 pb-2">
+                <div class="custom-form-grid m-0" [class.multi-col]="tagForms.length > 1">
+                    <div *ngFor="let form of tagForms" class="pb-3">
+                        <fieldset class="border-1 surface-border border-round-xl p-4 h-full surface-card">
+                            <legend class="text-xl font-bold px-3">{{ form.name | titlecase }}</legend>
+                            <p class="text-color-secondary mt-0 mb-4 text-xs px-2" style="opacity: 0.6;">{{
+                                (form.description || 'Sin descripción') | titlecase }}</p>
+
+                            <div class="form-fields-grid grid" style="grid-gap: 1rem;">
+                                <div *ngFor="let field of form.fields" class="field col-12 mb-0">
+                                    <div class="target-form__field">
+                                        <label [for]="field.label + '_' + form._id"
+                                            class="block font-medium mb-2 text-color-secondary text-sm">
+                                            {{ field.label | titlecase }}
+                                        </label>
+
+                                        <!-- Boolean Field (Checkbox) -->
+                                        <div *ngIf="field.type === 'boolean'"
+                                            class="flex align-items-center gap-2 py-2">
+                                            <p-checkbox [id]="field.label + '_' + form._id" [(ngModel)]="field.value"
+                                                [binary]="true"></p-checkbox>
+                                            <span class="text-sm font-medium">{{ field.label | titlecase }}</span>
+                                        </div>
+
+                                        <!-- Date Field (Calendar) -->
+                                        <p-calendar *ngIf="field.type === 'date'" [id]="field.label + '_' + form._id"
+                                            [(ngModel)]="field.value" [showIcon]="true" appendTo="body"
+                                            dateFormat="dd/mm/yy" placeholder="Seleccione una fecha"
+                                            class="w-full custom-calendar" styleClass="w-full"></p-calendar>
+
+                                        <!-- Standard Field (Text/Number/etc) -->
+                                        <input *ngIf="field.type !== 'boolean' && field.type !== 'date'" pInputText
+                                            [id]="field.label + '_' + form._id" [type]="field.type || 'text'"
+                                            [(ngModel)]="field.value"
+                                            [placeholder]="(field.label | titlecase) + ' De ' + (form.name | titlecase)"
+                                            class="w-full text-base p-2 border-1 surface-border border-round appearance-none outline-none focus:border-primary transition-colors transition-duration-200"
+                                            style="background-color: var(--managementColorInputSearch); color: var(--managementColorTextUser);">
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-content-end pt-3 border-top-1 surface-border" style="margin-top: 2rem;">
+                <button pButton type="button" label="Guardar Cambios" icon="pi pi-check" (click)="saveCustomForms()"
+                    [loading]="isLoadingForms" [disabled]="isLoadingForms"
+                    class="p-button-primary px-5 py-3 font-bold"></button>
+            </div>
+        </div>
+    </p-dialog>

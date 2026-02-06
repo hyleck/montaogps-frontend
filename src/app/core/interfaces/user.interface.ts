@@ -50,6 +50,7 @@ export interface User {
   profile_type_id?: string;
   root?: boolean;
   status?: boolean;
+  tag?: string;
 }
 
 export interface UserSettings {
@@ -77,6 +78,7 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
   affiliation_type_id: string;
   profile_type_id: string;
   root?: boolean;
+  tag?: string;
 }
 
 export function convertToExtendedUser(user: User): ExtendedUser {

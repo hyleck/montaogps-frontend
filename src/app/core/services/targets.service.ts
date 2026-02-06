@@ -76,7 +76,7 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
-  async searchTargets(query: string, parentId?: string, offset: number = 0, limit: number = 30, status?: 'online' | 'offline' | 'all'): Promise<TargetsResponse> {
+  async searchTargets(query: string, parentId?: string, offset: number = 0, limit: number = 30, status?: 'online' | 'offline' | 'all', tag?: string): Promise<TargetsResponse> {
     let params: any = {
       q: query,
       offset: offset.toString(),
@@ -91,11 +91,15 @@ export class TargetsService {
       params.status = status;
     }
 
+    if (tag) {
+      params.tag = tag;
+    }
+
     const observable = this.http.get<TargetsResponse>(`${this.apiUrl}/search`, { params });
     return await lastValueFrom(observable);
   }
 
-  async getTargetsByUserId(userId: string, parentId?: string, offset: number = 0, limit: number = 30, status?: 'online' | 'offline' | 'all'): Promise<TargetsResponse> {
+  async getTargetsByUserId(userId: string, parentId?: string, offset: number = 0, limit: number = 30, status?: 'online' | 'offline' | 'all', tag?: string): Promise<TargetsResponse> {
     let url = `${this.apiUrl}?user_id=${userId}`;
 
     if (parentId) {
@@ -106,6 +110,10 @@ export class TargetsService {
 
     if (status && status !== 'all') {
       url += `&status=${status}`;
+    }
+
+    if (tag) {
+      url += `&tag=${tag}`;
     }
 
     const observable = this.http.get<TargetsResponse>(url);
