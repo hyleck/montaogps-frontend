@@ -36,6 +36,7 @@ export interface Target {
   updated_at?: string;
   traccarInfo?: TraccarInfo;
   tag?: string;
+  connection_priority?: string;
 }
 
 export interface CreateTargetDto {
@@ -71,6 +72,7 @@ export interface CreateTargetDto {
   creator_id: string;
   parent_id: string;
   user_id?: string;
+  connection_priority?: string;
 }
 
 export interface UpdateTargetDto {
@@ -122,6 +124,7 @@ export interface UpdateTargetDto {
   user_id?: string;
   tag?: string;
   customs?: any;
+  connection_priority?: string;
 }
 
 // Interface para el formulario de target (más completa que Target básica)
@@ -194,6 +197,7 @@ export interface TargetDevice {
   };
   // Campos adicionales que pueden existir
   [key: string]: any;
+  connection_priority?: string;
 }
 
 // Interfaces para el historial de rutas

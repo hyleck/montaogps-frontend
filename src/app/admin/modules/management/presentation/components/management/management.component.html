@@ -337,6 +337,12 @@
                                                         style="color: #22c55e; margin-left: 4px;"></i>
                                                 </span>
                                                 <div style="margin-bottom: 10px;">
+                                                    <span
+                                                        style="display: block; font-size: 11px; font-weight: bold; margin-bottom: 2px;"
+                                                        [style.color]="getConnectionPriorityColor(target)"
+                                                        *ngIf="target.connection_priority && target.connection_priority !== 'normal'">
+                                                        {{ 'management.targetForm.connectionPriority' | translate }}
+                                                    </span>
                                                     <span style="display: block;" [ngClass]="{
                                                                 'target-inactive': !target.originalTarget?.status,
                                                                 'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
@@ -763,6 +769,13 @@
                                                     class="pi pi-eye target-map-indicator"
                                                     title="Mostrando en mapa"></i>
                                             </span>
+                                            <div style="margin-top: 4px;"
+                                                *ngIf="target.connection_priority && target.connection_priority !== 'normal'">
+                                                <span style="display: block; font-size: 11px; font-weight: bold;"
+                                                    [style.color]="getConnectionPriorityColor(target)">
+                                                    {{ 'management.targetForm.connectionPriority' | translate }}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td>
                                             <div class="imei-container">
@@ -1040,5 +1053,62 @@
     <ng-template pTemplate="footer">
         <button (click)="tagDialogVisible = false" class="button button--flat">Cancelar</button>
         <button (click)="saveTagSelection()" class="button button--primary" [disabled]="loadingTags">Guardar</button>
+    </ng-template>
+</p-dialog>
+
+<!-- Botón flotante de Prioridad -->
+<button class="floating-priority-btn" [class.vibrate]="isVibrating"
+    *ngIf="priorityDevices && priorityDevices.length > 0 && currentUserAffiliationTypeId === 'empleado'"
+    (click)="verifyConnectionPriority()">
+    <i class="pi pi-exclamation-triangle"></i>
+    <span>Prioridad ({{priorityDevices.length}})</span>
+</button>
+
+<!-- Dialogo para dispositivos con prioridad excedida -->
+<p-dialog [(visible)]="showPriorityDialog" [modal]="true" [style]="{width: '50vw'}" [draggable]="false"
+    [resizable]="false" header="Dispositivos Excedidos">
+    <div class="p-fluid">
+        <p *ngIf="loadingPriorityDevices">Cargando...</p>
+        <p *ngIf="!loadingPriorityDevices && priorityDevices.length === 0">No hay dispositivos que hayan excedido su
+            tiempo límite.</p>
+
+        <p-table *ngIf="!loadingPriorityDevices && priorityDevices.length > 0" [value]="priorityDevices"
+            [scrollable]="true" scrollHeight="400px">
+            <ng-template pTemplate="header">
+                <tr>
+                    <th>Nombre</th>
+                    <th>Prioridad</th>
+                    <th>Última Conexión</th>
+                    <th>Tiempo Offline</th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-device>
+                <tr>
+                    <td>
+                        <span class="management__content-table-link" (click)="navigateToTargetFromPriority(device)"
+                            style="color: var(--globalColorAccent); font-weight: bold; text-decoration: underline;">
+                            {{device.name}}
+                        </span>
+                    </td>
+                    <td>
+                        <span [ngSwitch]="device.connection_priority">
+                            <span *ngSwitchCase="'maximum'" style="color: #ef4444; font-weight: bold;">Máxima
+                                (6h)</span>
+                            <span *ngSwitchCase="'important'" style="color: #f97316; font-weight: bold;">Importante
+                                (24h)</span>
+                            <span *ngSwitchCase="'standard'" style="color: #eab308; font-weight: bold;">Estándar
+                                (72h)</span>
+                        </span>
+                    </td>
+                    <td>{{device.traccarInfo?.lastUpdate | date:'dd/MM/yyyy HH:mm'}}</td>
+                    <td>
+                        {{ getConnectionPriorityColor(device) === '#ef4444' ? 'EXCEDIDO' : '' }}
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
+    <ng-template pTemplate="footer">
+        <button pButton label="Cerrar" class="p-button-text" (click)="showPriorityDialog = false"></button>
     </ng-template>
 </p-dialog>

@@ -99,6 +99,11 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
+  async getExpiredConnectionPriorityTargets(): Promise<Target[]> {
+    const observable = this.http.get<Target[]>(`${this.apiUrl}/check-connection-priority`);
+    return await lastValueFrom(observable);
+  }
+
   async getTargetsByUserId(userId: string, parentId?: string, offset: number = 0, limit: number = 30, status?: 'online' | 'offline' | 'all', tag?: string): Promise<TargetsResponse> {
     let url = `${this.apiUrl}?user_id=${userId}`;
 

@@ -1418,6 +1418,13 @@
       "newGpsImei": "Nuevo IMEI / GPS ID",
       "newGpsModel": "Nuevo modelo de GPS",
       "newInstallationDetails": "Detalles de la nueva instalación",
+      "connectionPriority": "Prioridad de conexión",
+      "priority": {
+        "normal": "Normal (Monitoreo)",
+        "standard": "Estándar (Alerta a los 3 díás fuera de línea)",
+        "important": "Importante (Alerta a 1 día fuera de línea)",
+        "maximum": "Máxima (Alerta a las 6 horas fuera de línea)"
+      },
       "technicianReadonlyHelp": "Para cambiar el técnico, use la sección de procesos",
       "errorLoadingModels": "No se pudieron cargar los modelos para esta marca",
       "customizePriceTitle": "Personalizar precio",

@@ -245,6 +245,18 @@
                                             </select>
                                         </div>
 
+                                        <div class="target-form__field">
+                                            <label for="connection_priority">{{
+                                                translate('management.targetForm.connectionPriority') }}</label>
+                                            <select [(ngModel)]="target.connection_priority" name="connection_priority"
+                                                id="connection_priority">
+                                                <option *ngFor="let priority of connectionPriorities"
+                                                    [value]="priority.value">
+                                                    {{ translate(priority.label) }}
+                                                </option>
+                                            </select>
+                                        </div>
+
 
                                         <div class="target-form__field">
                                             <label for="installation_details">{{
@@ -255,10 +267,14 @@
                                                 id="installation_details" rows="3" [readonly]="isEditMode"
                                                 [disabled]="isEditMode"></textarea>
                                         </div>
+
+
                                     </div>
 
                                     <!-- Columna Derecha -->
                                     <div class="target-form__column">
+
+
 
 
                                         <div class="target-form__field">

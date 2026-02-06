@@ -392,6 +392,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
 
+
+    // Opciones para la prioridad de conexión
+    connectionPriorities: SelectOption[] = [
+        { label: 'management.targetForm.priority.normal', value: 'normal' },
+        { label: 'management.targetForm.priority.standard', value: 'standard' },
+        { label: 'management.targetForm.priority.important', value: 'important' },
+        { label: 'management.targetForm.priority.maximum', value: 'maximum' }
+    ];
+
     private getEmptyTarget(): TargetDevice {
         return {
             _id: '',
@@ -430,6 +439,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             parent_id: '',
             user_id: '',
             plan: '',
+            connection_priority: 'normal',
             selectedPrice: null
         };
     }
@@ -605,7 +615,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // y que los valores vacíos tengan el formato adecuado para los selectores
 
         // Para mantener compatibilidad con versiones anteriores,
-        // aseguramos que algunos campos siempre tengan un valor
+        // Asegurar campos opcionales
+        this.target.description = this.target.description || '';
+        this.target.contacts = this.target.contacts || [];
+        this.target.connection_priority = this.target.connection_priority || 'normal';
         this.target.device_imei = this.target.device_imei || '';
         this.target.sim_card_number = this.target.sim_card_number || '';
         this.target.target_plate_number = this.target.target_plate_number || '';

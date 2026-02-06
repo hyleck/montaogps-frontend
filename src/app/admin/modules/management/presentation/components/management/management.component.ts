@@ -58,6 +58,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
   selectedTargetStopTime: string | undefined = undefined;
   targetIdFromUrl: string | null = null;
 
+  // Dialogo de prioridad
+  showPriorityDialog: boolean = false;
+  priorityDevices: any[] = [];
+  loadingPriorityDevices: boolean = false;
+
+  private priorityIntervalId: any;
+  private vibrationIntervalId: any;
+  isVibrating: boolean = false;
+
   // ====================================
   // PROPIEDADES PARA CANCELACIÓN
   // ====================================
@@ -427,12 +436,23 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Verificar si hay datos de instalación de dispositivo en sessionStorage
     this.checkDeviceInstallationData();
 
-    // Cargar etiquetas disponibles para mostrar colores
-    this.loadAvailableTags();
+    // Cargar etiquetas disponibles para    // Cargar mapa
+    // this.loadMap();
+
+    // Cargar dispositivos con prioridad excedida una sola vez al inicio
+    this.refreshPriorityDevices();
+    this.startPriorityPolling();
   }
 
   ngOnDestroy(): void {
     this.cleanupSubscriptions();
+    if (this.priorityIntervalId) {
+      clearInterval(this.priorityIntervalId);
+    }
+    if (this.vibrationIntervalId) {
+      clearInterval(this.vibrationIntervalId);
+    }
+    this.breadcrumbService.clear();
     this.stopPolling();
     // Nota: El status polling ahora está integrado en el polling principal
 
@@ -966,6 +986,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         traccarStatus: traccarStatus,
         traccarInfo: target.traccarInfo,
         ignition_sensor: (target as any).ignition_sensor,
+        connection_priority: target.connection_priority,
         originalTarget: target,
         isShared: isShared,
         offlineTimeText: offlineTimeText,
@@ -1328,25 +1349,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.totalTargetsCount = response.totalCount;
           this.hasMoreTargets = this.targets.length < this.totalTargetsCount;
 
-          // Transformar targets para la lista
+          // Transformar targets para la lista usando el helper
           if (this.targets && this.targets.length > 0) {
-            this.targetsList = this.targets.map((target: Target) => {
-              const traccarStatus = target.traccarInfo?.status || 'offline';
-              const isOnline = traccarStatus === 'online';
-
-              return {
-                name: target.name,
-                status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
-                imei: target.device_imei || target.imei,
-                sim: target.sim_card_number || target.sim_card,
-                expiration_date: target.expiration_date,
-                _id: target._id,
-                traccarStatus: traccarStatus,
-                traccarInfo: target.traccarInfo,
-                ignition_sensor: (target as any).ignition_sensor,
-                originalTarget: target
-              };
-            });
+            this.targetsList = this.mapTargetsToView(this.targets);
           } else {
             this.targetsList = [];
           }
@@ -1646,6 +1651,66 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.breadcrumbService.updateFromUserPath([], this.selectedUser);
       }
     });
+  }
+
+  /**
+   * Obtiene el color de la prioridad de conexión basado en el tiempo fuera de línea
+   */
+  getConnectionPriorityColor(target: any): string {
+    if (!target.connection_priority || target.connection_priority === 'normal') {
+      return '';
+    }
+
+    // Si está online, color verde seguro
+    if (target.traccarStatus === 'online') {
+      return '#22c55e'; // Green
+    }
+
+    try {
+      const lastUpdateStr = target.traccarInfo?.lastUpdate;
+      if (!lastUpdateStr) {
+        return '#9ca3af'; // Gray (unknown)
+      }
+
+      const lastUpdate = new Date(lastUpdateStr);
+      const now = new Date();
+      // Diferencia en horas
+      const diffInHours = (now.getTime() - lastUpdate.getTime()) / (1000 * 60 * 60);
+
+      let thresholdHours = 0;
+
+      switch (target.connection_priority) {
+        case 'maximum': // 6 horas
+          thresholdHours = 6;
+          break;
+        case 'important': // 1 día (24 horas)
+          thresholdHours = 24;
+          break;
+        case 'standard': // 3 días (72 horas)
+          thresholdHours = 72;
+          break;
+        default:
+          return '#9ca3af';
+      }
+
+      // Si supera el límite -> Rojo
+      if (diffInHours >= thresholdHours) {
+        return '#ef4444'; // Red
+      }
+      // Si está cerca del límite (ej. > 75%) -> Naranja
+      else if (diffInHours >= thresholdHours * 0.75) {
+        return '#f97316'; // Orange
+      }
+      // Si está a medio camino (ej. > 50%) -> Amarillo
+      else if (diffInHours >= thresholdHours * 0.5) {
+        return '#eab308'; // Yellow
+      }
+
+      return '#22c55e'; // Green
+    } catch (e) {
+      console.error('Error calculando color de prioridad:', e);
+      return '#9ca3af';
+    }
   }
 
   private async loadUsersForUser(userId: string, resetPagination: boolean = true): Promise<void> {
@@ -2377,6 +2442,69 @@ export class ManagementComponent implements OnInit, OnDestroy {
       reason: '',
       description: ''
     };
+  }
+
+  async verifyConnectionPriority() {
+    this.showPriorityDialog = true;
+    // Si ya tenemos datos, no necesitamos recargar forzosamente, 
+    // pero si se desea refrescar al abrir el dialogo:
+    // await this.refreshPriorityDevices(); 
+    // Por ahora solo abrimos el dialogo ya que se cargan al inicio
+  }
+
+  // Por ahora solo abrimos el dialogo ya que se cargan al inicio
+
+  startPriorityPolling() {
+    // Solo para empleados
+    if (this.currentUserAffiliationTypeId !== 'empleado') {
+      return;
+    }
+
+    // Consultar cada 30 segundos (30000 ms)
+    this.priorityIntervalId = setInterval(() => {
+      this.refreshPriorityDevices(true); // Pasar true para indicar que es background
+    }, 30000);
+
+    // Vibrar cada 15 segundos
+    this.vibrationIntervalId = setInterval(() => {
+      if (this.priorityDevices.length > 0) {
+        this.triggerVibration();
+      }
+    }, 15000);
+  }
+
+  triggerVibration() {
+    this.isVibrating = true;
+    setTimeout(() => {
+      this.isVibrating = false;
+    }, 500); // Duración de la animación
+  }
+
+  async refreshPriorityDevices(isBackground: boolean = false) {
+    if (!isBackground) {
+      this.loadingPriorityDevices = true;
+    }
+    try {
+      this.priorityDevices = await this.targetsService.getExpiredConnectionPriorityTargets();
+    } catch (error) {
+      console.error('Error cargando prioridad:', error);
+    } finally {
+      if (!isBackground) {
+        this.loadingPriorityDevices = false;
+      }
+    }
+  }
+
+  navigateToTargetFromPriority(device: any) {
+    this.showPriorityDialog = false;
+    if (device.parent_id && device.device_imei) {
+      // Navegar a /admin/management/t/[userId]?search=[imei]
+      this.router.navigate(['/admin/management/t', device.parent_id], {
+        queryParams: { search: device.device_imei }
+      });
+    } else {
+      console.warn('Faltan datos para navegar al target:', device);
+    }
   }
 
   private async cancelTarget(): Promise<void> {
