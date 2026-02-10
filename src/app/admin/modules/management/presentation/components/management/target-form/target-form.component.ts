@@ -93,6 +93,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
     showColorOptions: boolean = true;
     isLoading: boolean = false;
+    isValidatingSim: boolean = false;
 
     // Flag para determinar si estamos editando un target existente
     get isEditMode(): boolean {
@@ -883,8 +884,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 provider = 'emnify';
             } else if (simCompany.includes('twilio') || simCompany === 'nacionales') {
                 provider = 'twilio';
-            } else if (simCompany === 'global-m' || simCompany === 'global-m2') {
+            } else if (simCompany === 'global-m') {
                 provider = 'myorion';
+            } else if (simCompany === 'global-m2') {
+                provider = 'myorion2';
+            }
+
+            if (provider === 'myorion2') {
+                this.isValidatingSim = true;
             }
 
             this.targetsService.getSimUsage(this.target.sim_card_number, provider).then(usage => {
@@ -893,6 +900,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }).catch(err => {
                 console.error('Error getting SIM usage:', err);
                 this.simUsage = null;
+            }).finally(() => {
+                this.isValidatingSim = false;
             });
         }
     }
@@ -1525,6 +1534,19 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     private async sendSmsMessage(message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2'): Promise<void> {
+        // Validación específica para global-m2: Requiere IMSI ID cargado
+        if (this.target.sim_company?.toLowerCase() === 'global-m2') {
+            if (!this.simUsage || !this.simUsage.imsi_id) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Espera un momento',
+                    detail: 'No se puede enviar SMS: Esperando información de la SIM (IMSI).',
+                    life: 5000
+                });
+                return;
+            }
+        }
+
         // Procesar mensaje para reemplazar variables del servidor
         let processedMessage = message;
 
@@ -1778,14 +1800,26 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             return null;
         }
 
+        const company = this.target.sim_company.toLowerCase();
+
+        // Lógica específica para global-m2
+        if (company === 'global-m2') {
+            // Si imsi_id es 4 (string o number), es gigsky-02
+            // Si es diferente a 4, es dataon
+            if (this.simUsage && (this.simUsage.imsi_id === '4' || this.simUsage.imsi_id === 4)) {
+                return 'gigsky-02';
+            } else {
+                return 'dataon';
+            }
+        }
+
         // Mapear tipos de SIM card a valores de company
         const companyMap: Record<string, string> = {
             'global-e': 'em',
-            'global-m': 'altanwifi',
-            'global-m2': 'gigsky-02'
+            'global-m': 'altanwifi'
         };
 
-        return companyMap[this.target.sim_company.toLowerCase()] || null;
+        return companyMap[company] || null;
     }
 
     onEnterKeySimple(event: KeyboardEvent): void {

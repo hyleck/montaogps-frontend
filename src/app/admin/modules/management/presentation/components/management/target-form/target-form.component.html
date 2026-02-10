@@ -794,9 +794,12 @@
                                             <button *ngFor="let command of availableCommands" type="button"
                                                 class="command-btn"
                                                 [class.loading]="isSendingSms && selectedSmsCommand === command.name"
-                                                [disabled]="isSendingSms" (click)="selectSmsCommand(command.name)">
-                                                <i class="pi {{ command.icon }}"></i>
-                                                <span>{{ command.name }}</span>
+                                                [disabled]="isSendingSms || isValidatingSim"
+                                                (click)="selectSmsCommand(command.name)">
+                                                <i class="pi"
+                                                    [ngClass]="isValidatingSim ? 'pi-spin pi-spinner' : command.icon"></i>
+                                                <span>{{ isValidatingSim ? 'Validando simcard...' : command.name
+                                                    }}</span>
                                             </button>
                                         </div>
                                     </div>
@@ -833,6 +836,9 @@
                                                         [style.color]="simUsage.smsService === 'Enabled' ? 'var(--green-500)' : 'gray'">
                                                         SMS: {{ simUsage.smsService === 'Enabled' ? 'activo' :
                                                         'inactivo' }}
+                                                    </span>
+                                                    <span *ngIf="simUsage.imsi_id" style="color: var(--blue-500)">
+                                                        IMSI ID: {{ simUsage.imsi_id }}
                                                     </span>
                                                 </div>
                                             </div>
@@ -1160,14 +1166,14 @@
                         </h3>
                         <div class="command-actions-buttons">
                             <button type="button" class="command-action-btn shutdown-btn"
-                                (click)="sendVehicleShutdownCommand()">
-                                <i class="pi pi-power-off"></i>
-                                <span>Apagar Vehículo</span>
+                                (click)="sendVehicleShutdownCommand()" [disabled]="isValidatingSim">
+                                <i class="pi" [ngClass]="isValidatingSim ? 'pi-spin pi-spinner' : 'pi-power-off'"></i>
+                                <span>{{ isValidatingSim ? 'Validando simcard...' : 'Apagar Vehículo' }}</span>
                             </button>
                             <button type="button" class="command-action-btn ignition-btn"
-                                (click)="sendAllowIgnitionCommand()">
-                                <i class="pi pi-key"></i>
-                                <span>Permitir Encendido</span>
+                                (click)="sendAllowIgnitionCommand()" [disabled]="isValidatingSim">
+                                <i class="pi" [ngClass]="isValidatingSim ? 'pi-spin pi-spinner' : 'pi-key'"></i>
+                                <span>{{ isValidatingSim ? 'Validando simcard...' : 'Permitir Encendido' }}</span>
                             </button>
                         </div>
                     </div>
