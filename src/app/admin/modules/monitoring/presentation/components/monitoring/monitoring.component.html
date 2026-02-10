@@ -5,7 +5,11 @@
         <i class="pi pi-chart-bar"></i>
         {{ monitoringPanelTitle | titlecase }}
       </h2>
-      <p class="header-subtitle">{{ monitoringPanelSubtitle }}</p>
+      <div class="header-subtitle-container">
+        <p class="header-subtitle">{{ monitoringPanelSubtitle }}</p>
+        <button *ngIf="userEmail" pButton label="Procesos Masivos" icon="pi pi-cog" class="p-button-text p-button-sm"
+          (click)="openMassiveProcesses()"></button>
+      </div>
 
     </div>
     <div class="header-actions">

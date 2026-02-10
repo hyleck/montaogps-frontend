@@ -45,6 +45,12 @@
   font-size: 15px;
 }
 
+.header-subtitle-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .header-meta {
   display: flex;
   flex-wrap: wrap;
@@ -182,9 +188,11 @@
   0% {
     transform: translateX(-100%);
   }
+
   50% {
     transform: translateX(0%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -591,7 +599,7 @@
 }
 
 .path-item.path-item-last .path-level {
-  background-color: rgba(255,255,255,0.2) !important;
+  background-color: rgba(255, 255, 255, 0.2) !important;
   color: #ffffff !important;
 }
 
@@ -672,7 +680,7 @@
   color: var(--monitoringPathLevelBackground, #007bff);
   border-color: var(--monitoringPathLevelBackground, #007bff);
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px var(--monitoringDevicesCardShadow, rgba(0,0,0,0.1));
+  box-shadow: 0 2px 6px var(--monitoringDevicesCardShadow, rgba(0, 0, 0, 0.1));
 }
 
 .user-breadcrumbs .breadcrumb-item.active {
@@ -680,7 +688,7 @@
   color: #ffffff;
   font-weight: 600;
   border-color: var(--monitoringPathLevelBackground, #007bff);
-  box-shadow: 0 2px 8px rgba(0,123,255,0.25);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.25);
 }
 
 .user-breadcrumbs .breadcrumb-item .breadcrumb-icon {
@@ -708,14 +716,14 @@
   padding: 20px;
 }
 
-.devices-content ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+.devices-content ::ng-deep .p-datatable .p-datatable-tbody>tr>td {
   padding: 0.3rem 0.2rem;
   border-bottom: 1px solid var(--monitoringDevicesSectionBorder);
   color: var(--monitoringSectionTitleText);
   font-size: 0.75rem;
 }
 
-.devices-content ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+.devices-content ::ng-deep .p-datatable .p-datatable-thead>tr>th {
   padding: 0.3rem 0.2rem;
   background-color: var(--monitoringDevicesSectionBackground);
   border-bottom: 2px solid var(--monitoringDevicesSectionBorder);
@@ -724,7 +732,7 @@
   font-size: 0.8rem;
 }
 
-.devices-content ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+.devices-content ::ng-deep .p-datatable .p-datatable-tbody>tr:hover {
   background-color: var(--monitoringDevicesCardBackground);
 }
 
@@ -1189,6 +1197,7 @@
 }
 
 @media screen and (max-width: 768px) {
+
   .report-stats,
   .report-summary-details {
     grid-template-columns: repeat(1, minmax(0, 1fr));
@@ -1221,7 +1230,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--monitoringSummaryIconBackground, rgba(15,23,42,0.05));
+  background-color: var(--monitoringSummaryIconBackground, rgba(15, 23, 42, 0.05));
   color: var(--monitoringSummaryIconColor, var(--monitoringSectionTitleText));
 }
 

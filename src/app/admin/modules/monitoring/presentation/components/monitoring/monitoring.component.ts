@@ -754,6 +754,11 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     });
   }
 
+  openMassiveProcesses(): void {
+    console.log('Open Massive Processes for user:', this.userId);
+    // Implement massive processes logic here
+  }
+
   openUserSearchModal(): void {
     this.showUserSearchModal = true;
   }

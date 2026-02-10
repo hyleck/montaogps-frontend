@@ -875,35 +875,43 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         // Check SIM usage
         if (this.target.sim_card_number) {
-            console.log('Checking SIM usage for:', this.target.sim_card_number);
-
-            let provider = 'myorion';
-            const simCompany = this.target.sim_company ? this.target.sim_company.toLowerCase() : '';
-
-            if (simCompany.includes('emnify') || simCompany === 'global-e') {
-                provider = 'emnify';
-            } else if (simCompany.includes('twilio') || simCompany === 'nacionales') {
-                provider = 'twilio';
-            } else if (simCompany === 'global-m') {
-                provider = 'myorion';
-            } else if (simCompany === 'global-m2') {
-                provider = 'myorion2';
-            }
-
-            if (provider === 'myorion2') {
-                this.isValidatingSim = true;
-            }
-
-            this.targetsService.getSimUsage(this.target.sim_card_number, provider).then(usage => {
-                console.log('SIM Usage:', usage);
-                this.simUsage = usage;
-            }).catch(err => {
-                console.error('Error getting SIM usage:', err);
-                this.simUsage = null;
-            }).finally(() => {
-                this.isValidatingSim = false;
-            });
+            this.checkSimUsage();
         }
+    }
+
+    checkSimUsage(): void {
+        if (!this.target.sim_card_number) {
+            return;
+        }
+
+        console.log('Checking SIM usage for:', this.target.sim_card_number);
+
+        let provider = 'myorion';
+        const simCompany = this.target.sim_company ? this.target.sim_company.toLowerCase() : '';
+
+        if (simCompany.includes('emnify') || simCompany === 'global-e') {
+            provider = 'emnify';
+        } else if (simCompany.includes('twilio') || simCompany === 'nacionales') {
+            provider = 'twilio';
+        } else if (simCompany === 'global-m') {
+            provider = 'myorion';
+        } else if (simCompany === 'global-m2') {
+            provider = 'myorion2';
+        }
+
+        if (provider === 'myorion2') {
+            this.isValidatingSim = true;
+        }
+
+        this.targetsService.getSimUsage(this.target.sim_card_number, provider).then(usage => {
+            console.log('SIM Usage:', usage);
+            this.simUsage = usage;
+        }).catch(err => {
+            console.error('Error getting SIM usage:', err);
+            this.simUsage = null;
+        }).finally(() => {
+            this.isValidatingSim = false;
+        });
     }
 
     /**

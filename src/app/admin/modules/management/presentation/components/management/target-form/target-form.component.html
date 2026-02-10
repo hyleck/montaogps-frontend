@@ -229,7 +229,7 @@
                                                     class="required-label">(Requerido)</span></label>
                                             <input [(ngModel)]="target.sim_card_number" name="sim_card_number"
                                                 placeholder="Ej: 8999991234567891234" type="text" id="sim_card" required
-                                                [readonly]="isEditMode">
+                                                (change)="checkSimUsage()">
                                         </div>
 
                                         <div class="target-form__field">
