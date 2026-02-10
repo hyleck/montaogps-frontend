@@ -899,6 +899,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             provider = 'myorion2';
         }
 
+        console.log('[TargetForm] simCompany:', simCompany, 'resolved provider:', provider);
+
         if (provider === 'myorion2') {
             this.isValidatingSim = true;
         }
@@ -1310,6 +1312,47 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
 
         return targetData;
+    }
+
+    // Timer para pulsación larga en comandos
+    commandPressTimer: any;
+    countdown: number = 0;
+
+    startCommandPressTimer(command: string) {
+        this.countdown = 6;
+        this.commandPressTimer = setInterval(async () => {
+            this.countdown--;
+            if (this.countdown <= 0) {
+                this.clearCommandPressTimer();
+                let processedCommand = command;
+
+                // Reemplazar {{company}} si existe
+                if (processedCommand.includes('{{company}}')) {
+                    const companyValue = this.getCompanyValueFromSimType();
+                    if (companyValue) {
+                        processedCommand = processedCommand.replace(/\{\{company\}\}/g, companyValue);
+                    }
+                }
+
+                // Reemplazar {{server}} si existe
+                if (processedCommand.includes('{{server}}')) {
+                    const serverIp = await this.getServerIpFromPlan();
+                    if (serverIp) {
+                        processedCommand = processedCommand.replace(/\{\{server\}\}/g, serverIp);
+                    }
+                }
+
+                alert(processedCommand);
+            }
+        }, 1000); // 1 segundo
+    }
+
+    clearCommandPressTimer() {
+        if (this.commandPressTimer) {
+            clearInterval(this.commandPressTimer);
+            this.commandPressTimer = null;
+            this.countdown = 0;
+        }
     }
 
     private validateForm(): boolean {

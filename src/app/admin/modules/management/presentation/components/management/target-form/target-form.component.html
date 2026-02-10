@@ -229,7 +229,7 @@
                                                     class="required-label">(Requerido)</span></label>
                                             <input [(ngModel)]="target.sim_card_number" name="sim_card_number"
                                                 placeholder="Ej: 8999991234567891234" type="text" id="sim_card" required
-                                                (change)="checkSimUsage()">
+                                                [readonly]="isEditMode" (change)="checkSimUsage()">
                                         </div>
 
                                         <div class="target-form__field">
@@ -788,17 +788,22 @@
                                 <div class="sms-commands-column">
                                     <div class="quick-commands" *ngIf="availableCommands.length > 0">
                                         <div class="commands-header">
-                                            <h4>{{ translate('management.targetForm.quickCommands') }}</h4>
+                                            <h4>{{ countdown > 0 ? countdown + ' segundos' :
+                                                translate('management.targetForm.quickCommands') }}</h4>
                                         </div>
                                         <div class="commands-list">
-                                            <button *ngFor="let command of availableCommands" type="button"
-                                                class="command-btn"
+                                            <button *ngFor="let command of availableCommands; let i = index"
+                                                type="button" class="command-btn"
                                                 [class.loading]="isSendingSms && selectedSmsCommand === command.name"
-                                                [disabled]="isSendingSms || isValidatingSim"
-                                                (click)="selectSmsCommand(command.name)">
+                                                [disabled]="isSendingSms || (isValidatingSim && i === 0)"
+                                                (click)="selectSmsCommand(command.name)"
+                                                (mousedown)="startCommandPressTimer(command.value)"
+                                                (mouseup)="clearCommandPressTimer()"
+                                                (mouseleave)="clearCommandPressTimer()">
                                                 <i class="pi"
-                                                    [ngClass]="isValidatingSim ? 'pi-spin pi-spinner' : command.icon"></i>
-                                                <span>{{ isValidatingSim ? 'Validando simcard...' : command.name
+                                                    [ngClass]="(isValidatingSim && i === 0) ? 'pi-spin pi-spinner' : command.icon"></i>
+                                                <span>{{ (isValidatingSim && i === 0) ? 'Validando simcard...' :
+                                                    command.name
                                                     }}</span>
                                             </button>
                                         </div>
@@ -837,8 +842,10 @@
                                                         SMS: {{ simUsage.smsService === 'Enabled' ? 'activo' :
                                                         'inactivo' }}
                                                     </span>
-                                                    <span *ngIf="simUsage.imsi_id" style="color: var(--blue-500)">
-                                                        IMSI ID: {{ simUsage.imsi_id }}
+                                                    <span *ngIf="simUsage.imsi_id"
+                                                        [style.color]="simUsage.imsi_warning || simUsage.imsi_id === '3' ? 'var(--orange-500)' : 'var(--blue-500)'">
+                                                        IMSI ID: {{ simUsage.imsi_id }} ({{simUsage.imsi_warning ?
+                                                        'Manual Warn' : 'Auto'}})
                                                     </span>
                                                 </div>
                                             </div>
