@@ -1604,6 +1604,8 @@
       "no": "No",
       "userDeleted": "El usuario ha sido eliminado correctamente",
       "errorDelete": "No se pudo eliminar el usuario",
+      "updateFailed": "No se pudo actualizar el usuario. Verifique si el correo o DNI ya están registrados.",
+      "creationFailed": "No se pudo crear el usuario. Verifique si el correo o DNI ya están registrados.",
       "backToPersonalInfo": "Volver a información personal"
     },
     "noUsers": "Esta cuenta no tiene usuarios.",

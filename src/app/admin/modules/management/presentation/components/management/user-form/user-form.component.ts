@@ -742,6 +742,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         return sanitized || undefined;
     }
 
+    private sanitizeNumeric(value?: string | null): string {
+        if (!value) return '';
+        return String(value).replace(/\D/g, '');
+    }
+
     private normalizeIdentifier(value?: string | null): string {
         return this.sanitizeString(value).toLowerCase();
     }
@@ -756,7 +761,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         sanitized.email = this.normalizeEmail(payload.email);
         sanitized.name = this.sanitizeString(payload.name);
         sanitized.last_name = this.sanitizeString(payload.last_name);
-        sanitized.dni = this.sanitizeString(payload.dni);
+        sanitized.dni = this.sanitizeNumeric(payload.dni);
         sanitized.address = this.sanitizeOptionalString(payload.address);
         sanitized.birth = this.sanitizeOptionalString(payload.birth);
         sanitized.photo = this.sanitizeOptionalString(payload.photo);
