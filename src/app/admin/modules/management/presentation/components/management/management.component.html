@@ -952,7 +952,7 @@
 
     <p-dialog header="Configuración de objetivo" [modal]="true" [visible]="targetFormDisplay"
         (onHide)="onHideTargetForm()" (visibleChange)="!$event && onHideTargetForm()">
-        <app-target-form [targetInput]="targetToEdit" (targetCreated)="onTargetCreated()"></app-target-form>
+        <app-target-form [targetInput]="targetToEdit" (targetCreated)="onTargetCreated($event)"></app-target-form>
     </p-dialog>
 
     <p-dialog header="Formulario de usuario" [modal]="true" [visible]="userFormDisplay" (onHide)="onHideUserForm()"

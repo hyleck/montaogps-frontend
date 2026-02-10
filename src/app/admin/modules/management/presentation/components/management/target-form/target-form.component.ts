@@ -59,7 +59,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private smsPollingSub: Subscription | null = null;
 
     @Input() targetInput: TargetDevice | null = null;
-    @Output() targetCreated = new EventEmitter<void>();
+    @Output() targetCreated = new EventEmitter<TargetDevice>();
 
     // Flag para mostrar/ocultar la edición personalizada de precio
     isCustomPriceEditing = false;
@@ -1098,7 +1098,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 });
 
                 // Emitir evento de actualización
-                this.targetCreated.emit();
+                this.targetCreated.emit(this.target);
             } else {
                 // Crear nuevo objetivo
                 const newTarget = await this.targetsService.createTarget(targetToSave as CreateTargetDto);
@@ -1119,7 +1119,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 });
 
                 // Emitir evento de creación
-                this.targetCreated.emit();
+                this.targetCreated.emit(newTarget as TargetDevice);
             }
 
             // Resetear el formulario solo después de una creación exitosa

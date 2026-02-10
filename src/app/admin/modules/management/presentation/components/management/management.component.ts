@@ -1001,9 +1001,22 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.targetToEdit = null;
   }
 
-  onTargetCreated() {
+  onTargetCreated(target?: any) {
     this.uiService.hideTargetForm();
     this.targetToEdit = null;
+
+    if (target && target.device_imei) {
+      // 1. Actualizar URL
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { search: target.device_imei },
+        queryParamsHandling: 'merge'
+      });
+
+      // 2. Establecer término de búsqueda y ejecutarla
+      this.searchTargetsTerm = target.device_imei;
+      this.searchTargets();
+    }
 
     if (this.selectedUser) {
       this.loadTargetsForUser(this.selectedUser._id);
