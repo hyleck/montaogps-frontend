@@ -11,6 +11,8 @@ export interface MonitoringRouteEntry {
 }
 
 export interface MonitorUserResponse {
+  id: string;
+  userId: string;
   message: string;
   statusRequestId: string;
   data: Array<{
@@ -19,6 +21,7 @@ export interface MonitorUserResponse {
   }>;
   monitoringType?: 'device-status' | 'mileage';
   distanceRange?: { from: string; to: string };
+  createdAt: string;
 }
 
 export interface MonitoringSummary {

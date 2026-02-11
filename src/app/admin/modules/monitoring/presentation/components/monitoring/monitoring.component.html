@@ -7,7 +7,9 @@
       </h2>
       <div class="header-subtitle-container">
         <p class="header-subtitle">{{ monitoringPanelSubtitle }}</p>
-        <button *ngIf="userEmail" pButton label="Procesos Masivos" icon="pi pi-cog" class="p-button-text p-button-sm"
+        <button *ngIf="userEmail && selectedExpirationFilter === 'expired'" pButton label="Renovación Masiva"
+          [icon]="isDataStale ? 'pi pi-exclamation-triangle' : 'pi pi-calendar-plus'"
+          [class]="isDataStale ? 'p-button-text p-button-sm p-button-warning' : 'p-button-text p-button-sm'"
           (click)="openMassiveProcesses()"></button>
       </div>
 
@@ -645,4 +647,205 @@
       </div>
     </ng-container>
   </div>
+  <!-- Massive Renewal Modal -->
+  <p-dialog header="Renovación Masiva" [(visible)]="displayMassiveProcessesDialog" [modal]="true"
+    [style]="{width: '95vw', height: '90vh'}" [draggable]="false" [resizable]="false"
+    styleClass="massive-processes-dialog">
+
+    <div class="massive-processes-content"
+      *ngIf="!isLoadingMassiveProcess && massiveProcessResults.success === 0 && massiveProcessResults.failed === 0">
+
+      <!-- Device List Preview -->
+      <div class="device-preview-container">
+        <div class="device-preview-header">
+          <i class="pi pi-list"></i> Dispositivos a renovar ({{ activeDeviceCount }})
+        </div>
+        <div class="device-preview-list">
+          <ng-container *ngFor="let group of massiveProcessGroups">
+            <div *ngIf="hasActiveDevices(group)" class="renewal-group">
+              <!-- Group Route (Breadcrumbs) -->
+              <div *ngIf="group.route && group.route.length > 0" class="user-breadcrumbs group-header">
+                <div class="breadcrumb-container">
+                  <ng-container *ngFor="let pathItem of group.route; let j = index; let isLast = last">
+                    <span class="breadcrumb-item" [class.active]="isLast">
+                      {{ pathItem.fullName }}
+                    </span>
+                    <span *ngIf="!isLast" class="breadcrumb-separator">></span>
+                  </ng-container>
+                </div>
+              </div>
+
+              <!-- Devices in Group -->
+              <ng-container *ngFor="let device of group.devices">
+                <div *ngIf="!device.isExcluded" class="device-preview-item">
+                  <div class="device-info">
+                    <span class="device-preview-name">{{ device.name }}</span>
+                    <span class="device-preview-imei">{{ device.device_imei }}</span>
+                  </div>
+                  <div class="device-controls">
+                    <div class="device-years-selector" *ngIf="device.customRenewalYears">
+                      <label>Años:</label>
+                      <select [(ngModel)]="device.customRenewalYears" class="years-select">
+                        <option [value]="null" disabled selected>-</option>
+                        <option *ngFor="let year of renewalYearOptions" [value]="year">{{ year }}</option>
+                      </select>
+                    </div>
+                    <div class="device-description-field" *ngIf="device.customDescription">
+                      <label>Descripción:</label>
+                      <input type="text" [(ngModel)]="device.customDescription" placeholder="Nota para este dispositivo"
+                        class="description-input" />
+                    </div>
+                    <div class="device-remove-action">
+                      <p-button icon="pi pi-times" label="No renovar"
+                        styleClass="p-button-text p-button-danger p-button-sm p-0"
+                        (onClick)="removeFromMassiveProcess(device)"></p-button>
+                    </div>
+                    <div class="device-dates">
+                      <span class="device-expiration-current" [title]="'Fecha actual de expiración'">
+                        <i class="pi pi-calendar"></i> {{ formatExpirationDate(device.expiration_date) }}
+                      </span>
+                      <span class="device-expiration-arrow" *ngIf="device.customRenewalYears">→</span>
+                      <span class="device-expiration-new" *ngIf="device.customRenewalYears"
+                        [title]="'Nueva fecha de expiración'">
+                        <i class="pi pi-calendar-plus"></i> {{ calculateNewExpirationDate(device.expiration_date,
+                        device.customRenewalYears) }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </ng-container>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Progress & Results -->
+    <div class="process-status"
+      *ngIf="isLoadingMassiveProcess || massiveProcessResults.success > 0 || massiveProcessResults.failed > 0">
+      <div class="text-center mb-4">
+        <h3 class="mb-3 font-semibold text-center">{{ massiveProcessStatus }}</h3>
+        <p-progressBar [value]="massiveProcessProgress" [style]="{height: '10px'}"></p-progressBar>
+      </div>
+
+      <!-- Live Renewal Progress List -->
+      <div class="renewal-progress-container" *ngIf="renewalProgressList.length > 0">
+        <h4 class="renewal-progress-title">
+          <i class="pi pi-list"></i> Progreso de Renovaciones
+        </h4>
+        <div class="renewal-progress-list">
+          <div *ngFor="let item of renewalProgressList" class="renewal-progress-item"
+            [ngClass]="{'processing': item.status === 'processing', 'success': item.status === 'success', 'error': item.status === 'error', 'cancelled': item.status === 'cancelled'}">
+            <div class="progress-item-icon">
+              <i *ngIf="item.status === 'processing'" class="pi pi-spin pi-spinner"></i>
+              <i *ngIf="item.status === 'success'" class="pi pi-check-circle"></i>
+              <i *ngIf="item.status === 'error'" class="pi pi-times-circle"></i>
+              <i *ngIf="item.status === 'cancelled'" class="pi pi-times"></i>
+            </div>
+            <div class="progress-item-content">
+              <span class="progress-item-name">{{ item.deviceName }}</span>
+              <span *ngIf="item.status === 'success' && item.newDate" class="progress-item-date">
+                <i class="pi pi-calendar-plus"></i> Nueva fecha: {{ formatExpirationDate(item.newDate) }}
+              </span>
+              <span *ngIf="item.status === 'error' || item.status === 'cancelled'" class="progress-item-error"
+                [class.text-cancelled]="item.status === 'cancelled'">
+                {{ item.error }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        *ngIf="massiveProcessResults.success > 0 || massiveProcessResults.failed > 0 || massiveProcessResults.cancelled > 0"
+        class="results-summary">
+        <div class="flex justify-content-around text-center" style="display: flex; justify-content: space-around;">
+          <div class="px-4">
+            <div class="text-2xl font-bold text-green-500"
+              style="font-size: 1.5rem; font-weight: bold; color: #22c55e;">{{ massiveProcessResults.success }}</div>
+            <div class="text-sm opacity-60">Exitosos</div>
+          </div>
+          <div class="px-4">
+            <div class="text-2xl font-bold text-red-500" style="font-size: 1.5rem; font-weight: bold; color: #ef4444;">
+              {{ massiveProcessResults.failed }}</div>
+            <div class="text-sm opacity-60">Fallidos</div>
+          </div>
+          <div class="px-4" *ngIf="massiveProcessResults.cancelled > 0">
+            <div class="text-2xl font-bold" style="font-size: 1.5rem; font-weight: bold; color: #6b7280;">
+              {{ massiveProcessResults.cancelled }}</div>
+            <div class="text-sm opacity-60">Cancelados</div>
+          </div>
+        </div>
+
+        <div *ngIf="massiveProcessResults.errors.length > 0">
+          <h5 class="mt-4 mb-2 font-semibold" style="margin-top: 1rem; font-weight: 600;"><i
+              class="pi pi-exclamation-circle text-red-500"></i> Detalle de errores:
+          </h5>
+          <ul class="error-list">
+            <li *ngFor="let err of massiveProcessResults.errors" class="text-red-500"
+              style="color: #ef4444; list-style: none; padding: 5px 0;">
+              <span class="font-bold">{{ err.device }}:</span> {{ err.error }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="renewal-footer-controls"
+        *ngIf="!isLoadingMassiveProcess && massiveProcessResults.success === 0 && massiveProcessResults.failed === 0">
+        <p-button label="Cancelar" icon="pi pi-times" (onClick)="closeMassiveProcesses()"
+          styleClass="p-button-text p-button-secondary"></p-button>
+
+        <div class="field">
+          <label for="renewalYears">
+            <i class="pi pi-calendar-plus"></i> Aplicar años a todos
+          </label>
+          <select [(ngModel)]="processForm.renewalYears" (change)="applyYearsToAll()" class="years-select-footer">
+            <option [value]="null" disabled selected>Seleccione años</option>
+            <option *ngFor="let year of renewalYearOptions" [value]="year">{{ year }} año(s)</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="description">
+            <i class="pi pi-pencil"></i> Aplicar descripción
+          </label>
+          <input pInputText [(ngModel)]="processForm.description" (input)="applyDescriptionToAll()"
+            placeholder="Opcional: agregue una nota" class="w-full" />
+        </div>
+
+        <p-button label="Ejecutar Renovaciones" icon="pi pi-play" (onClick)="executeMassiveProcess()"
+          styleClass="p-button-primary" [disabled]="!hasDevicesWithYears()"></p-button>
+      </div>
+      <div class="flex justify-content-end gap-2"
+        style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 1rem;"
+        *ngIf="isLoadingMassiveProcess || massiveProcessResults.success > 0 || massiveProcessResults.failed > 0">
+        <p-button label="Finalizar" icon="pi pi-check" (onClick)="closeMassiveProcesses()" styleClass="p-button-success"
+          *ngIf="massiveProcessResults.success > 0 || massiveProcessResults.failed > 0"></p-button>
+      </div>
+    </ng-template>
+  </p-dialog>
 </div>
+<!-- Outdated Data Warning Modal -->
+<p-dialog header="Monitoreo Desactualizado" [(visible)]="showOutdatedDataWarning" [modal]="true"
+  [style]="{width: '500px'}" [draggable]="false" [resizable]="false">
+
+  <div class="outdated-warning-content">
+    <div class="warning-icon">
+      <i class="pi pi-exclamation-triangle"></i>
+    </div>
+    <p class="warning-message">
+      Este monitoreo no está actualizado. Debe volver a realizarlo para asegurar que las fechas de expiración sean
+      correctas antes de ejecutar renovaciones masivas.
+    </p>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <p-button label="Cancelar" icon="pi pi-times" (onClick)="showOutdatedDataWarning = false"
+      styleClass="p-button-text p-button-secondary"></p-button>
+    <p-button label="Ejecutar Nuevo Monitoreo" icon="pi pi-refresh" (onClick)="executeNewMonitoring()"
+      styleClass="p-button-primary"></p-button>
+  </ng-template>
+</p-dialog>

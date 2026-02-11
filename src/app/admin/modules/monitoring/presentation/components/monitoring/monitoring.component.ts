@@ -1,13 +1,21 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
-import { MonitoringService, MonitorUserResponse, MonitoringStatus, MonitoringSummary } from '../../../../../../core/services/monitoring.service';
-import { UserService } from '../../../../../../core/services/user.service';
-import { ProtocolsService } from '../../../../../../core/services/protocols.service';
-import { User } from '../../../../../../core/interfaces/user.interface';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Subject, Subscription, interval, of, firstValueFrom } from 'rxjs';
+import { takeUntil, switchMap, catchError, map, startWith } from 'rxjs/operators';
+import { MonitoringService, MonitorUserResponse, MonitoringSummary, MonitoringStatus } from 'src/app/core/services/monitoring.service';
+import { AuthService } from 'src/app/core/services/auth.service';
 import { TranslateService } from '@ngx-translate/core';
+import { UserService } from 'src/app/core/services/user.service';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Protocol } from 'src/app/core/interfaces/protocol.interface';
+import { ProtocolsService } from 'src/app/core/services/protocols.service';
+import { TargetsService } from 'src/app/core/services/targets.service';
+import { CreateProcessDto, ProcessResponse, TargetDevice } from 'src/app/core/interfaces/target.interface';
+import { PlansService } from 'src/app/core/services/plans.service';
+import { Plan } from 'src/app/core/interfaces/plan.interface';
+import { User } from 'src/app/core/interfaces/user.interface';
+import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
+import { MessageService } from 'primeng/api';
 import * as ExcelJS from 'exceljs';
-import { interval, Subscription } from 'rxjs';
-import { startWith, switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-monitoring',
@@ -606,6 +614,10 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     private monitoringService: MonitoringService,
     private userService: UserService,
     private protocolsService: ProtocolsService,
+    private targetsService: TargetsService,
+    private plansService: PlansService,
+    private messageService: MessageService,
+    private authService: AuthService,
     private translate: TranslateService
   ) { }
 
@@ -754,9 +766,482 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Massive Processes Properties
+  displayMassiveProcessesDialog: boolean = false;
+  isLoadingMassiveProcess: boolean = false;
+  massiveProcessProgress: number = 0;
+  massiveProcessStatus: string = '';
+  massiveProcessResults: { success: number; failed: number; cancelled: number; errors: any[] } = { success: 0, failed: 0, cancelled: 0, errors: [] };
+  renewalYearOptions: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
+  massiveProcessDevices: (TargetDevice & { customRenewalYears?: number; customDescription?: string })[] = [];
+  renewalProgressList: { deviceName: string; status: 'processing' | 'success' | 'error' | 'cancelled'; newDate?: string; error?: string }[] = [];
+  showOutdatedDataWarning: boolean = false;
+  isDataStale: boolean = false;
+  massiveProcessGroups: { route: any[], devices: any[] }[] = [];
+
+  // Data for Form
+  availablePlans: any[] = [];
+  availableTechnicians: any[] = [];
+  availableSimCardTypes: any[] = [];
+
+  // Process Form Data
+  processForm: any = {
+    type: '',
+    registrationDate: new Date().toISOString().substring(0, 10),
+    description: '',
+    // Dynamic fields
+    newPlan: '',
+    newPrice: 0, // Not used in massive but kept for compatibility
+    newInstallationDate: '',
+    newExpirationDate: '',
+    newRenewalDate: '',
+    renewalYears: null,
+    newTechnician: '',
+    newInstallationDetails: '',
+    newSimType: '',
+    // payment_period: 'monthly' // Not used in massive
+  };
+
+  // Process Type Map
+  private processTypeMap: { [key: string]: number } = {
+    'installation': 2,
+    'expiration': 3,
+    'renewal': 4,
+    'plan_change': 5,
+    'technician_change': 8,
+    'installation_details_change': 10,
+    'sim_type_change': 15
+  };
+
   openMassiveProcesses(): void {
-    console.log('Open Massive Processes for user:', this.userId);
-    // Implement massive processes logic here
+    console.log('Open Massive Renewal for user:', this.userId);
+
+    // Flatten and group devices from filtered data for preview
+    this.massiveProcessDevices = [];
+    this.massiveProcessGroups = [];
+    if (this.filteredMonitoringData) {
+      this.filteredMonitoringData.forEach((group: any) => {
+        if (group.devices && group.devices.length > 0) {
+          this.massiveProcessGroups.push({
+            route: group.route,
+            devices: group.devices
+          });
+          this.massiveProcessDevices.push(...group.devices);
+        }
+      });
+    }
+
+    const isStale = this.shouldWarnAboutDataFreshness();
+    this.isDataStale = isStale;
+
+    if (isStale) {
+      this.showOutdatedDataWarning = true;
+      return;
+    }
+
+    this.displayMassiveProcessesDialog = true;
+    this.resetMassiveProcessForm();
+    this.processForm.type = 'renewal'; // Default and only type now
+    this.loadMassiveProcessData();
+  }
+
+  shouldWarnAboutDataFreshness(): boolean {
+    const monitoringResult = this.monitoringResult;
+    const latestSummary = this.latestSummary;
+    const userId = this.userId;
+
+    console.log('=== Data Freshness Check ===');
+    console.log('monitoringResult:', monitoringResult);
+    console.log('latestSummary:', latestSummary);
+    console.log('userId:', userId);
+
+    // Check if we have monitoring result loaded
+    if (!monitoringResult) {
+      console.log('❌ No monitoringResult loaded');
+      return true; // No report loaded, warn user
+    }
+
+    // Check if we have a latest summary
+    if (!latestSummary) {
+      console.log('❌ No latestSummary available');
+      return true; // No summary, warn user
+    }
+
+    // Check if the current report is from the current user
+    if (monitoringResult.userId !== userId) {
+      console.log('❌ Different user - monitoringResult.userId:', monitoringResult.userId, 'vs userId:', userId);
+      return true; // Different user, warn
+    }
+
+    // Check if the currently viewed report is NOT the latest one
+    if (monitoringResult.id !== latestSummary.id) {
+      const currentReportDate = new Date(monitoringResult.createdAt).getTime();
+      const latestSummaryDate = new Date(latestSummary.createdAt).getTime();
+
+      console.log('Current report date:', new Date(monitoringResult.createdAt));
+      console.log('Latest summary date:', new Date(latestSummary.createdAt));
+
+      if (latestSummaryDate > currentReportDate) {
+        console.log('❌ There is a newer monitoring available (latest summary is newer)');
+        return true; // Latest summary is newer, warn
+      }
+    }
+
+    // Check if data is older than 4 hours
+    const reportDate = new Date(monitoringResult.createdAt);
+    const now = new Date();
+    const diffMinutes = (now.getTime() - reportDate.getTime()) / (1000 * 60);
+    console.log('Age in minutes:', diffMinutes);
+
+    if (diffMinutes > 240) { // 4 hours = 240 minutes
+      console.log('❌ Data is older than 4 hours');
+      return true; // Data is older than 4 hours
+    }
+
+    console.log('✅ Data is fresh');
+    return false;
+  }
+
+
+  executeNewMonitoring(): void {
+    this.showOutdatedDataWarning = false;
+    // Trigger new monitoring
+    this.startMonitoring();
+  }
+
+  removeFromMassiveProcess(device: any): void {
+    // Mark as excluded instead of removing from array so we can show it as "Cancelled" in results
+    device.isExcluded = true;
+
+    // Update data stale check if needed
+    this.isDataStale = this.shouldWarnAboutDataFreshness();
+  }
+
+  hasActiveDevices(group: any): boolean {
+    return group.devices && group.devices.some((d: any) => !d.isExcluded);
+  }
+
+  get activeDeviceCount(): number {
+    return this.massiveProcessDevices.filter(d => !d['isExcluded']).length;
+  }
+
+  closeMassiveProcesses(): void {
+    this.displayMassiveProcessesDialog = false;
+  }
+
+  applyYearsToAll(): void {
+    if (this.processForm.renewalYears) {
+      this.massiveProcessDevices.forEach(device => {
+        device.customRenewalYears = this.processForm.renewalYears;
+      });
+    }
+  }
+
+  hasDevicesWithYears(): boolean {
+    return this.massiveProcessDevices.some(device => device.customRenewalYears && device.customRenewalYears > 0);
+  }
+
+  applyDescriptionToAll(): void {
+    this.massiveProcessDevices.forEach(device => {
+      device.customDescription = this.processForm.description || '';
+    });
+  }
+
+  resetMassiveProcessForm(): void {
+    this.processForm = {
+      type: '',
+      registrationDate: new Date().toISOString().substring(0, 10),
+      description: '',
+      newPlan: '',
+      newPrice: 0,
+      newInstallationDate: '',
+      newExpirationDate: '',
+      newRenewalDate: '',
+      renewalYears: null,
+      newTechnician: '',
+      newInstallationDetails: '',
+      newSimType: ''
+    };
+    this.massiveProcessProgress = 0;
+    this.massiveProcessStatus = '';
+    this.massiveProcessResults = { success: 0, failed: 0, cancelled: 0, errors: [] };
+    this.isLoadingMassiveProcess = false;
+  }
+
+  loadMassiveProcessData(): void {
+    // Load Plans
+    this.plansService.getAllPlans().subscribe({
+      next: (plans: Plan[]) => {
+        this.availablePlans = plans.map(plan => ({
+          label: plan.plan_name,
+          value: plan._id
+        })).sort((a, b) => a.label.localeCompare(b.label));
+      },
+      error: (error) => console.error('Error loading plans:', error)
+    });
+
+    // Load Technicians
+    this.userService.getTechnicians().subscribe({
+      next: (technicians: User[]) => {
+        this.availableTechnicians = technicians.map(tech => ({
+          label: `${tech.name} ${tech.last_name}`.trim(),
+          value: tech._id
+        })).sort((a, b) => a.label.localeCompare(b.label));
+      },
+      error: (error) => console.error('Error loading technicians:', error)
+    });
+
+    // Load SIM Types
+    this.availableSimCardTypes = [...SIM_CARD_TYPES];
+  }
+
+  async executeMassiveProcess(): Promise<void> {
+    if (!this.processForm.type) {
+      this.messageService.add({ severity: 'warn', summary: 'Advertencia', detail: 'Seleccione un tipo de proceso' });
+      return;
+    }
+
+    if (!this.monitoringResult || !this.filteredMonitoringData) {
+      this.messageService.add({ severity: 'warn', summary: 'Advertencia', detail: 'No hay dispositivos para procesar' });
+      return;
+    }
+
+    // 1. Use the pre-flattened list which contains our state and exclusions
+    const allDevices = this.massiveProcessDevices;
+
+    if (allDevices.length === 0) {
+      this.messageService.add({ severity: 'warn', summary: 'Advertencia', detail: 'No hay dispositivos para procesar' });
+      return;
+    }
+
+    // Count active (non-excluded) devices for confirmation
+    const activeCount = allDevices.filter(d => !d['isExcluded']).length;
+
+    if (!confirm(`¿Está seguro de ejecutar este proceso masivo en ${activeCount} dispositivos? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    this.isLoadingMassiveProcess = true;
+    this.massiveProcessStatus = 'Iniciando proceso masivo...';
+    this.massiveProcessProgress = 0;
+    this.massiveProcessResults = { success: 0, failed: 0, cancelled: 0, errors: [] };
+    this.renewalProgressList = [];
+
+    const currentUser = this.authService.getCurrentUser();
+    const totalDevices = allDevices.length;
+    let processedCount = 0;
+
+    // 2. Iterate and process
+    for (const device of allDevices) {
+      // Check if device was manually excluded
+      if (device['isExcluded']) {
+        this.renewalProgressList.push({
+          deviceName: device.name,
+          status: 'cancelled' as any,
+          error: 'Renovación cancelada'
+        });
+        this.massiveProcessResults.cancelled++; // Use the new counter
+        processedCount++;
+        this.massiveProcessProgress = Math.round((processedCount / totalDevices) * 100);
+        continue;
+      }
+
+      // Add device to progress list with processing status
+      this.renewalProgressList.push({
+        deviceName: device.name,
+        status: 'processing'
+      });
+
+      try {
+        // Validar si el dispositivo tiene ID
+        if (!device._id) {
+          throw new Error(`Dispositivo ${device.name} no tiene ID válido`);
+        }
+
+        // Preparar datos específicos según el tipo de proceso
+        let details = '';
+
+        switch (this.processForm.type) {
+          case 'installation':
+            details = `Cambio de fecha de instalación a ${this.processForm.newInstallationDate}.`;
+            break;
+          case 'expiration':
+            details = `Cambio de fecha de expiración a ${this.processForm.newExpirationDate}.`;
+            break;
+          case 'renewal':
+            // Try to parse the date robustly
+            let expDate: Date | null = null;
+            if (device.expiration_date) {
+              // Try standard Date constructor first (handles ISO strings)
+              const d = new Date(device.expiration_date);
+              if (!isNaN(d.getTime())) {
+                expDate = d;
+              } else {
+                // Fallback to custom parser for YYYY-MM-DD
+                expDate = this.parseDateInput(device.expiration_date);
+              }
+            }
+
+            // Use custom renewal years for this specific device
+            const renewalYearsRaw = (device as any).customRenewalYears;
+            const renewalYears = typeof renewalYearsRaw === 'string' ? parseInt(renewalYearsRaw, 10) : renewalYearsRaw;
+
+            if (expDate && renewalYears && !isNaN(renewalYears)) {
+              // Timezone-safe date calculation: add years directly
+              const year = expDate.getFullYear();
+              const month = expDate.getMonth();
+              const day = expDate.getDate();
+
+              const newDate = new Date(year + renewalYears, month, day);
+
+              // Format as YYYY-MM-DD manually to be safe
+              const newYear = newDate.getFullYear();
+              const newMonth = String(newDate.getMonth() + 1).padStart(2, '0');
+              const newDay = String(newDate.getDate()).padStart(2, '0');
+              const newExpDateCalculated = `${newYear}-${newMonth}-${newDay}`;
+
+              details = `Renovación de servicio por ${renewalYears} año(s). Nueva fecha de expiración: ${newExpDateCalculated}.`;
+              (device as any)._calculatedNewExpiration = newExpDateCalculated;
+            } else if (!device.expiration_date) {
+              throw new Error(`El dispositivo no tiene una fecha de expiración actual.`);
+            } else if (!renewalYears) {
+              throw new Error(`No se especificaron años de renovación para el dispositivo.`);
+            } else {
+              throw new Error(`No se pudo procesar la fecha de expiración actual del dispositivo: ${device.expiration_date}`);
+            }
+            break;
+          case 'plan_change':
+            const planName = this.availablePlans.find(p => p.value === this.processForm.newPlan)?.label || 'Desconocido';
+            details = `Cambio de plan a ${planName}.`;
+            break;
+          case 'technician_change':
+            const techName = this.availableTechnicians.find(t => t.value === this.processForm.newTechnician)?.label || 'Desconocido';
+            details = `Cambio de técnico asignado a ${techName}.`;
+            break;
+          case 'installation_details_change':
+            details = `Actualización de detalles de instalación: ${this.processForm.newInstallationDetails}`;
+            break;
+          case 'sim_type_change':
+            details = `Cambio de tipo de SIM a ${this.processForm.newSimType}.`;
+            break;
+        }
+
+        // Use custom description for this specific device
+        const deviceDescription = (device as any).customDescription || '';
+
+        if (deviceDescription) {
+          details += ` Notas: ${deviceDescription}`;
+        }
+
+        const currentDate = new Date().toISOString().substring(0, 10);
+
+        const processData: CreateProcessDto = {
+          type: this.processTypeMap[this.processForm.type] || 1,
+          registrationDate: currentDate,
+          description: deviceDescription || 'Proceso masivo',
+          details: details,
+          target: {
+            _id: device._id,
+            name: device.name,
+            device_imei: device.device_imei,
+            sim_card_number: device.sim_card_number
+          },
+          user: {
+            _id: currentUser?.id || "sistema",
+            name: currentUser?.name || "Sistema",
+            email: currentUser?.email || "sistema@montao.net"
+          },
+          reference: device._id,
+          before: {
+            status: "pending",
+            lastProcess: null
+          },
+          after: {
+            status: "completed",
+            processType: this.processForm.type,
+            processDate: currentDate
+          },
+          creator: currentUser?.id || "sistema"
+        };
+
+        // Assign specific fields based on type and update local state
+        if (this.processForm.type === 'plan_change') {
+          await this.targetsService.updateTarget(device._id!, { plan: this.processForm.newPlan });
+          device.plan = this.processForm.newPlan;
+        } else if (this.processForm.type === 'technician_change') {
+          await this.targetsService.updateTarget(device._id!, { mechanic_id: this.processForm.newTechnician });
+          device.mechanic_id = this.processForm.newTechnician;
+        } else if (this.processForm.type === 'expiration') {
+          await this.targetsService.updateTarget(device._id!, { expiration_date: this.processForm.newExpirationDate });
+          device.expiration_date = this.processForm.newExpirationDate;
+        } else if (this.processForm.type === 'renewal' && (device as any)._calculatedNewExpiration) {
+          const newExpDate = (device as any)._calculatedNewExpiration;
+          await this.targetsService.updateTarget(device._id!, { expiration_date: newExpDate });
+          device.expiration_date = newExpDate;
+        } else if (this.processForm.type === 'installation') {
+          await this.targetsService.updateTarget(device._id!, { installation_date: this.processForm.newInstallationDate });
+          device.installation_date = this.processForm.newInstallationDate;
+        } else if (this.processForm.type === 'installation_details_change') {
+          await this.targetsService.updateTarget(device._id!, { installation_details: this.processForm.newInstallationDetails });
+          device.installation_details = this.processForm.newInstallationDetails;
+        } else if (this.processForm.type === 'sim_type_change') {
+          await this.targetsService.updateTarget(device._id!, { sim_company: this.processForm.newSimType });
+          device.sim_company = this.processForm.newSimType;
+        }
+
+        // Call create process
+        await this.targetsService.createProcess(processData);
+
+        this.massiveProcessResults.success++;
+
+        // Update progress list with success status
+        const currentIndex = this.renewalProgressList.findIndex(item => item.deviceName === device.name && item.status === 'processing');
+        if (currentIndex !== -1) {
+          this.renewalProgressList[currentIndex].status = 'success';
+          this.renewalProgressList[currentIndex].newDate = (device as any)._calculatedNewExpiration || device.expiration_date;
+        }
+
+        // Show success toast
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Renovación Exitosa',
+          detail: `${device.name} renovado correctamente`,
+          life: 3000
+        });
+
+      } catch (error: any) {
+        console.error(`Error processing device ${device.name}:`, error);
+        this.massiveProcessResults.failed++;
+        this.massiveProcessResults.errors.push({ device: device.name, error: error.message || 'Unknown error' });
+
+        // Update progress list with error status
+        const currentIndex = this.renewalProgressList.findIndex(item => item.deviceName === device.name && item.status === 'processing');
+        if (currentIndex !== -1) {
+          this.renewalProgressList[currentIndex].status = 'error';
+          this.renewalProgressList[currentIndex].error = error.message || 'Error desconocido';
+        }
+
+        // Show error toast
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error en Renovación',
+          detail: `${device.name}: ${error.message || 'Error desconocido'}`,
+          life: 5000
+        });
+      }
+
+      processedCount++;
+      this.massiveProcessProgress = Math.round((processedCount / totalDevices) * 100);
+      this.massiveProcessStatus = `Procesando ${processedCount} de ${totalDevices} dispositivos...`;
+    }
+
+    this.isLoadingMassiveProcess = false;
+    this.massiveProcessStatus = 'Proceso finalizado.';
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Proceso Masivo Completado',
+      detail: `Exitosos: ${this.massiveProcessResults.success}, Fallidos: ${this.massiveProcessResults.failed}`
+    });
   }
 
   openUserSearchModal(): void {
@@ -814,6 +1299,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         this.latestSummary = summaries.length > 0 ? summaries[0] : null;
         this.userMonitoringReports = summaries;
         this.selectedUserReports = summaries;
+        this.isDataStale = this.shouldWarnAboutDataFreshness();
         if (checkStatus) {
           this.checkMonitoringStatus(userId, true);
         }
@@ -1164,6 +1650,49 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     });
   }
 
+  calculateNewExpirationDate(currentExpiration: Date | string, yearsToAdd: number): string {
+    if (!currentExpiration || !yearsToAdd) {
+      return '-';
+    }
+
+    try {
+      // Ensure yearsToAdd is a number
+      const years = typeof yearsToAdd === 'string' ? parseInt(yearsToAdd, 10) : yearsToAdd;
+
+      if (isNaN(years) || years <= 0) {
+        return '-';
+      }
+
+      // Parse current expiration date
+      let expDate: Date | null = null;
+      if (currentExpiration) {
+        const d = new Date(currentExpiration);
+        if (!isNaN(d.getTime())) {
+          expDate = d;
+        } else {
+          expDate = this.parseDateInput(currentExpiration as string);
+        }
+      }
+
+      if (!expDate) {
+        return '-';
+      }
+
+      // Calculate new date
+      const newDate = new Date(expDate);
+      newDate.setFullYear(newDate.getFullYear() + years);
+
+      return newDate.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      console.error('Error calculating new expiration date:', error);
+      return '-';
+    }
+  }
+
   formatActivationDate(activationDate: Date | string): string {
     if (!activationDate) {
       return '-';
@@ -1497,6 +2026,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         }
         this.loading = false;
         console.log('Report loaded:', report);
+        this.isDataStale = this.shouldWarnAboutDataFreshness();
       },
       error: (error) => {
         this.error = 'Error loading report: ' + error.message;
