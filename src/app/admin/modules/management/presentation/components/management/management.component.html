@@ -838,6 +838,12 @@
                                                         (click)="navigateToParentUser(target, $event)">
                                                         <i class="pi pi-user"></i>
                                                     </button>
+                                                    <button class="button button--primary-flat-icon"
+                                                        title="Agregar acceso directo"
+                                                        (click)="addToShortcuts(target, $event)">
+                                                        <i [class]="isTargetInShortcuts(target) ? 'pi pi-bookmark-fill' : 'pi pi-bookmark'"
+                                                            [style.color]="isTargetInShortcuts(target) ? 'gold' : ''"></i>
+                                                    </button>
                                                 </div>
                                                 <div *ngIf="target.isShared" class="target-controls-shared">
                                                     <span class="shared-target-label">
@@ -1056,13 +1062,21 @@
     </ng-template>
 </p-dialog>
 
-<!-- Botón flotante de Prioridad -->
-<button class="floating-priority-btn" [class.vibrate]="isVibrating"
-    *ngIf="priorityDevices && priorityDevices.length > 0 && currentUserAffiliationTypeId === 'empleado'"
-    (click)="verifyConnectionPriority()">
-    <i class="pi pi-exclamation-triangle"></i>
-    <span>Prioridad ({{priorityDevices.length}})</span>
-</button>
+<!-- Botones flotantes -->
+<div class="floating-buttons">
+    <button class="floating-shortcuts-btn" [class.vibrate]="false" *ngIf="shortcuts && shortcuts.length > 0"
+        (click)="toggleShortcutsMenu()">
+        <i class="pi pi-th-large"></i>
+        <span>Accesos Directos ({{shortcuts.length}})</span>
+    </button>
+
+    <button class="floating-priority-btn" [class.vibrate]="isVibrating"
+        *ngIf="priorityDevices && priorityDevices.length > 0 && currentUserAffiliationTypeId === 'empleado'"
+        (click)="verifyConnectionPriority()">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>Prioridad ({{priorityDevices.length}})</span>
+    </button>
+</div>
 
 <!-- Dialogo para dispositivos con prioridad excedida -->
 <p-dialog [(visible)]="showPriorityDialog" [modal]="true" [style]="{width: '50vw'}" [draggable]="false"
@@ -1111,4 +1125,31 @@
     <ng-template pTemplate="footer">
         <button pButton label="Cerrar" class="p-button-text" (click)="showPriorityDialog = false"></button>
     </ng-template>
+</p-dialog>
+
+<!-- Dialogo de Accesos Directos -->
+<p-dialog [(visible)]="showShortcutsDialog" [modal]="true" [style]="{width: '400px'}" [draggable]="false"
+    [resizable]="false" header="Accesos Directos">
+    <div class="p-fluid">
+        <p *ngIf="shortcuts.length === 0" style="text-align: center; color: var(--globalColorTextMuted);">
+            No tienes accesos directos guardados.
+        </p>
+        <div *ngIf="shortcuts.length > 0" class="shortcuts-list">
+            <div *ngFor="let shortcut of shortcuts" class="shortcut-item"
+                (click)="navigateToShortcut(shortcut, $event)">
+                <div class="shortcut-icon">
+                    <i class="pi pi-bookmark" style="color: gold;"></i>
+                </div>
+                <div class="shortcut-info">
+                    <span class="shortcut-name">{{shortcut.name}}</span>
+                    <span class="shortcut-imei">{{shortcut.imei}}</span>
+                    <span class="shortcut-user" *ngIf="shortcut.parentName"><i class="pi pi-user"
+                            style="font-size: 0.8em;"></i> {{shortcut.parentName | titlecase}}</span>
+                </div>
+                <button class="shortcut-delete-btn" (click)="removeFromShortcuts(shortcut, $event)">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
 </p-dialog>

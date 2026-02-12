@@ -63,6 +63,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   priorityDevices: any[] = [];
   loadingPriorityDevices: boolean = false;
 
+  // Shortcuts
+  shortcuts: any[] = [];
+  showShortcutsDialog: boolean = false;
+
   private priorityIntervalId: any;
   private vibrationIntervalId: any;
   isVibrating: boolean = false;
@@ -142,6 +146,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   // PROPIEDADES PÚBLICAS - BÚSQUEDA
   // ====================================
+  // Flag to track if we are installing a device from inventory
+  private isInstallingFromInventory: boolean = false;
+
   searchUsersTerm: string = '';
   searchTargetsTerm: string = '';
 
@@ -442,6 +449,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Cargar dispositivos con prioridad excedida una sola vez al inicio
     this.refreshPriorityDevices();
     this.startPriorityPolling();
+
+    // Load shortcuts from localStorage
+    this.loadShortcuts();
   }
 
   ngOnDestroy(): void {
@@ -572,6 +582,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
       protocol: deviceData.protocol,
       protocolId: deviceData.protocol._id
     });
+
+    // Flag that we are installing from inventory so onTargetCreated knows to trigger search
+    this.isInstallingFromInventory = true;
 
     // Mostrar el formulario de target con datos pre-cargados
     this.showTargetForm(preloadedTargetData);
@@ -713,6 +726,107 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   get shouldShowMapToggleButton(): boolean {
     return true; // Siempre mostrar el botón del mapa, independientemente de si hay targets
+  }
+
+  toggleShortcutsMenu() {
+    this.showShortcutsDialog = true;
+  }
+
+  loadShortcuts() {
+    const saved = localStorage.getItem('targetShortcuts');
+    if (saved) {
+      try {
+        this.shortcuts = JSON.parse(saved);
+      } catch (e) {
+        console.error('Error parsing shortcuts', e);
+        this.shortcuts = [];
+      }
+    }
+  }
+
+  addToShortcuts(target: any, event: Event) {
+    event.stopPropagation();
+
+    if (this.isTargetInShortcuts(target)) {
+      // Remove
+      this.shortcuts = this.shortcuts.filter(s => s._id !== target._id);
+      this.messageService.add({ severity: 'info', summary: 'Eliminado', detail: 'Acceso directo eliminado' });
+    } else {
+      // Resolve parentId from current URL (this is what the user wants)
+      // The user wants to save the current ID from the URL: /admin/management/t/[currentId]
+      let parentId = this.route.snapshot.params['id'];
+
+      // Fallback if not found in params (e.g. if we are in a different view)
+      if (!parentId) {
+        const originalTarget = target.originalTarget || target;
+        parentId = target.parent_id || target.parentId || target.user_id ||
+          originalTarget.parent_id || originalTarget.parentId || originalTarget.user_id ||
+          (this.selectedUser ? this.selectedUser._id : null);
+      }
+
+      if (!parentId) {
+        this.messageService.add({ severity: 'warn', summary: 'Advertencia', detail: 'No se pudo determinar el contexto para crear el acceso directo' });
+        return;
+      }
+
+      // Try to get user name
+      let userName = 'Usuario desconocido';
+      if (this.selectedUser && this.selectedUser._id === parentId) {
+        userName = `${this.selectedUser.name} ${this.selectedUser.last_name || ''}`.trim();
+      } else if (target.parentName) {
+        userName = target.parentName; // Assuming this is already full name or we can't do much
+      } else {
+        // Try to find in loaded users if available
+        const user = this.users.find(u => u._id === parentId);
+        if (user) {
+          userName = `${user.name} ${user.last_name || ''}`.trim();
+        }
+      }
+
+      // Add
+      const shortcut = {
+        _id: target._id,
+        name: target.name,
+        imei: target.imei || target.device_imei,
+        parentId: parentId, // This is now the ID from the URL
+        parentName: userName,
+        addedAt: new Date().toISOString()
+      };
+      this.shortcuts.push(shortcut);
+      this.messageService.add({ severity: 'success', summary: 'Agregado', detail: 'Acceso directo creado' });
+    }
+
+    // Save to localStorage
+    localStorage.setItem('targetShortcuts', JSON.stringify(this.shortcuts));
+  }
+
+  isTargetInShortcuts(target: any): boolean {
+    return this.shortcuts.some(s => s._id === target._id);
+  }
+
+  removeFromShortcuts(shortcut: any, event?: Event) {
+    if (event) event.stopPropagation();
+    this.shortcuts = this.shortcuts.filter(s => s._id !== shortcut._id);
+    localStorage.setItem('targetShortcuts', JSON.stringify(this.shortcuts));
+    this.messageService.add({ severity: 'info', summary: 'Eliminado', detail: 'Acceso directo eliminado' });
+  }
+
+  navigateToShortcut(shortcut: any, event?: MouseEvent) {
+    if (shortcut.parentId) {
+      const url = `/admin/management/t/${shortcut.parentId}?search=${shortcut.imei}`;
+
+      // Check for Ctrl (Windows/Linux) or Meta (Mac Command) keys
+      if (event && (event.ctrlKey || event.metaKey)) {
+        window.open(url, '_blank');
+      } else {
+        // Force reload in current tab
+        window.location.href = url;
+      }
+
+      this.showShortcutsDialog = false;
+    } else {
+      this.messageService.add({ severity: 'warn', summary: 'Error', detail: 'Acceso directo inválido' });
+    }
   }
 
   // ====================================
@@ -1005,18 +1119,25 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.uiService.hideTargetForm();
     this.targetToEdit = null;
 
-    if (target && target.device_imei) {
-      // 1. Actualizar URL
+    // Check if this creation came from inventory installation
+    if (this.isInstallingFromInventory && target && target.device_imei) {
+      console.log('📦 Instalación desde inventario detectada, ejecutando búsqueda automática...');
+
+      // 1. Update URL to include search param
       this.router.navigate([], {
         relativeTo: this.route,
         queryParams: { search: target.device_imei },
         queryParamsHandling: 'merge'
       });
 
-      // 2. Establecer término de búsqueda y ejecutarla
+      // 2. Set search term and execute search
       this.searchTargetsTerm = target.device_imei;
       this.searchTargets();
+
+      // Reset flag
+      this.isInstallingFromInventory = false;
     }
+
 
     if (this.selectedUser) {
       this.loadTargetsForUser(this.selectedUser._id);
@@ -2048,11 +2169,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Si hay un término de búsqueda activo, usar la búsqueda en lugar de cargar todos
-    if (this.searchTargetsTerm && this.searchTargetsTerm.trim() !== '') {
-      this.searchTargetsSubject.next(this.searchTargetsTerm);
-      return;
-    }
 
     try {
       // Resetear paginación si es necesario
