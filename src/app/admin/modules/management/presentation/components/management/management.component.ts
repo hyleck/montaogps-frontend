@@ -148,6 +148,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   // Flag to track if we are installing a device from inventory
   private isInstallingFromInventory: boolean = false;
+  // Flag to track if we have already executed the initial search from URL params
+  private initialSearchExecuted: boolean = false;
+  // Store pending search term to execute after data load
+  private pendingInitialSearchTerm: string = '';
 
   searchUsersTerm: string = '';
   searchTargetsTerm: string = '';
@@ -1610,10 +1614,31 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   private handleQueryParams(queryParams: any): void {
     if (this.managementService.getOp() === 'u') {
-      this.searchUsersTerm = queryParams['search'];
+      this.searchUsersTerm = queryParams['search'] || '';
+      // Always sync with service state (even if empty to clear)
+      this.managementService.setSearchUsersTerm(this.searchUsersTerm);
+
+      // Execute search if it's the first load and we have a search term
+      if (this.searchUsersTerm && !this.initialSearchExecuted) {
+        this.searchUsersSubject.next(this.searchUsersTerm);
+      }
     } else if (this.managementService.getOp() === 't') {
-      this.searchTargetsTerm = queryParams['search'];
+      this.searchTargetsTerm = queryParams['search'] || '';
+      // Always sync with service state (even if empty to clear)
+      this.managementService.setSearchTargetsTerm(this.searchTargetsTerm);
+
+      // Execute search if it's the first load and we have a search term
+      if (this.searchTargetsTerm && !this.initialSearchExecuted) {
+        // Defer execution until data is loaded
+        this.pendingInitialSearchTerm = this.searchTargetsTerm;
+      }
     }
+
+    // Persist URL status after updating terms
+    this.managementService.setURLStatus();
+
+    // Note: initialSearchExecuted will be set to true after the search is actually performed
+    // or if no search was pending, in loadTargetsForUser completion
 
     // Si hay un parámetro 'target' en la URL, mostrar automáticamente los mapas y seleccionar el target
     if (queryParams['target']) {
@@ -2279,18 +2304,26 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.startPolling();
       }
 
-      // Si hay un target ID desde la URL, intentar seleccionarlo
       if (this.targetIdFromUrl) {
         this.findAndSelectTarget(this.targetIdFromUrl);
       }
+
+      // Check for pending initial search
+      if (this.pendingInitialSearchTerm && !this.initialSearchExecuted) {
+        console.log('🔍 Ejecutando búsqueda inicial diferida:', this.pendingInitialSearchTerm);
+        this.searchTargetsSubject.next(this.pendingInitialSearchTerm);
+        this.pendingInitialSearchTerm = '';
+      }
+      // Always mark as executed after data load to prevent future auto-searches
+      this.initialSearchExecuted = true;
+
+    } catch (error) {
+      console.error('❌ Error al cargar objetivos:', error);
 
       if (!this.selectedTargetForMap) {
         this.enforceDefaultMapWhenNoTarget();
       }
 
-
-    } catch (error) {
-      console.error('❌ Error al cargar objetivos:', error);
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('management.error'),
