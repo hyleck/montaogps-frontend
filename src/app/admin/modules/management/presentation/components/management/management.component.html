@@ -1099,7 +1099,8 @@
             <ng-template pTemplate="body" let-device>
                 <tr>
                     <td>
-                        <span class="management__content-table-link" (click)="navigateToTargetFromPriority(device)"
+                        <span class="management__content-table-link"
+                            (click)="navigateToTargetFromPriority(device, $event)"
                             style="color: var(--globalColorAccent); font-weight: bold; text-decoration: underline;">
                             {{device.name}}
                         </span>

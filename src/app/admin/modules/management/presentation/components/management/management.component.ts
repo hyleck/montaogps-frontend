@@ -2657,13 +2657,20 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  navigateToTargetFromPriority(device: any) {
+  navigateToTargetFromPriority(device: any, event?: MouseEvent) {
     this.showPriorityDialog = false;
     if (device.parent_id && device.device_imei) {
-      // Navegar a /admin/management/t/[userId]?search=[imei]
-      this.router.navigate(['/admin/management/t', device.parent_id], {
-        queryParams: { search: device.device_imei }
-      });
+
+      const url = `/admin/management/t/${device.parent_id}?search=${device.device_imei}`;
+
+      // Check for new tab via Ctrl/Cmd key
+      if (event && (event.ctrlKey || event.metaKey)) {
+        window.open(url, '_blank');
+        return;
+      }
+
+      // Force reload to ensure clean state
+      window.location.href = url;
     } else {
       console.warn('Faltan datos para navegar al target:', device);
     }
