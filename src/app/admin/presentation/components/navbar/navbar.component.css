@@ -2904,3 +2904,261 @@ body .p-dialog-mask {
   object-fit: cover;
   margin: -8px;
 }
+
+/* SUPPORT TICKET DETAILS MODAL */
+:host ::ng-deep .support-details-dialog .p-dialog-header {
+  background: linear-gradient(135deg, var(--globalColorCardBackground), rgba(255, 255, 255, 0.05)) !important;
+  border-bottom: 1px solid var(--globalColorBorderLight) !important;
+  color: var(--globalColorTextDark) !important;
+  padding: 1.5rem 2rem !important;
+}
+
+:host ::ng-deep .support-details-dialog .p-dialog-content {
+  background-color: var(--globalColorBackgroundMain) !important;
+  padding: 0 2rem 2rem 2rem !important;
+}
+
+:host ::ng-deep .support-details-dialog .p-dialog-footer {
+  background-color: var(--globalColorCardBackground) !important;
+  border-top: 1px solid var(--globalColorBorderLight) !important;
+  padding: 1.5rem 2rem !important;
+}
+
+:host ::ng-deep .support-details-dialog .ticket-details-content {
+  color: var(--globalColorTextDark);
+  margin-top: 1rem;
+}
+
+:host ::ng-deep .support-details-dialog .details-header {
+  border-bottom: 1px solid var(--globalColorBorderLight);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+:host ::ng-deep .support-details-dialog .ticket-id {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--globalColorTextDark);
+  font-family: monospace;
+}
+
+:host ::ng-deep .support-details-dialog .status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+:host ::ng-deep .support-details-dialog .ticket-date {
+  color: var(--globalColorTextMuted);
+}
+
+:host ::ng-deep .support-details-dialog .detail-section label,
+:host ::ng-deep .support-details-dialog .detail-item label {
+  color: var(--globalColorTextMuted);
+  letter-spacing: 0.5px;
+}
+
+:host ::ng-deep .support-details-dialog .detail-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 12px;
+}
+
+:host ::ng-deep .support-details-dialog .divider {
+  border-color: var(--globalColorBorderLight);
+  margin: 1rem 0;
+  border-bottom: 1px solid var(--globalColorBorderLight);
+}
+
+/* COMPONENT LEVEL STYLES V2 - REMOVED (Moved to global styles.css) */
+
+/* COMPONENT LEVEL STYLES V2 - DIRECT INJECTION */
+:host ::ng-deep .component-style-v2 .p-dialog-header {
+  background: #1e1e24 !important;
+  color: #fff !important;
+  padding: 1.5rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+:host ::ng-deep .component-style-v2 .p-dialog-content {
+  background: #1e1e24 !important;
+  color: #e2e8f0 !important;
+  padding: 1.5rem !important;
+}
+
+:host ::ng-deep .component-style-v2 .p-dialog-footer {
+  background: #1e1e24 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 1rem 1.5rem !important;
+}
+
+:host ::ng-deep .component-style-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3rem !important;
+  /* Increased to 3rem */
+}
+
+:host ::ng-deep .component-style-v2 .details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem !important;
+  /* Increased to 2rem */
+  margin-bottom: 2rem !important;
+  /* Added explicit margin */
+}
+
+:host ::ng-deep .component-style-v2 .info-group {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1.5rem !important;
+  /* Increased padding */
+  margin-bottom: 1rem !important;
+  /* Added margin as fallback */
+}
+
+:host ::ng-deep .component-style-v2 .info-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+:host ::ng-deep .component-style-v2 .info-value {
+  font-size: 1rem;
+  color: #f1f5f9;
+}
+
+:host ::ng-deep .component-style-v2 .title-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+:host ::ng-deep .component-style-v2 .meta-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+:host ::ng-deep .component-style-v2 .date-badge {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+:host ::ng-deep .component-style-v2 .status-badge-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+:host ::ng-deep .component-style-v2 .status-badge-pill.open {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+:host ::ng-deep .component-style-v2 .status-badge-pill.in_progress {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+:host ::ng-deep .component-style-v2 .status-badge-pill.resolved {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+:host ::ng-deep .component-style-v2 .status-badge-pill.closed {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+:host ::ng-deep .component-style-v2 .details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+:host ::ng-deep .component-style-v2 .with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+:host ::ng-deep .component-style-v2 .with-icon i {
+  font-size: 1.25rem;
+}
+
+/* Priority Colors */
+:host ::ng-deep .component-style-v2 .priority-low {
+  color: #4ade80;
+}
+
+:host ::ng-deep .component-style-v2 .priority-medium {
+  color: #60a5fa;
+}
+
+:host ::ng-deep .component-style-v2 .priority-high {
+  color: #fb923c;
+}
+
+:host ::ng-deep .component-style-v2 .priority-critical {
+  color: #f87171;
+}
+
+:host ::ng-deep .component-style-v2 .tag-icon {
+  color: #a855f7;
+}
+
+/* Response Card */
+:host ::ng-deep .component-style-v2 .response-card {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+:host ::ng-deep .component-style-v2 .response-card .info-label {
+  color: #34d399;
+}
+
+:host ::ng-deep .component-style-v2 .response-text {
+  color: #d1fae5;
+  white-space: pre-wrap;
+}
+
+:host ::ng-deep .component-style-v2 .description-text {
+  white-space: pre-wrap;
+  color: #cbd5e1;
+  font-weight: 300;
+}
+
+:host ::ng-deep .component-style-v2 .close-button {
+  width: 100%;
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-weight: 500 !important;
+  padding: 0.75rem !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+:host ::ng-deep .component-style-v2 .close-button:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+}

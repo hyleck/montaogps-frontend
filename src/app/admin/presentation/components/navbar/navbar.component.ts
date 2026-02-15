@@ -308,6 +308,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
   userTickets: any[] = [];
   loadingTickets: boolean = false;
 
+  // Detalles del ticket
+  ticketDetailsDialogVisible: boolean = false;
+  selectedTicket: any = null; // Stores the selected ticket for details view
+
+  openTicketDetails(ticket: any) {
+    this.selectedTicket = ticket;
+    this.ticketDetailsDialogVisible = true;
+  }
+
   initializePriorities() {
     this.priorities = [
       { label: this.translate.instant('support.priorities.low'), value: 'low' },
@@ -3136,3 +3145,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 }
+// Force Rebuild Sat Feb 14 19:23:32 AST 2026
+// Force Cache Bust Sat Feb 14 19:27:29 AST 2026
+// Force Rebuild Spacing Sat Feb 14 19:32:47 AST 2026

@@ -43,7 +43,8 @@
     "canceled": "Cancelado",
     "close": "Cerrar",
     "yes": "Sí",
-    "no": "No"
+    "no": "No",
+    "viewDetails": "Ver detalles"
   },
   "breadcrumb": {
     "dashboard": {
@@ -123,6 +124,21 @@
     "FILTERS_OFFLINE_DURATION_GT_3D": "Más de 3 días",
     "FILTERS_OFFLINE_DURATION_GT_5D": "Más de 5 días",
     "FILTERS_OFFLINE_DURATION_GT_1W": "Más de 1 semana",
+    "FILTERS_OFFLINE_DURATION_CUSTOM": "Tiempo personalizado",
+    "FILTERS_CUSTOM_UNIT": "Unidad",
+    "FILTERS_CUSTOM_QUANTITY": "Cantidad",
+    "FILTERS_CUSTOM_LT_HOURS": "Menos de {{x}} horas",
+    "FILTERS_CUSTOM_GT_HOURS": "Más de {{x}} horas",
+    "FILTERS_CUSTOM_LT_DAYS": "Menos de {{x}} días",
+    "FILTERS_CUSTOM_GT_DAYS": "Más de {{x}} días",
+    "FILTERS_CUSTOM_LT_WEEKS": "Menos de {{x}} semanas",
+    "FILTERS_CUSTOM_GT_WEEKS": "Más de {{x}} semanas",
+    "FILTERS_CUSTOM_LT_MONTHS": "Menos de {{x}} meses",
+    "FILTERS_CUSTOM_GT_MONTHS": "Más de {{x}} meses",
+    "TIME_UNIT_HOURS": "Horas",
+    "TIME_UNIT_DAYS": "Días",
+    "TIME_UNIT_WEEKS": "Semanas",
+    "TIME_UNIT_MONTHS": "Meses",
     "FILTERS_ALL_EXPIRATIONS": "Todas las renovaciones",
     "FILTERS_VALID": "Vigentes",
     "FILTERS_EXPIRING_SOON": "Por Expirar",
@@ -660,7 +676,12 @@
     },
     "support": {
       "title": "Soporte",
-      "description": "Gestión de soporte técnico"
+      "description": "Gestión de soporte técnico",
+      "ticketDetails": "Detalles del Ticket",
+      "ticketTitle": "Título del Problema",
+      "table": {
+        "type": "Tipo"
+      }
     },
     "models": {
       "title": "Modelos",
@@ -1609,6 +1630,26 @@
       "backToPersonalInfo": "Volver a información personal"
     },
     "noUsers": "Esta cuenta no tiene usuarios.",
-    "noTargets": "No hay dispositivos disponibles"
+    "noTargets": "No hay dispositivos disponibles",
+    "support": {
+      "ticketDetails": "Detalles del Ticket",
+      "ticketTitle": "Título del Problema",
+      "priority": "Prioridad de Atención",
+      "ticketType": "Tipo",
+      "descriptionLabel": "Descripción Detallada",
+      "response": "Respuesta de Soporte",
+      "priorities": {
+        "low": "Baja",
+        "medium": "Media",
+        "high": "Alta",
+        "critical": "Crítica"
+      },
+      "status": {
+        "open": "Abierto",
+        "in_progress": "En Progreso",
+        "resolved": "Resuelto",
+        "closed": "Cerrado"
+      }
+    }
   }
 }

@@ -41,50 +41,104 @@
 </div>
 
 <!-- Modal para ver ticket -->
-<p-dialog [(visible)]="viewDialog" [header]="'Detalles del Ticket'" [modal]="true" [style]="{width: '500px'}"
-    styleClass="app-dark-dialog" appendTo="body">
-    <div class="ticket-details p-3" *ngIf="selectedTicket">
-        <div class="ticket-header mb-4">
-            <h2 class="m-0 text-primary font-bold">{{ selectedTicket.title }}</h2>
-            <div class="flex align-items-center gap-2 mt-1">
-                <i class="pi pi-calendar text-sm opacity-60"></i>
-                <span class="text-sm opacity-60">{{ selectedTicket.createdAt | date:'medium' }}</span>
-            </div>
-            <p-divider></p-divider>
+<p-dialog [(visible)]="viewDialog" [header]="'Detalles del Ticket #' + (selectedTicket?._id | slice:-6)" [modal]="true"
+    [style]="{width: '1000px', maxWidth: '95vw'}" styleClass="app-dark-dialog ticket-details-modal" appendTo="body"
+    [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" [resizable]="false">
 
-            <div class="flex gap-4 mb-4 mt-2">
-                <div>
-                    <label class="text-xs uppercase font-bold opacity-60 block mb-1">Prioridad</label>
-                    <p-tag [value]="selectedTicket.priority | titlecase"
-                        [severity]="getPrioritySeverity(selectedTicket.priority)"></p-tag>
+    <div *ngIf="selectedTicket" class="ticket-details-layout animate-fade-in">
+        <!-- Left Column: Details -->
+        <div class="ticket-details-left">
+            <!-- Main Info -->
+            <div class="ticket-info-group">
+                <div class="ticket-label">
+                    <i class="pi pi-ticket"></i>
+                    Título del Problema
                 </div>
-                <div>
-                    <label class="text-xs uppercase font-bold opacity-60 block mb-1">Estado</label>
-                    <!-- Mostrar tag si NO es desarrollador -->
-                    <p-tag *ngIf="!currentUser?.developer" [value]="selectedTicket.status | titlecase"
-                        [severity]="getStatusSeverity(selectedTicket.status)"></p-tag>
+                <div class="ticket-value title">{{ selectedTicket.title }}</div>
+                <div class="ticket-meta">
+                    <div class="ticket-date">
+                        <i class="pi pi-calendar"></i>
+                        {{ selectedTicket.createdAt | date:'medium' }}
+                    </div>
 
-                    <!-- Mostrar select nativo si ES desarrollador -->
+                    <!-- Status for Non-Developers -->
+                    <span *ngIf="!currentUser?.developer"
+                        [class]="'status-badge ' + getStatusSeverity(selectedTicket.status)">
+                        {{ selectedTicket.status | titlecase }}
+                    </span>
+
+                    <!-- Status for Developers -->
                     <select *ngIf="currentUser?.developer" [(ngModel)]="selectedTicket.status"
-                        (ngModelChange)="onStatusChange(selectedTicket)" class="native-select">
+                        (ngModelChange)="onStatusChange(selectedTicket)" class="native-select"
+                        style="width: auto !important; padding: 0.25rem 2rem 0.25rem 0.75rem !important; font-size: 0.85rem !important;">
                         <option *ngFor="let opt of statusOptions" [value]="opt.value">{{ opt.label }}</option>
                     </select>
                 </div>
             </div>
 
-            <div class="field mb-2">
-                <label class="font-bold flex align-items-center gap-2">
-                    <i class="pi pi-align-left"></i>
-                    Descripción
-                </label>
-                <div class="description-box p-3 border-round border-1 border-white-alpha-10 white-space-pre-wrap">
-                    {{ selectedTicket.description }}
+            <!-- Details Grid -->
+            <div class="ticket-grid">
+                <!-- Priority -->
+                <div class="ticket-info-group">
+                    <div class="ticket-label">
+                        <i class="pi pi-flag"></i>
+                        Prioridad
+                    </div>
+                    <div class="ticket-value">
+                        <span class="flex align-items-center gap-2">
+                            <i class="pi pi-flag" [ngClass]="{
+                                'text-green-500': selectedTicket.priority === 'low',
+                                'text-blue-500': selectedTicket.priority === 'medium',
+                                'text-orange-500': selectedTicket.priority === 'high',
+                                'text-red-500': selectedTicket.priority === 'critical'
+                            }"></i>
+                            {{ selectedTicket.priority | titlecase }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Type -->
+                <div class="ticket-info-group">
+                    <div class="ticket-label">
+                        <i class="pi pi-tag"></i>
+                        Tipo
+                    </div>
+                    <div class="ticket-value">
+                        <span class="flex align-items-center gap-2">
+                            <i class="pi pi-tag text-purple-500"></i>
+                            General
+                        </span>
+                    </div>
                 </div>
             </div>
+
+            <!-- Description -->
+            <div class="ticket-info-group">
+                <div class="ticket-label">
+                    <i class="pi pi-align-left"></i>
+                    Descripción Detallada
+                </div>
+                <div class="ticket-value" style="white-space: pre-wrap;">{{ selectedTicket.description }}</div>
+            </div>
+
+            <!-- Response -->
+            <div *ngIf="selectedTicket.response" class="ticket-info-group ticket-response">
+                <div class="ticket-label">
+                    <i class="pi pi-comments"></i>
+                    Respuesta del Soporte
+                </div>
+                <div class="ticket-value" style="white-space: pre-wrap;">{{ selectedTicket.response }}</div>
+            </div>
+        </div>
+
+        <!-- Right Column: Cloud Files -->
+        <div class="ticket-details-right">
+            <app-cloud [targetId]="selectedTicket._id"></app-cloud>
         </div>
     </div>
+
     <ng-template pTemplate="footer">
-        <button pButton pRipple label="Cerrar" icon="pi pi-times" class="p-button-text"
+        <button pButton pRipple label="Cerrar" icon="pi pi-times" class="p-button-outlined p-button-secondary w-full"
             (click)="viewDialog = false"></button>
     </ng-template>
 </p-dialog>

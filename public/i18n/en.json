@@ -41,7 +41,8 @@
     "parked": "Parked",
     "loading": "Loading",
     "canceled": "Canceled",
-    "close": "Close"
+    "close": "Close",
+    "viewDetails": "View details"
   },
   "breadcrumb": {
     "dashboard": {
@@ -104,6 +105,21 @@
     "FILTERS_ALL_CONNECTIONS": "All Connections",
     "FILTERS_ONLINE": "Online",
     "FILTERS_OFFLINE": "Offline",
+    "FILTERS_OFFLINE_DURATION_CUSTOM": "Custom",
+    "FILTERS_CUSTOM_UNIT": "Unit",
+    "FILTERS_CUSTOM_QUANTITY": "Quantity",
+    "FILTERS_CUSTOM_LT_HOURS": "Less than {{x}} hours",
+    "FILTERS_CUSTOM_GT_HOURS": "More than {{x}} hours",
+    "FILTERS_CUSTOM_LT_DAYS": "Less than {{x}} days",
+    "FILTERS_CUSTOM_GT_DAYS": "More than {{x}} days",
+    "FILTERS_CUSTOM_LT_WEEKS": "Less than {{x}} weeks",
+    "FILTERS_CUSTOM_GT_WEEKS": "More than {{x}} weeks",
+    "FILTERS_CUSTOM_LT_MONTHS": "Less than {{x}} months",
+    "FILTERS_CUSTOM_GT_MONTHS": "More than {{x}} months",
+    "TIME_UNIT_HOURS": "Hours",
+    "TIME_UNIT_DAYS": "Days",
+    "TIME_UNIT_WEEKS": "Weeks",
+    "TIME_UNIT_MONTHS": "Months",
     "FILTERS_ALL_EXPIRATIONS": "All renewals",
     "FILTERS_VALID": "Active",
     "FILTERS_EXPIRED": "Expired",
@@ -557,7 +573,12 @@
     },
     "support": {
       "title": "Support",
-      "description": "Technical support management"
+      "description": "Technical support management",
+      "ticketDetails": "Ticket Details",
+      "ticketTitle": "Issue Title",
+      "table": {
+        "type": "Type"
+      }
     },
     "historiales": {
       "title": "History",
@@ -1397,7 +1418,27 @@
       "backToPersonalInfo": "Back to personal information"
     },
     "noUsers": "This account has no users.",
-    "noTargets": "No devices available"
+    "noTargets": "No devices available",
+    "support": {
+      "ticketDetails": "Ticket Details",
+      "ticketTitle": "Issue Title",
+      "priority": "Priority",
+      "ticketType": "Type",
+      "descriptionLabel": "Detailed Description",
+      "response": "Support Response",
+      "priorities": {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      },
+      "status": {
+        "open": "Open",
+        "in_progress": "In Progress",
+        "resolved": "Resolved",
+        "closed": "Closed"
+      }
+    }
   },
   "vehicle_models": {
     "title": "Models Configuration",

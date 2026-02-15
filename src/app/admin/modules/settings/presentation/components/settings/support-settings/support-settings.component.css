@@ -186,19 +186,6 @@
     color: #f3f4f6 !important;
 }
 
-/* Ticket Header in View Dialog */
-.ticket-header {
-    border-left: 4px solid var(--primary-color, #10b981);
-    padding-left: 1rem;
-    margin-bottom: 1.5rem;
-}
+/* Ticket Header in View Dialog - REMOVED (Replaced by global ticket-details-modal) */
 
-.description-box {
-    line-height: 1.6;
-    color: #e5e7eb;
-    background: rgba(31, 41, 55, 0.5);
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    min-height: 100px;
-}
+/* Description Box - REMOVED (Replaced by global ticket-details-modal) */

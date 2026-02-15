@@ -406,6 +406,45 @@
           </select>
         </div>
 
+        <div class="field-row"
+          *ngIf="selectedConnectionFilter === 'offline' && selectedOfflineDurationFilter === 'custom'"
+          style="display: flex; gap: 10px;">
+          <div class="field" style="flex: 1;">
+            <label>{{ 'MONITORING.FILTERS_CUSTOM_UNIT' | translate }}</label>
+            <select [(ngModel)]="customOfflineTimeUnit" (ngModelChange)="applyFilters()" class="filter-select">
+              <optgroup label="{{ 'MONITORING.TIME_UNIT_HOURS' | translate }}">
+                <option value="lt-hours">{{ 'MONITORING.FILTERS_CUSTOM_LT_HOURS' | translate: { x:
+                  (customOfflineTimeValue && customOfflineTimeValue > 0) ? customOfflineTimeValue : 'x' } }}</option>
+                <option value="gt-hours">{{ 'MONITORING.FILTERS_CUSTOM_GT_HOURS' | translate: { x:
+                  (customOfflineTimeValue && customOfflineTimeValue > 0) ? customOfflineTimeValue : 'x' } }}</option>
+              </optgroup>
+              <optgroup label="{{ 'MONITORING.TIME_UNIT_DAYS' | translate }}">
+                <option value="lt-days">{{ 'MONITORING.FILTERS_CUSTOM_LT_DAYS' | translate: { x: (customOfflineTimeValue
+                  && customOfflineTimeValue > 0) ? customOfflineTimeValue : 'x' } }}</option>
+                <option value="gt-days">{{ 'MONITORING.FILTERS_CUSTOM_GT_DAYS' | translate: { x: (customOfflineTimeValue
+                  && customOfflineTimeValue > 0) ? customOfflineTimeValue : 'x' } }}</option>
+              </optgroup>
+              <optgroup label="{{ 'MONITORING.TIME_UNIT_WEEKS' | translate }}">
+                <option value="lt-weeks">{{ 'MONITORING.FILTERS_CUSTOM_LT_WEEKS' | translate: { x:
+                  (customOfflineTimeValue && customOfflineTimeValue > 0) ? customOfflineTimeValue : 'x' } }}</option>
+                <option value="gt-weeks">{{ 'MONITORING.FILTERS_CUSTOM_GT_WEEKS' | translate: { x:
+                  (customOfflineTimeValue && customOfflineTimeValue > 0) ? customOfflineTimeValue : 'x' } }}</option>
+              </optgroup>
+              <optgroup label="{{ 'MONITORING.TIME_UNIT_MONTHS' | translate }}">
+                <option value="lt-months">{{ 'MONITORING.FILTERS_CUSTOM_LT_MONTHS' | translate: { x:
+                  (customOfflineTimeValue && customOfflineTimeValue > 0) ? customOfflineTimeValue : 'x' } }}</option>
+                <option value="gt-months">{{ 'MONITORING.FILTERS_CUSTOM_GT_MONTHS' | translate: { x:
+                  (customOfflineTimeValue && customOfflineTimeValue > 0) ? customOfflineTimeValue : 'x' } }}</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="field" style="flex: 1;">
+            <label>{{ 'MONITORING.FILTERS_CUSTOM_QUANTITY' | translate }}</label>
+            <input type="number" [(ngModel)]="customOfflineTimeValue" (ngModelChange)="applyFilters()"
+              class="filter-select" placeholder="0" style="padding: 8px; width: 100%;">
+          </div>
+        </div>
+
         <div class="field">
           <label>{{ 'MONITORING.FILTERS_PROTOCOL' | translate }}</label>
           <select [(ngModel)]="selectedProtocolFilter" class="filter-select">

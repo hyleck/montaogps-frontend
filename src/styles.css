@@ -93,6 +93,44 @@ html {
   color: var(--globalColorSelectOption);
 }
 
+/* Ticket Details Layout with Cloud Integration */
+.ticket-details-layout {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 2rem;
+  height: 600px;
+  /* Fixed height for scrollable content */
+  overflow: hidden;
+}
+
+.ticket-details-left {
+  overflow-y: auto;
+  padding: 0 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Center vertically if space allows, or use align-items for horizontal? No, user said horizontal */
+  align-items: center;
+  /* Center children horizontally */
+  text-align: center;
+  /* Center text aligning */
+}
+
+.ticket-details-right {
+  border-left: 1px solid var(--globalColorBorderLight);
+  padding-left: 1.5rem;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  margin-right: 1.5rem;
+}
+
+/* Adjustments for Cloud Component within Modal */
+.ticket-details-right app-cloud {
+  height: 100%;
+  display: block;
+}
+
 .button--primary-flat {
   background: var(--globalColorNone);
   color: var(--globalColorButtonBackground);
@@ -811,4 +849,426 @@ body:not(.app-dark) .app-dark-dialog .p-dropdown .p-dropdown-label {
   margin-right: 30px;
   right: 100px;
   transform: scale(0.7) !important;
+}
+
+/* SUPPORT TICKET DETAILS MODAL (GLOBAL) */
+
+
+/* SUPPORT TICKET DETAILS MODAL (ROBUST CSS) */
+.support-details-dialog .p-dialog-content {
+  background: #0f1115 !important;
+  color: #e2e8f0 !important;
+  padding: 0 1.5rem 1.5rem 1.5rem !important;
+}
+
+.support-details-dialog .p-dialog-header {
+  background: #0f1115 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 1.25rem 1.5rem !important;
+}
+
+.support-details-dialog .p-dialog-footer {
+  background: #0f1115 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+  padding: 1rem 1.5rem !important;
+}
+
+/* Header Layout */
+.support-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.header-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6366f1;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.header-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.2;
+}
+
+.header-subtitle {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #94a3b8;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.header-status {
+  margin-left: auto;
+}
+
+/* Content Layout */
+.support-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding-top: 1rem;
+}
+
+.info-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1rem;
+  position: relative;
+}
+
+.info-card label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 0.5rem;
+}
+
+.info-card .card-value {
+  color: #f1f5f9;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.info-card .card-value.large {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.info-card .card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+/* Grid Layout */
+.details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.with-icon i {
+  font-size: 1.25rem;
+}
+
+/* Priority Info */
+.priority-low,
+.priority-text-low {
+  color: #4ade80;
+}
+
+.priority-medium,
+.priority-text-medium {
+  color: #60a5fa;
+}
+
+.priority-high,
+.priority-text-high {
+  color: #fb923c;
+}
+
+.priority-critical,
+.priority-text-critical {
+  color: #f87171;
+}
+
+/* Type Info */
+.tag-icon {
+  color: #a855f7;
+}
+
+.type-text {
+  color: #d8b4fe;
+}
+
+/* Response Card */
+.response-card {
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.response-card label {
+  color: #34d399;
+}
+
+.response-text {
+  color: #d1fae5;
+  white-space: pre-wrap;
+}
+
+/* Description Text */
+.description-text {
+  white-space: pre-wrap;
+  color: #cbd5e1;
+  font-weight: 300;
+}
+
+/* Footer Button */
+.close-button {
+  width: 100%;
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-weight: 500 !important;
+  padding: 0.75rem !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #fff !important;
+}
+
+/* Close Icon Override (top right) */
+.support-details-dialog .p-dialog-header-icons .p-dialog-header-close-icon {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* FORCED STYLES V1 - NUCLEAR OPTION */
+.force-style-v1 .p-dialog-header {
+  background: #1e1e24 !important;
+  color: #fff !important;
+  padding: 1.5rem !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.force-style-v1 .p-dialog-content {
+  background: #1e1e24 !important;
+  color: #e2e8f0 !important;
+  padding: 1.5rem !important;
+}
+
+.force-style-v1 .p-dialog-footer {
+  background: #1e1e24 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 1rem 1.5rem !important;
+}
+
+.force-style-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.info-group {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.info-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 1rem;
+  color: #f1f5f9;
+}
+
+.title-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.date-badge {
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.status-badge-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-badge-pill.open {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status-badge-pill.in_progress {
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.status-badge-pill.resolved {
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-badge-pill.closed {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* Animations */
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* ============================================
+   TICKET DETAILS MODAL (GLOBAL)
+   ============================================ */
+.ticket-details-modal .p-dialog-content {
+  background: var(--globalColorBackground) !important;
+  padding: 0 !important;
+}
+
+.ticket-details-modal .p-dialog-header {
+  background: var(--globalColorBackground) !important;
+  border-bottom: 1px solid var(--globalColorBorderDark) !important;
+  padding: 1.5rem !important;
+}
+
+.ticket-details-modal .p-dialog-footer {
+  background: var(--globalColorBackground) !important;
+  border-top: 1px solid var(--globalColorBorderDark) !important;
+  padding: 1rem 1.5rem !important;
+}
+
+.ticket-details-main {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ticket-info-group {
+  background: var(--managementColorCardBackground);
+  border: 1px solid var(--globalColorBorderDark);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.ticket-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--globalColorTextInput);
+  opacity: 0.7;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+.ticket-value {
+  color: var(--globalColorTextInput);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.ticket-value.title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.ticket-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.ticket-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--globalColorTextInput);
+  opacity: 0.7;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+}
+
+.ticket-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.ticket-response {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.ticket-response .ticket-label {
+  color: #10b981;
+  opacity: 1;
+}
+
+.ticket-response .ticket-value {
+  color: #d1fae5;
 }

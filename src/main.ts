@@ -6,3 +6,4 @@ platformBrowserDynamic().bootstrapModule(AppModule, {
   ngZoneEventCoalescing: true
 })
   .catch(err => console.error(err));
+// Forced recompile 1771111525

@@ -7,6 +7,8 @@ export interface Ticket {
     user?: any;
     createdAt?: Date;
     updatedAt?: Date;
+    response?: string;
+    type?: string;
 }
 
 export interface CreateTicketDto {

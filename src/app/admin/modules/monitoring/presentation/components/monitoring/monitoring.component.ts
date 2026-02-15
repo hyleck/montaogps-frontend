@@ -68,7 +68,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   profileFilterOptions: string[] = ['empresa', 'personal', 'compartido'];
 
-  offlineDurationOptions: Array<{ label: string; value: string; minutes: number; comparison: 'lt' | 'gte' }> = [
+  offlineDurationOptions: Array<{ label: string; value: string; minutes: number; comparison: 'lt' | 'gte' | 'custom' }> = [
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_NO_DATA', value: 'no-data', minutes: 0, comparison: 'lt' },
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_1H', value: 'lt-1h', minutes: 60, comparison: 'lt' },
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_5H', value: 'lt-5h', minutes: 5 * 60, comparison: 'lt' },
@@ -83,8 +83,12 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_1D', value: 'gt-1d', minutes: 24 * 60, comparison: 'gte' },
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_3D', value: 'gt-3d', minutes: 3 * 24 * 60, comparison: 'gte' },
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_5D', value: 'gt-5d', minutes: 5 * 24 * 60, comparison: 'gte' },
-    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_1W', value: 'gt-1w', minutes: 7 * 24 * 60, comparison: 'gte' }
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_GT_1W', value: 'gt-1w', minutes: 7 * 24 * 60, comparison: 'gte' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_CUSTOM', value: 'custom', minutes: 0, comparison: 'custom' }
   ];
+
+  customOfflineTimeValue: number | null = null;
+  customOfflineTimeUnit: string = 'gt-hours'; // Default to 'More than hours'
 
   accountSizeThresholds: number[] = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
 
@@ -1794,12 +1798,16 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     if (device?.sim_company && device.sim_company.toLowerCase() === 'nacionales') {
       return 'sim-active';
     }
-
     const simStatus = device?.simStatus;
     if (!simStatus || !simStatus.status) {
       return '';
     }
     return simStatus.status === 'Active' ? 'sim-active' : simStatus.status === 'Suspended' ? 'sim-suspended' : '';
+  }
+
+  applyFilters(): void {
+    // This method is triggered by custom filter inputs to ensure change detection runs
+    // The actual filtering happens in the filteredMonitoringData getter
   }
 
   private formatOfflineDuration(lastUpdate: string | Date): string {
@@ -1878,7 +1886,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   private matchesOfflineDuration(
     device: any,
-    option: { minutes: number; comparison: 'lt' | 'gte' }
+    option: { minutes: number; comparison: 'lt' | 'gte' | 'custom' }
   ): boolean {
     const duration = this.getOfflineDurationInMinutes(device);
     if (this._selectedOfflineDurationFilter === 'no-data') {
@@ -1891,7 +1899,46 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     if (option.comparison === 'lt') {
       return duration < option.minutes;
     }
-    return duration > option.minutes;
+    if (option.comparison === 'gte') {
+      return duration > option.minutes;
+    }
+    if (option.comparison === 'custom') {
+      if (this.customOfflineTimeValue === null || this.customOfflineTimeValue === undefined) {
+        return true; // No value set, ignore filter or treat as match all
+      }
+      let minutesThreshold = 0;
+      const [comparison, unit] = this.customOfflineTimeUnit.split('-'); // e.g. 'lt' and 'hours' from 'lt-hours'
+
+      switch (unit) {
+        case 'hours':
+          minutesThreshold = this.customOfflineTimeValue * 60;
+          break;
+        case 'days':
+          minutesThreshold = this.customOfflineTimeValue * 24 * 60;
+          break;
+        case 'weeks':
+          minutesThreshold = this.customOfflineTimeValue * 7 * 24 * 60;
+          break;
+        case 'months':
+          minutesThreshold = this.customOfflineTimeValue * 30 * 24 * 60; // Approx
+          break;
+        default:
+          // Fallback if no split (legacy or default 'hours')
+          if (this.customOfflineTimeUnit === 'hours') minutesThreshold = this.customOfflineTimeValue * 60;
+          else if (this.customOfflineTimeUnit === 'days') minutesThreshold = this.customOfflineTimeValue * 24 * 60;
+          else if (this.customOfflineTimeUnit === 'weeks') minutesThreshold = this.customOfflineTimeValue * 7 * 24 * 60;
+          else if (this.customOfflineTimeUnit === 'months') minutesThreshold = this.customOfflineTimeValue * 30 * 24 * 60;
+          break;
+      }
+
+      if (comparison === 'lt') {
+        return duration < minutesThreshold;
+      } else {
+        // Default to greater than (gt) or if no comparison prefix
+        return duration > minutesThreshold;
+      }
+    }
+    return false;
   }
 
   isDateInRange(date: Date | string, fromDate: Date | null, toDate: Date | null): boolean {
