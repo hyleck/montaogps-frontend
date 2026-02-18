@@ -35,6 +35,11 @@ export interface Target {
   created_at?: string;
   updated_at?: string;
   traccarInfo?: TraccarInfo;
+  historicalLocation?: {
+    latitude: number;
+    longitude: number;
+    timestamp?: string;
+  };
   tag?: string;
   connection_priority?: string;
 }

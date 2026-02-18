@@ -107,6 +107,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     if (changes['targetsForMap'] && !this.selectedTarget) {
+      console.log('🗺️ [MapsComponent] targetsForMap changed:', this.targetsForMap?.length);
       this.renderMultipleTargetsMarkers();
     }
   }
@@ -830,8 +831,10 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     const validMarkers: { lat: number; lng: number }[] = [];
 
+    console.log(`🗺️ [MapsComponent] Rendering ${this.targetsForMap.length} targets`);
+
     this.targetsForMap.forEach((target) => {
-      const geo = target?.traccarInfo?.geolocation;
+      const geo = target?.traccarInfo?.geolocation || target?.traccarInfo?.lastLocation;
       const historical = target?.historicalLocation;
       const lat = geo?.latitude ?? historical?.latitude;
       const lng = geo?.longitude ?? historical?.longitude;
@@ -839,6 +842,14 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       const lngNum = parseFloat(lng !== undefined ? String(lng) : '');
 
       if (isNaN(latNum) || isNaN(lngNum)) {
+        console.warn(`🗺️ [MapsComponent] ⚠️ ID: ${target._id || target.id} - ${target.name} has invalid coords. Data dump:`, {
+          traccarInfo: target.traccarInfo,
+          historicalLocation: target.historicalLocation,
+          geo: geo,
+          historical: historical,
+          latRaw: lat,
+          lngRaw: lng
+        });
         return;
       }
 
@@ -860,6 +871,12 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         openByDefault,
       );
 
+      if (!marker) {
+        console.error(`🗺️ [MapsComponent] ❌ Failed to create marker for ${target.name}`);
+      } else {
+        // console.log(`🗺️ [MapsComponent] ✅ Marker added for ${target.name}`);
+      }
+
       // Cerrar popups por defecto si hay más de 100 targets
       if ((this.targetsForMap?.length || 0) > 100 && marker?.getElement) {
         const el = marker.getElement();
@@ -871,6 +888,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         validMarkers.push({ lat: latNum, lng: lngNum });
       }
     });
+
+    console.log(`🗺️ [MapsComponent] Valid markers created: ${validMarkers.length}`);
 
     if (validMarkers.length) {
       // Al mostrar múltiples sin selección, usar vista amplia de RD

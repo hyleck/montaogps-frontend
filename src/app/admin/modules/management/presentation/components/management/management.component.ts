@@ -102,6 +102,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private loadingTargets: boolean = false;
   private targetsLoadCompletedFlag: boolean = false;
 
+  // Lista completa de targets para el mapa (sin paginación)
+  allTargets: any[] = [];
+  loadingAllTargets: boolean = false;
+
   // Propiedades para scroll infinito de targets
   private readonly initialPageSize: number = 60;
   private currentOffset: number = 0;
@@ -723,6 +727,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.selectedTargetForMap = null;
       this.targetIdFromUrl = null;
       this.enforceDefaultMapWhenNoTarget();
+    } else {
+      // Al mostrar el mapa, cargar todos los targets si hay un usuario seleccionado
+      if (this.selectedUser) {
+        this.loadAllTargetsForMap();
+      }
     }
 
     this.uiService.toggleMaps();
@@ -1109,7 +1118,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         isShared: isShared,
         offlineTimeText: offlineTimeText,
         offlineDateText: offlineDateText,
-        tag: target.tag
+        tag: target.tag,
+        historicalLocation: target.historicalLocation
       };
     });
   }
@@ -2333,6 +2343,78 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Desactivar estado de carga específico para targets
       this.loadingTargets = false;
       this.targetsLoadCompletedFlag = true;
+    }
+  }
+
+  private async loadAllTargetsForMap() {
+    if (!this.selectedUser) return;
+
+    // Si ya estamos cargando, no hacer nada
+    if (this.loadingAllTargets) return;
+
+    console.log('🗺️ Cargando TODOS los targets para el mapa...');
+    this.loadingAllTargets = true;
+
+    try {
+      const parentId = this.managementService.getCurrentUserId();
+      const userEmail = this.selectedUser?.email;
+      const LIMIT = 9999; // Límite alto para traer "todos"
+
+      // Cargar targets propios y compartidos en paralelo con límite alto
+      const targetsPromise = this.targetsService.getTargetsByUserId(
+        this.selectedUser._id,
+        parentId,
+        0,
+        LIMIT,
+        this.filterStatus,
+        this.filterTag || undefined
+      );
+
+      const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
+
+      const [targetsResponse, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
+
+      // Filtrar targets compartidos manualmente
+      let filteredSharedTargets = sharedTargets;
+      if (this.filterStatus !== 'all') {
+        filteredSharedTargets = sharedTargets.filter(t => {
+          const traccarStatus = t.traccarInfo?.status || 'offline';
+          const isOnline = traccarStatus === 'online';
+          return this.filterStatus === 'online' ? isOnline : !isOnline;
+        });
+      }
+
+      if (this.filterTag) {
+        filteredSharedTargets = filteredSharedTargets.filter(t => t.tag === this.filterTag);
+      }
+
+      const targets = targetsResponse.devices;
+
+      // Combinar targets
+      const ownTargetIds = new Set(targets.map(t => t._id));
+      const uniqueSharedTargets = filteredSharedTargets.filter(t => !ownTargetIds.has(t._id));
+      const combinedTargets = [...uniqueSharedTargets, ...targets];
+
+      // Marcar compartidos
+      const sharedTargetIds = new Set(uniqueSharedTargets.map(t => t._id));
+      combinedTargets.forEach(t => {
+        (t as any).isShared = sharedTargetIds.has(t._id);
+      });
+
+      // Mapear para la vista
+      this.allTargets = this.mapTargetsToView(combinedTargets);
+
+      console.log(`🗺️ ✅ ${this.allTargets.length} targets cargados para el mapa (de ${combinedTargets.length} combinados)`);
+      if (this.allTargets.length > 0) {
+        console.log('🗺️ Muestra de targets:', this.allTargets.slice(0, 3));
+      } else {
+        console.warn('🗺️ ⚠️ No se encontraron targets para mostrar en el mapa');
+      }
+
+    } catch (error) {
+      console.error('❌ Error al cargar todos los targets para el mapa:', error);
+    } finally {
+      this.loadingAllTargets = false;
     }
   }
 

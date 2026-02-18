@@ -485,7 +485,7 @@
                 </select>
             </div>
             <app-maps *ngIf="mapsKey" [attr.data-key]="mapsKey" [provider]="providerType" [theme]="providerTheme"
-                [selectedTarget]="selectedTargetForMap" [targetsForMap]="targetsList"
+                [selectedTarget]="selectedTargetForMap" [targetsForMap]="allTargets"
                 [vehicleTypeGetter]="getVehicleTypeByModelId.bind(this)" [preloadedStopTime]="selectedTargetStopTime">
             </app-maps>
         </div>
@@ -1064,14 +1064,14 @@
 
 <!-- Botones flotantes -->
 <div class="floating-buttons">
-    <button class="floating-shortcuts-btn" [class.vibrate]="false" *ngIf="shortcuts && shortcuts.length > 0"
-        (click)="toggleShortcutsMenu()">
+    <button class="floating-shortcuts-btn" [class.vibrate]="false"
+        *ngIf="shortcuts && shortcuts.length > 0 && !showMaps" (click)="toggleShortcutsMenu()">
         <i class="pi pi-th-large"></i>
         <span>Accesos Directos ({{shortcuts.length}})</span>
     </button>
 
     <button class="floating-priority-btn" [class.vibrate]="isVibrating"
-        *ngIf="priorityDevices && priorityDevices.length > 0 && currentUserAffiliationTypeId === 'empleado'"
+        *ngIf="priorityDevices && priorityDevices.length > 0 && currentUserAffiliationTypeId === 'empleado' && !showMaps"
         (click)="verifyConnectionPriority()">
         <i class="pi pi-exclamation-triangle"></i>
         <span>Prioridad ({{priorityDevices.length}})</span>
