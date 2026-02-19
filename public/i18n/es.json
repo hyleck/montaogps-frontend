@@ -360,7 +360,11 @@
     "inventory": "Inventario",
     "macro": "Macro",
     "monitoring": "Monitoreo",
-    "serverCosts": "Costos de servidores"
+    "serverCosts": "Costos de servidores",
+    "fleetManagement": "Gestión de flota",
+    "contracts": "Contratos",
+    "reservations": "Reservas",
+    "quotes": "Cotizaciones"
   },
   "serverCosts": {
     "title": "Costos de Servidores",
@@ -1513,6 +1517,15 @@
       "manageTags": "Gestionar etiquetas"
     },
     "userForm": {
+      "companyType": "Tipo de empresa",
+      "selectCompanyType": "Seleccione el tipo de empresa",
+      "companyTypeDescription": "Defina si la empresa es un dealer, rent a car, etc.",
+      "companyTypes": {
+        "dealer": "Dealer",
+        "rent_a_car": "Rent a car",
+        "financiera": "Financiera",
+        "rastreo_vehicular": "Rastreo vehicular"
+      },
       "title": "Formulario de Usuario",
       "personalInfo": "Información Personal",
       "name": "Nombre",

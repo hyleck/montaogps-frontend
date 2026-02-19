@@ -23,6 +23,11 @@ export interface AffiliationTypeOption {
     value: string;
 }
 
+export interface CompanyTypeOption {
+    label: string;
+    value: string;
+}
+
 export interface ProvinceOption { label: string; value: string }
 export interface MunicipalityOption { label: string; value: string }
 export interface ServiceOption { id: string; i18nKey: string }
@@ -95,6 +100,13 @@ export const AFFILIATION_TYPES: AffiliationTypeOption[] = [
     { label: 'Otro', value: 'otro' }
 ];
 
+export const COMPANY_TYPES: CompanyTypeOption[] = [
+    { label: 'Dealer', value: 'dealer' },
+    { label: 'Rent a car', value: 'rent_a_car' },
+    { label: 'Financiera', value: 'financiera' },
+    { label: 'Rastreo vehicular', value: 'rastreo_vehicular' }
+];
+
 export const USER_FORM_STYLES = [
     './styles/base.css',
     './styles/inputs.css',
@@ -104,7 +116,7 @@ export const USER_FORM_STYLES = [
     './styles/prime-ng.css',
     './styles/scrollbar.css',
     './styles/dark-mode.css'
-]; 
+];
 
 // Servicios técnicos (dinámicos con IDs y claves de traducción)
 export const TECHNICIAN_SERVICES: ServiceOption[] = [

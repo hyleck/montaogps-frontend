@@ -316,6 +316,27 @@
                                                 }}</small>
                                         </div>
 
+                                        <div class="settings-item" *ngIf="selectedProfileType === 'empresa'">
+                                            <div class="settings-item__header">
+                                                <i class="pi pi-building"></i>
+                                                <label for="companyType">{{ 'management.userForm.companyType' |
+                                                    translate }}</label>
+                                            </div>
+                                            <select [(ngModel)]="selectedCompanyType"
+                                                (ngModelChange)="updateSettingValue('company_type', $event)"
+                                                name="companyType" id="companyType" class="settings-dropdown">
+                                                <option value="">{{ 'management.userForm.selectCompanyType' | translate
+                                                    }}
+                                                </option>
+                                                <option *ngFor="let type of companyTypes" [value]="type.value">
+                                                    {{ type.label }}
+                                                    <!-- {{ 'management.userForm.companyTypes.' + type.value | translate }} -->
+                                                </option>
+                                            </select>
+                                            <small class="settings-description">{{
+                                                'management.userForm.companyTypeDescription' | translate }}</small>
+                                        </div>
+
                                         <!-- Sección visible solo para Técnicos -->
                                         <div class="settings-item tech-item"
                                             *ngIf="selectedAffiliationType === 'tecnico_empleado' || selectedAffiliationType === 'tecnico_independiente'">

@@ -30,6 +30,8 @@ export interface BasicUser {
   email: string;
   access_level_id: AccessLevel;
   affiliation_type_id?: string;
+  company_type_id?: string;
+  company_type?: string;
   root?: boolean;
   developer?: boolean;
   privileges?: UserPrivilege[];
@@ -56,12 +58,13 @@ export interface User {
 }
 
 export interface UserSettings {
-  [key: string]: string | boolean;
+  [key: string]: string | boolean | undefined;
   theme: string;
   language: string;
   notifications: boolean;
   affiliation_type: string;
   profile_type: string;
+  company_type?: string;
 }
 
 export interface ExtendedUser extends Omit<User, 'settings'> {
@@ -79,6 +82,7 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
   status: boolean;
   affiliation_type_id: string;
   profile_type_id: string;
+  company_type_id?: string;
   root?: boolean;
   developer?: boolean;
   tag?: string;
@@ -103,7 +107,8 @@ export function convertToExtendedUser(user: User): ExtendedUser {
       language: user.settings?.[0]?.language || 'es',
       notifications: user.settings?.[0]?.notifications ?? true,
       affiliation_type: (user as any).affiliation_type_id || 'cliente',
-      profile_type: (user as any).profile_type_id || 'personal'
+      profile_type: (user as any).profile_type_id || 'personal',
+      company_type: (user as any).company_type_id
     }
   };
 } 

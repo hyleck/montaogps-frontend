@@ -31,7 +31,9 @@ import {
     ProvinceOption,
     MunicipalityOption,
     TECHNICIAN_SERVICES,
-    ServiceOption
+    ServiceOption,
+    COMPANY_TYPES,
+    CompanyTypeOption
 } from './constants/user-form.constants';
 
 @Component({
@@ -128,6 +130,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     languages: LanguageOption[] = LANGUAGES;
     profileTypes: ProfileTypeOption[] = PROFILE_TYPES;
     affiliationTypes: AffiliationTypeOption[] = AFFILIATION_TYPES;
+    companyTypes: CompanyTypeOption[] = COMPANY_TYPES;
 
     // Propiedades intermedias para el enlace de datos
     selectedTheme: string = this.getSettingValue('theme') as string;
@@ -136,6 +139,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     selectedAffiliationType: string = '';
     selectedProfileType: string = '';
+    selectedCompanyType: string = '';
     // Campos para técnicos
     provinces: ProvinceOption[] = PROVINCES;
     municipalities: MunicipalityOption[] = MUNICIPALITIES[''];
@@ -298,6 +302,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.notificationsEnabled = true;
         this.selectedAffiliationType = 'cliente';
         this.selectedProfileType = 'personal';
+        this.selectedCompanyType = '';
         this.confirmPassword = '';
         this.user.password = '';
         this.activeTabIndex = 0;
@@ -317,6 +322,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.notificationsEnabled = true;
         this.selectedAffiliationType = 'cliente';
         this.selectedProfileType = 'personal';
+        this.selectedCompanyType = '';
         this.confirmPassword = '';
         this.user.password = '';
         this.user.password = '';
@@ -361,6 +367,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         // Asignamos explícitamente los valores para el tipo de afiliación y perfil
         this.selectedAffiliationType = user.affiliation_type_id || 'cliente';
         this.selectedProfileType = user.profile_type_id || 'personal';
+        this.selectedCompanyType = user.company_type_id || '';
 
         // Forzar detección de cambios
         this.cdr.detectChanges();
@@ -588,12 +595,14 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.user.profile_type_id = this.selectedProfileType;
         this.user.settings.affiliation_type = this.selectedAffiliationType;
         this.user.settings.profile_type = this.selectedProfileType;
+        this.user.settings.company_type = this.selectedCompanyType;
 
         // Asegurar que settings sea un objeto, no array
         const settingsObject = {
             ...this.user.settings,
             profile_type: this.selectedProfileType,
-            affiliation_type: this.selectedAffiliationType
+            affiliation_type: this.selectedAffiliationType,
+            company_type: this.selectedCompanyType
         };
 
         // Asegurar que los privilegios modificados se incluyan en el envío
@@ -609,6 +618,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             settings: [settingsObject], // Mantener como array pero con el objeto actualizado
             affiliation_type_id: this.selectedAffiliationType,
             profile_type_id: this.selectedProfileType,
+            company_type_id: this.selectedCompanyType,
             // Enviar también en nivel raíz por si el backend lo espera ahí
             profile_type: this.selectedProfileType,
             department_id: 'exampleDepartmentId',
@@ -708,7 +718,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     }
 
-    getSettingValue(key: keyof UserSettings): string | boolean {
+    getSettingValue(key: keyof UserSettings): string | boolean | undefined {
         return this.user.settings[key];
     }
 
@@ -724,6 +734,13 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 this.selectedMunicipality = '';
                 this.municipalities = MUNICIPALITIES[''];
                 this.technicianServices = [];
+            }
+        }
+
+        // Resetear company_type si el perfil ya no es empresa
+        if (key === 'profile_type' && typeof value === 'string') {
+            if (value !== 'empresa') {
+                this.selectedCompanyType = '';
             }
         }
     }
@@ -774,6 +791,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         sanitized.role = this.sanitizeString(payload.role);
         sanitized.profile_type = this.normalizeIdentifier(payload.profile_type);
         sanitized.profile_type_id = this.normalizeIdentifier(payload.profile_type_id);
+        sanitized.company_type_id = this.normalizeIdentifier(payload.company_type_id);
         sanitized.affiliation_type_id = this.normalizeIdentifier(payload.affiliation_type_id);
         sanitized.department_id = this.sanitizeString(payload.department_id);
         sanitized.province = this.sanitizeOptionalString(payload.province);
@@ -791,6 +809,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 language: this.normalizeIdentifier(setting.language),
                 affiliation_type: this.normalizeIdentifier(setting.affiliation_type),
                 profile_type: this.normalizeIdentifier(setting.profile_type),
+                company_type: this.normalizeIdentifier(setting.company_type),
                 notifications: !!setting.notifications
             }))
             : payload.settings;

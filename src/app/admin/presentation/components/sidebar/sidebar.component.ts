@@ -6,6 +6,7 @@ import { UserService } from '../../../../core/services/user.service';
 import { TranslateService } from '@ngx-translate/core';
 import { LangService } from '../../../../shareds/services/langi18/lang.service';
 import { InventoryService } from '../../../../core/services/inventory.service';
+import { BasicUser } from '../../../../core/interfaces/user.interface';
 
 @Component({
   selector: 'app-sidebar',
@@ -18,6 +19,7 @@ export class SidebarComponent implements OnInit {
   sidebarDisplayed = true;
   userName: string = '';
   systemLogo: string = 'logo/LOGO.png'; // Default logo
+  currentUser: BasicUser | null = null;
   private isEmployeeUser: boolean = false;
 
   sidaberOptions = {
@@ -32,6 +34,10 @@ export class SidebarComponent implements OnInit {
       { label: '', path: '/admin/macro', icon: 'pi pi-cog', badge: 0 },
       { label: '', path: '/admin/monitoring', icon: 'pi pi-eye', badge: 0 },
       { label: '', path: '/admin/server-costs', icon: 'pi pi-wallet', badge: 0 },
+      { label: '', path: '/admin/fleet-management', icon: 'pi pi-car', badge: 0 },
+      { label: '', path: '/admin/contracts', icon: 'pi pi-file', badge: 0 },
+      { label: '', path: '/admin/reservations', icon: 'pi pi-calendar', badge: 0 },
+      { label: '', path: '/admin/quotes', icon: 'pi pi-dollar', badge: 0 },
     ],
     profileTitle: '',
     profileItems: [
@@ -70,26 +76,37 @@ export class SidebarComponent implements OnInit {
       });
     }
 
-    const user = this.authService.getCurrentUser();
-    if (user) {
-      this.userName = `${user.name} ${user.last_name}`;
+
+
+    // Suscribirse a cambios de autenticación para actualizar el usuario
+    this.authService.authState$.subscribe(isAuthenticated => {
+      this.updateCurrentUser();
+    });
+
+    // Carga inicial del usuario
+    this.updateCurrentUser();
+  }
+
+  updateCurrentUser() {
+    this.currentUser = this.authService.getCurrentUser();
+    if (this.currentUser) {
+      const compType = (this.currentUser as any).company_type || (this.currentUser as any).company_type_id || 'N/A';
+      this.userName = `${this.currentUser.name} ${this.currentUser.last_name} [${compType}]`;
       this.sidaberOptions.profileItems[1].label = this.userName;
-      this.isEmployeeUser = user.affiliation_type_id === 'empleado';
+      this.isEmployeeUser = this.currentUser.affiliation_type_id === 'empleado';
+
       // Set monitoring path with current user ID when the current user is an employee
       if (this.isEmployeeUser) {
-        this.sidaberOptions.principalItems[3].path = `/admin/monitoring/${user.id}`;
+        this.sidaberOptions.principalItems[3].path = `/admin/monitoring/${this.currentUser.id}`;
       }
+
+      // Force change detection by re-assigning options if needed (or just relying on getter)
+      console.log('Sidebar - Current User Updated:', this.currentUser);
+    } else {
+      this.currentUser = null;
+      this.userName = '';
+      this.isEmployeeUser = false;
     }
-
-    this.status.statusChanges$.subscribe((newStatus) => {
-      if (newStatus && typeof newStatus.sidebar !== 'undefined') {
-        this.sidebarDisplayed = newStatus.sidebar as boolean;
-      }
-    });
-
-    this.translate.onLangChange.subscribe(() => {
-      this.updateTranslations();
-    });
   }
 
   loadUserProfile() {
@@ -124,6 +141,10 @@ export class SidebarComponent implements OnInit {
     this.sidaberOptions.principalItems[2].label = this.translate.instant('sidebar.macro');
     this.sidaberOptions.principalItems[3].label = this.translate.instant('sidebar.monitoring');
     this.sidaberOptions.principalItems[4].label = this.translate.instant('sidebar.serverCosts');
+    this.sidaberOptions.principalItems[5].label = this.translate.instant('sidebar.fleetManagement');
+    this.sidaberOptions.principalItems[6].label = this.translate.instant('sidebar.contracts');
+    this.sidaberOptions.principalItems[7].label = this.translate.instant('sidebar.reservations');
+    this.sidaberOptions.principalItems[8].label = this.translate.instant('sidebar.quotes');
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');
@@ -153,8 +174,7 @@ export class SidebarComponent implements OnInit {
 
   // Getter para verificar si el usuario es root
   get isRootUser(): boolean {
-    const currentUser = this.authService.getCurrentUser();
-    return currentUser?.root === true;
+    return this.currentUser?.root === true;
   }
 
   // Getter para obtener los elementos del menú principal filtrados por root
@@ -175,6 +195,35 @@ export class SidebarComponent implements OnInit {
       if (item.path === '/admin/inventory') {
         return this.isRootUser || this.authService.hasPrivilege('inventory', 'read');
       }
+
+      // Opciones exclusivas para rent_a_car
+      const rentACarOptions = [
+        '/admin/fleet-management',
+        '/admin/contracts',
+        '/admin/reservations',
+        '/admin/quotes'
+      ];
+
+      if (rentACarOptions.includes(item.path)) {
+        if (!this.currentUser) return false;
+
+        // Verificar si es rent_a_car (usando company_type_id o company_type según corresponda)
+        // Check settings first as it might be stored there
+        const settings = (this.currentUser as any).settings;
+
+        let companyType = (this.currentUser as any).company_type || (this.currentUser as any).company_type_id;
+
+        if (!companyType && Array.isArray(settings) && settings.length > 0) {
+          companyType = settings[0].company_type;
+        } else if (!companyType && settings && typeof settings === 'object') {
+          companyType = settings.company_type;
+        }
+
+        console.log('Checking Rent A Car option:', item.path, 'CompanyType:', companyType, 'User:', this.currentUser);
+
+        return companyType === 'rent_a_car';
+      }
+
       // Para otros elementos, mostrar siempre
       return true;
     });

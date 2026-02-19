@@ -136,6 +136,8 @@ export class AuthService {
         email: this.normalizeEmail(user.email),
         access_level_id: user.access_level_id,
         affiliation_type_id: (user as any).affiliation_type_id || (user as any).affiliation_type,
+        company_type_id: (user as any).company_type_id,
+        company_type: (user as any).company_type,
         root: rootBoolean,
         developer: developerBoolean
       };
