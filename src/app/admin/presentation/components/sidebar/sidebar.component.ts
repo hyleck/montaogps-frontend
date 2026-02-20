@@ -34,10 +34,7 @@ export class SidebarComponent implements OnInit {
       { label: '', path: '/admin/macro', icon: 'pi pi-cog', badge: 0 },
       { label: '', path: '/admin/monitoring', icon: 'pi pi-eye', badge: 0 },
       { label: '', path: '/admin/server-costs', icon: 'pi pi-wallet', badge: 0 },
-      { label: '', path: '/admin/fleet-management', icon: 'pi pi-car', badge: 0 },
-      { label: '', path: '/admin/contracts', icon: 'pi pi-file', badge: 0 },
-      { label: '', path: '/admin/reservations', icon: 'pi pi-calendar', badge: 0 },
-      { label: '', path: '/admin/quotes', icon: 'pi pi-dollar', badge: 0 },
+      { label: '', path: '/admin/montao-rent', icon: 'pi pi-car', badge: 0 },
     ],
     profileTitle: '',
     profileItems: [
@@ -141,10 +138,7 @@ export class SidebarComponent implements OnInit {
     this.sidaberOptions.principalItems[2].label = this.translate.instant('sidebar.macro');
     this.sidaberOptions.principalItems[3].label = this.translate.instant('sidebar.monitoring');
     this.sidaberOptions.principalItems[4].label = this.translate.instant('sidebar.serverCosts');
-    this.sidaberOptions.principalItems[5].label = this.translate.instant('sidebar.fleetManagement');
-    this.sidaberOptions.principalItems[6].label = this.translate.instant('sidebar.contracts');
-    this.sidaberOptions.principalItems[7].label = this.translate.instant('sidebar.reservations');
-    this.sidaberOptions.principalItems[8].label = this.translate.instant('sidebar.quotes');
+    this.sidaberOptions.principalItems[5].label = this.translate.instant('sidebar.montaoRent');
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');
@@ -170,6 +164,16 @@ export class SidebarComponent implements OnInit {
   toggleSidebar() {
     this.sidebarDisplayed = !this.sidebarDisplayed;
     this.status.setState('sidebar', this.sidebarDisplayed);
+  }
+
+  handleItemClick(event: Event, item: any) {
+    if (item.path === '/admin/montao-rent') {
+      event.preventDefault();
+      if (this.currentUser && this.currentUser.id) {
+        const base64Id = btoa(this.currentUser.id.toString());
+        window.open(`https://rent.montao.net/connect-gps?id=${base64Id}`, '_blank');
+      }
+    }
   }
 
   // Getter para verificar si el usuario es root
@@ -198,10 +202,7 @@ export class SidebarComponent implements OnInit {
 
       // Opciones exclusivas para rent_a_car
       const rentACarOptions = [
-        '/admin/fleet-management',
-        '/admin/contracts',
-        '/admin/reservations',
-        '/admin/quotes'
+        '/admin/montao-rent'
       ];
 
       if (rentACarOptions.includes(item.path)) {

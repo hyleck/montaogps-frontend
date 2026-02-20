@@ -361,10 +361,7 @@
     "macro": "Macro",
     "monitoring": "Monitoreo",
     "serverCosts": "Costos de servidores",
-    "fleetManagement": "Gestión de flota",
-    "contracts": "Contratos",
-    "reservations": "Reservas",
-    "quotes": "Cotizaciones"
+    "montaoRent": "Montao Rent"
   },
   "serverCosts": {
     "title": "Costos de Servidores",
