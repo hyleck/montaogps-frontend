@@ -110,6 +110,7 @@
     "FILTERS_OFFLINE_DURATION": "Tiempo fuera de línea",
     "FILTERS_OFFLINE_DURATION_ANY": "Todos los tiempos",
     "FILTERS_OFFLINE_DURATION_NO_DATA": "Sin fecha de actualización",
+    "FILTERS_OFFLINE_DURATION_CUSTOM_NO_DATA": "Sin fecha (Tiempo personalizado)",
     "FILTERS_OFFLINE_DURATION_LT_1H": "Menos de 1 hora",
     "FILTERS_OFFLINE_DURATION_LT_5H": "Menos de 5 horas",
     "FILTERS_OFFLINE_DURATION_LT_20H": "Menos de 20 horas",

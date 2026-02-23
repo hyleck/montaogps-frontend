@@ -70,6 +70,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   offlineDurationOptions: Array<{ label: string; value: string; minutes: number; comparison: 'lt' | 'gte' | 'custom' }> = [
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_NO_DATA', value: 'no-data', minutes: 0, comparison: 'lt' },
+    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_CUSTOM_NO_DATA', value: 'custom-no-data', minutes: 0, comparison: 'custom' as any }, // Using 'custom' to reuse the UI logic
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_1H', value: 'lt-1h', minutes: 60, comparison: 'lt' },
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_5H', value: 'lt-5h', minutes: 5 * 60, comparison: 'lt' },
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_20H', value: 'lt-20h', minutes: 20 * 60, comparison: 'lt' },
@@ -1786,8 +1787,12 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
     const lastUpdate = device?.traccarInfo?.lastUpdate;
 
-    if (!lastUpdate) {
-      return 'Fuera de línea (estado inicial)';
+    if (!lastUpdate || lastUpdate?.toString().toLowerCase() === 'never') {
+      const referenceDate = device.createdAt || device.activation_date;
+      if (referenceDate) {
+        return this.formatRegistrationDuration(referenceDate);
+      }
+      return 'Estado inicial';
     }
 
     return this.formatOfflineDuration(lastUpdate);
@@ -1857,6 +1862,53 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
   }
 
+  private formatRegistrationDuration(registrationDate: string | Date): string {
+    try {
+      const regDate = new Date(registrationDate);
+      const now = new Date();
+      const diffInMs = now.getTime() - regDate.getTime();
+
+      if (isNaN(regDate.getTime())) {
+        return 'Estado inicial (fecha inválida)';
+      }
+
+      if (diffInMs < 0) {
+        return 'Estado inicial (fecha futura)';
+      }
+
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+      const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+      const diffInWeeks = Math.floor(diffInDays / 7);
+      const diffInMonths = Math.floor(diffInDays / 30);
+      const diffInYears = Math.floor(diffInDays / 365);
+
+      if (diffInYears > 0) {
+        return `Estado inicial desde hace ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
+      }
+      if (diffInMonths > 0) {
+        return `Estado inicial desde hace ${diffInMonths} mes${diffInMonths > 1 ? 'es' : ''}`;
+      }
+      if (diffInWeeks > 0) {
+        return `Estado inicial desde hace ${diffInWeeks} semana${diffInWeeks > 1 ? 's' : ''}`;
+      }
+      if (diffInDays > 0) {
+        return `Estado inicial desde hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
+      }
+      if (diffInHours > 0) {
+        return `Estado inicial invariable desde hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+      }
+      if (diffInMinutes > 0) {
+        return `Estado inicial desde hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
+      }
+
+      return 'Estado inicial desde hace menos de 1 minuto';
+    } catch (error) {
+      console.error('Error formateando tiempo de estado inicial:', error);
+      return 'Estado inicial (error al calcular)';
+    }
+  }
+
   private getOfflineDurationInMinutes(device: any): number | null {
     const lastUpdate =
       device?.traccarInfo?.lastUpdate ||
@@ -1893,6 +1945,27 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       return duration === null;
     }
 
+    if (this._selectedOfflineDurationFilter === 'custom-no-data') {
+      if (duration !== null) {
+        return false; // This filter is ONLY for devices that have NO update date
+      }
+
+      const referenceDate = device.createdAt || device.activation_date;
+      if (!referenceDate) {
+        return false;
+      }
+
+      const refDateParsed = new Date(referenceDate);
+      if (isNaN(refDateParsed.getTime())) {
+        return false;
+      }
+
+      const diffInMs = Date.now() - refDateParsed.getTime();
+      const registrationDuration = diffInMs < 0 ? 0 : Math.floor(diffInMs / (1000 * 60));
+
+      return this.evaluateCustomOfflineDuration(registrationDuration);
+    }
+
     if (duration === null) {
       return false;
     }
@@ -1903,42 +1976,46 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       return duration > option.minutes;
     }
     if (option.comparison === 'custom') {
-      if (this.customOfflineTimeValue === null || this.customOfflineTimeValue === undefined) {
-        return true; // No value set, ignore filter or treat as match all
-      }
-      let minutesThreshold = 0;
-      const [comparison, unit] = this.customOfflineTimeUnit.split('-'); // e.g. 'lt' and 'hours' from 'lt-hours'
-
-      switch (unit) {
-        case 'hours':
-          minutesThreshold = this.customOfflineTimeValue * 60;
-          break;
-        case 'days':
-          minutesThreshold = this.customOfflineTimeValue * 24 * 60;
-          break;
-        case 'weeks':
-          minutesThreshold = this.customOfflineTimeValue * 7 * 24 * 60;
-          break;
-        case 'months':
-          minutesThreshold = this.customOfflineTimeValue * 30 * 24 * 60; // Approx
-          break;
-        default:
-          // Fallback if no split (legacy or default 'hours')
-          if (this.customOfflineTimeUnit === 'hours') minutesThreshold = this.customOfflineTimeValue * 60;
-          else if (this.customOfflineTimeUnit === 'days') minutesThreshold = this.customOfflineTimeValue * 24 * 60;
-          else if (this.customOfflineTimeUnit === 'weeks') minutesThreshold = this.customOfflineTimeValue * 7 * 24 * 60;
-          else if (this.customOfflineTimeUnit === 'months') minutesThreshold = this.customOfflineTimeValue * 30 * 24 * 60;
-          break;
-      }
-
-      if (comparison === 'lt') {
-        return duration < minutesThreshold;
-      } else {
-        // Default to greater than (gt) or if no comparison prefix
-        return duration > minutesThreshold;
-      }
+      return this.evaluateCustomOfflineDuration(duration);
     }
     return false;
+  }
+
+  private evaluateCustomOfflineDuration(durationInMinutes: number): boolean {
+    if (this.customOfflineTimeValue === null || this.customOfflineTimeValue === undefined) {
+      return true; // No value set, ignore filter or treat as match all
+    }
+    let minutesThreshold = 0;
+    const [comparison, unit] = this.customOfflineTimeUnit.split('-'); // e.g. 'lt' and 'hours' from 'lt-hours'
+
+    switch (unit) {
+      case 'hours':
+        minutesThreshold = this.customOfflineTimeValue * 60;
+        break;
+      case 'days':
+        minutesThreshold = this.customOfflineTimeValue * 24 * 60;
+        break;
+      case 'weeks':
+        minutesThreshold = this.customOfflineTimeValue * 7 * 24 * 60;
+        break;
+      case 'months':
+        minutesThreshold = this.customOfflineTimeValue * 30 * 24 * 60; // Approx
+        break;
+      default:
+        // Fallback if no split (legacy or default 'hours')
+        if (this.customOfflineTimeUnit === 'hours') minutesThreshold = this.customOfflineTimeValue * 60;
+        else if (this.customOfflineTimeUnit === 'days') minutesThreshold = this.customOfflineTimeValue * 24 * 60;
+        else if (this.customOfflineTimeUnit === 'weeks') minutesThreshold = this.customOfflineTimeValue * 7 * 24 * 60;
+        else if (this.customOfflineTimeUnit === 'months') minutesThreshold = this.customOfflineTimeValue * 30 * 24 * 60;
+        break;
+    }
+
+    if (comparison === 'lt') {
+      return durationInMinutes < minutesThreshold;
+    } else {
+      // Default to greater than (gt) or if no comparison prefix
+      return durationInMinutes > minutesThreshold;
+    }
   }
 
   isDateInRange(date: Date | string, fromDate: Date | null, toDate: Date | null): boolean {
