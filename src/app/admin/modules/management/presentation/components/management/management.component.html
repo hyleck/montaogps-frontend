@@ -1153,4 +1153,9 @@
             </div>
         </div>
     </div>
+    <ng-template pTemplate="footer"
+        *ngIf="shortcuts.length > 0 && currentUserAffiliationTypeId === 'empleado' && canDeleteDevices()">
+        <button pButton label="Cancelar Todos" icon="pi pi-trash" class="p-button-danger p-button-text"
+            style="width: 100%; justify-content: center;" (click)="confirmMassCancelShortcuts()"></button>
+    </ng-template>
 </p-dialog>

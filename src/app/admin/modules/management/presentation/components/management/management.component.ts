@@ -76,6 +76,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
   cancelDialogVisible: boolean = false;
   targetToCancel: any | null = null;
+  isMassCancelMode: boolean = false;
   cancelForm = {
     reason: '',
     description: ''
@@ -2676,11 +2677,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.cancelTarget();
+    if (this.isMassCancelMode) {
+      this.massCancelTargets();
+    } else {
+      this.cancelTarget();
+    }
   }
 
   cancelCancelation() {
     this.cancelDialogVisible = false;
+    this.isMassCancelMode = false;
     this.targetToCancel = null;
     this.cancelForm = {
       reason: '',
@@ -2802,8 +2808,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async createCancelationProcess(): Promise<void> {
-    if (!this.targetToCancel) return;
+  private async createCancelationProcess(customTarget?: any): Promise<void> {
+    const target = customTarget || this.targetToCancel;
+    if (!target) return;
 
     const reasonLabels: { [key: string]: string } = {
       'vehicle_sold': 'Vehículo vendido',
@@ -2826,17 +2833,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
       description: `Dispositivo cancelado - Razón: ${reasonLabel}`,
       details: this.cancelForm.description,
       target: {
-        _id: this.targetToCancel._id,
-        name: this.targetToCancel.name,
-        device_imei: this.targetToCancel.device_imei || this.targetToCancel.imei,
-        sim_card_number: this.targetToCancel.sim_card_number || this.targetToCancel.sim
+        _id: target._id,
+        name: target.name,
+        device_imei: target.device_imei || target.imei,
+        sim_card_number: target.sim_card_number || target.sim
       },
       user: {
         _id: this.authService.getCurrentUser()?.id || "ejemplo_user_id",
         name: this.authService.getCurrentUser()?.name || "Usuario Ejemplo",
         email: this.authService.getCurrentUser()?.email || "usuario@ejemplo.com"
       },
-      reference: this.targetToCancel._id,
+      reference: target._id,
       before: {
         status: "active",
         canceled: false
@@ -2851,6 +2858,105 @@ export class ManagementComponent implements OnInit, OnDestroy {
     };
 
     await this.targetsService.createProcess(processData);
+  }
+
+  confirmMassCancelShortcuts() {
+    if (!this.shortcuts || this.shortcuts.length === 0) {
+      return;
+    }
+
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de que deseas cancelar los ${this.shortcuts.length} dispositivos en tus accesos directos de forma masiva?`,
+      header: 'Cancelar Accesos Directos',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: this.translate.instant('management.targetForm.yes'),
+      rejectLabel: this.translate.instant('management.targetForm.no'),
+      accept: () => {
+        this.isMassCancelMode = true;
+        this.targetToCancel = { name: `${this.shortcuts.length} Dispositivos (Múltiple)`, device_imei: 'Múltiples IMEI' };
+        this.cancelForm = {
+          reason: '',
+          description: ''
+        };
+        this.cancelDialogVisible = true;
+      }
+    });
+  }
+
+  private async massCancelTargets(): Promise<void> {
+    if (!this.shortcuts || this.shortcuts.length === 0) return;
+
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Iniciando',
+      detail: `Cancelando ${this.shortcuts.length} dispositivos...`,
+      life: 3000
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    this.cancelDialogVisible = false;
+
+    // We keep a secondary copy since we are going to modify the arrays
+    const targetsToProcess = [...this.shortcuts];
+
+    try {
+      for (const target of targetsToProcess) {
+        try {
+          await this.targetsService.cancelTarget(target._id, {
+            reason: this.cancelForm.reason,
+            description: this.cancelForm.description
+          });
+
+          await this.createCancelationProcess(target);
+
+          // Actualizar UI para removerlo inmediatamente de la vista principal si estuviese ahi
+          this.targets = this.targets.filter(t => t._id !== target._id);
+          this.targetsList = this.targetsList.filter(t => t._id !== target._id);
+
+          successCount++;
+        } catch (err) {
+          console.error(`Error cancelando el objetivo ${target._id}:`, err);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Completado',
+          detail: `Se han cancelado ${successCount} objetivos correctamente.`,
+          life: 5000
+        });
+
+        // Vaciar la lista de accesos directos
+        this.shortcuts = [];
+        localStorage.setItem('targetShortcuts', JSON.stringify([]));
+        this.showShortcutsDialog = false;
+      }
+
+      if (errorCount > 0) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Atención',
+          detail: `Hubo problemas al cancelar ${errorCount} objetivos.`,
+          life: 5000
+        });
+      }
+    } catch (globalErr) {
+      console.error('Error global durante la cancelación masiva:', globalErr);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Hubo un error del sistema durante el proceso de cancelación masiva.',
+        life: 5000
+      });
+    } finally {
+      this.isMassCancelMode = false;
+      this.targetToCancel = null;
+      this.cancelForm = { reason: '', description: '' };
+    }
   }
 
   /**
