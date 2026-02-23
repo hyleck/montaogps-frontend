@@ -1129,7 +1129,7 @@
 </p-dialog>
 
 <!-- Dialogo de Accesos Directos -->
-<p-dialog [(visible)]="showShortcutsDialog" [modal]="true" [style]="{width: '400px'}" [draggable]="false"
+<p-dialog [(visible)]="showShortcutsDialog" [modal]="true" [style]="{width: '650px'}" [draggable]="false"
     [resizable]="false" header="Accesos Directos">
     <div class="p-fluid">
         <p *ngIf="shortcuts.length === 0" style="text-align: center; color: var(--globalColorTextMuted);">
@@ -1155,7 +1155,78 @@
     </div>
     <ng-template pTemplate="footer"
         *ngIf="shortcuts.length > 0 && currentUserAffiliationTypeId === 'empleado' && canDeleteDevices()">
-        <button pButton label="Cancelar Todos" icon="pi pi-trash" class="p-button-danger p-button-text"
-            style="width: 100%; justify-content: center;" (click)="confirmMassCancelShortcuts()"></button>
+
+        <div *ngIf="!showMassActionButtons" style="display: flex; justify-content: flex-end; width: 100%;">
+            <button pButton label="Procesos" icon="pi pi-cog" class="p-button-secondary p-button-outlined"
+                (click)="showMassActionButtons = true" [style]="{width: '100%'}"></button>
+        </div>
+
+        <div *ngIf="showMassActionButtons" style="display: flex; gap: 8px; width: 100%; flex-wrap: wrap;">
+            <button pButton label="Transferir Todos" icon="pi pi-directions" class="p-button-info p-button-outlined"
+                style="flex: 1 1 calc(33% - 8px); justify-content: center;"
+                (click)="confirmMassTransferShortcuts()"></button>
+            <button pButton label="Suspender Todos" icon="pi pi-pause" class="p-button-warning p-button-outlined"
+                style="flex: 1 1 calc(33% - 8px); justify-content: center;"
+                (click)="confirmMassSuspendShortcuts()"></button>
+            <button pButton label="Cancelar Todos" icon="pi pi-trash" class="p-button-danger p-button-outlined"
+                style="flex: 1 1 calc(33% - 8px); justify-content: center;"
+                (click)="confirmMassCancelShortcuts()"></button>
+
+            <button pButton label="Ocultar Procesos" icon="pi pi-times"
+                class="p-button-text p-button-secondary p-button-sm"
+                style="width: 100%; justify-content: center; margin-top: 4px;"
+                (click)="showMassActionButtons = false"></button>
+        </div>
+    </ng-template>
+</p-dialog>
+
+<!-- Diálogo de Transferencia Masiva -->
+<p-dialog [(visible)]="displayTransferDialog" [modal]="true" [style]="{width: '450px'}" header="Transferencia Masiva"
+    [closable]="!isTransferring" (onHide)="cancelMassTransfer()">
+
+    <div class="p-fluid">
+        <div class="p-field">
+            <label for="transferEmail">Correo del nuevo propietario</label>
+            <div class="p-inputgroup">
+                <input id="transferEmail" type="text" pInputText [value]="transferEmailInput"
+                    (input)="onTransferEmailInputChange($event)" (keypress)="onTransferEmailInputKeypress($event)"
+                    placeholder="ejemplo@correo.com" [disabled]="isTransferring || searchingUserForTransfer">
+                <button type="button" pButton icon="pi pi-search" (click)="searchUserForTransfer()"
+                    [disabled]="isTransferring || searchingUserForTransfer || !transferEmailInput"
+                    [loading]="searchingUserForTransfer"></button>
+            </div>
+            <small class="p-error" *ngIf="transferEmailError">{{transferEmailError}}</small>
+        </div>
+
+        <div *ngIf="foundUserForTransfer" class="p-mt-3 p-p-3"
+            style="background-color: var(--globalColorPanelBackground); border-radius: 4px; border: 1px solid var(--globalColorBorder);">
+            <h4 class="p-m-0 p-mb-2">Usuario Encontrado</h4>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <span><strong>Nombre:</strong> {{foundUserForTransfer.name}} {{foundUserForTransfer.last_name ||
+                    ''}}</span>
+                <span><strong>Correo:</strong> {{foundUserForTransfer.email}}</span>
+                <span *ngIf="foundUserForTransfer.phone"><strong>Teléfono:</strong>
+                    {{foundUserForTransfer.phone}}</span>
+                <span><strong>Tipo:</strong> {{foundUserForTransfer.profile_type_id | titlecase}}</span>
+            </div>
+        </div>
+
+        <p *ngIf="foundUserForTransfer" class="p-mt-4" style="color: var(--globalColorTextMuted);">
+            ¿Deseas transferir los <strong>{{shortcuts ? shortcuts.length : 0}}</strong> dispositivos seleccionados a
+            este usuario?
+        </p>
+
+        <div *ngIf="isTransferring" class="p-mt-4" style="text-align: center;">
+            <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: var(--globalColorPrimary);"></i>
+            <p class="p-mt-2">Procesando transferencia masiva, por favor espere...</p>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button pButton type="button" label="Cancelar" icon="pi pi-times" class="p-button-text"
+            (click)="cancelMassTransfer()" [disabled]="isTransferring"></button>
+        <button pButton type="button" label="Transferir" icon="pi pi-check" class="p-button-success"
+            (click)="processMassTransfer()" [disabled]="!foundUserForTransfer || isTransferring"
+            [loading]="isTransferring"></button>
     </ng-template>
 </p-dialog>

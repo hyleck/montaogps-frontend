@@ -2513,11 +2513,17 @@
 
 /* Shortcuts Modal Styles */
 .shortcuts-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
   max-height: 400px;
   overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .shortcuts-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 .shortcut-item {

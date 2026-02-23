@@ -66,6 +66,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // Shortcuts
   shortcuts: any[] = [];
   showShortcutsDialog: boolean = false;
+  showMassActionButtons: boolean = false;
+
+  // Mass Transfer shortcuts properties
+  displayTransferDialog: boolean = false;
+  transferEmailInput: string = '';
+  transferEmailError: string = '';
+  foundUserForTransfer: User | null = null;
+  searchingUserForTransfer: boolean = false;
+  isTransferring: boolean = false;
 
   private priorityIntervalId: any;
   private vibrationIntervalId: any;
@@ -744,6 +753,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   toggleShortcutsMenu() {
     this.showShortcutsDialog = true;
+    this.showMassActionButtons = false;
   }
 
   loadShortcuts() {
@@ -2858,6 +2868,253 @@ export class ManagementComponent implements OnInit, OnDestroy {
     };
 
     await this.targetsService.createProcess(processData);
+  }
+
+  confirmMassSuspendShortcuts() {
+    if (!this.shortcuts || this.shortcuts.length === 0) {
+      return;
+    }
+
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de que deseas suspender (desactivar) los ${this.shortcuts.length} dispositivos en tus accesos directos de forma masiva?`,
+      header: 'Suspender Accesos Directos',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: this.translate.instant('management.targetForm.yes'),
+      rejectLabel: this.translate.instant('management.targetForm.no'),
+      accept: () => {
+        this.massSuspendTargets();
+      }
+    });
+  }
+
+  private async massSuspendTargets(): Promise<void> {
+    if (!this.shortcuts || this.shortcuts.length === 0) return;
+
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Iniciando',
+      detail: `Suspendiendo ${this.shortcuts.length} dispositivos...`,
+      life: 3000
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    this.showShortcutsDialog = false;
+
+    const targetsToProcess = [...this.shortcuts];
+
+    try {
+      for (const target of targetsToProcess) {
+        try {
+          // Prepare the update payload for suspension
+          const updateData = {
+            status: false,
+            last_change_date: new Date()
+          };
+
+          await this.targetsService.updateTarget(target._id, updateData);
+
+          // Optionally, create a process out of it, or just let status update be enough.
+          // Suspensions don't typically have a specific process in the form other than regular update,
+          // However, we can create an empty 'ACTUALIZADO' process if needed, but simple update is sufficient.
+
+          // Actualizar UI para reflejar status falso
+          const uiTarget = this.targetsList.find(t => t._id === target._id) as any;
+          if (uiTarget && uiTarget.originalTarget) {
+            uiTarget.originalTarget.status = false;
+          }
+          const masterTarget = this.targets.find(t => t._id === target._id) as any;
+          if (masterTarget && masterTarget.originalTarget) {
+            masterTarget.originalTarget.status = false;
+          }
+
+          successCount++;
+        } catch (err) {
+          console.error(`Error suspendiendo el objetivo ${target._id}:`, err);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Completado',
+          detail: `Se han suspendido ${successCount} objetivos correctamente.`,
+          life: 5000
+        });
+
+        // Vaciar la lista de accesos directos (opcional, pero consistente con cancelar)
+        this.shortcuts = [];
+        localStorage.setItem('targetShortcuts', JSON.stringify([]));
+      }
+
+      if (errorCount > 0) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Atención',
+          detail: `Hubo problemas al suspender ${errorCount} objetivos.`,
+          life: 5000
+        });
+      }
+    } catch (globalErr) {
+      console.error('Error global durante la suspensión masiva:', globalErr);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Hubo un error del sistema durante el proceso de suspensión masiva.',
+        life: 5000
+      });
+    }
+  }
+
+  // --- MASS TRANSFER METHODS ---
+
+  confirmMassTransferShortcuts() {
+    if (!this.shortcuts || this.shortcuts.length === 0) {
+      return;
+    }
+
+    this.transferEmailInput = '';
+    this.transferEmailError = '';
+    this.foundUserForTransfer = null;
+    this.searchingUserForTransfer = false;
+    this.isTransferring = false;
+    this.displayTransferDialog = true;
+    this.showShortcutsDialog = false; // Close shortcuts list to focus on transfer
+  }
+
+  cancelMassTransfer() {
+    this.displayTransferDialog = false;
+    this.transferEmailInput = '';
+    this.transferEmailError = '';
+    this.foundUserForTransfer = null;
+    this.searchingUserForTransfer = false;
+    this.isTransferring = false;
+  }
+
+  onTransferEmailInputChange(event: Event) {
+    const target = event.target as HTMLInputElement;
+    this.transferEmailInput = target.value;
+  }
+
+  onTransferEmailInputKeypress(event: KeyboardEvent) {
+    if (event.key === 'Enter') {
+      this.searchUserForTransfer();
+    }
+  }
+
+  async searchUserForTransfer() {
+    const email = this.transferEmailInput.trim();
+    this.transferEmailError = '';
+    this.foundUserForTransfer = null;
+
+    if (!email) {
+      this.transferEmailError = 'El correo electrónico es requerido';
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      this.transferEmailError = 'Por favor ingrese un correo electrónico válido';
+      return;
+    }
+
+    try {
+      this.searchingUserForTransfer = true;
+      const user = await this.userService.getByEmail(email).toPromise();
+
+      if (!user) {
+        this.transferEmailError = 'No se encontró ningún usuario con ese correo electrónico';
+        return;
+      }
+      this.foundUserForTransfer = user;
+    } catch (error: any) {
+      console.error('Error al buscar usuario para transferencia:', error);
+      if (error.status === 404) {
+        this.transferEmailError = 'No se encontró ningún usuario con ese correo electrónico';
+      } else if (error.status === 400) {
+        this.transferEmailError = 'Formato de correo electrónico inválido';
+      } else {
+        this.transferEmailError = 'Error al buscar el usuario. Intente nuevamente.';
+      }
+    } finally {
+      this.searchingUserForTransfer = false;
+    }
+  }
+
+  async processMassTransfer() {
+    if (!this.foundUserForTransfer) {
+      this.transferEmailError = 'Debe buscar y seleccionar un usuario primero';
+      return;
+    }
+
+    if (!this.shortcuts || this.shortcuts.length === 0) return;
+
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Iniciando Transferencia',
+      detail: `Transfiriendo ${this.shortcuts.length} dispositivos a ${this.foundUserForTransfer.name}...`,
+      life: 3000
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+    this.isTransferring = true;
+
+    try {
+      // Create a copy of the array we are processing
+      const targetsToProcess = [...this.shortcuts];
+
+      for (const target of targetsToProcess) {
+        try {
+          await this.targetsService.transferTarget(target._id, this.foundUserForTransfer._id);
+
+          // Remove from local lists since it no longer belongs to the current parent context
+          this.targets = this.targets.filter(t => t._id !== target._id);
+          this.targetsList = this.targetsList.filter(t => t._id !== target._id);
+
+          successCount++;
+        } catch (err) {
+          console.error(`Error transfiriendo el objetivo ${target._id}:`, err);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Transferencia Exitosa',
+          detail: `Se han transferido ${successCount} objetivos a ${this.foundUserForTransfer.name} ${this.foundUserForTransfer.last_name || ''}`,
+          life: 5000
+        });
+
+        // Clear shortcuts after transfer
+        this.shortcuts = [];
+        localStorage.setItem('targetShortcuts', JSON.stringify([]));
+      }
+
+      if (errorCount > 0) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Atención',
+          detail: `Hubo problemas al transferir ${errorCount} objetivos.`,
+          life: 5000
+        });
+      }
+    } catch (globalErr) {
+      console.error('Error global durante la transferencia masiva:', globalErr);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo completar la transferencia masiva.',
+        life: 5000
+      });
+    } finally {
+      this.isTransferring = false;
+      this.displayTransferDialog = false;
+    }
   }
 
   confirmMassCancelShortcuts() {
