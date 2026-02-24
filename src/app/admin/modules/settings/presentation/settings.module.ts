@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { PrimengModule } from '@shared/libraries/primeng/primeng.module';
 import { CloudModule } from '../../../../shareds/components/cloud/cloud.module';
 import { SettingsRoutingModule } from './settings-routing.module';
@@ -19,6 +19,7 @@ import { SectorsSettingsComponent } from './components/settings/sectors-settings
 import { SupportSettingsComponent } from './components/settings/support-settings/support-settings.component';
 import { TagsSettingsComponent } from './components/settings/tags-settings/tags-settings.component';
 import { CustomizerSettingsComponent } from './components/settings/customizer-settings/customizer-settings.component';
+import { PushManagerSettingsComponent } from './components/settings/push-manager-settings/push-manager-settings.component';
 
 @NgModule({
   declarations: [
@@ -33,11 +34,13 @@ import { CustomizerSettingsComponent } from './components/settings/customizer-se
     ProtocolsSettingsComponent,
     HistorialesSettingsComponent,
     SectorsSettingsComponent,
-    SupportSettingsComponent
+    SupportSettingsComponent,
+    PushManagerSettingsComponent
   ],
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     PrimengModule,
     SettingsRoutingModule,
     TranslateModule,

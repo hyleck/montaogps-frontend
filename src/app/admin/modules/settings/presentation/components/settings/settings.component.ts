@@ -29,6 +29,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     SupportSettingsDisplay: boolean = false;
     CustomizerSettingsDisplay: boolean = false;
     TagsSettingsDisplay: boolean = false;
+    PushManagerSettingsDisplay: boolean = false;
 
     // Estado del análisis de historiales
     isHistorialesAnalysisRunning: boolean = false;
@@ -122,6 +123,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
                 icon: 'pi pi-code',
                 descriptionKey: 'settings.customizer.description',
                 action: () => this.CustomizerSettingsDisplay = true
+            },
+            {
+                titleKey: 'settings.pushManager.title',
+                icon: 'pi pi-bell',
+                descriptionKey: 'settings.pushManager.description',
+                action: () => this.PushManagerSettingsDisplay = true
             }
 
         ];

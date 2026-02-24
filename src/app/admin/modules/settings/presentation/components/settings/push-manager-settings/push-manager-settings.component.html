@@ -1,0 +1,82 @@
+<div class="push-manager-wrapper">
+    <div class="info-banner">
+        <i class="pi pi-info-circle"></i>
+        <p>Envía notificaciones push masivas o limita el alcance seleccionando tipos de perfiles, afiliaciones o
+            industrias. Si no seleccionas ningún filtro, la notificación será enviada a todos los usuarios.</p>
+    </div>
+
+    <form [formGroup]="pushForm" (ngSubmit)="sendPush()">
+        <div class="form-grid">
+
+            <!-- Left Column: Content -->
+            <div class="form-column">
+                <div class="column-header">
+                    <i class="pi pi-comment text-primary"></i>
+                    <span>Contenido del Mensaje</span>
+                </div>
+
+                <div class="field-wrapper">
+                    <label for="title" class="field-label">Título de la Notificación</label>
+                    <input id="title" type="text" formControlName="title"
+                        placeholder="Ej: Nueva actualización disponible" class="native-input w-full" />
+                    <small class="p-error block mt-2"
+                        *ngIf="pushForm.get('title')?.invalid && pushForm.get('title')?.touched">
+                        <i class="pi pi-exclamation-circle mr-1"></i> El título es obligatorio.
+                    </small>
+                </div>
+
+                <div class="field-wrapper flex-grow">
+                    <label for="body" class="field-label">Mensaje (Cuerpo)</label>
+                    <textarea id="body" formControlName="body" placeholder="Escribe tu mensaje detallado aquí..."
+                        class="native-textarea w-full"
+                        style="resize: none; min-height: 14rem; height: 100%;"></textarea>
+                    <small class="p-error block mt-2"
+                        *ngIf="pushForm.get('body')?.invalid && pushForm.get('body')?.touched">
+                        <i class="pi pi-exclamation-circle mr-1"></i> El cuerpo del mensaje es obligatorio.
+                    </small>
+                </div>
+            </div>
+
+            <!-- Right Column: Filters -->
+            <div class="form-column">
+                <div class="column-header">
+                    <i class="pi pi-users text-primary"></i>
+                    <span>Filtros de Destinatarios</span>
+                    <small>(Opcionales)</small>
+                </div>
+
+                <div class="field-wrapper">
+                    <label class="field-label">Tipos de Perfil</label>
+                    <select formControlName="profileTypes" class="native-select w-full">
+                        <option value="">Todos los perfiles</option>
+                        <option *ngFor="let opt of profileTypes" [value]="opt.value">{{ opt.label }}</option>
+                    </select>
+                </div>
+
+                <div class="field-wrapper">
+                    <label class="field-label">Tipos de Afiliación</label>
+                    <select formControlName="affiliationTypes" class="native-select w-full">
+                        <option value="">Todas las afiliaciones</option>
+                        <option *ngFor="let opt of affiliationTypes" [value]="opt.value">{{ opt.label }}</option>
+                    </select>
+                </div>
+
+                <div class="field-wrapper">
+                    <label class="field-label">Tipos de Empresas</label>
+                    <select formControlName="companyTypes" class="native-select w-full">
+                        <option value="">Todas las empresas</option>
+                        <option *ngFor="let opt of companyTypes" [value]="opt.value">{{ opt.label }}</option>
+                    </select>
+                </div>
+
+                <div class="submit-btn-wrapper pt-3">
+                    <button type="submit" [disabled]="pushForm.invalid || isSending" class="native-submit-btn w-full">
+                        <i class="pi" [ngClass]="isSending ? 'pi-spinner pi-spin' : 'pi-send'"></i>
+                        {{ isSending ? 'Enviando...' : 'Enviar Notificación Masiva' }}
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>

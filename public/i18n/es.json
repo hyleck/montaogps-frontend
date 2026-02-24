@@ -562,6 +562,10 @@
       "no_save_permission": "Sin permisos para guardar",
       "no_actions_permission": "Sin acciones"
     },
+    "pushManager": {
+      "title": "Push Manager",
+      "description": "Gestión de notificaciones push."
+    },
     "sectors": {
       "title": "Sectores",
       "description": "Configuración de sectores operativos",

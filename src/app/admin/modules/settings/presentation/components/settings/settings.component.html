@@ -92,4 +92,10 @@
         <app-tags-settings></app-tags-settings>
     </p-dialog>
 
+    <p-dialog [header]="'settings.pushManager.title' | translate" [modal]="true"
+        [(visible)]="PushManagerSettingsDisplay" [style]="{width: '70vw', maxWidth: '900px'}"
+        [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
+        <app-push-manager-settings></app-push-manager-settings>
+    </p-dialog>
+
 </div>

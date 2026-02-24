@@ -1,0 +1,176 @@
+.push-manager-wrapper {
+    padding: 0.5rem 0;
+}
+
+.info-banner {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.25rem;
+    background: var(--managementColorInputSearch);
+    border-left: 4px solid var(--globalColorPrimaryInmutable);
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+
+.info-banner i {
+    font-size: 1.5rem;
+    margin-top: 0.1rem;
+}
+
+.info-banner p {
+    margin: 0;
+    color: var(--globalColorTextInput);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: flex-start;
+}
+
+.column-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--globalColorTextInput);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--globalColorBorderDark);
+}
+
+.column-header small {
+    font-size: 0.85rem;
+    font-weight: 400;
+    opacity: 0.6;
+    margin-left: auto;
+}
+
+.field-label {
+    display: block;
+    margin-bottom: 0.6rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--globalColorTextInput);
+}
+
+.field-wrapper {
+    margin-bottom: 1.75rem;
+}
+
+/* NATIVE ELEMENTS STYLING */
+
+.native-input,
+.native-textarea {
+    background: var(--managementColorInputSearch);
+    border: 1.5px solid var(--globalColorBorderDark);
+    color: var(--globalColorTextInput);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.2s ease;
+    outline: none;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.native-input::placeholder,
+.native-textarea::placeholder {
+    color: var(--globalColorTextInput);
+    opacity: 0.5;
+}
+
+.native-input:focus,
+.native-textarea:focus {
+    border-color: var(--globalColorPrimaryInmutable);
+    box-shadow: 0 0 0 3px var(--globalColorInputBorderAccent);
+    background: var(--globalColorBackground);
+}
+
+/* NATIVE MULTIPLE SELECT */
+.native-select-multiple {
+    background: var(--managementColorInputSearch);
+    border: 1.5px solid var(--globalColorBorderDark);
+    color: var(--globalColorTextInput);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+    outline: none;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.5rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--globalColorScrollThumb) transparent;
+}
+
+.native-select-multiple:focus {
+    border-color: var(--globalColorPrimaryInmutable);
+    box-shadow: 0 0 0 3px var(--globalColorInputBorderAccent);
+}
+
+.native-select-multiple option {
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 2px;
+    color: var(--globalColorTextInput);
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.native-select-multiple option:hover {
+    background: rgba(255, 255, 255, 0.05);
+    /* Adapt if light theme */
+}
+
+.native-select-multiple option:checked {
+    background: var(--globalColorPrimaryInmutable);
+    color: white;
+    /* Important for contrast */
+}
+
+/* NATIVE SUBMIT BUTTON */
+.native-submit-btn {
+    background: var(--globalColorPrimaryInmutable);
+    color: white;
+    border: none;
+    font-weight: 600;
+    padding: 0.85rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.native-submit-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--globalColorInputBorderAccent);
+    filter: brightness(1.1);
+}
+
+.native-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.submit-btn-wrapper {
+    margin-top: 2rem;
+}
+
+@media (max-width: 900px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}

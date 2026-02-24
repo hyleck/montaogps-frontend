@@ -126,6 +126,15 @@
                                                 placeholder="Repita la contraseña" type="password" id="confirmPassword"
                                                 [required]="!userInput">
                                         </div>
+
+                                        <div class="user-form__field" *ngIf="userInput && isCurrentUserEmployee"
+                                            style="margin-top: 1rem;">
+                                            <button type="button" class="button button--primary-flat"
+                                                style="border: 2px solid var(--globalColorPrimaryInmutable); padding: 0.75rem; width: 100%; border-radius: 8px; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
+                                                (click)="openPushModal()">
+                                                <i class="pi pi-send"></i> Enviar Notificación Personalizada
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -141,6 +150,38 @@
                         <p-dialog [(visible)]="showContactsModal" [modal]="true" [draggable]="false" [resizable]="false"
                             [style]="{ width: '500px' }" header="Contactos" (onHide)="closeContacts()">
                             <app-contacts [referenceId]="user._id || ''"></app-contacts>
+                        </p-dialog>
+
+                        <p-dialog [(visible)]="displayPushModal" [modal]="true" [draggable]="false" [resizable]="false"
+                            [style]="{ width: '450px' }" header="Enviar Notificación Personalizada"
+                            styleClass="app-dark-dialog" appendTo="body">
+                            <div class="flex flex-column gap-3 mt-3 p-fluid">
+                                <div class="field" style="margin-top: 1.5rem;">
+                                    <label class="font-bold block"
+                                        style="color: var(--globalColorTextInput); font-weight: 600;">Título de la
+                                        Notificación</label>
+                                    <input type="text" pInputText [(ngModel)]="pushTitle"
+                                        [ngModelOptions]="{standalone: true}" placeholder="Ej: Aviso importante"
+                                        style="width: 100%; border-radius: 8px; margin-top: 0.5rem; padding: 0.75rem;" />
+                                </div>
+                                <div class="field" style="margin-top: 1rem;">
+                                    <label class="font-bold block"
+                                        style="color: var(--globalColorTextInput); font-weight: 600;">Mensaje
+                                        (Cuerpo)</label>
+                                    <textarea pInputTextarea [(ngModel)]="pushBody"
+                                        [ngModelOptions]="{standalone: true}" placeholder="Escribe el mensaje aquí..."
+                                        style="width: 100%; min-height: 120px; resize: none; border-radius: 8px; margin-top: 0.5rem; padding: 0.75rem; font-family: inherit;"></textarea>
+                                </div>
+                            </div>
+                            <ng-template pTemplate="footer">
+                                <button pButton pRipple label="Cancelar" icon="pi pi-times"
+                                    class="p-button-text p-button-secondary"
+                                    (click)="displayPushModal = false"></button>
+                                <button pButton pRipple label="Enviar" icon="pi pi-send" class="p-button-primary"
+                                    style="border-radius: 8px;" [loading]="isSendingPush"
+                                    [disabled]="!pushTitle || !pushBody || isSendingPush"
+                                    (click)="sendPersonalPush()"></button>
+                            </ng-template>
                         </p-dialog>
                     </p-tabPanel>
 

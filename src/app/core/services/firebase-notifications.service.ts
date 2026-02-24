@@ -166,6 +166,20 @@ export class FirebaseNotificationsService {
     }
   }
 
+  sendMassNotification(data: { title: string; body: string; data?: Record<string, string>; profileTypes?: string[]; affiliationTypes?: string[]; companyTypes?: string[]; }) {
+    return this.http.post<{ success: boolean; sentCount: number; errorCount: number }>(
+      `${environment.apiUrl}/notifications/mass`,
+      data
+    );
+  }
+
+  sendTestNotification(data: { topic: string; title: string; body: string; data?: Record<string, string> }) {
+    return this.http.post<{ success: boolean; messageId?: string }>(
+      `${environment.apiUrl}/notifications/test`,
+      data
+    );
+  }
+
   getMyNotifications() {
     return this.http.get<NotificationLog[]>(`${environment.apiUrl}/notifications/my-notifications`);
   }

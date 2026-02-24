@@ -12,6 +12,7 @@ import { PrivilegeService } from './services/privilege.service';
 import { Subject, takeUntil } from 'rxjs';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { CloudService } from '@core/services/cloud.service';
+import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
 
 import {
     AVAILABLE_MODULES, // Lista de módulos disponibles
@@ -156,6 +157,12 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     activeTabIndex: number = 0;
     showContactsModal: boolean = false;
 
+    // Push Notifications
+    displayPushModal: boolean = false;
+    pushTitle: string = '';
+    pushBody: string = '';
+    isSendingPush: boolean = false;
+
     // Agregamos una nueva propiedad para controlar si estamos inicializando el formulario de edición
     private isInitializingEditForm: boolean = false;
 
@@ -171,7 +178,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         private privilegeService: PrivilegeService,
         private brandsService: VehicleBrandsService,
         private cdr: ChangeDetectorRef,
-        private cloudService: CloudService
+        private cloudService: CloudService,
+        private firebaseNotificationsService: FirebaseNotificationsService
     ) { }
 
     onPhotoSelected(event: any) {
@@ -179,6 +187,47 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         if (file) {
             this.uploadProfilePhoto(file);
         }
+    }
+
+    openPushModal() {
+        this.pushTitle = '';
+        this.pushBody = '';
+        this.displayPushModal = true;
+    }
+
+    sendPersonalPush() {
+        if (!this.pushTitle || !this.pushBody || !this.user._id) return;
+
+        this.isSendingPush = true;
+        const payload = {
+            title: this.pushTitle,
+            body: this.pushBody,
+            topic: this.user._id.toString()
+        };
+
+        this.firebaseNotificationsService.sendTestNotification(payload).subscribe({
+            next: (res: any) => {
+                this.isSendingPush = false;
+                if (res.success) {
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Éxito',
+                        detail: 'Notificación enviada correctamente al usuario.'
+                    });
+                    this.displayPushModal = false;
+                }
+            },
+            error: (err: any) => {
+                this.isSendingPush = false;
+                console.error('Error enviando notificación:', err);
+                const errorDetail = err.error?.message || 'No se pudo enviar la notificación personal.';
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: errorDetail
+                });
+            }
+        });
     }
 
     removePhoto() {

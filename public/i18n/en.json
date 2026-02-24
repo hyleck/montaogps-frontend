@@ -581,6 +581,10 @@
         "type": "Type"
       }
     },
+    "pushManager": {
+      "title": "Push Manager",
+      "description": "Push notifications management."
+    },
     "historiales": {
       "title": "History",
       "description": "GPS device history analysis and management",
