@@ -11,8 +11,21 @@
 </div>
 
 <div class="inventory-container" *ngIf="canReadInventory()">
+  <!-- View Switcher Tabs -->
+  <div class="view-tabs" style="display: flex; gap: 15px; margin-bottom: 20px;">
+    <button pButton pRipple type="button" label="Dispositivos & Paquetes" icon="pi pi-box" class="p-button-rounded"
+      [ngClass]="{'p-button-outlined p-button-secondary': currentView !== 'devices', 'p-button-danger': currentView === 'devices'}"
+      (click)="switchView('devices')">
+    </button>
+    <button pButton pRipple type="button" label="Simcards" icon="pi pi-credit-card" class="p-button-rounded"
+      [ngClass]="{'p-button-outlined p-button-secondary': currentView !== 'simcards', 'p-button-danger': currentView === 'simcards'}"
+      (click)="switchView('simcards')">
+    </button>
+  </div>
+
   <div class="global-search-section">
-    <div class="search-container" style="flex: 1;">
+    <!-- Search Section: Dispositivos -->
+    <div class="search-container" style="flex: 1;" *ngIf="currentView === 'devices'">
       <div class="search-field">
         <label for="globalSearch">Buscar en todos los inventarios</label>
         <form (ngSubmit)="searchAllInventory()" class="search-form">
@@ -44,6 +57,48 @@
         </form>
       </div>
     </div>
+
+    <!-- Search Section: Simcards -->
+    <div class="search-container" style="flex: 1;" *ngIf="currentView === 'simcards'">
+      <div class="search-field">
+        <label for="simcardSearch">Buscar Simcards</label>
+        <form (ngSubmit)="searchAllSimcards()" class="search-form">
+          <div class="search-input-group" style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" id="simcardSearch" [(ngModel)]="simcardSearchQuery" name="simcardSearch"
+              placeholder="Buscar por ICCID..." class="form-input" [disabled]="isSearchingSimcards"
+              style="width: 250px;" />
+
+            <p-dropdown [options]="warehouses" [(ngModel)]="simcardSearchStorageId" optionLabel="name" optionValue="_id"
+              name="warehouseFilter" placeholder="Filtrar por almacén" [showClear]="true" [style]="{'width':'200px'}"
+              appendTo="body" [disabled]="isSearchingSimcards" (onChange)="searchAllSimcards()">
+            </p-dropdown>
+
+            <p-dropdown
+              [options]="[{label: 'Todas', value: ''}, {label: 'Instaladas', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
+              [(ngModel)]="simcardSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
+              placeholder="Estado" [style]="{'width':'150px'}" appendTo="body" [disabled]="isSearchingSimcards"
+              (onChange)="searchAllSimcards()">
+            </p-dropdown>
+
+            <p-dropdown [options]="[{label: 'Todas las compañías', value: ''}].concat(availableSimCardTypes)"
+              [(ngModel)]="simcardSearchCompany" name="companyFilter" optionLabel="label" optionValue="value"
+              placeholder="Compañía" [style]="{'width':'230px'}" appendTo="body" [disabled]="isSearchingSimcards"
+              (onChange)="searchAllSimcards()">
+            </p-dropdown>
+
+            <button type="submit" class="search-button" [disabled]="isSearchingSimcards">
+              <i class="pi pi-search" *ngIf="!isSearchingSimcards"></i>
+              <i class="pi pi-spin pi-spinner" *ngIf="isSearchingSimcards"></i>
+            </button>
+            <button type="button" class="clear-button" (click)="clearSimcardSearch()"
+              *ngIf="simcardSearchQuery || simcardsList.length > 0">
+              <i class="pi pi-times"></i>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div class="actions-container pb-1 flex gap-2 align-items-center">
       <i *ngIf="lowStockCount > 0 && !loadingWarehouses" class="pi pi-arrow-right text-red-500 mr-1 blink-arrow"
         style="font-size: 1.5rem; font-weight: bold;"></i>
@@ -51,168 +106,262 @@
         [outlined]="true" [severity]="lowStockCount > 0 ? 'danger' : 'secondary'" (click)="openWarehouses()"
         [badge]="lowStockCount > 0 ? lowStockCount.toString() : undefined" badgeClass="p-badge-danger"
         [loading]="loadingWarehouses"></p-button>
-      <button pButton pRipple label="Nuevo Paquete" icon="pi pi-plus" class="p-button-success"
-        style="margin-left: 10px;" (click)="openNewPackage()" *ngIf="canCreateInventory()"></button>
+
+      <p-button label="Conduces" icon="pi pi-inbox" [outlined]="true" severity="info" styleClass="ml-2"
+        [style]="{'margin-left': '10px'}" (click)="openConducesList()"></p-button>
+
+      <button *ngIf="currentView === 'devices' && canCreateInventory()" pButton pRipple label="Nuevo Paquete"
+        icon="pi pi-plus" class="p-button-success" style="margin-left: 10px;" (click)="openNewPackage()"></button>
+
+      <button *ngIf="currentView === 'simcards' && canCreateInventory()" pButton pRipple label="Nueva Simcard"
+        icon="pi pi-plus" class="p-button-success" style="margin-left: 10px;" (click)="openNewSimcard()"></button>
     </div>
   </div>
 
-  <div *ngIf="showingSearchResults" class="search-results-section">
-    <h3>Resultados de búsqueda ({{ totalItems }} dispositivos)</h3>
-    <div class="search-results-table" (scroll)="onSearchResultsScroll($event)">
-      <table class="devices-table">
-        <thead>
-          <tr>
-            <th>IMEI</th>
-            <th>SIM</th>
-            <th>{{ 'inventory.device.protocol' | translate }}</th>
-            <th>Paquete</th>
-            <th>{{ 'inventory.device.warehouse' | translate }}</th>
-            <th>{{ 'inventory.device.storageDate' | translate }}</th>
-            <th>{{ 'inventory.device.actions' | translate }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let device of allDevicesSearchResults">
-            <td class="imei-cell">
-              <i *ngIf="isDeviceInstalled(device)" class="pi pi-check-circle installed-icon" title="Instalado"></i>
-              <span>{{ device.IMEI || device.imei || 'N/A' }}</span>
-              <span *ngIf="isDeviceInstalled(device)" class="installed-label">
-                (Instalado)
-              </span>
-            </td>
-            <td>{{ device.SIM || device.sim || 'N/A' }}</td>
-            <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
-            <td>{{ getPackageTitle(device) }}</td>
-            <td>{{ getWarehouseName(device) }}</td>
-            <td>{{ (device.storageDate | date: 'dd/MM/yyyy HH:mm') || 'N/A' }}</td>
-            <td>
-              <div class="device-actions flex gap-2">
-                <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success p-button-text"
-                  (click)="editDevice(device)" pTooltip="Editar" tooltipPosition="top"
+  <!-- VIEWS FOR DEVICES -->
+  <ng-container *ngIf="currentView === 'devices'">
+    <div *ngIf="showingSearchResults" class="search-results-section">
+      <h3>Resultados de búsqueda ({{ totalItems }} dispositivos)</h3>
+      <div class="search-results-table" (scroll)="onSearchResultsScroll($event)">
+        <table class="devices-table">
+          <thead>
+            <tr>
+              <th>IMEI</th>
+              <th>SIM</th>
+              <th>{{ 'inventory.device.protocol' | translate }}</th>
+              <th>Paquete</th>
+              <th>{{ 'inventory.device.warehouse' | translate }}</th>
+              <th>{{ 'inventory.device.storageDate' | translate }}</th>
+              <th>{{ 'inventory.device.actions' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let device of allDevicesSearchResults">
+              <td class="imei-cell">
+                <i *ngIf="isDeviceInstalled(device)" class="pi pi-check-circle installed-icon" title="Instalado"></i>
+                <span>{{ device.IMEI || device.imei || 'N/A' }}</span>
+                <span *ngIf="isDeviceInstalled(device)" class="installed-label">
+                  (Instalado)
+                </span>
+              </td>
+              <td>{{ device.SIM || device.sim || 'N/A' }}</td>
+              <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
+              <td>{{ getPackageTitle(device) }}</td>
+              <td>{{ getWarehouseName(device) }}</td>
+              <td>{{ (device.storageDate | date: 'dd/MM/yyyy HH:mm') || 'N/A' }}</td>
+              <td>
+                <div class="device-actions flex gap-2">
+                  <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success p-button-text"
+                    (click)="editDevice(device)" pTooltip="Editar" tooltipPosition="top"
+                    *ngIf="canUpdateInventory()"></button>
+                  <button pButton pRipple icon="pi pi-send" class="p-button-rounded p-button-info p-button-text"
+                    (click)="installDevice(device)" pTooltip="Instalar" tooltipPosition="top"
+                    *ngIf="canUpdateInventory() && !isDeviceInstalled(device)"></button>
+                  <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning p-button-text"
+                    (click)="deleteDevice(device)" pTooltip="Eliminar" tooltipPosition="top"
+                    *ngIf="canDeleteInventory()"></button>
+                  <button pButton pRipple icon="pi pi-arrow-right-arrow-left"
+                    class="p-button-rounded p-button-secondary p-button-text" (click)="navigateToDevicePackage(device)"
+                    pTooltip="Ver paquete" tooltipPosition="top"></button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div *ngIf="isLoadingMore" class="loading-more-container mt-3 text-center">
+          <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+          <span class="block mt-2">Cargando más resultados...</span>
+        </div>
+
+        <div *ngIf="!isLoadingMore && !isSearchingGlobal && allDevicesSearchResults.length < totalItems"
+          class="text-center mt-3 mb-3">
+          <button pButton pRipple label="Cargar más ({{allDevicesSearchResults.length}} de {{totalItems}})"
+            class="p-button-outlined" (click)="loadMoreDevices()"></button>
+        </div>
+
+        <div *ngIf="allDevicesSearchResults.length === 0 && !isLoadingMore" class="no-results text-center mt-3">
+          No se encontraron dispositivos con esa búsqueda
+        </div>
+      </div>
+    </div>
+
+    <div class="packages-view" *ngIf="!showingSearchResults">
+
+
+
+
+      <!-- Package Form Dialog -->
+      <p-dialog [(visible)]="packageDialogVisible" [style]="{width: '500px'}" header="Detalles del Paquete"
+        [modal]="true" styleClass="p-fluid" (onHide)="hidePackageDialog()">
+        <ng-template pTemplate="content">
+          <div class="field mb-3">
+            <label for="packageTitle" class="font-bold">Título del paquete</label>
+            <input type="text" pInputText id="packageTitle" [ngModel]="selectedPackage?.title"
+              (ngModelChange)="selectedPackage && (selectedPackage.title = $event)" required autofocus
+              placeholder="Ej. Plan Mensual" class="w-full" style="width: 100%" />
+            <small class="p-error" *ngIf="!selectedPackage?.title" style="display: block; margin-top: 5px;">El título
+              es
+              requerido.</small>
+          </div>
+
+          <div class="form-row">
+            <div class="field">
+              <label for="packageDate" class="font-bold">Fecha</label>
+              <p-calendar id="packageDate" [ngModel]="selectedPackage?.date"
+                (ngModelChange)="selectedPackage && (selectedPackage.date = $event)" dateFormat="yy-mm-dd"
+                appendTo="body" [showIcon]="true" [style]="{'width':'100%'}" inputStyleClass="w-full"></p-calendar>
+            </div>
+
+            <div class="field">
+              <label for="packagePrice" class="font-bold">Precio</label>
+              <p-inputNumber id="packagePrice" [ngModel]="selectedPackage?.price"
+                (ngModelChange)="selectedPackage && (selectedPackage.price = $event)" mode="currency" currency="USD"
+                locale="en-US" placeholder="$0.00" [style]="{'width':'100%'}" inputStyleClass="w-full"></p-inputNumber>
+            </div>
+          </div>
+
+          <div class="field mb-3">
+            <label for="packageDescription" class="font-bold">Descripción</label>
+            <textarea id="packageDescription" pInputTextarea [ngModel]="selectedPackage?.description"
+              (ngModelChange)="selectedPackage && (selectedPackage.description = $event)" rows="4"
+              autoResize="autoResize" placeholder="Descripción opcional del paquete..." class="w-full"
+              style="width: 100%"></textarea>
+          </div>
+        </ng-template>
+
+        <ng-template pTemplate="footer">
+          <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text p-button-secondary"
+            (click)="hidePackageDialog()"></button>
+          <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-primary"
+            (click)="savePackage()"></button>
+        </ng-template>
+      </p-dialog>
+
+
+
+      <div class="packages-list-section">
+        <div class="packages-grid">
+          <div *ngFor="let package of packages" class="package-card" (click)="viewPackageDevices(package)">
+            <div class="package-card-header">
+              <h3>{{ package.title }}</h3>
+              <div class="package-actions">
+                <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm"
+                  (click)="editPackage(package); $event.stopPropagation()" pTooltip="Editar paquete"
                   *ngIf="canUpdateInventory()"></button>
-                <button pButton pRipple icon="pi pi-send" class="p-button-rounded p-button-info p-button-text"
-                  (click)="installDevice(device)" pTooltip="Instalar" tooltipPosition="top"
-                  *ngIf="canUpdateInventory() && !isDeviceInstalled(device)"></button>
-                <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning p-button-text"
-                  (click)="deleteDevice(device)" pTooltip="Eliminar" tooltipPosition="top"
+                <button pButton pRipple icon="pi pi-trash"
+                  class="p-button-rounded p-button-text p-button-sm p-button-danger"
+                  (click)="deletePackage(package); $event.stopPropagation()" pTooltip="Eliminar paquete"
                   *ngIf="canDeleteInventory()"></button>
-                <button pButton pRipple icon="pi pi-arrow-right-arrow-left"
-                  class="p-button-rounded p-button-secondary p-button-text" (click)="navigateToDevicePackage(device)"
-                  pTooltip="Ver paquete" tooltipPosition="top"></button>
               </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </div>
 
-      <div *ngIf="isLoadingMore" class="loading-more-container">
-        <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-        <span>Cargando más resultados...</span>
-      </div>
-
-      <div *ngIf="allDevicesSearchResults.length === 0 && !isLoadingMore" class="no-results">
-        No se encontraron dispositivos con esa búsqueda
-      </div>
-    </div>
-  </div>
-
-  <div class="packages-view" *ngIf="!showingSearchResults">
-
-
-
-
-    <!-- Package Form Dialog -->
-    <p-dialog [(visible)]="packageDialogVisible" [style]="{width: '500px'}" header="Detalles del Paquete" [modal]="true"
-      styleClass="p-fluid" (onHide)="hidePackageDialog()">
-      <ng-template pTemplate="content">
-        <div class="field mb-3">
-          <label for="packageTitle" class="font-bold">Título del paquete</label>
-          <input type="text" pInputText id="packageTitle" [ngModel]="selectedPackage?.title"
-            (ngModelChange)="selectedPackage && (selectedPackage.title = $event)" required autofocus
-            placeholder="Ej. Plan Mensual" class="w-full" style="width: 100%" />
-          <small class="p-error" *ngIf="!selectedPackage?.title" style="display: block; margin-top: 5px;">El título es
-            requerido.</small>
-        </div>
-
-        <div class="form-row">
-          <div class="field">
-            <label for="packageDate" class="font-bold">Fecha</label>
-            <p-calendar id="packageDate" [ngModel]="selectedPackage?.date"
-              (ngModelChange)="selectedPackage && (selectedPackage.date = $event)" dateFormat="yy-mm-dd" appendTo="body"
-              [showIcon]="true" [style]="{'width':'100%'}" inputStyleClass="w-full"></p-calendar>
-          </div>
-
-          <div class="field">
-            <label for="packagePrice" class="font-bold">Precio</label>
-            <p-inputNumber id="packagePrice" [ngModel]="selectedPackage?.price"
-              (ngModelChange)="selectedPackage && (selectedPackage.price = $event)" mode="currency" currency="USD"
-              locale="en-US" placeholder="$0.00" [style]="{'width':'100%'}" inputStyleClass="w-full"></p-inputNumber>
-          </div>
-        </div>
-
-        <div class="field mb-3">
-          <label for="packageDescription" class="font-bold">Descripción</label>
-          <textarea id="packageDescription" pInputTextarea [ngModel]="selectedPackage?.description"
-            (ngModelChange)="selectedPackage && (selectedPackage.description = $event)" rows="4" autoResize="autoResize"
-            placeholder="Descripción opcional del paquete..." class="w-full" style="width: 100%"></textarea>
-        </div>
-      </ng-template>
-
-      <ng-template pTemplate="footer">
-        <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text p-button-secondary"
-          (click)="hidePackageDialog()"></button>
-        <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-primary"
-          (click)="savePackage()"></button>
-      </ng-template>
-    </p-dialog>
-
-
-
-    <div class="packages-list-section">
-      <div class="packages-grid">
-        <div *ngFor="let package of packages" class="package-card" (click)="viewPackageDevices(package)">
-          <div class="package-card-header">
-            <h3>{{ package.title }}</h3>
-            <div class="package-actions">
-              <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm"
-                (click)="editPackage(package); $event.stopPropagation()" pTooltip="Editar paquete"
-                *ngIf="canUpdateInventory()"></button>
-              <button pButton pRipple icon="pi pi-trash"
-                class="p-button-rounded p-button-text p-button-sm p-button-danger"
-                (click)="deletePackage(package); $event.stopPropagation()" pTooltip="Eliminar paquete"
-                *ngIf="canDeleteInventory()"></button>
+            <div class="package-card-body">
+              <div class="package-info">
+                <div class="info-item">
+                  <i class="pi pi-calendar"></i>
+                  <span>{{ package.date | date: 'dd/MM/yyyy' }}</span>
+                </div>
+                <div class="info-item">
+                  <i class="pi pi-dollar"></i>
+                  <span>{{ package.price | currency: 'USD':'symbol':'1.2-2' }}</span>
+                </div>
+                <div class="info-item" *ngIf="package.devices?.length">
+                  <i class="pi pi-box"></i>
+                  <span>{{ package.devices?.length || 0 }} dispositivos</span>
+                </div>
+              </div>
+              <p *ngIf="package.description" class="package-description">
+                {{ package.description }}
+              </p>
             </div>
           </div>
 
-          <div class="package-card-body">
-            <div class="package-info">
-              <div class="info-item">
-                <i class="pi pi-calendar"></i>
-                <span>{{ package.date | date: 'dd/MM/yyyy' }}</span>
-              </div>
-              <div class="info-item">
-                <i class="pi pi-dollar"></i>
-                <span>{{ package.price | currency: 'USD':'symbol':'1.2-2' }}</span>
-              </div>
-              <div class="info-item" *ngIf="package.devices?.length">
-                <i class="pi pi-box"></i>
-                <span>{{ package.devices?.length || 0 }} dispositivos</span>
-              </div>
-            </div>
-            <p *ngIf="package.description" class="package-description">
-              {{ package.description }}
-            </p>
+          <div class="empty-state" *ngIf="packages.length === 0 && !loading">
+            <i class="pi pi-box"></i>
+            <p>No hay paquetes registrados</p>
+            <small>Crea tu primer paquete usando el formulario de arriba</small>
           </div>
-        </div>
-
-        <div class="empty-state" *ngIf="packages.length === 0 && !loading">
-          <i class="pi pi-box"></i>
-          <p>No hay paquetes registrados</p>
-          <small>Crea tu primer paquete usando el formulario de arriba</small>
         </div>
       </div>
     </div>
-  </div>
+  </ng-container>
+
+  <!-- VIEWS FOR SIMCARDS -->
+  <ng-container *ngIf="currentView === 'simcards'">
+    <div class="search-results-section">
+      <h3>Lista de Simcards ({{ simcardTotalItems }} registradas)</h3>
+      <div class="search-results-table" (scroll)="onSimcardResultsScroll($event)">
+        <table class="devices-table">
+          <thead>
+            <tr>
+              <th>ICCID</th>
+              <th>Compañía</th>
+              <th>APN</th>
+              <th>Almacén</th>
+              <th>Fecha Almacén</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let simcard of simcardsList">
+              <td class="imei-cell">
+                <i *ngIf="simcard.installed" class="pi pi-check-circle installed-icon" title="Instalado"></i>
+                <span style="font-family: monospace; font-size: 1.1em;">{{ simcard.iccid }}</span>
+              </td>
+              <td>
+                <span class="p-tag p-tag-info">{{ simcard.sim_company || 'Otros' }}</span>
+              </td>
+              <td>
+                <span class="p-tag p-tag-secondary">{{ simcard.apn_name || 'N/A' }}</span>
+              </td>
+              <td>{{ (simcard.storage_id && simcard.storage_id.name) ? simcard.storage_id.name : 'Sin Almacén' }}</td>
+              <td>{{ (simcard.storageDate | date: 'dd/MM/yyyy HH:mm') || 'N/A' }}</td>
+              <td>
+                <span [class]="'p-tag ' + (simcard.installed ? 'p-tag-danger' : 'p-tag-success')">
+                  {{ simcard.installed ? (simcard.device_imei ? 'Instalada en ' + simcard.device_imei : 'Instalada') :
+                  'Disponible' }}
+                </span>
+              </td>
+              <td>
+                <div class="device-actions flex gap-2">
+                  <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success p-button-text"
+                    (click)="editSimcard(simcard)" pTooltip="Editar" tooltipPosition="top"
+                    *ngIf="canUpdateInventory()"></button>
+                  <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning p-button-text"
+                    (click)="deleteSimcard(simcard)" pTooltip="Eliminar" tooltipPosition="top"
+                    *ngIf="canDeleteInventory()"></button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div *ngIf="simcardIsLoadingMore" class="loading-more-container mt-3 text-center">
+          <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+          <span class="block mt-2">Cargando más resultados...</span>
+        </div>
+
+        <div *ngIf="!simcardIsLoadingMore && !isSearchingSimcards && simcardsList.length < simcardTotalItems"
+          class="text-center mt-3 mb-3">
+          <button pButton pRipple label="Cargar más ({{simcardsList.length}} de {{simcardTotalItems}})"
+            class="p-button-outlined" (click)="loadMoreSimcards()"></button>
+        </div>
+
+        <div *ngIf="simcardsList.length === 0 && !simcardIsLoadingMore && !isSearchingSimcards"
+          class="no-results text-center mt-3">
+          No se encontraron simcards.
+        </div>
+
+        <div *ngIf="isSearchingSimcards && simcardsList.length === 0" class="text-center mt-5 mb-5">
+          <i class="pi pi-spin pi-spinner" style="font-size: 3rem; color: var(--globalColorPrimaryInmutable)"></i>
+          <span class="block mt-3" style="font-size: 1.1rem; color: rgba(255,255,255,0.6)">Cargando simcards...</span>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
 
   <div *ngIf="loading" class="loading-container">
     <p-progressSpinner></p-progressSpinner>
@@ -256,26 +405,30 @@
                     {{warehouse.description || 'Sin descripción'}}
                   </p>
                   <div class="warehouse-metrics">
-                    <div class="metric">
+                    <div class="metric-box">
                       <span class="metric-label">Min. Req</span>
                       <span class="metric-value">{{warehouse.min_quantity || 0}}</span>
                     </div>
-                    <div class="metric">
-                      <span class="metric-label">Stock Actual</span>
-                      <span class="metric-value warning">
+                    <div class="metric-box metric-btn"
+                      [ngClass]="{'danger-outline': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}"
+                      (click)="filterByWarehouse(warehouse)">
+                      <span class="metric-label"
+                        [ngClass]="{'text-red-400': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}">Disponibles</span>
+                      <span class="metric-value font-bold text-xl"
+                        [ngClass]="{'text-red-500': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}">
                         {{warehouse.stock || 0}}
                       </span>
+                    </div>
+                    <div class="metric-box metric-btn" *ngIf="warehouse.simcard_stock !== undefined"
+                      (click)="filterSimcardsByWarehouse(warehouse)">
+                      <span class="metric-label" style="white-space: nowrap;">Simcards</span>
+                      <span class="metric-value font-bold text-xl">{{warehouse.simcard_stock || 0}}</span>
                     </div>
                   </div>
                 </div>
 
-                <div class="warehouse-footer">
-                  <button pButton pRipple type="button" label="Ver Stock"
-                    class="p-button-sm p-button-outlined p-button-danger stock-btn"
-                    [loading]="loadingWarehouseId === warehouse._id" (click)="filterByWarehouse(warehouse)"
-                    style="flex: 1; margin-right: 10px;"></button>
-
-                  <div class="flex gap-1">
+                <div class="warehouse-footer" style="display: flex; justify-content: flex-end;">
+                  <div class="flex gap-1" style="flex-shrink: 0;">
                     <button pButton pRipple icon="pi pi-pencil"
                       class="p-button-rounded p-button-text p-button-secondary"
                       (click)="editWarehouse(warehouse)"></button>
@@ -304,26 +457,30 @@
                     {{warehouse.description || 'Sin descripción'}}
                   </p>
                   <div class="warehouse-metrics">
-                    <div class="metric">
+                    <div class="metric-box">
                       <span class="metric-label">Min. Req</span>
                       <span class="metric-value">{{warehouse.min_quantity || 0}}</span>
                     </div>
-                    <div class="metric">
-                      <span class="metric-label">Stock Actual</span>
-                      <span class="metric-value safe">
+                    <div class="metric-box metric-btn"
+                      [ngClass]="{'danger-outline': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}"
+                      (click)="filterByWarehouse(warehouse)">
+                      <span class="metric-label"
+                        [ngClass]="{'text-red-400': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}">Disponibles</span>
+                      <span class="metric-value font-bold text-xl"
+                        [ngClass]="{'text-red-500': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}">
                         {{warehouse.stock || 0}}
                       </span>
+                    </div>
+                    <div class="metric-box metric-btn" *ngIf="warehouse.simcard_stock !== undefined"
+                      (click)="filterSimcardsByWarehouse(warehouse)">
+                      <span class="metric-label" style="white-space: nowrap;">Simcards</span>
+                      <span class="metric-value font-bold text-xl">{{warehouse.simcard_stock || 0}}</span>
                     </div>
                   </div>
                 </div>
 
-                <div class="warehouse-footer">
-                  <button pButton pRipple type="button" label="Ver Stock"
-                    class="p-button-sm p-button-outlined p-button-success stock-btn"
-                    [loading]="loadingWarehouseId === warehouse._id" (click)="filterByWarehouse(warehouse)"
-                    style="flex: 1; margin-right: 10px;"></button>
-
-                  <div class="flex gap-1">
+                <div class="warehouse-footer" style="display: flex; justify-content: flex-end;">
+                  <div class="flex gap-1" style="flex-shrink: 0;">
                     <button pButton pRipple icon="pi pi-pencil"
                       class="p-button-rounded p-button-text p-button-secondary"
                       (click)="editWarehouse(warehouse)"></button>
@@ -476,6 +633,410 @@
         (click)="cancelInstallation()"></button>
       <button pButton pRipple label="Confirmar Instalación" icon="pi pi-check" class="p-button-primary"
         (click)="confirmInstallation()" [disabled]="!installationEmail || !installationEmail.trim()"></button>
+    </ng-template>
+  </p-dialog>
+
+
+  <!-- Simcard Management Dialog -->
+  <p-dialog [(visible)]="simcardDialogVisible" [style]="{width: '500px'}"
+    [header]="isEditSimcardMode ? 'Editar Simcard' : 'Nueva Simcard'" [modal]="true"
+    styleClass="p-fluid app-dark-dialog" (onHide)="hideSimcardDialog()">
+    <ng-template pTemplate="content">
+      <form (ngSubmit)="saveSimcard()" #simcardForm="ngForm"
+        style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+        <div class="field" *ngIf="selectedSimcard">
+          <label for="simcardIccid" style="display: block; margin-bottom: 0.25rem; font-weight: bold;">ICCID *</label>
+          <input type="text" id="simcardIccid" [(ngModel)]="selectedSimcard.iccid" name="iccid" required #iccidInput
+            class="form-input" placeholder="Ej. 890141032111185..." />
+        </div>
+
+        <div class="field" *ngIf="selectedSimcard">
+          <label for="simcardCompany" style="display: block; margin-bottom: 0.25rem; font-weight: bold;">Compañía
+            Proveedora</label>
+          <select id="simcardCompany" [(ngModel)]="selectedSimcard.sim_company" name="sim_company" class="form-input"
+            (ngModelChange)="onSimcardCompanyChange($event)">
+            <option value="">Seleccionar compañía</option>
+            <option *ngFor="let type of availableSimCardTypes" [value]="type.value">
+              {{ type.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field" *ngIf="selectedSimcard">
+          <label for="simcardApn" style="display: block; margin-bottom: 0.25rem; font-weight: bold;">APN</label>
+          <select id="simcardApn" [(ngModel)]="selectedSimcard.apn_name" name="apn_name" class="form-input">
+            <option value="">Seleccionar APN</option>
+            <option *ngFor="let apn of availableApnNames" [value]="apn.value">
+              {{ apn.label }}
+            </option>
+          </select>
+        </div>
+
+        <div class="field" *ngIf="selectedSimcard">
+          <label for="simcardStorage" style="display: block; margin-bottom: 0.25rem; font-weight: bold;">Almacén
+            Asignado</label>
+          <select id="simcardStorage" [(ngModel)]="selectedSimcard.storage_id" name="storage_id" class="form-input">
+            <option [ngValue]="null">Sin almacén (Opcional)</option>
+            <option *ngFor="let w of warehouses" [value]="w._id">
+              {{ w.name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Checkbox removed successfully -->
+
+        <button type="submit" style="display: none;"></button>
+      </form>
+    </ng-template>
+    <ng-template pTemplate="footer">
+      <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
+        (click)="hideSimcardDialog()"></button>
+      <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-text" (click)="saveSimcard()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Shipping Dialog -->
+  <p-dialog [(visible)]="shippingDialogVisible" [style]="{width: '600px'}" header="Realizar Conduce" [modal]="true"
+    styleClass="p-fluid app-dark-dialog" (onHide)="hideShippingDialog()">
+    <ng-template pTemplate="content">
+      <div style="padding-top: 1.5rem;">
+        <div class="field">
+          <label for="shippingWarehouse" class="font-bold block mb-2">Seleccione Almacén de Destino</label>
+          <select id="shippingWarehouse" [(ngModel)]="shippingDestinationWarehouse" class="form-input w-full"
+            style="box-sizing: border-box;">
+            <option [ngValue]="null">Seleccionar almacén...</option>
+            <option *ngFor="let w of warehouses" [value]="w._id">
+              {{ w.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row mt-4" *ngIf="shippingDestinationWarehouse">
+        <!-- Devices Section -->
+        <div class="field col-6 m-0 p-0 pr-2">
+          <label for="shippingDeviceInput" class="font-bold block mb-2">Agregar Dispositivos (IMEI)</label>
+          <div style="display: flex; gap: 0.5rem; align-items: stretch; box-sizing: border-box;">
+            <input type="text" id="shippingDeviceInput" [(ngModel)]="shippingDeviceInput"
+              placeholder="Ingrese IMEI y presione Enter..." class="form-input" style="flex: 1; box-sizing: border-box;"
+              (keyup.enter)="addShippingDevice()" />
+            <button type="button" pButton icon="pi pi-plus" class="p-button-success"
+              (click)="addShippingDevice()"></button>
+          </div>
+
+          <div class="mt-3" *ngIf="shippingDevices.length > 0">
+            <h5 class="mb-2 text-gray-400">Dispositivos del conduce ({{shippingDevices.length}})</h5>
+            <ul class="list-none p-0 m-0" style="max-height: 150px; overflow-y: auto;">
+              <li *ngFor="let item of shippingDevices; let i = index"
+                class="flex justify-content-between align-items-center mb-2 p-2 surface-ground border-round">
+                <span style="font-family: monospace; font-size: 0.9em;">{{ item.IMEI || item.imei }}</span>
+                <button pButton pRipple icon="pi pi-trash"
+                  class="p-button-rounded p-button-danger p-button-text p-button-sm"
+                  (click)="removeShippingDevice(i)"></button>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Simcards Section -->
+        <div class="field col-6 m-0 p-0 pl-2">
+          <label for="shippingSimcardInput" class="font-bold block mb-2">Agregar Simcards (ICCID)</label>
+          <div style="display: flex; gap: 0.5rem; align-items: stretch; box-sizing: border-box;">
+            <input type="text" id="shippingSimcardInput" [(ngModel)]="shippingSimcardInput"
+              placeholder="Ingrese ICCID y presione Enter..." class="form-input"
+              style="flex: 1; box-sizing: border-box;" (keyup.enter)="addShippingSimcard()" />
+            <button type="button" pButton icon="pi pi-plus" class="p-button-success"
+              (click)="addShippingSimcard()"></button>
+          </div>
+
+          <div class="mt-3" *ngIf="shippingSimcards.length > 0">
+            <h5 class="mb-2 text-gray-400">Simcards del conduce ({{shippingSimcards.length}})</h5>
+            <ul class="list-none p-0 m-0" style="max-height: 150px; overflow-y: auto;">
+              <li *ngFor="let item of shippingSimcards; let i = index"
+                class="flex justify-content-between align-items-center mb-2 p-2 surface-ground border-round">
+                <span style="font-family: monospace; font-size: 0.9em;">{{ item.iccid }}</span>
+                <button pButton pRipple icon="pi pi-trash"
+                  class="p-button-rounded p-button-danger p-button-text p-button-sm"
+                  (click)="removeShippingSimcard(i)"></button>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="field mt-4" *ngIf="shippingDestinationWarehouse">
+        <label for="shippingDescription" class="font-bold block mb-2">Descripción del Conduce</label>
+        <textarea id="shippingDescription" pInputTextarea [(ngModel)]="shippingDescription" rows="3"
+          placeholder="Escriba aquí los detalles del traslado o conduce..." class="w-full form-input"
+          style="box-sizing: border-box; width: 100%; resize: vertical;"></textarea>
+      </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+      <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
+        (click)="hideShippingDialog()"></button>
+      <button pButton pRipple label="Confirmar Conduce" icon="pi pi-check" class="p-button-primary"
+        [disabled]="!shippingDestinationWarehouse || (shippingDevices.length === 0 && shippingSimcards.length === 0)"
+        (click)="confirmConduce()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Assign Package Dialog -->
+  <p-dialog [(visible)]="assignPackageDialogVisible" [style]="{width: '450px'}" header="Asignar Paquete" [modal]="true"
+    styleClass="p-fluid app-dark-dialog" (onHide)="hideAssignPackageDialog()">
+    <ng-template pTemplate="content">
+      <div class="text-center mb-4">
+        <i class="pi pi-exclamation-triangle text-orange-500" style="font-size: 3rem;"></i>
+        <h3 class="mt-3">Dispositivo sin paquete</h3>
+        <p>El dispositivo <strong style="font-family: monospace;">{{ deviceToAssignPackage?.IMEI ||
+            deviceToAssignPackage?.imei }}</strong> no está registrado en ningún paquete. Seleccione uno para
+          registrarlo.</p>
+      </div>
+      <div class="field mt-3">
+        <label for="assignPackageDropdown" class="font-bold block mb-2">Seleccionar Paquete</label>
+        <select id="assignPackageDropdown" [(ngModel)]="selectedPackageToAssign" class="form-input w-full"
+          style="box-sizing: border-box;">
+          <option [ngValue]="null">Seleccionar paquete...</option>
+          <option *ngFor="let p of packages" [value]="p._id">
+            {{ p.title || 'Sin Título' }}
+          </option>
+        </select>
+      </div>
+
+      <div class="field mt-3" *ngIf="isNewDeviceInShipping">
+        <label for="assignProtocolDropdown" class="font-bold block mb-2">Seleccionar Protocolo</label>
+        <select id="assignProtocolDropdown" [(ngModel)]="selectedProtocolToAssign" class="form-input w-full"
+          style="box-sizing: border-box;">
+          <option [ngValue]="null">Seleccionar protocolo...</option>
+          <option *ngFor="let p of protocols" [value]="p.value">
+            {{ p.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="field mt-3" *ngIf="isNewDeviceInShipping">
+        <label for="assignSimcardInput" class="font-bold block mb-2">Simcard (Opcional)</label>
+        <input type="text" id="assignSimcardInput" [(ngModel)]="selectedSimcardToAssign" class="form-input w-full"
+          placeholder="Ingrese el número de la simcard..." style="box-sizing: border-box;">
+      </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+      <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
+        (click)="hideAssignPackageDialog()"></button>
+      <button pButton pRipple label="Asignar y Agregar" icon="pi pi-check" class="p-button-primary"
+        [disabled]="!selectedPackageToAssign" (click)="assignPackageAndAdd()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Register New Simcard Dialog for Shipping -->
+  <p-dialog [(visible)]="assignPackageDialogSimcardVisible" [style]="{width: '450px'}" header="Registrar Nueva Simcard"
+    [modal]="true" styleClass="p-fluid app-dark-dialog" (onHide)="hideAssignPackageSimcardDialog()">
+    <ng-template pTemplate="content">
+      <div class="text-center mb-4">
+        <i class="pi pi-plus-circle text-primary" style="font-size: 3rem;"></i>
+        <h3 class="mt-3">Simcard Nueva</h3>
+        <p>La simcard <strong style="font-family: monospace;">{{ simcardToAssignPackage?.iccid }}</strong> no está
+          registrada en el sistema. Complete la información para crearla y agregarla al envío.</p>
+      </div>
+
+      <div class="field mt-3">
+        <label for="assignCompanyDropdownSimcard" class="font-bold block mb-2">Compañía <span
+            class="text-red-500">*</span></label>
+        <select id="assignCompanyDropdownSimcard" [(ngModel)]="selectedCompanyToAssignSimcard"
+          (ngModelChange)="onShippingSimcardCompanyChange($event)" class="form-input w-full"
+          style="box-sizing: border-box;">
+          <option *ngFor="let c of availableSimCardTypes" [value]="c.label">
+            {{ c.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="field mt-3">
+        <label for="assignApnDropdownSimcard" class="font-bold block mb-2">Nombre de APN</label>
+        <select id="assignApnDropdownSimcard" [(ngModel)]="selectedApnToAssignSimcard" class="form-input w-full"
+          style="box-sizing: border-box;">
+          <option value="">Seleccionar APN...</option>
+          <option *ngFor="let a of availableApnNames" [value]="a.value">
+            {{ a.label }}
+          </option>
+        </select>
+      </div>
+
+    </ng-template>
+    <ng-template pTemplate="footer">
+      <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
+        (click)="hideAssignPackageSimcardDialog()"></button>
+      <button pButton pRipple label="Registrar y Agregar" icon="pi pi-check" class="p-button-primary"
+        [disabled]="!selectedCompanyToAssignSimcard" (click)="assignPackageAndAddSimcard()"></button>
+    </ng-template>
+  </p-dialog>
+  <!-- Conduces List Dialog -->
+  <p-dialog [(visible)]="conducesDialogVisible" [style]="{width: '800px'}" header="Historial de Conduces" [modal]="true"
+    styleClass="p-fluid app-dark-dialog" (onHide)="hideConducesDialog()">
+    <ng-template pTemplate="content">
+      <div class="flex justify-content-end mb-3" style="padding-top: 1.5rem;">
+        <button pButton pRipple label="Nuevo Conduce" icon="pi pi-plus" class="p-button-success"
+          (click)="openShippingModal()"></button>
+      </div>
+
+      <p-table [value]="conducesList" [loading]="isLoadingConduces" responsiveLayout="scroll" [paginator]="true"
+        [lazy]="true" (onLazyLoad)="loadConducesLazy($event)" [rows]="10" [totalRecords]="totalConducesRecords"
+        styleClass="p-datatable-sm conduces-table">
+        <ng-template pTemplate="header">
+          <tr>
+            <th>Número</th>
+            <th>Fecha</th>
+            <th>Almacén Destino</th>
+            <th>Items</th>
+            <th>Creado por</th>
+            <th>Estado</th>
+            <th class="text-center">Acciones</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-conduce>
+          <tr>
+            <td style="font-family: monospace; font-weight: bold;">{{ conduce.conduceNumber }}</td>
+            <td>{{ conduce.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+            <td>{{ conduce.destination_warehouse?.name || 'N/A' }}</td>
+            <td style="cursor: pointer; transition: background-color 0.2s;" (click)="showConduceDetails(conduce)"
+              pTooltip="Ver detalles de los items">
+              <div class="flex flex-row gap-4 align-items-center">
+                <i *ngIf="conduce.devices?.length" class="pi pi-box text-blue-400" style="font-size: 1.5rem" pBadge
+                  [value]="conduce.devices?.length?.toString()" severity="info"></i>
+
+                <i *ngIf="conduce.simcards?.length" class="pi pi-credit-card text-orange-400" style="font-size: 1.5rem"
+                  pBadge [value]="conduce.simcards?.length?.toString()" severity="warn"></i>
+              </div>
+            </td>
+            <td>{{ conduce.created_by?.name || '' }} {{ conduce.created_by?.last_name || '' }}</td>
+            <td>
+              <span [class]="'p-tag ' + (conduce.status === 'completed' ? 'p-tag-success' : 'p-tag-warning')">
+                {{ conduce.status === 'completed' ? 'Completado' : 'Pendiente' }}
+              </span>
+            </td>
+            <td class="text-center text-nowrap">
+              <button pButton pRipple icon="pi pi-file-pdf" class="p-button-danger p-button-text p-button-sm"
+                pTooltip="Exportar a PDF" (click)="generateConducePdf(conduce)"></button>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="7" class="text-center p-4">
+              Aún no hay conduces registrados.
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </ng-template>
+  </p-dialog>
+
+  <!-- Conduce Details Dialog -->
+  <p-dialog [(visible)]="conduceDetailsDialogVisible" [style]="{width: '500px'}" header="Detalles del Conduce"
+    [modal]="true" styleClass="p-fluid app-dark-dialog" (onHide)="hideConduceDetailsDialog()">
+    <ng-template pTemplate="content">
+      <div *ngIf="selectedConduceDetails" class="cd-container">
+
+        <!-- Header Info -->
+        <div class="cd-header">
+          <div class="cd-icon-box indigo">
+            <i class="pi pi-file"></i>
+          </div>
+          <div class="cd-header-content">
+            <span class="cd-title">{{ selectedConduceDetails.conduceNumber }}</span>
+            <span class="cd-subtitle">Creado el {{ selectedConduceDetails.createdAt | date: 'dd/MM/yyyy HH:mm' }} por {{
+              selectedConduceDetails.created_by?.name || '' }} {{ selectedConduceDetails.created_by?.last_name || ''
+              }}</span>
+          </div>
+          <div>
+            <span class="cd-badge" [ngClass]="selectedConduceDetails.status === 'completed' ? 'success' : 'warning'">
+              {{ selectedConduceDetails.status === 'completed' ? 'Completado' : 'Pendiente' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Destination & Description -->
+        <div class="cd-grid">
+          <div>
+            <span class="cd-label">Almacén Destino</span>
+            <div class="cd-card">
+              <i class="pi pi-building"></i>
+              <span class="cd-card-text">{{ selectedConduceDetails.destination_warehouse?.name || 'N/A' }}</span>
+            </div>
+          </div>
+          <div>
+            <span class="cd-label">Descripción</span>
+            <div class="cd-card">
+              <span class="cd-card-text" *ngIf="selectedConduceDetails.description">{{
+                selectedConduceDetails.description }}</span>
+              <span class="cd-card-text" style="opacity:0.6; font-style:italic;"
+                *ngIf="!selectedConduceDetails.description">Sin descripción adjunta</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Devices Section -->
+        <div style="margin-top: 2rem;">
+          <div class="cd-section-title">
+            <div class="cd-icon-box blue">
+              <i class="pi pi-box"></i>
+            </div>
+            <span class="text">Dispositivos</span>
+            <span class="cd-count-badge blue">{{ selectedConduceDetails.devices?.length || 0 }}</span>
+          </div>
+
+          <div *ngIf="selectedConduceDetails.devices?.length > 0; else noDevices" class="cd-table-container">
+            <p-table [value]="selectedConduceDetails.devices" styleClass="p-datatable-sm" responsiveLayout="scroll"
+              [scrollable]="true" scrollHeight="200px">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th>IMEI</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-device>
+                <tr>
+                  <td style="font-family: monospace;">{{ device.IMEI || device.imei }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+          <ng-template #noDevices>
+            <div class="cd-empty">Ningún dispositivo incluido</div>
+          </ng-template>
+        </div>
+
+        <!-- Simcards Section -->
+        <div style="margin-top: 2rem;">
+          <div class="cd-section-title">
+            <div class="cd-icon-box orange">
+              <i class="pi pi-credit-card"></i>
+            </div>
+            <span class="text">Simcards</span>
+            <span class="cd-count-badge orange">{{ selectedConduceDetails.simcards?.length || 0 }}</span>
+          </div>
+
+          <div *ngIf="selectedConduceDetails.simcards?.length > 0; else noSimcards" class="cd-table-container">
+            <p-table [value]="selectedConduceDetails.simcards" styleClass="p-datatable-sm" responsiveLayout="scroll"
+              [scrollable]="true" scrollHeight="200px">
+              <ng-template pTemplate="header">
+                <tr>
+                  <th>ICCID</th>
+                  <th>Compañía</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-simcard>
+                <tr>
+                  <td style="font-family: monospace;">{{ simcard.iccid }}</td>
+                  <td>{{ simcard.sim_company }}</td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+          <ng-template #noSimcards>
+            <div class="cd-empty">Ninguna simcard incluida</div>
+          </ng-template>
+        </div>
+
+      </div>
     </ng-template>
   </p-dialog>
 </div>

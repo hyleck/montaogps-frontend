@@ -40,6 +40,34 @@ export interface Warehouse {
   description?: string;
   min_quantity?: number;
   stock?: number;
+  simcard_stock?: number;
+}
+
+export interface SimcardItem {
+  _id?: string;
+  iccid: string;
+  sim_company?: string;
+  apn_name?: string;
+  storage_id?: string | any | null;
+  storageDate?: string;
+  installed?: boolean;
+  device_imei?: string;
+  package?: string | any;
+  packageId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Conduce {
+  _id?: string;
+  conduceNumber?: string;
+  description?: string;
+  destination_warehouse: string | any;
+  devices?: string[] | any[];
+  simcards?: string[] | any[];
+  status?: string;
+  created_by?: string | any;
+  createdAt?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -47,6 +75,8 @@ export class InventoryService {
   private readonly apiUrl = `${environment.apiUrl}/inventory`;
   private readonly packagesUrl = `${environment.apiUrl}/inventory/packages`;
   private readonly warehouseUrl = `${environment.apiUrl}/inventory/warehouses`;
+  private readonly simcardsUrl = `${environment.apiUrl}/inventory/simcards`;
+  private readonly conducesUrl = `${environment.apiUrl}/inventory/conduces`;
 
   public lowStockCount$ = new BehaviorSubject<number>(0);
 
@@ -149,6 +179,50 @@ export class InventoryService {
 
   deleteWarehouse(id: string): Observable<any> {
     return this.http.delete(`${this.warehouseUrl}/${id}`);
+  }
+
+  // Simcard methods
+  createSimcard(simcard: SimcardItem): Observable<SimcardItem> {
+    return this.http.post<SimcardItem>(this.simcardsUrl, simcard);
+  }
+
+  findAllSimcards(): Observable<SimcardItem[]> {
+    return this.http.get<SimcardItem[]>(this.simcardsUrl);
+  }
+
+  findOneSimcard(id: string): Observable<SimcardItem> {
+    return this.http.get<SimcardItem>(`${this.simcardsUrl}/${id}`);
+  }
+
+  updateSimcard(id: string, simcard: Partial<SimcardItem>): Observable<SimcardItem> {
+    return this.http.patch<SimcardItem>(`${this.simcardsUrl}/${id}`, simcard);
+  }
+
+  deleteSimcard(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.simcardsUrl}/${id}`);
+  }
+
+  searchAllSimcards(query: string, storageId?: string, page = 1, limit = 20, status?: string, simCompany?: string): Observable<{ data: SimcardItem[]; total: number; page: number; lastPage: number }> {
+    let url = `${this.simcardsUrl}/search/global?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`;
+    if (storageId) {
+      url += `&storage_id=${storageId}`;
+    }
+    if (status) {
+      url += `&status=${status}`;
+    }
+    if (simCompany) {
+      url += `&sim_company=${encodeURIComponent(simCompany)}`;
+    }
+    return this.http.get<{ data: SimcardItem[]; total: number; page: number; lastPage: number }>(url);
+  }
+
+  // Conduce methods
+  getConduces(page = 1, limit = 20): Observable<{ data: Conduce[]; total: number; page: number; lastPage: number }> {
+    return this.http.get<{ data: Conduce[]; total: number; page: number; lastPage: number }>(`${this.conducesUrl}?page=${page}&limit=${limit}`);
+  }
+
+  createConduce(payload: any): Observable<Conduce> {
+    return this.http.post<Conduce>(this.conducesUrl, payload);
   }
 }
 

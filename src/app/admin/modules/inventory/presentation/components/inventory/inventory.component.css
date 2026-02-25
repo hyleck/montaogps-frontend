@@ -282,16 +282,52 @@ textarea.form-input {
 .warehouse-metrics {
   display: flex;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.metric-box {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   background: var(--globalColorBackground);
-  padding: 0.85rem;
+  padding: 0.85rem 0.5rem;
   border-radius: 10px;
   border: 1px solid var(--managementFieldsBorder);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+  text-align: center;
 }
 
-.app-dark .warehouse-metrics {
+.app-dark .metric-box {
   background: rgba(0, 0, 0, 0.25);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.metric-btn {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.metric-btn:hover {
+  background: var(--managementColorBackgroundUser);
+  border-color: var(--managementColorTitleUser);
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.app-dark .metric-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.metric-btn.danger-outline {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.metric-btn.danger-outline:hover {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
 }
 
 .metric {
@@ -715,4 +751,187 @@ textarea.form-input {
   .devices-table td {
     padding: 8px 12px;
   }
+}
+
+/* ============================================
+   CONDUCE DETAILS MODAL - CUSTOM CSS
+   ============================================ */
+.cd-container {
+  padding-top: 1.5rem;
+}
+
+.cd-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--globalColorBorderDark);
+}
+
+.cd-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 8px;
+  margin-right: 1rem;
+}
+
+.cd-icon-box i {
+  font-size: 1.5rem;
+}
+
+.cd-icon-box.indigo {
+  background-color: #6366f1;
+  color: white;
+}
+
+.cd-icon-box.blue {
+  background-color: #3b82f6;
+  color: white;
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.cd-icon-box.blue i {
+  font-size: 1rem;
+}
+
+.cd-icon-box.orange {
+  background-color: #f97316;
+  color: white;
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.cd-icon-box.orange i {
+  font-size: 1rem;
+}
+
+.cd-header-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.cd-title {
+  font-size: 1.25rem;
+  font-weight: bold;
+  font-family: monospace;
+  color: var(--globalColorTextInput);
+  margin-bottom: 0.25rem;
+}
+
+.cd-subtitle {
+  font-size: 0.85rem;
+  color: var(--globalColorTextLight);
+}
+
+.cd-badge {
+  padding: 0.35rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: white;
+}
+
+.cd-badge.success {
+  background-color: #22c55e;
+}
+
+.cd-badge.warning {
+  background-color: #f59e0b;
+}
+
+.cd-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .cd-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cd-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--globalColorTextLight);
+  margin-bottom: 0.5rem;
+}
+
+.cd-card {
+  display: flex;
+  align-items: center;
+  background-color: var(--managementColorCardBackground);
+  border: 1px solid var(--globalColorBorderDark);
+  border-radius: 8px;
+  padding: 1rem;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.cd-card i {
+  color: var(--globalColorPrimaryInmutable);
+  font-size: 1.5rem;
+  margin-right: 1rem;
+}
+
+.cd-card-text {
+  color: var(--globalColorTextInput);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.cd-section-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.cd-section-title span.text {
+  color: var(--globalColorTextInput);
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.cd-count-badge {
+  margin-left: 0.5rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: white;
+}
+
+.cd-count-badge.blue {
+  background-color: #3b82f6;
+}
+
+.cd-count-badge.orange {
+  background-color: #f97316;
+}
+
+.cd-table-container {
+  border: 1px solid var(--globalColorBorderDark);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.cd-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--globalColorTextLight);
+  background-color: var(--managementColorCardBackground);
+  border: 1px solid var(--globalColorBorderDark);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
 }
