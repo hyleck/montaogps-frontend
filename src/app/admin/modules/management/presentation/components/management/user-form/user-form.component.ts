@@ -745,6 +745,55 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
     }
 
+    displaySessionsModal: boolean = false;
+
+    openSessionsModal() {
+        this.displaySessionsModal = true;
+    }
+
+    deleteSession(sessionDate: string) {
+        if (!this.userInput || !this.userInput._id) return;
+
+        // Validar privilegios antes de proceder
+        if (!this.canUpdateUsers()) {
+            this.messageService.add({
+                severity: 'error',
+                summary: this.translate.instant('management.users.no_update_permission'),
+                detail: this.translate.instant('management.users.contact_admin')
+            });
+            return;
+        }
+
+        this.userService.deleteSession(this.userInput._id, sessionDate)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (res) => {
+                    if (this.userInput) {
+                        (this.userInput as any).idSessions = ((this.userInput as any).idSessions || []).filter((s: any) => {
+                            const sDate = new Date(s.date).toISOString();
+                            const checkDate = new Date(sessionDate).toISOString();
+                            return sDate !== checkDate;
+                        });
+                    }
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Sesión Cerrada',
+                        detail: res.message || 'La sesión seleccionada ha sido cerrada.',
+                        life: 3000
+                    });
+                },
+                error: (error) => {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: this.translate.instant('management.userForm.error'),
+                        detail: 'Error al cerrar la sesión del usuario.',
+                        life: 3000
+                    });
+                    console.error('Error al cerrar sesión:', error);
+                }
+            });
+    }
+
     onRoleChange() {
         if (!this.user.role) {
             return;

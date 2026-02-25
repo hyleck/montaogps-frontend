@@ -5,12 +5,12 @@ import { environment } from '../../../environments/environment';
 import { User, CreateUserDto, UpdateUserDto } from '../interfaces';
 
 interface UpdatePasswordDto {
-    password: string;
+  password: string;
 }
 
 export interface UsersResponse {
-    users: User[];
-    totalCount: number;
+  users: User[];
+  totalCount: number;
 }
 
 @Injectable({
@@ -39,7 +39,7 @@ export class UserService {
   }
 
   search(query: string, parent?: string, offset: number = 0, limit: number = 30): Observable<UsersResponse> {
-    let params: any = { 
+    let params: any = {
       q: query,
       offset: offset.toString(),
       limit: limit.toString()
@@ -76,6 +76,14 @@ export class UserService {
 
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  closeSessions(id: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${id}/close-sessions`, {});
+  }
+
+  deleteSession(id: string, sessionDateStr: string): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/${id}/sessions/${sessionDateStr}`);
   }
 
   getTechnicians(): Observable<User[]> {

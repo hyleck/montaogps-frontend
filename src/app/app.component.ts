@@ -6,12 +6,14 @@ import { Router, NavigationEnd } from '@angular/router';
 import { filter, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { FirebaseNotificationsService } from './core/services/firebase-notifications.service';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../environments/environment';
 
 @Component({
-    selector: 'app-root',
-    templateUrl: './app.component.html',
-    styleUrl: './app.component.css',
-    standalone: false
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css',
+  standalone: false
 })
 export class AppComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
@@ -21,7 +23,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private chatwootService: ChatwootService,
     private router: Router,
-    private firebaseNotifications: FirebaseNotificationsService
+    private firebaseNotifications: FirebaseNotificationsService,
+    private http: HttpClient
   ) {
     // this.themes.setTheme('light');
   }
@@ -29,7 +32,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit() {
     // Monitorear cambios en la autenticación
     this.monitorAuthentication();
-    
+
     // Monitorear cambios de ruta para reinicializar Chatwoot si es necesario
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd),
@@ -42,7 +45,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
-    
+
     // Limpiar Chatwoot al destruir el componente
     this.chatwootService.removeChatwoot();
   }
@@ -73,6 +76,26 @@ export class AppComponent implements OnInit, OnDestroy {
         console.error('Error handling auth change', error),
       );
     }, 5000); // Verificar cada 5 segundos
+
+    // Verificar si la sesión es válida en la base de datos (cada 2 minutos)
+    setInterval(() => {
+      const user = this.authService.getCurrentUser();
+      const sessionDate = localStorage.getItem('session_date');
+
+      if (user && user.id && sessionDate) {
+        this.http.get<{ valid: boolean }>(`${environment.apiUrl}/users/${user.id}/verify-session?session_date=${sessionDate}`)
+          .subscribe({
+            next: (res: { valid: boolean }) => {
+              if (!res.valid) {
+                console.warn('La sesión ha sido invalidada desde el servidor. Cerrando sesión automáticamente...');
+                this.authService.logout();
+                this.router.navigate(['/auth/login']);
+              }
+            },
+            error: (err: any) => console.error('Error verificando sesión:', err)
+          });
+      }
+    }, 10000); // 10 segundos (10,000 ms)
   }
 
   /**
@@ -80,7 +103,7 @@ export class AppComponent implements OnInit, OnDestroy {
    */
   private async handleAuthenticationChange(): Promise<void> {
     const isAuthenticated = this.authService.isAuthenticated();
-    
+
     if (isAuthenticated) {
       // Usuario está logueado, inicializar Chatwoot
       // this.chatwootService.initializeChatwoot();

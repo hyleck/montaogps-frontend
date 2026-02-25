@@ -55,6 +55,7 @@ export interface User {
   developer?: boolean;
   status?: boolean;
   tag?: string;
+  idSessions?: Array<{ date: string; device: string }>;
 }
 
 export interface UserSettings {

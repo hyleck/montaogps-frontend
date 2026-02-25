@@ -62,6 +62,9 @@ export class AuthService {
 
         if (response.access_token) {
           this.saveToken(response.access_token);
+          if (response.session_date) {
+            localStorage.setItem('session_date', response.session_date);
+          }
           if (response.user) {
             // Guardar solo la información básica del usuario
             this.saveUser(response.user);
