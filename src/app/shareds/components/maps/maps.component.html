@@ -1,7 +1,8 @@
 <div class="main">
     <div class="maps">
         <div class="maps__map" id="map"></div>
-        <button class="tools-button" type="button" (click)="openToolsModal()" *ngIf="selectedTarget">
+        <button class="tools-button" type="button" (click)="openToolsModal()"
+            *ngIf="selectedTarget && !selectedTarget.isShared">
             <i class="pi pi-wrench"></i>
             <span>Herramientas</span>
         </button>

@@ -2521,7 +2521,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           // Preservar información adicional que pueda tener el target local
           traccarInfo: updatedTarget.traccarInfo || this.selectedTargetForMap.traccarInfo,
           // IMPORTANTE: Sincronizar traccarStatus para que el mapa lo detecte
-          traccarStatus: updatedTarget.traccarInfo?.status || 'offline'
+          traccarStatus: updatedTarget.traccarInfo?.status || 'offline',
+          isShared: this.selectedTargetForMap.isShared
         };
 
         selectedTargetName = updatedTarget.name;
@@ -2624,7 +2625,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
               // Preservar información adicional que pueda tener el target local
               traccarInfo: updatedTarget.traccarInfo,
               // IMPORTANTE: Establecer traccarStatus para que el mapa lo detecte
-              traccarStatus: newStatus
+              traccarStatus: newStatus,
+              isShared: this.selectedTargetForMap.isShared,
+              offlineTimeText: this.selectedTargetForMap.offlineTimeText,
+              offlineDateText: this.selectedTargetForMap.offlineDateText
             };
 
 
