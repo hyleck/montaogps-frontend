@@ -1,8 +1,11 @@
 const express = require('express');
+const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
 
 const app = express();
+app.use(compression());
+
 const PORT = process.env.PORT || 4200;
 const staticDir = path.join(__dirname, '/dist/montaogps-frontend/browser');
 
@@ -72,8 +75,8 @@ app.use((req, res, next) => {
 
 // Ruta de health check para Heroku
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     service: 'MontaoGPS Frontend'
