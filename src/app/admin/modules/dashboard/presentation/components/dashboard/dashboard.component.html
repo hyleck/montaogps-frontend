@@ -3,87 +3,134 @@
 </div>
 <div class="dashboard-main">
     <div class="dashboard-container">
-  
 
-        <div class="main-content">
-            <div class="stats-container">
-                <div class="stat-card online">
-                    <div class="stat-icon">
-                        <i class="pi pi-wifi"></i>
-                    </div>
-                    <div class="stat-info">
-                        <span class="stat-value">{{ stats.online }}</span>
-                        <span class="stat-label">{{ langService.translate('dashboard.online') }}</span>
-                    </div>
-                </div>
+        <!-- Loading State -->
+        <div class="loading-state" *ngIf="isLoading">
+            <p-progressSpinner styleClass="w-3rem h-3rem" strokeWidth="4"></p-progressSpinner>
+            <p class="mt-3 text-secondary">{{ langService.translate('dashboard.loading') || 'Cargando información...' }}
+            </p>
+        </div>
 
-                <div class="stat-card active">
-                    <div class="stat-icon">
-                        <i class="pi pi-check-circle"></i>
-                    </div>
-                    <div class="stat-info">
-                        <span class="stat-value">{{ stats.active }}</span>
-                        <span class="stat-label">{{ langService.translate('dashboard.active') }}</span>
-                    </div>
-                </div>
+        <div class="main-content" *ngIf="!isLoading">
 
-                <div class="stat-card offline">
-                    <div class="stat-icon">
-                        <i class="pi pi-power-off"></i>
-                    </div>
-                    <div class="stat-info">
-                        <span class="stat-value">{{ stats.offline }}</span>
-                        <span class="stat-label">{{ langService.translate('dashboard.offline') }}</span>
-                    </div>
-                </div>
+            <!-- Dynamic Monitoring Statistics Section -->
+            <div class="dashboard-section mb-5" *ngIf="!isMonitoringLoading && monitoringStats">
+                <div class="monitoring-grid">
 
-                <div class="stat-card suspended">
-                    <div class="stat-icon">
-                        <i class="pi pi-pause"></i>
+                    <!-- Active Valid Online -->
+                    <div class="monitoring-card success">
+                        <div class="m-icon"><i class="pi pi-check-circle"></i></div>
+                        <div class="m-info">
+                            <span class="m-value">{{ monitoringStats.activeValidOnlineDevices }}</span>
+                            <span class="m-label">Activos Online</span>
+                        </div>
                     </div>
-                    <div class="stat-info">
-                        <span class="stat-value">{{ stats.suspended }}</span>
-                        <span class="stat-label">{{ langService.translate('dashboard.suspended') }}</span>
-                    </div>
-                </div>
 
-                <div class="stat-card expired">
-                    <div class="stat-icon">
-                        <i class="pi pi-clock"></i>
+                    <!-- Active Valid Offline -->
+                    <div class="monitoring-card warning">
+                        <div class="m-icon"><i class="pi pi-exclamation-triangle"></i></div>
+                        <div class="m-info">
+                            <span class="m-value">{{ monitoringStats.activeValidOfflineDevices }}</span>
+                            <span class="m-label">Activos Offline</span>
+                        </div>
                     </div>
-                    <div class="stat-info">
-                        <span class="stat-value">{{ stats.expired }}</span>
-                        <span class="stat-label">{{ langService.translate('dashboard.expired') }}</span>
-                    </div>
-                </div>
 
-                <div class="stat-card canceled">
-                    <div class="stat-icon">
-                        <i class="pi pi-times-circle"></i>
+                    <!-- Total Expired Devices -->
+                    <div class="monitoring-card danger">
+                        <div class="m-icon"><i class="pi pi-times-circle"></i></div>
+                        <div class="m-info">
+                            <span class="m-value">{{ monitoringStats.totalExpiredDevices }}</span>
+                            <span class="m-label">Dispositivos Expirados</span>
+                        </div>
                     </div>
-                    <div class="stat-info">
-                        <span class="stat-value">{{ stats.canceled }}</span>
-                        <span class="stat-label">{{ langService.translate('dashboard.canceled') }}</span>
-                    </div>
-                </div>
 
-                <div class="stat-card total">
-                    <div class="stat-icon">
-                        <i class="pi pi-list"></i>
+                    <!-- Total Monitoring Devices -->
+                    <div class="monitoring-card neutral">
+                        <div class="m-icon"><i class="pi pi-box"></i></div>
+                        <div class="m-info">
+                            <span class="m-value">{{ monitoringStats.totalDevices }}</span>
+                            <span class="m-label">Total Validado</span>
+                        </div>
                     </div>
-                    <div class="stat-info">
-                        <span class="stat-value">{{ stats.total }}</span>
-                        <span class="stat-label">{{ langService.translate('dashboard.total') }}</span>
-                    </div>
+
                 </div>
             </div>
 
-            <div class="chart-container">
-                <h3>{{ langService.translate('dashboard.monthlyStats') }}</h3>
-                <div class="chart-wrapper">
-                    <p-chart type="bar" [data]="deviceChartData" [options]="deviceChartOptions"></p-chart>
+            <!-- Loading State for Monitoring -->
+            <div class="dashboard-section mb-5" *ngIf="isMonitoringLoading">
+                <div class="loading-state h-8rem">
+                    <p-progressSpinner styleClass="w-3rem h-3rem" strokeWidth="4"></p-progressSpinner>
+                    <p>Cargando datos de monitoreo...</p>
                 </div>
             </div>
+
+            <!-- Processes Statistics Cards Section -->
+            <div class="dashboard-section mb-5" *ngIf="!isProcessLoading && processCards.length > 0">
+                <h2 class="section-title mt-6 mb-4">Estadísticas de Procesos</h2>
+                <div class="monitoring-cards-wrapper wrap gap-4" style="display: flex; flex-wrap: wrap; gap: 1rem;">
+
+                    <div *ngFor="let process of processCards" class="monitoring-card {{ process.colorClass }}">
+                        <div class="m-icon"><i [class]="process.icon"></i></div>
+                        <div class="m-info">
+                            <span class="m-value">{{ process.count }}</span>
+                            <span class="m-label">{{ process.title }}</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="dashboard-section mb-5" *ngIf="isProcessLoading">
+                <div class="loading-state h-8rem">
+                    <p-progressSpinner styleClass="w-3rem h-3rem" strokeWidth="4"></p-progressSpinner>
+                    <p>Cargando gráficas de procesos...</p>
+                </div>
+            </div>
+
+            <!-- Employee Process Statistics Section -->
+            <div class="dashboard-section mb-5 mt-6" *ngIf="!isCreatorStatsLoading && creatorStats.length > 0">
+                <h2 class="section-title mb-4">Estadísticas por Empleado</h2>
+                <div class="creator-stats-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+
+                    <div *ngFor="let creator of creatorStats" class="creator-card"
+                        style="background: var(--dashboardCardBackground); border: 1px solid var(--dashboardCardBorder); border-radius: 10px; padding: 1.5rem; box-shadow: 0 2px 4px var(--dashboardCardShadow);">
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid var(--dashboardCardBorder); padding-bottom: 0.5rem;">
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-color);">{{
+                                    creator.creatorName | titlecase }}</h3>
+                                <span style="font-size: 0.85rem; color: var(--text-color-secondary);">{{
+                                    creator.creatorEmail }}</span>
+                            </div>
+                            <div
+                                style="background: rgba(59, 130, 246, 0.1); color: var(--primary-color); padding: 0.5rem 1rem; border-radius: 20px; font-weight: bold;">
+                                {{ creator.totalProcesses }} procesos
+                            </div>
+                        </div>
+
+                        <div class="process-breakdown" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <div *ngFor="let proc of creator.processesByType"
+                                style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+                                <span style="color: var(--text-color-secondary);">{{ getProcessNamePublic(proc.type)
+                                    }}</span>
+                                <span
+                                    style="font-weight: 600; background: var(--surface-100); padding: 0.1rem 0.6rem; border-radius: 12px;">{{
+                                    proc.count }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="dashboard-section mb-5" *ngIf="isCreatorStatsLoading">
+                <div class="loading-state h-8rem">
+                    <p-progressSpinner styleClass="w-3rem h-3rem" strokeWidth="4"></p-progressSpinner>
+                    <p>Cargando estadísticas de empleados...</p>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
