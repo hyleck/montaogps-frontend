@@ -48,6 +48,7 @@ export interface SimcardItem {
   iccid: string;
   sim_company?: string;
   apn_name?: string;
+  idsim?: string;
   storage_id?: string | any | null;
   storageDate?: string;
   installed?: boolean;

@@ -11,16 +11,37 @@
 </div>
 
 <div class="inventory-container" *ngIf="canReadInventory()">
-  <!-- View Switcher Tabs -->
-  <div class="view-tabs" style="display: flex; gap: 15px; margin-bottom: 20px;">
-    <button pButton pRipple type="button" label="Dispositivos & Paquetes" icon="pi pi-box" class="p-button-rounded"
-      [ngClass]="{'p-button-outlined p-button-secondary': currentView !== 'devices', 'p-button-danger': currentView === 'devices'}"
-      (click)="switchView('devices')">
-    </button>
-    <button pButton pRipple type="button" label="Simcards" icon="pi pi-credit-card" class="p-button-rounded"
-      [ngClass]="{'p-button-outlined p-button-secondary': currentView !== 'simcards', 'p-button-danger': currentView === 'simcards'}"
-      (click)="switchView('simcards')">
-    </button>
+  <!-- View Switcher Tabs + Actions -->
+  <div class="view-tabs"
+    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+    <div style="display: flex; gap: 15px;">
+      <button pButton pRipple type="button" label="Dispositivos & Paquetes" icon="pi pi-box" class="p-button-rounded"
+        [ngClass]="{'p-button-outlined p-button-secondary': currentView !== 'devices', 'p-button-danger': currentView === 'devices'}"
+        (click)="switchView('devices')">
+      </button>
+      <button pButton pRipple type="button" label="Simcards" icon="pi pi-credit-card" class="p-button-rounded"
+        [ngClass]="{'p-button-outlined p-button-secondary': currentView !== 'simcards', 'p-button-danger': currentView === 'simcards'}"
+        (click)="switchView('simcards')">
+      </button>
+    </div>
+
+    <div class="flex align-items-center" style="gap: 15px;">
+      <i *ngIf="lowStockCount > 0 && !loadingWarehouses" class="pi pi-arrow-right text-red-500 mr-1 blink-arrow"
+        style="font-size: 1.5rem; font-weight: bold;"></i>
+      <p-button label="Almacenes" [icon]="lowStockCount > 0 ? 'pi pi-exclamation-triangle' : 'pi pi-building'"
+        [outlined]="true" [severity]="lowStockCount > 0 ? 'danger' : 'secondary'" (click)="openWarehouses()"
+        [badge]="lowStockCount > 0 ? lowStockCount.toString() : undefined" badgeClass="p-badge-danger"
+        [loading]="loadingWarehouses"></p-button>
+
+      <p-button label="Conduces" icon="pi pi-inbox" [outlined]="true" severity="info" [style]="{'margin-left': '10px'}"
+        (click)="openConducesList()"></p-button>
+
+      <button *ngIf="currentView === 'devices' && canCreateInventory()" pButton pRipple label="Nuevo Paquete"
+        icon="pi pi-plus" class="p-button-success" style="margin-left: 10px;" (click)="openNewPackage()"></button>
+
+      <button *ngIf="currentView === 'simcards' && canCreateInventory()" pButton pRipple label="Nueva Simcard"
+        icon="pi pi-plus" class="p-button-success" style="margin-left: 10px;" (click)="openNewSimcard()"></button>
+    </div>
   </div>
 
   <div class="global-search-section">
@@ -65,7 +86,7 @@
         <form (ngSubmit)="searchAllSimcards()" class="search-form">
           <div class="search-input-group" style="display: flex; gap: 0.5rem; align-items: center;">
             <input type="text" id="simcardSearch" [(ngModel)]="simcardSearchQuery" name="simcardSearch"
-              placeholder="Buscar por ICCID..." class="form-input" [disabled]="isSearchingSimcards"
+              placeholder="Buscar por ICCID o ID SIM..." class="form-input" [disabled]="isSearchingSimcards"
               style="width: 250px;" />
 
             <p-dropdown [options]="warehouses" [(ngModel)]="simcardSearchStorageId" optionLabel="name" optionValue="_id"
@@ -97,24 +118,6 @@
           </div>
         </form>
       </div>
-    </div>
-
-    <div class="actions-container pb-1 flex gap-2 align-items-center">
-      <i *ngIf="lowStockCount > 0 && !loadingWarehouses" class="pi pi-arrow-right text-red-500 mr-1 blink-arrow"
-        style="font-size: 1.5rem; font-weight: bold;"></i>
-      <p-button label="Almacenes" [icon]="lowStockCount > 0 ? 'pi pi-exclamation-triangle' : 'pi pi-building'"
-        [outlined]="true" [severity]="lowStockCount > 0 ? 'danger' : 'secondary'" (click)="openWarehouses()"
-        [badge]="lowStockCount > 0 ? lowStockCount.toString() : undefined" badgeClass="p-badge-danger"
-        [loading]="loadingWarehouses"></p-button>
-
-      <p-button label="Conduces" icon="pi pi-inbox" [outlined]="true" severity="info" styleClass="ml-2"
-        [style]="{'margin-left': '10px'}" (click)="openConducesList()"></p-button>
-
-      <button *ngIf="currentView === 'devices' && canCreateInventory()" pButton pRipple label="Nuevo Paquete"
-        icon="pi pi-plus" class="p-button-success" style="margin-left: 10px;" (click)="openNewPackage()"></button>
-
-      <button *ngIf="currentView === 'simcards' && canCreateInventory()" pButton pRipple label="Nueva Simcard"
-        icon="pi pi-plus" class="p-button-success" style="margin-left: 10px;" (click)="openNewSimcard()"></button>
     </div>
   </div>
 
@@ -297,6 +300,7 @@
             <tr>
               <th>ICCID</th>
               <th>Compañía</th>
+              <th>ID SIM</th>
               <th>APN</th>
               <th>Almacén</th>
               <th>Fecha Almacén</th>
@@ -312,6 +316,11 @@
               </td>
               <td>
                 <span class="p-tag p-tag-info">{{ simcard.sim_company || 'Otros' }}</span>
+              </td>
+              <td>
+                <span *ngIf="simcard.sim_company === 'nacionales'" class="p-tag p-tag-warning">{{ simcard.idsim || 'N/A'
+                  }}</span>
+                <span *ngIf="simcard.sim_company !== 'nacionales'" style="color: rgba(255,255,255,0.3)">—</span>
               </td>
               <td>
                 <span class="p-tag p-tag-secondary">{{ simcard.apn_name || 'N/A' }}</span>
@@ -645,9 +654,11 @@
       <form (ngSubmit)="saveSimcard()" #simcardForm="ngForm"
         style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
         <div class="field" *ngIf="selectedSimcard">
-          <label for="simcardIccid" style="display: block; margin-bottom: 0.25rem; font-weight: bold;">ICCID *</label>
+          <label for="simcardIccid" style="display: block; margin-bottom: 0.25rem; font-weight: bold;">{{
+            selectedSimcard?.sim_company === 'nacionales' ? 'ICCID / No. Teléfono' : 'ICCID' }} *</label>
           <input type="text" id="simcardIccid" [(ngModel)]="selectedSimcard.iccid" name="iccid" required #iccidInput
-            class="form-input" placeholder="Ej. 890141032111185..." />
+            class="form-input"
+            [placeholder]="selectedSimcard?.sim_company === 'nacionales' ? 'Ej. 809-555-1234' : 'Ej. 890141032111185...'" />
         </div>
 
         <div class="field" *ngIf="selectedSimcard">
@@ -662,7 +673,7 @@
           </select>
         </div>
 
-        <div class="field" *ngIf="selectedSimcard">
+        <div class="field" *ngIf="selectedSimcard && selectedSimcard.sim_company !== 'nacionales'">
           <label for="simcardApn" style="display: block; margin-bottom: 0.25rem; font-weight: bold;">APN</label>
           <select id="simcardApn" [(ngModel)]="selectedSimcard.apn_name" name="apn_name" class="form-input">
             <option value="">Seleccionar APN</option>
@@ -670,6 +681,12 @@
               {{ apn.label }}
             </option>
           </select>
+        </div>
+
+        <div class="field" *ngIf="selectedSimcard && selectedSimcard.sim_company === 'nacionales'">
+          <label for="simcardIdsim" style="display: block; margin-bottom: 0.25rem; font-weight: bold;">ID SIM *</label>
+          <input type="text" id="simcardIdsim" [(ngModel)]="selectedSimcard.idsim" name="idsim" class="form-input"
+            placeholder="Ej. SIM-001" />
         </div>
 
         <div class="field" *ngIf="selectedSimcard">
@@ -682,8 +699,6 @@
             </option>
           </select>
         </div>
-
-        <!-- Checkbox removed successfully -->
 
         <button type="submit" style="display: none;"></button>
       </form>

@@ -955,12 +955,15 @@ export class InventoryComponent implements OnInit {
 
     if (company === 'nacionales') {
       this.selectedSimcard.apn_name = '';
-    } else if (company === 'global-m') {
-      this.selectedSimcard.apn_name = 'altanwifi';
-    } else if (company === 'global-m2') {
-      this.selectedSimcard.apn_name = 'gigsky-02';
-    } else if (company === 'global-e') {
-      this.selectedSimcard.apn_name = 'em';
+    } else {
+      this.selectedSimcard.idsim = '';
+      if (company === 'global-m') {
+        this.selectedSimcard.apn_name = 'altanwifi';
+      } else if (company === 'global-m2') {
+        this.selectedSimcard.apn_name = 'gigsky-02';
+      } else if (company === 'global-e') {
+        this.selectedSimcard.apn_name = 'em';
+      }
     }
   }
 
@@ -969,6 +972,7 @@ export class InventoryComponent implements OnInit {
       iccid: '',
       sim_company: 'nacionales',
       apn_name: '',
+      idsim: '',
       storage_id: null,
     };
     this.isEditSimcardMode = false;
@@ -990,6 +994,7 @@ export class InventoryComponent implements OnInit {
       iccid: simcard.iccid,
       sim_company: simcard.sim_company,
       apn_name: simcard.apn_name || '',
+      idsim: simcard.idsim || '',
       storage_id: simcard.storage_id ? (typeof simcard.storage_id === 'object' ? (simcard.storage_id as any)._id : simcard.storage_id) : null
     };
     this.isEditSimcardMode = true;
@@ -1007,12 +1012,16 @@ export class InventoryComponent implements OnInit {
       return;
     }
 
-    const payload = {
+    const payload: any = {
       iccid: this.selectedSimcard.iccid.trim(),
       sim_company: this.selectedSimcard.sim_company || '',
       apn_name: this.selectedSimcard.apn_name || '',
       storage_id: this.selectedSimcard.storage_id || null
     };
+
+    if (this.selectedSimcard.sim_company === 'nacionales') {
+      payload.idsim = this.selectedSimcard.idsim || '';
+    }
 
     const request = this.isEditSimcardMode && this.selectedSimcard._id
       ? this.inventoryService.updateSimcard(this.selectedSimcard._id, payload)
@@ -1032,6 +1041,7 @@ export class InventoryComponent implements OnInit {
           // Continuous registration mode
           if (this.selectedSimcard) {
             this.selectedSimcard.iccid = '';
+            this.selectedSimcard.idsim = '';
           }
           setTimeout(() => {
             if (this.iccidInput && this.iccidInput.nativeElement) {
