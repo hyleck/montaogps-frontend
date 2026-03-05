@@ -10,6 +10,7 @@
         <ng-template pTemplate="header">
             <tr>
                 <th>{{ 'common.date' | translate }}</th>
+                <th>Usuario</th>
                 <th>{{ 'inventory.package.name' | translate }}</th>
                 <th>Prioridad</th>
                 <th>Estado</th>
@@ -19,6 +20,12 @@
         <ng-template pTemplate="body" let-ticket>
             <tr>
                 <td>{{ ticket.createdAt | date:'short' }}</td>
+                <td>
+                    <div class="flex flex-column">
+                        <span class="font-medium">{{ ticket.user?.name | titlecase }} {{ ticket.user?.last_name |
+                            titlecase }}</span>
+                    </div>
+                </td>
                 <td>{{ ticket.title }}</td>
                 <td>
                     <p-tag [value]="ticket.priority" [severity]="getPrioritySeverity(ticket.priority)"></p-tag>
@@ -34,7 +41,7 @@
         </ng-template>
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="5" class="text-center p-4">No se encontraron tickets de soporte.</td>
+                <td colspan="6" class="text-center p-4">No se encontraron tickets de soporte.</td>
             </tr>
         </ng-template>
     </p-table>
@@ -108,6 +115,19 @@
                             <i class="pi pi-tag text-purple-500"></i>
                             General
                         </span>
+                    </div>
+                </div>
+
+                <!-- User -->
+                <div class="ticket-info-group" *ngIf="selectedTicket.user" style="grid-column: span 2;">
+                    <div class="ticket-label">
+                        <i class="pi pi-user"></i>
+                        Creador
+                    </div>
+                    <div class="ticket-value">
+                        <span class="font-medium">{{ selectedTicket.user.name | titlecase }} {{
+                            selectedTicket.user.last_name | titlecase }}</span>
+                        <div class="text-xs text-color-secondary mt-1">{{ selectedTicket.user.email }}</div>
                     </div>
                 </div>
             </div>
