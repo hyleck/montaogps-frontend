@@ -655,10 +655,10 @@
         style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
         <div class="field" *ngIf="selectedSimcard">
           <label for="simcardIccid" style="display: block; margin-bottom: 0.25rem; font-weight: bold;">{{
-            selectedSimcard?.sim_company === 'nacionales' ? 'ICCID / No. Teléfono' : 'ICCID' }} *</label>
+            selectedSimcard.sim_company === 'nacionales' ? 'ICCID / No. Teléfono' : 'ICCID' }} *</label>
           <input type="text" id="simcardIccid" [(ngModel)]="selectedSimcard.iccid" name="iccid" required #iccidInput
             class="form-input"
-            [placeholder]="selectedSimcard?.sim_company === 'nacionales' ? 'Ej. 809-555-1234' : 'Ej. 890141032111185...'" />
+            [placeholder]="selectedSimcard.sim_company === 'nacionales' ? 'Ej. 809-555-1234' : 'Ej. 890141032111185...'" />
         </div>
 
         <div class="field" *ngIf="selectedSimcard">
