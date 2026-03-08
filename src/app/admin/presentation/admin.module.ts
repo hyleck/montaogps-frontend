@@ -8,7 +8,7 @@ import { AdminComponent } from './components/admin-layout/admin.component';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { SidebarComponent } from './components/sidebar/sidebar.component';
 import { MapAlertComponent } from './components/map-alert/map-alert.component';
-import { PrimengModule } from '../../shareds/libraries/primeng/primeng.module';
+import { PrimengCoreModule } from '../../shareds/libraries/primeng/primeng-core.module';
 import { TranslateModule } from '@ngx-translate/core';
 import { CloudModule } from '../../shareds/components/cloud/cloud.module';
 
@@ -16,17 +16,17 @@ import { CloudModule } from '../../shareds/components/cloud/cloud.module';
   declarations: [
     AdminComponent,
     NavbarComponent,
-    SidebarComponent,
-    MapAlertComponent
+    SidebarComponent
   ],
   imports: [
     CommonModule,
     FormsModule,
     AdminRoutingModule,
-    PrimengModule,
+    PrimengCoreModule,
     TranslateModule,
     CloudModule,
-    RouterModule
+    RouterModule,
+    MapAlertComponent
   ]
 })
 export class AdminModule { }

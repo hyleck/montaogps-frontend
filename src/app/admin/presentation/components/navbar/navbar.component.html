@@ -78,6 +78,7 @@
     </div>
 </div>
 
+@defer (when alertsDialogVisible) {
 <p-dialog header="{{ 'navbar.alerts' | translate }}" [(visible)]="alertsDialogVisible" [modal]="true"
     [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
     [style]="{width: '640px', maxWidth: '90vw'}" styleClass="alerts-dialog">
@@ -122,7 +123,9 @@
         </div>
     </div>
 </p-dialog>
+}
 
+@defer (when speedAlertDialogVisible) {
 <p-dialog header="{{ 'navbar.alertOptionSpeed' | translate }}" [(visible)]="speedAlertDialogVisible" [modal]="true"
     [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
     [style]="{width: '420px', maxWidth: '90vw'}">
@@ -245,8 +248,10 @@
         </div>
     </div>
 </p-dialog>
+}
 
 <!-- Modal de Alerta de Encendido -->
+@defer (when ignitionAlertDialogVisible) {
 <p-dialog header="Alerta de Encendido" [(visible)]="ignitionAlertDialogVisible" [modal]="true" [dismissableMask]="true"
     [closeOnEscape]="true" [draggable]="false" appendTo="body" [style]="{width: '420px', maxWidth: '90vw'}"
     (onShow)="loadIgnitionAlerts()">
@@ -370,7 +375,9 @@
         </div>
     </div>
 </p-dialog>
+}
 
+@defer (when perimeterAlertDialogVisible) {
 <p-dialog header="{{ 'navbar.alertOptionPerimeter' | translate }}" [(visible)]="perimeterAlertDialogVisible"
     [modal]="true" [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
     [style]="{width: '900px', maxWidth: '95vw'}" (onShow)="loadPerimeterAlerts()">
@@ -548,8 +555,10 @@
         </div>
     </div>
 </p-dialog>
+}
 
 <!-- Drawer para targets cancelados -->
+@defer (when canceledDrawerVisible) {
 <p-drawer [(visible)]="canceledDrawerVisible" [modal]="true" position="left"
     [style]="{maxWidth: '650px', width: '100%', height: '100vh'}" styleClass="canceled-targets-drawer">
 
@@ -651,8 +660,10 @@
         </div>
     </ng-template>
 </p-drawer>
+}
 
 <!-- Modal de detalles del target -->
+@defer (when targetDetailsVisible) {
 <p-dialog [(visible)]="targetDetailsVisible" [modal]="true" [resizable]="true" [draggable]="false" [closable]="true"
     [closeOnEscape]="true" [dismissableMask]="true" [blockScroll]="true" appendTo="body"
     [style]="{width: '800px', maxWidth: '95vw'}" styleClass="target-details-dialog">
@@ -901,8 +912,10 @@
         </button>
     </ng-template>
 </p-dialog>
+}
 
 <!-- Modal de transferir targets -->
+@defer (when transferDialogVisible) {
 <p-dialog [(visible)]="transferDialogVisible" [header]="'Transferir Objetivos'" [modal]="true" [closable]="true"
     [draggable]="false" [resizable]="false" [style]="{width: '500px'}" [baseZIndex]="999999" [blockScroll]="true"
     appendTo="body" [dismissableMask]="false" [closeOnEscape]="false">
@@ -1127,10 +1140,10 @@
 </p-dialog>
 
 <!-- Diálogo de confirmación removido - usando el global -->
-
-
+}
 
 <!-- Modal de Alerta de Movimiento -->
+@defer (when movementAlertDialogVisible) {
 <p-dialog header="Alerta de Movimiento" [(visible)]="movementAlertDialogVisible" [modal]="true" [dismissableMask]="true"
     [closeOnEscape]="true" [draggable]="false" appendTo="body" [style]="{width: '420px', maxWidth: '90vw'}"
     (onShow)="loadMovementAlerts()">
@@ -1244,8 +1257,10 @@
         </div>
     </div>
 </p-dialog>
+}
 
 <!-- Modal de Alerta de Conexión -->
+@defer (when connectionAlertDialogVisible) {
 <p-dialog header="Alerta de Conexión" [(visible)]="connectionAlertDialogVisible" [modal]="true" [dismissableMask]="true"
     [closeOnEscape]="true" [draggable]="false" appendTo="body" [style]="{width: '420px', maxWidth: '90vw'}"
     (onShow)="loadConnectionAlerts()">
@@ -1371,8 +1386,10 @@
         </div>
     </div>
 </p-dialog>
+}
 
 <!-- Modal para crear ticket de soporte -->
+@defer (when supportDialogVisible) {
 <p-dialog [(visible)]="supportDialogVisible" [modal]="true" [style]="{width: '550px', maxWidth: '95vw'}"
     styleClass="app-dark-dialog" appendTo="body">
 
@@ -1489,12 +1506,13 @@
         </div>
     </ng-template>
 </p-dialog>
-
+}
 
 <!-- Toast para mensajes -->
 <p-toast></p-toast>
 
 <!-- Modal de notificaciones -->
+@defer (when notificationsDialogVisible) {
 <p-dialog [(visible)]="notificationsDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
     [closable]="true" [closeOnEscape]="true" [dismissableMask]="true" [blockScroll]="true" appendTo="body"
     [style]="{width: '500px', maxWidth: '95vw'}" styleClass="notifications-dialog">
@@ -1535,7 +1553,9 @@
         </div>
     </ng-template>
 </p-dialog>
+}
 <!-- SUPPORT MODAL HARDCODED V3 -->
+@defer (when ticketDetailsDialogVisible) {
 <p-dialog [(visible)]="ticketDetailsDialogVisible" [modal]="true" [style]="{width: '1000px', maxWidth: '95vw'}"
     styleClass="app-dark-dialog ticket-details-modal" appendTo="body"
     [header]="'Detalles del Ticket #' + (selectedTicket?._id | slice:-6)" [dismissableMask]="true"
@@ -1628,3 +1648,4 @@
             (click)="ticketDetailsDialogVisible = false"></button>
     </ng-template>
 </p-dialog>
+}

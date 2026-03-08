@@ -59,21 +59,23 @@ export class SidebarComponent implements OnInit {
 
   ngOnInit() {
     this.updateTranslations();
-    this.loadSystemSettings();
-    this.loadUserProfile();
 
-    // Check inventory stock
-    if (this.authService.hasPrivilege('inventory', 'read') || this.isRootUser) {
-      this.inventoryService.checkLowStock();
-      this.inventoryService.lowStockCount$.subscribe((count: number) => {
-        const inventoryItem = this.sidaberOptions.principalItems.find(i => i.path === '/admin/inventory');
-        if (inventoryItem) {
-          inventoryItem.badge = count;
-        }
-      });
-    }
+    // Defer HTTP calls so the UI paints first
+    setTimeout(() => {
+      this.loadSystemSettings();
+      this.loadUserProfile();
 
-
+      // Check inventory stock
+      if (this.authService.hasPrivilege('inventory', 'read') || this.isRootUser) {
+        this.inventoryService.checkLowStock();
+        this.inventoryService.lowStockCount$.subscribe((count: number) => {
+          const inventoryItem = this.sidaberOptions.principalItems.find(i => i.path === '/admin/inventory');
+          if (inventoryItem) {
+            inventoryItem.badge = count;
+          }
+        });
+      }
+    }, 0);
 
     // Suscribirse a cambios de autenticación para actualizar el usuario
     this.authService.authState$.subscribe(isAuthenticated => {

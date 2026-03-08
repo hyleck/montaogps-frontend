@@ -6,7 +6,7 @@ import { SystemService } from '../../../../core/services/system.service';
     selector: 'app-map-alert',
     templateUrl: './map-alert.component.html',
     styleUrls: ['./map-alert.component.css'],
-    standalone: false
+    standalone: true
 })
 export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnChanges {
     @Input() provider: 'google' | 'mapbox' = 'google';
