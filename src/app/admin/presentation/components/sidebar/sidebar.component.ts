@@ -31,6 +31,7 @@ export class SidebarComponent implements OnInit {
     principalItems: [
       { label: '', path: '/admin/management/', icon: 'pi pi-book', badge: 0 },
       { label: '', path: '/admin/inventory', icon: 'pi pi-database', badge: 0 },
+      { label: '', path: '/admin/solicitudes', icon: 'pi pi-clipboard', badge: 0 },
       { label: '', path: '/admin/macro', icon: 'pi pi-cog', badge: 0 },
       { label: '', path: '/admin/monitoring', icon: 'pi pi-eye', badge: 0 },
       { label: '', path: '/admin/server-costs', icon: 'pi pi-wallet', badge: 0 },
@@ -96,7 +97,7 @@ export class SidebarComponent implements OnInit {
 
       // Set monitoring path with current user ID when the current user is an employee
       if (this.isEmployeeUser) {
-        this.sidaberOptions.principalItems[3].path = `/admin/monitoring/${this.currentUser.id}`;
+        this.sidaberOptions.principalItems[4].path = `/admin/monitoring/${this.currentUser.id}`;
       }
 
       // Force change detection by re-assigning options if needed (or just relying on getter)
@@ -137,10 +138,11 @@ export class SidebarComponent implements OnInit {
     // Elementos del menú principal
     this.sidaberOptions.principalItems[0].label = this.translate.instant('sidebar.management');
     this.sidaberOptions.principalItems[1].label = this.translate.instant('sidebar.inventory');
-    this.sidaberOptions.principalItems[2].label = this.translate.instant('sidebar.macro');
-    this.sidaberOptions.principalItems[3].label = this.translate.instant('sidebar.monitoring');
-    this.sidaberOptions.principalItems[4].label = this.translate.instant('sidebar.serverCosts');
-    this.sidaberOptions.principalItems[5].label = this.translate.instant('sidebar.montaoRent');
+    this.sidaberOptions.principalItems[2].label = 'Solicitudes';
+    this.sidaberOptions.principalItems[3].label = this.translate.instant('sidebar.macro');
+    this.sidaberOptions.principalItems[4].label = this.translate.instant('sidebar.monitoring');
+    this.sidaberOptions.principalItems[5].label = this.translate.instant('sidebar.serverCosts');
+    this.sidaberOptions.principalItems[6].label = this.translate.instant('sidebar.montaoRent');
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');
@@ -192,6 +194,10 @@ export class SidebarComponent implements OnInit {
       }
       // Ocultar el módulo de monitoreo si el usuario no es empleado
       if (!this.isEmployeeUser && item.path.startsWith('/admin/monitoring')) {
+        return false;
+      }
+      // Ocultar solicitudes si el usuario no es empleado
+      if (!this.isEmployeeUser && item.path === '/admin/solicitudes') {
         return false;
       }
       if (item.path === '/admin/server-costs') {

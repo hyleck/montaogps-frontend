@@ -1,0 +1,349 @@
+<div class="management__route">
+    <p-breadcrumb [model]="items" [home]="home" />
+</div>
+
+<div class="sol-container">
+    <!-- Header -->
+    <div class="sol-header">
+        <div class="sol-header-left">
+            <div class="sol-header-icon">
+                <i class="pi pi-clipboard"></i>
+            </div>
+            <div>
+                <h1 class="sol-title">Solicitudes</h1>
+                <span class="sol-subtitle">Gestión de instalaciones, chequeos y cambios</span>
+            </div>
+        </div>
+        <button pButton pRipple label="Nueva Solicitud" icon="pi pi-plus" class="p-button-success p-button-rounded"
+            (click)="openNew()"></button>
+    </div>
+
+    <!-- Filters -->
+    <div class="sol-filters">
+        <div class="sol-search-box">
+            <i class="pi pi-search"></i>
+            <input type="text" [(ngModel)]="searchQuery" placeholder="Buscar por placa, cliente, IMEI..."
+                (keyup.enter)="onSearch()" />
+        </div>
+        <p-dropdown [options]="typeOptions" [(ngModel)]="filterType" optionLabel="label" optionValue="value"
+            placeholder="Tipo" [style]="{'min-width':'160px'}" appendTo="body" (onChange)="onSearch()"></p-dropdown>
+        <p-dropdown [options]="statusOptions" [(ngModel)]="filterStatus" optionLabel="label" optionValue="value"
+            placeholder="Estado" [style]="{'min-width':'160px'}" appendTo="body" (onChange)="onSearch()"></p-dropdown>
+        <button pButton pRipple icon="pi pi-filter-slash" class="p-button-outlined p-button-secondary p-button-rounded"
+            (click)="clearSearch()" pTooltip="Limpiar filtros" tooltipPosition="top"></button>
+    </div>
+
+    <!-- Stats -->
+    <div class="sol-stats">
+        <div class="sol-stat-card">
+            <span class="sol-stat-value">{{ totalItems }}</span>
+            <span class="sol-stat-label">Total</span>
+        </div>
+        <div class="sol-stat-card pending">
+            <span class="sol-stat-value">{{ countByStatus('pendiente') }}</span>
+            <span class="sol-stat-label">Pendientes</span>
+        </div>
+        <div class="sol-stat-card progress">
+            <span class="sol-stat-value">{{ countByStatus('en_progreso') }}</span>
+            <span class="sol-stat-label">En Progreso</span>
+        </div>
+        <div class="sol-stat-card completed">
+            <span class="sol-stat-value">{{ countByStatus('completada') }}</span>
+            <span class="sol-stat-label">Completadas</span>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="sol-loading">
+        <p-progressSpinner></p-progressSpinner>
+    </div>
+
+    <!-- Table -->
+    <div class="sol-table-wrap" *ngIf="!loading">
+        <table class="sol-table" *ngIf="solicitudes.length > 0">
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Estado</th>
+                    <th>Placa</th>
+                    <th>Vehículo</th>
+                    <th>Cliente</th>
+                    <th>IMEI</th>
+                    <th>Fecha Programada</th>
+                    <th>Creada</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let sol of solicitudes" class="sol-row">
+                    <td>
+                        <span class="sol-tag" [attr.data-type]="sol.type">
+                            {{ typeLabels[sol.type] || sol.type }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="sol-status" [attr.data-status]="sol.status">
+                            <i [class]="getStatusIcon(sol.status)"></i>
+                            {{ statusLabels[sol.status] || sol.status }}
+                        </span>
+                    </td>
+                    <td class="sol-plate">{{ sol.plate || '—' }}</td>
+                    <td>
+                        <span *ngIf="sol.brand || sol.model">{{ getBrandName(sol.brand) }} {{ getModelName(sol.brand,
+                            sol.model) }}</span>
+                        <span *ngIf="!sol.brand && !sol.model" class="sol-muted">—</span>
+                        <small *ngIf="sol.color || sol.year" class="sol-vehicle-detail">
+                            {{ sol.color }} {{ sol.year }}
+                        </small>
+                    </td>
+                    <td>
+                        <span *ngIf="sol.client_name">{{ sol.client_name }}</span>
+                        <span *ngIf="!sol.client_name" class="sol-muted">—</span>
+                    </td>
+                    <td class="sol-mono">{{ sol.device_imei || '—' }}</td>
+                    <td>{{ sol.scheduled_date ? (sol.scheduled_date | date: 'dd/MM/yyyy') : '—' }}</td>
+                    <td>{{ sol.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                    <td>
+                        <div class="sol-actions">
+                            <button pButton pRipple icon="pi pi-pencil"
+                                class="p-button-rounded p-button-text p-button-success" (click)="editSolicitud(sol)"
+                                pTooltip="Editar" tooltipPosition="top"></button>
+                            <button pButton pRipple icon="pi pi-trash"
+                                class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
+                                pTooltip="Eliminar" tooltipPosition="top"></button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div *ngIf="solicitudes.length === 0 && !loading" class="sol-empty">
+            <i class="pi pi-clipboard"></i>
+            <h3>No hay solicitudes</h3>
+            <p>Crea tu primera solicitud usando el botón "Nueva Solicitud"</p>
+        </div>
+    </div>
+</div>
+
+<!-- Create / Edit Dialog -->
+<p-dialog [(visible)]="dialogVisible" [style]="{width: '700px'}"
+    [header]="isEditMode ? 'Editar Solicitud' : 'Nueva Solicitud'" [modal]="true" styleClass="p-fluid app-dark-dialog"
+    (onHide)="hideDialog()">
+    <ng-template pTemplate="content">
+        <div *ngIf="selectedSolicitud" class="sol-form">
+
+            <!-- Required Section -->
+            <div class="sol-form-separator sol-form-separator--required">
+                <i class="pi pi-exclamation-circle"></i>
+                <span>Datos Requeridos</span>
+            </div>
+
+            <div class="sol-form-field">
+                <label>Tipo de Solicitud *</label>
+                <select [(ngModel)]="selectedSolicitud.type" required>
+                    <option value="">Seleccionar tipo</option>
+                    <option *ngFor="let opt of typeOptions.slice(1)" [value]="opt.value">{{ opt.label }}</option>
+                </select>
+            </div>
+
+            <div class="sol-form-row">
+                <div class="sol-form-field">
+                    <label>Nombre del Cliente *</label>
+                    <input type="text" [(ngModel)]="selectedSolicitud.client_name"
+                        placeholder="Nombre completo del cliente" required />
+                </div>
+                <div class="sol-form-field">
+                    <label>Teléfono *</label>
+                    <input type="text" [(ngModel)]="selectedSolicitud.client_phone" placeholder="809-555-1234"
+                        required />
+                </div>
+            </div>
+
+            <div class="sol-form-row sol-form-row-3">
+                <div class="sol-form-field">
+                    <label>Marca *</label>
+                    <select [(ngModel)]="selectedSolicitud.brand" (change)="onBrandChange()" required>
+                        <option value="">Seleccionar marca</option>
+                        <option *ngFor="let brand of availableBrands" [value]="brand.value">{{ brand.label }}</option>
+                    </select>
+                </div>
+                <div class="sol-form-field">
+                    <label>Modelo *</label>
+                    <select [(ngModel)]="selectedSolicitud.model" [disabled]="availableModels.length === 0" required>
+                        <option value="">Seleccionar modelo</option>
+                        <option *ngFor="let model of availableModels" [value]="model.value">{{ model.label }}</option>
+                    </select>
+                </div>
+                <div class="sol-form-field">
+                    <label>Año *</label>
+                    <select [(ngModel)]="selectedSolicitud.year" required>
+                        <option value="">Seleccionar año</option>
+                        <option *ngFor="let year of availableYears" [value]="year.value">{{ year.label }}</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="sol-form-field">
+                <label>Color *</label>
+                <input type="text" [(ngModel)]="displayColorName" placeholder="Buscar color..." />
+                <input type="hidden" [(ngModel)]="selectedSolicitud.color" />
+                <div class="sol-color-container">
+                    <div class="sol-color-options">
+                        <div class="sol-color-header">
+                            <span>Colores disponibles</span>
+                        </div>
+                        <div class="sol-color-list">
+                            <div *ngFor="let color of filteredColors" class="sol-color-option"
+                                [class.selected]="selectedSolicitud.color === color.value" (click)="selectColor(color)">
+                                <div class="sol-color-swatch" [style.background-color]="color.value"></div>
+                                <span>{{ color.label }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optional: Vehicle extras -->
+            <div class="sol-form-separator">
+                <i class="pi pi-car"></i>
+                <span>Vehículo (Opcional)</span>
+            </div>
+
+            <div class="sol-form-row">
+                <div class="sol-form-field">
+                    <label>Placa</label>
+                    <input type="text" [(ngModel)]="selectedSolicitud.plate" placeholder="Ej. A123456" />
+                </div>
+                <div class="sol-form-field">
+                    <label>Chasis</label>
+                    <input type="text" [(ngModel)]="selectedSolicitud.chassis" placeholder="No. de chasis" />
+                </div>
+            </div>
+
+            <!-- Location -->
+            <div class="sol-form-separator">
+                <i class="pi pi-map-marker"></i>
+                <span>Ubicación (Opcional)</span>
+            </div>
+
+            <div class="sol-form-row">
+                <div class="sol-form-field">
+                    <label>Provincia</label>
+                    <select [(ngModel)]="selectedSolicitud.province" (change)="onProvinceChange()">
+                        <option value="">Seleccionar provincia</option>
+                        <option *ngFor="let p of availableProvinces" [value]="p.value">{{ p.label }}</option>
+                    </select>
+                </div>
+                <div class="sol-form-field">
+                    <label>Municipio</label>
+                    <select [(ngModel)]="selectedSolicitud.municipality"
+                        [disabled]="availableMunicipalities.length === 0">
+                        <option value="">Seleccionar municipio</option>
+                        <option *ngFor="let m of availableMunicipalities" [value]="m.value">{{ m.label }}</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Optional: Device -->
+            <div class="sol-form-separator">
+                <i class="pi pi-microchip"></i>
+                <span>Dispositivo (Opcional)</span>
+            </div>
+
+            <div class="sol-form-row sol-form-row-3">
+                <div class="sol-form-field">
+                    <label>IMEI</label>
+                    <input type="text" [(ngModel)]="selectedSolicitud.device_imei" placeholder="IMEI del dispositivo" />
+                </div>
+                <div class="sol-form-field">
+                    <label>SIM</label>
+                    <input type="text" [(ngModel)]="selectedSolicitud.sim_card_number" placeholder="No. SIM" />
+                </div>
+                <div class="sol-form-field">
+                    <label>Compañía SIM</label>
+                    <input type="text" [(ngModel)]="selectedSolicitud.sim_company" placeholder="Ej. Claro" />
+                </div>
+            </div>
+
+            <!-- Optional: Installation -->
+            <div class="sol-form-separator">
+                <i class="pi pi-wrench"></i>
+                <span>Instalación (Opcional)</span>
+            </div>
+
+            <div class="sol-form-row">
+                <div class="sol-form-field">
+                    <label>Ubicación de Instalación</label>
+                    <input type="text" [(ngModel)]="selectedSolicitud.installation_location"
+                        placeholder="Ej. Bajo el dashboard" />
+                </div>
+                <div class="sol-form-field">
+                    <label>Fecha Programada</label>
+                    <input type="date" [(ngModel)]="selectedSolicitud.scheduled_date" />
+                </div>
+            </div>
+
+            <div class="sol-form-row">
+                <div class="sol-form-field">
+                    <label>Corte de Motor</label>
+                    <select [(ngModel)]="selectedSolicitud.engine_shutdown">
+                        <option value="">Seleccionar</option>
+                        <option value="si">Sí</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+                <div class="sol-form-field">
+                    <label>Sensor de Ignición</label>
+                    <select [(ngModel)]="selectedSolicitud.ignition_sensor">
+                        <option value="">Seleccionar</option>
+                        <option value="si">Sí</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Optional: Details -->
+            <div class="sol-form-separator">
+                <i class="pi pi-file-edit"></i>
+                <span>Detalles (Opcional)</span>
+            </div>
+
+            <div class="sol-form-row">
+                <div class="sol-form-field">
+                    <label>Estado</label>
+                    <select [(ngModel)]="selectedSolicitud.status">
+                        <option *ngFor="let opt of statusOptions.slice(1)" [value]="opt.value">{{ opt.label }}</option>
+                    </select>
+                </div>
+                <div class="sol-form-field">
+                    <label>Contactos Adicionales</label>
+                    <input type="text" [(ngModel)]="selectedSolicitud.contacts" placeholder="Otros contactos" />
+                </div>
+            </div>
+
+            <div class="sol-form-field">
+                <label>Descripción</label>
+                <textarea [(ngModel)]="selectedSolicitud.description" rows="3"
+                    placeholder="Descripción de la solicitud..."></textarea>
+            </div>
+
+            <div class="sol-form-field">
+                <label>Notas Internas</label>
+                <textarea [(ngModel)]="selectedSolicitud.notes" rows="2"
+                    placeholder="Notas internas (no visibles al cliente)..."></textarea>
+            </div>
+
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="hideDialog()">
+            <i class="pi pi-times"></i> Cancelar
+        </button>
+        <button type="button" class="sol-btn sol-btn-save" (click)="saveSolicitud()">
+            <i class="pi pi-check"></i> Guardar
+        </button>
+    </ng-template>
+</p-dialog>
+
+<p-confirmDialog key="solicitudes-confirm"></p-confirmDialog>
+<p-toast></p-toast>

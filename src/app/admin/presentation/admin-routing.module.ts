@@ -3,17 +3,17 @@ import { RouterModule, Routes } from '@angular/router';
 import { AdminComponent } from './components/admin-layout/admin.component';
 
 const routes: Routes = [
-  { 
-    path: '', 
+  {
+    path: '',
     component: AdminComponent,
     children: [
-      { 
-        path: 'dashboard', 
-        loadChildren: () => import('../modules/dashboard/presentation/dashboard.module').then(m => m.DashboardModule) 
+      {
+        path: 'dashboard',
+        loadChildren: () => import('../modules/dashboard/presentation/dashboard.module').then(m => m.DashboardModule)
       },
-      { 
-        path: 'reports', 
-        loadChildren: () => import('../modules/reports/presentation/reports.module').then(m => m.ReportsModule) 
+      {
+        path: 'reports',
+        loadChildren: () => import('../modules/reports/presentation/reports.module').then(m => m.ReportsModule)
       },
       {
         path: 'inventory',
@@ -46,6 +46,10 @@ const routes: Routes = [
       {
         path: 'server-costs',
         loadChildren: () => import('../modules/server-costs/presentation/server-costs.module').then(m => m.ServerCostsModule)
+      },
+      {
+        path: 'solicitudes',
+        loadChildren: () => import('../modules/solicitudes/presentation/solicitudes.module').then(m => m.SolicitudesModule)
       },
     ]
   }

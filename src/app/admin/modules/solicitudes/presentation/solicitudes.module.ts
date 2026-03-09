@@ -1,0 +1,13 @@
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { TranslateModule } from '@ngx-translate/core';
+import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
+import { SolicitudesRoutingModule } from './solicitudes-routing.module';
+import { SolicitudesComponent } from './components/solicitudes/solicitudes.component';
+
+@NgModule({
+    declarations: [SolicitudesComponent],
+    imports: [CommonModule, FormsModule, TranslateModule, PrimengModule, SolicitudesRoutingModule],
+})
+export class SolicitudesModule { }
