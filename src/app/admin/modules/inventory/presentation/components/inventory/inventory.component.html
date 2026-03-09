@@ -12,8 +12,7 @@
 
 <div class="inventory-container" *ngIf="canReadInventory()">
   <!-- View Switcher Tabs + Actions -->
-  <div class="view-tabs"
-    style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+  <div class="view-tabs">
     <div style="display: flex; gap: 15px;">
       <button pButton pRipple type="button" label="Dispositivos & Paquetes" icon="pi pi-box" class="p-button-rounded"
         [ngClass]="{'p-button-outlined p-button-secondary': currentView !== 'devices', 'p-button-danger': currentView === 'devices'}"
