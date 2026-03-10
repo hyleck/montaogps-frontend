@@ -1,5 +1,5 @@
 // Angular imports
-import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription, Subject, forkJoin, from, lastValueFrom } from 'rxjs';
@@ -52,8 +52,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
   userToEdit: ExtendedUser | null = null;
   targets: Target[] = [];
   targetsList: any[] = [];
+  generatingAITargets: Set<string> = new Set();
+  showTargetFormImageModal: boolean = false;
+  targetFormFullImageUrl: string | null = null;
   targetsSelected: any[] = [];
   targetToEdit: any | null = null;
+  @ViewChild('targetFormRef') targetFormRef: any;
   selectedTargetForMap: any | null = null;
   selectedTargetStopTime: string | undefined = undefined;
   targetIdFromUrl: string | null = null;
@@ -1369,8 +1373,127 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return this.vehicleDataService.getVehicleTypeByModelId(modelId);
   }
 
+  public getVehicleTypeImage(modelId: string): string | null {
+    return this.vehicleDataService.getVehicleTypeImage(modelId);
+  }
+
   public getDeviceSpeed(target: any): string {
     return this.vehicleDataService.getDeviceSpeed(target);
+  }
+
+  public getTargetImageUrl(target: any): string | null {
+    const t = target?.originalTarget;
+    const img = t?.target_image_thumbnail || t?.target_image;
+    if (!img) return null;
+    if (img.startsWith('http')) return img;
+    return `https://back-montao.dorhu.com${img}`;
+  }
+
+  public getTargetFormImageUrl(fullSize: boolean = false): string | null {
+    // Delegate to target-form component if available (handles change detection)
+    if (!fullSize && this.targetFormRef?.getTargetImageUrl) {
+      return this.targetFormRef.getTargetImageUrl();
+    }
+    const t = this.targetToEdit;
+    const img = fullSize
+      ? (t?.target_image || t?.originalTarget?.target_image || t?.target_image_thumbnail || t?.originalTarget?.target_image_thumbnail)
+      : (t?.target_image_thumbnail || t?.target_image || t?.originalTarget?.target_image_thumbnail || t?.originalTarget?.target_image);
+    if (!img) return null;
+    if (img.startsWith('http')) return img;
+    return `https://back-montao.dorhu.com${img}`;
+  }
+
+  public async generateAIImage(target: any): Promise<void> {
+    const originalTarget = target.originalTarget;
+    if (!originalTarget) return;
+
+    const targetId = target._id;
+    if (this.generatingAITargets.has(targetId)) return;
+
+    const brandId = originalTarget.target_brand_id;
+    const modelId = originalTarget.target_model_id;
+    const colorName = this.vehicleDataService.getColorName(originalTarget.target_color);
+    const year = parseInt(originalTarget.target_year, 10) || new Date().getFullYear();
+
+    // Resolve brand and model names from IDs
+    const brandName = this.vehicleDataService.getVehicleBrandName(brandId);
+    const modelName = this.vehicleDataService.getVehicleModelName(modelId);
+
+    if (!brandName || brandName === 'Marca no especificada' || brandName === 'Marca no encontrada') {
+      this.messageService.add({ severity: 'warn', summary: 'Datos incompletos', detail: 'El target necesita una marca válida para generar la imagen.' });
+      return;
+    }
+
+    if (!colorName) {
+      this.messageService.add({ severity: 'warn', summary: 'Datos incompletos', detail: 'El target necesita un color válido para generar la imagen.' });
+      return;
+    }
+
+    this.generatingAITargets.add(targetId);
+    this.cdr.detectChanges();
+
+    try {
+      const result = await this.targetsService.generateAIImage({
+        brand: brandName,
+        model: modelName || 'sedan',
+        color: colorName,
+        year,
+      });
+
+      if (result?.url) {
+        // Save image URLs to the device
+        const imageData: any = { target_image: result.url };
+        if (result.thumbnailUrl) imageData.target_image_thumbnail = result.thumbnailUrl;
+        await this.targetsService.updateTarget(targetId, imageData);
+
+        // Update local data
+        originalTarget.target_image = result.url;
+        originalTarget.target_image_thumbnail = result.thumbnailUrl || result.url;
+        
+        const msg = result.fromCache ? 'Imagen encontrada en cache' : 'Imagen generada con IA exitosamente';
+        this.messageService.add({ severity: 'success', summary: 'Imagen lista', detail: msg });
+      }
+    } catch (error: any) {
+      console.error('Error generating AI image:', error);
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'No se pudo generar la imagen con IA.' });
+    } finally {
+      this.generatingAITargets.delete(targetId);
+      this.cdr.detectChanges();
+    }
+  }
+
+  /**
+   * Checks cache for targets without images, saves found thumbnails to devices
+   */
+  private async populateDeviceImagesFromCache(targetsList: any[]): Promise<void> {
+    try {
+      const cacheHits = await this.vehicleDataService.loadAICacheForTargets(targetsList);
+      if (cacheHits.size === 0) return;
+
+      // Save images to devices in parallel
+      const savePromises = Array.from(cacheHits.entries()).map(async ([deviceId, { url, thumbnailUrl }]) => {
+        try {
+          await this.targetsService.updateTarget(deviceId, {
+            target_image: url,
+            target_image_thumbnail: thumbnailUrl,
+          } as any);
+
+          // Update local data
+          const target = targetsList.find(t => t._id === deviceId);
+          if (target?.originalTarget) {
+            target.originalTarget.target_image = url;
+            target.originalTarget.target_image_thumbnail = thumbnailUrl;
+          }
+        } catch (err) {
+          // Silently ignore save errors
+        }
+      });
+
+      await Promise.all(savePromises);
+      this.cdr.detectChanges();
+    } catch (err) {
+      // Silently ignore
+    }
   }
 
   public formatSpeedDisplay(speedInKmh: number): string {
@@ -1511,6 +1634,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           // Transformar targets para la lista usando el helper
           if (this.targets && this.targets.length > 0) {
             this.targetsList = this.mapTargetsToView(this.targets);
+            // Check cache and save images to devices that don't have one
+            this.populateDeviceImagesFromCache(this.targetsList);
           } else {
             this.targetsList = [];
           }
@@ -2308,6 +2433,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
         // Mapear directamente a la vista (el filtrado ya se hizo en backend/manual)
         this.targetsList = this.mapTargetsToView(this.targets);
+        // Check cache and save images to devices that don't have one
+        this.populateDeviceImagesFromCache(this.targetsList);
       } else {
         this.targetsList = [];
       }

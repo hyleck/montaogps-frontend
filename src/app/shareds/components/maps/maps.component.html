@@ -1,6 +1,25 @@
 <div class="main">
     <div class="maps">
         <div class="maps__map" id="map"></div>
+        <!-- Vehicle image overlay -->
+        <div class="vehicle-image-overlay"
+            [ngClass]="['provider-' + provider, selectedTarget?.traccarStatus === 'online' ? 'status-online' : '']"
+            *ngIf="selectedTarget && getVehicleImageUrl()">
+            <img [src]="getVehicleImageUrl()" 
+                 [alt]="selectedTarget?.name || 'Vehículo'"
+                 (click)="showVehicleImageModal = true"
+                 style="cursor: pointer;"
+                 (error)="onVehicleImageError($event)">
+        </div>
+        <!-- Full-size vehicle image modal -->
+        <div class="vehicle-image-modal-overlay" *ngIf="showVehicleImageModal" (click)="showVehicleImageModal = false">
+            <img [src]="getVehicleImageUrl(true)" 
+                 [alt]="selectedTarget?.name || 'Vehículo'"
+                 (click)="$event.stopPropagation()">
+            <button class="vehicle-image-modal-close" (click)="showVehicleImageModal = false">
+                <i class="pi pi-times"></i>
+            </button>
+        </div>
         <button class="tools-button" type="button" (click)="openToolsModal()"
             *ngIf="selectedTarget && !selectedTarget.isShared">
             <i class="pi pi-wrench"></i>

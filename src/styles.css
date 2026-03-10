@@ -1176,6 +1176,21 @@ body:not(.app-dark) .app-dark-dialog .p-dropdown .p-dropdown-label {
   animation: scaleIn 0.2s ease-out;
 }
 
+@keyframes slideInImage {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(5px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* ============================================
    TICKET DETAILS MODAL (GLOBAL)
    ============================================ */

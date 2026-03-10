@@ -712,7 +712,7 @@
                                             <!-- <p-tableHeaderCheckbox /> Checkbox "seleccionar todos" ocultado -->
                                         </th>
                                         <th>
-                                            {{ 'management.table.name' | translate }}
+                                            Objetivo
                                             <span *ngIf="filterStatus === 'online'"
                                                 style="font-weight: normal; font-size: 0.8em; color: orange"> ( filtro:
                                                 Solo en linea )</span>
@@ -747,34 +747,70 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <span (click)="handleTargetClick(target, $event)"
-                                                class="management__content-table-link" [ngClass]="{
-                                                'target-online': target.traccarStatus === 'online',
-                                                'target-offline': target.traccarStatus !== 'online',
-                                                'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
-                                                'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
-                                              }" title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña">
-                                                <i class="pi pi-map-marker" [ngClass]="{
-                                                     'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
-                                                   }"> </i>
-                                                <span class="target-name"
-                                                    [ngClass]="{'target-inactive': !target.originalTarget?.status}">
-                                                    {{target.name}}</span>
+                                            <div style="display: flex; align-items: center; gap: 10px;">
+                                                <!-- Vehicle image -->
+                                                <div *ngIf="target.originalTarget?.target_model_id" style="position: relative; flex-shrink: 0; width: 48px; height: 48px;">
+                                                    <img *ngIf="getTargetImageUrl(target)"
+                                                        [src]="getTargetImageUrl(target)"
+                                                        [alt]="getVehicleTypeByModelId(target.originalTarget.target_model_id)"
+                                                        (click)="handleTargetClick(target, $event)"
+                                                        style="width: 48px; height: 48px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer;">
+                                                    <img *ngIf="!getTargetImageUrl(target) && getVehicleTypeImage(target.originalTarget.target_model_id)"
+                                                        [src]="getVehicleTypeImage(target.originalTarget.target_model_id)"
+                                                        [alt]="getVehicleTypeByModelId(target.originalTarget.target_model_id)"
+                                                        style="width: 48px; height: 48px; object-fit: contain; border-radius: 8px; opacity: 0.7;">
+                                                    <i *ngIf="!getTargetImageUrl(target) && !getVehicleTypeImage(target.originalTarget.target_model_id)"
+                                                        class="pi pi-car" style="font-size: 1.5rem; color: #9ca3af; line-height: 48px; display: block; text-align: center;"></i>
+                                                    
+                                                    <!-- AI generate button overlay -->
+                                                    <button *ngIf="isCurrentUserRoot && !getTargetImageUrl(target) && target.originalTarget?.target_brand_id && target.originalTarget?.target_model_id && target.originalTarget?.target_year && target.originalTarget?.target_color && !generatingAITargets.has(target._id)"
+                                                        (click)="generateAIImage(target); $event.stopPropagation()"
+                                                        title="Generar imagen con IA"
+                                                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(99, 102, 241, 0.85); border: none; border-radius: 50%; width: 22px; height: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+                                                        <i class="pi pi-sparkles" style="font-size: 0.7rem; color: white;"></i>
+                                                    </button>
+                                                    <!-- Loading spinner during generation -->
+                                                    <div *ngIf="generatingAITargets.has(target._id)"
+                                                        style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.5); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="pi pi-spin pi-spinner" style="font-size: 0.7rem; color: white;"></i>
+                                                    </div>
+                                                </div>
+                                                <div *ngIf="!target.originalTarget?.target_model_id" style="flex-shrink: 0; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                                    <i class="pi pi-car" style="font-size: 1.5rem; color: #6b7280;"></i>
+                                                </div>
+                                                <!-- Target name and info -->
+                                                <div style="display: flex; flex-direction: column; min-width: 0;">
+                                                    <span (click)="handleTargetClick(target, $event)"
+                                                        class="management__content-table-link" [ngClass]="{
+                                                        'target-online': target.traccarStatus === 'online',
+                                                        'target-offline': target.traccarStatus !== 'online',
+                                                        'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
+                                                        'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
+                                                      }" title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña"
+                                                        style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                                        <i class="pi pi-map-marker" [ngClass]="{
+                                                             'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
+                                                           }"> </i>
+                                                        <span class="target-name"
+                                                            [ngClass]="{'target-inactive': !target.originalTarget?.status}">
+                                                            {{target.name}}</span>
 
-                                                <i *ngIf="target.isShared"
-                                                    class="pi pi-share-alt target-shared-indicator"
-                                                    title="Objetivo compartido"
-                                                    style="color: #3b82f6; margin-left: 9px; font-size: 12px;"></i>
-                                                <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id"
-                                                    class="pi pi-eye target-map-indicator"
-                                                    title="Mostrando en mapa"></i>
-                                            </span>
-                                            <div style="margin-top: 4px;"
-                                                *ngIf="target.connection_priority && target.connection_priority !== 'normal'">
-                                                <span style="display: block; font-size: 11px; font-weight: bold;"
-                                                    [style.color]="getConnectionPriorityColor(target)">
-                                                    {{ 'management.targetForm.connectionPriority' | translate }}
-                                                </span>
+                                                        <i *ngIf="target.isShared"
+                                                            class="pi pi-share-alt target-shared-indicator"
+                                                            title="Objetivo compartido"
+                                                            style="color: #3b82f6; margin-left: 9px; font-size: 12px;"></i>
+                                                        <i *ngIf="selectedTargetForMap && selectedTargetForMap._id === target._id"
+                                                            class="pi pi-eye target-map-indicator"
+                                                            title="Mostrando en mapa"></i>
+                                                    </span>
+                                                    <div *ngIf="target.connection_priority && target.connection_priority !== 'normal'"
+                                                        style="margin-top: 2px;">
+                                                        <span style="display: block; font-size: 10px; font-weight: bold;"
+                                                            [style.color]="getConnectionPriorityColor(target)">
+                                                            {{ 'management.targetForm.connectionPriority' | translate }}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </td>
                                         <td>
@@ -956,15 +992,42 @@
 
 <div class="card flex justify-content-center">
 
-    <p-dialog header="Configuración de objetivo" [modal]="true" [visible]="targetFormDisplay"
+    <p-dialog [modal]="true" [visible]="targetFormDisplay"
         (onHide)="onHideTargetForm()" (visibleChange)="!$event && onHideTargetForm()">
-        <app-target-form [targetInput]="targetToEdit" (targetCreated)="onTargetCreated($event)"></app-target-form>
+        <ng-template pTemplate="header">
+            <div style="position: relative; width: 100%;">
+                <span>Configuración de objetivo</span>
+                <!-- AI generated image -->
+                <img *ngIf="getTargetFormImageUrl()" 
+                     [src]="getTargetFormImageUrl()" 
+                     alt="Imagen del vehículo"
+                     class="target-form-vehicle-img"
+                     (click)="targetFormFullImageUrl = getTargetFormImageUrl(true); showTargetFormImageModal = true"
+                     style="position: absolute; top: -100px; right: 0; width: 130px; height: 130px; object-fit: cover; border-radius: 10px; box-shadow: 0 3px 10px rgba(0,0,0,0.4); border: 3px solid var(--managementColorTextUser, #e74c3c); animation: slideInImage 0.5s ease-out; cursor: pointer;">
+                <!-- Fallback: vehicle type image when no AI image -->
+                <img *ngIf="!getTargetFormImageUrl() && targetFormRef?.target?.target_model_id && getVehicleTypeImage(targetFormRef.target.target_model_id)" 
+                     [src]="getVehicleTypeImage(targetFormRef.target.target_model_id)" 
+                     alt="Tipo de vehículo"
+                     style="position: absolute; top: -80px; right: 10px; width: 100px; height: 100px; object-fit: contain; border-radius: 10px; opacity: 0.7; animation: slideInImage 0.5s ease-out;">
+            </div>
+        </ng-template>
+        <app-target-form #targetFormRef [targetInput]="targetToEdit" (targetCreated)="onTargetCreated($event)"></app-target-form>
     </p-dialog>
 
     <p-dialog header="Formulario de usuario" [modal]="true" [visible]="userFormDisplay" (onHide)="onHideUserForm()"
         (visibleChange)="!$event && onHideUserForm()">
         <app-user-form [userInput]="userToEdit" (userCreated)="onUserCreated()"></app-user-form>
     </p-dialog>
+</div>
+
+<!-- Full-size target form image modal -->
+<div class="target-form-image-modal-overlay" *ngIf="showTargetFormImageModal" (click)="showTargetFormImageModal = false">
+    <img [src]="targetFormFullImageUrl" 
+         alt="Imagen del vehículo"
+         (click)="$event.stopPropagation()">
+    <button class="target-form-image-modal-close" (click)="showTargetFormImageModal = false">
+        <i class="pi pi-times"></i>
+    </button>
 </div>
 
 <!-- Confirm dialog removido - usando el global -->

@@ -1,19 +1,28 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { VehicleBrandsService } from '@core/services/vehicle-brands.service';
+import { ColorsService } from '@core/services/colors.service';
+import { environment } from 'src/environments/environment';
+import { lastValueFrom } from 'rxjs';
 
 export interface VehicleType {
   _id: string;
-  name: string;
+  name?: string;
+  nombre?: string;
+  thumbnailUrl?: string;
+  image?: string;
 }
 
 export interface VehicleBrand {
   _id: string;
-  name: string;
+  name?: string;
+  nombre?: string;
 }
 
 export interface VehicleModel {
   _id: string;
-  name: string;
+  name?: string;
+  nombre?: string;
   id_tipo_vehiculo: string;
 }
 
@@ -32,7 +41,21 @@ export class VehicleDataService {
   private vehicleModels: VehicleModel[] = [];
   private isDataLoaded: boolean = false;
 
-  constructor(private vehicleBrandsService: VehicleBrandsService) {}
+  // AI cache image map: key = "brand|model|year|color", value = { url, thumbnailUrl }
+  private aiCacheImages: Map<string, { url: string; thumbnailUrl: string }> = new Map();
+  private colorHexToName: Map<string, string> = new Map();
+  private montaoBackendUrl: string;
+
+  constructor(
+    private vehicleBrandsService: VehicleBrandsService,
+    private colorsService: ColorsService,
+    private http: HttpClient,
+  ) {
+    // montaoApiUrl is like 'https://back-montao.dorhu.com', we need /api
+    this.montaoBackendUrl = (environment as any).montaoApiUrl
+      ? `${(environment as any).montaoApiUrl}/api`
+      : 'https://back-montao.dorhu.com/api';
+  }
 
   /**
    * Carga todos los datos de vehículos (tipos, marcas, modelos)
@@ -40,7 +63,7 @@ export class VehicleDataService {
   async loadVehicleData(): Promise<void> {
     try {
       
-      // Cargar tipos de vehículos, marcas y modelos en paralelo
+      // Cargar tipos de vehículos y marcas en paralelo
       const [types, brands] = await Promise.all([
         this.vehicleBrandsService.getAllTypes(),
         this.vehicleBrandsService.getAllBrands()
@@ -48,14 +71,28 @@ export class VehicleDataService {
       
       this.vehicleTypes = types || [];
       this.vehicleBrands = brands || [];
+
+      // Load colors for hex→name mapping
+      try {
+        const colors = await this.colorsService.getAllColors();
+        if (colors && Array.isArray(colors)) {
+          colors.forEach((c: any) => {
+            if (c.hex && c.nombre) {
+              this.colorHexToName.set(c.hex.toUpperCase(), c.nombre);
+            }
+          });
+        }
+      } catch (colorErr) {
+        console.error('Error loading colors:', colorErr);
+      }
       
- 
-      
-      // Cargar todos los modelos para todas las marcas
+      // Cargar modelos para cada marca en paralelo
       if (this.vehicleBrands.length > 0) {
-        const allModels = await this.vehicleBrandsService.getAllModelsByBrand('all');
-        this.vehicleModels = allModels || [];
-        
+        const modelPromises = this.vehicleBrands.map(brand =>
+          this.vehicleBrandsService.getAllModelsByBrand(brand._id).catch(() => [])
+        );
+        const modelResults = await Promise.all(modelPromises);
+        this.vehicleModels = modelResults.flat().filter(m => m && m._id);
       }
       
       this.isDataLoaded = true;
@@ -86,7 +123,28 @@ export class VehicleDataService {
       return 'Desconocido';
     }
     
-    return vehicleType.name || 'Desconocido';
+    return vehicleType.nombre || vehicleType.name || 'Desconocido';
+  }
+
+  /**
+   * Obtiene la imagen del tipo de vehículo por ID del modelo
+   */
+  getVehicleTypeImage(modelId: string): string | null {
+    if (!modelId || this.vehicleModels.length === 0 || this.vehicleTypes.length === 0) {
+      return null;
+    }
+
+    const model = this.vehicleModels.find(m => m._id === modelId);
+    if (!model || !model.id_tipo_vehiculo) {
+      return null;
+    }
+
+    const vehicleType = this.vehicleTypes.find(t => t._id === model.id_tipo_vehiculo);
+    if (!vehicleType) {
+      return null;
+    }
+
+    return vehicleType.thumbnailUrl || vehicleType.image || null;
   }
 
   /**
@@ -98,7 +156,7 @@ export class VehicleDataService {
     }
     
     const model = this.vehicleModels.find(m => m._id === modelId);
-    return model?.name || 'Modelo no encontrado';
+    return model?.nombre || model?.name || 'Modelo no encontrado';
   }
 
   /**
@@ -110,7 +168,7 @@ export class VehicleDataService {
     }
     
     const brand = this.vehicleBrands.find(b => b._id === brandId);
-    return brand?.name || 'Marca no encontrada';
+    return brand?.nombre || brand?.name || 'Marca no encontrada';
   }
 
   /**
@@ -163,7 +221,7 @@ export class VehicleDataService {
     
     const term = searchTerm.toLowerCase();
     return this.vehicleTypes.filter(type => 
-      type.name.toLowerCase().includes(term)
+      (type.nombre || type.name || '').toLowerCase().includes(term)
     );
   }
 
@@ -175,7 +233,7 @@ export class VehicleDataService {
     
     const term = searchTerm.toLowerCase();
     return this.vehicleBrands.filter(brand => 
-      brand.name.toLowerCase().includes(term)
+      (brand.nombre || brand.name || '').toLowerCase().includes(term)
     );
   }
 
@@ -187,7 +245,7 @@ export class VehicleDataService {
     
     const term = searchTerm.toLowerCase();
     return this.vehicleModels.filter(model => 
-      model.name.toLowerCase().includes(term)
+      (model.nombre || model.name || '').toLowerCase().includes(term)
     );
   }
 
@@ -214,6 +272,99 @@ export class VehicleDataService {
   async reloadData(): Promise<void> {
     this.isDataLoaded = false;
     await this.loadVehicleData();
+  }
+
+  /**
+   * Carga imágenes AI del cache de montao-backend para los targets dados
+   */
+  async loadAICacheForTargets(targets: any[]): Promise<Map<string, { url: string; thumbnailUrl: string }>> {
+    const results = new Map<string, { url: string; thumbnailUrl: string }>();
+    if (!this.isDataLoaded || !targets?.length) return results;
+
+    // Group targets by unique brand+model+year+color, skipping those that already have an image
+    const comboToTargets = new Map<string, { brand: string; model: string; year: string; color: string; targetIds: string[] }>();
+
+    for (const target of targets) {
+      const t = target.originalTarget || target;
+      // Skip if already has an image
+      if (t.target_image || t.target_image_thumbnail) continue;
+      if (!t.target_brand_id || !t.target_model_id || !t.target_year || !t.target_color) continue;
+
+      const brandName = this.getVehicleBrandName(t.target_brand_id);
+      const modelName = this.getVehicleModelName(t.target_model_id);
+      if (!brandName || brandName === 'Marca no especificada' || brandName === 'Marca no encontrada') continue;
+
+      const colorName = this.getColorName(t.target_color);
+      if (!colorName) continue; // Skip if color is invalid
+      const key = `${brandName}|${modelName}|${t.target_year}|${colorName}`;
+      if (!comboToTargets.has(key)) {
+        comboToTargets.set(key, { brand: brandName, model: modelName, year: t.target_year, color: colorName, targetIds: [] });
+      }
+      comboToTargets.get(key)!.targetIds.push(target._id);
+    }
+
+    if (comboToTargets.size === 0) return results;
+
+    // Check cache via gps-backend
+    const gpsApiUrl = (environment as any).apiUrl || 'http://localhost:3333';
+    const promises = Array.from(comboToTargets.entries()).map(async ([_key, { brand, model, year, color, targetIds }]) => {
+      try {
+        const url = `${gpsApiUrl}/devices/check-ai-cache?brand=${encodeURIComponent(brand)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}&color=${encodeURIComponent(color)}`;
+        const response = await lastValueFrom(this.http.get<any>(url));
+        if (response?.success && response?.thumbnailUrl) {
+          for (const id of targetIds) {
+            results.set(id, { url: response.url, thumbnailUrl: response.thumbnailUrl });
+          }
+        }
+      } catch (err) {
+        // Cache miss or error, silently ignore
+      }
+    });
+
+    await Promise.all(promises);
+    return results;
+  }
+
+  /**
+   * Obtiene la imagen AI del cache por los IDs del target
+   */
+  getAICacheImage(brandId: string, modelId: string, year: string, color: string): { url: string; thumbnailUrl: string } | null {
+    if (!brandId || !modelId || !year || !color) return null;
+
+    const brandName = this.getVehicleBrandName(brandId);
+    const modelName = this.getVehicleModelName(modelId);
+    const colorName = this.getColorName(color);
+    const key = `${brandName}|${modelName}|${year}|${colorName}`;
+    return this.aiCacheImages.get(key) || null;
+  }
+
+  /**
+   * Agrega imagen AI al cache local después de generar
+   */
+  setAICacheImage(brandId: string, modelId: string, year: string, color: string, url: string, thumbnailUrl: string): void {
+    const brandName = this.getVehicleBrandName(brandId);
+    const modelName = this.getVehicleModelName(modelId);
+    const colorName = this.getColorName(color);
+    const key = `${brandName}|${modelName}|${year}|${colorName}`;
+    this.aiCacheImages.set(key, { url, thumbnailUrl });
+  }
+
+  /**
+   * Convierte hex de color a nombre (ej: '#FFFFFF' -> 'Blanco')
+   * Retorna null si el color no es válido
+   */
+  getColorName(hexOrName: string): string | null {
+    if (!hexOrName) return null;
+    // If it's a hex code, look up the name
+    if (hexOrName.startsWith('#')) {
+      if (this.colorHexToName.size === 0) return null;
+      return this.colorHexToName.get(hexOrName.toUpperCase()) || null;
+    }
+    // Text value: always validate against known color names
+    if (this.colorHexToName.size === 0) return null; // Colors not loaded yet
+    const knownNames = new Set(Array.from(this.colorHexToName.values()).map(n => n.toLowerCase()));
+    if (knownNames.has(hexOrName.toLowerCase())) return hexOrName;
+    return null;
   }
 
   /**

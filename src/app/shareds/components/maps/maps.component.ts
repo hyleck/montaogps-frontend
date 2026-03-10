@@ -42,6 +42,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   selectedExpirationTime: string = '24h';
   generatedLink: string = '';
   showCopySuccess: boolean = false;
+  showVehicleImageModal: boolean = false;
 
   constructor(
     private _theme: ThemesService,
@@ -805,6 +806,22 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     this.stopTimeText = initialValue || '';
     this.isStopTimeMoving = false;
     this.isStopTimeLoading = false;
+  }
+
+  getVehicleImageUrl(fullSize: boolean = false): string | null {
+    const ot = this.selectedTarget?.originalTarget;
+    const img = fullSize
+      ? (ot?.target_image || ot?.target_image_thumbnail)
+      : (ot?.target_image_thumbnail || ot?.target_image);
+    if (!img) return null;
+    if (img.startsWith('/')) {
+      return `https://back-montao.dorhu.com${img}`;
+    }
+    return img;
+  }
+
+  onVehicleImageError(event: Event): void {
+    (event.target as HTMLImageElement).style.display = 'none';
   }
 
   private clearMultipleMarkers(): void {

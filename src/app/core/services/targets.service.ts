@@ -263,4 +263,9 @@ export class TargetsService {
     const observable = this.http.get<any>(url, { params });
     return await lastValueFrom(observable);
   }
+
+  async generateAIImage(data: { brand: string; model: string; color: string; year: number }): Promise<{ url: string; thumbnailUrl?: string; fromCache?: boolean }> {
+    const observable = this.http.post<{ url: string; thumbnailUrl?: string; fromCache?: boolean }>(`${this.apiUrl}/generate-image`, data);
+    return await lastValueFrom(observable);
+  }
 }

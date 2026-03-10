@@ -100,6 +100,25 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return !!(this.target && this.target._id && this.target._id.trim());
     }
 
+    // Track original vehicle data to detect changes
+    private originalVehicleData = { brand: '', model: '', year: '', color: '' };
+
+    getTargetImageUrl(): string | null {
+        if (this.hasVehicleDataChanged()) return null;
+        const img = (this.target as any)?.target_image_thumbnail || (this.target as any)?.target_image;
+        if (!img) return null;
+        if (img.startsWith('http')) return img;
+        return `https://back-montao.dorhu.com${img}`;
+    }
+
+    hasVehicleDataChanged(): boolean {
+        if (!this.isEditMode) return false;
+        return this.target.target_brand_id !== this.originalVehicleData.brand
+            || this.target.target_model_id !== this.originalVehicleData.model
+            || this.target.target_year !== this.originalVehicleData.year
+            || this.target.target_color !== this.originalVehicleData.color;
+    }
+
     // Opciones para selects
     availableBrands: SelectOption[] = [];
     availableModels: SelectOption[] = [];
@@ -627,6 +646,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.target.target_brand_id = this.target.target_brand_id || '';
         this.target.target_color = this.target.target_color || '';
         this.target.target_year = this.target.target_year || '';
+
+        // Store original vehicle data to detect changes
+        this.originalVehicleData = {
+            brand: this.target.target_brand_id || '',
+            model: this.target.target_model_id || '',
+            year: this.target.target_year || '',
+            color: this.target.target_color || '',
+        };
 
 
 
@@ -1213,6 +1240,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private prepareTargetData(): CreateTargetDto | UpdateTargetDto {
         // Crear una copia del objeto target con los campos actuales
         const targetData: any = { ...this.target };
+
+        // If vehicle data changed, clear image fields
+        if (this.hasVehicleDataChanged()) {
+            targetData.target_image = '';
+            targetData.target_image_thumbnail = '';
+        }
 
         // target_plate_number se mantiene con su nombre original
         // El backend espera este campo tal como está

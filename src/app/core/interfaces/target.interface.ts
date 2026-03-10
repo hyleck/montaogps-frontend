@@ -60,6 +60,8 @@ export interface CreateTargetDto {
   target_brand_id?: string | null;
   target_model_id?: string | null;
   target_color?: string;
+  target_image?: string;
+  target_image_thumbnail?: string;
   target_chassis_number?: string;
   activation_date: Date;
   expiration_date?: Date;

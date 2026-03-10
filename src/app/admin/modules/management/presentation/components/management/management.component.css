@@ -1962,6 +1962,21 @@
   }
 }
 
+@keyframes slideInImage {
+  0% {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(5px) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* Hover effect mejorado para usuarios compartidos */
 .management__user-card--shared:hover {
   transform: translateY(-4px) scale(1.02);
@@ -2598,4 +2613,52 @@
   text-align: center;
   line-height: 1.2;
   opacity: 0.9;
+}
+
+/* Full-size target form image modal */
+.target-form-image-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: rgba(2, 6, 23, 0.88);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: targetImgFadeIn 0.25s ease-out;
+}
+
+.target-form-image-modal-overlay img {
+    max-width: 85%;
+    max-height: 80%;
+    object-fit: contain;
+    border-radius: 16px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+}
+
+.target-form-image-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(15, 23, 42, 0.7);
+    color: #e2e8f0;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+}
+
+.target-form-image-modal-close:hover {
+    background: rgba(239, 68, 68, 0.8);
+}
+
+@keyframes targetImgFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
