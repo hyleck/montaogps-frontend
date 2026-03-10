@@ -228,7 +228,7 @@ export class SidebarComponent implements OnInit {
           companyType = settings.company_type;
         }
 
-        console.log('Checking Rent A Car option:', item.path, 'CompanyType:', companyType, 'User:', this.currentUser);
+        // console.log('Checking Rent A Car option:', item.path, 'CompanyType:', companyType, 'User:', this.currentUser);
 
         return companyType === 'rent_a_car';
       }

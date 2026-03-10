@@ -97,14 +97,19 @@
                         </small>
                     </td>
                     <td>
-                        <span *ngIf="sol.client_name">{{ sol.client_name }}</span>
-                        <span *ngIf="!sol.client_name" class="sol-muted">—</span>
+                        <span *ngIf="getClientDisplayName(sol)">{{ getClientDisplayName(sol) }}</span>
+                        <span *ngIf="!getClientDisplayName(sol)" class="sol-muted">—</span>
                     </td>
                     <td class="sol-mono">{{ sol.device_imei || '—' }}</td>
                     <td>{{ sol.scheduled_date ? (sol.scheduled_date | date: 'dd/MM/yyyy') : '—' }}</td>
                     <td>{{ sol.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
                     <td>
                         <div class="sol-actions">
+                            <button *ngIf="sol.type === 'instalacion' && sol.status !== 'completada'" pButton pRipple
+                                icon="pi pi-download" label="Instalar"
+                                class="p-button-rounded p-button-sm sol-install-btn"
+                                (click)="openInstallDialog(sol)" pTooltip="Instalar dispositivo"
+                                tooltipPosition="top"></button>
                             <button pButton pRipple icon="pi pi-pencil"
                                 class="p-button-rounded p-button-text p-button-success" (click)="editSolicitud(sol)"
                                 pTooltip="Editar" tooltipPosition="top"></button>
@@ -347,3 +352,169 @@
 
 <p-confirmDialog key="solicitudes-confirm"></p-confirmDialog>
 <p-toast></p-toast>
+
+<!-- Install Dialog -->
+<p-dialog [(visible)]="installDialogVisible" [style]="{width: '720px'}"
+    header="Instalar Dispositivo" [modal]="true" styleClass="p-fluid app-dark-dialog"
+    (onHide)="hideInstallDialog()">
+    <ng-template pTemplate="content">
+        <div *ngIf="solicitudToInstall" class="sol-form">
+
+            <!-- Account Section -->
+            <div class="sol-form-separator sol-form-separator--required">
+                <i class="pi pi-user"></i>
+                <span>Cuenta Destino *</span>
+            </div>
+
+            <div *ngIf="installData.userFound" class="sol-install-user-info">
+                <i class="pi pi-check-circle"></i>
+                <div>
+                    <strong>{{ installData.parentUserName }}</strong>
+                    <small *ngIf="installData.parentEmail">{{ installData.parentEmail }}</small>
+                </div>
+            </div>
+
+            <div *ngIf="!solicitudToInstall.user_id || !installData.userFound" class="sol-form-row">
+                <div class="sol-form-field" style="flex:1">
+                    <label>Correo electrónico del usuario *</label>
+                    <input type="text" [(ngModel)]="installData.parentEmail"
+                        placeholder="usuario@ejemplo.com" (keyup.enter)="searchUserByEmail()" />
+                </div>
+                <div class="sol-form-field" style="flex:0 0 auto; justify-content: flex-end;">
+                    <label>&nbsp;</label>
+                    <button pButton pRipple icon="pi pi-search" label="Buscar"
+                        class="p-button-outlined p-button-sm"
+                        [loading]="installData.searchingUser"
+                        (click)="searchUserByEmail()"></button>
+                </div>
+            </div>
+
+            <!-- Device Data -->
+            <div class="sol-form-separator sol-form-separator--required">
+                <i class="pi pi-microchip"></i>
+                <span>Datos del Dispositivo *</span>
+            </div>
+
+            <div class="sol-form-field">
+                <label>Nombre del Target *</label>
+                <input type="text" [(ngModel)]="installData.name" placeholder="Ej. GPS-001 Toyota Corolla" />
+            </div>
+
+            <div class="sol-form-row sol-form-row-3">
+                <div class="sol-form-field">
+                    <label>IMEI *</label>
+                    <input type="text" [(ngModel)]="installData.device_imei" placeholder="IMEI del dispositivo" />
+                </div>
+                <div class="sol-form-field">
+                    <label>SIM *</label>
+                    <input type="text" [(ngModel)]="installData.sim_card_number" placeholder="Número SIM" />
+                </div>
+                <div class="sol-form-field">
+                    <label>Compañía SIM *</label>
+                    <select [(ngModel)]="installData.sim_company">
+                        <option value="">Seleccionar compañía</option>
+                        <option *ngFor="let simType of simCardTypes" [value]="simType.value">{{ simType.label }}</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="sol-form-field">
+                <label>Protocolo / Tipo de Dispositivo *</label>
+                <select [(ngModel)]="installData.type">
+                    <option value="">Seleccionar protocolo</option>
+                    <option *ngFor="let proto of availableProtocols" [value]="proto._id">{{ proto.name }}</option>
+                </select>
+            </div>
+
+            <!-- Plan & Dates -->
+            <div class="sol-form-separator sol-form-separator--required">
+                <i class="pi pi-calendar"></i>
+                <span>Plan y Fechas *</span>
+            </div>
+
+            <div class="sol-form-field">
+                <label>Plan *</label>
+                <select [(ngModel)]="installData.plan_id" (change)="installData.plan_price_id = ''">
+                    <option value="">Seleccionar plan</option>
+                    <option *ngFor="let plan of availablePlans" [value]="plan._id">{{ plan.plan_name }}</option>
+                </select>
+            </div>
+
+            <div class="sol-form-field" *ngIf="getSelectedPlanPrices().length > 0">
+                <label>Precio del Plan *</label>
+                <select [(ngModel)]="installData.plan_price_id">
+                    <option value="">Seleccionar precio</option>
+                    <option *ngFor="let price of getSelectedPlanPrices()" [value]="price.id">
+                        ${{ price.amount }} - {{ price.payment_period }}
+                    </option>
+                </select>
+            </div>
+
+            <div class="sol-form-row">
+                <div class="sol-form-field">
+                    <label>Fecha de Activación *</label>
+                    <input type="date" [(ngModel)]="installData.activation_date" />
+                </div>
+                <div class="sol-form-field">
+                    <label>Fecha de Expiración *</label>
+                    <input type="date" [(ngModel)]="installData.expiration_date" />
+                </div>
+            </div>
+
+            <!-- Installation Details -->
+            <div class="sol-form-separator">
+                <i class="pi pi-wrench"></i>
+                <span>Detalles de Instalación (Opcional)</span>
+            </div>
+
+            <div class="sol-form-field">
+                <label>Detalles de Instalación</label>
+                <textarea [(ngModel)]="installData.installation_details" rows="2"
+                    placeholder="Detalles de la instalación..."></textarea>
+            </div>
+
+            <!-- Summary of solicitud data (read-only) -->
+            <div class="sol-form-separator">
+                <i class="pi pi-car"></i>
+                <span>Datos del Vehículo (desde la solicitud)</span>
+            </div>
+
+            <div class="sol-install-summary">
+                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.plate">
+                    <span class="sol-install-summary-label">Placa</span>
+                    <span class="sol-install-summary-value">{{ solicitudToInstall.plate }}</span>
+                </div>
+                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.brand">
+                    <span class="sol-install-summary-label">Marca</span>
+                    <span class="sol-install-summary-value">{{ getBrandName(solicitudToInstall.brand) }}</span>
+                </div>
+                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.model">
+                    <span class="sol-install-summary-label">Modelo</span>
+                    <span class="sol-install-summary-value">{{ getModelName(solicitudToInstall.brand, solicitudToInstall.model) }}</span>
+                </div>
+                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.year">
+                    <span class="sol-install-summary-label">Año</span>
+                    <span class="sol-install-summary-value">{{ solicitudToInstall.year }}</span>
+                </div>
+                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.color">
+                    <span class="sol-install-summary-label">Color</span>
+                    <span class="sol-install-summary-value">{{ getColorName(solicitudToInstall.color) }}</span>
+                </div>
+                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.client_name">
+                    <span class="sol-install-summary-label">Cliente</span>
+                    <span class="sol-install-summary-value">{{ solicitudToInstall.client_name }}</span>
+                </div>
+            </div>
+
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="hideInstallDialog()">
+            <i class="pi pi-times"></i> Cancelar
+        </button>
+        <button type="button" class="sol-btn sol-btn-install" (click)="installDevice()" [disabled]="installing">
+            <i class="pi" [ngClass]="installing ? 'pi-spin pi-spinner' : 'pi-download'"></i>
+            {{ installing ? 'Instalando...' : 'Instalar' }}
+        </button>
+    </ng-template>
+</p-dialog>

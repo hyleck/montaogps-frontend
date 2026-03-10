@@ -31,6 +31,7 @@ export interface Solicitud {
     scheduled_date?: string;
     completed_date?: string;
     user_id?: string;
+    id_rent?: string;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -65,5 +66,12 @@ export class SolicitudesService {
 
     delete(id: string): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`);
+    }
+
+    completeInstall(solicitudId: string, deviceId: string, imei: string): Observable<any> {
+        return this.http.post(`${this.apiUrl}/${solicitudId}/complete-install`, {
+            device_id: deviceId,
+            imei: imei
+        });
     }
 }

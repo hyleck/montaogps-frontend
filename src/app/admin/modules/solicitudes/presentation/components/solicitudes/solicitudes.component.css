@@ -618,3 +618,95 @@
         overflow-x: auto;
     }
 }
+
+/* ============================================
+   INSTALL BUTTON & DIALOG
+   ============================================ */
+.sol-install-btn {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    border: none !important;
+    color: white !important;
+    font-size: 0.75rem !important;
+    padding: 0.35rem 0.8rem !important;
+    font-weight: 700 !important;
+}
+
+.sol-install-btn:hover {
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.35) !important;
+    transform: translateY(-1px);
+}
+
+.sol-install-user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 10px;
+}
+
+.sol-install-user-info i {
+    color: #10b981;
+    font-size: 1.2rem;
+}
+
+.sol-install-user-info strong {
+    display: block;
+    color: var(--managementColorTitleUser);
+    font-size: 0.9rem;
+}
+
+.sol-install-user-info small {
+    display: block;
+    color: var(--managementColorTextUser);
+    opacity: 0.55;
+    font-size: 0.78rem;
+    margin-top: 0.15rem;
+}
+
+.sol-install-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.sol-install-summary-item {
+    padding: 0.5rem 0.75rem;
+    background: rgba(99, 102, 241, 0.04);
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 8px;
+}
+
+.sol-install-summary-label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--managementColorTextUser);
+    opacity: 0.5;
+    margin-bottom: 0.15rem;
+}
+
+.sol-install-summary-value {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--managementColorTitleUser);
+}
+
+.sol-btn-install {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.sol-btn-install:hover:not(:disabled) {
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    transform: translateY(-1px);
+}
+
+.sol-btn-install:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

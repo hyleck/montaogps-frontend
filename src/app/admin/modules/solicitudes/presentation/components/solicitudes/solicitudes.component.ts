@@ -3,6 +3,14 @@ import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
 import { SolicitudesService, Solicitud } from '../../../../../../core/services/solicitudes.service';
 import { VehicleBrandsService } from '../../../../../../core/services/vehicle-brands.service';
 import { ColorsService } from '../../../../../../core/services/colors.service';
+import { UserService } from '../../../../../../core/services/user.service';
+import { TargetsService } from '../../../../../../core/services/targets.service';
+import { ProtocolsService } from '../../../../../../core/services/protocols.service';
+import { PlansService } from '../../../../../../core/services/plans.service';
+import { AuthService } from '../../../../../../core/services/auth.service';
+import { Protocol } from '../../../../../../core/interfaces/protocol.interface';
+import { Plan } from '../../../../../../core/interfaces/plan.interface';
+import { SIM_CARD_TYPES } from '../../../../../../core/constants/sim-card-types.constant';
 
 interface SelectOption {
     label: string;
@@ -44,6 +52,7 @@ export class SolicitudesComponent implements OnInit {
 
     // Model name cache for table display
     modelNameCache: Record<string, string> = {};
+    userNameCache: Record<string, string> = {};
 
     // Color selector
     availableColors: SelectOption[] = [];
@@ -98,10 +107,40 @@ export class SolicitudesComponent implements OnInit {
         cancelada: 'Cancelada'
     };
 
+    // Install dialog
+    installDialogVisible = false;
+    installing = false;
+    solicitudToInstall: Solicitud | null = null;
+    availableProtocols: Protocol[] = [];
+    availablePlans: Plan[] = [];
+    simCardTypes = SIM_CARD_TYPES;
+    installData = {
+        name: '',
+        type: '',
+        activation_date: '',
+        expiration_date: '',
+        plan_id: '',
+        plan_price_id: '',
+        device_imei: '',
+        sim_card_number: '',
+        sim_company: '',
+        installation_details: '',
+        parent_id: '',
+        parentEmail: '',
+        parentUserName: '',
+        searchingUser: false,
+        userFound: false
+    };
+
     constructor(
         private solicitudesService: SolicitudesService,
         private vehicleBrandsService: VehicleBrandsService,
         private colorsService: ColorsService,
+        private userService: UserService,
+        private targetsService: TargetsService,
+        private protocolsService: ProtocolsService,
+        private plansService: PlansService,
+        private authService: AuthService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService
     ) { }
@@ -226,6 +265,7 @@ export class SolicitudesComponent implements OnInit {
                 this.totalItems = response.total;
                 this.loading = false;
                 this.loadModelNamesForTable();
+                this.resolveUserNames();
             },
             error: () => {
                 this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar las solicitudes' });
@@ -386,5 +426,226 @@ export class SolicitudesComponent implements OnInit {
         if (!hex) return '';
         const color = this.availableColors.find(c => c.value === hex);
         return color ? color.label : hex;
+    }
+
+    getClientDisplayName(sol: Solicitud): string {
+        if (sol.user_id && this.userNameCache[sol.user_id]) {
+            return this.userNameCache[sol.user_id];
+        }
+        return sol.client_name || '';
+    }
+
+    private resolveUserNames(): void {
+        const userIds = [...new Set(
+            this.solicitudes
+                .filter(s => s.user_id && !this.userNameCache[s.user_id!])
+                .map(s => s.user_id!)
+        )];
+        for (const userId of userIds) {
+            this.userService.getById(userId).subscribe({
+                next: (user) => {
+                    this.userNameCache[userId] = `${user.name} ${user.last_name || ''}`.trim();
+                },
+                error: () => { /* user not found, keep client_name */ }
+            });
+        }
+    }
+
+    // ====================================
+    // INSTALL DIALOG
+    // ====================================
+
+    openInstallDialog(solicitud: Solicitud): void {
+        this.solicitudToInstall = solicitud;
+        this.installData = {
+            name: '',
+            type: '',
+            activation_date: new Date().toISOString().split('T')[0],
+            expiration_date: '',
+            plan_id: '',
+            plan_price_id: '',
+            device_imei: solicitud.device_imei || '',
+            sim_card_number: solicitud.sim_card_number || '',
+            sim_company: solicitud.sim_company || '',
+            installation_details: solicitud.installation_details || '',
+            parent_id: solicitud.user_id || '',
+            parentEmail: '',
+            parentUserName: '',
+            searchingUser: false,
+            userFound: !!solicitud.user_id
+        };
+
+        // Load protocols and plans
+        this.protocolsService.getAllProtocols().subscribe({
+            next: (protocols) => this.availableProtocols = protocols,
+            error: () => console.error('Error loading protocols')
+        });
+        this.plansService.getAllPlans().subscribe({
+            next: (plans) => this.availablePlans = plans,
+            error: () => console.error('Error loading plans')
+        });
+
+        // Resolve user name if user_id exists
+        if (solicitud.user_id) {
+            this.userService.getById(solicitud.user_id).subscribe({
+                next: (user) => {
+                    this.installData.parentUserName = `${user.name} ${(user as any).last_name || ''}`.trim();
+                    this.installData.parentEmail = (user as any).email || '';
+                },
+                error: () => {
+                    this.installData.parentUserName = 'Usuario no encontrado';
+                    this.installData.userFound = false;
+                }
+            });
+        }
+
+        this.installDialogVisible = true;
+    }
+
+    searchUserByEmail(): void {
+        if (!this.installData.parentEmail) return;
+        this.installData.searchingUser = true;
+        this.installData.userFound = false;
+        this.installData.parent_id = '';
+        this.installData.parentUserName = '';
+
+        this.userService.getByEmail(this.installData.parentEmail).subscribe({
+            next: (user) => {
+                this.installData.parent_id = (user as any)._id || (user as any).id;
+                this.installData.parentUserName = `${user.name} ${(user as any).last_name || ''}`.trim();
+                this.installData.userFound = true;
+                this.installData.searchingUser = false;
+            },
+            error: () => {
+                this.installData.searchingUser = false;
+                this.installData.userFound = false;
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Usuario no encontrado con ese correo' });
+            }
+        });
+    }
+
+    getSelectedPlanPrices(): any[] {
+        if (!this.installData.plan_id) return [];
+        const plan = this.availablePlans.find(p => p._id === this.installData.plan_id);
+        return plan?.prices || [];
+    }
+
+    async installDevice(): Promise<void> {
+        // Validate required fields
+        if (!this.installData.name || !this.installData.type || !this.installData.activation_date
+            || !this.installData.expiration_date || !this.installData.plan_id
+            || !this.installData.plan_price_id || !this.installData.parent_id
+            || !this.installData.device_imei || !this.installData.sim_card_number
+            || !this.installData.sim_company) {
+            this.messageService.add({ severity: 'warn', summary: 'Campos requeridos', detail: 'Completa todos los campos obligatorios' });
+            return;
+        }
+
+        this.installing = true;
+        const sol = this.solicitudToInstall!;
+        const currentUser = this.authService.getCurrentUser();
+
+        // Find selected plan and price
+        const selectedPlan = this.availablePlans.find(p => p._id === this.installData.plan_id);
+        const selectedPrice = selectedPlan?.prices?.find(pr => pr.id === this.installData.plan_price_id);
+
+        // Resolve brand/model/color: solicitudes from Montao Rent may have names instead of IDs
+        const isObjectId = (val: string) => /^[0-9a-fA-F]{24}$/.test(val);
+
+        let resolvedBrandId = sol.brand || '';
+        let resolvedModelId = sol.model || '';
+        let resolvedColor = sol.color || '';
+
+        // Resolve brand name → ID
+        if (resolvedBrandId && !isObjectId(resolvedBrandId)) {
+            const matchedBrand = this.availableBrands.find(
+                b => b.label.toLowerCase() === resolvedBrandId.toLowerCase()
+            );
+            if (matchedBrand) resolvedBrandId = matchedBrand.value;
+        }
+
+        // Resolve model name → ID (need to load models for the brand)
+        if (resolvedModelId && !isObjectId(resolvedModelId) && resolvedBrandId && isObjectId(resolvedBrandId)) {
+            try {
+                const models = await this.vehicleBrandsService.getAllModelsByBrand(resolvedBrandId);
+                const matchedModel = (models || []).find(
+                    (m: any) => m.nombre.toLowerCase() === resolvedModelId.toLowerCase()
+                );
+                if (matchedModel) resolvedModelId = matchedModel._id;
+            } catch { }
+        }
+
+        // Resolve color name → hex value
+        if (resolvedColor && !resolvedColor.startsWith('#')) {
+            const matchedColor = this.availableColors.find(
+                c => c.label.toLowerCase() === resolvedColor.toLowerCase()
+            );
+            if (matchedColor) resolvedColor = matchedColor.value;
+        }
+
+        const targetData: any = {
+            name: this.installData.name,
+            device_imei: this.installData.device_imei,
+            api_device_id: '',
+            api_position_id: '',
+            type: this.installData.type,
+            sim_card_number: this.installData.sim_card_number,
+            sim_company: this.installData.sim_company,
+            target_plate_number: sol.plate || '',
+            target_brand_id: resolvedBrandId,
+            target_model_id: resolvedModelId,
+            target_color: resolvedColor,
+            target_year: sol.year || '',
+            target_chassis_number: sol.chassis || '',
+            contacts: sol.contacts || '',
+            mechanic_id: sol.mechanic_id || '',
+            installation_location: sol.installation_location || '',
+            engine_shutdown: sol.engine_shutdown || '',
+            ignition_sensor: sol.ignition_sensor || '',
+            installation_details: this.installData.installation_details,
+            activation_date: new Date(this.installData.activation_date),
+            expiration_date: new Date(this.installData.expiration_date),
+            last_change_date: new Date(),
+            status: true,
+            canceled: false,
+            delete: false,
+            index: this.installData.parent_id,
+            parent_id: this.installData.parent_id,
+            creator_id: currentUser?.id || '',
+            plan: {
+                id_plan: this.installData.plan_id,
+                selected_price: selectedPrice ? {
+                    id: selectedPrice.id,
+                    amount: selectedPrice.amount,
+                    payment_period: String(selectedPrice.payment_period)
+                } : undefined
+            },
+            description: sol.description || ''
+        };
+
+        try {
+            const createdDevice: any = await this.targetsService.createTarget(targetData);
+            const deviceId = createdDevice?._id || createdDevice?.id || '';
+
+            // Complete install: update solicitud status + sync GPS data to Montao Rent vehicle
+            if (sol._id) {
+                this.solicitudesService.completeInstall(sol._id, deviceId, this.installData.device_imei).subscribe({
+                    next: () => this.loadSolicitudes(false),
+                    error: () => this.loadSolicitudes(false)
+                });
+            }
+
+            this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Dispositivo instalado correctamente' });
+            this.installDialogVisible = false;
+        } catch (error: any) {
+            this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Error al crear el dispositivo' });
+        } finally {
+            this.installing = false;
+        }
+    }
+
+    hideInstallDialog(): void {
+        this.installDialogVisible = false;
+        this.solicitudToInstall = null;
     }
 }
