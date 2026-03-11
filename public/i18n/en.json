@@ -265,7 +265,47 @@
     "processType": "Type",
     "noProcesses": "No processes recorded for this target",
     "myProfile": "My Profile",
-    "logout": "Logout"
+    "logout": "Logout",
+    "support": "Technical Support"
+  },
+  "support": {
+    "title": "Support",
+    "description": "Technical support management",
+    "newTicket": "New Ticket",
+    "createTicket": "Create New Ticket",
+    "ticketTitle": "Issue Title",
+    "ticketTitlePlaceholder": "Ex: Error in stop reports",
+    "priority": "Priority",
+    "selectPriority": "Select priority",
+    "descriptionLabel": "Detailed Description",
+    "descriptionPlaceholder": "Provide as much information as possible so we can help you better...",
+    "sendTicket": "Send Ticket",
+    "cancel": "Cancel",
+    "viewDetails": "Ticket Details",
+    "close": "Close",
+    "success": "Ticket sent successfully",
+    "error": "Could not send the ticket",
+    "myTickets": "My Tickets",
+    "noTickets": "You don't have any support tickets yet",
+    "back": "Back",
+    "status": {
+      "open": "Open",
+      "in_progress": "In Progress",
+      "resolved": "Resolved",
+      "closed": "Closed"
+    },
+    "table": {
+      "title": "Subject",
+      "priority": "Priority",
+      "status": "Status",
+      "date": "Date"
+    },
+    "priorities": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    }
   },
   "maps": {
     "infoTitle": "Target insights",
@@ -632,6 +672,25 @@
       "table": {
         "type": "Type"
       }
+    },
+    "customizer": {
+      "title": "Customizer",
+      "description": "Edit support forms and other dynamic forms",
+      "new": "New Form",
+      "name": "Name",
+      "name_placeholder": "Form name",
+      "description_label": "Description",
+      "description_placeholder": "Form description",
+      "tag": "Tag",
+      "tag_placeholder": "Select a tag",
+      "details": "Form Details",
+      "fields": "Form Fields",
+      "add_field": "Add Field",
+      "field_label": "Field Label",
+      "field_type": "Field Type",
+      "field_placeholder": "Placeholder",
+      "field_required": "Required",
+      "confirm_delete": "Are you sure you want to delete the form {{name}}?"
     },
     "pushManager": {
       "title": "Push Manager",
