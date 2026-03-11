@@ -173,7 +173,8 @@
     "inventory": "Inventaire",
     "macro": "Macro",
     "monitoring": "Surveillance",
-    "serverCosts": "Coûts des serveurs"
+    "serverCosts": "Coûts des serveurs",
+    "montaoRent": "Montao Rent"
   },
   "serverCosts": {
     "title": "Coûts des serveurs",

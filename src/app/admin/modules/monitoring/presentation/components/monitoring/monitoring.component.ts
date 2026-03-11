@@ -2012,6 +2012,17 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
     if (comparison === 'lt') {
       return durationInMinutes < minutesThreshold;
+    } else if (comparison === 'eq') {
+      // Exact match: between threshold and threshold + 1 unit
+      let nextUnitMinutes = 0;
+      switch (unit) {
+        case 'hours': nextUnitMinutes = 60; break;
+        case 'days': nextUnitMinutes = 24 * 60; break;
+        case 'weeks': nextUnitMinutes = 7 * 24 * 60; break;
+        case 'months': nextUnitMinutes = 30 * 24 * 60; break;
+        default: nextUnitMinutes = 60; break;
+      }
+      return durationInMinutes >= minutesThreshold && durationInMinutes < (minutesThreshold + nextUnitMinutes);
     } else {
       // Default to greater than (gt) or if no comparison prefix
       return durationInMinutes > minutesThreshold;
