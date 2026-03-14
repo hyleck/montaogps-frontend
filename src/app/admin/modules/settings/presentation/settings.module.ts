@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { PrimengModule } from '@shared/libraries/primeng/primeng.module';
+import { InputSwitchModule } from 'primeng/inputswitch';
 import { CloudModule } from '../../../../shareds/components/cloud/cloud.module';
 import { SettingsRoutingModule } from './settings-routing.module';
 import { SettingsComponent } from './components/settings/settings.component';
@@ -20,6 +21,7 @@ import { SupportSettingsComponent } from './components/settings/support-settings
 import { TagsSettingsComponent } from './components/settings/tags-settings/tags-settings.component';
 import { CustomizerSettingsComponent } from './components/settings/customizer-settings/customizer-settings.component';
 import { PushManagerSettingsComponent } from './components/settings/push-manager-settings/push-manager-settings.component';
+import { MembresiasSettingsComponent } from './components/settings/membresias-settings/membresias-settings.component';
 
 @NgModule({
   declarations: [
@@ -42,10 +44,12 @@ import { PushManagerSettingsComponent } from './components/settings/push-manager
     FormsModule,
     ReactiveFormsModule,
     PrimengModule,
+    InputSwitchModule,
     SettingsRoutingModule,
     TranslateModule,
     TagsSettingsComponent,
     CustomizerSettingsComponent,
+    MembresiasSettingsComponent,
     CloudModule
   ]
 })

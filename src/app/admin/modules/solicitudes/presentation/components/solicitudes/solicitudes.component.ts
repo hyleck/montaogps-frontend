@@ -457,11 +457,23 @@ export class SolicitudesComponent implements OnInit {
 
     openInstallDialog(solicitud: Solicitud): void {
         this.solicitudToInstall = solicitud;
+
+        // Resolve brand and model names to pre-fill the target name
+        let defaultName = '';
+        const brandName = this.getBrandName(solicitud.brand);
+        if (brandName && brandName !== '—') {
+            defaultName = brandName;
+        }
+
+        const today = new Date();
+        const oneYearLater = new Date(today);
+        oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+
         this.installData = {
-            name: '',
+            name: defaultName,
             type: '',
-            activation_date: new Date().toISOString().split('T')[0],
-            expiration_date: '',
+            activation_date: today.toISOString().split('T')[0],
+            expiration_date: oneYearLater.toISOString().split('T')[0],
             plan_id: '',
             plan_price_id: '',
             device_imei: solicitud.device_imei || '',
@@ -475,13 +487,33 @@ export class SolicitudesComponent implements OnInit {
             userFound: !!solicitud.user_id
         };
 
+        // Load models to resolve model name and append to the target name
+        if (solicitud.brand && solicitud.model) {
+            this.vehicleBrandsService.getAllModelsByBrand(solicitud.brand).then((models: any[]) => {
+                const matched = (models || []).find((m: any) => m._id === solicitud.model);
+                if (matched) {
+                    this.installData.name = `${defaultName} ${matched.nombre}`.trim();
+                }
+            }).catch(() => { });
+        }
+
         // Load protocols and plans
         this.protocolsService.getAllProtocols().subscribe({
             next: (protocols) => this.availableProtocols = protocols,
             error: () => console.error('Error loading protocols')
         });
         this.plansService.getAllPlans().subscribe({
-            next: (plans) => this.availablePlans = plans,
+            next: (plans) => {
+                this.availablePlans = plans;
+                // Auto-assign a random plan and its first price
+                if (plans.length > 0) {
+                    const randomPlan = plans[Math.floor(Math.random() * plans.length)];
+                    this.installData.plan_id = randomPlan._id;
+                    if (randomPlan.prices && randomPlan.prices.length > 0) {
+                        this.installData.plan_price_id = randomPlan.prices[0].id;
+                    }
+                }
+            },
             error: () => console.error('Error loading plans')
         });
 
@@ -533,8 +565,7 @@ export class SolicitudesComponent implements OnInit {
     async installDevice(): Promise<void> {
         // Validate required fields
         if (!this.installData.name || !this.installData.type || !this.installData.activation_date
-            || !this.installData.expiration_date || !this.installData.plan_id
-            || !this.installData.plan_price_id || !this.installData.parent_id
+            || !this.installData.expiration_date || !this.installData.parent_id
             || !this.installData.device_imei || !this.installData.sim_card_number
             || !this.installData.sim_company) {
             this.messageService.add({ severity: 'warn', summary: 'Campos requeridos', detail: 'Completa todos los campos obligatorios' });

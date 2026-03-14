@@ -557,6 +557,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         label: plan.plan_name,
                         value: plan._id
                     })).sort((a, b) => a.label.localeCompare(b.label));
+                    // Auto-assign a random plan for new targets
+                    if (!this.isEditMode) {
+                        this.autoAssignRandomPlan();
+                    }
                 },
                 error: (error) => {
                     console.error('Error al cargar planes:', error);
@@ -1028,6 +1032,39 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.activeTabIndex = 0;
         this.displayColorName = '';
         // No modificamos showColorOptions ya que queremos que siempre esté visible
+        // Re-assign a random plan for the next creation
+        this.autoAssignRandomPlan();
+    }
+
+    /**
+     * Auto-assigns a random plan and its first available price.
+     * Called when creating a new target (plan dropdown is hidden from UI).
+     */
+    private autoAssignRandomPlan(): void {
+        if (this.availablePlans.length === 0) return;
+        const randomIndex = Math.floor(Math.random() * this.availablePlans.length);
+        const randomPlan = this.availablePlans[randomIndex];
+        this.target.plan = randomPlan.value;
+        // Load prices for the selected plan and auto-select the first one
+        this.plansService.getPlanById(this.target.plan as string).subscribe({
+            next: (plan: Plan) => {
+                this.availablePrices = plan.prices.map(price => ({
+                    id: price.id,
+                    amount: price.amount,
+                    payment_period: typeof price.payment_period === 'string' ?
+                        price.payment_period :
+                        this.mapPeriodToString(price.payment_period)
+                }));
+                // Auto-select the first price
+                if (this.availablePrices.length > 0) {
+                    this.target.selectedPrice = this.availablePrices[0];
+                    this.updateExpirationDate();
+                }
+            },
+            error: (error) => {
+                console.error('Error al cargar precios del plan auto-asignado:', error);
+            }
+        });
     }
 
     async onBrandChange() {
@@ -1391,7 +1428,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private validateForm(): boolean {
         // Validaciones según el tab activo
         if (this.activeTabIndex === 0) { // Tab de vehículo
-            if (!this.target.name || !this.target.target_plate_number || !this.target.plan || !this.target.selectedPrice) {
+            if (!this.target.name || !this.target.target_plate_number) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate('management.targetForm.validationError'),
@@ -1400,7 +1437,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 return false;
             }
         } else if (this.activeTabIndex === 1) { // Tab de instalación
-            if (!this.target.device_imei || !this.target.sim_card_number || !this.target.mechanic_id || !this.target.plan || !this.target.selectedPrice) {
+            if (!this.target.device_imei || !this.target.sim_card_number || !this.target.mechanic_id) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate('management.targetForm.validationError'),
@@ -1410,23 +1447,25 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
         }
 
-        // Validación específica para el plan y precio
-        if (!this.target.plan) {
-            this.messageService.add({
-                severity: 'error',
-                summary: this.translate('management.targetForm.validationError'),
-                detail: this.translate('management.targetForm.planRequired')
-            });
-            return false;
-        }
+        // Validación de plan y precio solo en modo edición (en creación se auto-asignan)
+        if (this.isEditMode) {
+            if (!this.target.plan) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translate('management.targetForm.validationError'),
+                    detail: this.translate('management.targetForm.planRequired')
+                });
+                return false;
+            }
 
-        if (!this.target.selectedPrice) {
-            this.messageService.add({
-                severity: 'error',
-                summary: this.translate('management.targetForm.validationError'),
-                detail: this.translate('management.targetForm.priceRequired')
-            });
-            return false;
+            if (!this.target.selectedPrice) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: this.translate('management.targetForm.validationError'),
+                    detail: this.translate('management.targetForm.priceRequired')
+                });
+                return false;
+            }
         }
 
         // Validación específica para el técnico (siempre requerido)

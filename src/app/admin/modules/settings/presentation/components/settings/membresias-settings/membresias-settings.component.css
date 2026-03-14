@@ -1,0 +1,73 @@
+:host {
+    display: block;
+}
+
+.membresias-container {
+    padding: 1rem 0;
+}
+
+.membresias-form-section {
+    margin-bottom: 2rem;
+}
+
+.membresias-form-section h3 {
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.form-row .field {
+    flex: 1;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.field label {
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.new-btn-container {
+    margin-top: 0.5rem;
+}
+
+.membresias-list-section h2 {
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 1rem;
+}
+
+.loading-container {
+    text-align: center;
+    padding: 2rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.price-badge {
+    font-weight: bold;
+    color: #4caf50;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.25rem;
+}

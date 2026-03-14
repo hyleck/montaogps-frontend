@@ -37,6 +37,7 @@ interface SystemSettingsForm {
   company_name: string;
   version: string;
   phone: string;
+  autoResponse: boolean;
   contacts: ContactEntry[];
   downloads: DownloadEntry[];
   sim_api1: SimApiConfig;
@@ -59,6 +60,7 @@ export class SystemSettingsComponent implements OnInit {
     company_name: '',
     version: '',
     phone: '',
+    autoResponse: false,
     contacts: [],
     downloads: [],
     sim_api1: { name: '', url: '', key: '' },
@@ -166,6 +168,7 @@ export class SystemSettingsComponent implements OnInit {
       company_name: system.company_name,
       version: system.version || '',
       phone: system.phone || '',
+      autoResponse: system.autoResponse ?? false,
       contacts: system.contacts || [],
       downloads: system.downloads || [],
       sim_api1: system.sim_api1 || { name: '', url: '', key: '' },
@@ -383,6 +386,7 @@ export class SystemSettingsComponent implements OnInit {
       company_name: this.form.company_name,
       version: this.form.version,
       phone: this.form.phone,
+      autoResponse: this.form.autoResponse,
       logo: this.form.logo,
       contacts: this.form.contacts,
       downloads: this.form.downloads,
@@ -458,6 +462,7 @@ export class SystemSettingsComponent implements OnInit {
       company_name: 'Montao GPS Internacional',
       version: '1.0.0',
       phone: '+1 (555) 123-4567',
+      autoResponse: false,
       contacts: [
         {
           id: this.generateId(),

@@ -570,6 +570,10 @@
       "title": "Push Manager",
       "description": "Gestión de notificaciones push."
     },
+    "membresias": {
+      "title": "Membresías",
+      "description": "Gestión de membresías y suscripciones"
+    },
     "sectors": {
       "title": "Sectores",
       "description": "Configuración de sectores operativos",
@@ -840,7 +844,7 @@
       "roles": "Gestión de Roles",
       "system": "Configuración del Sistema",
       "servers": "Gestión de Servidores",
-      "plans": "Gestión de Planes",
+      "plans": "Server Tags",
       "colors": "Gestión de Colores",
       "brands": "Gestión de Marcas",
       "models": "Gestión de Modelos",
@@ -1010,7 +1014,7 @@
         "colors": "Colores",
         "canceled": "Cancelados",
         "system": "Sistema",
-        "plans": "Planes",
+        "plans": "Server Tags",
         "servers": "Servidores",
         "protocols": "Protocolos",
         "inventory": "Inventario"
@@ -1026,8 +1030,8 @@
         "description": "Administrar servidores para la plataforma"
       },
       "plans": {
-        "title": "Planes",
-        "description": "Administrar planes disponibles para clientes"
+        "title": "Server Tags",
+        "description": "Administrar server tags disponibles"
       }
     },
     "system": {
@@ -1043,9 +1047,10 @@
       "company_name_hint": "Este nombre se mostrará en la aplicación y en los reportes.",
       "version": "Versión",
       "version_placeholder": "Ej: 1.0.0",
-      "phone": "Teléfono de contacto",
+      "phone": "Número de Flota",
       "phone_placeholder": "Ej: +1 (555) 123-4567",
       "phone_hint": "Este teléfono se utilizará como contacto principal de la empresa.",
+      "autoResponse": "Respuestas Automáticas",
       "contacts": "Contactos",
       "add_contact": "Agregar contacto",
       "add": "Agregar",
@@ -1111,8 +1116,8 @@
       "no_add_permission": "Sin permisos para agregar"
     },
     "plans": {
-      "edit_plan": "Editar plan",
-      "new_plan": "Nuevo plan",
+      "edit_plan": "Editar Tag",
+      "new_plan": "Nuevo Tag",
       "plan_name": "Nombre del plan",
       "plan_name_placeholder": "Ej: Plan Premium",
       "plan_description": "Descripción",
@@ -1136,7 +1141,7 @@
       "update": "Actualizar plan",
       "create": "Crear plan",
       "cancel": "Cancelar",
-      "plans_list": "Lista de planes",
+      "plans_list": "Lista de Tags",
       "loading": "Cargando planes...",
       "no_plans": "No hay planes configurados",
       "monthly": "Mensual",

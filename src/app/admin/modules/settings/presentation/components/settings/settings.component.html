@@ -97,5 +97,9 @@
         [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
         <app-push-manager-settings></app-push-manager-settings>
     </p-dialog>
+    <p-dialog header="Membresías" [modal]="true" [(visible)]="MembresiasSettingsDisplay"
+        [style]="{width: '80vw', maxWidth: '950px'}" [contentStyle]="{overflow: 'auto'}" styleClass="app-dark-dialog">
+        <app-membresias-settings></app-membresias-settings>
+    </p-dialog>
 
 </div>

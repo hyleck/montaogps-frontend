@@ -10,6 +10,7 @@ import { BreadcrumbModule } from 'primeng/breadcrumb';
 import { TabViewModule } from 'primeng/tabview';
 import { CheckboxModule } from 'primeng/checkbox';
 import { PasswordModule } from 'primeng/password';
+import { InputSwitchModule } from 'primeng/inputswitch';
 import { ThemesService } from '@shared/services/themes.service';
 import { StatusService } from '@shared/services/status.service';
 import { TranslateService } from '@ngx-translate/core';
@@ -32,6 +33,7 @@ import { ToastModule } from 'primeng/toast';
         TabViewModule,
         CheckboxModule,
         PasswordModule,
+        InputSwitchModule,
         TranslateModule,
         ToastModule
     ],
@@ -339,6 +341,8 @@ export class ProfileComponent implements OnInit {
             dni: userData.dni || '',
             address: userData.address || '',
             photo: userData.photo || '',
+            auto_response: userData.auto_response || false,
+            inbox: userData.inbox || 0,
             settings: userSettings
         };
     }
@@ -365,6 +369,8 @@ export class ProfileComponent implements OnInit {
             phone2: this.user.phone2,
             dni: this.user.dni,
             address: this.user.address,
+            auto_response: this.user.auto_response,
+            inbox: this.user.inbox,
             settings: [{
                 theme: this.user.settings.theme,
                 language: this.user.settings.language,

@@ -1,0 +1,169 @@
+<div class="membresias-container">
+    <!-- Header with New button -->
+    <div class="membresias-header">
+        <button pButton pRipple label="Nueva Membresía" icon="pi pi-plus" class="p-button-success"
+            (click)="openNew()"></button>
+    </div>
+
+    <!-- List Section -->
+    <div class="membresias-list-section">
+        <h2>Lista de Membresías</h2>
+
+        <div *ngIf="loading" class="loading-container">
+            <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+            <p>Cargando membresías...</p>
+        </div>
+
+        <div *ngIf="!loading">
+            <p-table [value]="membresias" [tableStyle]="{'min-width': '50rem'}" styleClass="p-datatable-sm"
+                responsiveLayout="scroll">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Precio</th>
+                        <th>Duración</th>
+                        <th>Acciones</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-membresia>
+                    <tr>
+                        <td>
+                            <strong>{{ membresia.name }}</strong>
+                        </td>
+                        <td>{{ membresia.description || '—' }}</td>
+                        <td>
+                            <span class="price-badge">{{ membresia.price | currency:'USD':'symbol':'1.2-2' }}</span>
+                        </td>
+                        <td>{{ membresia.duration_type === 'anual' ? 'Anual' : 'Mensual' }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <button pButton pRipple icon="pi pi-pencil"
+                                    class="p-button-rounded p-button-success p-button-text"
+                                    (click)="editMembresia(membresia)" pTooltip="Editar"></button>
+                                <button pButton pRipple icon="pi pi-trash"
+                                    class="p-button-rounded p-button-danger p-button-text"
+                                    (click)="deleteMembresia(membresia)" pTooltip="Eliminar"></button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="emptymessage">
+                    <tr>
+                        <td colspan="5" class="text-center p-4">No hay membresías configuradas</td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </div>
+    </div>
+</div>
+
+<!-- Form Dialog (nested modal) -->
+<p-dialog [(visible)]="membresiaDialog" [modal]="true" [style]="{width: '700px'}"
+    [header]="isEditing ? 'Editar Membresía' : 'Nueva Membresía'" styleClass="app-dark-dialog"
+    appendTo="body" (onHide)="hideDialog()">
+    <ng-template pTemplate="content">
+        <div class="form-grid" style="padding-top: 1rem;">
+            <div class="field">
+                <label for="membresia_name">Nombre *</label>
+                <input type="text" pInputText id="membresia_name" [(ngModel)]="membresia.name"
+                    placeholder="Ej: Membresía Premium" required style="width: 100%" />
+                <small class="p-error" *ngIf="submitted && !membresia.name.trim()">El nombre es requerido.</small>
+            </div>
+
+            <div class="field">
+                <label for="membresia_description">Descripción</label>
+                <textarea pInputTextarea id="membresia_description" [(ngModel)]="membresia.description" rows="2"
+                    placeholder="Descripción de la membresía" style="width: 100%"></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="field">
+                    <label for="membresia_price">Precio *</label>
+                    <p-inputNumber id="membresia_price" [(ngModel)]="membresia.price" mode="currency"
+                        currency="USD" locale="en-US" [min]="0" styleClass="w-full"></p-inputNumber>
+                </div>
+                <div class="field">
+                    <label for="membresia_duration">Duración *</label>
+                    <select id="membresia_duration" [(ngModel)]="membresia.duration_type"
+                        class="p-inputtext" style="width: 100%;">
+                        <option value="mensual">Mensual</option>
+                        <option value="anual">Anual</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Ofertas Section -->
+            <div style="margin-top: 1.5rem;">
+                <h4 style="color: rgba(255,255,255,0.9); margin-bottom: 0.75rem;">
+                    <i class="pi pi-tag" style="margin-right: 0.5rem;"></i>Ofertas
+                </h4>
+
+                <!-- Add oferta form -->
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div class="form-row" style="align-items: flex-end; gap: 0.5rem;">
+                        <div class="field" style="flex: 2;">
+                            <label>Nombre</label>
+                            <input type="text" pInputText [(ngModel)]="newOferta.name" placeholder="Nombre de la oferta"
+                                style="width: 100%" />
+                        </div>
+                        <div class="field" style="flex: 1;">
+                            <label>Descuento %</label>
+                            <p-inputNumber [(ngModel)]="newOferta.discount_percentage" [min]="0" [max]="100"
+                                suffix="%" styleClass="w-full"></p-inputNumber>
+                        </div>
+                        <div class="field" style="flex: 1;">
+                            <label>Precio Promo</label>
+                            <p-inputNumber [(ngModel)]="newOferta.promotional_price" mode="currency" currency="USD"
+                                locale="en-US" [min]="0" styleClass="w-full" (ngModelChange)="onPromoPriceChange()"></p-inputNumber>
+                        </div>
+                        <div>
+                            <button pButton pRipple icon="pi pi-plus" class="p-button-success p-button-sm"
+                                (click)="addOferta()" [disabled]="!newOferta.name.trim()" pTooltip="Agregar oferta">
+                            </button>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <input type="text" pInputText [(ngModel)]="newOferta.description"
+                            placeholder="Descripción de la oferta" style="width: 100%" />
+                    </div>
+                </div>
+
+                <!-- Ofertas list -->
+                <div *ngIf="membresia.ofertas && membresia.ofertas.length > 0" style="margin-top: 0.75rem;">
+                    <div *ngFor="let oferta of membresia.ofertas; let i = index"
+                        style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; margin-bottom: 0.5rem;">
+                        <div>
+                            <strong>{{ oferta.name }}</strong>
+                            <span *ngIf="oferta.discount_percentage" style="margin-left: 0.5rem; color: #4caf50;">
+                                -{{ oferta.discount_percentage }}%
+                            </span>
+                            <span *ngIf="oferta.promotional_price" style="margin-left: 0.5rem; color: #ff9800;">
+                                {{ oferta.promotional_price | currency:'USD':'symbol':'1.2-2' }}
+                            </span>
+                            <div *ngIf="oferta.description" style="font-size: 0.85rem; color: rgba(255,255,255,0.5); margin-top: 2px;">
+                                {{ oferta.description }}
+                            </div>
+                        </div>
+                        <button pButton pRipple icon="pi pi-trash"
+                            class="p-button-rounded p-button-danger p-button-text p-button-sm"
+                            (click)="removeOferta(i)"></button>
+                    </div>
+                </div>
+                <p *ngIf="!membresia.ofertas || membresia.ofertas.length === 0"
+                    style="color: rgba(255,255,255,0.4); font-style: italic; margin-top: 0.5rem;">
+                    No hay ofertas registradas
+                </p>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text p-button-secondary"
+            (click)="hideDialog()"></button>
+        <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-success"
+            (click)="saveMembresia()"></button>
+    </ng-template>
+</p-dialog>
+
+<p-confirmDialog></p-confirmDialog>
+<p-toast></p-toast>

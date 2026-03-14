@@ -659,3 +659,19 @@ select.input-styled option {
     width: 100%;
   }
 }
+
+/* Auto-response toggle */
+.auto-response-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+}
+
+.auto-response-toggle label {
+  font-size: 0.9rem;
+  color: var(--globalColorLabelText);
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}

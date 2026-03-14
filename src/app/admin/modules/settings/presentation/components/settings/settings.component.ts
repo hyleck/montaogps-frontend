@@ -30,6 +30,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     CustomizerSettingsDisplay: boolean = false;
     TagsSettingsDisplay: boolean = false;
     PushManagerSettingsDisplay: boolean = false;
+    MembresiasSettingsDisplay: boolean = false;
 
     // Estado del análisis de historiales
     isHistorialesAnalysisRunning: boolean = false;
@@ -65,7 +66,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
                 icon: 'pi pi-list',
                 titleKey: 'settings.cards.plans.title',
                 descriptionKey: 'settings.cards.plans.description',
-                action: () => this.PlansSettingsDisplay = true
+                action: () => {
+                    const pass = prompt('Ingrese la contraseña para acceder:');
+                    if (pass === 'admin123') {
+                        this.PlansSettingsDisplay = true;
+                    }
+                }
             },
             {
                 titleKey: 'settings.colors.title',
@@ -129,6 +135,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
                 icon: 'pi pi-bell',
                 descriptionKey: 'settings.pushManager.description',
                 action: () => this.PushManagerSettingsDisplay = true
+            },
+            {
+                titleKey: 'settings.membresias.title',
+                icon: 'pi pi-id-card',
+                descriptionKey: 'settings.membresias.description',
+                action: () => this.MembresiasSettingsDisplay = true
             }
 
         ];

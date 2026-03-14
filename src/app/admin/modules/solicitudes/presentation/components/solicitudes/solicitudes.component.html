@@ -426,28 +426,10 @@
                 </select>
             </div>
 
-            <!-- Plan & Dates -->
+            <!-- Dates -->
             <div class="sol-form-separator sol-form-separator--required">
                 <i class="pi pi-calendar"></i>
-                <span>Plan y Fechas *</span>
-            </div>
-
-            <div class="sol-form-field">
-                <label>Plan *</label>
-                <select [(ngModel)]="installData.plan_id" (change)="installData.plan_price_id = ''">
-                    <option value="">Seleccionar plan</option>
-                    <option *ngFor="let plan of availablePlans" [value]="plan._id">{{ plan.plan_name }}</option>
-                </select>
-            </div>
-
-            <div class="sol-form-field" *ngIf="getSelectedPlanPrices().length > 0">
-                <label>Precio del Plan *</label>
-                <select [(ngModel)]="installData.plan_price_id">
-                    <option value="">Seleccionar precio</option>
-                    <option *ngFor="let price of getSelectedPlanPrices()" [value]="price.id">
-                        ${{ price.amount }} - {{ price.payment_period }}
-                    </option>
-                </select>
+                <span>Fechas *</span>
             </div>
 
             <div class="sol-form-row">

@@ -84,6 +84,14 @@
                     class="input-styled"
                     [readonly]="(!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && existingSystem)" />
                 </div>
+                <div class="form-group">
+                  <div class="auto-response-toggle">
+                    <p-inputSwitch [(ngModel)]="form.autoResponse" name="autoResponse"
+                      inputId="autoResponse"
+                      [disabled]="(!canCreateSystems() && !existingSystem) || (!canUpdateSystems() && !!existingSystem)"></p-inputSwitch>
+                    <label for="autoResponse">{{ 'settings.system.autoResponse' | translate }}</label>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

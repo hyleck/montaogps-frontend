@@ -9,6 +9,7 @@ export interface SystemSettings {
   company_name: string;
   version?: string;
   phone?: string;
+  autoResponse?: boolean;
   contacts: Array<{
     id: string;
     name: string;

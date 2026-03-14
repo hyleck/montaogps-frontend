@@ -622,19 +622,16 @@
         <label for="installationSimType" class="block font-bold mb-2">
           <strong>Tipo de SIM Card: (Opcional)</strong>
         </label>
-        <p-dropdown id="installationSimType" [options]="availableSimCardTypes" [(ngModel)]="installationSimType"
-          optionLabel="label" optionValue="value" placeholder="Seleccionar tipo" [style]="{'width':'100%'}"
-          appendTo="body"></p-dropdown>
+        <select id="installationSimType" [(ngModel)]="installationSimType" class="form-input" style="width: 100%">
+          <option value="">Seleccionar tipo</option>
+          <option *ngFor="let type of availableSimCardTypes" [value]="type.value">
+            {{ type.label }}
+          </option>
+        </select>
       </div>
 
-      <div class="field" style="margin-top: 1rem;">
-        <label for="installationPlan" class="block font-bold mb-2">
-          <strong>Plan Inicial: (Opcional)</strong>
-        </label>
-        <p-dropdown id="installationPlan" [options]="availablePlans" [(ngModel)]="installationPlanId"
-          optionLabel="label" optionValue="value" placeholder="Seleccionar plan" [style]="{'width':'100%'}"
-          appendTo="body"></p-dropdown>
-      </div>
+
+
     </div>
     <ng-template pTemplate="footer">
       <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
