@@ -47,7 +47,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     private destroy$ = new Subject<void>();
 
     @Input() userInput: ExtendedUser | null = null;
+    @Input() showWhatsappButton: boolean = false;
     @Output() userCreated = new EventEmitter<void>();
+    @Output() openChatEvent = new EventEmitter<any>();
 
     // Claves de traducción
     translations = {

@@ -1,0 +1,275 @@
+<div class="comm-container">
+    <!-- No Inbox State -->
+    <div *ngIf="noInbox" class="comm-no-inbox">
+        <div class="comm-no-inbox__content">
+            <i class="pi pi-ban"></i>
+            <h3>Ninguna bandeja de entrada conectada</h3>
+            <p>Configura tu bandeja de entrada en tu perfil para poder usar el módulo de comunicación.</p>
+        </div>
+    </div>
+
+    <!-- Conversations Panel -->
+    <div *ngIf="!noInbox" class="comm-sidebar" [class.comm-sidebar--hidden]="selectedConversation">
+        <!-- Header -->
+        <div class="comm-sidebar__header">
+            <h2>Comunicación</h2>
+            <div class="comm-auto-reply">
+                <p-inputSwitch [(ngModel)]="autoResponse" (ngModelChange)="toggleAutoResponse()"></p-inputSwitch>
+                <span class="comm-auto-reply__label">Auto</span>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="comm-sidebar__search">
+            <div class="comm-search-box">
+                <i class="pi pi-search"></i>
+                <input type="text" [(ngModel)]="searchTerm" (ngModelChange)="filterConversations()"
+                    placeholder="Buscar conversación..." />
+            </div>
+        </div>
+
+        <!-- Conversation List -->
+        <div class="comm-sidebar__contacts">
+            <div *ngIf="loadingConversations" class="comm-loading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando conversaciones...</span>
+            </div>
+
+            <div *ngIf="!loadingConversations && filteredConversations.length === 0" class="comm-empty">
+                <i class="pi pi-inbox"></i>
+                <span>No hay conversaciones en la bandeja</span>
+            </div>
+
+            <div *ngFor="let conv of filteredConversations" class="comm-contact"
+                [class.comm-contact--active]="selectedConversation?.id === conv.id"
+                (click)="selectConversation(conv)">
+                <div class="comm-contact__avatar">
+                    <img *ngIf="conv.contact.avatar" [src]="conv.contact.avatar" alt="avatar" />
+                    <span *ngIf="!conv.contact.avatar">{{ getInitials(conv.contact.name) }}</span>
+                </div>
+                <div class="comm-contact__info">
+                    <div class="comm-contact__top">
+                        <div class="comm-contact__name">{{ conv.contact.name }}</div>
+                        <div class="comm-contact__time">{{ getTimeAgo(conv.last_message_time) }}</div>
+                    </div>
+                    <div class="comm-contact__bottom">
+                        <div class="comm-contact__last-msg">{{ conv.last_message || 'Sin mensajes' }}</div>
+                        <div *ngIf="conv.unread_count > 0" class="comm-contact__badge">{{ conv.unread_count }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Panel -->
+    <div *ngIf="!noInbox" class="comm-chat" [class.comm-chat--visible]="selectedConversation">
+        <!-- No conversation selected -->
+        <div *ngIf="!selectedConversation" class="comm-chat__empty">
+            <div class="comm-chat__empty-content">
+                <i class="pi pi-comments"></i>
+                <h3>Comunicación</h3>
+                <p>Selecciona una conversación de tu bandeja de entrada</p>
+            </div>
+        </div>
+
+        <!-- Chat active -->
+        <ng-container *ngIf="selectedConversation">
+            <!-- Chat Header -->
+            <div class="comm-chat__header">
+                <button class="comm-back-btn" (click)="goBack()">
+                    <i class="pi pi-arrow-left"></i>
+                </button>
+                <div class="comm-chat__header-avatar">
+                    <img *ngIf="selectedConversation.contact.avatar" [src]="selectedConversation.contact.avatar" alt="avatar" />
+                    <span *ngIf="!selectedConversation.contact.avatar">{{ getInitials(selectedConversation.contact.name) }}</span>
+                </div>
+                <div class="comm-chat__header-info">
+                    <div class="comm-chat__header-name">{{ selectedConversation.contact.name }}</div>
+                    <div class="comm-chat__header-phone">{{ selectedConversation.contact.phone }}</div>
+                </div>
+                <div class="comm-chat__header-actions">
+                    <div class="comm-chat__header-status">
+                        <span class="comm-status-dot" [class.comm-status-dot--open]="selectedConversation.status === 'open'"
+                            [class.comm-status-dot--resolved]="selectedConversation.status === 'resolved'"></span>
+                        <span class="comm-status-text">{{ selectedConversation.status === 'open' ? 'Abierta' : (selectedConversation.status === 'resolved' ? 'Resuelta' : selectedConversation.status) }}</span>
+                    </div>
+                    <button class="comm-info-btn" (click)="showContactInfo = !showContactInfo"
+                        [class.comm-info-btn--active]="showContactInfo">
+                        <i class="pi pi-info-circle"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div class="comm-chat__messages" #messagesContainer>
+                <div *ngIf="loadingMessages" class="comm-loading">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    <span>Cargando mensajes...</span>
+                </div>
+
+                <div *ngIf="!loadingMessages && messages.length === 0" class="comm-chat__no-messages">
+                    <span>Escribe un mensaje para enviarlo por WhatsApp</span>
+                </div>
+
+                <div *ngFor="let msg of messages" class="comm-message"
+                    [class.comm-message--outgoing]="msg.from === 'me'"
+                    [class.comm-message--incoming]="msg.from === 'incoming'"
+                    [class.comm-message--system]="msg.from === 'system'">
+                    <!-- Reply button (visible on hover) -->
+                    <button *ngIf="msg.from !== 'system'" class="comm-reply-btn" (click)="setReplyTo(msg)" title="Responder">
+                        <i class="pi pi-reply"></i>
+                    </button>
+                    <div class="comm-message__bubble">
+                        <!-- Reply quote -->
+                        <div *ngIf="msg.replyTo" class="comm-reply-quote"
+                            [class.comm-reply-quote--me]="msg.replyTo.from === 'me'">
+                            <span class="comm-reply-quote__label">{{ msg.replyTo.from === 'me' ? 'Tú' : selectedConversation?.contact?.name }}</span>
+                            <span class="comm-reply-quote__text">{{ msg.replyTo.text | slice:0:80 }}{{ msg.replyTo.text.length > 80 ? '...' : '' }}</span>
+                        </div>
+                        <!-- Attachments -->
+                        <ng-container *ngIf="msg.attachments?.length">
+                            <div *ngFor="let att of msg.attachments" class="comm-attachment">
+                                <a *ngIf="att.file_type === 'image'" [href]="att.data_url" target="_blank">
+                                    <img [src]="att.data_url" alt="imagen" class="comm-attachment__img" />
+                                </a>
+                                <video *ngIf="att.file_type === 'video'" [src]="att.data_url"
+                                    class="comm-attachment__video" controls></video>
+                                <audio *ngIf="att.file_type === 'audio'" [src]="att.data_url" controls
+                                    class="comm-attachment__audio"></audio>
+                                <a *ngIf="att.file_type === 'file'" [href]="att.data_url" target="_blank"
+                                    class="comm-attachment__file">
+                                    <i class="pi pi-file"></i> Descargar archivo
+                                </a>
+                            </div>
+                        </ng-container>
+                        <div *ngIf="msg.text" class="comm-message__text">{{ msg.text }}</div>
+                        <div class="comm-message__time">{{ msg.time | date:'HH:mm' }}</div>
+                    </div>
+                </div>
+
+                <div *ngIf="sendingMessage" class="comm-sending">
+                    <i class="pi pi-spin pi-spinner"></i> Enviando...
+                </div>
+            </div>
+
+            <!-- Hidden file input -->
+            <input type="file" #fileInput (change)="onFileSelected($event)"
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar"
+                style="display: none;" />
+
+            <!-- Reply preview -->
+            <div *ngIf="replyingTo" class="comm-reply-preview">
+                <div class="comm-reply-preview__content">
+                    <i class="pi pi-reply"></i>
+                    <div class="comm-reply-preview__text">
+                        <span class="comm-reply-preview__label">Respondiendo a {{ replyingTo.from === 'me' ? 'ti' : selectedConversation?.contact?.name }}</span>
+                        <span class="comm-reply-preview__msg">{{ replyingTo.text | slice:0:60 }}{{ replyingTo.text.length > 60 ? '...' : '' }}</span>
+                    </div>
+                </div>
+                <button class="comm-reply-preview__close" (click)="cancelReply()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+
+            <!-- Input -->
+            <div class="comm-chat__input">
+                <button class="comm-attach-btn" (click)="fileInput.click()" [disabled]="sendingMessage">
+                    <i class="pi pi-paperclip"></i>
+                </button>
+                <textarea [(ngModel)]="chatInput" placeholder="Escribe un mensaje..."
+                    rows="1"
+                    (keydown.enter)="$event.preventDefault(); sendMessage()"
+                    [disabled]="sendingMessage"></textarea>
+                <button class="comm-send-btn" (click)="sendMessage()"
+                    [disabled]="!chatInput.trim() || sendingMessage">
+                    <i class="pi pi-send"></i>
+                </button>
+            </div>
+        </ng-container>
+    </div>
+
+    <!-- Contact Info Panel -->
+    <div *ngIf="selectedConversation && !noInbox" class="comm-contact-panel" [class.comm-contact-panel--visible]="showContactInfo">
+        <div class="comm-contact-panel__header">
+            <span>Información del contacto</span>
+            <button class="comm-contact-panel__close" (click)="showContactInfo = false">
+                <i class="pi pi-times"></i>
+            </button>
+        </div>
+        <div class="comm-contact-panel__body">
+            <!-- Avatar -->
+            <div class="comm-contact-panel__avatar">
+                <img *ngIf="gpsUser?.photo || selectedConversation.contact.avatar"
+                    [src]="gpsUser?.photo || selectedConversation.contact.avatar" alt="avatar" />
+                <span *ngIf="!gpsUser?.photo && !selectedConversation.contact.avatar" class="comm-contact-panel__initials">
+                    {{ getInitials(gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name) }}
+                </span>
+            </div>
+
+            <!-- Name -->
+            <div class="comm-contact-panel__name">
+                {{ gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name }}
+            </div>
+
+            <!-- GPS User Badge -->
+            <div *ngIf="gpsUser" class="comm-contact-panel__badge">
+                <i class="pi pi-verified"></i> Usuario GPS
+            </div>
+            <div *ngIf="!gpsUser" class="comm-contact-panel__badge comm-contact-panel__badge--external">
+                <i class="pi pi-user"></i> Contacto externo
+            </div>
+
+            <div class="comm-contact-panel__fields">
+                <!-- Phone -->
+                <div class="comm-contact-panel__field" *ngIf="gpsUser?.phone || selectedConversation.contact.phone">
+                    <i class="pi pi-phone"></i>
+                    <span>{{ gpsUser?.phone || selectedConversation.contact.phone }}</span>
+                </div>
+                <!-- Phone2 -->
+                <div class="comm-contact-panel__field" *ngIf="gpsUser?.phone2">
+                    <i class="pi pi-phone"></i>
+                    <span>{{ gpsUser.phone2 }}</span>
+                </div>
+                <!-- Email -->
+                <div class="comm-contact-panel__field" *ngIf="gpsUser?.email || selectedConversation.contact.email">
+                    <i class="pi pi-envelope"></i>
+                    <span>{{ gpsUser?.email || selectedConversation.contact.email }}</span>
+                </div>
+                <!-- DNI -->
+                <div class="comm-contact-panel__field" *ngIf="gpsUser?.dni">
+                    <i class="pi pi-id-card"></i>
+                    <span>{{ gpsUser.dni }}</span>
+                </div>
+                <!-- Address -->
+                <div class="comm-contact-panel__field" *ngIf="gpsUser?.address">
+                    <i class="pi pi-map-marker"></i>
+                    <span>{{ gpsUser.address }}</span>
+                </div>
+                <!-- Device count -->
+                <div class="comm-contact-panel__field" *ngIf="gpsUser">
+                    <i class="pi pi-map"></i>
+                    <span>{{ gpsUser.device_count || 0 }} GPS en su cuenta</span>
+                </div>
+                <!-- Affiliation -->
+                <div class="comm-contact-panel__field" *ngIf="gpsUser?.affiliation_type_id">
+                    <i class="pi pi-tag"></i>
+                    <span>{{ gpsUser.affiliation_type_id }}</span>
+                </div>
+
+                <!-- Separator -->
+                <div class="comm-contact-panel__divider"></div>
+
+                <!-- Conversation status -->
+                <div class="comm-contact-panel__field">
+                    <i class="pi pi-circle-fill" [style.color]="selectedConversation.status === 'open' ? '#34d399' : '#fbbf24'"
+                        [style.fontSize.px]="8"></i>
+                    <span>{{ selectedConversation.status === 'open' ? 'Conversación abierta' : 'Conversación resuelta' }}</span>
+                </div>
+                <div class="comm-contact-panel__field">
+                    <i class="pi pi-hashtag"></i>
+                    <span>Conv #{{ selectedConversation.id }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

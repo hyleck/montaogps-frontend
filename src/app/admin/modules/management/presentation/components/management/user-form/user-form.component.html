@@ -42,6 +42,15 @@
                                             <input [(ngModel)]="user.phone" name="phone"
                                                 placeholder="Ej: (809) 555-0123" type="tel" id="phone" required>
                                         </div>
+                                        <div class="user-form__field" *ngIf="showWhatsappButton && userInput && userInput.phone">
+                                            <button
+                                                style="background:#25D366!important; color:white!important; text-align: left; width: 100%;"
+                                                type="button" class="button button--primary-flat"
+                                                (click)="openChatEvent.emit(userInput)">
+                                                <i class="pi pi-comment"></i>
+                                                <span> Enviar WhatsApp</span>
+                                            </button>
+                                        </div>
 
                                         <div class="user-form__field">
                                             <label for="phone2">{{ translations.phone2 | translate }}</label>

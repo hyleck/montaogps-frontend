@@ -27,6 +27,7 @@ import { VehicleDataService } from '@management/presentation/services/vehicle-da
 import { ManagementUIService } from '@management/presentation/services/management-ui.service';
 import { SelectionService } from '@core/services/selection.service';
 import { TagsService } from '@core/services/tags.service';
+import { ChatwootApiService } from '@core/services/chatwoot-api.service';
 
 @Component({
   selector: 'app-management',
@@ -322,7 +323,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private vehicleDataService: VehicleDataService,
     private uiService: ManagementUIService,
     private cdr: ChangeDetectorRef,
-    private selectionService: SelectionService
+    private selectionService: SelectionService,
+    private chatwootApi: ChatwootApiService
   ) { }
 
   // ====================================
@@ -459,6 +461,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.setupSelectionWatcher();
     this.setupRouting();
     this.loadInitialData();
+    this.checkUserInbox();
     // Nota: El status polling ahora está integrado en el polling principal de 10s
 
     // Verificar si hay datos de instalación de dispositivo en sessionStorage
@@ -496,6 +499,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (this.scrollTimeout) {
       clearTimeout(this.scrollTimeout);
     }
+    this.stopChatPolling();
   }
 
   // ====================================
@@ -3356,5 +3360,139 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return;
     }
     this.router.navigate(['/admin/monitoring', userId]);
+  }
+
+  // ====================================
+  // CHATWOOT CHAT
+  // ====================================
+  chatDialogVisible: boolean = false;
+  chatUser: any = null;
+  chatMessages: { from: 'me' | 'incoming' | 'system'; text: string; time: Date }[] = [];
+  chatInput: string = '';
+  sendingChat: boolean = false;
+  loadingChat: boolean = false;
+  hasUserInbox: boolean = false;
+  @ViewChild('chatMessagesContainer') chatMessagesContainer: any;
+  private chatPollingInterval: any = null;
+
+  private checkUserInbox(): void {
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser?.id) return;
+    this.userService.getById(currentUser.id).subscribe({
+      next: (user: any) => {
+        this.hasUserInbox = !!user?.inbox;
+      }
+    });
+  }
+
+  private scrollChatToBottom() {
+    setTimeout(() => {
+      if (this.chatMessagesContainer?.nativeElement) {
+        this.chatMessagesContainer.nativeElement.scrollTop = this.chatMessagesContainer.nativeElement.scrollHeight;
+      }
+    }, 50);
+  }
+
+  private startChatPolling() {
+    this.stopChatPolling();
+    this.chatPollingInterval = setInterval(() => {
+      if (!this.chatUser?.phone || !this.chatDialogVisible) return;
+
+      this.chatwootApi.getMessages(this.chatUser.phone).subscribe({
+        next: (res) => {
+          console.log('📨 Polling chat messages:', res);
+          if (res.success && res.messages) {
+            const apiMessages = res.messages.map((msg: any) => ({
+              from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
+              text: msg.content,
+              time: new Date(msg.created_at * 1000),
+            }));
+
+            // Always update with latest from API
+            this.chatMessages = apiMessages;
+            // Scroll only if there are new messages
+            this.scrollChatToBottom();
+          }
+        },
+        error: (err) => {
+          console.error('❌ Chat polling error:', err);
+        }
+      });
+    }, 5000);
+  }
+
+  private stopChatPolling() {
+    if (this.chatPollingInterval) {
+      clearInterval(this.chatPollingInterval);
+      this.chatPollingInterval = null;
+    }
+  }
+
+  openChat(user: any) {
+    this.chatUser = user;
+    this.chatMessages = [];
+    this.chatInput = '';
+    this.chatDialogVisible = true;
+
+    const phone = user.phone || '';
+    if (!phone) return;
+
+    this.loadingChat = true;
+    this.chatwootApi.getMessages(phone).subscribe({
+      next: (res) => {
+        this.loadingChat = false;
+        if (res.success && res.messages?.length) {
+          this.chatMessages = res.messages.map((msg: any) => ({
+            from: msg.from === 'incoming' ? 'incoming' : 'me',
+            text: msg.content,
+            time: new Date(msg.created_at * 1000),
+          }));
+          this.scrollChatToBottom();
+        }
+        this.startChatPolling();
+      },
+      error: () => {
+        this.loadingChat = false;
+        this.startChatPolling();
+      }
+    });
+  }
+
+  closeChatDialog() {
+    this.stopChatPolling();
+    this.chatDialogVisible = false;
+    this.chatUser = null;
+    this.chatMessages = [];
+    this.chatInput = '';
+  }
+
+  sendChatMessage() {
+    if (!this.chatInput.trim() || !this.chatUser || this.sendingChat) return;
+
+    const messageText = this.chatInput.trim();
+    this.chatMessages.push({ from: 'me', text: messageText, time: new Date() });
+    this.chatInput = '';
+    this.sendingChat = true;
+    this.scrollChatToBottom();
+
+    const contactName = `${this.chatUser.name || ''} ${this.chatUser.last_name || ''}`.trim();
+    const phone = this.chatUser.phone || '';
+
+    this.chatwootApi.sendMessage(phone, messageText, contactName).subscribe({
+      next: (res) => {
+        this.sendingChat = false;
+        if (res.success) {
+          this.chatMessages.push({ from: 'system', text: '✓ Mensaje enviado', time: new Date() });
+        } else {
+          this.chatMessages.push({ from: 'system', text: '✗ Error: ' + (res.error || 'No se pudo enviar'), time: new Date() });
+        }
+        this.scrollChatToBottom();
+      },
+      error: (err) => {
+        this.sendingChat = false;
+        this.chatMessages.push({ from: 'system', text: '✗ Error de conexión', time: new Date() });
+        this.scrollChatToBottom();
+      }
+    });
   }
 }
