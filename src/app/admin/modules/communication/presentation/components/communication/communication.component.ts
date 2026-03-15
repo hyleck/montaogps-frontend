@@ -57,6 +57,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   chatInput: string = '';
   sendingMessage: boolean = false;
   replyingTo: ChatMessage | null = null;
+  // Lightbox
+  lightboxUrl: string | null = null;
+  lightboxType: 'image' | 'video' = 'image';
   loadingMessages: boolean = false;
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
   @ViewChild('fileInput') fileInput!: ElementRef;
@@ -306,6 +309,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   cancelReply(): void {
     this.replyingTo = null;
+  }
+
+  openMedia(url: string, type: 'image' | 'video'): void {
+    this.lightboxUrl = url;
+    this.lightboxType = type;
+  }
+
+  closeMedia(): void {
+    this.lightboxUrl = null;
   }
 
   onFileSelected(event: Event): void {

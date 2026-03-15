@@ -129,11 +129,13 @@
                         <!-- Attachments -->
                         <ng-container *ngIf="msg.attachments?.length">
                             <div *ngFor="let att of msg.attachments" class="comm-attachment">
-                                <a *ngIf="att.file_type === 'image'" [href]="att.data_url" target="_blank">
+                                <div *ngIf="att.file_type === 'image'" class="comm-attachment__img-wrap" (click)="openMedia(att.data_url, 'image')">
                                     <img [src]="att.data_url" alt="imagen" class="comm-attachment__img" />
-                                </a>
-                                <video *ngIf="att.file_type === 'video'" [src]="att.data_url"
-                                    class="comm-attachment__video" controls></video>
+                                </div>
+                                <div *ngIf="att.file_type === 'video'" class="comm-attachment__vid-wrap" (click)="openMedia(att.data_url, 'video')">
+                                    <video [src]="att.data_url" class="comm-attachment__video"></video>
+                                    <div class="comm-attachment__play"><i class="pi pi-play-circle"></i></div>
+                                </div>
                                 <audio *ngIf="att.file_type === 'audio'" [src]="att.data_url" controls
                                     class="comm-attachment__audio"></audio>
                                 <a *ngIf="att.file_type === 'file'" [href]="att.data_url" target="_blank"
@@ -272,4 +274,17 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Lightbox Modal -->
+<div *ngIf="lightboxUrl" class="comm-lightbox" (click)="closeMedia()">
+    <div class="comm-lightbox__backdrop"></div>
+    <button class="comm-lightbox__close"><i class="pi pi-times"></i></button>
+    <div class="comm-lightbox__content" (click)="$event.stopPropagation()">
+        <img *ngIf="lightboxType === 'image'" [src]="lightboxUrl" alt="imagen" class="comm-lightbox__img" />
+        <video *ngIf="lightboxType === 'video'" [src]="lightboxUrl" class="comm-lightbox__video" controls autoplay></video>
+    </div>
+    <a [href]="lightboxUrl" target="_blank" class="comm-lightbox__download" (click)="$event.stopPropagation()">
+        <i class="pi pi-download"></i> Abrir original
+    </a>
 </div>
