@@ -343,6 +343,8 @@ export class ProfileComponent implements OnInit {
             photo: userData.photo || '',
             auto_response: userData.auto_response || false,
             inbox: userData.inbox || 0,
+            inbox2: userData.inbox2 || 0,
+            inbox3: userData.inbox3 || 0,
             settings: userSettings
         };
     }
@@ -371,6 +373,8 @@ export class ProfileComponent implements OnInit {
             address: this.user.address,
             auto_response: this.user.auto_response,
             inbox: this.user.inbox,
+            inbox2: this.user.inbox2,
+            inbox3: this.user.inbox3,
             settings: [{
                 theme: this.user.settings.theme,
                 language: this.user.settings.language,

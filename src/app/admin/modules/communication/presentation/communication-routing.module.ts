@@ -3,7 +3,9 @@ import { RouterModule, Routes } from '@angular/router';
 import { CommunicationComponent } from './components/communication/communication.component';
 
 const routes: Routes = [
-  { path: '', component: CommunicationComponent }
+  { path: '', redirectTo: 'chat', pathMatch: 'full' },
+  { path: ':tab', component: CommunicationComponent },
+  { path: ':tab/:conversationId', component: CommunicationComponent },
 ];
 
 @NgModule({

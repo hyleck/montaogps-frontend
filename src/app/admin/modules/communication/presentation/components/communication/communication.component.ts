@@ -1,4 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { ActivatedRoute, Router } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
 import { ChatwootApiService } from '@core/services/chatwoot-api.service';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
@@ -16,6 +18,12 @@ interface ChatConversation {
   last_message: string;
   last_message_time: number | null;
   unread_count: number;
+  inbox_id?: number;
+}
+
+interface EmailInbox {
+  id: number;
+  email: string;
 }
 
 interface ChatAttachment {
@@ -48,9 +56,32 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   loadingConversations: boolean = false;
   selectedConversation: ChatConversation | null = null;
   noInbox: boolean = false;
+  activeTab: 'chat' | 'correo' = 'chat';
   autoResponse: boolean = false;
   showContactInfo: boolean = false;
   gpsUser: any = null;
+
+  // Email (merged from all email inboxes)
+  emailConversations: ChatConversation[] = [];
+  filteredEmailConversations: ChatConversation[] = [];
+  emailSearchTerm: string = '';
+  loadingEmailConversations: boolean = false;
+  selectedEmail: ChatConversation | null = null;
+  emailMessages: ChatMessage[] = [];
+  loadingEmailMessages: boolean = false;
+  hasEmailInbox: boolean = false;
+  emailInboxes: EmailInbox[] = [];
+  selectedInboxFilter: number = 0; // 0 = all
+  composeFromInboxId: number = 0;
+  showCompose: boolean = false;
+  composeEmail: string = '';
+  composeSubject: string = '';
+  composeBody: string = '';
+  sendingEmail: boolean = false;
+  emailReplyInput: string = '';
+  sendingEmailReply: boolean = false;
+  composeFiles: File[] = [];
+  emailReplyFile: File | null = null;
 
   // Chat
   messages: ChatMessage[] = [];
@@ -71,18 +102,36 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   // User inbox
   private userInboxId: number | undefined;
+  private userInbox2Id: number | undefined;
+  private userInbox3Id: number | undefined;
+  private emailInboxIds: number[] = [];
   private currentUserId: string = '';
+  currentUserEmail: string = '';
+  inboxEmail: string = '';
   private lastApiMessageId: number | null = null;
   private conversationsFingerprint: string = '';
+  private pendingConversationId: number | null = null;
 
   constructor(
     private chatwootApi: ChatwootApiService,
     private authService: AuthService,
-    private userService: UserService
+    private userService: UserService,
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
     this.loadUserInbox();
+    this.route.params.subscribe(params => {
+      const tab = params['tab'];
+      if (tab === 'chat' || tab === 'correo') {
+        this.activeTab = tab;
+      }
+      const convId = params['conversationId'];
+      if (convId) {
+        this.pendingConversationId = +convId;
+      }
+    });
   }
 
   ngOnDestroy(): void {
@@ -104,6 +153,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.userService.getById(currentUser.id).subscribe({
       next: (user: any) => {
         this.autoResponse = user?.auto_response || false;
+        this.currentUserEmail = user?.email || '';
         if (user?.inbox) {
           this.userInboxId = user.inbox;
           this.noInbox = false;
@@ -111,9 +161,24 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         } else {
           this.noInbox = true;
         }
+        if (user?.inbox2) {
+          this.userInbox2Id = user.inbox2;
+          this.emailInboxIds.push(user.inbox2);
+          this.loadInboxEmail();
+        }
+        if (user?.inbox3) {
+          this.userInbox3Id = user.inbox3;
+          this.emailInboxIds.push(user.inbox3);
+        }
+        this.hasEmailInbox = this.emailInboxIds.length > 0;
+        if (this.hasEmailInbox) {
+          this.loadEmailConversations();
+          this.loadAllInboxEmails();
+        }
       },
       error: () => {
         this.noInbox = true;
+        this.hasEmailInbox = false;
       }
     });
   }
@@ -126,6 +191,268 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.autoResponse = !this.autoResponse;
       }
     });
+  }
+
+  navigateToTab(tab: 'chat' | 'correo'): void {
+    this.router.navigate(['/admin/communication', tab]);
+  }
+
+  private loadInboxEmail(): void {
+    if (!this.userInbox2Id) return;
+    this.chatwootApi.getInboxDetails(this.userInbox2Id).subscribe({
+      next: (res: any) => {
+        if (res.success && res.inbox?.email) {
+          this.inboxEmail = res.inbox.email;
+        }
+      }
+    });
+  }
+
+  private loadAllInboxEmails(): void {
+    this.emailInboxes = [];
+    for (const inboxId of this.emailInboxIds) {
+      this.chatwootApi.getInboxDetails(inboxId).subscribe({
+        next: (res: any) => {
+          if (res.success && res.inbox) {
+            this.emailInboxes.push({
+              id: inboxId,
+              email: res.inbox.email || `Bandeja ${inboxId}`
+            });
+            // Default compose inbox to first one
+            if (!this.composeFromInboxId && this.emailInboxes.length === 1) {
+              this.composeFromInboxId = inboxId;
+            }
+          }
+        }
+      });
+    }
+  }
+
+  // ============================
+  // EMAIL (INBOX 2)
+  // ============================
+
+  loadEmailConversations(): void {
+    this.loadingEmailConversations = true;
+    const requests = this.emailInboxIds.map(id =>
+      this.chatwootApi.getConversations(id)
+    );
+    if (requests.length === 0) {
+      this.loadingEmailConversations = false;
+      return;
+    }
+    forkJoin(requests).subscribe({
+      next: (results: any[]) => {
+        this.loadingEmailConversations = false;
+        let allConversations: ChatConversation[] = [];
+        results.forEach((res, index) => {
+          if (res.success) {
+            const convs = (res.conversations || []).map((c: ChatConversation) => ({
+              ...c,
+              inbox_id: this.emailInboxIds[index]
+            }));
+            allConversations = allConversations.concat(convs);
+          }
+        });
+        // Sort by most recent message
+        allConversations.sort((a, b) => (b.last_message_time || 0) - (a.last_message_time || 0));
+        this.emailConversations = allConversations;
+        this.filterEmailConversations();
+        if (this.pendingConversationId && this.activeTab === 'correo') {
+          const conv = this.emailConversations.find(c => c.id === this.pendingConversationId);
+          if (conv) this.selectEmail(conv, false);
+          this.pendingConversationId = null;
+        }
+      },
+      error: () => {
+        this.loadingEmailConversations = false;
+      }
+    });
+  }
+
+  filterEmailConversations(): void {
+    let source = this.emailConversations;
+    // Filter by inbox if not 'all'
+    if (this.selectedInboxFilter !== 0) {
+      source = source.filter(c => c.inbox_id === this.selectedInboxFilter);
+    }
+    if (!this.emailSearchTerm.trim()) {
+      this.filteredEmailConversations = [...source];
+    } else {
+      const term = this.emailSearchTerm.toLowerCase();
+      this.filteredEmailConversations = source.filter(c =>
+        c.contact.name.toLowerCase().includes(term) ||
+        (c.last_message || '').toLowerCase().includes(term)
+      );
+    }
+  }
+
+  setInboxFilter(inboxId: number): void {
+    this.selectedInboxFilter = inboxId;
+    this.filterEmailConversations();
+  }
+
+  selectEmail(conv: ChatConversation, navigate: boolean = true): void {
+    this.selectedEmail = conv;
+    this.loadEmailMessages();
+    if (navigate) {
+      this.router.navigate(['/admin/communication', 'correo', conv.id]);
+    }
+  }
+
+  loadEmailMessages(): void {
+    if (!this.selectedEmail) return;
+    this.loadingEmailMessages = true;
+    this.chatwootApi.getConversationMessages(this.selectedEmail.id).subscribe({
+      next: (res: any) => {
+        this.loadingEmailMessages = false;
+        if (res.success && res.messages?.length) {
+          this.emailMessages = res.messages.map((msg: any) => ({
+            id: msg.id,
+            from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
+            text: msg.content,
+            time: new Date(msg.created_at * 1000),
+            attachments: msg.attachments || [],
+          }));
+        } else {
+          this.emailMessages = [];
+        }
+      },
+      error: () => {
+        this.loadingEmailMessages = false;
+      }
+    });
+  }
+
+  goBackEmail(): void {
+    this.selectedEmail = null;
+    this.emailMessages = [];
+    this.router.navigate(['/admin/communication', 'correo']);
+  }
+
+  openCompose(): void {
+    this.showCompose = true;
+    this.sendingEmail = false;
+    this.composeEmail = '';
+    this.composeSubject = '';
+    this.composeBody = '';
+    this.composeFiles = [];
+    if (this.emailInboxes.length > 0) {
+      this.composeFromInboxId = this.emailInboxes[0].id;
+    }
+  }
+
+  closeCompose(): void {
+    this.showCompose = false;
+    this.sendingEmail = false;
+    this.composeFiles = [];
+  }
+
+  sendComposedEmail(): void {
+    if (!this.composeEmail.trim() || !this.composeBody.trim()) return;
+    this.sendingEmail = true;
+    const fullMessage = this.composeSubject.trim()
+      ? `${this.composeSubject.trim()}\n\n${this.composeBody.trim()}`
+      : this.composeBody.trim();
+
+    const files = this.composeFiles.length > 0 ? this.composeFiles : undefined;
+    this.chatwootApi.sendMessage(this.composeEmail.trim(), fullMessage, undefined, this.composeFromInboxId || this.userInbox2Id, files).subscribe({
+      next: () => {
+        this.sendingEmail = false;
+        this.showCompose = false;
+        this.composeFiles = [];
+        this.loadEmailConversations();
+      },
+      error: () => {
+        this.sendingEmail = false;
+      }
+    });
+  }
+
+  sendEmailReply(): void {
+    if (!this.selectedEmail) return;
+    // Allow sending file without text or text without file
+    if (!this.emailReplyInput.trim() && !this.emailReplyFile) return;
+    this.sendingEmailReply = true;
+
+    const sendTextAndFile = () => {
+      // Send text message
+      const replyText = this.emailReplyInput.trim();
+      const textObs = replyText
+        ? this.chatwootApi.sendConversationMessage(this.selectedEmail!.id, replyText)
+        : of(null);
+
+      textObs.subscribe({
+        next: () => {
+          if (this.emailReplyInput.trim()) {
+            const sentMsg: ChatMessage = {
+              id: Date.now(),
+              from: 'me',
+              text: this.emailReplyInput.trim(),
+              time: new Date(),
+              attachments: []
+            };
+            this.emailMessages.push(sentMsg);
+          }
+          this.emailReplyInput = '';
+
+          // Send file if any
+          if (this.emailReplyFile && this.selectedEmail) {
+            this.chatwootApi.sendAttachment(this.selectedEmail.id, this.emailReplyFile).subscribe({
+              next: () => {
+                this.sendingEmailReply = false;
+                const fileMsg: ChatMessage = {
+                  id: Date.now() + 1,
+                  from: 'me',
+                  text: '📎 Archivo adjunto enviado',
+                  time: new Date(),
+                  attachments: []
+                };
+                this.emailMessages.push(fileMsg);
+                this.emailReplyFile = null;
+              },
+              error: () => {
+                this.sendingEmailReply = false;
+                this.emailReplyFile = null;
+              }
+            });
+          } else {
+            this.sendingEmailReply = false;
+          }
+        },
+        error: () => {
+          this.sendingEmailReply = false;
+        }
+      });
+    };
+
+    sendTextAndFile();
+  }
+
+  onComposeFileSelect(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files) {
+      for (let i = 0; i < input.files.length; i++) {
+        this.composeFiles.push(input.files[i]);
+      }
+      input.value = '';
+    }
+  }
+
+  removeComposeFile(index: number): void {
+    this.composeFiles.splice(index, 1);
+  }
+
+  onEmailReplyFileSelect(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      this.emailReplyFile = input.files[0];
+      input.value = '';
+    }
+  }
+
+  removeEmailReplyFile(): void {
+    this.emailReplyFile = null;
   }
 
   // ============================
@@ -142,6 +469,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           this.conversationsFingerprint = this.getConversationsFingerprint(this.conversations);
           this.filterConversations();
           this.startConversationsPolling();
+          if (this.pendingConversationId && this.activeTab === 'chat') {
+            const conv = this.conversations.find(c => c.id === this.pendingConversationId);
+            if (conv) this.selectConversation(conv, false);
+            this.pendingConversationId = null;
+          }
         } else {
           this.noInbox = true;
         }
@@ -166,7 +498,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     );
   }
 
-  selectConversation(conv: ChatConversation): void {
+  selectConversation(conv: ChatConversation, navigate: boolean = true): void {
     this.selectedConversation = conv;
     this.messages = [];
     this.chatInput = '';
@@ -174,6 +506,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.gpsUser = null;
     this.loadMessages();
     this.loadGpsUser(conv.contact.phone);
+    if (navigate) {
+      this.router.navigate(['/admin/communication', 'chat', conv.id]);
+    }
   }
 
   private loadGpsUser(phone: string): void {

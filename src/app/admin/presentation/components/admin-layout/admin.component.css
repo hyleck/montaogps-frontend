@@ -20,5 +20,5 @@
 
 .admin__body{
     height: 100%;
-  
+    overflow: hidden;
 }

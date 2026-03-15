@@ -1,4 +1,14 @@
 <div class="comm-container">
+    <!-- Tab Bar -->
+    <div *ngIf="!noInbox" class="comm-tabs">
+        <button class="comm-tabs__btn" [class.comm-tabs__btn--active]="activeTab === 'chat'" (click)="navigateToTab('chat')">
+            <i class="pi pi-comments"></i> Chat
+        </button>
+        <button *ngIf="hasEmailInbox" class="comm-tabs__btn" [class.comm-tabs__btn--active]="activeTab === 'correo'" (click)="navigateToTab('correo')">
+            <i class="pi pi-envelope"></i> Correo
+        </button>
+    </div>
+
     <!-- No Inbox State -->
     <div *ngIf="noInbox" class="comm-no-inbox">
         <div class="comm-no-inbox__content">
@@ -8,8 +18,10 @@
         </div>
     </div>
 
+    <!-- ====== CHAT TAB ====== -->
+    <div *ngIf="activeTab === 'chat' && !noInbox" class="comm-chat-row">
     <!-- Conversations Panel -->
-    <div *ngIf="!noInbox" class="comm-sidebar" [class.comm-sidebar--hidden]="selectedConversation">
+    <div class="comm-sidebar" [class.comm-sidebar--hidden]="selectedConversation">
         <!-- Header -->
         <div class="comm-sidebar__header">
             <h2>Comunicación</h2>
@@ -123,7 +135,7 @@
                         <!-- Reply quote -->
                         <div *ngIf="msg.replyTo" class="comm-reply-quote"
                             [class.comm-reply-quote--me]="msg.replyTo.from === 'me'">
-                            <span class="comm-reply-quote__label">{{ msg.replyTo.from === 'me' ? 'Tú' : selectedConversation?.contact?.name }}</span>
+                            <span class="comm-reply-quote__label">{{ msg.replyTo.from === 'me' ? 'Tú' : selectedConversation!.contact.name }}</span>
                             <span class="comm-reply-quote__text">{{ msg.replyTo.text | slice:0:80 }}{{ msg.replyTo.text.length > 80 ? '...' : '' }}</span>
                         </div>
                         <!-- Attachments -->
@@ -164,7 +176,7 @@
                 <div class="comm-reply-preview__content">
                     <i class="pi pi-reply"></i>
                     <div class="comm-reply-preview__text">
-                        <span class="comm-reply-preview__label">Respondiendo a {{ replyingTo.from === 'me' ? 'ti' : selectedConversation?.contact?.name }}</span>
+                        <span class="comm-reply-preview__label">Respondiendo a {{ replyingTo.from === 'me' ? 'ti' : selectedConversation!.contact.name }}</span>
                         <span class="comm-reply-preview__msg">{{ replyingTo.text | slice:0:60 }}{{ replyingTo.text.length > 60 ? '...' : '' }}</span>
                     </div>
                 </div>
@@ -274,6 +286,247 @@
             </div>
         </div>
     </div>
+    </div>
+
+    <!-- ====== CORREO TAB ====== -->
+    <div *ngIf="activeTab === 'correo' && hasEmailInbox" class="comm-email">
+        <!-- Email Sidebar -->
+        <div class="comm-email__sidebar">
+            <button class="comm-email__compose" (click)="openCompose()">
+                <i class="pi pi-pencil"></i> Redactar
+            </button>
+            <div class="comm-email__folders">
+                <div class="comm-email__folder" [class.comm-email__folder--active]="selectedInboxFilter === 0"
+                    (click)="setInboxFilter(0)">
+                    <i class="pi pi-inbox"></i>
+                    <span>Todas</span>
+                    <span class="comm-email__folder-count">{{ emailConversations.length }}</span>
+                </div>
+                <div *ngFor="let inbox of emailInboxes" class="comm-email__folder"
+                    [class.comm-email__folder--active]="selectedInboxFilter === inbox.id"
+                    (click)="setInboxFilter(inbox.id)">
+                    <i class="pi pi-envelope"></i>
+                    <span>{{ inbox.email }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Email List -->
+        <div class="comm-email__list">
+            <div class="comm-email__list-header">
+                <h3>Bandeja de entrada</h3>
+                <div class="comm-email__search">
+                    <i class="pi pi-search"></i>
+                    <input type="text" [(ngModel)]="emailSearchTerm" (ngModelChange)="filterEmailConversations()"
+                        placeholder="Buscar correo..." />
+                </div>
+            </div>
+
+            <div *ngIf="loadingEmailConversations" class="comm-email__empty">
+                <i class="pi pi-spin pi-spinner"></i>
+                <p>Cargando correos...</p>
+            </div>
+
+            <div *ngIf="!hasEmailInbox && !loadingEmailConversations" class="comm-email__empty">
+                <i class="pi pi-inbox"></i>
+                <h3>Sin bandeja de correo</h3>
+                <p>No tienes bandeja de correo configurada</p>
+            </div>
+
+            <div *ngIf="!loadingEmailConversations && hasEmailInbox && filteredEmailConversations.length === 0" class="comm-email__empty">
+                <i class="pi pi-envelope"></i>
+                <h3>No hay correos</h3>
+                <p>Tu bandeja de entrada está vacía</p>
+            </div>
+
+            <div class="comm-email__items" *ngIf="!loadingEmailConversations && filteredEmailConversations.length > 0">
+                <div *ngFor="let conv of filteredEmailConversations" class="comm-email__item"
+                    [class.comm-email__item--active]="selectedEmail?.id === conv.id"
+                    [class.comm-email__item--unread]="conv.unread_count > 0"
+                    (click)="selectEmail(conv)">
+                    <div class="comm-email__item-avatar">
+                        <img *ngIf="conv.contact.avatar" [src]="conv.contact.avatar" alt="avatar" />
+                        <span *ngIf="!conv.contact.avatar">{{ getInitials(conv.contact.name) }}</span>
+                    </div>
+                    <div class="comm-email__item-content">
+                        <div class="comm-email__item-top">
+                            <span class="comm-email__item-sender">{{ conv.contact.name }}</span>
+                            <span class="comm-email__item-time">{{ getTimeAgo(conv.last_message_time) }}</span>
+                        </div>
+                        <div class="comm-email__item-preview">{{ conv.last_message || 'Sin contenido' }}</div>
+                    </div>
+                    <div *ngIf="conv.unread_count > 0" class="comm-email__item-badge">{{ conv.unread_count }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Email Detail -->
+        <div class="comm-email__detail">
+            <!-- Empty state -->
+            <div *ngIf="!selectedEmail" class="comm-email__detail-empty">
+                <i class="pi pi-envelope"></i>
+                <p>Selecciona un correo para leerlo</p>
+            </div>
+
+            <!-- Detail view -->
+            <ng-container *ngIf="selectedEmail">
+                <div class="comm-email__detail-header">
+                    <button class="comm-email__detail-back" (click)="goBackEmail()">
+                        <i class="pi pi-arrow-left"></i>
+                    </button>
+                    <div class="comm-email__detail-sender">
+                        <div class="comm-email__detail-sender-avatar">
+                            <img *ngIf="selectedEmail.contact.avatar" [src]="selectedEmail.contact.avatar" alt="avatar" />
+                            <span *ngIf="!selectedEmail.contact.avatar">{{ getInitials(selectedEmail.contact.name) }}</span>
+                        </div>
+                        <div class="comm-email__detail-sender-info">
+                            <span class="comm-email__detail-sender-name">{{ selectedEmail.contact.name }}</span>
+                            <span class="comm-email__detail-sender-email">{{ selectedEmail.contact.phone }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comm-email__detail-body">
+                    <div *ngIf="loadingEmailMessages" class="comm-email__empty">
+                        <i class="pi pi-spin pi-spinner"></i>
+                        <p>Cargando mensajes...</p>
+                    </div>
+
+                    <div *ngFor="let msg of emailMessages" class="comm-email__msg"
+                        [class.comm-email__msg--outgoing]="msg.from === 'me'">
+                        <div class="comm-email__msg-header">
+                            <span class="comm-email__msg-from">{{ msg.from === 'me' ? 'Tú' : selectedEmail.contact.name }}</span>
+                            <span class="comm-email__msg-time">{{ msg.time | date:'dd/MM/yyyy HH:mm' }}</span>
+                        </div>
+                        <div class="comm-email__msg-text" [innerHTML]="msg.text"></div>
+                        <ng-container *ngIf="msg.attachments?.length">
+                            <div class="comm-email__msg-attachments">
+                                <div *ngFor="let att of msg.attachments" class="comm-email__msg-attachment">
+                                    <!-- Image attachment -->
+                                    <a *ngIf="att.file_type === 'image'" [href]="att.data_url" target="_blank"
+                                        class="comm-email__att-image">
+                                        <img [src]="att.data_url" alt="imagen" />
+                                        <div class="comm-email__att-overlay">
+                                            <i class="pi pi-external-link"></i>
+                                        </div>
+                                    </a>
+                                    <!-- Video attachment -->
+                                    <a *ngIf="att.file_type === 'video'" [href]="att.data_url" target="_blank"
+                                        class="comm-email__att-file">
+                                        <div class="comm-email__att-icon comm-email__att-icon--video">
+                                            <i class="pi pi-play"></i>
+                                        </div>
+                                        <div class="comm-email__att-info">
+                                            <span class="comm-email__att-name">Video adjunto</span>
+                                            <span class="comm-email__att-action">Reproducir <i class="pi pi-external-link"></i></span>
+                                        </div>
+                                    </a>
+                                    <!-- Other file attachment -->
+                                    <a *ngIf="att.file_type !== 'image' && att.file_type !== 'video'" [href]="att.data_url"
+                                        target="_blank" class="comm-email__att-file">
+                                        <div class="comm-email__att-icon">
+                                            <i class="pi pi-file"></i>
+                                        </div>
+                                        <div class="comm-email__att-info">
+                                            <span class="comm-email__att-name">Archivo adjunto</span>
+                                            <span class="comm-email__att-action">Descargar <i class="pi pi-download"></i></span>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </ng-container>
+                    </div>
+                </div>
+
+                <!-- Reply input -->
+                <div class="comm-email__reply-bar">
+                    <div *ngIf="emailReplyFile" class="comm-email__reply-file">
+                        <i class="pi pi-paperclip"></i>
+                        <span>{{ emailReplyFile.name }}</span>
+                        <button (click)="removeEmailReplyFile()" class="comm-email__reply-file-remove">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                    <div class="comm-email__reply-input-row">
+                        <input type="file" #replyFileInput (change)="onEmailReplyFileSelect($event)"
+                            style="display: none" />
+                        <button class="comm-email__reply-attach" (click)="replyFileInput.click()">
+                            <i class="pi pi-paperclip"></i>
+                        </button>
+                        <input type="text" [(ngModel)]="emailReplyInput" placeholder="Escribe una respuesta..."
+                            (keydown.enter)="sendEmailReply()" [disabled]="sendingEmailReply" />
+                        <button class="comm-email__reply-send" (click)="sendEmailReply()"
+                            [disabled]="sendingEmailReply || (!emailReplyInput.trim() && !emailReplyFile)">
+                            <i class="pi" [ngClass]="sendingEmailReply ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+                        </button>
+                    </div>
+                </div>
+            </ng-container>
+        </div>
+    </div>
+
+    <!-- Compose Modal -->
+    <div *ngIf="showCompose" class="comm-compose-overlay" (click)="closeCompose()">
+        <div class="comm-compose" (click)="$event.stopPropagation()">
+            <div class="comm-compose__header">
+                <h3>Nuevo correo</h3>
+                <button class="comm-compose__close" (click)="closeCompose()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+            <div class="comm-compose__body">
+                <div class="comm-compose__field">
+                    <label>De</label>
+                    <select *ngIf="emailInboxes.length > 1" [(ngModel)]="composeFromInboxId"
+                        class="comm-compose__select">
+                        <option *ngFor="let inbox of emailInboxes" [ngValue]="inbox.id">{{ inbox.email }}</option>
+                    </select>
+                    <span *ngIf="emailInboxes.length <= 1" class="comm-compose__from">
+                        {{ emailInboxes.length > 0 ? emailInboxes[0].email : (inboxEmail || currentUserEmail) }}
+                    </span>
+                </div>
+                <div class="comm-compose__field">
+                    <label>Para</label>
+                    <input type="text" [(ngModel)]="composeEmail" placeholder="Correo o teléfono del destinatario" />
+                </div>
+                <div class="comm-compose__field">
+                    <label>Asunto</label>
+                    <input type="text" [(ngModel)]="composeSubject" placeholder="Asunto del correo" />
+                </div>
+                <div class="comm-compose__field comm-compose__field--grow">
+                    <label>Mensaje</label>
+                    <textarea [(ngModel)]="composeBody" placeholder="Escribe tu mensaje..."></textarea>
+                </div>
+                <div *ngIf="composeFiles.length > 0" class="comm-compose__attachments">
+                    <div *ngFor="let file of composeFiles; let i = index" class="comm-compose__attachment-item">
+                        <i class="pi pi-paperclip"></i>
+                        <span>{{ file.name }}</span>
+                        <button class="comm-compose__attachment-remove" (click)="removeComposeFile(i)">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="comm-compose__footer">
+                <div class="comm-compose__footer-left">
+                    <input type="file" #composeFileInput (change)="onComposeFileSelect($event)" multiple
+                        style="display: none" />
+                    <button class="comm-compose__attach" (click)="composeFileInput.click()">
+                        <i class="pi pi-paperclip"></i> Adjuntar
+                    </button>
+                </div>
+                <div class="comm-compose__footer-right">
+                    <button class="comm-compose__cancel" (click)="closeCompose()">Cancelar</button>
+                    <button class="comm-compose__send" (click)="sendComposedEmail()"
+                        [disabled]="sendingEmail || !composeEmail.trim() || !composeBody.trim()">
+                        <i class="pi" [ngClass]="sendingEmail ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+                        {{ sendingEmail ? 'Enviando...' : 'Enviar' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <!-- Lightbox Modal -->

@@ -12,7 +12,18 @@ export class ChatwootApiService {
 
     constructor(private http: HttpClient) { }
 
-    sendMessage(phone: string, message: string, contactName?: string, inboxId?: number): Observable<any> {
+    sendMessage(phone: string, message: string, contactName?: string, inboxId?: number, files?: File[]): Observable<any> {
+        if (files && files.length > 0) {
+            const formData = new FormData();
+            formData.append('phone', phone);
+            formData.append('message', message);
+            if (contactName) formData.append('contact_name', contactName);
+            if (inboxId) formData.append('inbox_id', inboxId.toString());
+            for (const file of files) {
+                formData.append('files', file);
+            }
+            return this.http.post(`${this.apiUrl}/send-message`, formData);
+        }
         return this.http.post(`${this.apiUrl}/send-message`, {
             phone,
             message,
@@ -59,11 +70,20 @@ export class ChatwootApiService {
         return this.http.post(`${this.apiUrl}/send-attachment`, formData);
     }
 
-    sendConversationMessage(conversationId: number, message: string, inReplyTo?: number): Observable<any> {
+    sendConversationMessage(conversationId: number, message: string, inReplyTo?: number, contentType?: string): Observable<any> {
         const body: any = { conversation_id: conversationId, message };
         if (inReplyTo) {
             body.in_reply_to = inReplyTo;
         }
+        if (contentType) {
+            body.content_type = contentType;
+        }
         return this.http.post(`${this.apiUrl}/conversation-send`, body);
+    }
+
+    getInboxDetails(inboxId: number): Observable<any> {
+        return this.http.get(`${this.apiUrl}/inbox-details`, {
+            params: { inbox_id: inboxId.toString() }
+        });
     }
 }
