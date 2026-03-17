@@ -296,17 +296,21 @@
                 <i class="pi pi-pencil"></i> Redactar
             </button>
             <div class="comm-email__folders">
-                <div class="comm-email__folder" [class.comm-email__folder--active]="selectedInboxFilter === 0"
-                    (click)="setInboxFilter(0)">
+                <div class="comm-email__folder" [class.comm-email__folder--active]="selectedTypeFilter === 'received'"
+                    (click)="setTypeFilter('received')">
                     <i class="pi pi-inbox"></i>
-                    <span>Todas</span>
-                    <span class="comm-email__folder-count">{{ emailConversations.length }}</span>
+                    <span>Recibidos</span>
+                    <!-- You might optionally want to show unread count here later, but for now length is fine -->
                 </div>
-                <div *ngFor="let inbox of emailInboxes" class="comm-email__folder"
-                    [class.comm-email__folder--active]="selectedInboxFilter === inbox.id"
-                    (click)="setInboxFilter(inbox.id)">
-                    <i class="pi pi-envelope"></i>
-                    <span>{{ inbox.email }}</span>
+                <div class="comm-email__folder" [class.comm-email__folder--active]="selectedTypeFilter === 'sent'"
+                    (click)="setTypeFilter('sent')">
+                    <i class="pi pi-send"></i>
+                    <span>Enviados</span>
+                </div>
+                <div class="comm-email__folder" [class.comm-email__folder--active]="selectedTypeFilter === 'spam'"
+                    (click)="setTypeFilter('spam')">
+                    <i class="pi pi-exclamation-circle"></i>
+                    <span>Spam</span>
                 </div>
             </div>
         </div>
@@ -315,10 +319,16 @@
         <div class="comm-email__list">
             <div class="comm-email__list-header">
                 <h3>Bandeja de entrada</h3>
-                <div class="comm-email__search">
-                    <i class="pi pi-search"></i>
-                    <input type="text" [(ngModel)]="emailSearchTerm" (ngModelChange)="filterEmailConversations()"
-                        placeholder="Buscar correo..." />
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <select [(ngModel)]="selectedInboxFilter" (ngModelChange)="filterEmailConversations()" class="comm-inbox-select">
+                        <option [ngValue]="0">Todas las bandejas</option>
+                        <option *ngFor="let inbox of emailInboxes" [ngValue]="inbox.id">{{ inbox.email }}</option>
+                    </select>
+                    <div class="comm-email__search">
+                        <i class="pi pi-search"></i>
+                        <input type="text" [(ngModel)]="emailSearchTerm" (ngModelChange)="filterEmailConversations()"
+                            placeholder="Buscar correo..." />
+                    </div>
                 </div>
             </div>
 

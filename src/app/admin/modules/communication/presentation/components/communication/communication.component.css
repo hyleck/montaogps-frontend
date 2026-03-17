@@ -264,6 +264,38 @@
     font-size: 0.8rem;
 }
 
+/* Inbox Dropdown Select */
+.comm-inbox-select {
+    background: rgba(255, 255, 255, 0.04);
+    border: none;
+    border-radius: 6px;
+    padding: 0.35rem 0.6rem;
+    margin-top: 0.5rem;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.8rem;
+    outline: none;
+    min-width: 150px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s;
+    -webkit-appearance: auto;
+    -moz-appearance: auto;
+    appearance: auto;
+}
+
+.comm-inbox-select:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.comm-inbox-select:focus {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.comm-inbox-select option {
+    background: #111820;
+    color: rgba(255, 255, 255, 0.85);
+}
+
 .comm-email__search input {
     background: transparent;
     border: none;

@@ -19,6 +19,8 @@ interface ChatConversation {
   last_message_time: number | null;
   unread_count: number;
   inbox_id?: number;
+  last_message_type?: number;
+  labels?: string[];
 }
 
 interface EmailInbox {
@@ -72,6 +74,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   hasEmailInbox: boolean = false;
   emailInboxes: EmailInbox[] = [];
   selectedInboxFilter: number = 0; // 0 = all
+  selectedTypeFilter: 'received' | 'sent' | 'spam' = 'received';
   composeFromInboxId: number = 0;
   showCompose: boolean = false;
   composeEmail: string = '';
@@ -272,10 +275,21 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   filterEmailConversations(): void {
     let source = this.emailConversations;
-    // Filter by inbox if not 'all'
+
+    // Filter by Inbox
     if (this.selectedInboxFilter !== 0) {
       source = source.filter(c => c.inbox_id === this.selectedInboxFilter);
     }
+
+    // Filter by Type (received vs sent vs spam)
+    if (this.selectedTypeFilter === 'spam') {
+      source = source.filter(c => c.labels?.includes('spam') || c.labels?.includes('Spam'));
+    } else if (this.selectedTypeFilter === 'sent') {
+      source = source.filter(c => c.last_message_type === 1 && !c.labels?.includes('spam') && !c.labels?.includes('Spam'));
+    } else { // 'received' as default
+      source = source.filter(c => c.last_message_type !== 1 && !c.labels?.includes('spam') && !c.labels?.includes('Spam'));
+    }
+
     if (!this.emailSearchTerm.trim()) {
       this.filteredEmailConversations = [...source];
     } else {
@@ -287,8 +301,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
   }
 
-  setInboxFilter(inboxId: number): void {
-    this.selectedInboxFilter = inboxId;
+  setTypeFilter(type: 'received' | 'sent' | 'spam'): void {
+    this.selectedTypeFilter = type;
     this.filterEmailConversations();
   }
 

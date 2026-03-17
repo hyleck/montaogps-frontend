@@ -3372,6 +3372,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   sendingChat: boolean = false;
   loadingChat: boolean = false;
   hasUserInbox: boolean = false;
+  userInboxId?: number;
   @ViewChild('chatMessagesContainer') chatMessagesContainer: any;
   private chatPollingInterval: any = null;
 
@@ -3381,6 +3382,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.userService.getById(currentUser.id).subscribe({
       next: (user: any) => {
         this.hasUserInbox = !!user?.inbox;
+        this.userInboxId = user?.inbox;
       }
     });
   }
@@ -3398,7 +3400,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.chatPollingInterval = setInterval(() => {
       if (!this.chatUser?.phone || !this.chatDialogVisible) return;
 
-      this.chatwootApi.getMessages(this.chatUser.phone).subscribe({
+      this.chatwootApi.getMessages(this.chatUser.phone, this.userInboxId).subscribe({
         next: (res) => {
           console.log('📨 Polling chat messages:', res);
           if (res.success && res.messages) {
@@ -3438,7 +3440,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (!phone) return;
 
     this.loadingChat = true;
-    this.chatwootApi.getMessages(phone).subscribe({
+    this.chatwootApi.getMessages(phone, this.userInboxId).subscribe({
       next: (res) => {
         this.loadingChat = false;
         if (res.success && res.messages?.length) {
@@ -3478,7 +3480,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const contactName = `${this.chatUser.name || ''} ${this.chatUser.last_name || ''}`.trim();
     const phone = this.chatUser.phone || '';
 
-    this.chatwootApi.sendMessage(phone, messageText, contactName).subscribe({
+    this.chatwootApi.sendMessage(phone, messageText, contactName, this.userInboxId).subscribe({
       next: (res) => {
         this.sendingChat = false;
         if (res.success) {
