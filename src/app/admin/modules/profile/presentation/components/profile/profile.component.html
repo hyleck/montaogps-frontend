@@ -76,21 +76,23 @@
                                 <label for="phone">Número de Flota</label>
                                 <input [(ngModel)]="user.phone" name="phone" type="tel" id="phone" required>
                             </div>
+                            <ng-container *ngIf="showInboxFields">
                             <div class="form-group">
                                 <label for="inbox">Bandeja de Entrada</label>
                                 <input [(ngModel)]="user.inbox" name="inbox" type="number" id="inbox"
-                                    placeholder="Ej: 12345" [disabled]="!!user.inbox">
+                                    placeholder="Ej: 12345">
                             </div>
                             <div class="form-group">
                                 <label for="inbox2">Bandeja de Entrada #2</label>
                                 <input [(ngModel)]="user.inbox2" name="inbox2" type="number" id="inbox2"
-                                    placeholder="Ej: 12345" [disabled]="!!user.inbox2">
+                                    placeholder="Ej: 12345">
                             </div>
                             <div class="form-group">
                                 <label for="inbox3">Bandeja de Entrada #3</label>
                                 <input [(ngModel)]="user.inbox3" name="inbox3" type="number" id="inbox3"
-                                    placeholder="Ej: 12345" [disabled]="!!user.inbox3">
+                                    placeholder="Ej: 12345">
                             </div>
+                            </ng-container>
                             <div class="form-group">
                                 <label for="phone2">{{ 'profile.personal_info.phone2' | translate }}</label>
                                 <input [(ngModel)]="user.phone2" name="phone2" type="tel" id="phone2">
@@ -132,6 +134,20 @@
                             </option>
                         </select>
                         <small>{{ 'profile.settings.language.description' | translate }}</small>
+                    </div>
+
+                    <div class="settings-item">
+                        <div class="settings-header">
+                            <i class="pi pi-map-marker"></i>
+                            <h3>Marcador de mapa</h3>
+                        </div>
+                        <select [(ngModel)]="user.settings.map_marker_type" (ngModelChange)="onMapMarkerTypeChange()"
+                            name="map_marker_type" class="settings-select">
+                            <option *ngFor="let type of markerTypes" [value]="type.value">
+                                {{type.label}}
+                            </option>
+                        </select>
+                        <small>Selecciona cómo se visualizan los vehículos en el mapa</small>
                     </div>
 
                     <div class="settings-item">

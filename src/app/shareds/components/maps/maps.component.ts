@@ -596,26 +596,39 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private createMarker(lat: number, lng: number): void {
+  private async createMarker(lat: number, lng: number): Promise<void> {
     const title = this.selectedTarget?.name || 'Target';
     const isOffline =
       (this.selectedTarget?.traccarStatus || '').toLowerCase() !== 'online';
-    const markerIconUrl = isOffline
-      ? this.getMarkerIconUrlOffline()
-      : this.getMarkerIconUrl();
     const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
     const isOnline = statusText === 'online';
+    const course = this.selectedTarget?.traccarInfo?.geolocation?.course ?? 0;
+    const markerType = MapUtils.getMapMarkerType();
 
     if (this.provider === 'google') {
+      let iconConfig: any;
+
+      if (markerType === 'vehicle') {
+        const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
+        iconConfig = {
+          url: spriteIconUrl,
+          scaledSize: new google.maps.Size(48, 68),
+          anchor: new google.maps.Point(24, 50)
+        };
+      } else {
+        const iconUrl = isOffline ? this.getMarkerIconUrlOffline() : this.getMarkerIconUrl();
+        iconConfig = {
+          url: iconUrl,
+          scaledSize: new google.maps.Size(32, 32),
+          anchor: new google.maps.Point(16, 16)
+        };
+      }
+
       this.currentMarker = new google.maps.Marker({
         position: { lat, lng },
         map: this.map,
         title,
-        icon: {
-          url: markerIconUrl,
-          scaledSize: new google.maps.Size(36, 36),
-          anchor: new google.maps.Point(18, 35)
-        },
+        icon: iconConfig,
         opacity: isOffline ? 0.65 : 1,
       });
 
@@ -648,23 +661,19 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     } else {
       const mapboxgl = (window as any).mapboxgl;
 
-      const markerElement = document.createElement('div');
-      markerElement.className = 'custom-marker';
-      markerElement.style.cssText = `
-        width: 60px;
-        height: 40px;
-        background-image: url('${markerIconUrl}');
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position: center;
-        cursor: pointer;
-        position: relative;
-        filter: ${isOffline ? 'grayscale(100%) brightness(0.75) drop-shadow(0 2px 4px rgba(0,0,0,0.35))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))'};
-      `;
+      let markerElement: HTMLElement;
+      if (markerType === 'vehicle') {
+        markerElement = MapUtils.createCarSpriteElement(course, isOffline, 48);
+      } else {
+        const img = document.createElement('img');
+        img.src = isOffline ? `${window.location.origin}/logo/favicon-gray.png` : `${window.location.origin}/logo/favicon.png`;
+        img.style.cssText = `width: 32px; height: 32px; cursor: pointer;`;
+        markerElement = img;
+      }
 
       this.currentMarker = new mapboxgl.Marker({
         element: markerElement,
-        anchor: 'bottom',
+        anchor: 'center',
       })
         .setLngLat([lng, lat])
         .addTo(this.map);
@@ -691,17 +700,16 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private updateExistingMarker(lat: number, lng: number): void {
+  private async updateExistingMarker(lat: number, lng: number): Promise<void> {
     if (!this.currentMarker) return;
 
     const title = this.selectedTarget?.name || 'Target';
     const isOffline =
       (this.selectedTarget?.traccarStatus || '').toLowerCase() !== 'online';
-    const markerIconUrl = isOffline
-      ? this.getMarkerIconUrlOffline()
-      : this.getMarkerIconUrl();
     const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
     const isOnline = statusText === 'online';
+    const course = this.selectedTarget?.traccarInfo?.geolocation?.course ?? 0;
+    const markerType = MapUtils.getMapMarkerType();
 
     if (this.provider === 'google') {
       // Actualizar posición del marcador Google Maps
@@ -710,6 +718,23 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       // Actualizar título del marcador
       this.currentMarker.setTitle(title);
       this.currentMarker.setOpacity(isOffline ? 0.65 : 1);
+
+      if (markerType === 'vehicle') {
+        // Actualizar ícono de sprite con el nuevo course
+        const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
+        this.currentMarker.setIcon({
+          url: spriteIconUrl,
+          scaledSize: new google.maps.Size(48, 68),
+          anchor: new google.maps.Point(24, 50)
+        });
+      } else {
+        const iconUrl = isOffline ? this.getMarkerIconUrlOffline() : this.getMarkerIconUrl();
+        this.currentMarker.setIcon({
+          url: iconUrl,
+          scaledSize: new google.maps.Size(32, 32),
+          anchor: new google.maps.Point(16, 16)
+        });
+      }
 
       // Actualizar popup si existe
       if (this.currentPopup && this.currentPopup.setContent) {
@@ -726,9 +751,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       this.currentMarker.setLngLat([lng, lat]);
       const el = this.currentMarker.getElement?.();
       if (el) {
-        el.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))';
-        el.style.backgroundImage = `url('${markerIconUrl}')`;
-        el.style.transform = 'translate(0, 0)';
+        MapUtils.updateCarSpriteElement(el, course, isOffline);
       }
 
       if (this.currentPopup && this.currentPopup.setHTML) {
@@ -872,9 +895,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
       const isOffline =
         (target?.traccarStatus || '').toLowerCase() !== 'online';
-      const iconUrl = isOffline
-        ? this.getMarkerIconUrlOffline()
-        : this.getMarkerIconUrl();
+      const course = geo?.course ?? 0;
       const openByDefault = !isOffline && (this.targetsForMap?.length || 0) <= 100;
 
       const marker = MapUtils.addMarker(
@@ -884,8 +905,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         lngNum,
         target?.name || 'Target',
         target?.traccarStatus || 'Desconocido',
-        iconUrl,
+        undefined,
         openByDefault,
+        course,
       );
 
       if (!marker) {

@@ -845,21 +845,35 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   /**
    * Cambiar el estilo del marcador de reproducción para indicar que es la posición final
    */
-  private setReplayMarkerAsFinal(): void {
+  private async setReplayMarkerAsFinal(): Promise<void> {
     if (!this.replayMarker) return;
 
     const google = (window as any).google;
+    const markerType = MapUtils.getMapMarkerType();
     
-    // Cambiar el ícono para indicar que es la posición final
-    this.replayMarker.setIcon({
-      path: google.maps.SymbolPath.CIRCLE,
-      scale: 12,
-      fillColor: '#28a745', // Verde para indicar finalización exitosa
-      fillOpacity: 1,
-      strokeColor: '#ffffff',
-      strokeWeight: 4,
-      anchor: new google.maps.Point(0, 0)
-    });
+    // Obtener el course de la última posición para mantener la orientación del carro
+    const lastPos = this.replayPositions[this.replayPositions.length - 1];
+    const course = lastPos?.course || 0;
+
+    if (markerType === 'vehicle') {
+      const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
+      this.replayMarker.setIcon({
+        url: spriteIconUrl,
+        scaledSize: new google.maps.Size(48, 68),
+        anchor: new google.maps.Point(24, 50)
+      });
+    } else {
+      this.replayMarker.setIcon({
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: '#28a745',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+        anchor: new google.maps.Point(0, 0)
+      });
+    }
+    this.replayMarker.setOpacity(0.7);
     
     // Actualizar el título
     this.replayMarker.setTitle('Posición final del recorrido');
@@ -881,21 +895,36 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   /**
    * Cambiar el estilo del marcador de reproducción para indicar que se detuvo manualmente
    */
-  private setReplayMarkerAsStopped(): void {
+  private async setReplayMarkerAsStopped(): Promise<void> {
     if (!this.replayMarker) return;
 
     const google = (window as any).google;
+    const markerType = MapUtils.getMapMarkerType();
     
-    // Cambiar el ícono para indicar que se detuvo manualmente
-    this.replayMarker.setIcon({
-      path: google.maps.SymbolPath.CIRCLE,
-      scale: 12,
-      fillColor: '#dc3545', // Rojo para indicar detención manual
-      fillOpacity: 1,
-      strokeColor: '#ffffff',
-      strokeWeight: 4,
-      anchor: new google.maps.Point(0, 0)
-    });
+    // Obtener el course de la posición actual para mantener la orientación del carro
+    const actualIndex = Math.max(0, this.currentPositionIndex - 1);
+    const currentPos = this.replayPositions[actualIndex];
+    const course = currentPos?.course || 0;
+
+    if (markerType === 'vehicle') {
+      const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
+      this.replayMarker.setIcon({
+        url: spriteIconUrl,
+        scaledSize: new google.maps.Size(48, 68),
+        anchor: new google.maps.Point(24, 50)
+      });
+    } else {
+      this.replayMarker.setIcon({
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: '#dc3545',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+        anchor: new google.maps.Point(0, 0)
+      });
+    }
+    this.replayMarker.setOpacity(0.6);
     
     // Actualizar el título
     this.replayMarker.setTitle('Posición donde se detuvo la reproducción');
@@ -903,10 +932,10 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     // Limpiar listeners anteriores y agregar nuevo listener para mostrar contenido de posición detenida
     google.maps.event.clearListeners(this.replayMarker, 'click');
     this.replayMarker.addListener('click', () => {
-      const actualIndex = Math.max(0, this.currentPositionIndex - 1);
-      const currentPos = this.replayPositions[actualIndex];
-      if (currentPos) {
-        const content = this.createStoppedPositionPopupContent(currentPos);
+      const actualIdx = Math.max(0, this.currentPositionIndex - 1);
+      const pos = this.replayPositions[actualIdx];
+      if (pos) {
+        const content = this.createStoppedPositionPopupContent(pos);
         this.infoWindow.setContent(content);
         this.infoWindow.open(this.map, this.replayMarker);
         this.isReplayPopupOpen = false; // No es un popup de reproducción activa
@@ -1045,7 +1074,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     `;
   }
 
-  private createReplayMarker(): void {
+  private async createReplayMarker(): Promise<void> {
     if (!this.map || !this.replayPositions.length) return;
 
     // Limpiar marcador de reproducción anterior si existe
@@ -1056,23 +1085,34 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
     const google = (window as any).google;
     const firstPosition = this.replayPositions[0];
+    const course = firstPosition.course || 0;
+    const markerType = MapUtils.getMapMarkerType();
 
-    // Determinar color basado en dbfrom de la primera posición (ahora siempre será movimiento)
-    const markerColor = this.getMarkerColorByDbfrom(firstPosition.dbfrom);
+    let iconConfig: any;
+    if (markerType === 'vehicle') {
+      const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
+      iconConfig = {
+        url: spriteIconUrl,
+        scaledSize: new google.maps.Size(48, 68),
+        anchor: new google.maps.Point(24, 50)
+      };
+    } else {
+      iconConfig = {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: '#3b82f6',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+        anchor: new google.maps.Point(0, 0)
+      };
+    }
 
     this.replayMarker = new google.maps.Marker({
       position: { lat: firstPosition.latitude, lng: firstPosition.longitude },
       map: this.map,
       title: 'Reproducción del recorrido',
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 10,
-        fillColor: markerColor,
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 3,
-        anchor: new google.maps.Point(0, 0)
-      },
+      icon: iconConfig,
       zIndex: 1000
     });
 
@@ -1289,7 +1329,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   /**
    * Actualizar el estilo del marcador de replay según el tipo de posición
    */
-  private updateReplayMarkerStyle(position: any): void {
+  private async updateReplayMarkerStyle(position: any): Promise<void> {
     if (!this.replayMarker) return;
 
     const google = (window as any).google;
@@ -1305,25 +1345,36 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         strokeWeight: 3,
         anchor: new google.maps.Point(0, 0)
       });
+      this.replayMarker.setOpacity(1);
       
       this.replayMarker.setTitle(position.isStopStart ? 
         `Inicio de parada - ${position.stopData.durationText}` : 
         `Fin de parada - ${position.stopData.durationText}`
       );
     } else {
-      // Determinar color basado en dbfrom
-      const markerColor = this.getMarkerColorByDbfrom(position.dbfrom);
-      
-      // Estilo normal para movimiento: color dinámico basado en dbfrom
-      this.replayMarker.setIcon({
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 10,
-        fillColor: markerColor,
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 2,
-        anchor: new google.maps.Point(0, 0)
-      });
+      // Actualizar marcador basado en la preferencia del usuario
+      const course = position.course || 0;
+      const markerType = MapUtils.getMapMarkerType();
+
+      if (markerType === 'vehicle') {
+        const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
+        this.replayMarker.setIcon({
+          url: spriteIconUrl,
+          scaledSize: new google.maps.Size(48, 68),
+          anchor: new google.maps.Point(24, 50)
+        });
+      } else {
+        this.replayMarker.setIcon({
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#3b82f6',
+          fillOpacity: 1,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+          anchor: new google.maps.Point(0, 0)
+        });
+      }
+      this.replayMarker.setOpacity(1);
       
       this.replayMarker.setTitle(`Reproduciendo posición ${this.currentPositionIndex + 1}`);
     }

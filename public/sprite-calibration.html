@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Calibración de Sprite - Car Angles</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e; color: #eee; font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+    }
+    h1 { text-align: center; margin-bottom: 6px; font-size: 22px; color: #00d4ff; }
+    .subtitle { text-align: center; margin-bottom: 16px; font-size: 13px; color: #888; }
+    .toolbar {
+      display: flex; gap: 12px; justify-content: center; align-items: center;
+      margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .toolbar label { font-size: 12px; color: #aaa; }
+    .toolbar input[type=number] {
+      width: 65px; padding: 4px 6px; border: 1px solid #444; border-radius: 4px;
+      background: #0f3460; color: #fff; font-size: 14px; text-align: center;
+    }
+    .btn {
+      padding: 6px 16px; border: none; border-radius: 4px; cursor: pointer;
+      font-weight: bold; font-size: 13px; transition: all 0.2s;
+    }
+    .btn-primary { background: #00d4ff; color: #111; }
+    .btn-success { background: #22c55e; color: #111; }
+    .btn-warn { background: #fbbf24; color: #111; }
+    .btn:hover { transform: scale(1.05); }
+    .grid {
+      display: grid; grid-template-columns: repeat(6, 1fr);
+      gap: 10px; max-width: 960px; margin: 0 auto;
+    }
+    .frame {
+      background: #16213e; border-radius: 8px; padding: 8px;
+      text-align: center; border: 2px solid #222;
+      transition: all 0.2s;
+    }
+    .frame:hover { border-color: #00d4ff; }
+    .frame .sprite-box {
+      width: 90px; height: 90px; margin: 0 auto 6px;
+      background-repeat: no-repeat;
+    }
+    .frame .lbl { font-size: 10px; color: #666; margin-bottom: 2px; }
+    .frame .sprite-angle { color: #fbbf24; font-weight: bold; font-size: 13px; }
+    .frame .traccar-input {
+      width: 60px; padding: 3px 4px; border: 1px solid #444; border-radius: 4px;
+      background: #0f3460; color: #00d4ff; font-size: 14px; text-align: center;
+      font-weight: bold;
+    }
+    .frame .traccar-input:focus { border-color: #00d4ff; outline: none; }
+    .frame .direction { color: #888; font-size: 11px; margin-top: 2px; }
+    .frame .frame-idx { color: #555; font-size: 9px; }
+    .output-box {
+      max-width: 960px; margin: 16px auto; padding: 12px;
+      background: #16213e; border-radius: 8px; display: none;
+    }
+    .output-box.visible { display: block; }
+    .output-box textarea {
+      width: 100%; height: 80px; background: #0f3460; color: #00d4ff;
+      border: 1px solid #444; border-radius: 4px; padding: 8px; font-family: monospace;
+      font-size: 12px; resize: vertical;
+    }
+    .output-box .help { font-size: 11px; color: #888; margin-top: 6px; }
+    .compass-ref {
+      text-align: center; margin: 14px auto; padding: 10px;
+      background: #16213e; border-radius: 8px; max-width: 600px;
+      font-size: 12px; color: #aaa; line-height: 1.8;
+    }
+    .compass-ref span { color: #00d4ff; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>🚗 Calibración de Sprite del Carro</h1>
+  <p class="subtitle">Edita el ángulo <span style="color:#00d4ff">Traccar (course)</span> de cada frame hasta que coincida con la dirección del carro</p>
+
+  <div class="compass-ref">
+    <strong>Referencia Traccar (course):</strong>
+    <span>0°</span>=Norte ↑ &nbsp;|&nbsp;
+    <span>45°</span>=NE ↗ &nbsp;|&nbsp;
+    <span>90°</span>=Este → &nbsp;|&nbsp;
+    <span>135°</span>=SE ↘ &nbsp;|&nbsp;
+    <span>180°</span>=Sur ↓ &nbsp;|&nbsp;
+    <span>225°</span>=SO ↙ &nbsp;|&nbsp;
+    <span>270°</span>=Oeste ← &nbsp;|&nbsp;
+    <span>315°</span>=NO ↖
+  </div>
+
+  <div class="toolbar">
+    <div>
+      <label>Start Angle rápido:</label>
+      <input type="number" id="startAngle" value="270" min="0" max="359" step="15">
+      <button class="btn btn-primary" onclick="applyStartAngle()">Auto-fill</button>
+    </div>
+    <button class="btn btn-success" onclick="exportMapping()">📋 Copiar Mapping</button>
+    <button class="btn btn-warn" onclick="resetAll()">🔄 Reset</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="output-box" id="outputBox">
+    <textarea id="outputText" readonly></textarea>
+    <div class="help">👆 Copia esto y pégalo en el chat</div>
+  </div>
+
+  <script>
+    const COLS = 6, ROWS = 4, TOTAL = 24;
+    const SPRITE_URL = 'logo/car-sprite.png';
+
+    // Current mapping: frameIndex -> traccarAngle
+    let mapping = {};
+
+    function getDirection(a) {
+      a = ((a % 360) + 360) % 360;
+      const d = ['↑N','↑NNE','↗NNE','↗NE','↗ENE','→ENE','→E','→ESE','↘ESE','↘SE','↘SSE','↓SSE','↓S','↓SSO','↙SSO','↙SO','↙OSO','←OSO','←O','←ONO','↖ONO','↖NO','↖NNO','↑NNO'];
+      return d[Math.round(a / 15) % 24];
+    }
+
+    function render() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+      for (let f = 0; f < TOTAL; f++) {
+        const spriteAngle = f * 15;
+        const col = f % COLS;
+        const row = Math.floor(f / COLS);
+        const bgX = COLS > 1 ? `${(col/(COLS-1))*100}%` : '0%';
+        const bgY = ROWS > 1 ? `${(row/(ROWS-1))*100}%` : '0%';
+        const traccar = mapping[f] !== undefined ? mapping[f] : '';
+
+        const div = document.createElement('div');
+        div.className = 'frame';
+        div.innerHTML = `
+          <div class="sprite-box" style="
+            background-image: url('${SPRITE_URL}');
+            background-size: ${COLS*100}% ${ROWS*100}%;
+            background-position: ${bgX} ${bgY};
+          "></div>
+          <div class="lbl">Sprite</div>
+          <div class="sprite-angle">${spriteAngle}°</div>
+          <div class="lbl" style="margin-top:4px">Traccar course →</div>
+          <input type="number" class="traccar-input" id="input_${f}"
+                 value="${traccar}" placeholder="?" min="0" max="359" step="15"
+                 onchange="onInputChange(${f}, this.value)">
+          <div class="direction" id="dir_${f}">${traccar !== '' ? getDirection(traccar) : '—'}</div>
+          <div class="frame-idx">Frame ${f} [${row},${col}]</div>
+        `;
+        grid.appendChild(div);
+      }
+    }
+
+    function onInputChange(frame, val) {
+      const v = parseInt(val);
+      if (!isNaN(v)) {
+        mapping[frame] = v;
+        document.getElementById(`dir_${frame}`).textContent = getDirection(v);
+      } else {
+        delete mapping[frame];
+        document.getElementById(`dir_${frame}`).textContent = '—';
+      }
+    }
+
+    function applyStartAngle() {
+      const start = parseInt(document.getElementById('startAngle').value) || 270;
+      for (let f = 0; f < TOTAL; f++) {
+        mapping[f] = (start + f * 15) % 360;
+      }
+      render();
+    }
+
+    function resetAll() {
+      mapping = {};
+      render();
+    }
+
+    function exportMapping() {
+      const lines = [];
+      for (let f = 0; f < TOTAL; f++) {
+        const spriteAngle = f * 15;
+        const traccar = mapping[f] !== undefined ? mapping[f] : '?';
+        lines.push(`Frame ${f} (sprite ${spriteAngle}°) → Traccar ${traccar}°`);
+      }
+      const text = lines.join('\n');
+      const box = document.getElementById('outputBox');
+      const textarea = document.getElementById('outputText');
+      textarea.value = text;
+      box.classList.add('visible');
+      textarea.select();
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+
+    // Initialize with calibrated values
+    mapping = {
+      0: 240, 1: 225, 2: 210, 3: 195, 4: 150, 5: 135,
+      6: 120, 7: 115, 8: 105, 9: 75, 10: 70, 11: 65,
+      12: 60, 13: 45, 14: 30, 15: 0, 16: 340, 17: 330,
+      18: 315, 19: 300, 20: 285, 21: 270, 22: 255, 23: 240
+    };
+    render();
+  </script>
+</body>
+</html>

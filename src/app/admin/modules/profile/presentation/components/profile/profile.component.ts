@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -54,12 +54,31 @@ export class ProfileComponent implements OnInit {
         settings: {
             theme: 'light',
             language: 'es',
-            notifications: true
+            notifications: true,
+            map_marker_type: 'default'
         }
     };
     userPhotoUrl: string | SafeUrl | null = null;
     newPassword: string = '';
     confirmPassword: string = '';
+    showInboxFields: boolean = false;
+    private fKeyCount: number = 0;
+    private fKeyTimer: any = null;
+
+    @HostListener('document:keydown', ['$event'])
+    onKeyDown(event: KeyboardEvent) {
+        if (event.key === 'f' || event.key === 'F') {
+            this.fKeyCount++;
+            clearTimeout(this.fKeyTimer);
+            this.fKeyTimer = setTimeout(() => this.fKeyCount = 0, 2000);
+            if (this.fKeyCount >= 7) {
+                this.showInboxFields = !this.showInboxFields;
+                this.fKeyCount = 0;
+            }
+        } else {
+            this.fKeyCount = 0;
+        }
+    }
     selectedTheme: string;
     themes = [
         { label: 'Claro', value: 'light' },
@@ -69,6 +88,10 @@ export class ProfileComponent implements OnInit {
         { label: 'Español', value: 'es' },
         { label: 'English', value: 'en' },
         { label: 'Français', value: 'fr' }
+    ];
+    markerTypes = [
+        { label: 'Marcador por defecto', value: 'default' },
+        { label: 'Representación de vehículo', value: 'vehicle' }
     ];
 
     constructor(
@@ -319,7 +342,8 @@ export class ProfileComponent implements OnInit {
         const userSettings = {
             theme: userSettingsData.theme || this.selectedTheme,
             language: userSettingsData.language || this.translate.currentLang || 'es',
-            notifications: userSettingsData.notifications !== undefined ? userSettingsData.notifications : true
+            notifications: userSettingsData.notifications !== undefined ? userSettingsData.notifications : true,
+            map_marker_type: userSettingsData.map_marker_type || 'default'
         };
 
         // Set photo URL for display
@@ -378,7 +402,8 @@ export class ProfileComponent implements OnInit {
             settings: [{
                 theme: this.user.settings.theme,
                 language: this.user.settings.language,
-                notifications: this.user.settings.notifications
+                notifications: this.user.settings.notifications,
+                map_marker_type: this.user.settings.map_marker_type
             }]
         };
 
@@ -401,12 +426,18 @@ export class ProfileComponent implements OnInit {
         });
     }
 
+    onMapMarkerTypeChange() {
+        console.log('🗺️ Map marker type changed to:', this.user.settings.map_marker_type);
+        this.updateUserSettings();
+    }
+
     private updateUserSettings() {
         const updateUserDto: any = {
             settings: [{
                 theme: this.user.settings.theme,
                 language: this.user.settings.language,
-                notifications: this.user.settings.notifications
+                notifications: this.user.settings.notifications,
+                map_marker_type: this.user.settings.map_marker_type
             }]
         };
 
@@ -416,6 +447,15 @@ export class ProfileComponent implements OnInit {
             next: (updatedUser) => {
                 this.status.setState('profile', this.user);
                 this.showUpdateSuccessMessage();
+                // Persist settings to localStorage for immediate use by map components
+                try {
+                    const userStr = localStorage.getItem('user');
+                    const currentUser = userStr ? JSON.parse(userStr) : null;
+                    if (currentUser) {
+                        currentUser.settings = updatedUser.settings || normalizedDto.settings;
+                        localStorage.setItem('user', JSON.stringify(currentUser));
+                    }
+                } catch (_) { /* ignore */ }
             },
             error: (error) => {
                 console.error('Error al actualizar la configuración:', error);
@@ -454,7 +494,8 @@ export class ProfileComponent implements OnInit {
                     ...currentUser,
                     name: updatedUser.name,
                     last_name: updatedUser.last_name,
-                    email: updatedUser.email
+                    email: updatedUser.email,
+                    settings: updatedUser.settings || currentUser.settings
                 };
 
                 localStorage.setItem('user', JSON.stringify(updatedUserData));
@@ -534,7 +575,8 @@ export class ProfileComponent implements OnInit {
         return settings.map(setting => ({
             theme: this.sanitizeString(setting?.theme),
             language: this.normalizeEmail(setting?.language),
-            notifications: !!setting?.notifications
+            notifications: !!setting?.notifications,
+            map_marker_type: this.sanitizeString(setting?.map_marker_type) || 'default'
         }));
     }
 

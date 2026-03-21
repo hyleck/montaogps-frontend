@@ -209,16 +209,27 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
             if (this.marker) {
                 this.marker.setPosition(newPosition);
 
-                // Actualizar ícono según estado
+                // Actualizar ícono según estado y curso
                 const status = this.target.traccarInfo?.status || 'offline';
                 const isOffline = status !== 'online';
-                const markerIconUrl = isOffline ? this.getMarkerIconUrlOffline() : this.getMarkerIconUrl();
+                const course = updatedTarget.traccarInfo?.['geolocation']?.['course'] || 0;
+                const markerType = MapUtils.getMapMarkerType();
 
-                this.marker.setIcon({
-                    url: markerIconUrl,
-                    scaledSize: new google.maps.Size(36, 36),
-                    anchor: new google.maps.Point(18, 35)
-                });
+                if (markerType === 'vehicle') {
+                    const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
+                    this.marker.setIcon({
+                        url: spriteIconUrl,
+                        scaledSize: new google.maps.Size(48, 68),
+                        anchor: new google.maps.Point(24, 50)
+                    });
+                } else {
+                    const iconUrl = isOffline ? this.getMarkerIconUrlOffline() : this.getMarkerIconUrl();
+                    this.marker.setIcon({
+                        url: iconUrl,
+                        scaledSize: new google.maps.Size(32, 32),
+                        anchor: new google.maps.Point(16, 16)
+                    });
+                }
                 this.marker.setOpacity(isOffline ? 0.65 : 1);
             }
 
@@ -244,7 +255,7 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
         this.createCustomPopup(lat, lng, status);
     }
 
-    private displayTargetOnMap(): void {
+    private async displayTargetOnMap(): Promise<void> {
         if (!this.target || !this.map) return;
 
         const lat = this.target.traccarInfo?.geolocation?.latitude || this.target.traccarInfo?.latitude;
@@ -263,21 +274,33 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
         // Obtener estado del target
         const status = this.target.traccarInfo?.status || 'offline';
         const isOffline = status !== 'online';
+        const course = this.target.traccarInfo?.geolocation?.course || 0;
+        const markerType = MapUtils.getMapMarkerType();
 
-        // Obtener URL del ícono (igual que en maps component)
-        const markerIconUrl = isOffline ? this.getMarkerIconUrlOffline() : this.getMarkerIconUrl();
+        let iconConfig: any;
+        if (markerType === 'vehicle') {
+            const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
+            iconConfig = {
+                url: spriteIconUrl,
+                scaledSize: new google.maps.Size(48, 68),
+                anchor: new google.maps.Point(24, 50)
+            };
+        } else {
+            const iconUrl = isOffline ? this.getMarkerIconUrlOffline() : this.getMarkerIconUrl();
+            iconConfig = {
+                url: iconUrl,
+                scaledSize: new google.maps.Size(32, 32),
+                anchor: new google.maps.Point(16, 16)
+            };
+        }
 
-        // Crear marcador con ícono PNG (igual que management)
+        // Crear marcador
         const position = new google.maps.LatLng(lat, lng);
         this.marker = new google.maps.Marker({
             position: position,
             map: this.map,
             title: this.target.name,
-            icon: {
-                url: markerIconUrl,
-                scaledSize: new google.maps.Size(36, 36),
-                anchor: new google.maps.Point(18, 35)
-            },
+            icon: iconConfig,
             opacity: isOffline ? 0.65 : 1
         });
 

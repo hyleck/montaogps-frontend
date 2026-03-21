@@ -66,6 +66,7 @@ export interface UserSettings {
   affiliation_type: string;
   profile_type: string;
   company_type?: string;
+  map_marker_type?: string;
 }
 
 export interface ExtendedUser extends Omit<User, 'settings'> {
@@ -109,7 +110,8 @@ export function convertToExtendedUser(user: User): ExtendedUser {
       notifications: user.settings?.[0]?.notifications ?? true,
       affiliation_type: (user as any).affiliation_type_id || 'cliente',
       profile_type: (user as any).profile_type_id || 'personal',
-      company_type: (user as any).company_type_id
+      company_type: (user as any).company_type_id,
+      map_marker_type: user.settings?.[0]?.map_marker_type || 'default'
     }
   };
 } 
