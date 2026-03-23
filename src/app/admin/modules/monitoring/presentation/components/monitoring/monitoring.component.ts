@@ -115,6 +115,22 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   private monitoringRequestStartTimestamp: number | null = null;
   cancellingStatus: boolean = false;
 
+  // Renewed devices filter state
+  _renewedDeviceIds: Map<string, string> = new Map();
+  loadingRenewals: boolean = false;
+  private _includeRenewed: boolean = false;
+
+  get includeRenewed(): boolean {
+    return this._includeRenewed;
+  }
+
+  set includeRenewed(value: boolean) {
+    if (this._includeRenewed !== value) {
+      this._includeRenewed = value;
+      this.fetchRenewalDeviceIds();
+    }
+  }
+
 
 
   get selectedStatusFilter(): string {
@@ -398,7 +414,34 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   set selectedExpirationFilter(value: string) {
     if (this._selectedExpirationFilter !== value) {
       this._selectedExpirationFilter = value;
+      this._includeRenewed = false;
+      this._renewedDeviceIds = new Map();
     }
+  }
+
+  private fetchRenewalDeviceIds(): void {
+    const from = this._expirationFromDate;
+    const to = this._expirationToDate;
+    if (!this._includeRenewed || !from || !to || this._selectedExpirationFilter !== 'expired') {
+      this._renewedDeviceIds = new Map();
+      return;
+    }
+
+    this.loadingRenewals = true;
+    const fromStr = this.formatDateForInput(from);
+    const toStr = this.formatDateForInput(to);
+
+    this.monitoringService.getRenewalDeviceIds(fromStr, toStr).subscribe({
+      next: (items) => {
+        this._renewedDeviceIds = new Map(items.map(i => [i.deviceId, i.renewalDate]));
+        this.loadingRenewals = false;
+      },
+      error: (error) => {
+        console.error('Error fetching renewal device IDs:', error);
+        this._renewedDeviceIds = new Map();
+        this.loadingRenewals = false;
+      }
+    });
   }
 
   get selectedAffiliationFilter(): string {
@@ -481,6 +524,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   set expirationFromDate(value: string) {
     this._expirationFromDate = this.parseDateInput(value);
+    if (this._includeRenewed) this.fetchRenewalDeviceIds();
   }
 
   get expirationToDate(): string {
@@ -489,6 +533,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   set expirationToDate(value: string) {
     this._expirationToDate = this.parseDateInput(value);
+    if (this._includeRenewed) this.fetchRenewalDeviceIds();
   }
 
   get activationFromDate(): string {
@@ -1462,7 +1507,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return this.monitoringResult.data
       .map(userData => {
         // Filter devices based on selected filters
-        let filteredDevices = userData.devices;
+        let filteredDevices = (userData.devices || []).filter(device => !device.canceled);
 
         const userRoute = Array.isArray(userData.route) ? userData.route : [];
         const targetRouteEntry = userRoute.length > 0 ? userRoute[userRoute.length - 1] : null;
@@ -1556,12 +1601,15 @@ export class MonitoringComponent implements OnInit, OnDestroy {
             case 'expired':
               filteredDevices = filteredDevices.filter(device => {
                 const expirationDate = device.expiration_date;
-                if (!expirationDate) {
-                  return false;
-                }
                 if (hasDateRange) {
-                  return this.isDateInRange(expirationDate, this._expirationFromDate, this._expirationToDate);
+                  if (this._includeRenewed && this._renewedDeviceIds.has(device._id)) {
+                    return true;
+                  }
+                  if (!expirationDate) return false;
+                  // When date range is set, show expired devices within the range
+                  return this.isExpired(expirationDate) && this.isDateInRange(expirationDate, this._expirationFromDate, this._expirationToDate);
                 }
+                if (!expirationDate) return false;
                 return this.isExpired(expirationDate);
               });
               break;
@@ -1572,7 +1620,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
                   return false;
                 }
                 if (hasDateRange) {
-                  return !this.isDateInRange(expirationDate, this._expirationFromDate, this._expirationToDate);
+                  // When date range is set, show valid (non-expired) devices whose expiration falls within the range
+                  return !this.isExpired(expirationDate) && this.isDateInRange(expirationDate, this._expirationFromDate, this._expirationToDate);
                 }
                 return !this.isExpired(expirationDate);
               });
@@ -2202,6 +2251,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
 
     const includeMileage = this.monitoringType === 'mileage';
+    const includeRenewalDate = this.selectedExpirationFilter === 'expired' && this.includeRenewed;
 
     // Create a new workbook
     const workbook = new ExcelJS.Workbook();
@@ -2221,14 +2271,30 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       { key: 'col10', width: 15 } // Número SIM
     ];
 
+    let currentColCount = 10;
+    let mileageColKey: string | null = null;
+    let renewalColKey: string | null = null;
+
     if (includeMileage) {
-      cols.push({ key: 'col11', width: 24 });
+      currentColCount++;
+      mileageColKey = `col${currentColCount}`;
+      cols.push({ key: mileageColKey, width: 24 });
+    }
+
+    if (includeRenewalDate) {
+      currentColCount++;
+      renewalColKey = `col${currentColCount}`;
+      cols.push({ key: renewalColKey, width: 20 });
     }
 
     worksheet.columns = cols;
 
-    const lastColumnLetter = includeMileage ? 'K' : 'J';
-    const lastColIndex = includeMileage ? 11 : 10;
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lastColumnLetter = alphabet[currentColCount]; // e.g. 10 -> 'K', 11 -> 'L', 12 -> 'M' (because array is 0-indexed, so index 10 is the 11th letter 'K'. Wait, 0 is 'A', 1 is 'B'. If currentColCount is 10, alphabet[10] is 'K'. But Excel cols are 1-indexed. Wait, let's fix this.)
+    // If currentColCount = 10 (J), then we want alphabet[9] -> 'J'
+    // Let's do:
+    const excelLastColumnLetter = alphabet[currentColCount - 1];
+    const lastColIndex = currentColCount;
 
     let currentRow = 1; // Start from row 1
 
@@ -2295,7 +2361,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col2: `Usuario: ${userName}`,
         col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
       };
-      if (includeMileage) titleRowData.col11 = '';
+      if (mileageColKey) titleRowData[mileageColKey] = '';
+      if (renewalColKey) titleRowData[renewalColKey] = '';
 
       const titleRow = worksheet.addRow(titleRowData);
 
@@ -2313,7 +2380,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       titleRow.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
 
       // Merge cells for title
-      worksheet.mergeCells(`B${currentRow}:${lastColumnLetter}${currentRow}`);
+      worksheet.mergeCells(`B${currentRow}:${excelLastColumnLetter}${currentRow}`);
       currentRow++;
 
       // Add hierarchy info
@@ -2322,7 +2389,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col2: `Jerarquía: ${userHierarchy}`,
         col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
       };
-      if (includeMileage) hierarchyRowData.col11 = '';
+      if (mileageColKey) hierarchyRowData[mileageColKey] = '';
+      if (renewalColKey) hierarchyRowData[renewalColKey] = '';
       const hierarchyRow = worksheet.addRow(hierarchyRowData);
 
       hierarchyRow.getCell(2).font = {
@@ -2330,7 +2398,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         color: { argb: 'FF666666' },
         size: 11
       };
-      worksheet.mergeCells(`B${currentRow}:${lastColumnLetter}${currentRow}`);
+      worksheet.mergeCells(`B${currentRow}:${excelLastColumnLetter}${currentRow}`);
       currentRow++;
 
       // Add device count
@@ -2339,7 +2407,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col2: `Total de dispositivos: ${userData.devices.length}`,
         col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
       };
-      if (includeMileage) deviceCountRowData.col11 = '';
+      if (mileageColKey) deviceCountRowData[mileageColKey] = '';
+      if (renewalColKey) deviceCountRowData[renewalColKey] = '';
       const deviceCountRow = worksheet.addRow(deviceCountRowData);
 
       deviceCountRow.getCell(2).font = {
@@ -2347,12 +2416,13 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         color: { argb: 'FF333333' },
         size: 11
       };
-      worksheet.mergeCells(`B${currentRow}:${lastColumnLetter}${currentRow}`);
+      worksheet.mergeCells(`B${currentRow}:${excelLastColumnLetter}${currentRow}`);
       currentRow++;
 
       // Add empty row for spacing
       const spacerRowData: any = { col1: '', col2: '', col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: '' };
-      if (includeMileage) spacerRowData.col11 = '';
+      if (mileageColKey) spacerRowData[mileageColKey] = '';
+      if (renewalColKey) spacerRowData[renewalColKey] = '';
       worksheet.addRow(spacerRowData);
       currentRow++;
 
@@ -2369,7 +2439,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col9: 'Fecha Expiración',
         col10: 'Número SIM'
       };
-      if (includeMileage) headerRowData.col11 = 'Distancia';
+      if (mileageColKey) headerRowData[mileageColKey] = 'Distancia';
+      if (renewalColKey) headerRowData[renewalColKey] = 'Fecha Renovación';
 
       const headerRow = worksheet.addRow(headerRowData);
 
@@ -2412,8 +2483,13 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           col10: device.sim_card_number || '',
         };
 
-        if (includeMileage) {
-          dataRowData.col11 = `${this.formatDeviceDistance(device)} ${this.formatDistanceRange(device) ? '(' + this.formatDistanceRange(device) + ')' : ''}`;
+        if (mileageColKey) {
+          dataRowData[mileageColKey] = `${this.formatDeviceDistance(device)} ${this.formatDistanceRange(device) ? '(' + this.formatDistanceRange(device) + ')' : ''}`;
+        }
+        
+        if (renewalColKey) {
+          const renDate = this._renewedDeviceIds.get(device._id);
+          dataRowData[renewalColKey] = renDate ? this.formatExpirationDate(renDate) : '-';
         }
 
         const dataRow = worksheet.addRow(dataRowData);

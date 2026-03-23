@@ -529,6 +529,17 @@
             <input type="date" [(ngModel)]="expirationToDate" class="date-input"
               [placeholder]="'MONITORING.FILTERS_EXPIRATION_TO' | translate">
           </div>
+
+          <!-- Checkbox to include renewed devices, only when expired and date range is set -->
+          <div class="field-checkbox" *ngIf="selectedExpirationFilter === 'expired' && expirationFromDate && expirationToDate" style="margin-top: 10px; display: flex; align-items: center;">
+            <p-checkbox [(ngModel)]="includeRenewed" [binary]="true" inputId="includeRenewed"></p-checkbox>
+            <label for="includeRenewed" style="margin-left: 8px; font-size: 0.9rem; margin-bottom: 0;">Incluir renovados</label>
+          </div>
+
+          <div class="field" *ngIf="loadingRenewals" style="text-align: center; padding: 8px;">
+            <i class="pi pi-spin pi-spinner" style="margin-right: 6px;"></i>
+            <span style="font-size: 0.85rem; opacity: 0.7;">Buscando renovaciones...</span>
+          </div>
         </div>
       </div>
     </div>
@@ -668,6 +679,10 @@
                     [class.expiring-soon]="isExpiringSoon(device.expiration_date)"
                     [class.valid]="isValid(device.expiration_date)">
                     {{ formatExpirationDate(device.expiration_date) }}
+                  </span>
+                  <span *ngIf="selectedExpirationFilter === 'expired' && includeRenewed && _renewedDeviceIds.has(device._id)"
+                    style="display: inline-block; margin-left: 6px; background: #22c55e; color: #fff; font-size: 0.7rem; font-weight: 600; padding: 2px 7px; border-radius: 10px; vertical-align: middle;">
+                    Renovado {{ formatExpirationDate(_renewedDeviceIds.get(device._id) || '') }}
                   </span>
                 </td>
                 <td>

@@ -155,4 +155,10 @@ export class MonitoringService {
   cancelMonitoringStatus(requestId: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/status/${requestId}`);
   }
+
+  getRenewalDeviceIds(from: string, to: string): Observable<{ deviceId: string; renewalDate: string }[]> {
+    return this.http.get<{ deviceId: string; renewalDate: string }[]>(`${environment.apiUrl}/process/renewals`, {
+      params: { from, to }
+    });
+  }
 }
