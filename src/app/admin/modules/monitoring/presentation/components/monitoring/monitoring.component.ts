@@ -608,8 +608,15 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
 
     if (typeof value === 'string') {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        const [yearStr, monthStr, dayStr] = value.split('-');
+      // Extract YYYY-MM-DD from ISO strings (e.g. "2025-03-15T00:00:00.000Z")
+      // to avoid timezone shift when parsing UTC dates in local time
+      let datePart = value;
+      if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+        datePart = value.substring(0, 10);
+      }
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+        const [yearStr, monthStr, dayStr] = datePart.split('-');
         const year = Number(yearStr);
         const month = Number(monthStr);
         const day = Number(dayStr);
@@ -1606,8 +1613,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
                     return true;
                   }
                   if (!expirationDate) return false;
-                  // When date range is set, show expired devices within the range
-                  return this.isExpired(expirationDate) && this.isDateInRange(expirationDate, this._expirationFromDate, this._expirationToDate);
+                  // When date range is set, show all devices whose expiration_date falls within the range
+                  return this.isDateInRange(expirationDate, this._expirationFromDate, this._expirationToDate);
                 }
                 if (!expirationDate) return false;
                 return this.isExpired(expirationDate);
@@ -1620,8 +1627,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
                   return false;
                 }
                 if (hasDateRange) {
-                  // When date range is set, show valid (non-expired) devices whose expiration falls within the range
-                  return !this.isExpired(expirationDate) && this.isDateInRange(expirationDate, this._expirationFromDate, this._expirationToDate);
+                  // When date range is set, show all devices whose expiration_date falls within the range
+                  return this.isDateInRange(expirationDate, this._expirationFromDate, this._expirationToDate);
                 }
                 return !this.isExpired(expirationDate);
               });
