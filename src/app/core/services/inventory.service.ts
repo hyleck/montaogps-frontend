@@ -80,6 +80,7 @@ export class InventoryService {
   private readonly conducesUrl = `${environment.apiUrl}/inventory/conduces`;
 
   public lowStockCount$ = new BehaviorSubject<number>(0);
+  public warehouses$ = new BehaviorSubject<Warehouse[]>([]);
 
   constructor(private http: HttpClient) { }
 
@@ -161,6 +162,7 @@ export class InventoryService {
         if (warehouses) {
           const count = warehouses.filter(w => (w.stock || 0) < (w.min_quantity || 0)).length;
           this.lowStockCount$.next(count);
+          this.warehouses$.next(warehouses);
         }
       })
     );

@@ -190,10 +190,9 @@
                                     <div class="target-form__column">
                                         <!-- Select de Técnico -->
                                         <div class="target-form__field">
-                                            <label for="technician">{{ translate('management.targetForm.technician') }}
-                                                <span class="required-label">(Requerido)</span></label>
+                                            <label for="technician">{{ translate('management.targetForm.technician') }}</label>
                                             <select [(ngModel)]="target.mechanic_id" name="mechanic_id" id="technician"
-                                                required [disabled]="isEditMode">
+                                                [disabled]="isEditMode">
                                                 <option value="" [selected]="!target.mechanic_id">{{
                                                     translate('management.targetForm.selectTechnician') }}</option>
                                                 <option *ngFor="let tech of availableTechnicians" [value]="tech.value">

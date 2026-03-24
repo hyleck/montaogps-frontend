@@ -494,39 +494,60 @@ export class InventoryComponent implements OnInit {
   }
 
   loadWarehouses(): void {
-    this.loadingWarehouses = true;
-    this.inventoryService.getWarehouses().subscribe({
-      next: (data) => {
-        this.warehouses = data;
-        this.loadingWarehouses = false;
+    // Use cached data from sidebar immediately if available
+    const cached = this.inventoryService.warehouses$.getValue();
+    if (cached && cached.length > 0) {
+      this.warehouses = cached;
+      this.loadingWarehouses = false;
+      this.updateWarehouseStats(cached, false); // Don't show toasts for cached data
 
-        // Calculate and notify low stock
-        if (this.warehouses) {
-          const lowStockWarehouses = this.warehouses.filter(w => (w.stock || 0) < (w.min_quantity || 0));
-          this.lowStockCount = lowStockWarehouses.length;
-
-          // Show toast for each low stock warehouse
-          lowStockWarehouses.forEach(w => {
-            this.messageService.add({
-              severity: 'warn',
-              summary: 'Stock Bajo detectado',
-              detail: `El almacén "${w.name}" tiene ${w.stock || 0} dispositivos (Mínimo: ${w.min_quantity || 0})`,
-              life: 5000
-            });
+      // Refresh silently in background
+      this.inventoryService.getWarehouses().subscribe({
+        next: (data) => {
+          this.warehouses = data;
+          this.updateWarehouseStats(data, false);
+        },
+        error: () => { /* silent background refresh */ }
+      });
+    } else {
+      // No cached data — load with spinner
+      this.loadingWarehouses = true;
+      this.inventoryService.getWarehouses().subscribe({
+        next: (data) => {
+          this.warehouses = data;
+          this.loadingWarehouses = false;
+          this.updateWarehouseStats(data, true);
+        },
+        error: () => {
+          this.loadingWarehouses = false;
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Error al cargar almacenes'
           });
-        } else {
-          this.lowStockCount = 0;
         }
-      },
-      error: () => {
-        this.loadingWarehouses = false;
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Error al cargar almacenes'
+      });
+    }
+  }
+
+  private updateWarehouseStats(warehouses: any[], showToasts: boolean): void {
+    if (warehouses) {
+      const lowStockWarehouses = warehouses.filter(w => (w.stock || 0) < (w.min_quantity || 0));
+      this.lowStockCount = lowStockWarehouses.length;
+
+      if (showToasts) {
+        lowStockWarehouses.forEach(w => {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Stock Bajo detectado',
+            detail: `El almacén "${w.name}" tiene ${w.stock || 0} dispositivos (Mínimo: ${w.min_quantity || 0})`,
+            life: 5000
+          });
         });
       }
-    });
+    } else {
+      this.lowStockCount = 0;
+    }
   }
 
   openWarehouses(): void {
@@ -799,6 +820,23 @@ export class InventoryComponent implements OnInit {
       });
       return;
     }
+
+    // If device is in activation mode (registered without mechanic), navigate to management
+    if ((device as any).activation_mode && (device as any).device_parent_id) {
+      const imei = device.IMEI || device.imei || '';
+      const parentId = (device as any).device_parent_id;
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Modo activación',
+        detail: 'Navegando al dispositivo en management...',
+        life: 2000,
+      });
+      this.router.navigate(['/admin/management/t', parentId], {
+        queryParams: { search: imei }
+      });
+      return;
+    }
+
     this.deviceToInstall = device;
     this.installationEmail = '';
     this.installationSimType = '';
@@ -836,7 +874,7 @@ export class InventoryComponent implements OnInit {
           model: '6945e987f8034f4089c2739e',
           plan: this.installationPlanId || '68e23db7015d99b2bd1b25c2',
           expiration_date: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString(),
-          technician_id: '68c68dba49db10f3cb6e3f8d',
+          technician_id: '',
           installation_details: 'EN_ESPERA',
           plate_number: `EN_ESPERA-${this.deviceToInstall!.IMEI || this.deviceToInstall!.imei || ''}`,
           sim_company: this.installationSimType || '',

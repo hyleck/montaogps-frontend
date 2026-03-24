@@ -521,6 +521,22 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // If device is in activation mode (registered without mechanic), navigate to management
+    if ((device as any).activation_mode && (device as any).device_parent_id) {
+      const imei = device.IMEI || device.imei || '';
+      const parentId = (device as any).device_parent_id;
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Modo activación',
+        detail: 'Navegando al dispositivo en management...',
+        life: 2000,
+      });
+      this.router.navigate(['/admin/management/t', parentId], {
+        queryParams: { search: imei }
+      });
+      return;
+    }
+
     this.deviceToInstall = device;
     this.installationEmail = this.defaultInstallationEmail || '';
     this.installationSimType = '';
@@ -575,7 +591,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
           model: '6945e987f8034f4089c2739e',
           plan: this.installationPlanId || '68e23db7015d99b2bd1b25c2',
           expiration_date: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString(),
-          technician_id: '68c68dba49db10f3cb6e3f8d',
+          technician_id: '',
           installation_details: 'EN_ESPERA',
           plate_number: `EN_ESPERA-${this.deviceToInstall!.IMEI || this.deviceToInstall!.imei || ''}`,
           sim_company: this.installationSimType || '',

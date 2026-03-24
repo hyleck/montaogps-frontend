@@ -1437,7 +1437,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 return false;
             }
         } else if (this.activeTabIndex === 1) { // Tab de instalación
-            if (!this.target.device_imei || !this.target.sim_card_number || !this.target.mechanic_id) {
+            if (!this.target.device_imei || !this.target.sim_card_number) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate('management.targetForm.validationError'),
@@ -1468,15 +1468,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
         }
 
-        // Validación específica para el técnico (siempre requerido)
-        if (!this.target.mechanic_id) {
-            this.messageService.add({
-                severity: 'error',
-                summary: this.translate('management.targetForm.validationError'),
-                detail: this.translate('management.targetForm.technicianRequired')
-            });
-            return false;
-        }
+        // Mecánico es opcional - no se valida como requerido
 
         // Si estamos actualizando, validamos que tengamos un ID
         if (this.target._id === '') {
