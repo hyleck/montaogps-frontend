@@ -590,6 +590,13 @@
 
                 </div>
                 <div class="management__header-actions" style="display: flex; gap: 8px;">
+                    <button (click)="confirmMassCancelSelected()" class="button button--danger-flat"
+                        *ngIf="targetsSelected && targetsSelected.length > 0 && canDeleteDevices() && currentUserAffiliationTypeId === 'empleado'"
+                        title="Cancelar dispositivos seleccionados"
+                        style="background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; display: flex; align-items: center; justify-content: center; padding: 0 12px; border-radius: 4px;">
+                        <i class="pi pi-ban"></i>
+                        <span class="button-text" style="font-size: 0.8rem; font-weight: 500;">Cancelar ({{targetsSelected.length}})</span>
+                    </button>
                     <button (click)="toggleFilters()" class="button button--flat" title="Filtros">
                         <i class="pi pi-filter" style="color: orange;"></i>
                     </button>
@@ -709,7 +716,14 @@
                                 <ng-template pTemplate="header">
                                     <tr>
                                         <th style="width: 4rem" *ngIf="canUpdateDevices()">
-                                            <!-- <p-tableHeaderCheckbox /> Checkbox "seleccionar todos" ocultado -->
+                                            <button pButton type="button" 
+                                                    [icon]="selectingAllTargets ? 'pi pi-spin pi-spinner' : 'pi pi-check-square'"
+                                                    class="p-button-rounded p-button-text p-button-sm"
+                                                    (click)="selectAllTargets()"
+                                                    [disabled]="selectingAllTargets"
+                                                    pTooltip="Seleccionar todos (cargar faltantes)"
+                                                    tooltipPosition="right">
+                                            </button>
                                         </th>
                                         <th>
                                             Objetivo

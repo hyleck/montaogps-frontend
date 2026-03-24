@@ -199,7 +199,7 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
         }
     }
 
-    private updateMarkers(): void {
+    private async updateMarkers(): Promise<void> {
         // Limpiar marcadores existentes
         this.markers.forEach(marker => marker.setMap(null));
         this.markers = [];
@@ -209,40 +209,77 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
         const bounds = new google.maps.LatLngBounds();
         let hasValidTargets = false;
 
-        this.targets.forEach(target => {
-            const lat = target.traccarInfo?.geolocation?.latitude || target.traccarInfo?.latitude;
-            const lng = target.traccarInfo?.geolocation?.longitude || target.traccarInfo?.longitude;
+        const markerType = MapUtils.getMapMarkerType();
 
-            if (lat && lng) {
-                hasValidTargets = true;
-                const position = new google.maps.LatLng(lat, lng);
+        for (const target of this.targets) {
+            const geo = target?.traccarInfo?.geolocation || target?.traccarInfo?.lastLocation;
+            const historical = target?.historicalLocation;
+            
+            const rawLat = geo?.latitude ?? historical?.latitude ?? target?.latitude;
+            const rawLng = geo?.longitude ?? historical?.longitude ?? target?.longitude;
 
-                const marker = new google.maps.Marker({
-                    position: position,
-                    map: this.map,
-                    title: target.name,
-                    icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 7,
-                        fillColor: '#4285F4',
-                        fillOpacity: 1,
-                        strokeWeight: 2,
-                        strokeColor: '#FFFFFF',
+            if (rawLat !== undefined && rawLat !== null && rawLng !== undefined && rawLng !== null) {
+                const lat = typeof rawLat === 'string' ? parseFloat(rawLat) : rawLat;
+                const lng = typeof rawLng === 'string' ? parseFloat(rawLng) : rawLng;
+
+                if (!isNaN(lat) && !isNaN(lng)) {
+                    hasValidTargets = true;
+                    const position = new google.maps.LatLng(lat, lng);
+                    const course = geo?.course ?? 0;
+                    const isOffline = (target?.traccarStatus || '').toLowerCase() !== 'online';
+
+                    let iconConfig: any;
+
+                    if (this.provider === 'google') {
+                        if (markerType === 'vehicle') {
+                            const spriteIconUrl = await MapUtils.getCarSpriteIconUrl(course, 48);
+                            iconConfig = {
+                                url: spriteIconUrl,
+                                scaledSize: new google.maps.Size(48, 68),
+                                anchor: new google.maps.Point(24, 50)
+                            };
+                        } else {
+                            let fallbackIcon = '';
+                            if (typeof window !== 'undefined') {
+                                fallbackIcon = isOffline ? `${window.location.origin}/logo/favicon-gray.png` : `${window.location.origin}/logo/favicon.png`;
+                            }
+                            iconConfig = {
+                                url: fallbackIcon,
+                                scaledSize: new google.maps.Size(32, 32),
+                                anchor: new google.maps.Point(16, 16)
+                            };
+                        }
                     }
-                });
 
-                const infoWindow = new google.maps.InfoWindow({
-                    content: `<div style="padding: 5px; color: black;"><strong>${target.name}</strong></div>`
-                });
+                    const marker = new google.maps.Marker({
+                        position: position,
+                        map: this.map,
+                        title: target.name,
+                        icon: iconConfig,
+                        opacity: isOffline ? 0.65 : 1
+                    });
+                    
+                    const statusText = target.traccarStatus || 'desconocido';
+                    const isOnline = statusText.toLowerCase() === 'online';
+                    const infoWindow = new google.maps.InfoWindow({
+                        content: `
+                          <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
+                            <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${target.name || 'Target'}</div>
+                            <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
+                            <div>Estado: ${statusText}</div>
+                          </div>
+                        `
+                    });
 
-                marker.addListener('click', () => {
-                    infoWindow.open(this.map, marker);
-                });
+                    marker.addListener('click', () => {
+                        infoWindow.open(this.map, marker);
+                    });
 
-                this.markers.push(marker);
-                bounds.extend(position);
+                    this.markers.push(marker);
+                    bounds.extend(position);
+                }
             }
-        });
+        }
 
         if (hasValidTargets) {
             this.map.fitBounds(bounds);

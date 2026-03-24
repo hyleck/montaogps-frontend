@@ -91,6 +91,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   cancelDialogVisible: boolean = false;
   targetToCancel: any | null = null;
   isMassCancelMode: boolean = false;
+  massCancelSource: 'shortcuts' | 'selected' = 'shortcuts';
   cancelForm = {
     reason: '',
     description: ''
@@ -2129,7 +2130,121 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
   showNoTargetMessage = false;
 
-  // Método para cargar más targets (scroll infinito)
+  selectingAllTargets = false;
+
+  get areAllTargetsSelected(): boolean {
+    const selectableTargets = this.targetsList.filter(t => !t.isShared);
+    return selectableTargets.length > 0 && this.targetsSelected.length === selectableTargets.length && !this.hasMoreTargets;
+  }
+
+  async selectAllTargets() {
+    if (!this.canUpdateDevices() || !this.selectedUser) return;
+    
+    // Verificar si ya están todos seleccionados (de los que se pueden seleccionar)
+    if (this.areAllTargetsSelected) {
+      // Si ya están todos seleccionados y no hay más por cargar, quitamos la selección
+      this.targetsSelected = [];
+      return;
+    }
+
+    const selectableTargets = this.targetsList.filter(t => !t.isShared);
+
+    // Si ya no hay más targets por cargar, o si ya están todos cargados localmente
+    if (!this.hasMoreTargets) {
+      this.targetsSelected = selectableTargets;
+      return;
+    }
+
+    this.selectingAllTargets = true;
+    try {
+      console.log('[SELECT ALL] 🚀 Cargando TODOS los targets faltantes para seleccionar...');
+      const parentId = this.managementService.getCurrentUserId();
+      const userEmail = this.selectedUser.email;
+      const LIMIT = 9999; 
+
+      let targetsPromise;
+      if (this.isSearchingTargets && this.searchTargetsTerm.trim() !== '') {
+        targetsPromise = this.targetsService.searchTargets(
+          this.searchTargetsTerm,
+          parentId,
+          0,
+          LIMIT,
+          this.filterStatus,
+          this.filterTag || undefined
+        );
+      } else {
+        targetsPromise = this.targetsService.getTargetsByUserId(
+          this.selectedUser._id,
+          parentId,
+          0,
+          LIMIT,
+          this.filterStatus,
+          this.filterTag || undefined
+        );
+      }
+
+      const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
+      
+      const [targetsResponse, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
+
+      // Filtrar targets compartidos manualmente (frontend)
+      let filteredSharedTargets = sharedTargets;
+      if (this.filterStatus !== 'all') {
+        filteredSharedTargets = sharedTargets.filter(t => {
+          const traccarStatus = t.traccarInfo?.status || 'offline';
+          const isOnline = traccarStatus === 'online';
+          return this.filterStatus === 'online' ? isOnline : !isOnline;
+        });
+      }
+
+      if (this.filterTag) {
+        filteredSharedTargets = filteredSharedTargets.filter(t => t.tag === this.filterTag);
+      }
+
+      const fetchedTargets = targetsResponse.devices || [];
+      
+      // Combinar targets: compartidos primero, luego propios (evitando duplicados)
+      const ownTargetIds = new Set(fetchedTargets.map((t: any) => t._id));
+      const uniqueSharedTargets = filteredSharedTargets.filter(t => !ownTargetIds.has(t._id));
+      const combinedTargets = [...uniqueSharedTargets, ...fetchedTargets];
+
+      // Verificar y marcar isShared
+      const sharedTargetIds = new Set(uniqueSharedTargets.map(t => t._id));
+      combinedTargets.forEach(t => {
+        (t as any).isShared = sharedTargetIds.has(t._id);
+      });
+
+      this.targets = combinedTargets;
+      this.totalTargetsCount = targetsResponse.totalCount || combinedTargets.length;
+      
+      // Ya no hay más targets para este filtro
+      this.hasMoreTargets = false;
+      this.currentOffset = fetchedTargets.length;
+      
+      this.showNoTargetMessage = this.targets.length === 0;
+
+      // Mapear directamente a la vista
+      this.targetsList = this.mapTargetsToView(this.targets);
+      
+      // Check cache and save images to devices that don't have one
+      this.populateDeviceImagesFromCache(this.targetsList);
+
+      // Ahora que tenemos la lista completa que coincide con el filtro, seleccionamos
+      this.targetsSelected = this.targetsList.filter(t => !t.isShared);
+      
+      console.log(`[SELECT ALL] ✅ ${this.targetsSelected.length} targets seleccionados exitosamente.`);
+
+    } catch (error) {
+      console.error('[SELECT ALL] ❌ Error al cargar todos los targets:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudieron cargar todos los dispositivos para seleccionarlos'
+      });
+    } finally {
+      this.selectingAllTargets = false;
+    }
+  }  // Método para cargar más targets (scroll infinito)
   private async loadMoreTargets() {
     // Verificaciones de seguridad para evitar cargas múltiples
     if (!this.selectedUser || this.loadingMoreTargets || !this.hasMoreTargets || this.loadingTargets) {
@@ -2832,6 +2947,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   cancelCancelation() {
     this.cancelDialogVisible = false;
     this.isMassCancelMode = false;
+    this.massCancelSource = 'shortcuts';
     this.targetToCancel = null;
     this.cancelForm = {
       reason: '',
@@ -3252,6 +3368,28 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
+  confirmMassCancelSelected() {
+    if (!this.targetsSelected || this.targetsSelected.length === 0) return;
+
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de que deseas cancelar permanentemente los ${this.targetsSelected.length} dispositivos seleccionados?`,
+      header: 'Cancelar Dispositivos Seleccionados',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: this.translate.instant('management.targetForm.yes'),
+      rejectLabel: this.translate.instant('management.targetForm.no'),
+      accept: () => {
+        this.isMassCancelMode = true;
+        this.massCancelSource = 'selected';
+        this.targetToCancel = { name: `${this.targetsSelected.length} Dispositivos (Seleccionados)`, device_imei: 'Múltiples IMEI' };
+        this.cancelForm = {
+          reason: '',
+          description: ''
+        };
+        this.cancelDialogVisible = true;
+      }
+    });
+  }
+
   confirmMassCancelShortcuts() {
     if (!this.shortcuts || this.shortcuts.length === 0) {
       return;
@@ -3265,6 +3403,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       rejectLabel: this.translate.instant('management.targetForm.no'),
       accept: () => {
         this.isMassCancelMode = true;
+        this.massCancelSource = 'shortcuts';
         this.targetToCancel = { name: `${this.shortcuts.length} Dispositivos (Múltiple)`, device_imei: 'Múltiples IMEI' };
         this.cancelForm = {
           reason: '',
@@ -3276,12 +3415,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private async massCancelTargets(): Promise<void> {
-    if (!this.shortcuts || this.shortcuts.length === 0) return;
+    const isShortcuts = this.massCancelSource === 'shortcuts';
+    const sourceArray = isShortcuts ? this.shortcuts : this.targetsSelected;
+    
+    if (!sourceArray || sourceArray.length === 0) return;
 
     this.messageService.add({
       severity: 'info',
       summary: 'Iniciando',
-      detail: `Cancelando ${this.shortcuts.length} dispositivos...`,
+      detail: `Cancelando ${sourceArray.length} dispositivos...`,
       life: 3000
     });
 
@@ -3291,7 +3433,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.cancelDialogVisible = false;
 
     // We keep a secondary copy since we are going to modify the arrays
-    const targetsToProcess = [...this.shortcuts];
+    const targetsToProcess = [...sourceArray];
 
     try {
       for (const target of targetsToProcess) {
@@ -3322,10 +3464,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
           life: 5000
         });
 
-        // Vaciar la lista de accesos directos
-        this.shortcuts = [];
-        localStorage.setItem('targetShortcuts', JSON.stringify([]));
-        this.showShortcutsDialog = false;
+        // Vaciar la lista correspondiente
+        if (isShortcuts) {
+          this.shortcuts = [];
+          localStorage.setItem('targetShortcuts', JSON.stringify([]));
+          this.showShortcutsDialog = false;
+        } else {
+          this.targetsSelected = [];
+        }
       }
 
       if (errorCount > 0) {
@@ -3346,6 +3492,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       });
     } finally {
       this.isMassCancelMode = false;
+      this.massCancelSource = 'shortcuts';
       this.targetToCancel = null;
       this.cancelForm = { reason: '', description: '' };
     }
