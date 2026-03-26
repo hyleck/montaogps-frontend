@@ -109,6 +109,36 @@ export class ManagementComponent implements OnInit, OnDestroy {
     { label: 'Sin razón específica', value: 'no_specific_reason' }
   ];
 
+  // Suspend dialog state
+  suspendDialogVisible = false;
+  suspendForm = {
+    reason: '',
+    description: ''
+  };
+  suspendReasons = [
+    { label: 'Falta de pago', value: 'non_payment' },
+    { label: 'Solicitud del cliente', value: 'customer_request' },
+    { label: 'Vehículo en el taller', value: 'vehicle_in_shop' },
+    { label: 'Mantenimiento de dispositivo', value: 'device_maintenance' },
+    { label: 'Investigación en curso', value: 'investigation' },
+    { label: 'Suspensión temporal', value: 'temporary_suspension' },
+    { label: 'Otro motivo', value: 'other' }
+  ];
+
+  // Process dropdown menu items for selected targets
+  processMenuItems: MenuItem[] = [
+    {
+      label: 'Cancelar',
+      icon: 'pi pi-ban',
+      command: () => this.confirmMassCancelSelected()
+    },
+    {
+      label: 'Suspender',
+      icon: 'pi pi-pause-circle',
+      command: () => this.openMassSuspendSelected()
+    }
+  ];
+
   // ====================================
   // PROPIEDADES PARA PERMISOS DE ROOT
   // ====================================
@@ -3388,6 +3418,125 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.cancelDialogVisible = true;
       }
     });
+  }
+
+  openMassSuspendSelected() {
+    if (!this.targetsSelected || this.targetsSelected.length === 0) return;
+    this.suspendForm = { reason: '', description: '' };
+    this.suspendDialogVisible = true;
+  }
+
+  async confirmSuspendSelected() {
+    if (!this.targetsSelected || this.targetsSelected.length === 0) return;
+    if (!this.suspendForm.reason || !this.suspendForm.description.trim()) return;
+
+    this.suspendDialogVisible = false;
+
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Iniciando',
+      detail: `Suspendiendo ${this.targetsSelected.length} dispositivos...`,
+      life: 3000
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+    const targetsToProcess = [...this.targetsSelected];
+
+    try {
+      for (const target of targetsToProcess) {
+        try {
+          const updateData = {
+            status: false,
+            last_change_date: new Date()
+          };
+          await this.targetsService.updateTarget(target._id, updateData);
+
+          // Register suspension process
+          const suspendReasonLabels: { [key: string]: string } = {
+            'non_payment': 'Falta de pago',
+            'customer_request': 'Solicitud del cliente',
+            'vehicle_in_shop': 'Vehículo en el taller',
+            'device_maintenance': 'Mantenimiento de dispositivo',
+            'investigation': 'Investigación en curso',
+            'temporary_suspension': 'Suspensión temporal',
+            'other': 'Otro motivo'
+          };
+          const reasonLabel = suspendReasonLabels[this.suspendForm.reason] || this.suspendForm.reason;
+
+          const processData = {
+            type: 9, // Tipo 9 para suspensión manual
+            registrationDate: new Date().toISOString(),
+            description: `Dispositivo suspendido - Razón: ${reasonLabel}`,
+            details: this.suspendForm.description,
+            target: {
+              _id: target._id,
+              name: target.name,
+              device_imei: target.device_imei || target.imei,
+              sim_card_number: target.sim_card_number || target.sim
+            },
+            user: {
+              _id: this.authService.getCurrentUser()?.id || '',
+              name: this.authService.getCurrentUser()?.name || '',
+              email: this.authService.getCurrentUser()?.email || ''
+            },
+            reference: target._id,
+            before: {
+              status: true
+            },
+            after: {
+              status: false,
+              suspendReason: this.suspendForm.reason,
+              suspendDescription: this.suspendForm.description
+            },
+            creator: this.authService.getCurrentUser()?.id || ''
+          };
+          await this.targetsService.createProcess(processData);
+
+          // Update UI
+          const uiTarget = this.targetsList.find(t => t._id === target._id) as any;
+          if (uiTarget && uiTarget.originalTarget) {
+            uiTarget.originalTarget.status = false;
+          }
+          const masterTarget = this.targets.find(t => t._id === target._id) as any;
+          if (masterTarget && masterTarget.originalTarget) {
+            masterTarget.originalTarget.status = false;
+          }
+
+          successCount++;
+        } catch (err) {
+          console.error(`Error suspendiendo el objetivo ${target._id}:`, err);
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Completado',
+          detail: `Se han suspendido ${successCount} objetivos correctamente.`,
+          life: 5000
+        });
+        this.targetsSelected = [];
+      }
+
+      if (errorCount > 0) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Atención',
+          detail: `Hubo problemas al suspender ${errorCount} objetivos.`,
+          life: 5000
+        });
+      }
+    } catch (globalErr) {
+      console.error('Error global durante la suspensión masiva:', globalErr);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Error inesperado durante la suspensión masiva.',
+        life: 5000
+      });
+    }
   }
 
   confirmMassCancelShortcuts() {

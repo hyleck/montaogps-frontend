@@ -590,13 +590,11 @@
 
                 </div>
                 <div class="management__header-actions" style="display: flex; gap: 8px;">
-                    <button (click)="confirmMassCancelSelected()" class="button button--danger-flat"
+                    <p-splitButton label="Proceso ({{targetsSelected.length}})" icon="pi pi-cog"
+                        [model]="processMenuItems" styleClass="p-button-sm"
                         *ngIf="targetsSelected && targetsSelected.length > 0 && canDeleteDevices() && currentUserAffiliationTypeId === 'empleado'"
-                        title="Cancelar dispositivos seleccionados"
-                        style="background: #fef2f2; color: #ef4444; border: 1px solid #fca5a5; display: flex; align-items: center; justify-content: center; padding: 0 12px; border-radius: 4px;">
-                        <i class="pi pi-ban"></i>
-                        <span class="button-text" style="font-size: 0.8rem; font-weight: 500;">Cancelar ({{targetsSelected.length}})</span>
-                    </button>
+                        [style]="{'font-size': '0.8rem'}">
+                    </p-splitButton>
                     <button (click)="toggleFilters()" class="button button--flat" title="Filtros">
                         <i class="pi pi-filter" style="color: orange;"></i>
                     </button>
@@ -1102,6 +1100,65 @@
             [disabled]="!cancelForm.reason || !cancelForm.description.trim()">
             <i class="pi pi-check" style="margin-right: 6px;"></i>
             {{ 'management.confirmCancelTarget' | translate }}
+        </button>
+    </ng-template>
+</p-dialog>
+
+<!-- Dialogo para suspender targets seleccionados -->
+<p-dialog [(visible)]="suspendDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
+    [style]="{width: '500px'}" styleClass="cancel-target-dialog">
+
+    <ng-template pTemplate="header">
+        <div style="display: flex; align-items: center;">
+            <i class="pi pi-pause-circle"
+                style="margin-right: 10px; color: #f59e0b; font-size: 18px; opacity: 0.7;"></i>
+            <span>Suspender Dispositivos Seleccionados</span>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="content">
+        <div class="cancel-form">
+            <div class="target-info">
+                <h4>
+                    <i class="pi pi-info-circle"></i>
+                    Los dispositivos seleccionados serán suspendidos (desactivados)
+                </h4>
+                <p><strong>Cantidad:</strong> {{ targetsSelected?.length || 0 }} dispositivos</p>
+            </div>
+
+            <div class="form-group">
+                <label for="suspendReason">Motivo de suspensión *</label>
+                <select id="suspendReason" [(ngModel)]="suspendForm.reason" class="form-control form-select">
+                    <option value="" disabled>Seleccione un motivo</option>
+                    <option *ngFor="let reason of suspendReasons" [value]="reason.value">
+                        {{ reason.label }}
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="suspendDescription">Descripción *</label>
+                <textarea id="suspendDescription" [(ngModel)]="suspendForm.description"
+                    placeholder="Describa el motivo de la suspensión..." rows="4" class="form-control"
+                    maxlength="500" style="resize: none;">
+                </textarea>
+                <small style="color: var(--globalColorTextMuted); font-size: 12px; margin-top: 4px; display: block;">
+                    {{ suspendForm.description.length || 0 }}/500 caracteres
+                </small>
+            </div>
+        </div>
+    </ng-template>
+
+    <ng-template pTemplate="footer">
+        <button type="button" (click)="suspendDialogVisible = false" class="button button--secondary">
+            <i class="pi pi-times" style="margin-right: 6px;"></i>
+            Cancelar
+        </button>
+        <button type="button" (click)="confirmSuspendSelected()" class="button button--danger"
+            [disabled]="!suspendForm.reason || !suspendForm.description.trim()"
+            style="background: #f59e0b; border-color: #f59e0b;">
+            <i class="pi pi-check" style="margin-right: 6px;"></i>
+            Confirmar Suspensión
         </button>
     </ng-template>
 </p-dialog>
