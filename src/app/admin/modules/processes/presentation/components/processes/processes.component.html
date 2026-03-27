@@ -87,7 +87,6 @@
                 <tr>
                     <th style="width: 140px;">Fecha</th>
                     <th style="width: 130px;">Tipo</th>
-                    <th>Descripción</th>
                     <th style="width: 160px;">Target</th>
                     <th style="width: 160px;">IMEI</th>
                     <th style="width: 150px;">Empleado</th>
@@ -109,11 +108,6 @@
                             [rounded]="true"
                             [style]="{'font-size': '0.75rem'}">
                         </p-tag>
-                    </td>
-                    <td>
-                        <span class="description-cell" [title]="process.description">
-                            {{ process.description }}
-                        </span>
                     </td>
                     <td>
                         <span class="target-cell">{{ getTargetName(process.target) | titlecase }}</span>
