@@ -1012,8 +1012,10 @@
         </div>
     </ng-template>
 </p-dialog>
+}
 
 <!-- Modal de compartir targets -->
+@defer (when shareDialogVisible) {
 <p-dialog [(visible)]="shareDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
     [style]="{width: '600px'}" [blockScroll]="true" appendTo="body">
 
@@ -1138,9 +1140,9 @@
         </div>
     </ng-template>
 </p-dialog>
+}
 
 <!-- Diálogo de confirmación removido - usando el global -->
-}
 
 <!-- Modal de Alerta de Movimiento -->
 @defer (when movementAlertDialogVisible) {
