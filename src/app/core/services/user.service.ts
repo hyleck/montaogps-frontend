@@ -97,4 +97,8 @@ export class UserService {
   getSharedUsers(): Observable<User[]> {
     return this.http.get<User[]>(`${this.apiUrl}/shared`);
   }
+
+  getEmployees(): Observable<User[]> {
+    return this.http.get<User[]>(`${this.apiUrl}/employees`);
+  }
 }

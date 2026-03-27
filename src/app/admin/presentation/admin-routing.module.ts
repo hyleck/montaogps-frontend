@@ -55,6 +55,10 @@ const routes: Routes = [
         path: 'communication',
         loadChildren: () => import('../modules/communication/presentation/communication.module').then(m => m.CommunicationModule)
       },
+      {
+        path: 'processes',
+        loadChildren: () => import('../modules/processes/presentation/processes.module').then(m => m.ProcessesModule)
+      },
     ]
   }
 ];

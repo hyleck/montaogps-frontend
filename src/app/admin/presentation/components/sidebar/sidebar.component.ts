@@ -37,6 +37,7 @@ export class SidebarComponent implements OnInit {
       { label: '', path: '/admin/server-costs', icon: 'pi pi-wallet', badge: 0 },
       { label: '', path: '/admin/montao-rent', icon: 'pi pi-car', badge: 0 },
       { label: '', path: '/admin/communication', icon: 'pi pi-comments', badge: 0 },
+      { label: '', path: '/admin/processes', icon: 'pi pi-list', badge: 0 },
     ],
     profileTitle: '',
     profileItems: [
@@ -145,6 +146,7 @@ export class SidebarComponent implements OnInit {
     this.sidaberOptions.principalItems[5].label = this.translate.instant('sidebar.serverCosts');
     this.sidaberOptions.principalItems[6].label = this.translate.instant('sidebar.montaoRent');
     this.sidaberOptions.principalItems[7].label = 'Comunicación';
+    this.sidaberOptions.principalItems[8].label = 'Procesos';
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');
@@ -200,6 +202,10 @@ export class SidebarComponent implements OnInit {
       }
       // Ocultar solicitudes si el usuario no es empleado
       if (!this.isEmployeeUser && item.path === '/admin/solicitudes') {
+        return false;
+      }
+      // Ocultar procesos si el usuario no es empleado
+      if (!this.isEmployeeUser && item.path === '/admin/processes') {
         return false;
       }
       if (item.path === '/admin/server-costs') {

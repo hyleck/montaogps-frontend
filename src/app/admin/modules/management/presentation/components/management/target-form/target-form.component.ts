@@ -38,6 +38,7 @@ import { TagsService } from 'src/app/core/services/tags.service';
 import { Tag } from 'src/app/core/interfaces/tag.interface';
 import { FormsService } from 'src/app/core/services/forms.service';
 import { Form } from 'src/app/core/interfaces/form.interface';
+import { InventoryService } from 'src/app/core/services/inventory.service';
 
 
 
@@ -380,6 +381,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Propiedad para almacenar el uso de la SIM
     simUsage: any = null;
+    inventoryApn: string | null = null;
 
     private brandsLoaded!: Promise<void>;
     private brandsLoadedResolve!: () => void;
@@ -399,7 +401,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         private commandsService: CommandsService,
         private tagsService: TagsService,
         private formsService: FormsService,
-        private cdr: ChangeDetectorRef
+        private cdr: ChangeDetectorRef,
+        private inventoryService: InventoryService
     ) { }
 
     // Métodos de validación de privilegios para devices
@@ -939,6 +942,19 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.targetsService.getSimUsage(this.target.sim_card_number, provider).then(usage => {
             console.log('SIM Usage:', usage);
             this.simUsage = usage;
+
+            // Also lookup APN from inventory simcard module
+            if (this.target.sim_card_number) {
+                this.inventoryService.findSimcardByIccid(this.target.sim_card_number).subscribe({
+                    next: (simcard) => {
+                        this.inventoryApn = simcard?.apn_name || null;
+                        console.log('[TargetForm] Inventory APN for SIM:', this.inventoryApn);
+                    },
+                    error: () => {
+                        this.inventoryApn = null;
+                    }
+                });
+            }
         }).catch(err => {
             console.error('Error getting SIM usage:', err);
             this.simUsage = null;
@@ -1919,6 +1935,19 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         // Lógica específica para global-m2
         if (company === 'global-m2') {
+            // Priority 1: Check APN from inventory simcard module
+            if (this.inventoryApn) {
+                const apnLower = this.inventoryApn.toLowerCase();
+                if (apnLower.includes('gigsky')) {
+                    return 'gigsky-02';
+                } else if (apnLower.includes('dataon')) {
+                    return 'dataon';
+                }
+                // APN exists but doesn't match known values — use it as-is
+                console.log('[TargetForm] Unknown APN from inventory:', this.inventoryApn, '— falling back to IMSI');
+            }
+
+            // Priority 2: Fallback to IMSI-based decision
             // Si imsi_id es 4 (string o number), es gigsky-02
             // Si es diferente a 4, es dataon
             if (this.simUsage && (this.simUsage.imsi_id === '4' || this.simUsage.imsi_id === 4)) {

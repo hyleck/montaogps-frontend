@@ -184,6 +184,10 @@ export class InventoryService {
     return this.http.delete(`${this.warehouseUrl}/${id}`);
   }
 
+  findSimcardByIccid(iccid: string): Observable<SimcardItem | null> {
+    return this.http.get<SimcardItem | null>(`${this.simcardsUrl}/lookup/iccid/${iccid}`);
+  }
+
   // Simcard methods
   createSimcard(simcard: SimcardItem): Observable<SimcardItem> {
     return this.http.post<SimcardItem>(this.simcardsUrl, simcard);
