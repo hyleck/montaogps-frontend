@@ -43,6 +43,7 @@ export const PROCESS_TYPE_LABELS: { [key: number]: string } = {
   14: 'Mod. Número SIM',
   15: 'Mod. Tipo SIM',
   16: 'Restauración',
+  17: 'Activación Automática',
 };
 
 @Injectable({

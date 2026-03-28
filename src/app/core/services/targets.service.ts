@@ -61,6 +61,11 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
+  async startActivation(id: string): Promise<any> {
+    const observable = this.http.post<any>(`${this.apiUrl}/${id}/activate`, {});
+    return await lastValueFrom(observable);
+  }
+
   async deleteTarget(id: string): Promise<any> {
     const observable = this.http.delete(`${this.apiUrl}/${id}`);
     return await lastValueFrom(observable);

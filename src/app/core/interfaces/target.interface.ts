@@ -42,6 +42,13 @@ export interface Target {
   };
   tag?: string;
   connection_priority?: string;
+  activation_status?: {
+    completed: boolean;
+    completedAt?: string;
+    cancelled?: boolean;
+    steps: { label: string, icon: string, description: string, status: 'pending' | 'running' | 'success' | 'error' }[];
+    logs: { message: string, type: 'info' | 'success' | 'error' | 'warn', time: Date | string }[];
+  };
 }
 
 export interface CreateTargetDto {
@@ -80,6 +87,7 @@ export interface CreateTargetDto {
   parent_id: string;
   user_id?: string;
   connection_priority?: string;
+  activation_status?: any;
 }
 
 export interface UpdateTargetDto {
@@ -132,6 +140,7 @@ export interface UpdateTargetDto {
   tag?: string;
   customs?: any;
   connection_priority?: string;
+  activation_status?: any;
 }
 
 // Interface para el formulario de target (más completa que Target básica)
@@ -205,6 +214,13 @@ export interface TargetDevice {
   // Campos adicionales que pueden existir
   [key: string]: any;
   connection_priority?: string;
+  activation_status?: {
+    completed: boolean;
+    completedAt?: string;
+    cancelled?: boolean;
+    steps: { label: string, icon: string, description: string, status: 'pending' | 'running' | 'success' | 'error' }[];
+    logs: { message: string, type: 'info' | 'success' | 'error' | 'warn', time: Date | string }[];
+  };
 }
 
 // Interfaces para el historial de rutas

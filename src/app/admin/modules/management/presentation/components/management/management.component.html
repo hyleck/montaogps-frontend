@@ -337,6 +337,22 @@
                                                         style="color: #22c55e; margin-left: 4px;"></i>
                                                 </span>
                                                 <div style="margin-bottom: 10px;">
+                                                    <div *ngIf="hasOfflineActivationStatus(target) && currentUserAffiliationTypeId === 'empleado'" style="margin-top: 4px; margin-bottom: 6px; cursor: pointer;" (click)="showTargetFormOnTab(target, 3, $event)">
+                                                        <span class="activation-status-badge" [ngClass]="{
+                                                                  'activation-status-badge--success': getLastActivationStep(target)?.status === 'success',
+                                                                  'activation-status-badge--error': getLastActivationStep(target)?.status === 'error',
+                                                                  'activation-status-badge--running': getLastActivationStep(target)?.status === 'running',
+                                                                  'activation-status-badge--pending': getLastActivationStep(target)?.status === 'pending' || !getLastActivationStep(target)?.status
+                                                              }">
+                                                            <i class="pi" [ngClass]="{
+                                                                'pi-check-circle': getLastActivationStep(target)?.status === 'success',
+                                                                'pi-times-circle': getLastActivationStep(target)?.status === 'error',
+                                                                'pi-spin pi-spinner': getLastActivationStep(target)?.status === 'running',
+                                                                'pi-clock': getLastActivationStep(target)?.status === 'pending'
+                                                            }" style="font-size: 10px;"></i>
+                                                            <span style="font-weight: 500; text-wrap: wrap;">{{ getLastActivationStep(target)?.description || 'Pendiente' }}</span>
+                                                        </span>
+                                                    </div>
                                                     <span
                                                         style="display: block; font-size: 11px; font-weight: bold; margin-bottom: 2px;"
                                                         [style.color]="getConnectionPriorityColor(target)"
@@ -359,6 +375,12 @@
                                                         <span
                                                             class="target-offline-date">{{target.offlineDateText}}</span>
                                                     </div>
+                                                    <button *ngIf="target.traccarStatus !== 'online' && target.originalTarget?.status && currentUserAffiliationTypeId === 'empleado' && !activatingTargets.has(target._id)" type="button"
+                                                        (click)="startActivationFromList(target, $event)"
+                                                        class="activation-btn">
+                                                        <i class="pi pi-bolt" style="font-size: 10px;"></i>
+                                                        {{ target.traccarInfo?.lastUpdate ? 'Reactivar GPS' : 'Activar GPS' }}
+                                                    </button>
                                                 </div>
 
 
@@ -815,6 +837,22 @@
                                                             class="pi pi-eye target-map-indicator"
                                                             title="Mostrando en mapa"></i>
                                                     </span>
+                                                    <div *ngIf="hasOfflineActivationStatus(target) && currentUserAffiliationTypeId === 'empleado'" style="margin-top: 4px; margin-bottom: 2px; cursor: pointer;" (click)="showTargetFormOnTab(target, 3, $event)">
+                                                        <span class="activation-status-badge" [ngClass]="{
+                                                                  'activation-status-badge--success': getLastActivationStep(target)?.status === 'success',
+                                                                  'activation-status-badge--error': getLastActivationStep(target)?.status === 'error',
+                                                                  'activation-status-badge--running': getLastActivationStep(target)?.status === 'running',
+                                                                  'activation-status-badge--pending': getLastActivationStep(target)?.status === 'pending' || !getLastActivationStep(target)?.status
+                                                              }">
+                                                            <i class="pi" [ngClass]="{
+                                                                'pi-check-circle': getLastActivationStep(target)?.status === 'success',
+                                                                'pi-times-circle': getLastActivationStep(target)?.status === 'error',
+                                                                'pi-spin pi-spinner': getLastActivationStep(target)?.status === 'running',
+                                                                'pi-clock': getLastActivationStep(target)?.status === 'pending'
+                                                            }" style="font-size: 10px;"></i>
+                                                            <span style="font-weight: 500; text-wrap: wrap;">Act: {{ getLastActivationStep(target)?.description || 'Pendiente' }}</span>
+                                                        </span>
+                                                    </div>
                                                     <div *ngIf="target.connection_priority && target.connection_priority !== 'normal'"
                                                         style="margin-top: 2px;">
                                                         <span style="display: block; font-size: 10px; font-weight: bold;"
@@ -835,6 +873,12 @@
                                                     <span class="target-offline-time">{{target.offlineTimeText}}</span>
                                                     <span class="target-offline-date">{{target.offlineDateText}}</span>
                                                 </div>
+                                                <button *ngIf="target.traccarStatus !== 'online' && target.originalTarget?.status && currentUserAffiliationTypeId === 'empleado' && !activatingTargets.has(target._id)" type="button"
+                                                    (click)="startActivationFromList(target, $event)"
+                                                    class="activation-btn">
+                                                    <i class="pi pi-bolt" style="font-size: 10px;"></i>
+                                                    {{ target.traccarInfo?.lastUpdate ? 'Reactivar GPS' : 'Activar GPS' }}
+                                                </button>
                                             </div>
                                         </td>
                                         <td>
@@ -1023,7 +1067,7 @@
                      style="position: absolute; top: -80px; right: 10px; width: 100px; height: 100px; object-fit: contain; border-radius: 10px; opacity: 0.7; animation: slideInImage 0.5s ease-out;">
             </div>
         </ng-template>
-        <app-target-form #targetFormRef [targetInput]="targetToEdit" (targetCreated)="onTargetCreated($event)"></app-target-form>
+        <app-target-form #targetFormRef [targetInput]="targetToEdit" [initialTab]="initialFormTab" (targetCreated)="onTargetCreated($event)" (targetUpdatedWithoutClose)="onTargetUpdatedWithoutClose($event)" (activationEvent)="onActivationEvent($event)"></app-target-form>
     </p-dialog>
 
     <p-dialog header="Formulario de usuario" [modal]="true" [visible]="userFormDisplay" (onHide)="onHideUserForm()"

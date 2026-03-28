@@ -1287,3 +1287,131 @@ body:not(.app-dark) .app-dark-dialog .p-dropdown .p-dropdown-label {
 .ticket-response .ticket-value {
   color: #d1fae5;
 }
+
+/* ============================================
+   PROCESSES MODULE - DARK MODE
+   ============================================ */
+html.app-dark .processes-container .stat-card {
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+html.app-dark .processes-container .stat-card__value {
+  color: #e2e8f0 !important;
+}
+
+html.app-dark .processes-container .stat-card__label {
+  color: #94a3b8 !important;
+}
+
+html.app-dark .processes-container .processes-filters {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.app-dark .processes-container .processes-table {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.app-dark .processes-container .p-datatable .p-datatable-thead > tr > th {
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.app-dark .processes-container .p-datatable .p-datatable-tbody > tr {
+  background: transparent !important;
+  color: #e2e8f0 !important;
+}
+
+html.app-dark .processes-container .p-datatable .p-datatable-tbody > tr > td {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+html.app-dark .processes-container .p-datatable .p-datatable-tbody > tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02) !important;
+}
+
+html.app-dark .processes-container .p-datatable .p-datatable-tbody > tr:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+html.app-dark .processes-container .p-tag.p-tag-success {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #4ade80 !important;
+}
+
+html.app-dark .processes-container .p-tag.p-tag-info {
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #60a5fa !important;
+}
+
+html.app-dark .processes-container .p-tag.p-tag-warning {
+  background: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+}
+
+html.app-dark .processes-container .p-tag.p-tag-danger {
+  background: rgba(220, 38, 38, 0.15) !important;
+  color: #f87171 !important;
+}
+
+html.app-dark .processes-container .p-paginator {
+  background: transparent !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #94a3b8 !important;
+}
+
+html.app-dark .processes-container .p-paginator .p-paginator-element {
+  color: #94a3b8 !important;
+}
+
+html.app-dark .processes-container .p-paginator .p-highlight {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: #818cf8 !important;
+}
+
+html.app-dark .processes-container .p-dropdown {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+html.app-dark .processes-container .p-dropdown .p-dropdown-label {
+  color: #e2e8f0 !important;
+}
+
+html.app-dark .processes-container .p-dropdown .p-dropdown-trigger {
+  color: #94a3b8 !important;
+}
+
+html.app-dark .processes-container .p-calendar .p-inputtext {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #e2e8f0 !important;
+}
+
+html.app-dark .processes-container .p-datepicker-trigger {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: #94a3b8 !important;
+}
+
+html.app-dark .processes-container .date-cell {
+  color: #94a3b8 !important;
+}
+
+html.app-dark .processes-container .imei-cell {
+  color: #818cf8 !important;
+}
+
+html.app-dark .processes-container .detail-section {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+html.app-dark .processes-container .change-block pre {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #cbd5e1 !important;
+}

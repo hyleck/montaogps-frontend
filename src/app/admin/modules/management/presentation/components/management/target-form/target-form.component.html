@@ -653,6 +653,207 @@
                         </div>
                     </p-tabPanel>
 
+                    <p-tabPanel *ngIf="isEditMode && currentUserAffiliationTypeId === 'empleado'">
+                        <ng-template pTemplate="header">
+                            <i class="tab-icon pi pi-bolt"></i>
+                            <span class="tab-text">Activación</span>
+                        </ng-template>
+                        <div class="activation-section">
+                            <div class="activation-content" *ngIf="!activationStarted">
+                                <div *ngIf="target.activation_status?.completed" style="margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                                    <i class="pi pi-history" style="color: #94a3b8; font-size: 11px;"></i>
+                                    <span style="font-size: 11px; color: #94a3b8;">Última activación: <b style="color: #64748b;">{{ target.activation_status?.completedAt ? (target.activation_status?.completedAt | date:'dd/MM/yyyy HH:mm') : 'Sin fecha' }}</b></span>
+                                    <span style="font-size: 10px; padding: 1px 6px; border-radius: 3px;"
+                                        [style.background]="getActivationResultLabel() === 'Con errores' ? '#fee2e2' : '#dcfce7'"
+                                        [style.color]="getActivationResultLabel() === 'Con errores' ? '#991b1b' : '#166534'">
+                                        {{ getActivationResultLabel() }}
+                                    </span>
+                                </div>
+                                <div class="activation-field">
+                                    <label for="activation_apn" class="activation-label">
+                                        <i class="pi pi-wifi"></i>
+                                        Confirmar APN
+                                    </label>
+                                    <select [(ngModel)]="apnOverride" name="activation_apn" id="activation_apn"
+                                        class="activation-select">
+                                        <option value="">Automático{{ getAutoApnValue() ? ' (' + getAutoApnValue() + ')' : '' }}</option>
+                                        <option *ngFor="let apn of apnOptions" [value]="apn.value">
+                                            {{ apn.label }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="activation-action">
+                                    <button type="button" class="activation-btn" (click)="startActivation()">
+                                        <i class="pi pi-bolt"></i>
+                                        Iniciar Activación
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Estado activo: 2 columnas -->
+                            <div class="activation-workflow" *ngIf="activationStarted">
+                                <!-- Columna izquierda: Steps de activación -->
+                                <div class="activation-steps-column">
+                                    <div class="activation-card">
+                                        <div class="activation-card-header">
+                                            <i class="pi pi-list-check"></i>
+                                            <span>Pasos de Activación</span>
+                                            <i *ngIf="activationRunning" class="pi pi-spin pi-spinner" style="margin-left: auto; font-size: 0.85rem; color: var(--globalColorAccent);"></i>
+                                        </div>
+                                        <div *ngIf="target.activation_status?.completed && !activationRunning" style="padding: 4px 12px; display: flex; align-items: center; gap: 5px; border-bottom: 1px solid #f1f5f9;">
+                                            <i class="pi pi-history" style="color: #94a3b8; font-size: 10px;"></i>
+                                            <span style="font-size: 10px; color: #94a3b8;">Última: <b style="color: #64748b;">{{ target.activation_status?.completedAt ? (target.activation_status?.completedAt | date:'dd/MM/yyyy HH:mm') : 'Sin fecha' }}</b></span>
+                                            <span style="font-size: 9px; padding: 1px 5px; border-radius: 3px;"
+                                                [style.background]="getActivationResultLabel() === 'Con errores' ? '#fee2e2' : '#dcfce7'"
+                                                [style.color]="getActivationResultLabel() === 'Con errores' ? '#991b1b' : '#166534'">
+                                                {{ getActivationResultLabel() }}
+                                            </span>
+                                        </div>
+                                        <div class="activation-card-body steps-body">
+                                            <div *ngFor="let step of activationSteps; let i = index"
+                                                class="activation-step"
+                                                [class.completed]="step.status === 'success'"
+                                                [class.active]="step.status === 'running'"
+                                                [class.error]="step.status === 'error'"
+                                                [class.pending]="step.status === 'pending'">
+                                                <div class="step-indicator">
+                                                    <div class="step-circle">
+                                                        <i *ngIf="step.status === 'success'" class="pi pi-check"></i>
+                                                        <i *ngIf="step.status === 'running'" class="pi pi-spin pi-spinner"></i>
+                                                        <i *ngIf="step.status === 'error'" class="pi pi-times"></i>
+                                                        <span *ngIf="step.status === 'pending'">{{ i + 1 }}</span>
+                                                    </div>
+                                                    <div class="step-line" *ngIf="i < activationSteps.length - 1"></div>
+                                                </div>
+                                                <div class="step-content">
+                                                    <div class="step-header">
+                                                        <span class="step-title">{{ step.label }}</span>
+                                                        <span class="step-status-badge" *ngIf="step.status === 'success'">✓ Completado</span>
+                                                        <span class="step-status-badge active-badge" *ngIf="step.status === 'running'">En curso...</span>
+                                                        <span class="step-status-badge error-badge" *ngIf="step.status === 'error'">Error</span>
+                                                    </div>
+                                                    <p class="step-description">{{ step.description }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Columna derecha: Logs o Estado -->
+                                <div class="activation-status-column">
+                                    <!-- Logs de activación (visible mientras no se complete) -->
+                                    <div class="activation-card activation-logs-card" *ngIf="activationLogs.length > 0 && !activationCompleted">
+                                        <div class="activation-card-header">
+                                            <i class="pi pi-file-edit"></i>
+                                            <span>Log de Activación</span>
+                                        </div>
+                                        <div class="activation-logs" #activationLogsContainer>
+                                            <div *ngFor="let log of activationLogs" class="log-entry"
+                                                [class.log-info]="log.type === 'info'"
+                                                [class.log-success]="log.type === 'success'"
+                                                [class.log-error]="log.type === 'error'"
+                                                [class.log-warn]="log.type === 'warn'">
+                                                <span class="log-time">{{ log.time | date:'HH:mm:ss' }}</span>
+                                                <span class="log-message">{{ log.message }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Estado del Dispositivo (visible al completarse) -->
+                                    <div class="activation-card" *ngIf="activationCompleted">
+                                        <div class="activation-card-header">
+                                            <i class="pi pi-check-circle" style="color: #10b981;"></i>
+                                            <span>Estado del Dispositivo</span>
+                                        </div>
+                                        <div class="activation-card-body">
+                                            <div class="status-row">
+                                                <span class="status-label">Nombre</span>
+                                                <span class="status-value">{{ target.name || '—' }}</span>
+                                            </div>
+                                            <div class="status-row">
+                                                <span class="status-label">IMEI</span>
+                                                <span class="status-value mono">{{ target.device_imei || '—' }}</span>
+                                            </div>
+                                            <div class="status-row">
+                                                <span class="status-label">SIM</span>
+                                                <span class="status-value mono">{{ target.sim_card_number || '—' }}</span>
+                                            </div>
+                                            <div class="status-row">
+                                                <span class="status-label">APN</span>
+                                                <span class="status-value">
+                                                    <span class="status-badge accent">{{ apnOverride || getAutoApnValue() || '—' }}</span>
+                                                </span>
+                                            </div>
+                                            <div class="status-row" *ngIf="simUsage">
+                                                <span class="status-label">SIM Status</span>
+                                                <span class="status-value">
+                                                    <span class="status-badge"
+                                                        [class.online]="simUsage.simStatus === 'Active'"
+                                                        [class.offline]="simUsage.simStatus !== 'Active'">
+                                                        {{ simUsage.simStatus === 'Active' ? 'Activo' : 'Inactivo' }}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            <div class="status-row" *ngIf="simUsage">
+                                                <span class="status-label">Data</span>
+                                                <span class="status-value">
+                                                    <span class="status-badge"
+                                                        [class.online]="simUsage.dataService === 'Enabled'"
+                                                        [class.offline]="simUsage.dataService !== 'Enabled'">
+                                                        {{ simUsage.dataService === 'Enabled' ? 'Activa' : 'Inactiva' }}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            <div class="status-row" *ngIf="simUsage">
+                                                <span class="status-label">SMS</span>
+                                                <span class="status-value">
+                                                    <span class="status-badge"
+                                                        [class.online]="simUsage.smsService === 'Enabled'"
+                                                        [class.offline]="simUsage.smsService !== 'Enabled'">
+                                                        {{ simUsage.smsService === 'Enabled' ? 'Activo' : 'Inactivo' }}
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            <div class="status-row">
+                                                <span class="status-label">Estado</span>
+                                                <span class="status-value">
+                                                    <ng-container *ngIf="getActivationConnectionStatus() === true">
+                                                        <span class="status-badge online">En línea</span>
+                                                    </ng-container>
+                                                    <ng-container *ngIf="getActivationConnectionStatus() === false">
+                                                        <span class="status-badge offline">Fuera de línea</span>
+                                                    </ng-container>
+                                                    <ng-container *ngIf="getActivationConnectionStatus() === 'cancelled'">
+                                                        <span class="status-badge" style="background-color: #fef3c7; color: #92400e; border-color: #fde68a;">Cancelado</span>
+                                                    </ng-container>
+                                                    <ng-container *ngIf="getActivationConnectionStatus() === null">
+                                                        <span class="status-badge" style="background-color: #f1f5f9; color: #475569; border-color: #cbd5e1;">Verificando...</span>
+                                                    </ng-container>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <button type="button" class="cancel-activation-btn" (click)="goBackFromActivation()">
+                                            <i class="pi pi-arrow-left"></i>
+                                            Volver
+                                        </button>
+                                        <button *ngIf="activationRunning" type="button" class="cancel-activation-btn" (click)="cancelActivation()" style="background: #fee2e2; color: #991b1b; border-color: #fca5a5;">
+                                            <i class="pi pi-times"></i>
+                                            Cancelar Activación
+                                        </button>
+                                        <button *ngIf="!activationRunning" type="button" class="cancel-activation-btn" (click)="resetActivation()" style="background: #fef3c7; color: #92400e; border-color: #fde68a;">
+                                            <i class="pi pi-refresh"></i>
+                                            Reiniciar Activación
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </p-tabPanel>
+
                     <p-tabPanel *ngIf="hasSimCardTypeSelected() && currentUserAffiliationTypeId === 'empleado'">
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-comments"></i>
@@ -703,6 +904,21 @@
                                                     }}</span>
                                             </button>
                                         </div>
+
+                                        <!-- Corrección de APN -->
+                                        <div class="apn-override-section">
+                                            <label for="apn_override" class="apn-override-label">
+                                                <i class="pi pi-wrench"></i>
+                                                Corrección de APN
+                                            </label>
+                                            <select [(ngModel)]="apnOverride" name="apn_override" id="apn_override"
+                                                class="apn-override-select">
+                                                <option value="">Automático{{ getAutoApnValue() ? ' (' + getAutoApnValue() + ')' : '' }}</option>
+                                                <option *ngFor="let apn of apnOptions" [value]="apn.value">
+                                                    {{ apn.label }}
+                                                </option>
+                                            </select>
+                                        </div>
                                     </div>
 
                                     <!-- Estado de error si no hay protocolo -->
@@ -710,6 +926,11 @@
                                         <i class="pi pi-info-circle"></i>
                                         <h4>{{ translate('management.targetForm.protocolRequired') }}</h4>
                                         <p>{{ translate('management.targetForm.selectProtocolFirst') }}</p>
+                                        <p style="font-size: 10px; color: gray; margin-top: 10px; word-break: break-all;">
+                                            DEBUG - target.type: {{ target.type | json }} | 
+                                            protocols loaded: {{ loadedProtocols.length }} |
+                                            pendingGpsModel: {{ pendingGpsModel | json }}
+                                        </p>
                                     </div>
                                 </div>
 

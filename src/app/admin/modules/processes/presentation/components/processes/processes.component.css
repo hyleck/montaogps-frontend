@@ -27,7 +27,7 @@
     margin: 0;
     font-size: 1.4rem;
     font-weight: 600;
-    color: var(--globalColorText, #1e293b);
+    color: var(--globalColorTextDark, #1e293b);
 }
 
 .processes-header__count {
@@ -52,8 +52,8 @@
     align-items: center;
     gap: 6px;
     padding: 4px 12px;
-    background: var(--globalBgSecondary, #f8fafc);
-    border: 1px solid var(--globalBorderColor, #e2e8f0);
+    background: var(--globalColorCardBackground, #f8fafc);
+    border: 1px solid var(--globalColorBorderLight, #e2e8f0);
     border-radius: 20px;
     font-size: 0.75rem;
 }
@@ -70,7 +70,7 @@
 
 .stat-card__value {
     font-weight: 700;
-    color: var(--globalColorText, #1e293b);
+    color: var(--globalColorTextDark, #1e293b);
 }
 
 .stat-card__label {
@@ -80,8 +80,8 @@
 
 /* Filters */
 .processes-filters {
-    background: var(--globalBgSecondary, #f8fafc);
-    border: 1px solid var(--globalBorderColor, #e2e8f0);
+    background: var(--globalColorCardBackground, #f8fafc);
+    border: 1px solid var(--globalColorBorderLight, #e2e8f0);
     border-radius: 10px;
     padding: 14px 16px;
     margin-bottom: 16px;
@@ -110,10 +110,10 @@
 
 /* Table */
 .processes-table {
-    background: var(--globalBgCard, #fff);
+    background: var(--globalColorCardBackground, #fff);
     border-radius: 10px;
     overflow: auto;
-    border: 1px solid var(--globalBorderColor, #e2e8f0);
+    border: 1px solid var(--globalColorBorderLight, #e2e8f0);
     flex: 1;
     min-height: 0;
 }
@@ -155,8 +155,8 @@
 }
 
 .detail-section {
-    background: var(--globalBgSecondary, #f8fafc);
-    border: 1px solid var(--globalBorderColor, #e2e8f0);
+    background: var(--globalColorCardBackground, #f8fafc);
+    border: 1px solid var(--globalColorBorderLight, #e2e8f0);
     border-radius: 8px;
     padding: 14px;
 }
@@ -165,7 +165,7 @@
     margin: 0 0 10px 0;
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--globalColorText, #1e293b);
+    color: var(--globalColorTextDark, #1e293b);
     display: flex;
     align-items: center;
     gap: 6px;
@@ -192,7 +192,7 @@
 
 .detail-row span {
     font-size: 0.85rem;
-    color: var(--globalColorText, #1e293b);
+    color: var(--globalColorTextDark, #1e293b);
     word-break: break-all;
 }
 
@@ -213,8 +213,8 @@
 }
 
 .change-block pre {
-    background: var(--globalBgCard, #fff);
-    border: 1px solid var(--globalBorderColor, #e2e8f0);
+    background: var(--globalColorCardBackground, #fff);
+    border: 1px solid var(--globalColorBorderLight, #e2e8f0);
     border-radius: 6px;
     padding: 8px 10px;
     font-size: 0.75rem;
@@ -247,4 +247,165 @@
     .changes-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* Dark mode overrides for PrimeNG p-tag */
+:host-context(.app-dark) ::ng-deep .p-tag.p-tag-success {
+    background: rgba(34, 197, 94, 0.15) !important;
+    color: #4ade80 !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-tag.p-tag-info {
+    background: rgba(59, 130, 246, 0.15) !important;
+    color: #60a5fa !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-tag.p-tag-warning {
+    background: rgba(245, 158, 11, 0.15) !important;
+    color: #fbbf24 !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-tag.p-tag-danger {
+    background: rgba(220, 38, 38, 0.15) !important;
+    color: #f87171 !important;
+}
+
+/* Dark mode - Stat cards */
+:host-context(.app-dark) .stat-card {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #cbd5e1 !important;
+}
+
+:host-context(.app-dark) .stat-card__value {
+    color: #e2e8f0 !important;
+}
+
+:host-context(.app-dark) .stat-card__label {
+    color: #94a3b8 !important;
+}
+
+/* Dark mode - Filter area */
+:host-context(.app-dark) .processes-filters {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Dark mode - Table */
+:host-context(.app-dark) .processes-table {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: #cbd5e1 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-datatable .p-datatable-tbody > tr {
+    background: transparent !important;
+    color: #e2e8f0 !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+    border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-datatable .p-datatable-tbody > tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02) !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+
+:host-context(.app-dark) .target-cell,
+:host-context(.app-dark) .creator-cell {
+    color: #e2e8f0;
+}
+
+:host-context(.app-dark) .date-cell {
+    color: #94a3b8;
+}
+
+:host-context(.app-dark) .imei-cell {
+    color: #818cf8;
+}
+
+/* Dark mode - Paginator */
+:host-context(.app-dark) ::ng-deep .p-paginator {
+    background: transparent !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+    color: #94a3b8 !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-paginator .p-paginator-element {
+    color: #94a3b8 !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-paginator .p-paginator-element:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-paginator .p-highlight {
+    background: rgba(99, 102, 241, 0.2) !important;
+    color: #818cf8 !important;
+}
+
+/* Dark mode - Detail dialog */
+:host-context(.app-dark) .detail-section {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .detail-section h4 {
+    color: #e2e8f0;
+}
+
+:host-context(.app-dark) .detail-row span {
+    color: #cbd5e1;
+}
+
+:host-context(.app-dark) .change-block pre {
+    background: rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}
+
+/* Dark mode - PrimeNG Dropdowns */
+:host-context(.app-dark) ::ng-deep .p-dropdown {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e2e8f0 !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-dropdown .p-dropdown-label {
+    color: #e2e8f0 !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-dropdown .p-dropdown-trigger {
+    color: #94a3b8 !important;
+}
+
+/* Dark mode - PrimeNG Calendar */
+:host-context(.app-dark) ::ng-deep .p-calendar .p-inputtext {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #e2e8f0 !important;
+}
+
+:host-context(.app-dark) ::ng-deep .p-datepicker-trigger {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #94a3b8 !important;
+}
+
+/* Dark mode - Header */
+:host-context(.app-dark) .processes-header__title h2 {
+    color: #f1f5f9;
+}
+
+:host-context(.app-dark) .processes-header__title i {
+    color: #818cf8;
 }

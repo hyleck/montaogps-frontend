@@ -61,6 +61,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     @Input() targetInput: TargetDevice | null = null;
     @Output() targetCreated = new EventEmitter<TargetDevice>();
+    @Output() targetUpdatedWithoutClose = new EventEmitter<TargetDevice>();
+    @Output() activationEvent = new EventEmitter<{ targetId: string, type: 'started' | 'progress' | 'completed' | 'error', activation_status?: any }>();
 
     // Flag para mostrar/ocultar la edición personalizada de precio
     isCustomPriceEditing = false;
@@ -77,6 +79,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     target: TargetDevice = this.getEmptyTarget();
     activeTabIndex: number = 0;
+    private _initialTab: number = 0;
+    @Input() set initialTab(tab: number) {
+        this._initialTab = tab;
+        if (tab >= 0) this.activeTabIndex = tab;
+    }
     private _displayColorName: string = '';
     get displayColorName(): string { return this._displayColorName; }
     set displayColorName(value: string) {
@@ -193,7 +200,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         'sim_change': 13, // Cambio de SIM card
         'sim_number_change': 14, // Modificar número de SIM card
         'sim_type_change': 15, // Modificar tipo de SIM card
-        'restoration': 16 // Restauración de target cancelado
+        'restoration': 16, // Restauración de target cancelado
+        'automatic_activation': 17 // Activación automática
     };
 
     // Lista de procesos del target actual
@@ -381,7 +389,280 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Propiedad para almacenar el uso de la SIM
     simUsage: any = null;
+
+    @ViewChild('activationLogsContainer') activationLogsContainer!: ElementRef;
     inventoryApn: string | null = null;
+
+    // Corrección manual de APN
+    apnOverride: string = '';
+    apnOptions: { label: string, value: string }[] = [
+        { label: 'Emnify (em)', value: 'em' },
+        { label: 'AltanWifi (altanwifi)', value: 'altanwifi' },
+        { label: 'GigSky (gigsky-02)', value: 'gigsky-02' },
+        { label: 'DataOn (dataon)', value: 'dataon' }
+    ];
+
+    // Activation workflow
+    activationStarted: boolean = false;
+    activationRunning: boolean = false;
+    activationCompleted: boolean = false;
+    activationStep: number = 0;
+    activationError: string = '';
+    activationLogs: { message: string, type: 'info' | 'success' | 'error' | 'warn', time: Date }[] = [];
+    activationSteps: { label: string, icon: string, description: string, status: 'pending' | 'running' | 'success' | 'error' }[] = [
+        { label: 'Validar SIM', icon: 'pi-id-card', description: 'Verificar estado de la SIM card', status: 'pending' },
+        { label: 'Configurar APN', icon: 'pi-wifi', description: 'Enviar comando de configuración APN', status: 'pending' },
+        { label: 'Configurar Servidor', icon: 'pi-server', description: 'Enviar IP del servidor al dispositivo', status: 'pending' },
+        { label: 'Verificar Conexión', icon: 'pi-check-circle', description: 'Confirmar que el dispositivo se conectó', status: 'pending' }
+    ];
+
+    getActivationResultLabel(): string {
+        if (this.target?.activation_status?.cancelled) return 'Cancelada';
+        const steps = this.target?.activation_status?.steps;
+        if (!steps || steps.length === 0) return 'Exitosa';
+        const lastStep = steps[steps.length - 1];
+        return lastStep?.status === 'error' ? 'Con errores' : 'Exitosa';
+    }
+
+    startActivation(): void {
+        this.activationStarted = true;
+        this.activationStep = 0;
+        this.activationError = '';
+        this.activationLogs = [];
+        this.activationCompleted = false;
+        this.activationSteps.forEach(s => s.status = 'pending');
+        // Immediately notify parent so the list shows a spinner
+        this.activationEvent.emit({ targetId: this.target._id, type: 'started' });
+        this.runActivation();
+    }
+
+    private activationPollingInterval: any;
+
+    goBackFromActivation(): void {
+        this.activationStarted = false;
+        this.activationRunning = false;
+        this.activationCompleted = false;
+        this.activationStep = 0;
+        this.activationError = '';
+        this.activationLogs = [];
+        this.activationSteps = [
+            { label: 'Validar SIM', icon: 'pi-id-card', description: 'Verificar estado de la SIM card', status: 'pending' },
+            { label: 'Configurar APN', icon: 'pi-wifi', description: 'Enviar comando de configuración APN', status: 'pending' },
+            { label: 'Configurar Servidor', icon: 'pi-server', description: 'Enviar IP del servidor al dispositivo', status: 'pending' },
+            { label: 'Verificar Conexión', icon: 'pi-check-circle', description: 'Confirmar que el dispositivo se conectó', status: 'pending' }
+        ];
+        if (this.activationPollingInterval) {
+            clearInterval(this.activationPollingInterval);
+            this.activationPollingInterval = null;
+        }
+    }
+
+    async cancelActivation(): Promise<void> {
+        try {
+            // Stop frontend polling first
+            if (this.activationPollingInterval) {
+                clearInterval(this.activationPollingInterval);
+                this.activationPollingInterval = null;
+            }
+            this.activationRunning = false;
+            this.activationError = 'Activación cancelada por el usuario';
+            this.addLog('⛔ Activación cancelada', 'warn');
+            // Mark any running step as error
+            this.activationSteps.forEach(s => {
+                if (s.status === 'running') {
+                    s.status = 'error';
+                    s.description = 'Cancelado por el usuario';
+                }
+            });
+            // Build the full cancelled status with all current data preserved
+            const cancelledStatus = {
+                completed: true,
+                completedAt: new Date().toISOString(),
+                cancelled: true,
+                steps: this.activationSteps,
+                logs: this.activationLogs
+            };
+            // Save it fully to the backend
+            await this.targetsService.updateTarget(this.target._id, {
+                activation_status: cancelledStatus
+            } as any);
+            // Update local target
+            this.target.activation_status = cancelledStatus as any;
+            this.activationCompleted = true;
+        } catch (e) {
+            console.error('Error cancelling activation:', e);
+        }
+    }
+
+    async resetActivation(): Promise<void> {
+        try {
+            // Clear activation_status in backend
+            await this.targetsService.updateTarget(this.target._id, {
+                activation_status: null
+            } as any);
+            // Reset local UI state
+            this.target.activation_status = undefined;
+            this.goBackFromActivation();
+            this.activationSteps = [
+                { label: 'Validar SIM', icon: 'pi-id-card', description: 'Verificar estado de la SIM card', status: 'pending' },
+                { label: 'Configurar APN', icon: 'pi-wifi', description: 'Enviar comando de configuración APN', status: 'pending' },
+                { label: 'Configurar Servidor', icon: 'pi-server', description: 'Enviar IP del servidor al dispositivo', status: 'pending' },
+                { label: 'Verificar Conexión', icon: 'pi-check-circle', description: 'Confirmar que el dispositivo se conectó', status: 'pending' }
+            ];
+            // Automatically restart the activation process
+            this.startActivation();
+        } catch (error) {
+            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo reiniciar la activación' });
+        }
+    }
+
+    private addLog(message: string, type: 'info' | 'success' | 'error' | 'warn' = 'info'): void {
+        this.activationLogs.push({ message, type, time: new Date() });
+        setTimeout(() => {
+            if (this.activationLogsContainer?.nativeElement) {
+                this.activationLogsContainer.nativeElement.scrollTop = this.activationLogsContainer.nativeElement.scrollHeight;
+            }
+        });
+    }
+
+    private startPolling(): void {
+        if (this.activationPollingInterval) return;
+        this.activationPollingInterval = setInterval(async () => {
+            try {
+                const updatedTarget = await this.targetsService.getTargetById(this.target._id);
+                if (updatedTarget?.activation_status) {
+                    this.target.activation_status = updatedTarget.activation_status;
+                    this.activationStatusUpdated();
+                }
+            } catch (e) {
+                console.error('Error polling activation status', e);
+            }
+        }, 3000);
+    }
+
+    private async runActivation(): Promise<void> {
+        this.activationRunning = true;
+        try {
+            await this.targetsService.startActivation(this.target._id);
+            this.addLog('Proceso de activación iniciado en segundo plano ✓', 'success');
+
+            // Begin polling status
+            this.startPolling();
+
+            // Execute first check immediately
+            const initialCheck = await this.targetsService.getTargetById(this.target._id);
+            if (initialCheck?.activation_status) {
+                this.target.activation_status = initialCheck.activation_status;
+                this.activationStatusUpdated();
+            }
+
+        } catch (error: any) {
+            this.activationError = error.message || 'Error al iniciar la activación';
+            this.addLog(`❌ Error: ${this.activationError}`, 'error');
+            this.activationRunning = false;
+        }
+    }
+
+    private activationStatusUpdated() {
+        const payload = this.target.activation_status;
+        if (!payload) return;
+
+        // sync UI state
+        if (payload.steps) {
+            this.activationSteps = payload.steps;
+            // determine current step
+            const runningIndex = payload.steps.findIndex((s: any) => s.status === 'running');
+            if (runningIndex !== -1) {
+                this.activationStep = runningIndex;
+            } else {
+                const pendingIndex = payload.steps.findIndex((s: any) => s.status === 'pending');
+                this.activationStep = pendingIndex !== -1 ? pendingIndex : payload.steps.length;
+            }
+        }
+        if (payload.logs) {
+            // Check for new logs
+            if (payload.logs.length > this.activationLogs.length) {
+                this.activationLogs = payload.logs.map((log: any) => ({
+                    ...log,
+                    time: new Date(log.time)
+                }));
+                setTimeout(() => {
+                    if (this.activationLogsContainer?.nativeElement) {
+                        this.activationLogsContainer.nativeElement.scrollTop = this.activationLogsContainer.nativeElement.scrollHeight;
+                    }
+                });
+            }
+        }
+        
+        // Sync live progress to parent Management List
+        this.activationEvent.emit({ targetId: this.target._id, type: 'progress', activation_status: payload });
+
+        if (payload.completed && this.activationRunning) {
+            if (this.activationPollingInterval) {
+                clearInterval(this.activationPollingInterval);
+                this.activationPollingInterval = null;
+            }
+            this.activationRunning = false;
+            
+            // Check for errors in the last step
+            const hasError = payload.steps?.some((s: any) => s.status === 'error');
+            if (hasError) {
+                this.activationError = 'La activación finalizó con errores';
+                this.activationEvent.emit({ targetId: this.target._id, type: 'error', activation_status: payload });
+                this.createActivationProcess(false, payload);
+            } else {
+                this.activationCompleted = true;
+                this.activationEvent.emit({ targetId: this.target._id, type: 'completed', activation_status: payload });
+                this.targetUpdatedWithoutClose.emit(this.target);
+                this.createActivationProcess(true, payload);
+            }
+        }
+    }
+
+    private async createActivationProcess(success: boolean, activationPayload: any): Promise<void> {
+        try {
+            const currentUser = this.authService.getCurrentUser();
+            const currentDate = new Date().toISOString();
+            const stepsDescription = activationPayload?.steps
+                ?.map((s: any) => `${s.label}: ${s.status}`)
+                .join(' | ') || '';
+
+            const processData: CreateProcessDto = {
+                type: this.processTypeMap['automatic_activation'],
+                registrationDate: currentDate,
+                description: success ? 'Activación automática exitosa' : 'Activación automática con errores',
+                details: stepsDescription,
+                target: {
+                    _id: this.target._id,
+                    name: this.target.name,
+                    device_imei: this.target.device_imei,
+                    sim_card_number: this.target.sim_card_number
+                },
+                user: {
+                    _id: currentUser?.id || 'sistema',
+                    name: currentUser?.name || 'Sistema',
+                    email: currentUser?.email || 'sistema@montao.net'
+                },
+                reference: this.target._id,
+                before: {
+                    status: 'pending',
+                    activation_status: null
+                },
+                after: {
+                    status: success ? 'completed' : 'error',
+                    processType: 'automatic_activation',
+                    processDate: currentDate,
+                    activation_status: activationPayload
+                },
+                creator: currentUser?.id || 'sistema'
+            };
+
+            await this.targetsService.createProcess(processData);
+            console.log('✅ Proceso de activación automática creado');
+        } catch (error) {
+            console.error('❌ Error al crear proceso de activación:', error);
+        }
+    }
 
     private brandsLoaded!: Promise<void>;
     private brandsLoadedResolve!: () => void;
@@ -665,7 +946,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
 
         // Guardar temporalmente el ID del modelo GPS para asignarlo después de cargar protocolos
-        const selectedGpsModel = this.target.type || '';
+        let selectedGpsModel: any = this.target.type || '';
+        
+        // Si el backend trajo el objeto populado en lugar del string ID, extraer el _id o id
+        if (typeof selectedGpsModel === 'object' && selectedGpsModel !== null) {
+            if (selectedGpsModel._id) {
+                selectedGpsModel = selectedGpsModel._id;
+            } else if (selectedGpsModel.id) {
+                selectedGpsModel = selectedGpsModel.id;
+            }
+            this.target.type = selectedGpsModel;
+        }
 
         // Guardar temporalmente el ID del modelo seleccionado
         const selectedModelId = this.target.target_model_id || '';
@@ -731,7 +1022,48 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.target.installation_date = this.isEditMode ? '' : this.getTodayInputDate();
         }
 
-        this.activeTabIndex = 0;
+        if (this._initialTab > 0) {
+            setTimeout(() => {
+                this.activeTabIndex = this._initialTab;
+                this._initialTab = 0;
+            }, 500);
+        } else {
+            this.activeTabIndex = 0;
+        }
+
+        // Cargar estado de activación si existe
+        if (this.target.activation_status) {
+            this.activationStarted = true;
+            this.activationCompleted = !!this.target.activation_status.completed;
+            if (this.target.activation_status.steps && Array.isArray(this.target.activation_status.steps) && this.target.activation_status.steps.length > 0) {
+                this.activationSteps = this.target.activation_status.steps;
+            }
+            if (this.target.activation_status.logs && Array.isArray(this.target.activation_status.logs)) {
+                // Convert string dates back to Date objects
+                this.activationLogs = this.target.activation_status.logs.map((log: any) => ({
+                    ...log,
+                    time: typeof log.time === 'string' ? new Date(log.time) : log.time
+                }));
+            }
+            
+            // Reanudar polling si la activación estaba en progreso (no cancelada)
+            if (!this.activationCompleted && !this.target.activation_status.cancelled && this.target._id) {
+                this.activationRunning = true;
+                this.startPolling();
+            }
+            // Si fue cancelada, mostrar el estado cancelado
+            if (this.target.activation_status.cancelled) {
+                this.activationError = 'Activación cancelada por el usuario';
+                this.activationRunning = false;
+            }
+        } else {
+            // Limpiar estado visual de la activación si no hay nada guardado
+            this.activationCompleted = false;
+            this.activationLogs = [];
+            this.activationSteps.forEach(s => s.status = 'pending');
+            this.activationStep = 0;
+            this.activationStarted = false;
+        }
 
         // Actualizar el nombre del color para mostrar
         if (this.target.target_color) {
@@ -1935,6 +2267,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         // Lógica específica para global-m2
         if (company === 'global-m2') {
+            // Priority 0: Manual APN override from user
+            if (this.apnOverride) {
+                return this.apnOverride;
+            }
+
             // Priority 1: Check APN from inventory simcard module
             if (this.inventoryApn) {
                 const apnLower = this.inventoryApn.toLowerCase();
@@ -1957,6 +2294,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
         }
 
+        // Priority 0: Manual APN override (applies to all SIM types)
+        if (this.apnOverride) {
+            return this.apnOverride;
+        }
+
         // Mapear tipos de SIM card a valores de company
         const companyMap: Record<string, string> = {
             'global-e': 'em',
@@ -1964,6 +2306,72 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         };
 
         return companyMap[company] || null;
+    }
+
+    /**
+     * Returns the auto-resolved APN value (ignoring override) for display purposes
+     */
+    getAutoApnValue(): string | null {
+        if (!this.target.sim_company) return null;
+        const company = this.target.sim_company.toLowerCase();
+
+        if (company === 'global-m2') {
+            if (this.inventoryApn) {
+                const apnLower = this.inventoryApn.toLowerCase();
+                if (apnLower.includes('gigsky')) return 'gigsky-02';
+                if (apnLower.includes('dataon')) return 'dataon';
+            }
+            if (this.simUsage && (this.simUsage.imsi_id === '4' || this.simUsage.imsi_id === 4)) {
+                return 'gigsky-02';
+            }
+            return 'dataon';
+        }
+
+        const companyMap: Record<string, string> = {
+            'global-e': 'em',
+            'global-m': 'altanwifi',
+            'altan': 'altanwifi',
+            'claro': 'altanwifi',
+            'nacionales': 'twilio',
+            'tecnomine': 'twilio',
+            'internacionales': 'twilio'
+        };
+        return companyMap[company] || null;
+    }
+
+    /**
+     * Determina el estado de conexión basado en los pasos de activación
+     * @returns true si está en línea, false si falló o requiere acción manual, null si aún está verificando
+     */
+    getActivationConnectionStatus(): boolean | string | null {
+        if (this.target?.activation_status?.cancelled) return 'cancelled';
+        if (!this.target?.activation_status || !this.target.activation_status.steps) return null;
+        
+        // Verifica si el paso 4 (índice 3: Verificar Conexión) ha sido procesado
+        const verifyStep = this.target.activation_status.steps[3];
+        if (!verifyStep || (verifyStep.status !== 'success' && verifyStep.status !== 'error')) {
+            return null; // Aún evaluando o no ha llegado a este paso
+        }
+        
+        // Si hay un 5to paso ("Mover el vehículo")
+        if (this.target.activation_status.steps.length > 4) {
+            const manualStep = this.target.activation_status.steps[4];
+            if (manualStep.status === 'running' || manualStep.status === 'pending') {
+                return null; // Sigue verificando durante 5 minutos
+            }
+            if (manualStep.status === 'success') {
+                return true; // Se conectó exitosamente tras mover el vehículo
+            }
+            return false; // Tiempo agotado
+        }
+        
+        // Si el paso 4 indica error o acción manual (por compatibilidad si no generó 5to paso)
+        if (verifyStep.status === 'error' || 
+            (verifyStep.description && verifyStep.description.toLowerCase().includes('acción manual'))) {
+            return false;
+        }
+        
+        return true;
     }
 
     onEnterKeySimple(event: KeyboardEvent): void {
@@ -2091,6 +2499,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     ngOnDestroy() {
+        if (this.activationPollingInterval) {
+            clearInterval(this.activationPollingInterval);
+        }
         this.stopSmsPolling();
         this.destroy$.next();
         this.destroy$.complete();
@@ -2393,11 +2804,23 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Métodos para manejar comandos SMS dinámicos
     updateSmsCommands(): void {
-        const gpsModelId = this.target.type;
+        let gpsModelId = this.target.type;
+        
+        if (typeof gpsModelId === 'object' && gpsModelId !== null) {
+            if ((gpsModelId as any)._id) {
+                gpsModelId = (gpsModelId as any)._id;
+            } else if ((gpsModelId as any).id) {
+                gpsModelId = (gpsModelId as any).id;
+            } else if (typeof (gpsModelId as any).value === 'string') {
+                gpsModelId = (gpsModelId as any).value;
+            }
+        }
+        
         let protocolCommands: ProtocolCommand[] = [];
 
         if (gpsModelId && this.loadedProtocols.length > 0) {
-            this.selectedProtocol = this.loadedProtocols.find(p => p._id === gpsModelId) || null;
+            // Find by _id first, or by name if the DB stored the legacy name instead of ObjectId
+            this.selectedProtocol = this.loadedProtocols.find(p => p._id === gpsModelId || p.name === gpsModelId) || null;
             protocolCommands = this.selectedProtocol?.commands || [];
         } else {
             this.selectedProtocol = null;

@@ -1,6 +1,6 @@
 .main {
     padding: 1rem;
-    width: 700px;
+    width: 800px;
 }
 
 .target-form {
@@ -840,6 +840,431 @@
     }
 }
 
+/* ===== ESTILOS ACTIVACIÓN ===== */
+.activation-section {
+    padding: 1.5rem;
+    background-color: var(--globalColorBackground);
+    min-height: 200px;
+    display: flex;
+    justify-content: center;
+}
+
+.activation-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 400px;
+    width: 100%;
+}
+
+.activation-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.activation-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--globalColorTextDark);
+}
+
+.activation-label i {
+    font-size: 1rem;
+    color: var(--globalColorAccent);
+}
+
+.activation-select {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 8px;
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextDark);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.activation-select:focus {
+    outline: none;
+    border-color: var(--globalColorAccent);
+}
+
+.activation-action {
+    padding-top: 0.5rem;
+}
+
+.activation-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--globalColorAccent), var(--globalColorHighlight, #e74c3c));
+    color: white;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.activation-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    filter: brightness(1.05);
+}
+
+.activation-btn:active {
+    transform: translateY(0);
+}
+
+.activation-btn i {
+    font-size: 1.1rem;
+}
+
+/* Workflow 2 columnas */
+.activation-workflow {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 1.25rem;
+    width: 100%;
+}
+
+.activation-status-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.activation-steps-column {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Cards */
+.activation-card {
+    background-color: var(--globalColorCardBackground);
+    border-radius: 10px;
+    border: 1px solid var(--globalColorBorderLight);
+    overflow: hidden;
+}
+
+.activation-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--globalColorBorderLight);
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--globalColorTextDark);
+}
+
+.activation-card-header i {
+    color: var(--globalColorAccent);
+    font-size: 0.95rem;
+}
+
+.activation-card-body {
+    padding: 0.75rem 1rem;
+}
+
+/* Status rows */
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.status-row:last-child {
+    border-bottom: none;
+}
+
+.status-label {
+    font-size: 0.78rem;
+    color: var(--globalColorTextMuted);
+    font-weight: 500;
+}
+
+.status-value {
+    font-size: 0.78rem;
+    color: var(--globalColorTextDark);
+    font-weight: 500;
+    text-align: right;
+}
+
+.status-value.mono {
+    font-family: monospace;
+    font-size: 0.75rem;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.status-badge.online {
+    background-color: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.status-badge.offline {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.status-badge.accent {
+    background-color: rgba(var(--globalColorAccentRgb, 231, 76, 60), 0.12);
+    color: var(--globalColorAccent);
+}
+
+/* Map section */
+.activation-map-card {
+    overflow: hidden;
+}
+
+.activation-map-container {
+    min-height: 50px;
+}
+
+.map-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    color: var(--globalColorAccent);
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.map-link:hover {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
+.no-location {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    color: var(--globalColorTextMuted);
+    font-size: 0.8rem;
+}
+
+/* Cancel/Back button */
+.cancel-activation-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--globalColorTextMuted);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: fit-content;
+}
+
+.cancel-activation-btn:hover {
+    color: var(--globalColorTextDark);
+    border-color: var(--globalColorAccent);
+}
+
+/* Steps wizard */
+.steps-body {
+    padding: 1rem 1.25rem;
+}
+
+.activation-step {
+    display: flex;
+    gap: 0.75rem;
+    position: relative;
+}
+
+.step-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 2px solid var(--globalColorBorderLight);
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextMuted);
+    transition: all 0.3s ease;
+    z-index: 1;
+}
+
+.activation-step.active .step-circle {
+    border-color: var(--globalColorAccent);
+    background-color: var(--globalColorAccent);
+    color: white;
+    box-shadow: 0 0 0 4px rgba(var(--globalColorAccentRgb, 231, 76, 60), 0.15);
+}
+
+.activation-step.completed .step-circle {
+    border-color: #10b981;
+    background-color: #10b981;
+    color: white;
+}
+
+.step-line {
+    width: 2px;
+    flex: 1;
+    min-height: 20px;
+    background-color: var(--globalColorBorderLight);
+    margin: 4px 0;
+}
+
+.activation-step.completed .step-line {
+    background-color: #10b981;
+}
+
+.step-content {
+    padding-bottom: 1.25rem;
+    flex: 1;
+}
+
+.step-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.step-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--globalColorTextDark);
+}
+
+.activation-step.pending .step-title {
+    color: var(--globalColorTextMuted);
+}
+
+.step-description {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--globalColorTextMuted);
+    line-height: 1.4;
+}
+
+.step-status-badge {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 10px;
+    font-weight: 600;
+    background-color: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+.step-status-badge.active-badge {
+    background-color: rgba(var(--globalColorAccentRgb, 231, 76, 60), 0.12);
+    color: var(--globalColorAccent);
+}
+
+.step-status-badge.error-badge {
+    background-color: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+/* Error state */
+.activation-step.error .step-circle {
+    border-color: #ef4444;
+    background-color: #ef4444;
+    color: white;
+}
+
+.activation-step.error .step-title {
+    color: #ef4444;
+}
+
+/* Activation Logs */
+.activation-logs-card {
+    margin-top: 1rem;
+}
+
+.activation-logs {
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.log-entry {
+    display: flex;
+    gap: 0.625rem;
+    padding: 0.3rem 0.75rem;
+    line-height: 1.5;
+    border-left: 3px solid transparent;
+}
+
+.log-entry.log-info {
+    color: var(--globalColorTextMuted);
+    border-left-color: var(--globalColorBorderLight);
+}
+
+.log-entry.log-success {
+    color: #10b981;
+    border-left-color: #10b981;
+}
+
+.log-entry.log-error {
+    color: #ef4444;
+    border-left-color: #ef4444;
+    background-color: rgba(239, 68, 68, 0.04);
+}
+
+.log-entry.log-warn {
+    color: #f59e0b;
+    border-left-color: #f59e0b;
+}
+
+.log-time {
+    flex-shrink: 0;
+    opacity: 0.6;
+    font-size: 0.7rem;
+}
+
+.log-message {
+    word-break: break-word;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .activation-workflow {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* ===== ESTILOS SMS MODERNOS ===== */
 .sms-section {
     display: flex;
@@ -853,7 +1278,7 @@
 /* Layout de 2 columnas para desktop */
 .sms-content {
     display: grid;
-    grid-template-columns: 200px 1fr;
+    grid-template-columns: 240px 1fr;
     gap: 1.5rem;
     align-items: start;
 }
@@ -975,21 +1400,21 @@
 .commands-list {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .command-btn {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.875rem 1rem;
+    gap: 0.625rem;
+    padding: 0.625rem 0.75rem;
     border: 1px solid var(--globalColorBorderLight);
     border-radius: 8px;
     background-color: var(--globalColorInputBackground);
     color: var(--globalColorTextDark);
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 0.875rem;
+    font-size: 0.8rem;
     font-weight: 500;
     text-align: left;
     width: 100%;
@@ -1023,9 +1448,49 @@
 
 .command-btn span {
     flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
+}
+
+/* Corrección de APN */
+.apn-override-section {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--globalColorBorderLight);
+}
+
+.apn-override-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--globalColorTextMuted);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.apn-override-label i {
+    font-size: 0.8rem;
+}
+
+.apn-override-select {
+    width: 100%;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--globalColorBorderLight);
+    border-radius: 6px;
+    background-color: var(--globalColorInputBackground);
+    color: var(--globalColorTextDark);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.apn-override-select:focus {
+    outline: none;
+    border-color: var(--globalColorAccent);
 }
 
 /* Contenedor del chat */

@@ -4,20 +4,21 @@
         <div class="processes-header__title">
             <i class="pi pi-list"></i>
             <h2>Procesos</h2>
-            <span class="processes-header__count" *ngIf="totalRecords > 0">{{ totalRecords }} registros</span>
+            <p-tag *ngIf="totalRecords > 0" [value]="totalRecords + ' registros'" [rounded]="true" severity="success" [style]="{'font-size': '0.75rem'}"></p-tag>
         </div>
     </div>
 
     <!-- Stats Cards -->
     <div class="processes-stats" *ngIf="stats">
-        <div class="stat-card" *ngFor="let stat of stats.processesByType">
-            <div class="stat-card__value">{{ stat.count }}</div>
-            <div class="stat-card__label">{{ getTypeLabel(stat._id) }}</div>
-        </div>
-        <div class="stat-card stat-card--total">
-            <div class="stat-card__value">{{ stats.totalProcesses }}</div>
-            <div class="stat-card__label">Total</div>
-        </div>
+        <p-tag *ngFor="let stat of stats.processesByType"
+            [value]="stat.count + '  ' + getTypeLabel(stat._id)"
+            [rounded]="true" severity="info"
+            [style]="{'font-size': '0.75rem', 'cursor': 'default'}">
+        </p-tag>
+        <p-tag [value]="stats.totalProcesses + '  Total'"
+            [rounded]="true" severity="danger"
+            [style]="{'font-size': '0.75rem', 'cursor': 'default'}">
+        </p-tag>
     </div>
 
     <!-- Filters -->

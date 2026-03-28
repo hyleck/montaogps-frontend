@@ -54,6 +54,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   targets: Target[] = [];
   targetsList: any[] = [];
   generatingAITargets: Set<string> = new Set();
+  activatingTargets: Set<string> = new Set();
+  activatingTargetStatus: Map<string, any> = new Map();
   showTargetFormImageModal: boolean = false;
   targetFormFullImageUrl: string | null = null;
   targetsSelected: any[] = [];
@@ -1072,6 +1074,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
 
     this.targetToEdit = target || null;
+    this.initialFormTab = 0;
+    this.uiService.showTargetForm();
+  }
+
+  initialFormTab: number = 0;
+
+  async showTargetFormOnTab(target: any, tabIndex: number, event?: Event) {
+    if (event) event.stopPropagation();
+    this.initialFormTab = tabIndex;
+    this.targetToEdit = target || null;
     this.uiService.showTargetForm();
   }
 
@@ -1208,6 +1220,30 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
+  onTargetUpdatedWithoutClose(target?: any) {
+    if (target && target._activationPollUpdateOnly) {
+       const viewIndex = this.targetsList.findIndex((t: any) => t._id === target._id);
+       if (viewIndex !== -1) {
+           // Create new object references so Angular change detection picks up the change
+           const updatedOriginal = {
+               ...this.targetsList[viewIndex].originalTarget,
+               activation_status: target.activation_status
+           };
+           this.targetsList[viewIndex] = {
+               ...this.targetsList[viewIndex],
+               originalTarget: updatedOriginal
+           };
+           // Force array reference change for OnPush / template re-evaluation
+           this.targetsList = [...this.targetsList];
+       }
+       return;
+    }
+
+    if (this.selectedUser) {
+      this.loadTargetsForUser(this.selectedUser._id);
+    }
+  }
+
   handleTargetClick(target: any, event: MouseEvent) {
     // Check if target is expired
     if (this.getExpirationStatus(target.expiration_date) === 'expired') {
@@ -1306,6 +1342,108 @@ export class ManagementComponent implements OnInit, OnDestroy {
         })
       );
       window.open(url, '_blank');
+    }
+  }
+
+  hasOfflineActivationStatus(target: any): boolean {
+    // Check live activating targets first
+    if (this.activatingTargets.has(target._id)) return true;
+    // Then check persisted activation_status
+    if (target?.traccarStatus === 'online') return false;
+    const activation = target?.originalTarget?.activation_status;
+    return !!(activation && activation.steps && activation.steps.length > 0);
+  }
+
+  getLastActivationStep(target: any): any {
+    // Prefer live status from the activating target map
+    const liveStatus = this.activatingTargetStatus.get(target._id);
+    if (liveStatus && liveStatus.steps && liveStatus.steps.length > 0) {
+      // Find the running step first
+      const runningStep = liveStatus.steps.find((s: any) => s.status === 'running');
+      if (runningStep) return runningStep;
+      // Return the last step that has a meaningful status
+      for (let i = liveStatus.steps.length - 1; i >= 0; i--) {
+        if (liveStatus.steps[i].status !== 'pending') return liveStatus.steps[i];
+      }
+      return liveStatus.steps[0];
+    }
+    // If target is activating but no poll data yet, return synthetic running step
+    if (this.activatingTargets.has(target._id)) {
+      return { status: 'running', description: 'Iniciando activación...' };
+    }
+    // Fall back to persisted data
+    const steps = target?.originalTarget?.activation_status?.steps;
+    if (!steps || steps.length === 0) return null;
+    return steps[steps.length - 1];
+  }
+
+  async startActivationFromList(target: any, event: Event): Promise<void> {
+    event.stopPropagation();
+    try {
+      // Clear any previous activation status
+      await this.targetsService.updateTarget(target._id, { activation_status: null } as any);
+      // Start the activation in the backend
+      await this.targetsService.startActivation(target._id);
+      // Track it in the activating set for live badge updates
+      this.activatingTargets.add(target._id);
+      this.activatingTargetStatus.set(target._id, null);
+      // Start polling for this target
+      this.pollActivationStatus(target._id);
+    } catch (e: any) {
+      console.error('Error starting activation from list:', e);
+    }
+  }
+
+  private pollActivationStatus(targetId: string): void {
+    const interval = setInterval(async () => {
+      try {
+        const updated = await this.targetsService.getTargetById(targetId);
+        if (updated?.activation_status) {
+          this.activatingTargetStatus.set(targetId, updated.activation_status);
+          // Update persisted data in the list
+          const viewIndex = this.targetsList.findIndex((t: any) => t._id === targetId);
+          if (viewIndex !== -1) {
+            this.targetsList[viewIndex].originalTarget = {
+              ...this.targetsList[viewIndex].originalTarget,
+              activation_status: updated.activation_status
+            };
+          }
+          if (updated.activation_status.completed || updated.activation_status.cancelled) {
+            this.activatingTargets.delete(targetId);
+            this.activatingTargetStatus.delete(targetId);
+            clearInterval(interval);
+          }
+        }
+      } catch (e) {
+        clearInterval(interval);
+        this.activatingTargets.delete(targetId);
+      }
+    }, 3000);
+  }
+
+  onActivationEvent(event: { targetId: string, type: string, activation_status?: any }) {
+    if (event.type === 'started') {
+      this.activatingTargets.add(event.targetId);
+      this.activatingTargetStatus.set(event.targetId, null);
+    } else if (event.type === 'progress') {
+      this.activatingTargets.add(event.targetId);
+      this.activatingTargetStatus.set(event.targetId, event.activation_status);
+    } else if (event.type === 'completed' || event.type === 'error') {
+      this.activatingTargets.delete(event.targetId);
+      this.activatingTargetStatus.delete(event.targetId);
+      // Update the persisted data in the list
+      const viewIndex = this.targetsList.findIndex((t: any) => t._id === event.targetId);
+      if (viewIndex !== -1) {
+        const updatedOriginal = {
+          ...this.targetsList[viewIndex].originalTarget,
+          activation_status: event.activation_status
+        };
+        this.targetsList[viewIndex] = {
+          ...this.targetsList[viewIndex],
+          originalTarget: updatedOriginal
+        };
+        this.targetsList = [...this.targetsList];
+      }
     }
   }
 
