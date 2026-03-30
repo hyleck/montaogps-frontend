@@ -314,6 +314,257 @@
   color: var(--globalColorAccent);
 }
 
+/* Filtro de fechas */
+.date-filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.date-filter-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.date-filter-field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--globalColorTextMuted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+:host ::ng-deep .date-filter-field .p-calendar {
+  width: 100%;
+}
+
+:host ::ng-deep .date-filter-field .p-calendar .p-inputtext {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--globalColorBorderInput);
+  background-color: var(--globalColorInputBackground);
+  color: var(--globalColorTextDark);
+}
+
+:host ::ng-deep .date-filter-field .p-calendar .p-inputtext:focus {
+  border-color: var(--globalColorAccent);
+  box-shadow: 0 0 0 2px rgba(189, 53, 53, 0.1);
+}
+
+.clear-date-btn {
+  background: none;
+  border: 1px solid var(--globalColorBorderInput);
+  color: var(--globalColorTextMuted);
+  cursor: pointer;
+  padding: 0.6rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  height: 38px;
+  width: 38px;
+  flex-shrink: 0;
+}
+
+.clear-date-btn:hover {
+  color: var(--globalColorAccent);
+  border-color: var(--globalColorAccent);
+  background-color: rgba(189, 53, 53, 0.05);
+}
+
+/* Filtro de compañía de SIM */
+.sim-filter-row {
+  margin-top: 0.75rem;
+}
+
+.sim-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sim-filter-field label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--globalColorTextMuted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sim-filter-select {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--globalColorBorderInput);
+  background-color: var(--globalColorInputBackground);
+  color: var(--globalColorTextDark);
+  outline: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.sim-filter-select:focus {
+  border-color: var(--globalColorAccent);
+  box-shadow: 0 0 0 2px rgba(189, 53, 53, 0.1);
+}
+
+/* Botón toggle filtros */
+.toggle-filters-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  margin-top: 0.75rem;
+  border: 1px dashed var(--globalColorBorderInput);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--globalColorTextMuted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-filters-btn:hover {
+  border-color: var(--globalColorAccent);
+  color: var(--globalColorAccent);
+  background: rgba(189, 53, 53, 0.03);
+}
+
+.toggle-filters-btn i {
+  font-size: 0.8rem;
+}
+
+.active-filter-badge {
+  background: var(--globalColorAccent);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Panel de filtros colapsable */
+.filters-panel {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(189, 53, 53, 0.02);
+  border: 1px solid var(--globalColorBorderLight);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: filterSlideDown 0.2s ease-out;
+}
+
+@keyframes filterSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Botón exportar Excel premium */
+.export-excel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #059669, #10b981);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  letter-spacing: 0.2px;
+}
+
+.export-excel-btn:hover {
+  background: linear-gradient(135deg, #047857, #059669);
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
+  transform: translateY(-1px);
+}
+
+.export-excel-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+}
+
+.export-excel-btn i {
+  font-size: 1rem;
+}
+
+.export-count {
+  background: rgba(255, 255, 255, 0.25);
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 0.25rem;
+}
+
+/* Detalles mejorados del target card */
+.target-details-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem 1rem !important;
+}
+
+.target-details-grid p {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.35rem !important;
+  font-size: 0.8rem !important;
+  margin: 0 !important;
+  color: var(--globalColorTextMuted) !important;
+}
+
+.target-details-grid p i {
+  font-size: 0.75rem;
+  color: var(--globalColorAccent);
+  opacity: 0.7;
+  flex-shrink: 0;
+  width: 14px;
+}
+
+.target-details-grid p strong {
+  font-size: 0.7rem !important;
+  min-width: auto !important;
+  white-space: nowrap;
+}
+
+.sim-company-tag {
+  background: rgba(189, 53, 53, 0.08);
+  color: var(--globalColorAccent);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem !important;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
 .loading-state {
   display: flex;
   flex-direction: column;

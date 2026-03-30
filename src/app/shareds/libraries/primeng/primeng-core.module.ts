@@ -8,6 +8,7 @@ import { ToastModule } from 'primeng/toast';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { DrawerModule } from 'primeng/drawer';
 import { TooltipModule } from 'primeng/tooltip';
+import { CalendarModule } from 'primeng/calendar';
 
 import { ConfirmationService, MessageService } from 'primeng/api';
 
@@ -22,7 +23,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
         ToastModule,
         ProgressBarModule,
         DrawerModule,
-        TooltipModule
+        TooltipModule,
+        CalendarModule
     ],
     exports: [
         BadgeModule,
@@ -32,7 +34,8 @@ import { ConfirmationService, MessageService } from 'primeng/api';
         ToastModule,
         ProgressBarModule,
         DrawerModule,
-        TooltipModule
+        TooltipModule,
+        CalendarModule
     ],
     providers: []
 })

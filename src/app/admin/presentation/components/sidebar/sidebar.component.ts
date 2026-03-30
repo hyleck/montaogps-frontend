@@ -196,6 +196,10 @@ export class SidebarComponent implements OnInit {
       if (item.path === '/admin/macro') {
         return false;
       }
+      // Ocultar completamente la opción comunicación
+      if (item.path === '/admin/communication') {
+        return false;
+      }
       // Ocultar el módulo de monitoreo si el usuario no es empleado
       if (!this.isEmployeeUser && item.path.startsWith('/admin/monitoring')) {
         return false;

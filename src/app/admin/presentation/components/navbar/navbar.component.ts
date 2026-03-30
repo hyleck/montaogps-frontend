@@ -15,6 +15,7 @@ import { UserService } from '../../../../core/services/user.service';
 import { User } from '../../../../core/interfaces/user.interface';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter, firstValueFrom } from 'rxjs';
 import { AlertsService, AlertResponse, AlertStatus, CreateAlertDto } from '../../../../core/services/alerts.service';
+import * as XLSX from 'xlsx-js-style';
 
 // ... (inside NavbarComponent class)
 
@@ -68,6 +69,25 @@ export class NavbarComponent implements OnInit, OnDestroy {
   canceledSearchTerm: string = '';
   canceledSearchResults: Target[] = [];
   isSearchingCanceled: boolean = false;
+
+  // Filtro por fecha de activación
+  canceledDateFrom: Date | null = null;
+  canceledDateTo: Date | null = null;
+
+  // Filtro por compañía de SIM
+  canceledSimCompany: string = '';
+
+  // Toggle para mostrar/ocultar filtros
+  showCanceledFilters: boolean = false;
+
+  // Contador de filtros activos
+  get activeFilterCount(): number {
+    let count = 0;
+    if (this.canceledDateFrom) count++;
+    if (this.canceledDateTo) count++;
+    if (this.canceledSimCompany) count++;
+    return count;
+  }
 
   // Modal de detalles del target
   targetDetailsVisible: boolean = false;
@@ -2195,10 +2215,16 @@ export class NavbarComponent implements OnInit, OnDestroy {
       console.log('🚀 Cargando objetivos cancelados para parent ID:', parentId);
 
       // Cargar primera página de objetivos cancelados
+      const dateFromISO = this.canceledDateFrom ? this.canceledDateFrom.toISOString() : undefined;
+      const dateToISO = this.canceledDateTo ? this.canceledDateTo.toISOString() : undefined;
+
       const response = await this.targetsService.getCanceledTargetsWithPagination(
         parentId,
         this.canceledTargetsOffset,
-        this.canceledTargetsPageSize
+        this.canceledTargetsPageSize,
+        dateFromISO,
+        dateToISO,
+        this.canceledSimCompany || undefined
       );
 
       this.canceledTargets = response.devices;
@@ -2248,10 +2274,16 @@ export class NavbarComponent implements OnInit, OnDestroy {
       });
 
       // Cargar siguiente página de objetivos cancelados
+      const dateFromISO = this.canceledDateFrom ? this.canceledDateFrom.toISOString() : undefined;
+      const dateToISO = this.canceledDateTo ? this.canceledDateTo.toISOString() : undefined;
+
       const response = await this.targetsService.getCanceledTargetsWithPagination(
         parentId,
         this.canceledTargetsOffset,
-        this.canceledTargetsPageSize
+        this.canceledTargetsPageSize,
+        dateFromISO,
+        dateToISO,
+        this.canceledSimCompany || undefined
       );
 
       // Agregar nuevos targets a la lista existente
@@ -2390,6 +2422,105 @@ export class NavbarComponent implements OnInit, OnDestroy {
     return this.canceledSearchResults.length > 0 || this.canceledSearchTerm.trim()
       ? this.canceledSearchResults
       : this.canceledTargets;
+  }
+
+  /**
+   * Filtra los objetivos cancelados por rango de fecha de activación
+   */
+  onCanceledDateFilter() {
+    this.canceledSearchTerm = '';
+    this.canceledSearchResults = [];
+    this.loadCanceledTargets();
+  }
+
+  /**
+   * Limpia los filtros de fecha
+   */
+  clearCanceledDateFilter() {
+    this.canceledDateFrom = null;
+    this.canceledDateTo = null;
+    this.loadCanceledTargets();
+  }
+
+  /**
+   * Filtra los objetivos cancelados por compañía de SIM
+   */
+  onCanceledSimCompanyFilter() {
+    this.canceledSearchTerm = '';
+    this.canceledSearchResults = [];
+    this.loadCanceledTargets();
+  }
+
+  /**
+   * Exporta los dispositivos cancelados a Excel
+   */
+  async exportCanceledExcel() {
+    try {
+      const parentId = this.getParentIdFromUrl() || '';
+      const dateFromISO = this.canceledDateFrom ? this.canceledDateFrom.toISOString() : undefined;
+      const dateToISO = this.canceledDateTo ? this.canceledDateTo.toISOString() : undefined;
+
+      // Traer todos los registros con los filtros actuales
+      const response = await this.targetsService.getCanceledTargetsWithPagination(
+        parentId, 0, 10000, dateFromISO, dateToISO, this.canceledSimCompany || undefined
+      );
+
+      const targets = response.devices;
+      if (!targets.length) {
+        this.messageService.add({ severity: 'warn', summary: 'Sin datos', detail: 'No hay dispositivos cancelados para exportar' });
+        return;
+      }
+
+      const data = targets.map((t: any) => ({
+        'Nombre': t.name || '',
+        'IMEI': t.device_imei || t.imei || '',
+        'SIM Card': t.sim_card_number || t.sim_card || '',
+        'Compañía SIM': (t.sim_company || '').toUpperCase(),
+        'Placa': t.target_plate_number || t.plate || '',
+        'Tipo': t.type || '',
+        'Fecha Activación': t.activation_date ? new Date(t.activation_date).toLocaleDateString('es-DO') : '',
+        'Color': t.target_color || t.color || '',
+        'Año': t.target_year || t.year || '',
+        'Descripción': t.description || '',
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(data);
+
+      // Ancho de columnas
+      ws['!cols'] = [
+        { wch: 25 }, // Nombre
+        { wch: 18 }, // IMEI
+        { wch: 20 }, // SIM Card
+        { wch: 14 }, // Compañía SIM
+        { wch: 12 }, // Placa
+        { wch: 14 }, // Tipo
+        { wch: 16 }, // Fecha Activación
+        { wch: 12 }, // Color
+        { wch: 8 },  // Año
+        { wch: 30 }, // Descripción
+      ];
+
+      // Estilo del header
+      const headerStyle = {
+        fill: { fgColor: { rgb: 'CC0000' } },
+        font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 11 },
+        alignment: { horizontal: 'center' }
+      };
+      const colLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+      colLetters.forEach(col => {
+        const cell = ws[`${col}1`];
+        if (cell) cell.s = headerStyle;
+      });
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Cancelados');
+      XLSX.writeFile(wb, `dispositivos_cancelados_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      this.messageService.add({ severity: 'success', summary: 'Exportado', detail: `${targets.length} dispositivos exportados` });
+    } catch (error) {
+      console.error('Error exportando Excel:', error);
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo exportar el archivo' });
+    }
   }
 
   /**

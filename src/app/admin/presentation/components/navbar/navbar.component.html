@@ -583,6 +583,63 @@
                         <i class="pi pi-times"></i>
                     </button>
                 </div>
+
+                <!-- Toggle filtros -->
+                <button class="toggle-filters-btn" (click)="showCanceledFilters = !showCanceledFilters">
+                    <i class="pi" [ngClass]="showCanceledFilters ? 'pi-chevron-up' : 'pi-filter'"></i>
+                    <span>{{ showCanceledFilters ? 'Ocultar filtros' : 'Mostrar filtros' }}</span>
+                    <span *ngIf="!showCanceledFilters && activeFilterCount > 0" class="active-filter-badge">
+                        {{ activeFilterCount }}
+                    </span>
+                </button>
+
+                <!-- Panel de filtros colapsable -->
+                <div class="filters-panel" *ngIf="showCanceledFilters">
+                    <!-- Filtro por fecha de activación -->
+                    <div class="date-filter-row">
+                        <div class="date-filter-field">
+                            <label>Desde</label>
+                            <p-calendar [(ngModel)]="canceledDateFrom" dateFormat="dd/mm/yy" [showIcon]="true"
+                                [readonlyInput]="true" placeholder="Fecha desde"
+                                [maxDate]="canceledDateTo!" (onSelect)="onCanceledDateFilter()"
+                                appendTo="body" inputStyleClass="date-filter-input"></p-calendar>
+                        </div>
+                        <div class="date-filter-field">
+                            <label>Hasta</label>
+                            <p-calendar [(ngModel)]="canceledDateTo" dateFormat="dd/mm/yy" [showIcon]="true"
+                                [readonlyInput]="true" placeholder="Fecha hasta"
+                                [minDate]="canceledDateFrom!" (onSelect)="onCanceledDateFilter()"
+                                appendTo="body" inputStyleClass="date-filter-input"></p-calendar>
+                        </div>
+                        <button *ngIf="canceledDateFrom || canceledDateTo" class="clear-date-btn"
+                            (click)="clearCanceledDateFilter()" title="Limpiar fechas">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+
+                    <!-- Filtro por compañía de SIM -->
+                    <div class="sim-filter-row">
+                        <div class="sim-filter-field">
+                            <label>Compañía SIM</label>
+                            <select [(ngModel)]="canceledSimCompany" (change)="onCanceledSimCompanyFilter()"
+                                class="sim-filter-select">
+                                <option value="">Todas</option>
+                                <option value="nacionales">Nacionales</option>
+                                <option value="global-e">Global-E</option>
+                                <option value="global-m">Global-M</option>
+                                <option value="global-m2">Global-M2</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Botón exportar Excel -->
+                    <button class="export-excel-btn" (click)="exportCanceledExcel()">
+                        <i class="pi pi-file-excel"></i>
+                        <span>Exportar Excel</span>
+                        <span class="export-count" *ngIf="totalCanceledTargetsCount > 0">{{ totalCanceledTargetsCount }}</span>
+                    </button>
+                </div>
+
                 <div *ngIf="isSearchingCanceled" class="search-loading">
                     <i class="pi pi-spin pi-spinner"></i>
                     {{ 'common.loading' | translate }}...
@@ -619,18 +676,46 @@
                             </button>
                         </div>
                     </div>
-                    <div class="target-details">
+                    <div class="target-details target-details-grid">
                         <p>
+                            <i class="pi pi-id-card"></i>
                             <strong>IMEI</strong>
                             <span>{{ target.device_imei || target.imei }}</span>
                         </p>
                         <p *ngIf="target.sim_card_number || target.sim_card">
+                            <i class="pi pi-mobile"></i>
                             <strong>SIM</strong>
                             <span>{{ target.sim_card_number || target.sim_card }}</span>
                         </p>
-                        <p *ngIf="target.plate">
-                            <strong>{{ 'management.targetForm.plate' | translate }}</strong>
-                            <span>{{ target.plate }}</span>
+                        <p *ngIf="$any(target).sim_company">
+                            <i class="pi pi-wifi"></i>
+                            <strong>Compañía</strong>
+                            <span class="sim-company-tag">{{ $any(target).sim_company | uppercase }}</span>
+                        </p>
+                        <p *ngIf="$any(target).target_plate_number || target.plate">
+                            <i class="pi pi-car"></i>
+                            <strong>Placa</strong>
+                            <span>{{ $any(target).target_plate_number || target.plate }}</span>
+                        </p>
+                        <p *ngIf="$any(target).type">
+                            <i class="pi pi-tag"></i>
+                            <strong>Tipo</strong>
+                            <span>{{ $any(target).type }}</span>
+                        </p>
+                        <p *ngIf="$any(target).activation_date">
+                            <i class="pi pi-calendar"></i>
+                            <strong>Activación</strong>
+                            <span>{{ $any(target).activation_date | date:'dd/MM/yyyy' }}</span>
+                        </p>
+                        <p *ngIf="$any(target).target_color || target.color">
+                            <i class="pi pi-palette"></i>
+                            <strong>Color</strong>
+                            <span>{{ $any(target).target_color || target.color }}</span>
+                        </p>
+                        <p *ngIf="$any(target).target_year || target.year">
+                            <i class="pi pi-calendar-plus"></i>
+                            <strong>Año</strong>
+                            <span>{{ $any(target).target_year || target.year }}</span>
                         </p>
                     </div>
                 </div>

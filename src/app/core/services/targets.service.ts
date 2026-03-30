@@ -204,8 +204,17 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
-  async getCanceledTargetsWithPagination(parentId: string, offset: number = 0, limit: number = 20): Promise<TargetsResponse> {
-    const url = `${this.apiUrl}/canceled?parent=${parentId}&offset=${offset}&limit=${limit}`;
+  async getCanceledTargetsWithPagination(parentId: string, offset: number = 0, limit: number = 20, dateFrom?: string, dateTo?: string, simCompany?: string): Promise<TargetsResponse> {
+    let url = `${this.apiUrl}/canceled?parent=${parentId}&offset=${offset}&limit=${limit}`;
+    if (dateFrom) {
+      url += `&dateFrom=${encodeURIComponent(dateFrom)}`;
+    }
+    if (dateTo) {
+      url += `&dateTo=${encodeURIComponent(dateTo)}`;
+    }
+    if (simCompany) {
+      url += `&simCompany=${encodeURIComponent(simCompany)}`;
+    }
     const observable = this.http.get<TargetsResponse>(url);
     return await lastValueFrom(observable);
   }
