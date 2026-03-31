@@ -74,17 +74,25 @@ export class NavbarComponent implements OnInit, OnDestroy {
   canceledDateFrom: Date | null = null;
   canceledDateTo: Date | null = null;
 
+  // Filtro por fecha de última modificación
+  canceledModDateFrom: Date | null = null;
+  canceledModDateTo: Date | null = null;
+
   // Filtro por compañía de SIM
   canceledSimCompany: string = '';
 
   // Toggle para mostrar/ocultar filtros
   showCanceledFilters: boolean = false;
+  showActivationDateFilter: boolean = false;
+  showModDateFilter: boolean = false;
 
   // Contador de filtros activos
   get activeFilterCount(): number {
     let count = 0;
     if (this.canceledDateFrom) count++;
     if (this.canceledDateTo) count++;
+    if (this.canceledModDateFrom) count++;
+    if (this.canceledModDateTo) count++;
     if (this.canceledSimCompany) count++;
     return count;
   }
@@ -2217,6 +2225,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       // Cargar primera página de objetivos cancelados
       const dateFromISO = this.canceledDateFrom ? this.canceledDateFrom.toISOString() : undefined;
       const dateToISO = this.canceledDateTo ? this.canceledDateTo.toISOString() : undefined;
+      const modDateFromISO = this.canceledModDateFrom ? this.canceledModDateFrom.toISOString() : undefined;
+      const modDateToISO = this.canceledModDateTo ? this.canceledModDateTo.toISOString() : undefined;
 
       const response = await this.targetsService.getCanceledTargetsWithPagination(
         parentId,
@@ -2224,7 +2234,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
         this.canceledTargetsPageSize,
         dateFromISO,
         dateToISO,
-        this.canceledSimCompany || undefined
+        this.canceledSimCompany || undefined,
+        modDateFromISO,
+        modDateToISO
       );
 
       this.canceledTargets = response.devices;
@@ -2276,6 +2288,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       // Cargar siguiente página de objetivos cancelados
       const dateFromISO = this.canceledDateFrom ? this.canceledDateFrom.toISOString() : undefined;
       const dateToISO = this.canceledDateTo ? this.canceledDateTo.toISOString() : undefined;
+      const modDateFromISO = this.canceledModDateFrom ? this.canceledModDateFrom.toISOString() : undefined;
+      const modDateToISO = this.canceledModDateTo ? this.canceledModDateTo.toISOString() : undefined;
 
       const response = await this.targetsService.getCanceledTargetsWithPagination(
         parentId,
@@ -2283,7 +2297,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
         this.canceledTargetsPageSize,
         dateFromISO,
         dateToISO,
-        this.canceledSimCompany || undefined
+        this.canceledSimCompany || undefined,
+        modDateFromISO,
+        modDateToISO
       );
 
       // Agregar nuevos targets a la lista existente
@@ -2439,6 +2455,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
   clearCanceledDateFilter() {
     this.canceledDateFrom = null;
     this.canceledDateTo = null;
+    this.canceledModDateFrom = null;
+    this.canceledModDateTo = null;
     this.loadCanceledTargets();
   }
 
@@ -2459,10 +2477,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
       const parentId = this.getParentIdFromUrl() || '';
       const dateFromISO = this.canceledDateFrom ? this.canceledDateFrom.toISOString() : undefined;
       const dateToISO = this.canceledDateTo ? this.canceledDateTo.toISOString() : undefined;
+      const modDateFromISO = this.canceledModDateFrom ? this.canceledModDateFrom.toISOString() : undefined;
+      const modDateToISO = this.canceledModDateTo ? this.canceledModDateTo.toISOString() : undefined;
 
       // Traer todos los registros con los filtros actuales
       const response = await this.targetsService.getCanceledTargetsWithPagination(
-        parentId, 0, 10000, dateFromISO, dateToISO, this.canceledSimCompany || undefined
+        parentId, 0, 10000, dateFromISO, dateToISO, this.canceledSimCompany || undefined, modDateFromISO, modDateToISO
       );
 
       const targets = response.devices;

@@ -209,7 +209,7 @@
                                                 [readonly]="isEditMode" [disabled]="isEditMode">
                                         </div>
 
-                                        <div class="target-form__field">
+                                        <div class="target-form__field" *ngIf="!selectedProtocol?.isAirtag">
                                             <label for="sim_company">{{ translate('management.targetForm.simCardType')
                                                 }}</label>
                                             <select [(ngModel)]="target.sim_company" name="sim_company" id="sim_company"
@@ -223,7 +223,7 @@
                                             </select>
                                         </div>
 
-                                        <div class="target-form__field">
+                                        <div class="target-form__field" *ngIf="!selectedProtocol?.isAirtag">
                                             <label for="sim_card">{{ translate(translations.simCard) }} <span
                                                     class="required-label">(Requerido)</span></label>
                                             <input [(ngModel)]="target.sim_card_number" name="sim_card_number"
@@ -290,7 +290,7 @@
                                             </select>
                                         </div>
 
-                                        <div class="target-form__field">
+                                        <div class="target-form__field" *ngIf="!selectedProtocol?.isAirtag">
                                             <label for="ignition_sensor">{{ translate(translations.ignitionSensor)
                                                 }}</label>
                                             <select [(ngModel)]="target.ignition_sensor" name="ignition_sensor"
@@ -304,7 +304,7 @@
                                             </select>
                                         </div>
 
-                                        <div class="target-form__field">
+                                        <div class="target-form__field" *ngIf="!selectedProtocol?.isAirtag">
                                             <label for="shutdown_control">{{ translate(translations.shutdownControl)
                                                 }}</label>
                                             <select [(ngModel)]="target.engine_shutdown" name="engine_shutdown"
@@ -319,7 +319,7 @@
                                         </div>
 
                                         <!-- Texto condicional para gestión de comandos -->
-                                        <div *ngIf="target.engine_shutdown === 'yes'" class="target-form__field">
+                                        <div *ngIf="target.engine_shutdown === 'yes' && !selectedProtocol?.isAirtag" class="target-form__field">
                                             <div class="command-management-link" (click)="openCommandManagementModal()">
                                                 <i class="pi pi-cog"></i>
                                                 Gestión de comandos
@@ -394,7 +394,7 @@
                                                     <option value="gps_model_change">{{
                                                         translate('management.targetForm.processTypeGpsModelChange') }}
                                                     </option>
-                                                    <option value="imei_change">{{
+                                                    <option value="imei_change" *ngIf="!selectedProtocol?.isAirtag">{{
                                                         translate('management.targetForm.processTypeImeiChange') }}
                                                     </option>
 
@@ -404,10 +404,10 @@
                                                         }}</option>
 
                                                     <!-- Modificar datos de SIM -->
-                                                    <option value="sim_number_change">{{
+                                                    <option value="sim_number_change" *ngIf="!selectedProtocol?.isAirtag">{{
                                                         translate('management.targetForm.processTypeSimNumberChange') }}
                                                     </option>
-                                                    <option value="sim_type_change">{{
+                                                    <option value="sim_type_change" *ngIf="!selectedProtocol?.isAirtag">{{
                                                         translate('management.targetForm.processTypeSimTypeChange') }}
                                                     </option>
 
@@ -416,7 +416,7 @@
                                                     <option value="gps_change">{{
                                                         translate('management.targetForm.processTypeGpsChange') }}
                                                     </option>
-                                                    <option value="sim_change">{{
+                                                    <option value="sim_change" *ngIf="!selectedProtocol?.isAirtag">{{
                                                         translate('management.targetForm.processTypeSimChange') }}
                                                     </option>
 
@@ -653,7 +653,7 @@
                         </div>
                     </p-tabPanel>
 
-                    <p-tabPanel *ngIf="isEditMode && currentUserAffiliationTypeId === 'empleado'">
+                    <p-tabPanel *ngIf="isEditMode && currentUserAffiliationTypeId === 'empleado' && !selectedProtocol?.isAirtag">
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-bolt"></i>
                             <span class="tab-text">Activación</span>
@@ -854,7 +854,7 @@
                         </div>
                     </p-tabPanel>
 
-                    <p-tabPanel *ngIf="hasSimCardTypeSelected() && currentUserAffiliationTypeId === 'empleado'">
+                    <p-tabPanel *ngIf="hasSimCardTypeSelected() && currentUserAffiliationTypeId === 'empleado' && !selectedProtocol?.isAirtag">
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-comments"></i>
                             <span class="tab-text">{{ getSimCardDisplayName() }} SMS</span>
@@ -882,7 +882,7 @@
                             <!-- Layout de 2 columnas para desktop -->
                             <div class="sms-content">
                                 <!-- Columna izquierda: Comandos -->
-                                <div class="sms-commands-column">
+                                <div class="sms-commands-column" *ngIf="!selectedProtocol?.isAirtag">
                                     <div class="quick-commands" *ngIf="availableCommands.length > 0">
                                         <div class="commands-header">
                                             <h4>{{ countdown > 0 ? countdown + ' segundos' :

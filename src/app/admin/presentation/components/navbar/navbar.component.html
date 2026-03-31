@@ -596,7 +596,12 @@
                 <!-- Panel de filtros colapsable -->
                 <div class="filters-panel" *ngIf="showCanceledFilters">
                     <!-- Filtro por fecha de activación -->
-                    <div class="date-filter-row">
+                    <div class="filter-group-header" (click)="showActivationDateFilter = !showActivationDateFilter">
+                        <span class="filter-group-label">Fecha de Activación</span>
+                        <span *ngIf="!showActivationDateFilter && (canceledDateFrom || canceledDateTo)" class="active-filter-badge">{{(canceledDateFrom ? 1 : 0) + (canceledDateTo ? 1 : 0)}}</span>
+                        <i class="pi" [ngClass]="showActivationDateFilter ? 'pi-chevron-up' : 'pi-chevron-down'"></i>
+                    </div>
+                    <div class="date-filter-row" *ngIf="showActivationDateFilter">
                         <div class="date-filter-field">
                             <label>Desde</label>
                             <p-calendar [(ngModel)]="canceledDateFrom" dateFormat="dd/mm/yy" [showIcon]="true"
@@ -612,7 +617,34 @@
                                 appendTo="body" inputStyleClass="date-filter-input"></p-calendar>
                         </div>
                         <button *ngIf="canceledDateFrom || canceledDateTo" class="clear-date-btn"
-                            (click)="clearCanceledDateFilter()" title="Limpiar fechas">
+                            (click)="clearCanceledDateFilter(); $event.stopPropagation()" title="Limpiar fechas">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+
+                    <!-- Filtro por fecha de última modificación -->
+                    <div class="filter-group-header" (click)="showModDateFilter = !showModDateFilter">
+                        <span class="filter-group-label">Fecha de Cancelación</span>
+                        <span *ngIf="!showModDateFilter && (canceledModDateFrom || canceledModDateTo)" class="active-filter-badge">{{(canceledModDateFrom ? 1 : 0) + (canceledModDateTo ? 1 : 0)}}</span>
+                        <i class="pi" [ngClass]="showModDateFilter ? 'pi-chevron-up' : 'pi-chevron-down'"></i>
+                    </div>
+                    <div class="date-filter-row" *ngIf="showModDateFilter">
+                        <div class="date-filter-field">
+                            <label>Desde</label>
+                            <p-calendar [(ngModel)]="canceledModDateFrom" dateFormat="dd/mm/yy" [showIcon]="true"
+                                [readonlyInput]="true" placeholder="Fecha desde"
+                                [maxDate]="canceledModDateTo!" (onSelect)="onCanceledDateFilter()"
+                                appendTo="body" inputStyleClass="date-filter-input"></p-calendar>
+                        </div>
+                        <div class="date-filter-field">
+                            <label>Hasta</label>
+                            <p-calendar [(ngModel)]="canceledModDateTo" dateFormat="dd/mm/yy" [showIcon]="true"
+                                [readonlyInput]="true" placeholder="Fecha hasta"
+                                [minDate]="canceledModDateFrom!" (onSelect)="onCanceledDateFilter()"
+                                appendTo="body" inputStyleClass="date-filter-input"></p-calendar>
+                        </div>
+                        <button *ngIf="canceledModDateFrom || canceledModDateTo" class="clear-date-btn"
+                            (click)="canceledModDateFrom = null; canceledModDateTo = null; onCanceledDateFilter(); $event.stopPropagation()" title="Limpiar fechas">
                             <i class="pi pi-times"></i>
                         </button>
                     </div>

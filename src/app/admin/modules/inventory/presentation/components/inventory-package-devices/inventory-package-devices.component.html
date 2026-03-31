@@ -86,13 +86,17 @@
       <ng-template pTemplate="body" let-device>
         <tr>
           <td class="imei-cell">
-            <i *ngIf="isDeviceInstalled(device)" class="pi pi-check-circle installed-icon" title="Instalado"></i>
+            <i *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device)" class="pi pi-check-circle installed-icon" title="Instalado"></i>
+            <i *ngIf="isDeviceInActivation(device)" class="pi pi-sync activation-icon" title="En proceso de instalación"></i>
             <span>{{ device.IMEI || device.imei || 'N/A' }}</span>
-            <span *ngIf="isDeviceInstalled(device)" class="installed-label">
+            <span *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device)" class="installed-label">
               (Instalado)
             </span>
+            <span *ngIf="isDeviceInActivation(device)" class="activation-label">
+              (En proceso de instalación)
+            </span>
           </td>
-          <td>{{ device.SIM || device.sim || 'N/A' }}</td>
+          <td>{{ isDeviceAirtag(device) ? '—' : (device.SIM || device.sim || 'N/A') }}</td>
           <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
           <td>
             <p-dropdown [options]="warehouses" [(ngModel)]="device.storage_id" optionLabel="name" optionValue="_id"
@@ -148,7 +152,7 @@
           class="form-input" placeholder="Ingrese el IMEI" />
       </div>
 
-      <div class="field" *ngIf="selectedDevice">
+      <div class="field" *ngIf="selectedDevice && !isDeviceAirtag(selectedDevice)">
         <label for="deviceSim">SIM</label>
         <input type="text" id="deviceSim" [(ngModel)]="selectedDevice.sim" name="sim" class="form-input"
           placeholder="Ingrese el SIM (opcional)" />
@@ -191,7 +195,7 @@
     <div class="device-info" *ngIf="deviceToInstall">
       <h4>Dispositivo a instalar:</h4>
       <p><strong>IMEI:</strong> {{ deviceToInstall.IMEI || deviceToInstall.imei || 'N/A' }}</p>
-      <p><strong>SIM:</strong> {{ deviceToInstall.SIM || deviceToInstall.sim || 'N/A' }}</p>
+      <p *ngIf="!isDeviceAirtag(deviceToInstall)"><strong>SIM:</strong> {{ deviceToInstall.SIM || deviceToInstall.sim || 'N/A' }}</p>
       <p>
         <strong>Protocolo:</strong>
         {{ getProtocolLabel(deviceToInstall.Protocol || deviceToInstall.protocol) }}
@@ -207,7 +211,7 @@
         autocomplete="email" style="width: 100%" />
     </div>
 
-    <div class="field" style="margin-top: 1rem;">
+    <div class="field" style="margin-top: 1rem;" *ngIf="deviceToInstall && !isDeviceAirtag(deviceToInstall)">
       <label for="installationSimType" class="block font-bold mb-2">
         <strong>Tipo de SIM Card: (Opcional)</strong>
       </label>

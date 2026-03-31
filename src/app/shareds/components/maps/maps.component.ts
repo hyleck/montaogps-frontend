@@ -521,6 +521,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     const status = this.selectedTarget?.traccarStatus?.toLowerCase();
     if (status === 'online') return 'online';
     if (status === 'offline') return 'offline';
+    if (status === 'localizado') return 'localizado';
     return 'unknown';
   }
 
@@ -598,8 +599,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
   private async createMarker(lat: number, lng: number): Promise<void> {
     const title = this.selectedTarget?.name || 'Target';
-    const isOffline =
-      (this.selectedTarget?.traccarStatus || '').toLowerCase() !== 'online';
+    const statusLower = (this.selectedTarget?.traccarStatus || '').toLowerCase();
+    const isOffline = statusLower !== 'online' && statusLower !== 'localizado';
     const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
     const isOnline = statusText === 'online';
     const course = this.selectedTarget?.traccarInfo?.geolocation?.course ?? 0;
@@ -704,8 +705,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     if (!this.currentMarker) return;
 
     const title = this.selectedTarget?.name || 'Target';
-    const isOffline =
-      (this.selectedTarget?.traccarStatus || '').toLowerCase() !== 'online';
+    const statusLower = (this.selectedTarget?.traccarStatus || '').toLowerCase();
+    const isOffline = statusLower !== 'online' && statusLower !== 'localizado';
     const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
     const isOnline = statusText === 'online';
     const course = this.selectedTarget?.traccarInfo?.geolocation?.course ?? 0;
@@ -893,8 +894,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         return;
       }
 
-      const isOffline =
-        (target?.traccarStatus || '').toLowerCase() !== 'online';
+      const statusLower = (target?.traccarStatus || '').toLowerCase();
+      const isOffline = statusLower !== 'online' && statusLower !== 'localizado';
       const course = geo?.course ?? 0;
       const openByDefault = !isOffline && (this.targetsForMap?.length || 0) <= 100;
 

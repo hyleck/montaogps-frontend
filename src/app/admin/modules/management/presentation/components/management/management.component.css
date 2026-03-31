@@ -1060,6 +1060,16 @@
   font-weight: 500;
 }
 
+.target-localizado {
+  color: #14b8a6; /* Verde azulado brillante (teal-500) */
+  font-weight: 500;
+}
+
+.dark .target-localizado {
+  color: #5eead4; /* Verde azulado más brillante (teal-300) para dark mode */
+  font-weight: 500;
+}
+
 /* Si se necesita agregar contenido existente, añadir aquí */
 
 /* ✨ ESTILOS PARA TARGET SELECCIONADO EN MAPA */
@@ -1095,6 +1105,21 @@
   color: #4ade80 !important;
   /* Verde más brillante para tema oscuro */
   text-shadow: 0 1px 2px rgba(74, 222, 128, 0.15) !important;
+}
+
+/* Target seleccionado Y localizado - mantiene color verde azulado intenso */
+.target-showing-on-map.target-localizado {
+  font-weight: 600 !important;
+  color: #0d9488 !important;
+  /* Teal para seleccionado */
+  text-shadow: 0 1px 2px rgba(20, 184, 166, 0.1) !important;
+  transition: all 0.3s ease !important;
+}
+
+.dark .target-showing-on-map.target-localizado {
+  color: #2dd4bf !important;
+  /* Teal brillante para tema oscuro */
+  text-shadow: 0 1px 2px rgba(94, 234, 212, 0.15) !important;
 }
 
 /* Target seleccionado Y offline - mantiene color gris pero más intenso */
@@ -1152,7 +1177,7 @@
 
 
 /* Fallback para target seleccionado sin clase específica de estado */
-.target-showing-on-map:not(.target-online):not(.target-offline) {
+.target-showing-on-map:not(.target-online):not(.target-offline):not(.target-localizado) {
   font-weight: 600 !important;
   color: #16a34a !important;
   /* Verde por defecto */
@@ -1160,7 +1185,7 @@
   transition: all 0.3s ease !important;
 }
 
-.dark .target-showing-on-map:not(.target-online):not(.target-offline) {
+.dark .target-showing-on-map:not(.target-online):not(.target-offline):not(.target-localizado) {
   color: #4ade80 !important;
   text-shadow: 0 1px 2px rgba(74, 222, 128, 0.15) !important;
 }

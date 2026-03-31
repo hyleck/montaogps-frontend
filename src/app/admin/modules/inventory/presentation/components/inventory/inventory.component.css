@@ -520,6 +520,17 @@ textarea.form-input {
   font-size: 0.8rem;
 }
 
+.activation-icon {
+  color: #f59e0b;
+  font-size: 0.9rem;
+}
+
+.activation-label {
+  color: #f59e0b;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
 .device-actions {
   display: flex;
   gap: 0.25rem;

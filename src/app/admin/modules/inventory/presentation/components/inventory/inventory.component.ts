@@ -45,6 +45,7 @@ export class InventoryComponent implements OnInit {
   loading = true;
   loadingWarehouses = false;
   protocols: { label: string; value: string }[] = [];
+  loadedProtocols: any[] = [];
 
   globalSearchQuery = '';
   globalSearchStorageId: string | null = null;
@@ -176,12 +177,14 @@ export class InventoryComponent implements OnInit {
   private loadProtocols(): void {
     this.protocolsService.getAllProtocols().subscribe({
       next: (list: any[]) => {
+        this.loadedProtocols = list;
         this.protocols = list.map((p) => ({
           label: p.name || p.type || p._id,
           value: p._id,
         }));
       },
       error: () => {
+        this.loadedProtocols = [];
         this.protocols = [];
       },
     });
@@ -482,6 +485,26 @@ export class InventoryComponent implements OnInit {
 
   isDeviceInstalled(device: InventoryItem): boolean {
     return !!device?.installed;
+  }
+
+  isDeviceInActivation(device: InventoryItem): boolean {
+    return !!(device as any)?.activation_mode;
+  }
+
+  isDeviceAirtag(device: InventoryItem): boolean {
+    const protocolData = (device as any).Protocol || (device as any).protocol;
+    let protocolId: string | null = null;
+    if (protocolData && typeof protocolData === 'object' && protocolData._id) {
+      if (protocolData.isAirtag) return true;
+      protocolId = protocolData._id;
+    } else if (typeof protocolData === 'string') {
+      protocolId = protocolData;
+    }
+    if (protocolId && this.loadedProtocols.length > 0) {
+      const found = this.loadedProtocols.find(p => p._id === protocolId);
+      return found?.isAirtag === true;
+    }
+    return false;
   }
 
   // Warehouse Methods

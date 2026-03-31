@@ -1826,9 +1826,21 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return device?.traccarInfo?.status === 'online';
   }
 
+  isDeviceLocalizado(device: any): boolean {
+    return device?.traccarInfo?.status === 'Localizado';
+  }
+
   getConnectionDisplay(device: any): string {
     if (this.isDeviceOnline(device)) {
       return 'En línea';
+    }
+
+    if (this.isDeviceLocalizado(device)) {
+      const lastUpdate = device?.traccarInfo?.lastUpdate;
+      if (lastUpdate && lastUpdate.toString().toLowerCase() !== 'never') {
+        return this.formatOfflineDuration(lastUpdate, true);
+      }
+      return 'Localizado';
     }
 
 
@@ -1871,7 +1883,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     // The actual filtering happens in the filteredMonitoringData getter
   }
 
-  private formatOfflineDuration(lastUpdate: string | Date): string {
+  private formatOfflineDuration(lastUpdate: string | Date, isLocalizado: boolean = false): string {
     try {
       const lastUpdateDate = new Date(lastUpdate);
       const now = new Date();
@@ -1892,26 +1904,28 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       const diffInMonths = Math.floor(diffInDays / 30);
       const diffInYears = Math.floor(diffInDays / 365);
 
+      const prefix = isLocalizado ? 'Última ubicación hace' : 'Fuera de línea hace';
+
       if (diffInYears > 0) {
-        return `Fuera de línea hace ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
+        return `${prefix} ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
       }
       if (diffInMonths > 0) {
-        return `Fuera de línea hace ${diffInMonths} mes${diffInMonths > 1 ? 'es' : ''}`;
+        return `${prefix} ${diffInMonths} mes${diffInMonths > 1 ? 'es' : ''}`;
       }
       if (diffInWeeks > 0) {
-        return `Fuera de línea hace ${diffInWeeks} semana${diffInWeeks > 1 ? 's' : ''}`;
+        return `${prefix} ${diffInWeeks} semana${diffInWeeks > 1 ? 's' : ''}`;
       }
       if (diffInDays > 0) {
-        return `Fuera de línea hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
+        return `${prefix} ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
       }
       if (diffInHours > 0) {
-        return `Fuera de línea hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+        return `${prefix} ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
       }
       if (diffInMinutes > 0) {
-        return `Fuera de línea hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
+        return `${prefix} ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
       }
 
-      return 'Fuera de línea hace menos de 1 minuto';
+      return `${prefix} menos de 1 minuto`;
     } catch (error) {
       console.error('Error formateando tiempo offline:', error);
       return 'Fuera de línea (error al calcular)';

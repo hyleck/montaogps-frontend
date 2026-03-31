@@ -944,6 +944,11 @@
   color: var(--monitoringDevicesStatusActiveText);
 }
 
+.connection-status.localizado {
+  background-color: rgba(20, 184, 166, 0.1);
+  color: #14b8a6; /* Teal 500 */
+}
+
 .connection-status.offline {
   background-color: var(--monitoringDevicesStatusInactiveBackground);
   color: var(--monitoringDevicesStatusInactiveText);

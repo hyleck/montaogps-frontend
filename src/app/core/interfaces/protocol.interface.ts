@@ -11,6 +11,7 @@ export interface Protocol {
   port: number;
   img: string;
   utcOffset?: number; // Diferencia UTC en horas (ej: -6, -5, +1)
+  isAirtag?: boolean;
   commands: ProtocolCommand[];
 }
 
@@ -20,6 +21,7 @@ export interface CreateProtocolDto {
   port: number;
   img: string;
   utcOffset?: number; // Diferencia UTC en horas (ej: -6, -5, +1)
+  isAirtag?: boolean;
   commands: ProtocolCommand[];
 }
 
@@ -29,5 +31,6 @@ export interface UpdateProtocolDto {
   port?: number;
   img?: string;
   utcOffset?: number; // Diferencia UTC en horas (ej: -6, -5, +1)
+  isAirtag?: boolean;
   commands?: ProtocolCommand[];
 } 

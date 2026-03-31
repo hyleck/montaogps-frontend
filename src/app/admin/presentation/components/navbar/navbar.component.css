@@ -470,6 +470,34 @@
   animation: filterSlideDown 0.2s ease-out;
 }
 
+.filter-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.25rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.filter-group-header:hover {
+  background: rgba(189, 53, 53, 0.04);
+}
+
+.filter-group-header i {
+  font-size: 0.65rem;
+  color: var(--globalColorTextMuted);
+  margin-left: auto;
+}
+
+.filter-group-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--globalColorAccent);
+}
+
 @keyframes filterSlideDown {
   from {
     opacity: 0;

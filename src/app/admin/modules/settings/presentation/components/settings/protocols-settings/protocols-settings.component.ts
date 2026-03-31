@@ -29,7 +29,8 @@ export class ProtocolsSettingsComponent implements OnInit {
     description: '',
     port: 0,
     img: '',
-    utcOffset: 0, // Valor por defecto GMT (0 horas de diferencia)
+    utcOffset: 0,
+    isAirtag: false,
     commands: []
   };
 
@@ -108,8 +109,9 @@ export class ProtocolsSettingsComponent implements OnInit {
       description: protocol.description,
       port: protocol.port,
       img: protocol.img,
-      utcOffset: protocol.utcOffset ?? 0, // Usar valor por defecto si no existe
-      commands: [...protocol.commands] // Clonamos el array de comandos
+      utcOffset: protocol.utcOffset ?? 0,
+      isAirtag: protocol.isAirtag ?? false,
+      commands: [...protocol.commands]
     };
     this.isEditing = true;
   }
@@ -181,6 +183,7 @@ export class ProtocolsSettingsComponent implements OnInit {
         port: this.protocolForm.port,
         img: this.protocolForm.img,
         utcOffset: this.protocolForm.utcOffset,
+        isAirtag: this.protocolForm.isAirtag,
         commands: this.protocolForm.commands
       };
 
@@ -206,6 +209,7 @@ export class ProtocolsSettingsComponent implements OnInit {
         port: this.protocolForm.port,
         img: this.protocolForm.img,
         utcOffset: this.protocolForm.utcOffset,
+        isAirtag: this.protocolForm.isAirtag,
         commands: this.protocolForm.commands
       };
 
@@ -234,7 +238,8 @@ export class ProtocolsSettingsComponent implements OnInit {
       description: '',
       port: 0,
       img: '',
-      utcOffset: 0, // Valor por defecto GMT (0 horas de diferencia)
+      utcOffset: 0,
+      isAirtag: false,
       commands: []
     };
     this.resetNewCommand();

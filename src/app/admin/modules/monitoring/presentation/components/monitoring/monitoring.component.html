@@ -665,7 +665,8 @@
                 </td>
                 <td>
                   <span class="connection-status" [class.online]="isDeviceOnline(device)"
-                    [class.offline]="!isDeviceOnline(device)">
+                    [class.localizado]="isDeviceLocalizado(device)"
+                    [class.offline]="!isDeviceOnline(device) && !isDeviceLocalizado(device)">
                     {{ getConnectionDisplay(device) }}
                   </span>
                 </td>

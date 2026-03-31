@@ -311,7 +311,8 @@
                                                 <span (click)="handleTargetClick(target, $event)"
                                                     class="management__content-table-link" [ngClass]="{
                                                             'target-online': target.traccarStatus === 'online',
-                                                            'target-offline': target.traccarStatus !== 'online',
+                                                            'target-localizado': target.traccarStatus === 'Localizado',
+                                                            'target-offline': target.traccarStatus !== 'online' && target.traccarStatus !== 'Localizado',
                                                             'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
                                                             'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
                                                           }"
@@ -375,7 +376,7 @@
                                                         <span
                                                             class="target-offline-date">{{target.offlineDateText}}</span>
                                                     </div>
-                                                    <button *ngIf="target.traccarStatus !== 'online' && target.originalTarget?.status && currentUserAffiliationTypeId === 'empleado' && !activatingTargets.has(target._id)" type="button"
+                                                    <button *ngIf="target.traccarStatus !== 'online' && target.originalTarget?.status && currentUserAffiliationTypeId === 'empleado' && !activatingTargets.has(target._id) && !isTargetAirtag(target)" type="button"
                                                         (click)="startActivationFromList(target, $event)"
                                                         class="activation-btn">
                                                         <i class="pi pi-bolt" style="font-size: 10px;"></i>
@@ -817,7 +818,8 @@
                                                     <span (click)="handleTargetClick(target, $event)"
                                                         class="management__content-table-link" [ngClass]="{
                                                         'target-online': target.traccarStatus === 'online',
-                                                        'target-offline': target.traccarStatus !== 'online',
+                                                        'target-localizado': target.traccarStatus === 'Localizado',
+                                                        'target-offline': target.traccarStatus !== 'online' && target.traccarStatus !== 'Localizado',
                                                         'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
                                                         'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
                                                       }" title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña"
@@ -873,7 +875,7 @@
                                                     <span class="target-offline-time">{{target.offlineTimeText}}</span>
                                                     <span class="target-offline-date">{{target.offlineDateText}}</span>
                                                 </div>
-                                                <button *ngIf="target.traccarStatus !== 'online' && target.originalTarget?.status && currentUserAffiliationTypeId === 'empleado' && !activatingTargets.has(target._id)" type="button"
+                                                <button *ngIf="target.traccarStatus !== 'online' && target.originalTarget?.status && currentUserAffiliationTypeId === 'empleado' && !activatingTargets.has(target._id) && !isTargetAirtag(target)" type="button"
                                                     (click)="startActivationFromList(target, $event)"
                                                     class="activation-btn">
                                                     <i class="pi pi-bolt" style="font-size: 10px;"></i>

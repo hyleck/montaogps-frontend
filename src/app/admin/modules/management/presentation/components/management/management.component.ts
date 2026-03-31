@@ -28,6 +28,8 @@ import { ManagementUIService } from '@management/presentation/services/managemen
 import { SelectionService } from '@core/services/selection.service';
 import { TagsService } from '@core/services/tags.service';
 import { ChatwootApiService } from '@core/services/chatwoot-api.service';
+import { ProtocolsService } from '@core/services/protocols.service';
+import { Protocol } from '@core/interfaces/protocol.interface';
 
 @Component({
   selector: 'app-management',
@@ -74,6 +76,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   shortcuts: any[] = [];
   showShortcutsDialog: boolean = false;
   showMassActionButtons: boolean = false;
+
+  loadedProtocols: Protocol[] = [];
 
   // Mass Transfer shortcuts properties
   displayTransferDialog: boolean = false;
@@ -275,6 +279,30 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Determina si un target es de un protocolo Airtag
+   * @param target El target a evaluar
+   * @returns true si es un Airtag
+   */
+  isTargetAirtag(target: any): boolean {
+    if (!target) return false;
+    
+    // Si el protocolo ya viene enriquecido como objeto
+    const protocolObj = target.protocol || target.originalTarget?.protocol;
+    if (protocolObj && typeof protocolObj === 'object' && protocolObj.isAirtag !== undefined) {
+      return !!protocolObj.isAirtag;
+    }
+
+    // Si solo tenemos el ID del protocolo en target.type o target.originalTarget?.type
+    const rawType = target.type || target.originalTarget?.type;
+    const protocolId = typeof rawType === 'string' ? rawType : rawType?._id;
+    if (!protocolId) return false;
+
+    // Buscar en la lista de protocolos cargados
+    const matchedProtocol = this.loadedProtocols.find(p => p._id === protocolId);
+    return !!matchedProtocol?.isAirtag;
+  }
+
   // ====================================
   // PROPIEDADES PÚBLICAS - DELEGADAS A SERVICIOS
   // ====================================
@@ -357,7 +385,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private uiService: ManagementUIService,
     private cdr: ChangeDetectorRef,
     private selectionService: SelectionService,
-    private chatwootApi: ChatwootApiService
+    private chatwootApi: ChatwootApiService,
+    private protocolsService: ProtocolsService
   ) { }
 
   // ====================================
@@ -510,6 +539,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
     // Load shortcuts from localStorage
     this.loadShortcuts();
+
+    // Cargar protocolos para verificaciones dinámicas (ej: Airtags)
+    this.protocolsService.getAllProtocols().subscribe({
+      next: (protocols) => {
+        this.loadedProtocols = protocols;
+      },
+      error: (err) => console.error('Error al cargar protocolos:', err)
+    });
   }
 
   ngOnDestroy(): void {
@@ -1148,6 +1185,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return targets.map(target => {
       const traccarStatus = target.traccarInfo?.status || 'offline';
       const isOnline = traccarStatus === 'online';
+      const isLocalizado = traccarStatus === 'Localizado';
 
       // Intentamos recuperar isShared si fue inyectado, o lo deducimos (menos fiable sin el contexto de sharedTargets original)
       // Pero espera, en loadTargetsForUser original:
@@ -1160,14 +1198,23 @@ export class ManagementComponent implements OnInit, OnDestroy {
       let offlineTimeText = '';
       let offlineDateText = '';
       if (!isOnline && target.traccarInfo?.['lastUpdate']) {
-        const offlineInfo = this.calculateOfflineTime(target.traccarInfo['lastUpdate']);
+        const offlineInfo = this.calculateOfflineTime(target.traccarInfo['lastUpdate'], isLocalizado);
         offlineTimeText = offlineInfo.timeText;
         offlineDateText = offlineInfo.dateText;
       }
 
+      let translatedStatus = '';
+      if (isOnline) {
+        translatedStatus = this.translate.instant('management.status.online');
+      } else if (isLocalizado) {
+        translatedStatus = 'Localizado';
+      } else {
+        translatedStatus = this.translate.instant('management.status.offline');
+      }
+
       return {
         name: target.name,
-        status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
+        status: translatedStatus,
         imei: target.device_imei || target.imei,
         sim: target.sim_card_number || target.sim_card,
         expiration_date: target.expiration_date,
@@ -2061,7 +2108,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
    * @param lastUpdate Fecha de la última actualización
    * @returns Objeto con el tiempo transcurrido y la fecha formateada
    */
-  private calculateOfflineTime(lastUpdate: string | Date): { timeText: string; dateText: string } {
+  private calculateOfflineTime(lastUpdate: string | Date, isLocalizado: boolean = false): { timeText: string; dateText: string } {
     try {
       const lastUpdateDate = new Date(lastUpdate);
       const now = new Date();
@@ -2086,20 +2133,21 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
       // Formatear tiempo transcurrido
       let timeText = '';
+      const prefix = isLocalizado ? 'Última ubicación hace' : 'Fuera de línea hace';
       if (diffInYears > 0) {
-        timeText = `Fuera de línea hace ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
+        timeText = `${prefix} ${diffInYears} año${diffInYears > 1 ? 's' : ''}`;
       } else if (diffInMonths > 0) {
-        timeText = `Fuera de línea hace ${diffInMonths} mes${diffInMonths > 1 ? 'es' : ''}`;
+        timeText = `${prefix} ${diffInMonths} mes${diffInMonths > 1 ? 'es' : ''}`;
       } else if (diffInWeeks > 0) {
-        timeText = `Fuera de línea hace ${diffInWeeks} semana${diffInWeeks > 1 ? 's' : ''}`;
+        timeText = `${prefix} ${diffInWeeks} semana${diffInWeeks > 1 ? 's' : ''}`;
       } else if (diffInDays > 0) {
-        timeText = `Fuera de línea hace ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
+        timeText = `${prefix} ${diffInDays} día${diffInDays > 1 ? 's' : ''}`;
       } else if (diffInHours > 0) {
-        timeText = `Fuera de línea hace ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
+        timeText = `${prefix} ${diffInHours} hora${diffInHours > 1 ? 's' : ''}`;
       } else if (diffInMinutes > 0) {
-        timeText = `Fuera de línea hace ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
+        timeText = `${prefix} ${diffInMinutes} minuto${diffInMinutes > 1 ? 's' : ''}`;
       } else {
-        timeText = 'Fuera de línea hace menos de 1 minuto';
+        timeText = `${prefix} menos de 1 minuto`;
       }
 
       // Formatear fecha de última ubicación

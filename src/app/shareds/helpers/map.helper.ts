@@ -189,7 +189,8 @@ export class MapUtils {
     course: number = 0,
   ): any {
 
-    const isOffline = info?.toLowerCase() !== 'online';
+    const normalizedInfo = info?.toLowerCase();
+    const isOffline = normalizedInfo !== 'online' && normalizedInfo !== 'localizado';
 
     if (provider === 'google') {
       // Build fallback favicon URL based on window location and offline status
@@ -219,16 +220,16 @@ export class MapUtils {
         const infoWindow = new google.maps.InfoWindow({
           content: `
             <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
-              <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${info?.toLowerCase() === 'online' ? '#16a34a' : '#111'};">${title || 'Target'}</div>
+              <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${normalizedInfo === 'online' ? '#16a34a' : (normalizedInfo === 'localizado' ? '#14b8a6' : '#111')};">${title || 'Target'}</div>
               <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
               <div>Estado: ${info || 'Desconocido'}</div>
             </div>
           `
         });
 
-        let isOpen = openByDefault && info?.toLowerCase() === 'online';
+        let isOpen = openByDefault && (normalizedInfo === 'online' || normalizedInfo === 'localizado');
 
-        // Abrir por defecto si está online
+        // Abrir por defecto si está online o localizado
         if (isOpen) {
           infoWindow.open(map, marker);
         }
@@ -293,7 +294,7 @@ export class MapUtils {
         const popup = new mapboxgl.Popup({ offset: 25, closeButton: true })
           .setHTML(`
             <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
-              <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${info?.toLowerCase() === 'online' ? '#16a34a' : '#111'};">${title || 'Target'}</div>
+              <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${normalizedInfo === 'online' ? '#16a34a' : (normalizedInfo === 'localizado' ? '#14b8a6' : '#111')};">${title || 'Target'}</div>
               <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
               <div>Estado: ${info || 'Desconocido'}</div>
             </div>
@@ -301,8 +302,8 @@ export class MapUtils {
 
         marker.setPopup(popup);
 
-        // Abrir por defecto si está online y se permite
-        if (openByDefault && info?.toLowerCase() === 'online') {
+        // Abrir por defecto si está online o localizado y se permite
+        if (openByDefault && (normalizedInfo === 'online' || normalizedInfo === 'localizado')) {
           marker.togglePopup();
         }
 
