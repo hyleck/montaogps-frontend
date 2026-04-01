@@ -566,12 +566,12 @@
 
   <!-- Device Management Dialogs -->
   <p-dialog [(visible)]="deviceDialogVisible" [style]="{width: '450px'}" header="Dispositivo" [modal]="true"
-    styleClass="p-fluid app-dark-dialog">
+    styleClass="p-fluid app-dark-dialog" (onShow)="focusImei()">
     <ng-template pTemplate="content">
       <form (ngSubmit)="saveDevice()" #deviceForm="ngForm">
         <div class="field" *ngIf="selectedDevice">
           <label for="deviceImei">IMEI</label>
-          <input type="text" id="deviceImei" [(ngModel)]="selectedDevice.imei" name="imei" required #imeiInput
+          <input type="text" id="deviceImei" [(ngModel)]="selectedDevice.imei" name="imei" required #imeiInput autofocus
             class="form-input" placeholder="Ingrese el IMEI" />
         </div>
 
@@ -660,14 +660,14 @@
   <!-- Simcard Management Dialog -->
   <p-dialog [(visible)]="simcardDialogVisible" [style]="{width: '500px'}"
     [header]="isEditSimcardMode ? 'Editar Simcard' : 'Nueva Simcard'" [modal]="true"
-    styleClass="p-fluid app-dark-dialog" (onHide)="hideSimcardDialog()">
+    styleClass="p-fluid app-dark-dialog" (onHide)="hideSimcardDialog()" (onShow)="focusIccid()">
     <ng-template pTemplate="content">
       <form (ngSubmit)="saveSimcard()" #simcardForm="ngForm"
         style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
         <div class="field" *ngIf="selectedSimcard">
           <label for="simcardIccid" style="display: block; margin-bottom: 0.25rem; font-weight: bold;">{{
             selectedSimcard.sim_company === 'nacionales' ? 'ICCID / No. Teléfono' : 'ICCID' }} *</label>
-          <input type="text" id="simcardIccid" [(ngModel)]="selectedSimcard.iccid" name="iccid" required #iccidInput
+          <input type="text" id="simcardIccid" [(ngModel)]="selectedSimcard.iccid" name="iccid" required #iccidInput autofocus
             class="form-input"
             [placeholder]="selectedSimcard.sim_company === 'nacionales' ? 'Ej. 809-555-1234' : 'Ej. 890141032111185...'" />
         </div>

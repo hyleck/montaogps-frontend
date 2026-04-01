@@ -83,7 +83,8 @@ export class InventoryComponent implements OnInit {
   currentView: 'devices' | 'simcards' = 'devices';
 
   // Simcards State
-  @ViewChild('iccidInput') iccidInput!: ElementRef;
+  @ViewChild('iccidInput') iccidInput?: ElementRef;
+  @ViewChild('imeiInput') imeiInput?: ElementRef;
   simcardsList: SimcardItem[] = [];
   simcardDialogVisible = false;
   conducesDialogVisible = false;
@@ -833,6 +834,14 @@ export class InventoryComponent implements OnInit {
     this.isEditDeviceMode = false;
   }
 
+  focusImei(): void {
+    setTimeout(() => {
+      if (this.imeiInput?.nativeElement) {
+        this.imeiInput.nativeElement.focus();
+      }
+    }, 50);
+  }
+
   // Installation Methods
   installDevice(device: InventoryItem): void {
     if (device.installed) {
@@ -1169,6 +1178,14 @@ export class InventoryComponent implements OnInit {
     this.simcardDialogVisible = false;
     this.selectedSimcard = null;
     this.isEditSimcardMode = false;
+  }
+
+  focusIccid(): void {
+    setTimeout(() => {
+      if (this.iccidInput?.nativeElement) {
+        this.iccidInput.nativeElement.focus();
+      }
+    }, 50);
   }
 
   // --- Shipping & Conduces Methods ---

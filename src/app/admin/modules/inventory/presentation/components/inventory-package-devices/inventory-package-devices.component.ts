@@ -4,6 +4,7 @@ import {
   OnDestroy,
   OnInit,
   ViewChild,
+  AfterViewInit,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
@@ -20,6 +21,7 @@ import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { UserService } from 'src/app/core/services/user.service';
 import { StatusService } from 'src/app/shareds/services/status.service';
 import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
+import { Table } from 'primeng/table';
 
 @Component({
   selector: 'app-inventory-package-devices',
@@ -30,6 +32,7 @@ import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 })
 export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   @ViewChild('imeiInput') imeiInput!: ElementRef;
+  @ViewChild('deviceTable') deviceTable!: Table;
 
   items: MenuItem[] = [{ label: 'Inventario' }];
   home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
@@ -64,6 +67,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   availablePlans: any[] = [];
 
   private routeSub?: Subscription;
+  private scrollListener: any;
 
   constructor(
     private inventoryService: InventoryService,
@@ -126,6 +130,8 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     return this.authService.hasPrivilege('inventory', 'delete');
   }
 
+
+
   private loadProtocols(): void {
     this.protocolsService.getAllProtocols().subscribe({
       next: (list: any[]) => {
@@ -154,7 +160,10 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     this.currentPackageId = packageId;
     this.inventoryService.getDevicesByPackage(packageId, this.currentPage, this.itemsPerPage).subscribe({
       next: (response) => {
-        const mappedDevices = (response.data || []).map(d => ({ ...d, storage_id: d.storage_id || null }));
+        const mappedDevices = (response.data || []).map(d => ({ 
+          ...d, 
+          storage_id: typeof d.storage_id === 'object' && d.storage_id ? (d.storage_id as any)._id : (d.storage_id || null) 
+        }));
 
         if (resetPage) {
           this.packageDevices = mappedDevices;
@@ -211,12 +220,6 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
 
     this.isEditDeviceMode = false;
     this.deviceDialogVisible = true;
-
-    setTimeout(() => {
-      if (this.imeiInput?.nativeElement) {
-        this.imeiInput.nativeElement.focus();
-      }
-    }, 100);
   }
 
   editDevice(device: InventoryItem): void {
@@ -239,6 +242,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
           : device.Protocol || device.protocol || '',
       package: device.package || this.currentPackageId,
       packageId: device.package || this.currentPackageId,
+      storage_id: device.storage_id || null,
     };
 
     this.isEditDeviceMode = true;
@@ -408,6 +412,14 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     this.selectedDevice = null;
   }
 
+  focusImei(): void {
+    setTimeout(() => {
+      if (this.imeiInput?.nativeElement) {
+        this.imeiInput.nativeElement.focus();
+      }
+    }, 50);
+  }
+
   resetFormForNewDevice(): void {
     if (!this.selectedDevice || !this.currentPackageId) {
       return;
@@ -464,7 +476,10 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
       )
       .subscribe({
         next: (response) => {
-          const mappedDevices = (response.data || []).map(d => ({ ...d, storage_id: d.storage_id || null }));
+          const mappedDevices = (response.data || []).map(d => ({ 
+            ...d, 
+            storage_id: typeof d.storage_id === 'object' && d.storage_id ? (d.storage_id as any)._id : (d.storage_id || null) 
+          }));
 
           if (resetPage) {
             this.packageDevices = mappedDevices;
@@ -492,12 +507,18 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     const element = event.target;
     if (element.scrollHeight - element.scrollTop <= element.clientHeight + 50) {
       if (!this.isLoadingMore && !this.loading && this.packageDevices.length < this.totalItems) {
-        this.currentPage++;
-        if (this.packageSearchQuery.trim() || this.selectedWarehouseFilter || this.packageSearchStatus) {
-          this.searchPackageDevices(false);
-        } else {
-          this.loadPackageDevices(this.currentPackageId!, false);
-        }
+        this.loadMoreDevices();
+      }
+    }
+  }
+
+  loadMoreDevices(): void {
+    if (!this.isLoadingMore && !this.loading && this.packageDevices.length < this.totalItems) {
+      this.currentPage++;
+      if (this.packageSearchQuery.trim() || this.selectedWarehouseFilter || this.packageSearchStatus) {
+        this.searchPackageDevices(false);
+      } else {
+        this.loadPackageDevices(this.currentPackageId!, false);
       }
     }
   }

@@ -65,8 +65,9 @@
       </ng-template>
     </p-toolbar>
 
-    <p-table [value]="packageDevices" [scrollable]="true" scrollHeight="60vh" [virtualScroll]="false"
-      (onScroll)="onScroll($event)" styleClass="p-datatable-sm p-datatable-gridlines">
+    <div class="table-scroll-wrapper" style="max-height: 60vh; overflow-y: auto;" (scroll)="onScroll($event)">
+      <p-table #deviceTable [value]="packageDevices" [scrollable]="true" [virtualScroll]="false"
+        styleClass="p-datatable-sm p-datatable-gridlines">
       <ng-template pTemplate="header">
         <tr>
           <th colspan="7" class="total-count-header">
@@ -129,10 +130,16 @@
         </tr>
       </ng-template>
     </p-table>
+    </div>
 
-    <div *ngIf="isLoadingMore" class="loading-more-container text-center p-2">
+    <div *ngIf="isLoadingMore" class="loading-more-container text-center p-2 mt-3">
       <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-      <span>Cargando más resultados...</span>
+      <span class="block mt-2">Cargando más resultados...</span>
+    </div>
+
+    <div *ngIf="!isLoadingMore && !loading && packageDevices.length < totalItems" class="text-center mt-3 mb-3">
+      <button pButton pRipple label="Cargar más ({{packageDevices.length}} de {{totalItems}})"
+        class="p-button-outlined p-button-secondary" (click)="loadMoreDevices()"></button>
     </div>
   </div>
 
@@ -143,12 +150,12 @@
 </div>
 
 <p-dialog [(visible)]="deviceDialogVisible" [style]="{ width: '450px' }" header="Dispositivo" [modal]="true"
-  styleClass="p-fluid">
+  styleClass="p-fluid" (onShow)="focusImei()">
   <ng-template pTemplate="content">
     <form (ngSubmit)="saveDevice()" #deviceForm="ngForm">
       <div class="field" *ngIf="selectedDevice">
         <label for="deviceImei">IMEI</label>
-        <input type="text" id="deviceImei" [(ngModel)]="selectedDevice.imei" name="imei" required #imeiInput
+        <input type="text" id="deviceImei" [(ngModel)]="selectedDevice.imei" name="imei" required #imeiInput autofocus
           class="form-input" placeholder="Ingrese el IMEI" />
       </div>
 
