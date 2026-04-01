@@ -261,11 +261,17 @@
                                     <i class="pi pi-arrow-left"></i>
                                     {{ 'management.userForm.backToPersonalInfo' | translate }}
                                 </button>
-                                <button type="button" class="button button--secondary" (click)="openSessionsModal()"
-                                    *ngIf="userInput">
-                                    <i class="pi pi-list"></i>
-                                    Sesiones
-                                </button>
+                                <div style="display: flex; gap: 0.5rem;">
+                                    <button type="button" class="button button--secondary" (click)="openSessionsModal()"
+                                        *ngIf="userInput">
+                                        <i class="pi pi-list"></i>
+                                        Sesiones
+                                    </button>
+                                    <button type="button" (click)="onSubmit()" class="save-button">
+                                        <i class="pi pi-save"></i>
+                                        {{ translations.save | translate }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -427,9 +433,8 @@
                                                 'management.userForm.companyTypeDescription' | translate }}</small>
                                         </div>
 
-                                        <!-- Sección visible solo para Técnicos -->
-                                        <div class="settings-item tech-item"
-                                            *ngIf="selectedAffiliationType === 'tecnico_empleado' || selectedAffiliationType === 'tecnico_independiente'">
+                                        <!-- Sección de Ubicación para todos los usuarios -->
+                                        <div class="settings-item tech-item">
                                             <div class="tech-location-grid">
                                                 <div class="tech-field">
                                                     <div class="settings-item__header">
@@ -500,10 +505,15 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="user-form__actions">
+                        <div class="user-form__actions"
+                            style="justify-content: space-between; display: flex; width: 100%;">
                             <button type="button" (click)="activeTabIndex = 0" class="back-button">
                                 <i class="pi pi-arrow-left"></i>
                                 {{ 'management.userForm.backToPersonalInfo' | translate }}
+                            </button>
+                            <button type="button" (click)="onSubmit()" class="save-button">
+                                <i class="pi pi-save"></i>
+                                {{ translations.save | translate }}
                             </button>
                         </div>
                     </p-tabPanel>

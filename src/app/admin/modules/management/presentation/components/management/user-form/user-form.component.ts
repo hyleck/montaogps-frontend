@@ -434,31 +434,29 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         //     this.selectedAffiliationType = 'tecnico_independiente';
         // }
 
-        // Precargar datos de técnico si aplican
+        // Cargar provincia y municipio para todos los usuarios
+        this.selectedProvince = backendProvince;
+        this.pendingMunicipality = backendMunicipality;
+        
+        if (this.selectedProvince) {
+            this.isProgrammaticProvinceSetting = true;
+            this.onProvinceChange(); // Carga los municipios de la provincia
+            const pm = this.pendingMunicipality;
+            setTimeout(() => {
+                if (pm) {
+                    this.selectedMunicipality = pm;
+                }
+            }, 0);
+        } else {
+            this.selectedMunicipality = '';
+            this.municipalities = MUNICIPALITIES[''] || [];
+        }
+
+        // Servicios desde backend (solo para técnicos)
         const isTech = this.selectedAffiliationType?.startsWith('tecnico');
         if (isTech) {
-            // Provincia y municipio desde backend
-            this.isProgrammaticProvinceSetting = true;
-            this.pendingMunicipality = backendMunicipality;
-            this.selectedProvince = backendProvince;
-            // Disparar carga de municipios de forma programática
-            if (this.selectedProvince) {
-                // Ejecutar onProvinceChange y reafirmar el valor tras render
-                this.onProvinceChange();
-                const pm = this.pendingMunicipality;
-                setTimeout(() => {
-                    if (pm) {
-                        this.selectedMunicipality = pm;
-                    }
-                }, 0);
-            }
-
-            // Servicios desde backend (array de ids)
             this.technicianServices = Array.isArray(backendServices) ? backendServices.map((s: any) => String(s)) : [];
         } else {
-            this.selectedProvince = '';
-            this.selectedMunicipality = '';
-            this.municipalities = MUNICIPALITIES[''];
             this.technicianServices = [];
         }
 
@@ -674,9 +672,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             profile_type: this.selectedProfileType,
             department_id: 'exampleDepartmentId',
             parent_id: parentId,
-            // Campos de ubicación/servicios para técnicos
-            province: this.selectedAffiliationType?.startsWith('tecnico') ? this.selectedProvince : undefined,
-            municipality: this.selectedAffiliationType?.startsWith('tecnico') ? this.selectedMunicipality : undefined,
+            // Campos de ubicación para todos y servicios para técnicos
+            province: this.selectedProvince || undefined,
+            municipality: this.selectedMunicipality || undefined,
             services: this.selectedAffiliationType?.startsWith('tecnico') ? (this.technicianServices || []) : []
         };
         console.log('User to submit:', userToSubmit);
