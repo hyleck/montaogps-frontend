@@ -416,6 +416,9 @@
                   <p class="warehouse-desc" [title]="warehouse.description || 'Sin descripción'">
                     {{warehouse.description || 'Sin descripción'}}
                   </p>
+                  <p *ngIf="warehouse.assigned_user" class="warehouse-desc" style="font-size: 0.8rem; color: #14b8a6; margin-top: 4px;">
+                    <i class="pi pi-user" style="margin-right: 4px;"></i>{{warehouse.assigned_user}}
+                  </p>
                   <div class="warehouse-metrics">
                     <div class="metric-box">
                       <span class="metric-label">Min. Req</span>
@@ -467,6 +470,9 @@
                 <div class="warehouse-body">
                   <p class="warehouse-desc" [title]="warehouse.description || 'Sin descripción'">
                     {{warehouse.description || 'Sin descripción'}}
+                  </p>
+                  <p *ngIf="warehouse.assigned_user" class="warehouse-desc" style="font-size: 0.8rem; color: #14b8a6; margin-top: 4px;">
+                    <i class="pi pi-user" style="margin-right: 4px;"></i>{{warehouse.assigned_user}}
                   </p>
                   <div class="warehouse-metrics">
                     <div class="metric-box">
@@ -540,6 +546,11 @@
           <label for="wMinQty" class="font-bold">Cantidad Mínima</label>
           <p-inputNumber id="wMinQty" [(ngModel)]="selectedWarehouse.min_quantity" [min]="0" styleClass="w-full"
             placeholder="0"></p-inputNumber>
+        </div>
+        <div class="field mb-3">
+          <label for="wAssignedUser" class="font-bold">Usuario Asignado (correo)</label>
+          <input type="email" pInputText id="wAssignedUser" [(ngModel)]="selectedWarehouse.assigned_user"
+            class="w-full" style="width: 100%" placeholder="ejemplo@correo.com" />
         </div>
       </div>
     </ng-template>

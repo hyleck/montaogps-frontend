@@ -604,7 +604,7 @@ export class InventoryComponent implements OnInit {
   }
 
   openNewWarehouse(): void {
-    this.selectedWarehouse = { name: '', description: '' };
+    this.selectedWarehouse = { name: '', description: '', assigned_user: '' };
     this.isEditWarehouseMode = false;
     this.warehouseFormDialogVisible = true;
   }

@@ -84,6 +84,10 @@
                         [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }"
                         class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets |
                         translate }} {{ totalTargetsCountDisplay }} </button>
+                    <button *ngIf="userWarehouse" (click)="openWarehouseModal()"
+                        class="button button--flat" style="color: #14b8a6;">
+                        <i class="pi pi-box"></i> Almacén ( {{ userWarehouse.stock || 0 }} )
+                    </button>
                 </div>
             </div>
             <div class="management__user-control-content">
@@ -583,6 +587,10 @@
                         [ngClass]="{'button--primary-flat': managementService.getOp() === 't', 'button--flat': managementService.getOp() !== 't'  }"
                         class="button button--flat"> <i class="pi pi-map-marker"></i> {{ translations.targets |
                         translate }} ( {{ totalTargetsCountDisplay }} )</button>
+                    <button *ngIf="userWarehouse" (click)="openWarehouseModal()"
+                        class="button button--flat" style="color: #14b8a6;">
+                        <i class="pi pi-box"></i> Almacén ( {{ userWarehouse.stock || 0 }} )
+                    </button>
                 </div>
                 <div class="management__user-back-button" *ngIf="canNavigateBack()">
                     <button (click)="goToParent()" class="button button--flat"> <i class="pi pi-arrow-left"></i> {{
@@ -1458,4 +1466,58 @@
             <i class="pi pi-phone" style="margin-right: 4px;"></i> {{ chatUser.phone || 'Sin teléfono' }}
         </div>
     </div>
+</p-dialog>
+
+<p-dialog [(visible)]="warehouseModalVisible" [style]="{width: '800px'}"
+    [header]="'Almacén: ' + (userWarehouse?.name || '')" [modal]="true" styleClass="app-dark-dialog"
+    (onHide)="closeWarehouseModal()">
+    <ng-template pTemplate="content">
+        <div *ngIf="loadingWarehouseDevices" class="text-center p-4">
+            <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+            <p style="margin-top: 0.5rem;">Cargando dispositivos...</p>
+        </div>
+        <div *ngIf="!loadingWarehouseDevices && userWarehouseDevices.length === 0" class="text-center p-4">
+            <i class="pi pi-inbox" style="font-size: 2rem; opacity: 0.5;"></i>
+            <p style="margin-top: 0.5rem;">No hay dispositivos disponibles en este almacén.</p>
+        </div>
+        <div *ngIf="!loadingWarehouseDevices && userWarehouseDevices.length > 0">
+            <p style="margin-bottom: 1rem; color: rgba(255,255,255,0.5); font-size: 0.85rem;">
+                {{ userWarehouseDevices.length }} dispositivo(s) disponible(s)
+            </p>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                        <th style="text-align: left; padding: 8px; font-size: 0.85rem;">IMEI</th>
+                        <th style="text-align: left; padding: 8px; font-size: 0.85rem;">SIM</th>
+                        <th style="text-align: left; padding: 8px; font-size: 0.85rem;">Protocolo</th>
+                        <th style="text-align: left; padding: 8px; font-size: 0.85rem;">Fecha</th>
+                        <th style="text-align: center; padding: 8px; font-size: 0.85rem;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let device of userWarehouseDevices"
+                        style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                        <td style="padding: 8px; font-family: monospace; font-size: 0.9rem;">
+                            {{ device.IMEI || device.imei || 'N/A' }}
+                        </td>
+                        <td style="padding: 8px; font-size: 0.85rem;">
+                            {{ device.SIM || device.sim || '—' }}
+                        </td>
+                        <td style="padding: 8px; font-size: 0.85rem;">
+                            {{ device.Protocol?.name || device.protocol?.name || '—' }}
+                        </td>
+                        <td style="padding: 8px; font-size: 0.85rem;">
+                            {{ (device.storageDate | date: 'dd/MM/yyyy') || 'N/A' }}
+                        </td>
+                        <td style="padding: 8px; text-align: center;">
+                            <button *ngIf="currentUserAffiliationTypeId === 'empleado'" pButton pRipple icon="pi pi-send"
+                                class="p-button-rounded p-button-info p-button-text p-button-sm"
+                                pTooltip="Instalar" tooltipPosition="top"
+                                (click)="installFromWarehouse(device)"></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </ng-template>
 </p-dialog>

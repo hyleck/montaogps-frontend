@@ -29,6 +29,7 @@ import { SelectionService } from '@core/services/selection.service';
 import { TagsService } from '@core/services/tags.service';
 import { ChatwootApiService } from '@core/services/chatwoot-api.service';
 import { ProtocolsService } from '@core/services/protocols.service';
+import { InventoryService, Warehouse, InventoryItem } from '@core/services/inventory.service';
 import { Protocol } from '@core/interfaces/protocol.interface';
 
 @Component({
@@ -71,6 +72,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
   showPriorityDialog: boolean = false;
   priorityDevices: any[] = [];
   loadingPriorityDevices: boolean = false;
+
+  // Warehouse
+  userWarehouse: Warehouse | null = null;
+  userWarehouseDevices: InventoryItem[] = [];
+  warehouseModalVisible: boolean = false;
+  loadingWarehouseDevices: boolean = false;
 
   // Shortcuts
   shortcuts: any[] = [];
@@ -386,7 +393,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
     private selectionService: SelectionService,
     private chatwootApi: ChatwootApiService,
-    private protocolsService: ProtocolsService
+    private protocolsService: ProtocolsService,
+    private inventoryService: InventoryService
   ) { }
 
   // ====================================
@@ -2097,6 +2105,78 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.loadUserPath(user._id);
     this.loadUsersForUser(user._id);
     this.loadTargetsForUser(user._id);
+    this.loadUserWarehouse();
+  }
+
+  // ====================================
+  // WAREHOUSE METHODS
+  // ====================================
+
+  private loadUserWarehouse(): void {
+    if (!this.selectedUser?.email) {
+      this.userWarehouse = null;
+      return;
+    }
+    const email = this.selectedUser.email;
+
+    // Use cached data first for instant display
+    const cached = this.inventoryService.warehouses$.getValue();
+    if (cached && cached.length > 0) {
+      this.userWarehouse = cached.find(w => w.assigned_user === email) || null;
+    }
+
+    // Refresh in background
+    this.inventoryService.getWarehouses().subscribe({
+      next: (warehouses) => {
+        this.userWarehouse = warehouses.find(w => w.assigned_user === email) || null;
+      },
+      error: () => {
+        if (!this.userWarehouse) this.userWarehouse = null;
+      }
+    });
+  }
+
+  openWarehouseModal(): void {
+    if (!this.userWarehouse?._id) return;
+    this.warehouseModalVisible = true;
+    this.loadingWarehouseDevices = true;
+    this.userWarehouseDevices = [];
+    this.inventoryService.searchAllDevices('', this.userWarehouse._id, 1, 200, 'available').subscribe({
+      next: (response) => {
+        this.userWarehouseDevices = response.data || [];
+        this.loadingWarehouseDevices = false;
+      },
+      error: () => {
+        this.userWarehouseDevices = [];
+        this.loadingWarehouseDevices = false;
+      }
+    });
+  }
+
+  closeWarehouseModal(): void {
+    this.warehouseModalVisible = false;
+    this.userWarehouseDevices = [];
+  }
+
+  installFromWarehouse(device: InventoryItem): void {
+    const protocol = device.Protocol || device.protocol;
+    const protocolId = typeof protocol === 'object' ? protocol._id : protocol;
+
+    const preloadedTargetData: any = {
+      device_imei: (device.IMEI || device.imei || '').trim(),
+      sim_card_number: (device.SIM || device.sim || '').trim(),
+      type: protocolId || '',
+      status: 'active',
+      autoSubmit: false,
+    };
+
+    this.warehouseModalVisible = false;
+    this.isInstallingFromInventory = true;
+    this.setOp('t');
+
+    setTimeout(() => {
+      this.showTargetForm(preloadedTargetData);
+    }, 300);
   }
 
   // ====================================
