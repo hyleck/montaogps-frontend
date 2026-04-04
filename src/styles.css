@@ -1415,3 +1415,27 @@ html.app-dark .processes-container .change-block pre {
   border-color: rgba(255, 255, 255, 0.1) !important;
   color: #cbd5e1 !important;
 }
+
+/* ===== GOOGLE MAPS ESTÉTICA DE MARCADORES ===== */
+.custom-map-label {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(4px) !important;
+    border: 1px solid rgba(0, 0, 0, 0.2) !important;
+    color: #1f2937 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    font-family: 'Inter', sans-serif !important;
+    padding: 3px 8px !important;
+    border-radius: 20px !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
+    transform: translateY(-38px) !important;
+    white-space: nowrap !important;
+    transition: all 0.2s ease !important;
+    pointer-events: none !important;
+}
+html.app-dark .custom-map-label {
+    background: rgba(30, 41, 59, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #f8fafc !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
+}

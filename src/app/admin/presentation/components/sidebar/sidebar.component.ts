@@ -262,11 +262,12 @@ export class SidebarComponent implements OnInit {
     });
   }
 
-  // Getter para obtener los elementos favoritos filtrados (Dashboard solo para empleados)
+  // Getter para obtener los elementos favoritos filtrados
   get filteredFavoriteItems() {
     return this.sidaberOptions.favoriteItems.filter(item => {
+      // El dashboard ahora está adaptado para mostrar contenido diferente a Clientes vs Empleados
       if (item.path === '/admin/dashboard') {
-        return this.isEmployeeUser || this.isRootUser;
+        return true; 
       }
       return true;
     });

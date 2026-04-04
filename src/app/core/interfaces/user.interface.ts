@@ -48,6 +48,11 @@ export interface User {
   birth?: string;
   dni?: string;
   address?: string;
+  province?: string;
+  municipality?: string;
+  sector?: string;
+  latitude?: number;
+  longitude?: number;
   photo?: string;
   settings?: UserSettings[];
   profile_type_id?: string;
@@ -74,6 +79,11 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
   dni: string;
   birth: string;
   address: string;
+  province?: string;
+  municipality?: string;
+  sector?: string;
+  latitude?: number;
+  longitude?: number;
   photo: string;
   phone: string;
   phone2: string;

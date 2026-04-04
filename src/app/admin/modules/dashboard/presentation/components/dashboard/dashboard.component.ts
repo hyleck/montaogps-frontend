@@ -1,16 +1,12 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { MenuItem } from 'primeng/api';
-import { LangService } from '../../../../../../shareds/services/langi18/lang.service';
-import { TranslateService } from '@ngx-translate/core';
-import { forkJoin, Subscription } from 'rxjs';
-import { TargetsService } from '../../../../../../core/services/targets.service';
-import { UserService } from '../../../../../../core/services/user.service';
-import { InventoryService } from '../../../../../../core/services/inventory.service';
+import { Component, AfterViewInit, OnDestroy, ElementRef, ViewChild, OnInit } from '@angular/core';
 import { AuthService } from '../../../../../../core/services/auth.service';
-import { MonitoringService, MonitoringSummary } from '../../../../../../core/services/monitoring.service';
-import { ProcessService, ProcessStatsResponse, CreatorStatsResponse, CreatorStat } from '../../../../../../core/services/process.service';
+import { SystemService } from '../../../../../../core/services/system.service';
+import { MonitoringService } from '../../../../../../core/services/monitoring.service';
+import { MapUtils } from '../../../../../../shareds/helpers/map.helper';
+import { MarkerClusterer } from '@googlemaps/markerclusterer';
 
-import { Router } from '@angular/router';
+
+declare const google: any;
 
 @Component({
     selector: 'app-dashboard',
@@ -18,201 +14,229 @@ import { Router } from '@angular/router';
     styleUrl: './dashboard.component.css',
     standalone: false
 })
-export class DashboardComponent implements OnInit, OnDestroy {
-    items: MenuItem[] = [];
-    home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
-
-    isLoading: boolean = false;
-    isMonitoringLoading: boolean = false;
-    monitoringStats: MonitoringSummary | null = null;
-
-    isProcessLoading: boolean = false;
-    processCards: { icon: string; title: string; count: number; colorClass: string }[] = [];
-
-    isCreatorStatsLoading: boolean = false;
-    creatorStats: CreatorStat[] = [];
-
-    private subscription: Subscription = new Subscription();
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
+    @ViewChild('mapElement') mapElement!: ElementRef;
+    
+    map: any;
+    markers: any[] = [];
+    markerCluster: any = null;
+    currentUser: any = null;
+    isEmployee: boolean = false;
 
     constructor(
-        public langService: LangService,
-        private translate: TranslateService,
-        private targetsService: TargetsService,
-        private userService: UserService,
-        private inventoryService: InventoryService,
         private authService: AuthService,
-        private monitoringService: MonitoringService,
-        private processService: ProcessService,
-        private router: Router
-    ) {
-        this.initializeBreadcrumb();
-    }
+        private systemService: SystemService,
+        private monitoringService: MonitoringService
+    ) {}
 
     ngOnInit() {
-        // Guard to prevent non-employees from accessing the Dashboard directly via URL
-        const currentUser = this.authService.getCurrentUser();
-        const isEmployee = currentUser?.affiliation_type_id === 'empleado';
-        const isRoot = currentUser?.root === true;
+        this.currentUser = this.authService.getCurrentUser();
+        this.isEmployee = this.currentUser?.affiliation_type_id === 'empleado' || this.currentUser?.root === true;
+    }
 
-        if (!isEmployee && !isRoot) {
-            this.router.navigate(['/admin/management']);
-            return;
-        }
-
-        this.loadMonitoringData();
-        this.loadProcessData();
-        this.loadCreatorStats();
-
-        // Actualizar breadcrumb cuando cambie el idioma
-        this.subscription.add(
-            this.translate.onLangChange.subscribe(() => {
-                this.initializeBreadcrumb();
-            })
-        );
+    ngAfterViewInit() {
+        console.log('[Dashboard] DOM montado. Llamando initializeMap()...');
+        // Garantizamos que el contenedor CSS esté completamente asimilado por el navegador
+        setTimeout(() => {
+            this.initializeMap();
+        }, 300);
     }
 
     ngOnDestroy() {
-        this.subscription.unsubscribe();
+        // Limpieza si es necesaria
     }
 
-    private initializeBreadcrumb() {
-        this.items = [{
-            label: this.translate.instant('breadcrumb.dashboard.title'),
-            routerLink: '/admin/dashboard'
-        }];
-        this.home = {
-            icon: 'pi pi-home',
-            routerLink: '/admin/dashboard'
-        };
+    private async initializeMap() {
+        console.log('[Dashboard] Dentro de initializeMap() - Buscando configuración...');
+        try {
+            // Obtener configuración del sistema para la API de Maps
+            const systems = await this.systemService.getAll().toPromise();
+            console.log('[Dashboard] Configuración del sistema obtenida.');
+            const systemConfigs = systems && systems.length > 0 ? systems[0] : null;
+            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
+
+            if (MAP_API1_KEY) {
+                // Inyectar el script de Google API dinámicamente
+                await MapUtils.loadMapScript('google', MAP_API1_KEY, systemConfigs?.map_api1?.url || 'https://maps.googleapis.com/maps/api/js');
+            }
+
+            if (typeof google === 'undefined' || !google.maps) {
+                console.warn('[Dashboard] Google Maps object not found. Map bounds will be blank.');
+                return;
+            }
+
+            const mapOptions = {
+                center: { lat: 18.4861, lng: -69.9312 }, // República Dominicana
+                zoom: 8,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                disableDefaultUI: false, // Permitir controles
+                fullscreenControl: false,
+                streetViewControl: false,
+                mapTypeControl: false,
+                zoomControl: true
+            };
+
+            this.map = new google.maps.Map(this.mapElement.nativeElement, mapOptions);
+
+            // Condicionar según tipo de usuario
+            if (this.isEmployee) {
+                // Cargar el fullmap ligero explícitamente para el Empleado
+                console.log(`[Dashboard] Identificado como Empleado. Solicitando Fullmap ligero específico: 68a9ccf19bb280482272477f`);
+                this.monitoringService.getLatestFullmap('68a9ccf19bb280482272477f').subscribe({
+                    next: (res) => {
+                        console.log('[Dashboard] 🗺️ Colección Fullmap cargada (Empleado):', res.data);
+                        this.plotFullmapMarkers(res.data);
+                    },
+                    error: (err) => console.error('[Dashboard] Error cargando Fullmap del empleado', err)
+                });
+            } else {
+                // Si es Cliente, consumir la nueva colección ultraligera (Fullmaps)
+                console.log(`[Dashboard] Identificado como Cliente. Solicitando Fullmap ligero para: ${this.currentUser.id}`);
+                this.monitoringService.getLatestFullmap(this.currentUser.id).subscribe({
+                    next: (res) => {
+                        console.log('[Dashboard] 🗺️ Colección Fullmap cargada directamente desde el Backend:', res.data);
+                        this.plotFullmapMarkers(res.data);
+                    },
+                    error: (err) => console.error('[Dashboard] Error cargando Fullmap del cliente', err)
+                });
+            }
+
+        } catch(error) {
+            console.error('Failed retrieving API key or constructing map element:', error);
+        }
     }
 
-    private loadMonitoringData() {
-        const targetUserId = '68a9ccf19bb280482272477f';
-        this.isMonitoringLoading = true;
-
-        this.subscription.add(
-            this.monitoringService.monitorUserSummary(targetUserId).subscribe({
-                next: (res) => {
-                    if (res && res.summaries && res.summaries.length > 0) {
-                        // The backend likely returns them sorted by latest first, or we can just take the first one
-                        this.monitoringStats = res.summaries[0];
+    private loadUserDevicesOnMap(userId: string) {
+        console.log(`[Dashboard] Solicitando historial de monitoreo para: ${userId}`);
+        this.monitoringService.getUserMonitoringReports(userId).subscribe({
+            next: (reports) => {
+                if (reports && reports.length > 0) {
+                    console.log(`[Dashboard] Reporte capturado. Total en record: ${reports.length}`);
+                    const latestReport = reports[0];
+                    if (latestReport && latestReport.data) {
+                        const allDevices = latestReport.data.flatMap((pkg: any) => pkg.devices || []);
+                        const allLocations = allDevices
+                            .filter((d: any) => d.traccarInfo?.lastLocation && Object.keys(d.traccarInfo.lastLocation).length > 0)
+                            .map((d: any) => ({
+                                nombre: d.name || 'Desconocido',
+                                latitud: d.traccarInfo.lastLocation.latitude,
+                                longitud: d.traccarInfo.lastLocation.longitude
+                            }));
+                        console.log('[Dashboard] Listado EXCLUSIVO de Coordenadas (Lat/Lng/Name):', allLocations);
+                        this.plotDeviceMarkers(latestReport.data);
                     }
-                    this.isMonitoringLoading = false;
-                },
-                error: (err) => {
-                    console.error('Error fetching monitoring summary', err);
-                    this.isMonitoringLoading = false;
-                }
-            })
-        );
-    }
-
-    private getProcessName(typeId: number): string {
-        // En management.component.ts `type: 8` se usa para la Cancelación de Dispositivos.
-        // En target-form.component.ts `type: 8` se mapeaba a 'technician_change'.
-        // Asignaré ambos de manera condicional o separada asumiendo la lista.
-        // Dado que el backend depende solo del tipo numérico, documentaremos todos los tipos:
-        const processNames: Record<number, string> = {
-            1: 'Instalación',
-            2: 'Edición F. Instalación',
-            3: 'Edición F. Expiración',
-            4: 'Renovación de Servicio',
-            5: 'Cambio de Plan',
-            6: 'Suspensión', // En caso de que se use
-            7: 'Reactivación',
-            8: 'Cancelación / Cmb. Técnico', // Mismo ID en el código de target-form y management
-            9: 'Cambio de GPS',
-            10: 'Edición Detalles Instalación',
-            11: 'Cambio Modelo GPS',
-            12: 'Edición IMEI / GPS ID',
-            13: 'Cambio de SIM Card',
-            14: 'Edición Núm. SIM Card',
-            15: 'Edición Tipo SIM Card',
-            16: 'Restauración de Vehículo'
-        };
-        return processNames[typeId] || `Proceso Tipo ${typeId}`;
-    }
-
-    public getProcessNamePublic(typeId: number): string {
-        return this.getProcessName(typeId);
-    }
-
-    private loadProcessData() {
-        this.isProcessLoading = true;
-        this.subscription.add(
-            this.processService.getStats().subscribe({
-                next: (res: ProcessStatsResponse) => {
-                    const sortedProcesses = res.processesByType
-                        .sort((a, b) => b.count - a.count)
-                        .slice(0, 10); // Display top 10 most common processes
-
-                    const colorClasses = [
-                        'primary', 'yellow', 'green', 'pink', 'cyan', 'orange', 'purple', 'teal', 'red', 'indigo'
-                    ];
-
-                    const defaultIcons: Record<number, string> = {
-                        1: 'pi pi-wrench',
-                        2: 'pi pi-calendar-plus',
-                        3: 'pi pi-calendar-minus',
-                        4: 'pi pi-sync',
-                        5: 'pi pi-id-card',
-                        6: 'pi pi-times-circle',
-                        7: 'pi pi-check-circle',
-                        8: 'pi pi-user-edit',
-                        9: 'pi pi-desktop',
-                        10: 'pi pi-file-edit',
-                        11: 'pi pi-box',
-                        12: 'pi pi-qrcode',
-                        13: 'pi pi-credit-card',
-                        14: 'pi pi-hashtag',
-                        15: 'pi pi-globe',
-                        16: 'pi pi-replay'
-                    };
-
-                    this.processCards = sortedProcesses.map((p, index) => {
-                        return {
-                            icon: defaultIcons[p._id] || 'pi pi-list',
-                            title: this.getProcessName(p._id),
-                            count: p.count,
-                            colorClass: colorClasses[index % colorClasses.length]
-                        };
+                } else {
+                    console.warn(`[Dashboard] ¡Sin reportes! Solicitando al servidor un escaneo en tiempo real para: ${userId}`);
+                    this.monitoringService.monitorUser(userId).subscribe({
+                        next: (freshReport) => {
+                            if (freshReport && freshReport.data) {
+                                const allDevices = freshReport.data.flatMap((pkg: any) => pkg.devices || []);
+                                const allLocations = allDevices
+                                    .filter((d: any) => d.traccarInfo?.lastLocation && Object.keys(d.traccarInfo.lastLocation).length > 0)
+                                    .map((d: any) => ({
+                                        nombre: d.name || 'Desconocido',
+                                        latitud: d.traccarInfo.lastLocation.latitude,
+                                        longitud: d.traccarInfo.lastLocation.longitude
+                                    }));
+                                console.log(`[Dashboard] Listado EXCLUSIVO de Coordenadas (Lat/Lng/Name) (En Vivo):`, allLocations);
+                                this.plotDeviceMarkers(freshReport.data);
+                            }
+                        },
+                        error: (err) => console.error('[Dashboard] Error generando reporte en vivo:', err)
                     });
-
-                    this.isProcessLoading = false;
-                },
-                error: (err) => {
-                    console.error('Error fetching process stats', err);
-                    this.isProcessLoading = false;
                 }
-            })
-        );
+            },
+            error: (err) => console.error('[Dashboard] Error de conexión obteniendo reportes:', err)
+        });
     }
 
-    private toTitleCase(str: string): string {
-        if (!str) return 'Sistema';
-        return str.toLowerCase().split(' ').map(function (word) {
-            return word.charAt(0).toUpperCase() + word.slice(1);
-        }).join(' ');
+    private plotDeviceMarkers(dataPackages: Array<{ route: any[], devices: any[] }>) {
+        if (!this.map || typeof google === 'undefined') return;
+
+        if (this.markerCluster) {
+            this.markerCluster.clearMarkers();
+        }
+
+        let bounds = new google.maps.LatLngBounds();
+        let addedMarkers = 0;
+        const currentMarkers: any[] = [];
+
+        dataPackages.forEach(dataPackage => {
+            if (dataPackage.devices && Array.isArray(dataPackage.devices)) {
+                dataPackage.devices.forEach(device => {
+                    const geo = device?.traccarInfo?.geolocation;
+                    
+                    if (geo && geo.latitude && geo.longitude) {
+                        const position = { lat: geo.latitude, lng: geo.longitude };
+                        
+                        const nameStr = device.name || device.device_imei || 'Dispositivo';
+                        const marker = new google.maps.Marker({
+                            position,
+                            map: this.map,
+                            title: nameStr,
+                            label: {
+                                text: nameStr,
+                                className: 'custom-map-label'
+                            },
+                            icon: {
+                                url: 'logo/favicon.png',
+                                scaledSize: new google.maps.Size(32, 32)
+                            }
+                        });
+
+                        bounds.extend(position);
+                        currentMarkers.push(marker);
+                        addedMarkers++;
+                    }
+                });
+            }
+        });
+
+        if (addedMarkers > 0) {
+            this.markerCluster = new MarkerClusterer({ map: this.map, markers: currentMarkers });
+            this.map.fitBounds(bounds);
+        }
     }
 
-    private loadCreatorStats() {
-        this.isCreatorStatsLoading = true;
-        this.subscription.add(
-            this.processService.getStatsByCreator().subscribe({
-                next: (res: CreatorStatsResponse) => {
-                    console.log('Creator Stats received from backend:', res.statsByCreator);
-                    this.creatorStats = res.statsByCreator.map(item => ({
-                        ...item,
-                        creatorName: this.toTitleCase(item.creatorName || item._id || 'Sistema'),
-                        creatorEmail: item.creatorEmail || 'N/A'
-                    }));
-                    this.isCreatorStatsLoading = false;
-                },
-                error: (err) => {
-                    console.error('Error fetching creator stats', err);
-                    this.isCreatorStatsLoading = false;
-                }
-            })
-        );
+    private plotFullmapMarkers(devices: Array<{nombre: string, latitud: number, longitud: number}>) {
+        if (!this.map || typeof google === 'undefined' || !devices) return;
+
+        if (this.markerCluster) {
+            this.markerCluster.clearMarkers();
+        }
+
+        let bounds = new google.maps.LatLngBounds();
+        let addedMarkers = 0;
+        const currentMarkers: any[] = [];
+
+        devices.forEach(device => {
+            if (device.latitud && device.longitud) {
+                const position = { lat: device.latitud, lng: device.longitud };
+                
+                const nameStr = device.nombre || 'Dispositivo';
+                const marker = new google.maps.Marker({
+                    position,
+                    map: this.map,
+                    title: nameStr,
+                    label: {
+                        text: nameStr,
+                        className: 'custom-map-label'
+                    },
+                    icon: {
+                        url: 'logo/favicon.png',
+                        scaledSize: new google.maps.Size(32, 32)
+                    }
+                });
+
+                bounds.extend(position);
+                currentMarkers.push(marker);
+                addedMarkers++;
+            }
+        });
+
+        if (addedMarkers > 0) {
+            this.markerCluster = new MarkerClusterer({ map: this.map, markers: currentMarkers });
+            this.map.fitBounds(bounds);
+        }
     }
 }

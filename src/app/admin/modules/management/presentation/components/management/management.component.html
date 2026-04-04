@@ -744,8 +744,8 @@
                                 [tableStyle]="{'min-width': '50rem'}">
                                 <ng-template pTemplate="header">
                                     <tr>
-                                        <th style="width: 4rem" *ngIf="canUpdateDevices()">
-                                            <button pButton type="button" 
+                                        <th style="width: 4rem; text-align: center;">
+                                            <button *ngIf="canUpdateDevices()" pButton type="button" 
                                                     [icon]="selectingAllTargets ? 'pi pi-spin pi-spinner' : 'pi pi-check-square'"
                                                     class="p-button-rounded p-button-text p-button-sm"
                                                     (click)="selectAllTargets()"
@@ -781,11 +781,9 @@
                                         [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
                                         [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
                                         [title]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'TARGET SELECCIONADO - ID: ' + target._id : ''">
-                                        <td *ngIf="canUpdateDevices() && !target.isShared">
-                                            <p-tableCheckbox [value]="target" />
-                                        </td>
-                                        <td *ngIf="target.isShared" class="shared-checkbox-cell">
-                                            <div class="shared-checkbox-icon" title="Objetivo compartido">
+                                        <td style="width: 4rem; text-align: center;" [ngClass]="{'shared-checkbox-cell': target.isShared}">
+                                            <p-tableCheckbox *ngIf="canUpdateDevices() && !target.isShared" [value]="target" />
+                                            <div *ngIf="target.isShared" class="shared-checkbox-icon" title="Objetivo compartido">
                                                 <i class="pi pi-share-alt"></i>
                                             </div>
                                         </td>

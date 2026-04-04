@@ -11,7 +11,9 @@ import { AuthService } from '../../../../../../core/services/auth.service';
 import { Protocol } from '../../../../../../core/interfaces/protocol.interface';
 import { Plan } from '../../../../../../core/interfaces/plan.interface';
 import { SIM_CARD_TYPES } from '../../../../../../core/constants/sim-card-types.constant';
-
+import { INSTALLATION_LOCATIONS } from '../../../../management/presentation/components/management/target-form/constants/target-form-data.constants';
+import { SystemService } from '../../../../../../core/services/system.service';
+import { MapUtils } from '../../../../../../shareds/helpers/map.helper';
 interface SelectOption {
     label: string;
     value: string;
@@ -29,9 +31,148 @@ export class SolicitudesComponent implements OnInit {
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
     solicitudes: Solicitud[] = [];
+    
+    get pendientes() { return this.solicitudes.filter(s => s.status === 'pendiente').sort((a, b) => (a.order || 0) - (b.order || 0)); }
+    get enProgreso() { return this.solicitudes.filter(s => s.status === 'en_progreso').sort((a, b) => (a.order || 0) - (b.order || 0)); }
+    get porConfirmar() { return this.solicitudes.filter(s => s.status === 'por_confirmar').sort((a, b) => (a.order || 0) - (b.order || 0)); }
+    get completadas() { return this.solicitudes.filter(s => s.status === 'completada').sort((a, b) => (a.order || 0) - (b.order || 0)); }
+    
+    // Drag and Drop
+    draggedSolicitud: Solicitud | null = null;
+    dragSuppressClick = false;
+
+    onDragStart(event: DragEvent, sol: Solicitud): void {
+        this.draggedSolicitud = sol;
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', sol._id || '');
+        }
+        (event.target as HTMLElement).classList.add('sol-dragging');
+    }
+
+    onDragEnd(event: DragEvent): void {
+        (event.target as HTMLElement).classList.remove('sol-dragging');
+        this.draggedSolicitud = null;
+        document.querySelectorAll('.sol-drop-before, .sol-drop-after').forEach(el => {
+            el.classList.remove('sol-drop-before', 'sol-drop-after');
+        });
+    }
+
+    onDragOver(event: DragEvent): void {
+        event.preventDefault();
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+        }
+        const column = (event.target as HTMLElement).closest('.sol-kanban-column');
+        if (column) column.classList.add('sol-drag-over');
+
+        const card = (event.target as HTMLElement).closest('.sol-kanban-card');
+        if (card && column) {
+            const cards = column.querySelectorAll('.sol-kanban-card');
+            cards.forEach(c => c.classList.remove('sol-drop-before', 'sol-drop-after'));
+            const rect = card.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            if (event.clientY < midY) {
+                card.classList.add('sol-drop-before');
+            } else {
+                card.classList.add('sol-drop-after');
+            }
+        }
+    }
+
+    onDragLeave(event: DragEvent): void {
+        const column = (event.target as HTMLElement).closest('.sol-kanban-column');
+        const relatedColumn = (event.relatedTarget as HTMLElement)?.closest?.('.sol-kanban-column');
+        if (column && column !== relatedColumn) {
+            column.classList.remove('sol-drag-over');
+            column.querySelectorAll('.sol-kanban-card').forEach(c => {
+                c.classList.remove('sol-drop-before', 'sol-drop-after');
+            });
+        }
+    }
+
+    onDrop(event: DragEvent, newStatus: string): void {
+        event.preventDefault();
+        const column = (event.target as HTMLElement).closest('.sol-kanban-column');
+        if (column) {
+            column.classList.remove('sol-drag-over');
+            column.querySelectorAll('.sol-kanban-card').forEach(c => {
+                c.classList.remove('sol-drop-before', 'sol-drop-after');
+            });
+        }
+
+        if (!this.draggedSolicitud) return;
+
+        const sol = this.draggedSolicitud;
+        const oldStatus = sol.status;
+        this.draggedSolicitud = null;
+        this.dragSuppressClick = true;
+        setTimeout(() => this.dragSuppressClick = false, 200);
+
+        // Determine drop position
+        let dropIndex = -1;
+        const targetCard = (event.target as HTMLElement).closest('.sol-kanban-card');
+        if (targetCard && column) {
+            const cards = Array.from(column.querySelectorAll('.sol-kanban-card'));
+            const cardIdx = cards.indexOf(targetCard);
+            const rect = targetCard.getBoundingClientRect();
+            const midY = rect.top + rect.height / 2;
+            dropIndex = event.clientY < midY ? cardIdx : cardIdx + 1;
+        }
+
+        // Get current column items (excluding the dragged card)
+        const columnItems = this.solicitudes
+            .filter(s => s.status === newStatus && s._id !== sol._id)
+            .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        // If same column and no valid drop target, skip
+        if (oldStatus === newStatus && dropIndex === -1) return;
+
+        // Update status
+        sol.status = newStatus;
+
+        // Insert at position
+        if (dropIndex >= 0 && dropIndex <= columnItems.length) {
+            columnItems.splice(dropIndex, 0, sol);
+        } else {
+            columnItems.push(sol);
+        }
+
+        // Re-index all items in the column
+        columnItems.forEach((item, idx) => {
+            item.order = idx;
+            this.solicitudesService.update(item._id!, { order: idx, status: item.status }).subscribe();
+        });
+
+        if (oldStatus !== newStatus) {
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Movido',
+                detail: `Solicitud movida a ${this.statusLabels[newStatus] || newStatus}`
+            });
+        }
+    }
+
     selectedSolicitud: Solicitud | null = null;
     dialogVisible = false;
+    installationModalVisible = false;
+    editingInstallationIndex: number = 0;
     isEditMode = false;
+    
+    showVehicleData = false;
+    showLocationData = false;
+    showDeviceData = false;
+        showRootLocationData = false;
+    rootLocationMap: any = null;
+    rootLocationMarker: any = null;
+showInstallData = false;
+    showDetailsData = false;
+    
+    locationMap: any = null;
+    locationMarker: any = null;
+    availableTechnicians: any[] = [];
+    showRootDetailsData = false;
+    showInstallationsCards = false;
     loading = false;
     totalItems = 0;
     currentPage = 1;
@@ -44,11 +185,18 @@ export class SolicitudesComponent implements OnInit {
     // Select options for vehicle
     availableBrands: SelectOption[] = [];
     availableModels: SelectOption[] = [];
+
+    private initialDataPromise: Promise<void> | null = null;
     availableYears: SelectOption[] = [];
 
-    // Province/Municipality
+    // Province/Municipality for Root (Ubicación del Cliente)
+    rootAvailableMunicipalities: SelectOption[] = [];
+    rootAvailableSectors: SelectOption[] = [];
+
+    // Province/Municipality for Installation form
     availableProvinces: SelectOption[] = [];
     availableMunicipalities: SelectOption[] = [];
+    availableSectors: SelectOption[] = [];
 
     // Model name cache for table display
     modelNameCache: Record<string, string> = {};
@@ -69,8 +217,8 @@ export class SolicitudesComponent implements OnInit {
             );
         } else {
             this.filteredColors = [...this.availableColors];
-            if (this.selectedSolicitud) {
-                this.selectedSolicitud.color = '';
+            if (this.selectedSolicitud && this.editingInstallationIndex !== -1 && this.selectedSolicitud.installations) {
+                this.selectedSolicitud.installations[this.editingInstallationIndex].color = '';
             }
         }
     }
@@ -84,10 +232,20 @@ export class SolicitudesComponent implements OnInit {
         { label: 'Otro', value: 'otro' }
     ];
 
+    getEntityName(plural: boolean = false): string {
+        const t = this.selectedSolicitud?.type || 'instalacion';
+        if (t === 'chequeo') return plural ? 'Chequeos' : 'Chequeo';
+        if (t === 'desinstalacion') return plural ? 'Desinstalaciones' : 'Desinstalación';
+        if (t === 'cambio') return plural ? 'Cambios' : 'Cambio';
+        if (t === 'otro') return plural ? 'Procesos' : 'Proceso';
+        return plural ? 'Instalaciones' : 'Instalación';
+    }
+
     statusOptions = [
         { label: 'Todos', value: '' },
         { label: 'Pendiente', value: 'pendiente' },
         { label: 'En Progreso', value: 'en_progreso' },
+        { label: 'Por Confirmar', value: 'por_confirmar' },
         { label: 'Completada', value: 'completada' },
         { label: 'Cancelada', value: 'cancelada' }
     ];
@@ -103,6 +261,7 @@ export class SolicitudesComponent implements OnInit {
     statusLabels: Record<string, string> = {
         pendiente: 'Pendiente',
         en_progreso: 'En Progreso',
+        por_confirmar: 'Por Confirmar',
         completada: 'Completada',
         cancelada: 'Cancelada'
     };
@@ -114,6 +273,7 @@ export class SolicitudesComponent implements OnInit {
     availableProtocols: Protocol[] = [];
     availablePlans: Plan[] = [];
     simCardTypes = SIM_CARD_TYPES;
+    installationLocations = INSTALLATION_LOCATIONS;
     installData = {
         name: '',
         type: '',
@@ -142,12 +302,13 @@ export class SolicitudesComponent implements OnInit {
         private plansService: PlansService,
         private authService: AuthService,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService
+        private confirmationService: ConfirmationService,
+        private systemService: SystemService
     ) { }
 
     ngOnInit(): void {
-        this.loadSolicitudes();
-        this.loadInitialData();
+        this.loadSolicitudes(false);
+        this.initialDataPromise = this.loadInitialData();
     }
 
     async loadInitialData(): Promise<void> {
@@ -180,59 +341,136 @@ export class SolicitudesComponent implements OnInit {
                 label: p.name,
                 value: String(p.code)
             }));
+            
+            // Load technicians
+            this.userService.getTechnicians().subscribe({
+                next: (techs: any) => this.availableTechnicians = techs,
+                error: () => this.availableTechnicians = []
+            });
         } catch (error) {
             console.error('Error loading initial data:', error);
         }
     }
 
     async onProvinceChange(): Promise<void> {
-        if (!this.selectedSolicitud) return;
-        this.selectedSolicitud.municipality = '';
+        if (!this.selectedSolicitud || this.editingInstallationIndex === -1) return;
+        const currentInst = this.selectedSolicitud.installations![this.editingInstallationIndex];
+        currentInst.municipality = '';
+        currentInst.sector = '';
         this.availableMunicipalities = [];
-        if (this.selectedSolicitud.province) {
+        this.availableSectors = [];
+        if (currentInst.province) {
             try {
-                const municipalities = await this.vehicleBrandsService.getMunicipalities(this.selectedSolicitud.province);
+                const municipalities = await this.vehicleBrandsService.getMunicipalities(currentInst.province);
                 this.availableMunicipalities = municipalities.map((m: any) => ({
                     label: m.name,
                     value: String(m.code)
                 }));
+                this.focusInstMapOnSelection('province');
             } catch (e) {
-                console.error('Error loading municipalities:', e);
             }
+        }
+    }
+    
+    async onMunicipalityChange(): Promise<void> {
+        if (!this.selectedSolicitud || this.editingInstallationIndex === -1) return;
+        const currentInst = this.selectedSolicitud.installations![this.editingInstallationIndex];
+        currentInst.sector = '';
+        this.availableSectors = [];
+        if (currentInst.municipality && currentInst.province) {
+            try {
+                const sectors = await this.vehicleBrandsService.getSectors(currentInst.municipality, currentInst.province);
+                this.availableSectors = sectors.map((s: any) => ({
+                    label: s.name,
+                    value: String(s.code)
+                }));
+                this.focusInstMapOnSelection('municipality');
+            } catch (e) {}
+        }
+    }
+
+    onSectorChange(): void {
+        this.focusInstMapOnSelection('sector');
+    }
+
+    geocodeInstLocation(address: string, zoomLevel: number) {
+        if (!this.locationMap || typeof google === 'undefined') return;
+
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: address + ', República Dominicana' }, (results: any, status: any) => {
+            if (status === 'OK' && results && results[0]) {
+                const location = results[0].geometry.location;
+                // Move map
+                this.locationMap.panTo(location);
+                this.locationMap.setZoom(zoomLevel);
+            } else {
+                console.warn('Geocoding failed for: ', address, 'Status: ', status);
+            }
+        });
+    }
+
+    focusInstMapOnSelection(level: 'province' | 'municipality' | 'sector') {
+        if (!this.selectedSolicitud || this.editingInstallationIndex === -1) return;
+        let address = '';
+        let zoom = 12;
+
+        const currentInst = this.selectedSolicitud.installations![this.editingInstallationIndex];
+        const pVal = currentInst.province;
+        const mVal = currentInst.municipality;
+        const sVal = currentInst.sector;
+
+        const prov = this.availableProvinces.find(p => p.value === pVal);
+        const mun = this.availableMunicipalities.find(m => m.value === mVal);
+        const sec = this.availableSectors?.find(s => s.value === sVal);
+
+        switch (level) {
+            case 'province':
+                if (prov) address = prov.label;
+                zoom = 10;
+                break;
+            case 'municipality':
+                if (prov && mun) address = `${mun.label}, ${prov.label}`;
+                zoom = 12;
+                break;
+            case 'sector':
+                if (prov && mun && sec) address = `${sec.label}, ${mun.label}, ${prov.label}`;
+                zoom = 15;
+                break;
+        }
+
+        if (address) {
+            this.geocodeInstLocation(address, zoom);
         }
     }
 
     async onBrandChange(): Promise<void> {
-        if (!this.selectedSolicitud) return;
+        if (!this.selectedSolicitud || this.editingInstallationIndex === -1) return;
+        const currentInst = this.selectedSolicitud.installations![this.editingInstallationIndex];
         try {
-            if (this.selectedSolicitud.brand) {
-                this.selectedSolicitud.model = '';
+            if (currentInst.brand) {
+                currentInst.model = '';
                 this.availableModels = [];
-                const models = await this.vehicleBrandsService.getAllModelsByBrand(this.selectedSolicitud.brand);
+                const models = await this.vehicleBrandsService.getAllModelsByBrand(currentInst.brand);
                 if (models && models.length > 0) {
                     this.availableModels = models.map((model: any) => ({
                         label: model.nombre,
                         value: model._id
                     })).sort((a: SelectOption, b: SelectOption) => a.label.localeCompare(b.label));
-                    // Cache model names
                     this.availableModels.forEach(m => this.modelNameCache[m.value] = m.label);
                 }
             } else {
                 this.availableModels = [];
-                this.selectedSolicitud.model = '';
+                currentInst.model = '';
             }
         } catch (error) {
-            console.error('Error loading models:', error);
             this.availableModels = [];
         }
     }
 
     private async loadModelNamesForTable(): Promise<void> {
-        const brandIds = [...new Set(this.solicitudes.filter(s => s.brand).map(s => s.brand!))];
-        for (const brandId of brandIds) {
-            const alreadyCached = this.solicitudes
-                .filter(s => s.brand === brandId && s.model)
-                .every(s => this.modelNameCache[s.model!]);
+        const brandIds = [...new Set(this.solicitudes.map(s => s.installations?.[0]?.brand).filter(b => b))];
+        for (const brandId of brandIds as string[]) {
+            const alreadyCached = false;
             if (alreadyCached) continue;
             try {
                 const models = await this.vehicleBrandsService.getAllModelsByBrand(brandId);
@@ -244,9 +482,11 @@ export class SolicitudesComponent implements OnInit {
     }
 
     selectColor(color: SelectOption): void {
-        if (this.selectedSolicitud) {
-            this.selectedSolicitud.color = color.value;
+        if (this.selectedSolicitud && this.editingInstallationIndex !== -1) {
+            if(!this.selectedSolicitud.installations) return;
+            this.selectedSolicitud.installations[this.editingInstallationIndex].color = color.value;
             this._displayColorName = color.label;
+            this.filteredColors = [color];
         }
     }
 
@@ -274,59 +514,465 @@ export class SolicitudesComponent implements OnInit {
         });
     }
 
-    openNew(): void {
+    async openNew(status: string = 'pendiente'): Promise<void> {
+        if (this.initialDataPromise) await this.initialDataPromise;
+        
         this.selectedSolicitud = {
+            client_name: '',
+            client_phone: '',
+            client_email: '',
+            quantity: 1,
+            installations: [{}],
             type: 'instalacion',
-            status: 'pendiente'
+            status: status
         } as Solicitud;
         this.availableModels = [];
         this.availableMunicipalities = [];
+        this.availableSectors = [];
         this._displayColorName = '';
         this.filteredColors = [...this.availableColors];
         this.isEditMode = false;
+        
+        this.showRootLocationData = false;
+        this.showRootDetailsData = false;
+        this.showInstallationsCards = false;
+        
+        this.rootLocationMap = null;
+        this.locationMap = null;
+
         this.dialogVisible = true;
+        setTimeout(() => this.initRootLocationMap(), 200);
+    }
+    
+    onQuantityChange(): void {
+        if (!this.selectedSolicitud) return;
+        const qty = Number(this.selectedSolicitud.quantity) || 1;
+        if (!this.selectedSolicitud.installations) {
+            this.selectedSolicitud.installations = [];
+        }
+        
+        while (this.selectedSolicitud.installations.length < qty) {
+            this.selectedSolicitud.installations.push({});
+        }
+        if (this.selectedSolicitud.installations.length > qty) {
+            this.selectedSolicitud.installations = this.selectedSolicitud.installations.slice(0, qty);
+        }
+    }
+
+    openInstallationModal(index: number, showModal: boolean = true): void {
+        this.editingInstallationIndex = index;
+        this.showVehicleData = false;
+        this.showLocationData = false;
+        this.showDeviceData = false;
+        this.showInstallData = false;
+        this.showDetailsData = false;
+        
+        this.availableModels = [];
+        this.availableMunicipalities = [];
+        this.availableSectors = [];
+        this.locationMap = null;
+        
+        const inst = this.selectedSolicitud?.installations?.[index];
+        if (inst) {
+            const savedModel = inst.model;
+            const savedMunicipality = inst.municipality;
+            const savedSector = inst.sector;
+
+            if (inst.brand) {
+                this.vehicleBrandsService.getAllModelsByBrand(inst.brand).then((models: any) => {
+                    this.availableModels = models.map((m: any) => ({ label: m.nombre, value: m._id })).sort((a: any, b: any) => a.label.localeCompare(b.label));
+                    setTimeout(() => { inst.model = savedModel; }, 0);
+                }).catch(() => {});
+            }
+            if (inst.province) {
+                this.vehicleBrandsService.getMunicipalities(inst.province).then((muns: any) => {
+                    this.availableMunicipalities = muns.map((m: any) => ({ label: m.name, value: String(m.code) }));
+                    setTimeout(() => { inst.municipality = savedMunicipality; }, 0);
+                }).catch(() => {});
+            }
+            if (inst.municipality && inst.province) {
+                this.vehicleBrandsService.getSectors(inst.municipality, inst.province).then((secs: any) => {
+                    this.availableSectors = secs.map((s: any) => ({ label: s.name, value: String(s.code) }));
+                    setTimeout(() => { inst.sector = savedSector; }, 0);
+                }).catch(() => {});
+            }
+            this.displayColorName = inst.color || '';
+        } else {
+            this.displayColorName = '';
+            this.filteredColors = [...this.availableColors];
+        }
+
+        if (showModal) {
+            this.installationModalVisible = true;
+            setTimeout(() => this.initLocationMap(), 200);
+        }
+    }
+    
+    toggleSection(section: string) {
+        const currentlyOpen = this[('show' + section.charAt(0).toUpperCase() + section.slice(1) + 'Data') as keyof this];
+        this.showVehicleData = false;
+        this.showLocationData = false;
+        this.showDeviceData = false;
+        this.showInstallData = false;
+        this.showDetailsData = false;
+
+        switch (section) {
+            case 'vehicle': this.showVehicleData = !currentlyOpen; break;
+            case 'location': 
+                this.showLocationData = !currentlyOpen; 
+                this.locationMap = null; 
+                if (this.showLocationData) { 
+                    setTimeout(() => this.initLocationMap(), 300); 
+                } 
+                break;
+            case 'device': this.showDeviceData = !currentlyOpen; break;
+            case 'install': this.showInstallData = !currentlyOpen; break;
+            case 'details': this.showDetailsData = !currentlyOpen; break;
+        }
+    }
+    
+    
+    toggleRootLocation(): void {
+        const currentlyOpen = this.showRootLocationData;
+        this.showRootLocationData = false;
+        this.showRootDetailsData = false;
+        this.showInstallationsCards = false;
+
+        this.showRootLocationData = !currentlyOpen;
+        if (this.showRootLocationData) {
+            setTimeout(() => {
+                this.initRootLocationMap();
+            }, 100);
+        }
+    }
+
+    toggleRootDetails(): void {
+        const currentlyOpen = this.showRootDetailsData;
+        this.showRootLocationData = false;
+        this.showRootDetailsData = false;
+        this.showInstallationsCards = false;
+
+        this.showRootDetailsData = !currentlyOpen;
+    }
+
+    toggleInstallationsCards(): void {
+        const currentlyOpen = this.showInstallationsCards;
+        this.showRootLocationData = false;
+        this.showRootDetailsData = false;
+        this.showInstallationsCards = false;
+
+        this.showInstallationsCards = !currentlyOpen;
+    }
+
+    async onClientEmailBlur(): Promise<void> {
+        if (!this.selectedSolicitud) return;
+        const email = this.selectedSolicitud.client_email?.trim();
+        if (!email) return;
+
+        try {
+            const user = await this.userService.getByEmail(email).toPromise();
+            if (user) {
+                this.selectedSolicitud.client_name = `${user.name || ''} ${user.last_name || ''}`.trim() || this.selectedSolicitud.client_name;
+                if (user.phone) {
+                    this.selectedSolicitud.client_phone = user.phone;
+                }
+            }
+        } catch (error) {
+            // Se ignora si no existe
+        }
+    }
+
+    async onClientPhoneBlur(): Promise<void> {
+        if (!this.selectedSolicitud) return;
+        const phone = this.selectedSolicitud.client_phone?.trim();
+        if (!phone) return;
+
+        try {
+            const user = await this.userService.getByPhone(phone).toPromise();
+            if (user) {
+                this.selectedSolicitud.client_name = `${user.name || ''} ${user.last_name || ''}`.trim() || this.selectedSolicitud.client_name;
+                if (user.email) {
+                    this.selectedSolicitud.client_email = user.email;
+                }
+            }
+        } catch (error) {
+            // Se ignora si no existe
+        }
+    }
+
+    async initRootLocationMap(): Promise<void> {
+        try {
+            const systemConfigsResponse = await this.systemService.getAll().toPromise();
+            const systemConfigs = systemConfigsResponse?.[0];
+            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
+            const MAP_API1_URL = systemConfigs?.map_api1?.url;
+            if (!MAP_API1_KEY || !MAP_API1_URL) return;
+            
+            await MapUtils.loadMapScript('google', MAP_API1_KEY, MAP_API1_URL);
+            const mapElement = document.getElementById('map-container-root');
+            if (!mapElement) return;
+
+            this.rootLocationMap = new google.maps.Map(mapElement, {
+                center: { lat: 18.4861, lng: -69.9312 },
+                zoom: 13,
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            });
+
+            this.rootLocationMap.addListener('click', (e: any) => {
+                const lat = e.latLng.lat();
+                const lng = e.latLng.lng();
+                if (this.selectedSolicitud) {
+                    this.selectedSolicitud.latitude = parseFloat(lat.toFixed(6));
+                    this.selectedSolicitud.longitude = parseFloat(lng.toFixed(6));
+                }
+                this.updateRootLocationMarker(lat, lng);
+                this.onRootLatitudeLongitudeChange();
+            });
+
+            if (this.selectedSolicitud?.latitude && this.selectedSolicitud?.longitude) {
+                this.updateRootLocationMarker(this.selectedSolicitud.latitude, this.selectedSolicitud.longitude);
+                this.rootLocationMap.setCenter({ lat: this.selectedSolicitud.latitude, lng: this.selectedSolicitud.longitude });
+                this.rootLocationMap.setZoom(15);
+            }
+        } catch (error) {
+            console.error('Error loading root location map:', error);
+        }
+    }
+
+    updateRootLocationMarker(lat: number, lng: number): void {
+        if (this.rootLocationMarker) {
+            this.rootLocationMarker.setMap(null);
+        }
+        if (this.rootLocationMap) {
+            this.rootLocationMarker = new google.maps.Marker({
+                position: { lat, lng },
+                map: this.rootLocationMap
+            });
+        }
+    }
+
+    geocodeRootLocation(address: string, zoomLevel: number) {
+        if (!this.rootLocationMap || typeof google === 'undefined') return;
+
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: address + ', República Dominicana' }, (results: any, status: any) => {
+            if (status === 'OK' && results && results[0]) {
+                const location = results[0].geometry.location;
+                // Move map
+                this.rootLocationMap.panTo(location);
+                this.rootLocationMap.setZoom(zoomLevel);
+            } else {
+                console.warn('Geocoding failed for: ', address, 'Status: ', status);
+            }
+        });
+    }
+
+    focusRootMapOnSelection(level: 'province' | 'municipality' | 'sector') {
+        if (!this.selectedSolicitud) return;
+        let address = '';
+        let zoom = 12;
+
+        const pVal = this.selectedSolicitud.province;
+        const mVal = this.selectedSolicitud.municipality;
+        const sVal = this.selectedSolicitud.sector;
+
+        const prov = this.availableProvinces.find(p => p.value === pVal);
+        const mun = this.rootAvailableMunicipalities.find(m => m.value === mVal);
+        const sec = this.rootAvailableSectors?.find(s => s.value === sVal);
+
+        switch (level) {
+            case 'province':
+                if (prov) address = prov.label;
+                zoom = 10;
+                break;
+            case 'municipality':
+                if (prov && mun) address = `${mun.label}, ${prov.label}`;
+                zoom = 12;
+                break;
+            case 'sector':
+                if (prov && mun && sec) address = `${sec.label}, ${mun.label}, ${prov.label}`;
+                zoom = 15;
+                break;
+        }
+
+        if (address) {
+            this.geocodeRootLocation(address, zoom);
+        }
+    }
+
+    onRootProvinceChange(): void {
+        if (!this.selectedSolicitud) return;
+        const val = this.selectedSolicitud.province;
+        if (this.selectedSolicitud.installations) {
+            this.selectedSolicitud.installations.forEach(i => i.province = val);
+        }
+        this.selectedSolicitud.municipality = '';
+        this.selectedSolicitud.sector = '';
+        if (val) {
+            this.vehicleBrandsService.getMunicipalities(val).then((data: any) => {
+                this.rootAvailableMunicipalities = data.map((m: any) => ({ label: m.name, value: String(m.code) }));
+                this.focusRootMapOnSelection('province');
+            });
+        } else {
+            this.rootAvailableMunicipalities = [];
+            this.rootAvailableSectors = [];
+        }
+    }
+
+    onRootMunicipalityChange(): void {
+        if (!this.selectedSolicitud) return;
+        const pVal = this.selectedSolicitud.province;
+        const mVal = this.selectedSolicitud.municipality;
+        if (this.selectedSolicitud.installations) {
+            this.selectedSolicitud.installations.forEach(i => i.municipality = mVal);
+        }
+        this.selectedSolicitud.sector = '';
+        if (pVal && mVal) {
+            this.vehicleBrandsService.getSectors(pVal, mVal).then((data: any) => {
+                this.rootAvailableSectors = data.map((s: any) => ({ label: s.name, value: String(s.code) }));
+                this.focusRootMapOnSelection('municipality');
+            });
+        } else {
+            this.rootAvailableSectors = [];
+        }
+    }
+
+    onRootSectorChange(): void {
+        if (!this.selectedSolicitud) return;
+        const val = this.selectedSolicitud.sector;
+        if (this.selectedSolicitud.installations) {
+            this.selectedSolicitud.installations.forEach(i => i.sector = val);
+        }
+        if (val) {
+            this.focusRootMapOnSelection('sector');
+        }
+    }
+
+    onRootLatitudeLongitudeChange(): void {
+        if (!this.selectedSolicitud) return;
+        const lat = this.selectedSolicitud.latitude;
+        const lng = this.selectedSolicitud.longitude;
+        if (this.selectedSolicitud.installations) {
+            this.selectedSolicitud.installations.forEach(i => {
+                i.latitude = lat;
+                i.longitude = lng;
+            });
+        }
+        if (lat && lng) {
+            this.updateRootLocationMarker(lat, lng);
+            if (this.rootLocationMap) {
+                this.rootLocationMap.panTo({ lat, lng });
+            }
+        }
+    }
+async initLocationMap(): Promise<void> {
+        try {
+            const systemConfigsResponse = await this.systemService.getAll().toPromise();
+            const systemConfigs = systemConfigsResponse?.[0];
+            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
+            if (!MAP_API1_KEY) return;
+            
+            await MapUtils.loadMapScript('google', MAP_API1_KEY, systemConfigs?.map_api1?.url || 'https://maps.googleapis.com/maps/api/js');
+            const mapElement = document.getElementById(`solLocationMap-${this.editingInstallationIndex}`);
+            if (!mapElement) {
+                setTimeout(() => this.initLocationMap(), 200); // Retry resolving DOM node
+                return;
+            }
+            
+            if (mapElement) {
+                let lat = 18.483;
+                let lng = -69.932;
+                let zoom = 12;
+
+                const currentInst = this.selectedSolicitud?.installations?.[this.editingInstallationIndex];
+                if (currentInst?.latitude && currentInst?.longitude) {
+                    lat = Number(currentInst.latitude);
+                    lng = Number(currentInst.longitude);
+                    zoom = 16;
+                }
+
+                this.locationMap = new google.maps.Map(mapElement, {
+                    center: { lat, lng },
+                    zoom: zoom,
+                    mapTypeControl: false,
+                    streetViewControl: false
+                });
+
+                if (currentInst?.latitude && currentInst?.longitude) {
+                    this.locationMarker = new google.maps.Marker({
+                        position: { lat, lng },
+                        map: this.locationMap
+                    });
+                }
+
+                this.locationMap.addListener('click', (e: any) => {
+                    const clickLat = e.latLng.lat();
+                    const clickLng = e.latLng.lng();
+                    
+                    if(this.selectedSolicitud?.installations?.[this.editingInstallationIndex]) {
+                        this.selectedSolicitud.installations[this.editingInstallationIndex].latitude = clickLat;
+                        this.selectedSolicitud.installations[this.editingInstallationIndex].longitude = clickLng;
+                    }
+
+                    if (this.locationMarker) {
+                        this.locationMarker.setPosition({ lat: clickLat, lng: clickLng });
+                    } else {
+                        this.locationMarker = new google.maps.Marker({
+                            position: { lat: clickLat, lng: clickLng },
+                            map: this.locationMap
+                        });
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error inicializando el mapa:', error);
+        }
     }
 
     async editSolicitud(solicitud: Solicitud): Promise<void> {
-        this.selectedSolicitud = { ...solicitud };
+        if (this.initialDataPromise) await this.initialDataPromise;
+
+        this.rootAvailableMunicipalities = [];
+        this.rootAvailableSectors = [];
+        
+        this.selectedSolicitud = { ...solicitud, installations: solicitud.installations ? solicitud.installations.map(i => ({ ...i })) : [] };
+        // Map ISO Strings into Date objects for PrimeNG DatePickers
+        if (this.selectedSolicitud.scheduled_date) {
+            this.selectedSolicitud.scheduled_date = new Date(this.selectedSolicitud.scheduled_date);
+        }
+        
+        const qty = this.selectedSolicitud.quantity || 1;
+        while (this.selectedSolicitud.installations!.length < qty) {
+            this.selectedSolicitud.installations!.push({});
+        }
         this.isEditMode = true;
+        
+        this.showRootLocationData = false;
+        this.showRootDetailsData = false;
+        this.showInstallationsCards = false;
+        
+        this.rootLocationMap = null;
+        this.locationMap = null;
+
         this.dialogVisible = true;
+        setTimeout(() => this.initRootLocationMap(), 200);
 
-        // Set display color name from hex value
-        if (this.selectedSolicitud.color) {
-            const colorObj = this.availableColors.find(c => c.value === this.selectedSolicitud!.color);
-            this._displayColorName = colorObj ? colorObj.label : '';
-        } else {
-            this._displayColorName = '';
-        }
-        this.filteredColors = [...this.availableColors];
-        this.availableMunicipalities = [];
-
-        // Load models for the selected brand if exists
-        if (this.selectedSolicitud.brand) {
-            try {
-                const models = await this.vehicleBrandsService.getAllModelsByBrand(this.selectedSolicitud.brand);
-                this.availableModels = (models || []).map((model: any) => ({
-                    label: model.nombre,
-                    value: model._id
-                })).sort((a: SelectOption, b: SelectOption) => a.label.localeCompare(b.label));
-            } catch {
-                this.availableModels = [];
-            }
-        }
-
-        // Load municipalities for the selected province if exists
         if (this.selectedSolicitud.province) {
-            try {
-                const municipalities = await this.vehicleBrandsService.getMunicipalities(this.selectedSolicitud.province);
-                this.availableMunicipalities = municipalities.map((m: any) => ({
-                    label: m.name,
-                    value: String(m.code)
-                }));
-            } catch {
-                this.availableMunicipalities = [];
-            }
+            const savedM = this.selectedSolicitud.municipality;
+            this.vehicleBrandsService.getMunicipalities(this.selectedSolicitud.province).then((data: any) => {
+                this.rootAvailableMunicipalities = data.map((m: any) => ({ label: m.name, value: String(m.code) }));
+                setTimeout(() => { if (this.selectedSolicitud) this.selectedSolicitud.municipality = savedM; }, 0);
+            });
         }
+        if (this.selectedSolicitud.province && this.selectedSolicitud.municipality) {
+            const savedS = this.selectedSolicitud.sector;
+            this.vehicleBrandsService.getSectors(this.selectedSolicitud.municipality, this.selectedSolicitud.province).then((data: any) => {
+                this.rootAvailableSectors = data.map((s: any) => ({ label: s.name, value: String(s.code) }));
+                setTimeout(() => { if (this.selectedSolicitud) this.selectedSolicitud.sector = savedS; }, 0);
+            });
+        }
+
+        this.openInstallationModal(0, false);
     }
 
     saveSolicitud(): void {
@@ -377,6 +1023,26 @@ export class SolicitudesComponent implements OnInit {
         });
     }
 
+    cancelSolicitud(solicitud: Solicitud): void {
+        this.confirmationService.confirm({
+            message: '¿Estás seguro de cancelar esta solicitud?',
+            header: 'Confirmar cancelación',
+            icon: 'pi pi-exclamation-triangle',
+            key: 'solicitudes-confirm',
+            accept: () => {
+                this.solicitudesService.update(solicitud._id!, { ...solicitud, status: 'cancelada' }).subscribe({
+                    next: () => {
+                        this.messageService.add({ severity: 'warn', summary: 'Cancelada', detail: 'Solicitud cancelada correctamente' });
+                        this.loadSolicitudes(false);
+                    },
+                    error: () => {
+                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cancelar' });
+                    }
+                });
+            }
+        });
+    }
+
     hideDialog(): void {
         this.dialogVisible = false;
         this.selectedSolicitud = null;
@@ -386,6 +1052,7 @@ export class SolicitudesComponent implements OnInit {
         const map: Record<string, string> = {
             pendiente: 'pi pi-clock',
             en_progreso: 'pi pi-spinner',
+            por_confirmar: 'pi pi-question-circle',
             completada: 'pi pi-check-circle',
             cancelada: 'pi pi-times-circle'
         };
@@ -429,10 +1096,13 @@ export class SolicitudesComponent implements OnInit {
     }
 
     getClientDisplayName(sol: Solicitud): string {
+        if (sol.client_name) {
+            return sol.client_name;
+        }
         if (sol.user_id && this.userNameCache[sol.user_id]) {
             return this.userNameCache[sol.user_id];
         }
-        return sol.client_name || '';
+        return '';
     }
 
     private resolveUserNames(): void {
@@ -460,7 +1130,7 @@ export class SolicitudesComponent implements OnInit {
 
         // Resolve brand and model names to pre-fill the target name
         let defaultName = '';
-        const brandName = this.getBrandName(solicitud.brand);
+        const brandName = this.getBrandName(solicitud.installations?.[0]?.brand);
         if (brandName && brandName !== '—') {
             defaultName = brandName;
         }
@@ -476,10 +1146,10 @@ export class SolicitudesComponent implements OnInit {
             expiration_date: oneYearLater.toISOString().split('T')[0],
             plan_id: '',
             plan_price_id: '',
-            device_imei: solicitud.device_imei || '',
-            sim_card_number: solicitud.sim_card_number || '',
-            sim_company: solicitud.sim_company || '',
-            installation_details: solicitud.installation_details || '',
+            device_imei: solicitud.installations?.[0]?.device_imei || '',
+            sim_card_number: solicitud.installations?.[0]?.sim_card_number || '',
+            sim_company: solicitud.installations?.[0]?.sim_company || '',
+            installation_details: solicitud.installations?.[0]?.installation_details || '',
             parent_id: solicitud.user_id || '',
             parentEmail: '',
             parentUserName: '',
@@ -488,9 +1158,9 @@ export class SolicitudesComponent implements OnInit {
         };
 
         // Load models to resolve model name and append to the target name
-        if (solicitud.brand && solicitud.model) {
-            this.vehicleBrandsService.getAllModelsByBrand(solicitud.brand).then((models: any[]) => {
-                const matched = (models || []).find((m: any) => m._id === solicitud.model);
+        if (solicitud.installations?.[0]?.brand && solicitud.installations?.[0]?.model) {
+            this.vehicleBrandsService.getAllModelsByBrand(solicitud.installations[0].brand!).then((models: any[]) => {
+                const matched = (models || []).find((m: any) => m._id === solicitud.installations?.[0]?.model);
                 if (matched) {
                     this.installData.name = `${defaultName} ${matched.nombre}`.trim();
                 }
@@ -583,9 +1253,9 @@ export class SolicitudesComponent implements OnInit {
         // Resolve brand/model/color: solicitudes from Montao Rent may have names instead of IDs
         const isObjectId = (val: string) => /^[0-9a-fA-F]{24}$/.test(val);
 
-        let resolvedBrandId = sol.brand || '';
-        let resolvedModelId = sol.model || '';
-        let resolvedColor = sol.color || '';
+        let resolvedBrandId = sol.installations?.[0]?.brand || '';
+        let resolvedModelId = sol.installations?.[0]?.model || '';
+        let resolvedColor = sol.installations?.[0]?.color || '';
 
         // Resolve brand name → ID
         if (resolvedBrandId && !isObjectId(resolvedBrandId)) {
@@ -622,17 +1292,17 @@ export class SolicitudesComponent implements OnInit {
             type: this.installData.type,
             sim_card_number: this.installData.sim_card_number,
             sim_company: this.installData.sim_company,
-            target_plate_number: sol.plate || '',
+            target_plate_number: sol.installations?.[0]?.plate || '',
             target_brand_id: resolvedBrandId,
             target_model_id: resolvedModelId,
             target_color: resolvedColor,
-            target_year: sol.year || '',
-            target_chassis_number: sol.chassis || '',
-            contacts: sol.contacts || '',
+            target_year: sol.installations?.[0]?.year || '',
+            target_chassis_number: sol.installations?.[0]?.chassis || '',
+            contacts: sol.installations?.[0]?.contacts || '',
             mechanic_id: sol.mechanic_id || '',
-            installation_location: sol.installation_location || '',
-            engine_shutdown: sol.engine_shutdown || '',
-            ignition_sensor: sol.ignition_sensor || '',
+            installation_location: sol.installations?.[0]?.installation_location || '',
+            engine_shutdown: sol.installations?.[0]?.engine_shutdown || '',
+            ignition_sensor: sol.installations?.[0]?.ignition_sensor || '',
             installation_details: this.installData.installation_details,
             activation_date: new Date(this.installData.activation_date),
             expiration_date: new Date(this.installData.expiration_date),
@@ -678,5 +1348,45 @@ export class SolicitudesComponent implements OnInit {
     hideInstallDialog(): void {
         this.installDialogVisible = false;
         this.solicitudToInstall = null;
+    }
+
+    getScheduledDateDisplay(sol: Solicitud): string {
+        const rawDate = sol.scheduled_date || sol.installations?.[0]?.scheduled_date;
+        if (!rawDate) return '';
+
+        const dateStr: string = (rawDate instanceof Date) ? rawDate.toISOString() : (rawDate as string);
+
+        let year, month, day, time;
+        if (dateStr.includes('T')) {
+            const [dObj, tObj] = dateStr.split('T');
+            const dateParts = dObj.split('-');
+            year = dateParts[0]; month = dateParts[1]; day = dateParts[2];
+            time = tObj.substring(0, 5); // Take "HH:mm"
+        } else {
+            const parts = dateStr.split('-');
+            year = parts[0]; month = parts[1]; day = parts[2];
+            time = '';
+        }
+
+        // Technical date format
+        const technicalDate = time ? `${day}/${month}/${year} a las ${time}` : `${day}/${month}/${year}`;
+
+        // Natural language
+        const targetDate = new Date(Number(year), Number(month) - 1, Number(day));
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        targetDate.setHours(0, 0, 0, 0);
+
+        const diffTime = targetDate.getTime() - today.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+        let naturalLanguage = '';
+        if (diffDays === 0) naturalLanguage = 'Hoy';
+        else if (diffDays === 1) naturalLanguage = 'Mañana';
+        else if (diffDays === -1) naturalLanguage = 'Ayer';
+        else if (diffDays > 1) naturalLanguage = `En ${diffDays} días`;
+        else naturalLanguage = `Hace ${Math.abs(diffDays)} días`;
+
+        return `${naturalLanguage} (${technicalDate})`;
     }
 }

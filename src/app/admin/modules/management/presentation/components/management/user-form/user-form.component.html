@@ -433,38 +433,16 @@
                                                 'management.userForm.companyTypeDescription' | translate }}</small>
                                         </div>
 
-                                        <!-- Sección de Ubicación para todos los usuarios -->
-                                        <div class="settings-item tech-item">
-                                            <div class="tech-location-grid">
-                                                <div class="tech-field">
-                                                    <div class="settings-item__header">
-                                                        <i class="pi pi-map-marker"></i>
-                                                        <label for="province">{{ 'management.userForm.province' |
-                                                            translate }}</label>
-                                                    </div>
-                                                    <select [(ngModel)]="selectedProvince"
-                                                        (ngModelChange)="onProvinceChange()" name="province"
-                                                        id="province" class="settings-dropdown">
-                                                        <option *ngFor="let p of provinces" [value]="p.value">{{ p.label
-                                                            }}</option>
-                                                    </select>
-                                                </div>
-                                                <div class="tech-field">
-                                                    <div class="settings-item__header">
-                                                        <i class="pi pi-compass"></i>
-                                                        <label for="municipality">{{ 'management.userForm.municipality'
-                                                            | translate }}</label>
-                                                    </div>
-                                                    <select *ngIf="municipalities && municipalities.length"
-                                                        [(ngModel)]="selectedMunicipality" name="municipality"
-                                                        id="municipality" class="settings-dropdown"
-                                                        [ngModelOptions]="{standalone: true}" #municipalitySelect>
-                                                        <option *ngFor="let m of municipalities" [value]="m.value"
-                                                            [selected]="m.value === selectedMunicipality">{{ m.label }}
-                                                        </option>
-                                                    </select>
-                                                </div>
+                                        <!-- Sección de Ubicación interactiva -->
+                                        <div class="settings-item">
+                                            <div class="settings-item__header">
+                                                <i class="pi pi-map-marker"></i>
+                                                <label>Configurar Ubicación Geográfica</label>
                                             </div>
+                                            <button type="button" class="premium-map-btn" (click)="openLocationModal()">
+                                                <i class="pi pi-map"></i>
+                                                Abrir Mapa de Ubicación
+                                            </button>
                                         </div>
 
                                         <div class="settings-item tech-item"
@@ -530,3 +508,85 @@
             </div>
         </div>
     </div>
+</div>
+
+<p-dialog [(visible)]="showLocationModal" [modal]="true" [draggable]="false" [resizable]="false"
+    [style]="{ width: '750px', maxWidth: '95vw' }" header="Lugar de Instalación Geográfica" styleClass="app-dark-dialog" appendTo="body" (onShow)="initLocationMap()">
+    <div class="location-modal-content" style="padding-top: 0.5rem;">
+        <div class="form-row-multi" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+            
+            <div class="settings-item" style="margin: 0; padding: 0; background: transparent; border: none;">
+                <div class="settings-item__header" style="margin-bottom: 0.5rem;">
+                    <i class="pi pi-map" style="color: var(--primary-color); font-size: 0.9rem;"></i>
+                    <label style="font-weight: 600;">Provincia <span style="color: #ef4444; font-weight: bold;">*</span></label>
+                </div>
+                <select [(ngModel)]="selectedProvince" (ngModelChange)="onProvinceChange()" class="settings-dropdown" style="width: 100%; border: 1px solid var(--surface-border); border-radius: 6px; padding: 0.6rem; background-color: var(--surface-card); color: var(--text-color); transition: all 0.2s;">
+                    <option value="">Seleccione provincia</option>
+                    <option *ngFor="let p of availableProvinces" [value]="p.value">{{ p.label }}</option>
+                </select>
+            </div>
+
+            <div class="settings-item" style="margin: 0; padding: 0; background: transparent; border: none;">
+                <div class="settings-item__header" style="margin-bottom: 0.5rem;">
+                    <i class="pi pi-compass" style="color: var(--primary-color); font-size: 0.9rem;"></i>
+                    <label style="font-weight: 600;">Municipio <span style="color: #ef4444; font-weight: bold;">*</span></label>
+                </div>
+                <select [(ngModel)]="selectedMunicipality" (ngModelChange)="onMunicipalityChange()" [disabled]="!selectedProvince" class="settings-dropdown" [style.opacity]="selectedProvince ? '1' : '0.6'" style="width: 100%; border: 1px solid var(--surface-border); border-radius: 6px; padding: 0.6rem; background-color: var(--surface-card); color: var(--text-color); transition: all 0.2s;">
+                    <option value="">Seleccione municipio</option>
+                    <option *ngFor="let m of availableMunicipalities" [value]="m.value">{{ m.label }}</option>
+                </select>
+            </div>
+
+            <div class="settings-item" style="margin: 0; padding: 0; background: transparent; border: none;">
+                <div class="settings-item__header" style="margin-bottom: 0.5rem;">
+                    <i class="pi pi-th-large" style="color: var(--primary-color); font-size: 0.9rem;"></i>
+                    <label style="font-weight: 600;">Sector <span style="color: #ef4444; font-weight: bold;">*</span></label>
+                </div>
+                <select [(ngModel)]="user.sector" (ngModelChange)="onSectorChange()" [disabled]="!selectedMunicipality" class="settings-dropdown" [style.opacity]="selectedMunicipality ? '1' : '0.6'" style="width: 100%; border: 1px solid var(--surface-border); border-radius: 6px; padding: 0.6rem; background-color: var(--surface-card); color: var(--text-color); transition: all 0.2s;">
+                    <option value="">Seleccione sector</option>
+                    <option *ngFor="let s of availableSectors" [value]="s.value">{{ s.label }}</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="settings-item__header" style="margin-bottom: 0.75rem;">
+            <i class="pi pi-map-marker" style="color: var(--primary-color);"></i>
+            <label style="font-weight: 600;">Explorador Geográfico Interactivo</label>
+            <span style="font-size: 0.75rem; color: var(--text-color-secondary); margin-left: auto; font-style: italic;">Haz clic en el mapa para ajustar la coordenada</span>
+        </div>
+        
+        <div class="map-container" style="border-radius: 12px; overflow: hidden; border: 2px solid var(--surface-border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: border-color 0.3s ease;">
+            <div id="userLocationMap" style="width: 100%; height: 350px;"></div>
+        </div>
+
+        <div class="location-footer" style="display: flex; justify-content: flex-end; margin-top: 1.5rem; border-top: 1px solid var(--surface-border); padding-top: 1.25rem;">
+            <button type="button" class="button button--primary" (click)="showLocationModal = false" style="padding: 0.6rem 1.5rem; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.5rem; background: var(--primary-color); color: var(--primary-color-text); border: none; cursor: pointer; transition: filter 0.2s ease;">
+                <i class="pi pi-check" style="font-weight: bold;"></i>
+                Guardar Coordenadas y Cerrar
+            </button>
+        </div>
+    </div>
+</p-dialog>
+
+<style>
+    .premium-map-btn {
+        width: 100%;
+        justify-content: center;
+        background-color: var(--primary-color, #6366f1);
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+    .premium-map-btn:hover {
+        background-color: var(--primary-color-dark, #4f46e5);
+        transform: translateY(-1px);
+    }
+</style>

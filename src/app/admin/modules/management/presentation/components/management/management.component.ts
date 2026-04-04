@@ -30,6 +30,7 @@ import { TagsService } from '@core/services/tags.service';
 import { ChatwootApiService } from '@core/services/chatwoot-api.service';
 import { ProtocolsService } from '@core/services/protocols.service';
 import { InventoryService, Warehouse, InventoryItem } from '@core/services/inventory.service';
+import { SolicitudesService } from '@core/services/solicitudes.service';
 import { Protocol } from '@core/interfaces/protocol.interface';
 
 @Component({
@@ -394,7 +395,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private selectionService: SelectionService,
     private chatwootApi: ChatwootApiService,
     private protocolsService: ProtocolsService,
-    private inventoryService: InventoryService
+    private inventoryService: InventoryService,
+    private solicitudesService: SolicitudesService
   ) { }
 
   // ====================================
@@ -2159,24 +2161,41 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   installFromWarehouse(device: InventoryItem): void {
-    const protocol = device.Protocol || device.protocol;
-    const protocolId = typeof protocol === 'object' ? protocol._id : protocol;
+    const imei = (device.IMEI || device.imei || '').trim();
+    const sim = (device.SIM || device.sim || '').trim();
 
-    const preloadedTargetData: any = {
-      device_imei: (device.IMEI || device.imei || '').trim(),
-      sim_card_number: (device.SIM || device.sim || '').trim(),
-      type: protocolId || '',
-      status: 'active',
-      autoSubmit: false,
+    const solicitud: any = {
+      type: 'instalacion',
+      status: 'pendiente',
+      quantity: 1,
+      client_name: this.selectedUser?.name ? `${this.selectedUser.name} ${this.selectedUser.last_name || ''}`.trim() : '',
+      client_phone: this.selectedUser?.phone || '',
+      client_email: this.selectedUser?.email || '',
+      user_id: this.selectedUser?._id || '',
+      installations: [{
+        device_imei: imei,
+        sim_card_number: sim
+      }]
     };
 
-    this.warehouseModalVisible = false;
-    this.isInstallingFromInventory = true;
-    this.setOp('t');
-
-    setTimeout(() => {
-      this.showTargetForm(preloadedTargetData);
-    }, 300);
+    this.solicitudesService.create(solicitud).subscribe({
+      next: () => {
+        this.warehouseModalVisible = false;
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Solicitud creada',
+          detail: `Solicitud de instalación creada para IMEI ${imei}`
+        });
+        this.router.navigate(['/admin/solicitudes']);
+      },
+      error: () => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudo crear la solicitud'
+        });
+      }
+    });
   }
 
   // ====================================

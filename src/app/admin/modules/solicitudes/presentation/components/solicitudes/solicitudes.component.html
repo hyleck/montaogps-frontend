@@ -14,115 +14,172 @@
                 <span class="sol-subtitle">Gestión de instalaciones, chequeos y cambios</span>
             </div>
         </div>
-        <button pButton pRipple label="Nueva Solicitud" icon="pi pi-plus" class="p-button-success p-button-rounded"
-            (click)="openNew()"></button>
     </div>
 
-    <!-- Filters -->
-    <div class="sol-filters">
-        <div class="sol-search-box">
-            <i class="pi pi-search"></i>
-            <input type="text" [(ngModel)]="searchQuery" placeholder="Buscar por placa, cliente, IMEI..."
-                (keyup.enter)="onSearch()" />
-        </div>
-        <p-dropdown [options]="typeOptions" [(ngModel)]="filterType" optionLabel="label" optionValue="value"
-            placeholder="Tipo" [style]="{'min-width':'160px'}" appendTo="body" (onChange)="onSearch()"></p-dropdown>
-        <p-dropdown [options]="statusOptions" [(ngModel)]="filterStatus" optionLabel="label" optionValue="value"
-            placeholder="Estado" [style]="{'min-width':'160px'}" appendTo="body" (onChange)="onSearch()"></p-dropdown>
-        <button pButton pRipple icon="pi pi-filter-slash" class="p-button-outlined p-button-secondary p-button-rounded"
-            (click)="clearSearch()" pTooltip="Limpiar filtros" tooltipPosition="top"></button>
-    </div>
-
-    <!-- Stats -->
-    <div class="sol-stats">
-        <div class="sol-stat-card">
-            <span class="sol-stat-value">{{ totalItems }}</span>
-            <span class="sol-stat-label">Total</span>
-        </div>
-        <div class="sol-stat-card pending">
-            <span class="sol-stat-value">{{ countByStatus('pendiente') }}</span>
-            <span class="sol-stat-label">Pendientes</span>
-        </div>
-        <div class="sol-stat-card progress">
-            <span class="sol-stat-value">{{ countByStatus('en_progreso') }}</span>
-            <span class="sol-stat-label">En Progreso</span>
-        </div>
-        <div class="sol-stat-card completed">
-            <span class="sol-stat-value">{{ countByStatus('completada') }}</span>
-            <span class="sol-stat-label">Completadas</span>
-        </div>
-    </div>
 
     <!-- Loading -->
     <div *ngIf="loading" class="sol-loading">
         <p-progressSpinner></p-progressSpinner>
     </div>
 
-    <!-- Table -->
-    <div class="sol-table-wrap" *ngIf="!loading">
-        <table class="sol-table" *ngIf="solicitudes.length > 0">
-            <thead>
-                <tr>
-                    <th>Tipo</th>
-                    <th>Estado</th>
-                    <th>Placa</th>
-                    <th>Vehículo</th>
-                    <th>Cliente</th>
-                    <th>IMEI</th>
-                    <th>Fecha Programada</th>
-                    <th>Creada</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr *ngFor="let sol of solicitudes" class="sol-row">
-                    <td>
-                        <span class="sol-tag" [attr.data-type]="sol.type">
-                            {{ typeLabels[sol.type] || sol.type }}
-                        </span>
-                    </td>
-                    <td>
+    <!-- Scrum / Kanban Board -->
+    <div class="sol-kanban-board" *ngIf="!loading">
+        
+        <!-- Pendiente Column -->
+        <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'pendiente')" (dragleave)="onDragLeave($event)">
+            <div class="sol-kanban-header">
+                <div>Pendientes <span style="font-size: 0.8rem; opacity: 0.7;">({{ pendientes.length }})</span></div>
+                <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('pendiente')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
+            </div>
+            
+            <div class="sol-kanban-card" *ngFor="let sol of pendientes" (click)="!dragSuppressClick && editSolicitud(sol)"
+                draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
+                <div class="sol-kanban-card-top">
+                    <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                </div>
+                <div class="sol-kanban-content">
+                    <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
+                    <div style="margin-bottom: 0.5rem; display: flex; gap: 0.5rem;">
+                        <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
                         <span class="sol-status" [attr.data-status]="sol.status">
-                            <i [class]="getStatusIcon(sol.status)"></i>
-                            {{ statusLabels[sol.status] || sol.status }}
+                            <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
-                    </td>
-                    <td class="sol-plate">{{ sol.plate || '—' }}</td>
-                    <td>
-                        <span *ngIf="sol.brand || sol.model">{{ getBrandName(sol.brand) }} {{ getModelName(sol.brand,
-                            sol.model) }}</span>
-                        <span *ngIf="!sol.brand && !sol.model" class="sol-muted">—</span>
-                        <small *ngIf="sol.color || sol.year" class="sol-vehicle-detail">
-                            {{ sol.color }} {{ sol.year }}
-                        </small>
-                    </td>
-                    <td>
-                        <span *ngIf="getClientDisplayName(sol)">{{ getClientDisplayName(sol) }}</span>
-                        <span *ngIf="!getClientDisplayName(sol)" class="sol-muted">—</span>
-                    </td>
-                    <td class="sol-mono">{{ sol.device_imei || '—' }}</td>
-                    <td>{{ sol.scheduled_date ? (sol.scheduled_date | date: 'dd/MM/yyyy') : '—' }}</td>
-                    <td>{{ sol.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
-                    <td>
-                        <div class="sol-actions">
-                            <button *ngIf="sol.type === 'instalacion' && sol.status !== 'completada'" pButton pRipple
-                                icon="pi pi-download" label="Instalar"
-                                class="p-button-rounded p-button-sm sol-install-btn"
-                                (click)="openInstallDialog(sol)" pTooltip="Instalar dispositivo"
-                                tooltipPosition="top"></button>
-                            <button pButton pRipple icon="pi pi-pencil"
-                                class="p-button-rounded p-button-text p-button-success" (click)="editSolicitud(sol)"
-                                pTooltip="Editar" tooltipPosition="top"></button>
-                            <button pButton pRipple icon="pi pi-trash"
-                                class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
-                                pTooltip="Eliminar" tooltipPosition="top"></button>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+                    </div>
+                    <div><i class="pi pi-car" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.plate || 'Sin Placa' }}</div>
+                    <div style="opacity: 0.7;"><i class="pi pi-microchip" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.device_imei || 'Sin Asignar' }}</div>
+                </div>
+                <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
+                    <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
+                    <div class="sol-kanban-actions">
+                        <button *ngIf="sol.type === 'instalacion' && sol.status !== 'completada'" pButton pRipple
+                            icon="pi pi-wrench" class="p-button-rounded p-button-sm p-button-outlined"
+                            (click)="openInstallDialog(sol)" pTooltip="Instalar" tooltipPosition="top"></button>
+                        <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
+                            class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
+                            pTooltip="Cancelar" tooltipPosition="top"></button>
+                        <button pButton pRipple icon="pi pi-trash"
+                            class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
+                            pTooltip="Eliminar" tooltipPosition="top"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <div *ngIf="solicitudes.length === 0 && !loading" class="sol-empty">
+        <!-- En Progreso Column -->
+        <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'en_progreso')" (dragleave)="onDragLeave($event)">
+            <div class="sol-kanban-header" style="border-bottom-color: var(--yellow-500);">
+                <div>En Progreso <span style="font-size: 0.8rem; opacity: 0.7;">({{ enProgreso.length }})</span></div>
+                <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('en_progreso')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
+            </div>
+            
+            <div class="sol-kanban-card" *ngFor="let sol of enProgreso" (click)="!dragSuppressClick && editSolicitud(sol)"
+                draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
+                <div class="sol-kanban-card-top">
+                    <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                </div>
+                <div class="sol-kanban-content">
+                    <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
+                    <div style="margin-bottom: 0.5rem; display: flex; gap: 0.5rem;">
+                        <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
+                        <span class="sol-status" [attr.data-status]="sol.status">
+                            <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
+                        </span>
+                    </div>
+                    <div><i class="pi pi-car" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.plate || 'Sin Placa' }}</div>
+                    <div style="opacity: 0.7;"><i class="pi pi-microchip" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.device_imei || 'Sin Asignar' }}</div>
+                </div>
+                <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
+                    <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
+                    <div class="sol-kanban-actions">
+                        <button *ngIf="sol.type === 'instalacion' && sol.status !== 'completada'" pButton pRipple
+                            icon="pi pi-wrench" class="p-button-rounded p-button-sm p-button-outlined"
+                            (click)="openInstallDialog(sol)" pTooltip="Acción" tooltipPosition="top"></button>
+                        <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
+                            class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
+                            pTooltip="Cancelar" tooltipPosition="top"></button>
+                        <button pButton pRipple icon="pi pi-trash"
+                            class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
+                            pTooltip="Eliminar" tooltipPosition="top"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Por Confirmar Column -->
+        <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'por_confirmar')" (dragleave)="onDragLeave($event)">
+            <div class="sol-kanban-header">
+                <div>Por Confirmar <span style="font-size: 0.8rem; opacity: 0.7;">({{ porConfirmar.length }})</span></div>
+                <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('por_confirmar')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
+            </div>
+            
+            <div class="sol-kanban-card" *ngFor="let sol of porConfirmar" (click)="!dragSuppressClick && editSolicitud(sol)"
+                draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
+                <div class="sol-kanban-card-top">
+                    <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                </div>
+                <div class="sol-kanban-content">
+                    <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
+                    <div style="margin-bottom: 0.5rem; display: flex; gap: 0.5rem;">
+                        <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
+                        <span class="sol-status" [attr.data-status]="sol.status">
+                            <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
+                        </span>
+                    </div>
+                    <div><i class="pi pi-car" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.plate || 'Sin Placa' }}</div>
+                    <div style="opacity: 0.7;"><i class="pi pi-microchip" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.device_imei || 'Sin Asignar' }}</div>
+                </div>
+                <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
+                    <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
+                    <div class="sol-kanban-actions">
+                        <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
+                            class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
+                            pTooltip="Cancelar" tooltipPosition="top"></button>
+                        <button pButton pRipple icon="pi pi-trash"
+                            class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
+                            pTooltip="Eliminar" tooltipPosition="top"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completadas Column -->
+        <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'completada')" (dragleave)="onDragLeave($event)">
+            <div class="sol-kanban-header">
+                <div>Completadas <span style="font-size: 0.8rem; opacity: 0.7;">({{ completadas.length }})</span></div>
+                <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('completada')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
+            </div>
+            
+            <div class="sol-kanban-card" *ngFor="let sol of completadas" (click)="!dragSuppressClick && editSolicitud(sol)"
+                draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
+                <div class="sol-kanban-card-top">
+                    <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                </div>
+                <div class="sol-kanban-content">
+                    <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
+                    <div style="margin-bottom: 0.5rem; display: flex; gap: 0.5rem;">
+                        <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
+                        <span class="sol-status" [attr.data-status]="sol.status">
+                            <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
+                        </span>
+                    </div>
+                    <div><i class="pi pi-car" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.plate || 'Sin Placa' }}</div>
+                    <div style="opacity: 0.7;"><i class="pi pi-microchip" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.device_imei || 'Sin Asignar' }}</div>
+                </div>
+                <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
+                    <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
+                    <div class="sol-kanban-actions">
+                        <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
+                            class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
+                            pTooltip="Cancelar" tooltipPosition="top"></button>
+                        <button pButton pRipple icon="pi pi-trash"
+                            class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
+                            pTooltip="Eliminar" tooltipPosition="top"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div *ngIf="solicitudes.length === 0 && !loading" class="sol-empty" style="grid-column: span 4;">
             <i class="pi pi-clipboard"></i>
             <h3>No hay solicitudes</h3>
             <p>Crea tu primera solicitud usando el botón "Nueva Solicitud"</p>
@@ -140,18 +197,34 @@
             <!-- Required Section -->
             <div class="sol-form-separator sol-form-separator--required">
                 <i class="pi pi-exclamation-circle"></i>
-                <span>Datos Requeridos</span>
+                <span>Datos Generales (Ticket Master)</span>
             </div>
 
-            <div class="sol-form-field">
-                <label>Tipo de Solicitud *</label>
-                <select [(ngModel)]="selectedSolicitud.type" required>
-                    <option value="">Seleccionar tipo</option>
-                    <option *ngFor="let opt of typeOptions.slice(1)" [value]="opt.value">{{ opt.label }}</option>
-                </select>
+            <div class="sol-form-row sol-form-row-3">
+                <div class="sol-form-field">
+                    <label>Tipo de Proceso *</label>
+                    <select [(ngModel)]="selectedSolicitud.type" required>
+                        <option value="">Seleccionar tipo</option>
+                        <option *ngFor="let opt of typeOptions.slice(1)" [value]="opt.value">{{ opt.label }}</option>
+                    </select>
+                </div>
+                <div class="sol-form-field">
+                    <label>Cantidad *</label>
+                    <input type="number" [(ngModel)]="selectedSolicitud.quantity" min="1" (ngModelChange)="onQuantityChange()" required />
+                </div>
+                <div class="sol-form-field">
+                    <label>Estado</label>
+                    <select [(ngModel)]="selectedSolicitud.status">
+                        <option *ngFor="let opt of statusOptions.slice(1)" [value]="opt.value">{{ opt.label }}</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="sol-form-row">
+            <div class="sol-form-row sol-form-row-3">
+                <div class="sol-form-field">
+                    <label>Email *</label>
+                    <input type="email" [(ngModel)]="selectedSolicitud.client_email" (blur)="onClientEmailBlur()" placeholder="cliente@ejemplo.com" required />
+                </div>
                 <div class="sol-form-field">
                     <label>Nombre del Cliente *</label>
                     <input type="text" [(ngModel)]="selectedSolicitud.client_name"
@@ -159,183 +232,126 @@
                 </div>
                 <div class="sol-form-field">
                     <label>Teléfono *</label>
-                    <input type="text" [(ngModel)]="selectedSolicitud.client_phone" placeholder="809-555-1234"
-                        required />
-                </div>
-            </div>
-
-            <div class="sol-form-row sol-form-row-3">
-                <div class="sol-form-field">
-                    <label>Marca *</label>
-                    <select [(ngModel)]="selectedSolicitud.brand" (change)="onBrandChange()" required>
-                        <option value="">Seleccionar marca</option>
-                        <option *ngFor="let brand of availableBrands" [value]="brand.value">{{ brand.label }}</option>
-                    </select>
-                </div>
-                <div class="sol-form-field">
-                    <label>Modelo *</label>
-                    <select [(ngModel)]="selectedSolicitud.model" [disabled]="availableModels.length === 0" required>
-                        <option value="">Seleccionar modelo</option>
-                        <option *ngFor="let model of availableModels" [value]="model.value">{{ model.label }}</option>
-                    </select>
-                </div>
-                <div class="sol-form-field">
-                    <label>Año *</label>
-                    <select [(ngModel)]="selectedSolicitud.year" required>
-                        <option value="">Seleccionar año</option>
-                        <option *ngFor="let year of availableYears" [value]="year.value">{{ year.label }}</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="sol-form-field">
-                <label>Color *</label>
-                <input type="text" [(ngModel)]="displayColorName" placeholder="Buscar color..." />
-                <input type="hidden" [(ngModel)]="selectedSolicitud.color" />
-                <div class="sol-color-container">
-                    <div class="sol-color-options">
-                        <div class="sol-color-header">
-                            <span>Colores disponibles</span>
-                        </div>
-                        <div class="sol-color-list">
-                            <div *ngFor="let color of filteredColors" class="sol-color-option"
-                                [class.selected]="selectedSolicitud.color === color.value" (click)="selectColor(color)">
-                                <div class="sol-color-swatch" [style.background-color]="color.value"></div>
-                                <span>{{ color.label }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Optional: Vehicle extras -->
-            <div class="sol-form-separator">
-                <i class="pi pi-car"></i>
-                <span>Vehículo (Opcional)</span>
-            </div>
-
-            <div class="sol-form-row">
-                <div class="sol-form-field">
-                    <label>Placa</label>
-                    <input type="text" [(ngModel)]="selectedSolicitud.plate" placeholder="Ej. A123456" />
-                </div>
-                <div class="sol-form-field">
-                    <label>Chasis</label>
-                    <input type="text" [(ngModel)]="selectedSolicitud.chassis" placeholder="No. de chasis" />
+                    <input type="text" [(ngModel)]="selectedSolicitud.client_phone" placeholder="809-555-1234" required (blur)="onClientPhoneBlur()" />
                 </div>
             </div>
 
             <!-- Location -->
-            <div class="sol-form-separator">
-                <i class="pi pi-map-marker"></i>
-                <span>Ubicación (Opcional)</span>
+            <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleRootLocation()" [class.active]="showRootLocationData" style="cursor: pointer; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="pi pi-map-marker" style="color: #6366f1;"></i>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">Ubicación del Cliente</span>
+                </div>
+                <i class="pi" [ngClass]="showRootLocationData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
             </div>
 
-            <div class="sol-form-row">
-                <div class="sol-form-field">
-                    <label>Provincia</label>
-                    <select [(ngModel)]="selectedSolicitud.province" (change)="onProvinceChange()">
-                        <option value="">Seleccionar provincia</option>
-                        <option *ngFor="let p of availableProvinces" [value]="p.value">{{ p.label }}</option>
-                    </select>
+            <div *ngIf="showRootLocationData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
+                <div class="sol-form-row sol-form-row-3">
+                    <div class="sol-form-field">
+                        <label>Provincia</label>
+                        <select [(ngModel)]="selectedSolicitud.province" (change)="onRootProvinceChange()">
+                            <option value="">Seleccionar provincia</option>
+                            <option *ngFor="let p of availableProvinces" [value]="p.value">{{ p.label }}</option>
+                        </select>
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Municipio</label>
+                        <select [(ngModel)]="selectedSolicitud.municipality" (change)="onRootMunicipalityChange()"
+                            [disabled]="rootAvailableMunicipalities.length === 0">
+                            <option value="">Seleccionar municipio</option>
+                            <option *ngFor="let m of rootAvailableMunicipalities" [value]="m.value">{{ m.label }}</option>
+                        </select>
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Sector</label>
+                        <select [(ngModel)]="selectedSolicitud.sector" (change)="onRootSectorChange()"
+                            [disabled]="rootAvailableSectors.length === 0">
+                            <option value="">Seleccionar sector</option>
+                            <option *ngFor="let sec of rootAvailableSectors" [value]="sec.value">{{ sec.label }}</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="sol-form-field">
-                    <label>Municipio</label>
-                    <select [(ngModel)]="selectedSolicitud.municipality"
-                        [disabled]="availableMunicipalities.length === 0">
-                        <option value="">Seleccionar municipio</option>
-                        <option *ngFor="let m of availableMunicipalities" [value]="m.value">{{ m.label }}</option>
-                    </select>
-                </div>
-            </div>
 
-            <!-- Optional: Device -->
-            <div class="sol-form-separator">
-                <i class="pi pi-microchip"></i>
-                <span>Dispositivo (Opcional)</span>
-            </div>
+                <div class="sol-form-row">
+                    <div class="sol-form-field">
+                        <label>Latitud</label>
+                        <input type="number" [(ngModel)]="selectedSolicitud.latitude" placeholder="Ej. 18.473" />
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Longitud</label>
+                        <input type="number" [(ngModel)]="selectedSolicitud.longitude" placeholder="Ej. -69.932" />
+                    </div>
+                </div>
 
-            <div class="sol-form-row sol-form-row-3">
-                <div class="sol-form-field">
-                    <label>IMEI</label>
-                    <input type="text" [(ngModel)]="selectedSolicitud.device_imei" placeholder="IMEI del dispositivo" />
-                </div>
-                <div class="sol-form-field">
-                    <label>SIM</label>
-                    <input type="text" [(ngModel)]="selectedSolicitud.sim_card_number" placeholder="No. SIM" />
-                </div>
-                <div class="sol-form-field">
-                    <label>Compañía SIM</label>
-                    <input type="text" [(ngModel)]="selectedSolicitud.sim_company" placeholder="Ej. Claro" />
-                </div>
-            </div>
-
-            <!-- Optional: Installation -->
-            <div class="sol-form-separator">
-                <i class="pi pi-wrench"></i>
-                <span>Instalación (Opcional)</span>
-            </div>
-
-            <div class="sol-form-row">
-                <div class="sol-form-field">
-                    <label>Ubicación de Instalación</label>
-                    <input type="text" [(ngModel)]="selectedSolicitud.installation_location"
-                        placeholder="Ej. Bajo el dashboard" />
-                </div>
-                <div class="sol-form-field">
-                    <label>Fecha Programada</label>
-                    <input type="date" [(ngModel)]="selectedSolicitud.scheduled_date" />
+                <div class="sol-form-field" style="margin-top: 1rem;">
+                    <label>Mapa de Ubicación Exacta <span style="font-size: 0.75rem; color: #6b7280; font-weight: normal; margin-left: 0.5rem;">(Haz clic para fijar coordenada)</span></label>
+                    <div id="map-container-root" style="width: 100%; height: 260px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface-hover);"></div>
                 </div>
             </div>
 
-            <div class="sol-form-row">
-                <div class="sol-form-field">
-                    <label>Corte de Motor</label>
-                    <select [(ngModel)]="selectedSolicitud.engine_shutdown">
-                        <option value="">Seleccionar</option>
-                        <option value="si">Sí</option>
-                        <option value="no">No</option>
-                    </select>
-                </div>
-                <div class="sol-form-field">
-                    <label>Sensor de Ignición</label>
-                    <select [(ngModel)]="selectedSolicitud.ignition_sensor">
-                        <option value="">Seleccionar</option>
-                        <option value="si">Sí</option>
-                        <option value="no">No</option>
-                    </select>
-                </div>
-            </div>
-
+            
             <!-- Optional: Details -->
-            <div class="sol-form-separator">
-                <i class="pi pi-file-edit"></i>
-                <span>Detalles (Opcional)</span>
-            </div>
-
-            <div class="sol-form-row">
-                <div class="sol-form-field">
-                    <label>Estado</label>
-                    <select [(ngModel)]="selectedSolicitud.status">
-                        <option *ngFor="let opt of statusOptions.slice(1)" [value]="opt.value">{{ opt.label }}</option>
-                    </select>
+            <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleRootDetails()" [class.active]="showRootDetailsData" style="cursor: pointer; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="pi pi-file-edit" style="color: #6366f1;"></i>
+                    <span style="font-weight: 700;">Detalles y Asignación</span>
                 </div>
-                <div class="sol-form-field">
-                    <label>Contactos Adicionales</label>
-                    <input type="text" [(ngModel)]="selectedSolicitud.contacts" placeholder="Otros contactos" />
+                <i class="pi" [ngClass]="showRootDetailsData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
+            </div>
+
+            <div *ngIf="showRootDetailsData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
+                <div class="sol-form-row sol-form-row-3">
+                    <div class="sol-form-field">
+                        <label>Técnico Asignado</label>
+                        <select [(ngModel)]="selectedSolicitud.mechanic_id">
+                            <option value="">Sin asignar</option>
+                            <option *ngFor="let tech of availableTechnicians" [value]="tech._id || tech.id">{{ tech.name }} {{ tech.last_name || '' }}</option>
+                        </select>
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Permisos para Confirmar</label>
+                        <select [(ngModel)]="selectedSolicitud.confirmation_permission">
+                            <option value="no">No puede confirmar instalación</option>
+                            <option value="si">Puede confirmar instalación</option>
+                        </select>
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Fecha Programada</label>
+                        <input type="datetime-local" [(ngModel)]="selectedSolicitud.scheduled_date" />
+                    </div>
                 </div>
+
+                <div class="sol-form-field">
+                    <label>Descripción General</label>
+                    <textarea [(ngModel)]="selectedSolicitud.description" rows="3"
+                        placeholder="Descripción global de la solicitud..."></textarea>
+                </div>
+
             </div>
 
-            <div class="sol-form-field">
-                <label>Descripción</label>
-                <textarea [(ngModel)]="selectedSolicitud.description" rows="3"
-                    placeholder="Descripción de la solicitud..."></textarea>
+             <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleInstallationsCards()" [class.active]="showInstallationsCards" style="cursor: pointer; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="pi pi-box" style="color: #6366f1;"></i>
+                    <span style="font-weight: 700;">Gestión de {{ getEntityName(true) }} ({{ selectedSolicitud.quantity || 0 }})</span>
+                </div>
+                <i class="pi" [ngClass]="showInstallationsCards ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
             </div>
-
-            <div class="sol-form-field">
-                <label>Notas Internas</label>
-                <textarea [(ngModel)]="selectedSolicitud.notes" rows="2"
-                    placeholder="Notas internas (no visibles al cliente)..."></textarea>
+            
+            <div *ngIf="showInstallationsCards" class="sol-collapsible-section" style="animation: fadein 0.2s;">
+                <div class="sol-install-cards-grid">
+                    <div class="sol-install-trigger-card" *ngFor="let install of selectedSolicitud.installations; let i = index" (click)="openInstallationModal(i)">
+                        <div class="sol-install-card-icon">
+                            <i class="pi pi-cog"></i>
+                        </div>
+                        <div class="sol-install-card-content">
+                            <h4>{{ getEntityName() }} #{{i + 1}}</h4>
+                            <p>Vehículo, ubicación y dispositivo...</p>
+                        </div>
+                        <div class="sol-install-card-arrow">
+                            <i class="pi pi-chevron-right"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -346,6 +362,206 @@
         </button>
         <button type="button" class="sol-btn sol-btn-save" (click)="saveSolicitud()">
             <i class="pi pi-check"></i> Guardar
+        </button>
+    </ng-template>
+</p-dialog>
+
+<!-- New Modal: Instalación -->
+<p-dialog [(visible)]="installationModalVisible" [style]="{width: '600px', 'max-height': '90vh'}" header="{{ getEntityName() }} #{{editingInstallationIndex + 1}}" [modal]="true" class="sol-dialog" [draggable]="false" [resizable]="false">
+    <div class="sol-form-container" *ngIf="selectedSolicitud && selectedSolicitud.installations && selectedSolicitud.installations[editingInstallationIndex]">
+            <!-- Vehicle Data Group -->
+            <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('vehicle')" [class.active]="showVehicleData" style="cursor: pointer; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="pi pi-car" style="color: #6366f1;"></i>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">Datos del Vehículo (Opcional)</span>
+                </div>
+                <i class="pi" [ngClass]="showVehicleData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
+            </div>
+
+            <div *ngIf="showVehicleData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
+                <div class="sol-form-row sol-form-row-3">
+                    <div class="sol-form-field">
+                        <label>Marca</label>
+                        <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].brand" (change)="onBrandChange()">
+                            <option value="">Seleccionar marca</option>
+                            <option *ngFor="let brand of availableBrands" [value]="brand.value">{{ brand.label }}</option>
+                        </select>
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Modelo</label>
+                        <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].model" [disabled]="availableModels.length === 0">
+                            <option value="">Seleccionar modelo</option>
+                            <option *ngFor="let model of availableModels" [value]="model.value">{{ model.label }}</option>
+                        </select>
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Año</label>
+                        <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].year">
+                            <option value="">Seleccionar año</option>
+                            <option *ngFor="let year of availableYears" [value]="year.value">{{ year.label }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="sol-form-row">
+                    <div class="sol-form-field">
+                        <label>Placa</label>
+                        <input type="text" [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].plate" placeholder="Ej. A123456" />
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Chasis</label>
+                        <input type="text" [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].chassis" placeholder="No. de chasis" />
+                    </div>
+                </div>
+
+                <div class="sol-form-field">
+                    <label>Color</label>
+                    <input type="text" [(ngModel)]="displayColorName" placeholder="Buscar color..." />
+                    <input type="hidden" [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].color" />
+                    <div class="sol-color-container">
+                        <div class="sol-color-options">
+                            <div class="sol-color-header">
+                                <span>Colores disponibles</span>
+                            </div>
+                            <div class="sol-color-list">
+                                <div *ngFor="let color of filteredColors" class="sol-color-option"
+                                    [class.selected]="selectedSolicitud.installations[editingInstallationIndex].color === color.value" (click)="selectColor(color)">
+                                    <div class="sol-color-swatch" [style.background-color]="color.value"></div>
+                                    <span>{{ color.label }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location -->
+            <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('location')" [class.active]="showLocationData" style="cursor: pointer; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="pi pi-map-marker" style="color: #6366f1;"></i>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">Ubicación de {{ getEntityName() }} (Opcional)</span>
+                </div>
+                <i class="pi" [ngClass]="showLocationData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
+            </div>
+
+            <div *ngIf="showLocationData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
+                <div class="sol-form-row sol-form-row-3">
+                    <div class="sol-form-field">
+                        <label>Provincia</label>
+                        <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].province" (change)="onProvinceChange()">
+                            <option value="">Seleccionar provincia</option>
+                            <option *ngFor="let p of availableProvinces" [value]="p.value">{{ p.label }}</option>
+                        </select>
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Municipio</label>
+                        <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].municipality" (change)="onMunicipalityChange()"
+                            [disabled]="availableMunicipalities.length === 0">
+                            <option value="">Seleccionar municipio</option>
+                            <option *ngFor="let m of availableMunicipalities" [value]="m.value">{{ m.label }}</option>
+                        </select>
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Sector</label>
+                        <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].sector" (change)="onSectorChange()"
+                            [disabled]="availableSectors.length === 0">
+                            <option value="">Seleccionar sector</option>
+                            <option *ngFor="let sec of availableSectors" [value]="sec.value">{{ sec.label }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="sol-form-row">
+                    <div class="sol-form-field">
+                        <label>Latitud</label>
+                        <input type="number" [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].latitude" placeholder="Ej. 18.473" />
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Longitud</label>
+                        <input type="number" [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].longitude" placeholder="Ej. -69.932" />
+                    </div>
+                </div>
+
+                <div class="sol-form-field" style="margin-top: 1rem;">
+                    <label>Mapa de Ubicación Exacta <span style="font-size: 0.75rem; color: #6b7280; font-weight: normal; margin-left: 0.5rem;">(Haz clic para fijar coordenada)</span></label>
+                    <div [id]="'solLocationMap-' + editingInstallationIndex" style="width: 100%; height: 260px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--surface-hover);"></div>
+                </div>
+            </div>
+
+            <!-- Optional: Device -->
+            <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('device')" [class.active]="showDeviceData" style="cursor: pointer; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="pi pi-microchip" style="color: #6366f1;"></i>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">Dispositivo (Opcional)</span>
+                </div>
+                <i class="pi" [ngClass]="showDeviceData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
+            </div>
+
+            <div *ngIf="showDeviceData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
+                <div class="sol-form-row sol-form-row-3">
+                    <div class="sol-form-field">
+                        <label>IMEI</label>
+                        <input type="text" [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].device_imei" placeholder="IMEI del dispositivo" />
+                    </div>
+                    <div class="sol-form-field">
+                        <label>SIM</label>
+                        <input type="text" [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].sim_card_number" placeholder="No. SIM" />
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Compañía SIM</label>
+                        <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].sim_company">
+                            <option value="">Seleccionar compañía</option>
+                            <option *ngFor="let simType of simCardTypes" [value]="simType.value">{{ simType.label }}</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optional: Installation -->
+            <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('install')" [class.active]="showInstallData" style="cursor: pointer; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <i class="pi pi-wrench" style="color: #6366f1;"></i>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">Instalación (Opcional)</span>
+                </div>
+                <i class="pi" [ngClass]="showInstallData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
+            </div>
+
+            <div *ngIf="showInstallData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
+                <div class="sol-form-row">
+                    <div class="sol-form-field" style="grid-column: span 2;">
+                        <label>Lugar de Instalación</label>
+                        <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].installation_location">
+                            <option value="">Seleccionar lugar</option>
+                            <option *ngFor="let loc of installationLocations" [value]="loc.value">{{ loc.label }}</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="sol-form-row">
+                    <div class="sol-form-field">
+                        <label>Corte de Motor</label>
+                        <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].engine_shutdown">
+                            <option value="">Seleccionar</option>
+                            <option value="si">Sí</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                    <div class="sol-form-field">
+                        <label>Sensor de Ignición</label>
+                        <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].ignition_sensor">
+                            <option value="">Seleccionar</option>
+                            <option value="si">Sí</option>
+                            <option value="no">No</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+    </div>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-save" (click)="installationModalVisible = false" style="width: 100%; justify-content: center; margin-top: 10px;">
+            <i class="pi pi-check"></i> Listo
         </button>
     </ng-template>
 </p-dialog>
@@ -446,13 +662,13 @@
             <!-- Installation Details -->
             <div class="sol-form-separator">
                 <i class="pi pi-wrench"></i>
-                <span>Detalles de Instalación (Opcional)</span>
+                <span>Detalles de {{ getEntityName() }} (Opcional)</span>
             </div>
 
             <div class="sol-form-field">
-                <label>Detalles de Instalación</label>
+                <label>Detalles de {{ getEntityName() }}</label>
                 <textarea [(ngModel)]="installData.installation_details" rows="2"
-                    placeholder="Detalles de la instalación..."></textarea>
+                    placeholder="Ingrese detalles o notas..."></textarea>
             </div>
 
             <!-- Summary of solicitud data (read-only) -->
@@ -462,25 +678,25 @@
             </div>
 
             <div class="sol-install-summary">
-                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.plate">
+                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.installations?.[0]?.plate">
                     <span class="sol-install-summary-label">Placa</span>
-                    <span class="sol-install-summary-value">{{ solicitudToInstall.plate }}</span>
+                    <span class="sol-install-summary-value">{{ solicitudToInstall.installations?.[0]?.plate }}</span>
                 </div>
-                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.brand">
+                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.installations?.[0]?.brand">
                     <span class="sol-install-summary-label">Marca</span>
-                    <span class="sol-install-summary-value">{{ getBrandName(solicitudToInstall.brand) }}</span>
+                    <span class="sol-install-summary-value">{{ getBrandName(solicitudToInstall.installations?.[0]?.brand) }}</span>
                 </div>
-                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.model">
+                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.installations?.[0]?.model">
                     <span class="sol-install-summary-label">Modelo</span>
-                    <span class="sol-install-summary-value">{{ getModelName(solicitudToInstall.brand, solicitudToInstall.model) }}</span>
+                    <span class="sol-install-summary-value">{{ getModelName(solicitudToInstall.installations?.[0]?.brand, solicitudToInstall.installations?.[0]?.model) }}</span>
                 </div>
-                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.year">
+                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.installations?.[0]?.year">
                     <span class="sol-install-summary-label">Año</span>
-                    <span class="sol-install-summary-value">{{ solicitudToInstall.year }}</span>
+                    <span class="sol-install-summary-value">{{ solicitudToInstall.installations?.[0]?.year }}</span>
                 </div>
-                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.color">
+                <div class="sol-install-summary-item" *ngIf="solicitudToInstall.installations?.[0]?.color">
                     <span class="sol-install-summary-label">Color</span>
-                    <span class="sol-install-summary-value">{{ getColorName(solicitudToInstall.color) }}</span>
+                    <span class="sol-install-summary-value">{{ getColorName(solicitudToInstall.installations?.[0]?.color) }}</span>
                 </div>
                 <div class="sol-install-summary-item" *ngIf="solicitudToInstall.client_name">
                     <span class="sol-install-summary-label">Cliente</span>

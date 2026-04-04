@@ -13,6 +13,10 @@ import { Subject, takeUntil } from 'rxjs';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { CloudService } from '@core/services/cloud.service';
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
+import { SystemService } from '@core/services/system.service';
+import { MapUtils } from 'src/app/shareds/helpers/map.helper';
+
+declare var google: any;
 
 import {
     AVAILABLE_MODULES, // Lista de módulos disponibles
@@ -146,6 +150,16 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     // Campos para técnicos
     provinces: ProvinceOption[] = PROVINCES;
     municipalities: MunicipalityOption[] = MUNICIPALITIES[''];
+    
+    // Dynamic Location State
+    showLocationModal: boolean = false;
+    availableProvinces: any[] = [];
+    availableMunicipalities: any[] = [];
+    availableSectors: any[] = [];
+    
+    userLocationMap: any;
+    userLocationMarker: any;
+    
     selectedProvince: string = '';
     selectedMunicipality: string = '';
     technicianServices: string[] = [];
@@ -179,6 +193,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         private route: ActivatedRoute,
         private privilegeService: PrivilegeService,
         private brandsService: VehicleBrandsService,
+        private systemService: SystemService,
         private cdr: ChangeDetectorRef,
         private cloudService: CloudService,
         private firebaseNotificationsService: FirebaseNotificationsService
@@ -376,9 +391,17 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.selectedCompanyType = '';
         this.confirmPassword = '';
         this.user.password = '';
-        this.user.password = '';
         this.activeTabIndex = 0;
         this.currentPhotoUrl = null;
+        
+        // Ensure Geographic caches and local selections explicitly wipe
+        this.selectedProvince = '';
+        this.selectedMunicipality = '';
+        this.user.sector = '';
+        this.pendingMunicipality = '';
+        this.availableProvinces = [];
+        this.availableMunicipalities = [];
+        this.availableSectors = [];
     }
 
     ngOnChanges(changes: SimpleChanges) {
@@ -423,33 +446,40 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         // Forzar detección de cambios
         this.cdr.detectChanges();
 
-
-
-        // Detectar si debe considerarse técnico por datos existentes aunque la afiliación venga como 'cliente'
         const backendProvince = (user as any).province || '';
         const backendMunicipality = (user as any).municipality || '';
         const backendServices = (user as any).services;
-        // const hasTechSignals = (!!backendProvince || !!backendMunicipality || (Array.isArray(backendServices) && backendServices.length > 0));
-        // if (!this.selectedAffiliationType?.startsWith('tecnico') && hasTechSignals) {
-        //     this.selectedAffiliationType = 'tecnico_independiente';
-        // }
 
         // Cargar provincia y municipio para todos los usuarios
         this.selectedProvince = backendProvince;
         this.pendingMunicipality = backendMunicipality;
         
+        // Execute cascading load directly without fragile setTimeout delays
         if (this.selectedProvince) {
             this.isProgrammaticProvinceSetting = true;
-            this.onProvinceChange(); // Carga los municipios de la provincia
-            const pm = this.pendingMunicipality;
-            setTimeout(() => {
-                if (pm) {
-                    this.selectedMunicipality = pm;
+            const paramProv = isNaN(Number(this.selectedProvince)) ? this.selectedProvince : this.selectedProvince;
+            this.brandsService.getMunicipalities(paramProv).then((municipalities: any) => {
+                this.availableMunicipalities = municipalities.map((m: any) => ({ label: m.name, value: String(m.code) }));
+                
+                if (this.pendingMunicipality) {
+                    this.selectedMunicipality = this.pendingMunicipality;
+                    const paramMun = isNaN(Number(this.selectedMunicipality)) ? this.selectedMunicipality : this.selectedMunicipality;
+                    
+                    this.brandsService.getSectors(paramMun, paramProv).then((sectors: any) => {
+                        this.availableSectors = sectors.map((s: any) => ({ label: s.name, value: String(s.name) }));
+                        this.user.sector = (user as any).sector || '';
+                        this.isProgrammaticProvinceSetting = false;
+                        this.cdr.detectChanges();
+                    });
+                } else {
+                    this.isProgrammaticProvinceSetting = false;
+                    this.cdr.detectChanges();
                 }
-            }, 0);
+            });
         } else {
             this.selectedMunicipality = '';
-            this.municipalities = MUNICIPALITIES[''] || [];
+            this.availableMunicipalities = [];
+            this.availableSectors = [];
         }
 
         // Servicios desde backend (solo para técnicos)
@@ -675,6 +705,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             // Campos de ubicación para todos y servicios para técnicos
             province: this.selectedProvince || undefined,
             municipality: this.selectedMunicipality || undefined,
+            sector: this.user.sector || undefined,
+            latitude: this.user.latitude || undefined,
+            longitude: this.user.longitude || undefined,
             services: this.selectedAffiliationType?.startsWith('tecnico') ? (this.technicianServices || []) : []
         };
         console.log('User to submit:', userToSubmit);
@@ -915,70 +948,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         return sanitized;
     }
 
-    onProvinceChange(): void {
-        // Logs de depuración removidos
-        if (!this.selectedProvince) {
-            this.municipalities = MUNICIPALITIES[''];
-            this.selectedMunicipality = '';
-            this.isProgrammaticProvinceSetting = false;
-            this.pendingMunicipality = '';
-            return;
-        }
-        const pending = String(this.pendingMunicipality || '');
-        this.brandsService.getMunicipalities(this.selectedProvince)
-            .then(list => {
-                const opts = list.map((m: any) => ({ label: m.name, value: String(m.code), raw: m }));
-                this.municipalities = [{ label: this.translate.instant('management.userForm.selectAffiliation'), value: '' }, ...opts.map(o => ({ label: o.label, value: o.value }))];
-                if (this.isProgrammaticProvinceSetting && pending) {
-                    // 1) Exact match
-                    let match = opts.find(o => o.value === pending)?.value;
-                    // 2) Try province+pending padded (e.g., '05' + '05' => '0505' or '0501')
-                    if (!match) {
-                        const candidate1 = `${this.selectedProvince}${pending.padStart(2, '0')}`;
-                        match = opts.find(o => o.value === candidate1)?.value;
-                    }
-                    // 3) startsWith province and endsWith pending (e.g., '0501' ends with '01')
-                    if (!match) {
-                        match = opts.find(o => o.value.startsWith(String(this.selectedProvince)) && o.value.endsWith(pending))?.value;
-                    }
-                    // 3.1) endsWith last two digits of pending (robusto en códigos largos)
-                    if (!match) {
-                        const pending2 = pending.padStart(2, '0');
-                        match = opts.find(o => o.value.slice(-2) === pending2)?.value;
-                    }
-                    // 4) label contains pending (fallback)
-                    if (!match) {
-                        match = opts.find(o => String(o.label).toLowerCase().includes(pending.toLowerCase()))?.value;
-                    }
-                    // Forzar set en microtask para asegurar actualización en el DOM de select
-                    const valueToSet = match || '';
-                    this.selectedMunicipality = valueToSet;
-                    this.cdr.detectChanges();
-                    Promise.resolve().then(() => {
-                        this.selectedMunicipality = valueToSet;
-                        this.cdr.detectChanges();
-                        // Refuerzo: setear directamente el valor del select del DOM si existe
-                        setTimeout(() => {
-                            const el = this.municipalitySelectRef?.nativeElement;
-                            if (el) {
-                                el.value = valueToSet;
-                            }
-                        }, 0);
-                    });
-                } else {
-                    this.selectedMunicipality = '';
-                }
-                // Logs de depuración removidos
-            })
-            .catch(() => {
-                this.municipalities = MUNICIPALITIES[''];
-                this.selectedMunicipality = '';
-            })
-            .finally(() => {
-                this.isProgrammaticProvinceSetting = false;
-                this.pendingMunicipality = '';
-            });
-    }
+
 
     private formatDateToInput(dateStr: string): string {
         if (!dateStr) return '';
@@ -1056,5 +1026,164 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     ngOnDestroy() {
         this.destroy$.next();
         this.destroy$.complete();
+    }
+
+    // Modal Map Logic
+    openLocationModal() {
+        this.showLocationModal = true;
+        if (this.availableProvinces.length === 0) {
+            this.loadDynamicProvinces();
+        }
+    }
+
+    loadDynamicProvinces() {
+        this.brandsService.getProvinces().then((data: any) => {
+            this.availableProvinces = data.map((p: any) => ({ label: p.name, value: String(p.code) }));
+        }).catch((err: any) => console.error('Error fetching provinces', err));
+    }
+
+    onProvinceChange() {
+        if (!this.selectedProvince) {
+            this.availableMunicipalities = [];
+            this.availableSectors = [];
+            this.selectedMunicipality = '';
+            this.user.sector = '';
+            return;
+        }
+
+        const paramProv = isNaN(Number(this.selectedProvince)) ? this.selectedProvince : this.selectedProvince;
+        this.brandsService.getMunicipalities(paramProv).then((data: any) => {
+            this.availableMunicipalities = data.map((m: any) => ({ label: m.name, value: String(m.code) }));
+            if (!this.isProgrammaticProvinceSetting) {
+                this.selectedMunicipality = '';
+                this.user.sector = '';
+                this.availableSectors = [];
+                this.focusMapOnSelection('province');
+            }
+            this.isProgrammaticProvinceSetting = false;
+        }).catch((err: any) => console.error('Error loading municipalities', err));
+    }
+
+    onMunicipalityChange() {
+        if (!this.selectedMunicipality) {
+            this.availableSectors = [];
+            this.user.sector = '';
+            return;
+        }
+
+        const paramProv = isNaN(Number(this.selectedProvince)) ? this.selectedProvince : this.selectedProvince;
+        const paramMun = isNaN(Number(this.selectedMunicipality)) ? this.selectedMunicipality : this.selectedMunicipality;
+        
+        this.brandsService.getSectors(paramMun, paramProv).then((data: any) => {
+            this.availableSectors = data.map((s: any) => ({ label: s.name, value: String(s.name) }));
+            if (!this.isProgrammaticProvinceSetting) {
+                this.focusMapOnSelection('municipality');
+            }
+        }).catch((err: any) => console.error('Error loading sectors', err));
+    }
+
+    onSectorChange() {
+        if (!this.isProgrammaticProvinceSetting) {
+            this.focusMapOnSelection('sector');
+        }
+    }
+
+    async initLocationMap() {
+        const mapElement = document.getElementById('userLocationMap');
+        if (!mapElement) return;
+
+        try {
+            const systemConfigsResponse = await this.systemService.getAll().toPromise();
+            const systemConfigs = systemConfigsResponse?.[0];
+            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
+            if (MAP_API1_KEY) {
+                await MapUtils.loadMapScript('google', MAP_API1_KEY, systemConfigs?.map_api1?.url || 'https://maps.googleapis.com/maps/api/js');
+            }
+        } catch (e) {
+            console.error('Error loading Google Maps API key via SystemService', e);
+        }
+
+        if (typeof google === 'undefined') return;
+
+        this.userLocationMap = null;
+        this.userLocationMarker = null;
+
+        const defaultLat = this.user?.latitude || 18.4861;
+        const defaultLng = this.user?.longitude || -69.9312;
+
+        this.userLocationMap = new google.maps.Map(mapElement, {
+            center: { lat: defaultLat, lng: defaultLng },
+            zoom: this.user?.latitude ? 16 : 8,
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        });
+
+        if (this.user?.latitude && this.user?.longitude) {
+            this.userLocationMarker = new google.maps.Marker({
+                position: { lat: this.user.latitude, lng: this.user.longitude },
+                map: this.userLocationMap
+            });
+        }
+
+        this.userLocationMap.addListener('click', (event: any) => this.onMapClick(event));
+    }
+
+    geocodeLocation(address: string, zoomLevel: number) {
+        if (!this.userLocationMap || typeof google === 'undefined') return;
+
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ address: address + ', República Dominicana' }, (results: any, status: any) => {
+            if (status === 'OK' && results && results[0]) {
+                const location = results[0].geometry.location;
+                // Move map
+                this.userLocationMap.panTo(location);
+                this.userLocationMap.setZoom(zoomLevel);
+            } else {
+                console.warn('Geocoding failed for: ', address, 'Status: ', status);
+            }
+        });
+    }
+
+    focusMapOnSelection(level: 'province' | 'municipality' | 'sector') {
+        let address = '';
+        let zoom = 12;
+
+        const prov = this.availableProvinces.find((p: any) => p.value === String(this.selectedProvince));
+        const mun = this.availableMunicipalities.find((m: any) => m.value === String(this.selectedMunicipality));
+
+        switch (level) {
+            case 'province':
+                if (prov) address = prov.label;
+                zoom = 10;
+                break;
+            case 'municipality':
+                if (prov && mun) address = `${mun.label}, ${prov.label}`;
+                zoom = 12;
+                break;
+            case 'sector':
+                if (prov && mun && this.user.sector) address = `${this.user.sector}, ${mun.label}, ${prov.label}`;
+                zoom = 15;
+                break;
+        }
+
+        if (address) {
+            this.geocodeLocation(address, zoom);
+        }
+    }
+
+    onMapClick(event: any) {
+        const lat = event.latLng.lat();
+        const lng = event.latLng.lng();
+
+        this.user.latitude = lat;
+        this.user.longitude = lng;
+
+        if (this.userLocationMarker) {
+            this.userLocationMarker.setPosition({ lat, lng });
+        } else {
+            this.userLocationMarker = new google.maps.Marker({
+                position: { lat, lng },
+                map: this.userLocationMap
+            });
+        }
     }
 }

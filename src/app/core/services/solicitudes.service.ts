@@ -3,32 +3,49 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
-export interface Solicitud {
-    _id?: string;
-    type: 'instalacion' | 'chequeo' | 'cambio' | 'desinstalacion' | 'otro';
-    status: 'pendiente' | 'en_progreso' | 'completada' | 'cancelada';
-    plate?: string;
+export interface InstallationDetail {
     brand?: string;
     model?: string;
-    color?: string;
     year?: string;
+    color?: string;
+    plate?: string;
     chassis?: string;
     device_imei?: string;
     sim_card_number?: string;
     sim_company?: string;
+    province?: string;
+    municipality?: string;
+    sector?: string;
+    latitude?: number;
+    longitude?: number;
     installation_location?: string;
+    scheduled_date?: string | Date;
     engine_shutdown?: string;
     ignition_sensor?: string;
     installation_details?: string;
     contacts?: string;
-    mechanic_id?: string;
+    notes?: string;
+}
+
+export interface Solicitud {
+    _id?: string;
+    type: string;
+    status: string;
+    quantity?: number;
+    order?: number;
+    installations?: InstallationDetail[];
     client_name?: string;
     client_phone?: string;
+    client_email?: string;
+    description?: string;
     province?: string;
     municipality?: string;
-    description?: string;
-    notes?: string;
-    scheduled_date?: string;
+    sector?: string;
+    latitude?: number;
+    longitude?: number;
+    mechanic_id?: string;
+    scheduled_date?: string | Date;
+    confirmation_permission?: string;
     completed_date?: string;
     user_id?: string;
     id_rent?: string;

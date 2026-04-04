@@ -142,6 +142,10 @@ export class MonitoringService {
     return this.http.get(`${this.apiUrl}/report/${reportId}`);
   }
 
+  getLatestFullmap(userId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/fullmaps/user/${userId}/latest`);
+  }
+
   getUserMonitoringReports(userId: string): Observable<MonitoringReport[]> {
     return this.http.get<MonitoringReport[]>(`${this.apiUrl}/user/${userId}/reports`);
   }

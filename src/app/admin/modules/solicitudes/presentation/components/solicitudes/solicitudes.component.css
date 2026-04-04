@@ -3,7 +3,7 @@
    ============================================ */
 
 .sol-container {
-    padding: 1.5rem 2rem;
+    padding: 2.2rem 2rem 1.5rem;
     background-color: var(--managementColorBackgroundUser);
     min-height: calc(100vh - 120px);
 }
@@ -109,64 +109,108 @@
 .sol-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .sol-stat-card {
-    background: var(--managementColorCardBackground);
-    border: 1px solid var(--managementFieldsBorder);
-    border-radius: 12px;
-    padding: 1rem;
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    padding: 1.25rem 1rem;
     text-align: center;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+}
+
+.sol-stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    opacity: 0.1;
+    z-index: 0;
 }
 
 .sol-stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
 }
 
 .sol-stat-value {
     display: block;
-    font-size: 1.5rem;
+    font-size: 2rem;
     font-weight: 800;
-    color: var(--managementColorTitleUser);
     line-height: 1;
-    margin-bottom: 0.3rem;
+    margin-bottom: 0.4rem;
+    position: relative;
+    z-index: 1;
 }
 
 .sol-stat-label {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--managementColorTextUser);
-    opacity: 0.5;
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+    position: relative;
+    z-index: 1;
+}
+
+/* Total */
+.sol-stat-card:not(.pending):not(.progress):not(.completed) {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.12));
+    border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.sol-stat-card:not(.pending):not(.progress):not(.completed) .sol-stat-value {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.sol-stat-card:not(.pending):not(.progress):not(.completed) .sol-stat-label {
+    color: #6366f1;
 }
 
 .sol-stat-card.pending {
-    border-left: 3px solid #f59e0b;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(251, 191, 36, 0.12));
+    border: 1px solid rgba(245, 158, 11, 0.15);
 }
 
 .sol-stat-card.pending .sol-stat-value {
     color: #f59e0b;
 }
 
+.sol-stat-card.pending .sol-stat-label {
+    color: #d97706;
+}
+
 .sol-stat-card.progress {
-    border-left: 3px solid #3b82f6;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(96, 165, 250, 0.12));
+    border: 1px solid rgba(59, 130, 246, 0.15);
 }
 
 .sol-stat-card.progress .sol-stat-value {
     color: #3b82f6;
 }
 
+.sol-stat-card.progress .sol-stat-label {
+    color: #2563eb;
+}
+
 .sol-stat-card.completed {
-    border-left: 3px solid #10b981;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(52, 211, 153, 0.12));
+    border: 1px solid rgba(16, 185, 129, 0.15);
 }
 
 .sol-stat-card.completed .sol-stat-value {
     color: #10b981;
+}
+
+.sol-stat-card.completed .sol-stat-label {
+    color: #059669;
 }
 
 /* ============================================
@@ -284,6 +328,11 @@
 .sol-status[data-status="cancelada"] {
     background: rgba(239, 68, 68, 0.12);
     color: #ef4444;
+}
+
+.sol-status[data-status="por_confirmar"] {
+    background: rgba(168, 85, 247, 0.12);
+    color: #a855f7;
 }
 
 .sol-plate {
@@ -492,7 +541,10 @@
 /* Native form elements */
 .sol-form-field select,
 .sol-form-field input[type="text"],
+.sol-form-field input[type="email"],
+.sol-form-field input[type="number"],
 .sol-form-field input[type="date"],
+.sol-form-field input[type="datetime-local"],
 .sol-form-field textarea {
     width: 100%;
     padding: 0.55rem 0.75rem;
@@ -524,7 +576,10 @@
 }
 
 .sol-form-field input[type="text"]:focus,
+.sol-form-field input[type="email"]:focus,
+.sol-form-field input[type="number"]:focus,
 .sol-form-field input[type="date"]:focus,
+.sol-form-field input[type="datetime-local"]:focus,
 .sol-form-field select:focus,
 .sol-form-field textarea:focus {
     border-color: #6366f1;
@@ -709,4 +764,357 @@
 .sol-btn-install:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+}
+
+.sol-install-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.sol-install-trigger-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    background: var(--surface-ground);
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 100%;
+}
+
+.sol-install-trigger-card:hover {
+    border-color: #6366f1;
+    background: var(--surface-hover);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.sol-install-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.sol-install-card-content {
+    flex: 1;
+}
+
+.sol-install-card-content h4 {
+    margin: 0 0 0.25rem 0;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.sol-install-card-content p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-color-secondary);
+}
+
+.sol-install-card-arrow {
+    color: var(--text-color-secondary);
+}
+
+
+.sol-form-separator--clickable {
+    padding: 0.8rem 0.5rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    transition: background 0.2s, border-bottom 0.2s;
+}
+
+.sol-form-separator--clickable:hover {
+    background: var(--surface-hover);
+}
+
+.sol-form-separator--clickable.active {
+    background: rgba(99, 102, 241, 0.08);
+    border-bottom-width: 2px;
+    border-bottom-color: #6366f1;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.sol-form-separator--clickable.active span {
+    color: #4f46e5 !important;
+}
+
+.sol-form-separator--clickable.active i {
+    color: #4f46e5 !important;
+}
+
+/* ============================================
+   KANBAN BOARD - PREMIUM SCRUM PIPELINE
+   ============================================ */
+.sol-kanban-board {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    align-items: flex-start;
+    margin-top: 0.5rem;
+}
+
+.sol-kanban-column {
+    background: var(--managementColorCardBackground);
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 16px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 300px;
+    overflow: hidden;
+    transition: box-shadow 0.3s ease;
+}
+
+.sol-kanban-column:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.sol-kanban-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.15rem;
+    font-weight: 800;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--managementColorTitleUser);
+    border-bottom: none;
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.sol-kanban-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 1rem;
+    right: 1rem;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--managementFieldsBorder);
+}
+
+.sol-kanban-header span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    padding: 0 6px;
+}
+
+/* Column-specific header accents */
+.sol-kanban-column:nth-child(1) .sol-kanban-header::after {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.sol-kanban-column:nth-child(1) .sol-kanban-header span {
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+}
+
+.sol-kanban-column:nth-child(2) .sol-kanban-header::after {
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.sol-kanban-column:nth-child(2) .sol-kanban-header span {
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+}
+
+.sol-kanban-column:nth-child(3) .sol-kanban-header::after {
+    background: linear-gradient(90deg, #a855f7, #c084fc);
+}
+
+.sol-kanban-column:nth-child(3) .sol-kanban-header span {
+    background: rgba(168, 85, 247, 0.12);
+    color: #a855f7;
+}
+
+.sol-kanban-column:nth-child(4) .sol-kanban-header::after {
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+.sol-kanban-column:nth-child(4) .sol-kanban-header span {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+}
+
+/* Scrollable card area */
+.sol-kanban-column>.sol-kanban-card:first-of-type {
+    margin-top: 0.75rem;
+}
+
+/* Drag and Drop */
+.sol-kanban-card[draggable="true"] {
+    cursor: grab;
+}
+
+.sol-kanban-card[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+.sol-dragging {
+    opacity: 0.4;
+    border: 2px dashed #6366f1 !important;
+    transform: rotate(2deg);
+    transition: all 0.15s ease;
+}
+
+.sol-drag-over {
+    background: rgba(99, 102, 241, 0.08) !important;
+    border: 2px dashed rgba(99, 102, 241, 0.4) !important;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+}
+
+.sol-drop-before {
+    border-top: 3px solid #6366f1 !important;
+    margin-top: -1px;
+}
+
+.sol-drop-after {
+    border-bottom: 3px solid #6366f1 !important;
+    margin-bottom: -1px;
+}
+
+.sol-kanban-card {
+    background: var(--managementColorBackgroundUser);
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    margin: 0 0.75rem 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: relative;
+}
+
+.sol-kanban-card::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    left: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+.sol-kanban-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.sol-kanban-card:hover::before {
+    background: linear-gradient(180deg, #6366f1, #8b5cf6);
+}
+
+.sol-kanban-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.sol-kanban-client {
+    font-weight: 800;
+    color: var(--managementColorTitleUser);
+    font-size: 0.88rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 72%;
+    letter-spacing: -0.01em;
+}
+
+.sol-kanban-date {
+    font-size: 0.68rem;
+    font-weight: 600;
+    background: rgba(99, 102, 241, 0.08);
+    padding: 0.2rem 0.55rem;
+    border-radius: 20px;
+    color: #6366f1;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.sol-kanban-content {
+    font-size: 0.82rem;
+    color: var(--managementColorTextUser);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.sol-kanban-content i {
+    font-size: 0.78rem;
+    opacity: 0.5;
+}
+
+.sol-kanban-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--managementFieldsBorder);
+    padding-top: 0.65rem;
+    margin-top: 0.15rem;
+}
+
+.sol-kanban-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.sol-kanban-actions .p-button {
+    width: 30px !important;
+    height: 30px !important;
+}
+
+/* Empty column placeholder */
+.sol-kanban-column-empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--managementColorTextUser);
+    opacity: 0.3;
+    font-size: 0.82rem;
+}
+
+.sol-kanban-column-empty i {
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 1280px) {
+    .sol-kanban-board {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .sol-kanban-board {
+        grid-template-columns: 1fr;
+    }
 }
