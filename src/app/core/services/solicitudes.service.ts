@@ -23,6 +23,9 @@ export interface InstallationDetail {
     engine_shutdown?: string;
     ignition_sensor?: string;
     installation_details?: string;
+    diagnosis?: string;
+    images?: string[];
+    audio?: string;
     contacts?: string;
     notes?: string;
     completed?: boolean;

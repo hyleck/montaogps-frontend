@@ -235,7 +235,7 @@
             <div class="sol-form-row sol-form-row-3">
                 <div class="sol-form-field">
                     <label>Tipo de Proceso *</label>
-                    <select [(ngModel)]="selectedSolicitud.type" required>
+                    <select [(ngModel)]="selectedSolicitud.type" required [disabled]="isEditMode">
                         <option value="">Seleccionar tipo</option>
                         <option *ngFor="let opt of typeOptions.slice(1)" [value]="opt.value">{{ opt.label }}</option>
                     </select>
@@ -370,8 +370,9 @@
             </div>
             
             <div *ngIf="showInstallationsCards" class="sol-collapsible-section" style="animation: fadein 0.2s;">
-                <div class="sol-install-cards-grid">
-                    <div class="sol-install-trigger-card" *ngFor="let install of selectedSolicitud.installations; let i = index" (click)="openInstallationModal(i)">
+                
+                <ng-container *ngFor="let install of selectedSolicitud.installations; let i = index">
+                    <div class="sol-install-trigger-card" (click)="openInstallationModal(i)" style="margin-bottom: 0.5rem;">
                         <div class="sol-install-card-icon">
                             <i class="pi pi-cog"></i>
                         </div>
@@ -389,7 +390,8 @@
                             <i class="pi pi-chevron-right"></i>
                         </div>
                     </div>
-                </div>
+                </ng-container>
+
             </div>
 
         </div>
@@ -526,11 +528,13 @@
                 </div>
             </div>
 
-            <!-- Optional: Device -->
+            <!-- Optional/Required: Device -->
             <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('device')" [class.active]="showDeviceData" style="cursor: pointer; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 0.6rem;">
                     <i class="pi pi-microchip" style="color: #6366f1;"></i>
-                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">Dispositivo (Opcional)</span>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">
+                        Dispositivo {{ selectedSolicitud.type === 'chequeo' ? '(Requerido)' : '(Opcional)' }}
+                    </span>
                 </div>
                 <i class="pi" [ngClass]="showDeviceData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
             </div>
@@ -539,7 +543,7 @@
                 <div class="sol-form-row sol-form-row-3">
                     <div class="sol-form-field">
                         <label>IMEI</label>
-                        <input type="text" [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].device_imei" placeholder="IMEI del dispositivo" />
+                        <input type="text" [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].device_imei" (blur)="onImeiBlur(editingInstallationIndex)" placeholder="IMEI del dispositivo" />
                     </div>
                     <div class="sol-form-field">
                         <label>SIM</label>
@@ -595,6 +599,42 @@
                     </div>
                 </div>
             </div>
+
+
+
+            <!-- Optional: Diagnosis (Only for Chequeos) -->
+            <ng-container *ngIf="selectedSolicitud.type === 'chequeo'">
+                <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('diagnosis')" [class.active]="showDiagnosisData" style="cursor: pointer; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <i class="pi pi-stethoscope" style="color: #6366f1;"></i>
+                        <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">Diagnóstico del Técnico</span>
+                    </div>
+                    <i class="pi" [ngClass]="showDiagnosisData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
+                </div>
+
+                <div *ngIf="showDiagnosisData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
+                    
+                    <div class="sol-form-field">
+                        <label>Observaciones</label>
+                        <textarea [ngModel]="selectedSolicitud.installations[editingInstallationIndex].diagnosis" rows="3" disabled style="opacity: 0.8; font-weight: bold;"></textarea>
+                    </div>
+
+                    <div class="sol-form-field" *ngIf="selectedSolicitud.installations[editingInstallationIndex].audio">
+                        <label>Nota de Voz</label>
+                        <audio controls [src]="selectedSolicitud.installations[editingInstallationIndex].audio" style="width: 100%; height: 35px; border-radius: 6px;"></audio>
+                    </div>
+
+                    <div class="sol-form-field" *ngIf="selectedSolicitud.installations[editingInstallationIndex].images?.length">
+                        <label>Fotografías Adicionales</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px;">
+                             <img *ngFor="let img of selectedSolicitud.installations[editingInstallationIndex].images" 
+                                  [src]="img" 
+                                  style="width: 120px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid var(--surface-border);" />
+                        </div>
+                    </div>
+                    
+                </div>
+            </ng-container>
 
     </div>
     <ng-template pTemplate="footer">

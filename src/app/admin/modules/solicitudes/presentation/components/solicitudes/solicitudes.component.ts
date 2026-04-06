@@ -165,8 +165,9 @@ export class SolicitudesComponent implements OnInit {
         showRootLocationData = false;
     rootLocationMap: any = null;
     rootLocationMarker: any = null;
-showInstallData = false;
+    showInstallData = false;
     showDetailsData = false;
+    showDiagnosisData = false;
     
     locationMap: any = null;
     locationMarker: any = null;
@@ -226,10 +227,7 @@ showInstallData = false;
     typeOptions = [
         { label: 'Todas', value: '' },
         { label: 'Instalación', value: 'instalacion' },
-        { label: 'Chequeo', value: 'chequeo' },
-        { label: 'Cambio', value: 'cambio' },
-        { label: 'Desinstalación', value: 'desinstalacion' },
-        { label: 'Otro', value: 'otro' }
+        { label: 'Chequeo', value: 'chequeo' }
     ];
 
     getEntityName(plural: boolean = false): string {
@@ -566,6 +564,7 @@ showInstallData = false;
         this.showDeviceData = false;
         this.showInstallData = false;
         this.showDetailsData = false;
+        this.showDiagnosisData = false;
         
         this.availableModels = [];
         this.availableMunicipalities = [];
@@ -615,6 +614,7 @@ showInstallData = false;
         this.showDeviceData = false;
         this.showInstallData = false;
         this.showDetailsData = false;
+        this.showDiagnosisData = false;
 
         switch (section) {
             case 'vehicle': this.showVehicleData = !currentlyOpen; break;
@@ -628,6 +628,7 @@ showInstallData = false;
             case 'device': this.showDeviceData = !currentlyOpen; break;
             case 'install': this.showInstallData = !currentlyOpen; break;
             case 'details': this.showDetailsData = !currentlyOpen; break;
+            case 'diagnosis': this.showDiagnosisData = !currentlyOpen; break;
         }
     }
     
@@ -697,6 +698,58 @@ showInstallData = false;
             }
         } catch (error) {
             // Se ignora si no existe
+        }
+    }
+
+    async onImeiBlur(index: number): Promise<void> {
+        if (!this.selectedSolicitud || !this.selectedSolicitud.installations || !this.selectedSolicitud.installations[index]) return;
+        
+        const inst = this.selectedSolicitud.installations[index];
+        const imei = inst.device_imei?.trim();
+        if (!imei) return;
+
+        try {
+            // Buscamos si existe con los permisos de targets
+            const result = await this.targetsService.searchTargets(imei, undefined, 0, 10);
+            if (result && result.devices && result.devices.length > 0) {
+                // Find exact match by IMEI or Name
+                const exactMatch: any = result.devices.find((d: any) => d.device_imei === imei || d.name === imei) || result.devices[0];
+                
+                if (exactMatch) {
+                    inst.brand = exactMatch.target_brand_id || exactMatch.brand || inst.brand;
+                    // Prepare model lookup if brand is found
+                    if (inst.brand) {
+                        try {
+                            const models = await this.vehicleBrandsService.getAllModelsByBrand(inst.brand);
+                            this.availableModels = models.map((m: any) => ({ label: m.nombre, value: m._id })).sort((a: any, b: any) => a.label.localeCompare(b.label));
+                        } catch(e) {}
+                    }
+                    inst.model = exactMatch.target_model_id || exactMatch.model || inst.model;
+                    inst.year = exactMatch.target_year?.toString() || exactMatch.year?.toString() || inst.year;
+                    
+                    const colorVal = exactMatch.target_color || exactMatch.color;
+                    if (colorVal) {
+                        inst.color = colorVal;
+                        const foundColor = this.availableColors.find(c => c.value === colorVal);
+                        if (foundColor) {
+                            this._displayColorName = foundColor.label;
+                            this.filteredColors = [foundColor];
+                        } else {
+                            this._displayColorName = colorVal;
+                        }
+                    }
+                    
+                    inst.plate = exactMatch.target_plate_number || exactMatch.plate || inst.plate;
+                    inst.chassis = exactMatch.target_chassis_number || exactMatch.chassis || inst.chassis;
+                    inst.sim_card_number = exactMatch.sim_card_number || inst.sim_card_number;
+                    inst.sim_company = exactMatch.sim_company || inst.sim_company;
+                    
+                    // Show message
+                    this.messageService.add({ severity: 'success', summary: 'Vehículo Encontrado', detail: 'Datos autocompletados desde el dispositivo.' });
+                }
+            }
+        } catch (error) {
+            // Ignorar silenciosamente si no se encuentra o falla la red
         }
     }
 
@@ -977,6 +1030,18 @@ async initLocationMap(): Promise<void> {
 
     saveSolicitud(): void {
         if (!this.selectedSolicitud) return;
+
+        // Custom validation for Chequeos
+        if (this.selectedSolicitud.type === 'chequeo') {
+            const hasMissingDevice = this.selectedSolicitud.installations?.some(inst => !inst.device_imei || inst.device_imei.trim() === '');
+            if (hasMissingDevice) {
+                this.messageService.add({ severity: 'error', summary: 'Validación Fallida', detail: 'Debe ingresar el IMEI del dispositivo para todos los vehículos a chequear.' });
+                
+                // Try to aggressively expand the installations and device config if not open
+                this.showInstallationsCards = true;
+                return;
+            }
+        }
 
         if (this.isEditMode && this.selectedSolicitud._id) {
             this.solicitudesService.update(this.selectedSolicitud._id, this.selectedSolicitud).subscribe({
