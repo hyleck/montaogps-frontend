@@ -45,8 +45,16 @@
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
                     </div>
-                    <div><i class="pi pi-car" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.plate || 'Sin Placa' }}</div>
-                    <div style="opacity: 0.7;"><i class="pi pi-microchip" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.device_imei || 'Sin Asignar' }}</div>
+                    <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
+                        <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
+                            <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
+                            <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
+                            <i *ngIf="!inst.completed && !inst.cancelled" class="pi pi-circle"></i>
+                            <span style="font-size: 0.8rem;">
+                                {{ inst.plate || 'Vehículo #' + (i+1) }} <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
@@ -85,8 +93,16 @@
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
                     </div>
-                    <div><i class="pi pi-car" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.plate || 'Sin Placa' }}</div>
-                    <div style="opacity: 0.7;"><i class="pi pi-microchip" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.device_imei || 'Sin Asignar' }}</div>
+                    <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
+                        <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
+                            <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
+                            <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
+                            <i *ngIf="!inst.completed && !inst.cancelled" class="pi pi-circle"></i>
+                            <span style="font-size: 0.8rem;">
+                                {{ inst.plate || 'Vehículo #' + (i+1) }} <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
@@ -125,8 +141,16 @@
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
                     </div>
-                    <div><i class="pi pi-car" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.plate || 'Sin Placa' }}</div>
-                    <div style="opacity: 0.7;"><i class="pi pi-microchip" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.device_imei || 'Sin Asignar' }}</div>
+                    <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
+                        <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
+                            <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
+                            <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
+                            <i *ngIf="!inst.completed && !inst.cancelled" class="pi pi-circle"></i>
+                            <span style="font-size: 0.8rem;">
+                                {{ inst.plate || 'Vehículo #' + (i+1) }} <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
@@ -162,8 +186,16 @@
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
                     </div>
-                    <div><i class="pi pi-car" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.plate || 'Sin Placa' }}</div>
-                    <div style="opacity: 0.7;"><i class="pi pi-microchip" style="margin-right: 4px;"></i> {{ sol.installations?.[0]?.device_imei || 'Sin Asignar' }}</div>
+                    <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
+                        <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
+                            <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
+                            <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
+                            <i *ngIf="!inst.completed && !inst.cancelled" class="pi pi-circle"></i>
+                            <span style="font-size: 0.8rem;">
+                                {{ inst.plate || 'Vehículo #' + (i+1) }} <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                            </span>
+                        </div>
+                    </div>
                 </div>
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
@@ -343,8 +375,14 @@
                         <div class="sol-install-card-icon">
                             <i class="pi pi-cog"></i>
                         </div>
-                        <div class="sol-install-card-content">
-                            <h4>{{ getEntityName() }} #{{i + 1}}</h4>
+                        <div class="sol-install-card-content" style="flex: 1;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.2rem;">
+                                <h4>{{ getEntityName() }} #{{i + 1}}</h4>
+                                <span class="sol-install-status-badge" 
+                                      [ngClass]="{'status-completed': install.completed && !install.cancelled, 'status-cancelled': install.cancelled, 'status-pending': !install.completed && !install.cancelled}">
+                                    {{ install.cancelled ? 'Cancelada' : (install.completed ? 'Realizada' : 'Pendiente') }}
+                                </span>
+                            </div>
                             <p>Vehículo, ubicación y dispositivo...</p>
                         </div>
                         <div class="sol-install-card-arrow">

@@ -25,6 +25,8 @@ export interface InstallationDetail {
     installation_details?: string;
     contacts?: string;
     notes?: string;
+    completed?: boolean;
+    cancelled?: boolean;
 }
 
 export interface Solicitud {
