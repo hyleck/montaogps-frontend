@@ -1156,6 +1156,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
+  clearFilters() {
+    this.filterStatus = 'all';
+    this.filterTag = null;
+    this.filterSimCompany = null;
+    this.showFiltersDialog = false;
+    if (this.selectedUser) {
+      this.loadingTargets = true;
+      this.loadTargetsForUser(this.selectedUser._id, true);
+    }
+  }
+
   // Método auxiliar para mapear targets a la vista
   private mapTargetsToView(targets: Target[]): any[] {
     if (!targets || targets.length === 0) {
