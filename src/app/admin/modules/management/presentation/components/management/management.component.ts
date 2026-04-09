@@ -540,7 +540,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Verificar si hay datos de instalación de dispositivo en sessionStorage
     this.checkDeviceInstallationData();
 
-    // Cargar etiquetas disponibles para    // Cargar mapa
+    // Cargar etiquetas disponibles para el filtro
+    this.loadAvailableTags();
+    
+    // Cargar mapa
     // this.loadMap();
 
     // Cargar dispositivos con prioridad excedida una sola vez al inicio

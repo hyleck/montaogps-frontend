@@ -494,3 +494,177 @@
 
 :global(.push-bar) { height: 6px !important; border-radius: 4px; }
 
+
+/* ════════════════════════════════════════════════════
+   DARK MODE
+════════════════════════════════════════════════════ */
+
+/* Layout general */
+:host-context(.app-dark) .inter-layout {
+  background: #0f1117;
+}
+
+/* ── Sidebar ── */
+:host-context(.app-dark) .inter-sidebar {
+  background: #1a1f2e;
+  border-right-color: rgba(255,255,255,0.08);
+}
+:host-context(.app-dark) .inter-sidebar__header {
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+:host-context(.app-dark) .inter-sidebar__title {
+  color: #e2e8f0;
+}
+
+/* ── Tarjetas de lista ── */
+:host-context(.app-dark) .list-card {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.06);
+}
+:host-context(.app-dark) .list-card:hover {
+  border-color: var(--primary-color, #6366f1);
+  background: rgba(99,102,241,0.08);
+  box-shadow: 0 2px 8px rgba(99,102,241,0.18);
+}
+:host-context(.app-dark) .list-card--active {
+  border-color: var(--primary-color, #6366f1);
+  background: rgba(99,102,241,0.14);
+}
+:host-context(.app-dark) .list-card__name { color: #e2e8f0; }
+:host-context(.app-dark) .list-card__count { color: #94a3b8; }
+:host-context(.app-dark) .list-card__desc { color: #94a3b8; }
+
+/* ── Botones de acción de tarjeta ── */
+:host-context(.app-dark) .btn-action {
+  background: rgba(255,255,255,0.06);
+  color: #94a3b8;
+}
+:host-context(.app-dark) .btn-action:hover {
+  background: rgba(99,102,241,0.15);
+  color: #818cf8;
+}
+:host-context(.app-dark) .btn-action--danger:hover {
+  background: rgba(239,68,68,0.15);
+  color: #f87171;
+}
+
+/* ── Skeletons ── */
+:host-context(.app-dark) .skeleton-title,
+:host-context(.app-dark) .skeleton-sub {
+  background: rgba(255,255,255,0.1);
+}
+
+/* ── Badge ── */
+:host-context(.app-dark) .badge {
+  background: rgba(99,102,241,0.18);
+  color: #a5b4fc;
+}
+
+/* ── Empty state ── */
+:host-context(.app-dark) .inter-empty { color: #64748b; }
+
+/* ── Welcome ── */
+:host-context(.app-dark) .inter-welcome { color: #64748b; }
+:host-context(.app-dark) .inter-welcome h3 { color: #cbd5e1; }
+:host-context(.app-dark) .inter-welcome__icon { color: rgba(99,102,241,0.3); }
+
+/* ════ FORMULARIO ════ */
+:host-context(.app-dark) .inter-form-panel {
+  background: #1a1f2e;
+  box-shadow: 0 2px 24px rgba(0,0,0,0.4);
+}
+:host-context(.app-dark) .form-panel__header h3 { color: #e2e8f0; }
+:host-context(.app-dark) .form-group label { color: #94a3b8; }
+:host-context(.app-dark) .form-divider {
+  color: #64748b;
+}
+:host-context(.app-dark) .form-divider::before,
+:host-context(.app-dark) .form-divider::after {
+  background: rgba(255,255,255,0.08);
+}
+:host-context(.app-dark) .form-actions {
+  border-top-color: rgba(255,255,255,0.08);
+}
+
+/* ── Preview ── */
+:host-context(.app-dark) .preview-section {
+  border-color: rgba(255,255,255,0.08);
+}
+:host-context(.app-dark) .preview-section__header {
+  background: rgba(255,255,255,0.03);
+  border-bottom-color: rgba(255,255,255,0.08);
+}
+:host-context(.app-dark) .preview-title { color: #cbd5e1; }
+:host-context(.app-dark) .preview-empty { color: #64748b; }
+:host-context(.app-dark) .preview-user:hover {
+  background: rgba(255,255,255,0.04);
+}
+:host-context(.app-dark) .preview-user__avatar {
+  background: rgba(99,102,241,0.18);
+  color: #a5b4fc;
+}
+:host-context(.app-dark) .preview-user__name { color: #e2e8f0; }
+:host-context(.app-dark) .preview-user__email { color: #94a3b8; }
+
+/* ── Status badges en preview ── */
+:host-context(.app-dark) .preview-user__status.active {
+  background: rgba(34,197,94,0.15);
+  color: #4ade80;
+}
+:host-context(.app-dark) .preview-user__status.inactive {
+  background: rgba(239,68,68,0.15);
+  color: #f87171;
+}
+
+/* ════ PANEL DETALLE ════ */
+:host-context(.app-dark) .inter-detail-panel {
+  background: #1a1f2e;
+  box-shadow: 0 2px 24px rgba(0,0,0,0.4);
+}
+:host-context(.app-dark) .detail-title { color: #e2e8f0; }
+:host-context(.app-dark) .detail-desc { color: #94a3b8; }
+:host-context(.app-dark) .detail-stat {
+  background: rgba(99,102,241,0.12);
+  color: #94a3b8;
+}
+:host-context(.app-dark) .detail-stat strong { color: #818cf8; }
+
+/* ── User cells tabla ── */
+:host-context(.app-dark) .user-avatar {
+  background: rgba(99,102,241,0.18);
+  color: #a5b4fc;
+}
+
+/* ── PrimeNG Table overrides ── */
+:host-context(.app-dark) ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+  background: rgba(255,255,255,0.04) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(255,255,255,0.06) !important;
+}
+:host-context(.app-dark) ::ng-deep .p-datatable .p-datatable-tbody > tr {
+  background: transparent !important;
+  color: #cbd5e1 !important;
+}
+:host-context(.app-dark) ::ng-deep .p-datatable .p-datatable-tbody > tr:nth-child(even) {
+  background: rgba(255,255,255,0.02) !important;
+}
+:host-context(.app-dark) ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+  background: rgba(99,102,241,0.07) !important;
+}
+:host-context(.app-dark) ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+  border-color: rgba(255,255,255,0.04) !important;
+}
+:host-context(.app-dark) ::ng-deep .p-paginator {
+  background: rgba(255,255,255,0.03) !important;
+  border-top-color: rgba(255,255,255,0.06) !important;
+  color: #94a3b8 !important;
+}
+
+/* ════ MODAL PUSH ════ */
+:host-context(.app-dark) .push-meta {
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.25);
+}
+:host-context(.app-dark) .push-meta__list { color: #e2e8f0; }
+:host-context(.app-dark) .push-meta__count { color: #94a3b8; }
+:host-context(.app-dark) .push-progress__text { color: #94a3b8; }
