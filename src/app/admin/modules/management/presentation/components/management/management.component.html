@@ -40,6 +40,14 @@
                 </ng-template>
             </p-dropdown>
         </div>
+        <div style="height: 1px; background-color: #e5e7eb; margin: 5px 0;"></div>
+        <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-weight: 500;">Compañía de simcard</label>
+            <p-dropdown [options]="availableSimCompanies" [(ngModel)]="filterSimCompany" optionLabel="label" optionValue="value"
+                placeholder="Cualquiera" (onChange)="onFilterChange()" [showClear]="true" appendTo="body"
+                [style]="{'width':'100%'}">
+            </p-dropdown>
+        </div>
     </div>
 </p-dialog>
 <div class="main">

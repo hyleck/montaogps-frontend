@@ -32,6 +32,7 @@ import { ProtocolsService } from '@core/services/protocols.service';
 import { InventoryService, Warehouse, InventoryItem } from '@core/services/inventory.service';
 import { SolicitudesService } from '@core/services/solicitudes.service';
 import { Protocol } from '@core/interfaces/protocol.interface';
+import { SIM_CARD_TYPES } from '@core/constants/sim-card-types.constant';
 
 @Component({
   selector: 'app-management',
@@ -1140,6 +1141,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   showFiltersDialog: boolean = false;
   filterStatus: 'all' | 'online' | 'offline' = 'all';
   filterTag: string | null = null;
+  filterSimCompany: string | null = null;
+  availableSimCompanies = SIM_CARD_TYPES;
 
   toggleFilters() {
     this.showFiltersDialog = true;
@@ -2488,7 +2491,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           0,
           LIMIT,
           this.filterStatus,
-          this.filterTag || undefined
+          this.filterTag || undefined,
+          this.filterSimCompany || undefined
         );
       } else {
         targetsPromise = this.targetsService.getTargetsByUserId(
@@ -2497,7 +2501,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           0,
           LIMIT,
           this.filterStatus,
-          this.filterTag || undefined
+          this.filterTag || undefined,
+          this.filterSimCompany || undefined
         );
       }
 
@@ -2517,6 +2522,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
       if (this.filterTag) {
         filteredSharedTargets = filteredSharedTargets.filter(t => t.tag === this.filterTag);
+      }
+
+      if (this.filterSimCompany) {
+        filteredSharedTargets = filteredSharedTargets.filter(t => t.sim_company?.toLowerCase() === this.filterSimCompany?.toLowerCase());
       }
 
       const fetchedTargets = targetsResponse.devices || [];
@@ -2583,7 +2592,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.currentOffset,
           this.pageSize,
           this.filterStatus, // Pasar filtro
-          this.filterTag || undefined
+          this.filterTag || undefined,
+          this.filterSimCompany || undefined
         );
       } else {
         // Si no estamos buscando, usar el endpoint normal
@@ -2800,7 +2810,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.currentOffset,
         pageSizeForRequest,
         this.filterStatus, // Pasar filtro al backend
-        this.filterTag || undefined
+        this.filterTag || undefined,
+        this.filterSimCompany || undefined
       );
       const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
 
@@ -2818,6 +2829,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
       if (this.filterTag) {
         filteredSharedTargets = filteredSharedTargets.filter(t => t.tag === this.filterTag);
+      }
+
+      if (this.filterSimCompany) {
+        filteredSharedTargets = filteredSharedTargets.filter(t => t.sim_company?.toLowerCase() === this.filterSimCompany?.toLowerCase());
       }
 
       // 🔍 CONSOLE LOG PARA DEBUG: Ver cómo llegan los targets
@@ -2942,7 +2957,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         0,
         LIMIT,
         this.filterStatus,
-        this.filterTag || undefined
+        this.filterTag || undefined,
+        this.filterSimCompany || undefined
       );
 
       const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
@@ -2961,6 +2977,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
       if (this.filterTag) {
         filteredSharedTargets = filteredSharedTargets.filter(t => t.tag === this.filterTag);
+      }
+
+      if (this.filterSimCompany) {
+        filteredSharedTargets = filteredSharedTargets.filter(t => t.sim_company?.toLowerCase() === this.filterSimCompany?.toLowerCase());
       }
 
       const targets = targetsResponse.devices;

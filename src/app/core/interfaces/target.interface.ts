@@ -13,6 +13,7 @@ export interface Target {
   api_id?: string | null;
   sim_card: string;
   sim_card_number: string;
+  sim_company?: string;
   description?: string;
   plate: string;
   contacts?: string[];
