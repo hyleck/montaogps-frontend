@@ -38,6 +38,7 @@ interface ChatMessage {
   id?: number;
   from: 'me' | 'incoming' | 'system';
   text: string;
+  parsedHtml?: string;
   time: Date;
   attachments?: ChatAttachment[];
   replyTo?: { id: number; text: string; from: string };
@@ -114,6 +115,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private lastApiMessageId: number | null = null;
   private conversationsFingerprint: string = '';
   private pendingConversationId: number | null = null;
+  private chatwootAgentId: string = '';
+  private currentUserName: string = '';
+  private currentUserDepartment: string = '';
 
   constructor(
     private chatwootApi: ChatwootApiService,
@@ -157,6 +161,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       next: (user: any) => {
         this.autoResponse = user?.auto_response || false;
         this.currentUserEmail = user?.email || '';
+        this.chatwootAgentId = user?.idchatwoot || '';
+        this.currentUserName = user?.name || 'Agente';
+        this.currentUserDepartment = user?.department_id || '';
+        
         if (user?.inbox) {
           this.userInboxId = user.inbox;
           this.noInbox = false;
@@ -393,7 +401,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       // Send text message
       const replyText = this.emailReplyInput.trim();
       const textObs = replyText
-        ? this.chatwootApi.sendConversationMessage(this.selectedEmail!.id, replyText)
+        ? this.chatwootApi.sendConversationMessage(this.selectedEmail!.id, replyText, undefined, undefined, this.chatwootAgentId)
         : of(null);
 
       textObs.subscribe({
@@ -475,7 +483,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   loadConversations(): void {
     this.loadingConversations = true;
-    this.chatwootApi.getConversations(this.userInboxId).subscribe({
+    this.chatwootApi.getConversations(this.userInboxId, 1, this.chatwootAgentId).subscribe({
       next: (res: any) => {
         this.loadingConversations = false;
         if (res.success) {
@@ -542,7 +550,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private startConversationsPolling(): void {
     this.stopConversationsPolling();
     this.conversationsPollingInterval = setInterval(() => {
-      this.chatwootApi.getConversations(this.userInboxId).subscribe({
+      this.chatwootApi.getConversations(this.userInboxId, 1, this.chatwootAgentId).subscribe({
         next: (res: any) => {
           if (res.success) {
             const newConvs = res.conversations || [];
@@ -573,6 +581,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // MESSAGES
   // ============================
 
+  private parseMessageContent(text: string): string {
+    if (!text) return '';
+    const match = text.match(/^>\s*(.*?)\s*\n(.*)$/s);
+    if (match) {
+        return `<div class="comm-msg-sig"><i class="pi pi-user comm-msg-sig-icon"></i> <span>${match[1]}</span></div><div class="comm-msg-body">${match[2].replace(/\n/g, '<br/>')}</div>`;
+    }
+    return text.replace(/\n/g, '<br/>');
+  }
+
   loadMessages(): void {
     if (!this.selectedConversation) return;
 
@@ -594,6 +611,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
               id: msg.id,
               from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
               text: msg.content,
+              parsedHtml: this.parseMessageContent(msg.content),
               time: new Date(msg.created_at * 1000),
               attachments: msg.attachments || [],
             };
@@ -622,11 +640,16 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
     const text = this.chatInput.trim();
     const replyMsg = this.replyingTo;
-    const newMsg: ChatMessage = { from: 'me', text, time: new Date() };
+    const newMsg: ChatMessage = { from: 'me', text, parsedHtml: this.parseMessageContent(text), time: new Date() };
     if (replyMsg) {
       newMsg.replyTo = { id: replyMsg.id!, text: replyMsg.text, from: replyMsg.from };
     }
     this.messages.push(newMsg);
+    
+    // Inject the internal agent name prefix for Chatwoot outbound delivery
+    const deptStr = this.currentUserDepartment ? ` - ${this.currentUserDepartment}` : '';
+    const finalApiText = `> ${this.currentUserName}${deptStr}\n\n${text}`;
+
     this.chatInput = '';
     this.replyingTo = null;
     this.sendingMessage = true;
@@ -634,8 +657,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
     this.chatwootApi.sendConversationMessage(
       this.selectedConversation.id,
-      text,
-      replyMsg?.id
+      finalApiText,
+      replyMsg?.id,
+      undefined,
+      this.chatwootAgentId
     ).subscribe({
       next: (res) => {
         this.sendingMessage = false;
@@ -680,7 +705,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.messages.push({ from: 'me', text: `📎 ${file.name}`, time: new Date() });
     this.scrollToBottom();
 
-    this.chatwootApi.sendAttachment(this.selectedConversation.id, file).subscribe({
+    const deptStr = this.currentUserDepartment ? ` - ${this.currentUserDepartment}` : '';
+    const attachmentMessage = `> ${this.currentUserName}${deptStr}\nTe ha enviado un archivo adjunto.`;
+
+    this.chatwootApi.sendAttachment(this.selectedConversation.id, file, attachmentMessage, this.chatwootAgentId).subscribe({
       next: (res) => {
         this.sendingMessage = false;
         if (!res.success) {
@@ -712,8 +740,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             if (newestId !== this.lastApiMessageId) {
               // New messages detected — replace with latest from API
               this.messages = res.messages.map((msg: any) => ({
+                id: msg.id,
                 from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
                 text: msg.content,
+                parsedHtml: this.parseMessageContent(msg.content),
                 time: new Date(msg.created_at * 1000),
                 attachments: msg.attachments || [],
               }));

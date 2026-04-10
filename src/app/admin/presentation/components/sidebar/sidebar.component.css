@@ -62,11 +62,10 @@
 
 .sidebar__options>div {
     display: grid;
-    grid-auto-rows: 40px;
-    padding-top: 35px;
+    grid-auto-rows: 35px;
+    padding-top: 30px;
     position: relative;
-    gap: 5px;
-
+    gap: 2px;
 }
 
 .sidebar__favorites {

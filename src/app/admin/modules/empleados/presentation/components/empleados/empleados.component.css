@@ -1,0 +1,437 @@
+:host {
+    display: block;
+    height: 100%;
+    overflow: hidden;
+}
+
+.empleados-container {
+    padding: 1.5rem;
+    height: calc(100vh - 50px);
+    overflow-y: auto;
+    background-color: var(--secondaryColorBackground);
+    color: var(--text-color, var(--globalColorTextInput));
+    box-sizing: border-box;
+}
+
+.fade-in {
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.empleados-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-title i {
+    font-size: 1.8rem;
+    color: var(--globalColorPrimaryInmutable);
+}
+
+.header-title h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color, var(--globalColorTextInput));
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.search-input input {
+    border-radius: 20px;
+    padding-left: 2.5rem;
+    width: 250px;
+    transition: width 0.3s;
+}
+
+.search-input input:focus {
+    width: 300px;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.empleado-card {
+    background-color: var(--primaryColorBackground);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid var(--border-color, rgba(0,0,0,0.05));
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.empleado-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.05));
+    padding-bottom: 1rem;
+}
+
+.empleado-avatar {
+    position: relative;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.empleado-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--secondaryColorBackground);
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--globalColorPrimaryInmutable), var(--globalColorSelectOption));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-indicator {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--primaryColorBackground);
+}
+
+.status-online {
+    background-color: #22c55e;
+}
+
+.status-offline {
+    background-color: #9ca3af;
+}
+
+.empleado-info {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.empleado-name {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.empleado-role {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--secondaryColorBackground);
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.info-row i {
+    color: var(--primaryColorText);
+    opacity: 0.6;
+    width: 16px;
+    text-align: center;
+}
+
+.info-row a, .info-row span {
+    color: var(--text-color, var(--globalColorTextInput));
+    text-decoration: none;
+    transition: color 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.info-row a:hover {
+    color: var(--globalColorPrimaryInmutable);
+}
+
+.tags-container {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    opacity: 0.6;
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.2rem;
+}
+
+.empty-state p {
+    margin: 0;
+}
+
+.skeleton-card {
+    pointer-events: none;
+}
+
+.card-title-skeleton {
+    flex-grow: 1;
+}
+
+@media (max-width: 768px) {
+    .empleados-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .search-input input {
+        width: 100%;
+    }
+    
+    .search-input input:focus {
+        width: 100%;
+    }
+    
+    .grid-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ════════════════════════════════════════════════════
+   MODAL CURRICULUM STYLES
+════════════════════════════════════════════════════ */
+
+::ng-deep .curriculum-modal .p-dialog-content {
+    background-color: var(--globalColorBackground);
+    padding: 0;
+}
+
+::ng-deep .curriculum-modal .p-dialog-header {
+    background-color: var(--secondaryColorBackground);
+    color: var(--text-color, var(--globalColorTextInput));
+    border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.1));
+}
+
+.curriculum-container {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header Resumen */
+.curriculum-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, var(--secondaryColorBackground), var(--globalColorBackground));
+    border-bottom: 1px solid var(--border-color, rgba(0,0,0,0.05));
+    position: relative;
+}
+
+.curriculum-avatar {
+    position: relative;
+    width: 8rem;
+    height: 8rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.curriculum-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primaryColorBackground);
+}
+
+.avatar-placeholder.large {
+    font-size: 2.5rem;
+}
+
+.modal-status {
+    width: 18px;
+    height: 18px;
+    border: 3px solid var(--primaryColorBackground);
+    bottom: 5px;
+    right: 5px;
+}
+
+.curriculum-title {
+    flex-grow: 1;
+}
+
+.curriculum-title h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.8rem;
+    color: var(--text-color, var(--globalColorTextInput));
+}
+
+.curriculum-role {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--globalColorPrimaryInmutable);
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    font-weight: 500;
+}
+
+.curriculum-tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+/* Body / Sections */
+.curriculum-body {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.curriculum-section {
+    background-color: var(--primaryColorBackground);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    border: 1px solid var(--border-color, rgba(0,0,0,0.05));
+}
+
+.curriculum-section h3 {
+    margin: 0 0 1.2rem 0;
+    font-size: 1.2rem;
+    color: var(--text-color, var(--globalColorTextInput));
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--secondaryColorBackground);
+}
+
+.curriculum-section h3 i {
+    color: var(--globalColorSelectOption);
+}
+
+.curriculum-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.grid-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.grid-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--primaryColorText);
+    opacity: 0.6;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.grid-value {
+    font-size: 1rem;
+    color: var(--text-color, var(--globalColorTextInput));
+    word-break: break-word;
+}
+
+.grid-value a {
+    color: var(--globalColorPrimaryInmutable);
+    text-decoration: none;
+    transition: filter 0.2s;
+}
+
+.grid-value a:hover {
+    filter: brightness(1.2);
+}
+
+@media (max-width: 640px) {
+    .curriculum-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .curriculum-role {
+        justify-content: center;
+    }
+    
+    .curriculum-tags {
+        justify-content: center;
+    }
+}

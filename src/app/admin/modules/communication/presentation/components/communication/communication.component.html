@@ -156,7 +156,7 @@
                                 </a>
                             </div>
                         </ng-container>
-                        <div *ngIf="msg.text" class="comm-message__text">{{ msg.text }}</div>
+                        <div *ngIf="msg.text" class="comm-message__text" [innerHTML]="msg.parsedHtml || msg.text"></div>
                         <div class="comm-message__time">{{ msg.time | date:'HH:mm' }}</div>
                     </div>
                 </div>

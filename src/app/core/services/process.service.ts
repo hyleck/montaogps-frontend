@@ -44,4 +44,8 @@ export class ProcessService {
     getStatsByCreator(): Observable<CreatorStatsResponse> {
         return this.http.get<CreatorStatsResponse>(`${this.apiUrl}/stats/creator`);
     }
+
+    getTimelineByCreator(creatorId: string): Observable<any[]> {
+        return this.http.get<any[]>(`${this.apiUrl}/stats/creator/${creatorId}/timeline`);
+    }
 }

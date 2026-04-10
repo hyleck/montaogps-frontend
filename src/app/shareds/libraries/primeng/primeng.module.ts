@@ -30,6 +30,8 @@ import { Textarea } from 'primeng/inputtextarea';
 import { DividerModule } from 'primeng/divider';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { RadioButtonModule } from 'primeng/radiobutton';
+import { TimelineModule } from 'primeng/timeline';
+import { EditorModule } from 'primeng/editor';
 
 import { ConfirmationService, MessageService } from 'primeng/api';
 
@@ -66,7 +68,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     DrawerModule,
     SplitButtonModule,
     DividerModule,
-    RadioButtonModule
+    RadioButtonModule,
+    TimelineModule,
+    EditorModule
   ],
   exports: [
     BadgeModule,
@@ -98,7 +102,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
     DrawerModule,
     SplitButtonModule,
     DividerModule,
-    RadioButtonModule
+    RadioButtonModule,
+    TimelineModule,
+    EditorModule
   ],
   providers: []
 })

@@ -43,9 +43,13 @@
         (click)="selectList(list)">
 
         <div class="list-card__top">
-          <span class="list-card__name">{{ list.name }}</span>
+          <span class="list-card__name">{{ toTitleCase(list.name) }}</span>
           <span class="list-card__count">
             <i class="pi pi-users"></i> {{ list.user_count }}
+          </span>
+          <br>
+          <span class="list-card__count" *ngIf="list.notified_users?.length" style="color: #6366f1; font-size: 0.8rem; margin-top: 4px;">
+            <i class="pi pi-check-circle"></i> {{ list.notified_users?.length }} notificados
           </span>
         </div>
 
@@ -154,6 +158,40 @@
             styleClass="w-full">
           </p-dropdown>
         </div>
+
+        <!-- Excluir Notificados -->
+        <div class="form-group form-group--full" style="display: flex; align-items: center; gap: 8px;">
+          <p-checkbox [(ngModel)]="formFilters.exclude_notified" [binary]="true" inputId="exclude_notified" (onChange)="onFilterChange()"></p-checkbox>
+          <label for="exclude_notified" style="cursor: pointer; margin: 0;">Excluir usuarios que ya fueron notificados en campañas anteriores mediante esta lista</label>
+        </div>
+      </div>
+
+      <!-- Contactos Externos ────────────────── -->
+      <div style="margin-top: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h4 style="margin: 0; font-size: 1rem; color: var(--text-color);">Contactos Externos manuales</h4>
+          <button pButton icon="pi pi-plus" label="Añadir contacto" class="p-button-sm p-button-outlined p-button-secondary" (click)="addExternalContact()"></button>
+        </div>
+        
+        <div *ngIf="formExternalContacts.length === 0" style="color: #6c757d; font-size: 0.9rem; font-style: italic;">
+          No hay contactos externos. Todos los envíos se basarán en los filtros superiores.
+        </div>
+
+        <div *ngFor="let contact of formExternalContacts; let i = index" class="grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; margin-bottom: 0.75rem; align-items: end;">
+          <div class="form-group" style="margin-bottom: 0">
+            <label style="font-size: 0.8rem">Nombre *</label>
+            <input pInputText [(ngModel)]="contact.name" placeholder="Ej. Proveedor X" class="w-full" (input)="onFilterChange()" />
+          </div>
+          <div class="form-group" style="margin-bottom: 0">
+            <label style="font-size: 0.8rem">Teléfono</label>
+            <input pInputText [(ngModel)]="contact.phone" placeholder="+1..." class="w-full" />
+          </div>
+          <div class="form-group" style="margin-bottom: 0">
+            <label style="font-size: 0.8rem">Correo</label>
+            <input pInputText [(ngModel)]="contact.email" placeholder="@" class="w-full" />
+          </div>
+          <button pButton icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm" (click)="removeExternalContact(i)"></button>
+        </div>
       </div>
 
       <!-- Preview de usuarios ────────────────── -->
@@ -183,8 +221,11 @@
               <span class="preview-user__name">{{ getUserFullName(u) }}</span>
               <span class="preview-user__email">{{ u.email }}</span>
             </div>
-            <span class="preview-user__status" [class.active]="u.status" [class.inactive]="!u.status">
+            <span *ngIf="!u.is_external" class="preview-user__status" [class.active]="u.status" [class.inactive]="!u.status">
               {{ u.status ? 'Activo' : 'Inactivo' }}
+            </span>
+            <span *ngIf="u.is_external" class="badge" style="background-color: var(--surface-d); color: var(--text-color);">
+              Externo
             </span>
           </div>
           <p class="preview-more" *ngIf="previewTotal > previewUsers.length">
@@ -209,25 +250,44 @@
     <div *ngIf="!showForm && selectedList" class="inter-detail-panel">
       <div class="detail-header">
         <div>
-          <h3 class="detail-title">{{ selectedList.name }}</h3>
+          <h3 class="detail-title">{{ toTitleCase(selectedList.name) }}</h3>
           <p class="detail-desc" *ngIf="selectedList.description">{{ selectedList.description }}</p>
           <div class="detail-badges">
             <span class="badge" *ngFor="let b of getFilterBadges(selectedList)">{{ b }}</span>
           </div>
         </div>
         <div class="detail-actions">
+          <button pButton label="Enviar Email" icon="pi pi-envelope"
+            class="p-button-outlined p-button-sm p-button-info"
+            (click)="interactionChannel='email'; openPushModal()"
+            pTooltip="Enviar correo masivo a esta lista">
+          </button>
+          <button pButton label="Enviar WhatsApp" icon="pi pi-whatsapp"
+            class="p-button-outlined p-button-sm p-button-success"
+            (click)="interactionChannel='whatsapp'; openPushModal()"
+            pTooltip="Enviar WhatsApp meta a esta lista">
+          </button>
           <button pButton label="Notificación Push" icon="pi pi-bell"
             class="p-button-outlined p-button-sm p-button-warning"
-            (click)="openPushModal()"
+            (click)="interactionChannel='push'; openPushModal()"
             pTooltip="Enviar notificación push a todos los usuarios de esta lista">
           </button>
           <button pButton label="Editar" icon="pi pi-pencil" class="p-button-outlined p-button-sm" (click)="openEditForm(selectedList)"></button>
         </div>
       </div>
 
-      <div class="detail-stat">
-        <i class="pi pi-users"></i>
-        <strong>{{ listUsersTotal }}</strong> usuarios en esta lista
+      <div class="detail-stat" style="display: flex; gap: 15px; align-items: center;">
+        <div>
+          <i class="pi pi-users"></i>
+          <strong>{{ listUsersTotal }}</strong> perfiles en esta lista 
+          <span style="font-size: 0.85rem; color: #6c757d; margin-left: 6px;">
+            ({{ selectedList.user_count || 0 }} sistema, {{ selectedList.external_count || 0 }} externos)
+          </span>
+        </div>
+        <div *ngIf="selectedList?.notified_users?.length">
+          <i class="pi pi-check-circle" style="color: #6366f1;"></i>
+          <strong style="color: #6366f1;">{{ selectedList.notified_users?.length }}</strong> notificados en total
+        </div>
       </div>
 
       <!-- Tabla de usuarios -->
@@ -243,43 +303,84 @@
           (onPage)="listUsersPage = $event.first / listUsersLimit; loadListUsers()"
           [rowsPerPageOptions]="[25, 50, 100]"
           styleClass="p-datatable-sm p-datatable-striped"
-          responsiveLayout="scroll">
+          responsiveLayout="stack"
+          breakpoint="1300px">
 
           <ng-template pTemplate="header">
             <tr>
               <th>Usuario</th>
-              <th>Email</th>
-              <th>Teléfono</th>
-              <th>Tipo</th>
-              <th>Estado</th>
+              <th class="hide-on-1530">Tipo</th>
+              <th class="hide-on-1530">Estado</th>
+              <th>Última interacción</th>
+              <th style="width: 6rem; text-align: center;">Acciones</th>
             </tr>
           </ng-template>
 
           <ng-template pTemplate="body" let-user>
             <tr>
               <td>
-                <div class="user-cell">
-                  <div class="user-avatar">
+                <span class="p-column-title">Usuario</span>
+                <div class="user-cell" style="display: flex; align-items: center; gap: 0.75rem;">
+                  <div class="user-avatar" style="flex-shrink: 0;">
                     <img *ngIf="user.photo" [src]="user.photo" alt="foto">
                     <span *ngIf="!user.photo">{{ (user.name || '?')[0].toUpperCase() }}</span>
                   </div>
-                  {{ getUserFullName(user) }}
+                  <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                    <span style="font-weight: 500;">{{ getUserFullName(user) }}</span>
+                    <span style="color: #6c757d; font-size: 0.8rem; margin-top: 2px;">
+                      {{ user.email || 'Sin correo' }} &bull; {{ user.phone || 'Sin tel.' }}
+                    </span>
+                  </div>
                 </div>
               </td>
-              <td>{{ user.email }}</td>
-              <td>{{ user.phone || '—' }}</td>
-              <td><span class="badge">{{ user.affiliation_type_id || '—' }}</span></td>
-              <td>
-                <span class="preview-user__status" [class.active]="user.status" [class.inactive]="!user.status">
+              <td class="hide-on-1530">
+                <span class="p-column-title hide-on-1530">Tipo</span>
+                <span class="badge">{{ user.affiliation_type_id || '—' }}</span>
+              </td>
+              <td class="hide-on-1530">
+                <span class="p-column-title hide-on-1530">Estado</span>
+                <span *ngIf="!user.is_external" class="preview-user__status" [class.active]="user.status" [class.inactive]="!user.status">
                   {{ user.status ? 'Activo' : 'Inactivo' }}
                 </span>
+                <span *ngIf="user.is_external" class="badge" style="background-color: var(--surface-d); color: var(--text-color);">
+                  Externo
+                </span>
+              </td>
+              <td>
+                <span class="p-column-title">Última interacción</span>
+                <ng-container *ngIf="getUserHistory(user._id) as hist; else noInt">
+                  <ng-container *ngIf="hist.history && hist.history.length > 0; else fallbackDate">
+                    <div>{{ hist.last_sent_at | date:'shortTime' }} {{ hist.last_sent_at | date:'shortDate' }}</div>
+                    <div style="color: #6366f1; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 2px;" (click)="openUserHistory(user._id)">
+                      <i [class]="'pi ' + getLastInteractionIcon(hist)" style="font-size: 0.75rem;"></i>
+                      <span style="border-bottom: 1px dashed #6366f1;">{{ getLastInteractionType(hist) }}</span>
+                    </div>
+                  </ng-container>
+                  <ng-template #fallbackDate>
+                    <div>{{ hist.last_sent_at | date:'shortTime' }} {{ hist.last_sent_at | date:'shortDate' }}</div>
+                    <div style="color: #6366f1; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 2px;" (click)="openUserHistory(user._id)">
+                      <i [class]="'pi ' + getLastInteractionIcon(hist)" style="font-size: 0.75rem;"></i>
+                      <span style="border-bottom: 1px dashed #6366f1;">{{ getLastInteractionType(hist) }}</span>
+                    </div>
+                  </ng-template>
+                </ng-container>
+                <ng-template #noInt>—</ng-template>
+              </td>
+              <td>
+                <span class="p-column-title">Acciones</span>
+                <div style="display: flex; gap: 0.4rem; justify-content: center;">
+                  <button pButton icon="pi pi-envelope" class="p-button-text p-button-sm p-button-rounded p-button-info" style="background: rgba(59,130,246,0.1);" (click)="openPersonalPushModal(user, 'email')" pTooltip="Enviar correo particular"></button>
+                  <button pButton icon="pi pi-whatsapp" class="p-button-text p-button-sm p-button-rounded p-button-success" style="background: rgba(34,197,94,0.1);" (click)="openPersonalPushModal(user, 'whatsapp')" pTooltip="Enviar WhatsApp particular"></button>
+                  <button *ngIf="!user.is_external" pButton icon="pi pi-send" class="p-button-text p-button-sm p-button-rounded p-button-warning" style="background: rgba(245,158,11,0.1);" (click)="openPersonalPushModal(user, 'push')" pTooltip="Enviar push particular"></button>
+                  <button *ngIf="getUserHistory(user._id)" pButton icon="pi pi-history" class="p-button-outlined p-button-sm p-button-rounded" (click)="openUserHistory(user._id)" pTooltip="Ver envíos"></button>
+                </div>
               </td>
             </tr>
           </ng-template>
 
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="5" class="text-center p-4">No hay usuarios en esta lista</td>
+              <td colspan="6" class="text-center p-4">No hay usuarios en esta lista</td>
             </tr>
           </ng-template>
         </p-table>
@@ -306,37 +407,66 @@
   [modal]="true"
   [closable]="!sendingPush"
   (onHide)="closePushModal()"
-  header="Enviar notificación push"
+  [header]="interactionChannel === 'email' ? 'Enviar Correo Electrónico' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp' : 'Enviar Notificación Push'"
   styleClass="push-dialog"
   [style]="{width: '480px'}">
 
   <div class="push-form">
     <div class="push-meta">
-      <i class="pi pi-bell push-meta__icon"></i>
+      <i *ngIf="interactionChannel === 'email'" class="pi pi-envelope push-meta__icon"></i>
+      <i *ngIf="interactionChannel === 'whatsapp'" class="pi pi-whatsapp push-meta__icon text-green-500"></i>
+      <i *ngIf="interactionChannel === 'push'" class="pi pi-bell push-meta__icon"></i>
       <div>
-        <strong class="push-meta__list">{{ selectedList?.name }}</strong>
-        <span class="push-meta__count">{{ listUsersTotal }} destinatario{{ listUsersTotal !== 1 ? 's' : '' }}</span>
+        <strong class="push-meta__list">{{ targetUserName ? targetUserName : selectedList?.name }}</strong>
+        <span class="push-meta__count">{{ targetUserName ? '1 destinatario individual' : listUsersTotal + ' destinatario(s)' }}</span>
       </div>
     </div>
 
-    <div class="form-group form-group--full" style="margin-top:1rem">
-      <label>Título *</label>
-      <input pInputText [(ngModel)]="pushTitle"
-        placeholder="Ej. Actualización importante"
-        [disabled]="sendingPush"
-        class="w-full" />
+    <div *ngIf="interactionChannel === 'whatsapp'" style="margin-top:1rem;">
+      <div class="form-group form-group--full">
+        <label>Nombre del destinatario *</label>
+        <input pInputText [(ngModel)]="whatsappTemplateVars.name" placeholder="Ej. Juan Pérez" class="w-full" [disabled]="sendingPush" />
+      </div>
+
+      <div class="form-group form-group--full" style="margin-top:.75rem">
+        <label>Cuerpo del mensaje *</label>
+        <textarea pInputTextarea [(ngModel)]="whatsappTemplateVars.body" placeholder="Escribe el cuerpo del mensaje aquí..." rows="4" class="w-full" [disabled]="sendingPush"></textarea>
+      </div>
+
+      <div class="whatsapp-preview" style="margin-top: 1.5rem; padding: 1.2rem; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px;">
+        <h5 style="margin-top: 0; margin-bottom: 0.5rem; color: #10b981; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;"><i class="pi pi-whatsapp"></i> Previsualización del Mensaje</h5>
+        <div style="font-size: 0.95rem; line-height: 1.6; color: var(--text-color); background: var(--surface-card); padding: 1rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+          <strong style="font-size: 1.05rem; display: block; margin-bottom: 0.75rem;">{{ whatsappTemplateVars.headerUser || '[User]' }}:</strong>
+          B{{ whatsappTemplateVars.bodySaludos || '[saludos]' }}, <strong>{{ whatsappTemplateVars.name || '[Nombre]' }}</strong>.<br>
+          <span style="white-space: pre-wrap; display: block; margin-top: 0.25rem;">{{ whatsappTemplateVars.body || '[Cuerpo del mensaje]' }}</span><br>
+          <span style="display: block; margin-top: 0.5rem;">Seguimos a tu orden por este número.</span>
+          <span style="opacity: 0.5; font-size: 0.8rem; display: block; margin-top: 0.75rem;">Montao GPS</span>
+        </div>
+      </div>
     </div>
 
-    <div class="form-group form-group--full" style="margin-top:.75rem">
-      <label>Mensaje *</label>
-      <textarea pInputTextarea
-        [(ngModel)]="pushBody"
-        placeholder="Escribe el mensaje de la notificación..."
-        rows="4"
-        [disabled]="sendingPush"
-        class="w-full">
-      </textarea>
-    </div>
+    <ng-container *ngIf="interactionChannel !== 'whatsapp'">
+      <div class="form-group form-group--full" style="margin-top:1rem">
+        <label>Título *</label>
+        <input pInputText [(ngModel)]="pushTitle"
+          [placeholder]="interactionChannel === 'email' ? 'Asunto del correo' : 'Ej. Actualización importante'"
+          [disabled]="sendingPush"
+          class="w-full" />
+      </div>
+
+      <div class="form-group form-group--full" style="margin-top:.75rem">
+        <textarea pInputTextarea
+          [(ngModel)]="pushBody"
+          [placeholder]="interactionChannel === 'email' ? 'Escribe aquí usando formato Markdown (ej. **negrita**, - listas)...' : 'Escribe el mensaje de la notificación...'"
+          rows="8"
+          [disabled]="sendingPush"
+          class="w-full">
+        </textarea>
+        <small *ngIf="interactionChannel === 'email'" style="color: #64748b; margin-top: 0.25rem; display: block;">
+          Chatwoot transformará automáticamente tu código Markdown en un formato visual para el correo final.
+        </small>
+      </div>
+    </ng-container>
 
     <!-- Progreso durante envío -->
     <div class="push-progress" *ngIf="sendingPush">
@@ -353,11 +483,31 @@
       (click)="closePushModal()">
     </button>
     <button pButton
-      label="Enviar a todos"
-      icon="pi pi-send"
+      [label]="targetUserName ? (interactionChannel === 'email' ? 'Enviar email a usuario' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a usuario' : 'Enviar push a usuario') : (interactionChannel === 'email' ? 'Enviar email a todos' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a todos' : 'Enviar push a todos')"
+      [icon]="interactionChannel === 'email' ? 'pi pi-envelope' : interactionChannel === 'whatsapp' ? 'pi pi-whatsapp' : 'pi pi-send'"
       [loading]="sendingPush"
-      [disabled]="!pushTitle.trim() || !pushBody.trim()"
+      [disabled]="(interactionChannel === 'whatsapp' && (!whatsappTemplateVars.name.trim() || !whatsappTemplateVars.body.trim())) || (interactionChannel !== 'whatsapp' && (!pushTitle.trim() || !pushBody.trim()))"
       (click)="sendPushToList()">
     </button>
   </ng-template>
+</p-dialog>
+
+<!-- ── Modal Historial de Usuario ────────────────────────────────────── -->
+<p-dialog
+  [(visible)]="showHistoryModal"
+  [modal]="true"
+  header="Historial de Interacciones"
+  styleClass="history-dialog"
+  [style]="{width: '500px'}">
+
+  <div *ngIf="selectedUserHistory">
+    <p>Se han enviado <strong>{{ selectedUserHistory.notification_count }}</strong> interacciones a este usuario desde esta lista.</p>
+    <p-timeline [value]="selectedUserHistory.history" styleClass="w-full">
+      <ng-template pTemplate="content" let-item>
+        <p-card [header]="item.title" [subheader]="(item.sentAt | date:'medium') || ''" styleClass="history-card">
+          <div [innerHTML]="parseBasicMarkdown(item.body)"></div>
+        </p-card>
+      </ng-template>
+    </p-timeline>
+  </div>
 </p-dialog>

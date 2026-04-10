@@ -7,6 +7,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { LangService } from '../../../../shareds/services/langi18/lang.service';
 import { InventoryService } from '../../../../core/services/inventory.service';
 import { BasicUser } from '../../../../core/interfaces/user.interface';
+import { ChangeDetectorRef } from '@angular/core';
 
 @Component({
   selector: 'app-sidebar',
@@ -21,6 +22,7 @@ export class SidebarComponent implements OnInit {
   systemLogo: string = 'logo/LOGO.png'; // Default logo
   currentUser: BasicUser | null = null;
   private isEmployeeUser: boolean = false;
+  private hasInbox: boolean = false;
 
   sidaberOptions = {
     favoriteTitle: '',
@@ -30,9 +32,9 @@ export class SidebarComponent implements OnInit {
     principalTitle: '',
     principalItems: [
       { label: '', path: '/admin/management/', icon: 'pi pi-book', badge: 0 },
+      { label: '', path: '/admin/empleados', icon: 'pi pi-id-card', badge: 0 },
       { label: '', path: '/admin/inventory', icon: 'pi pi-database', badge: 0 },
       { label: '', path: '/admin/solicitudes', icon: 'pi pi-clipboard', badge: 0 },
-      { label: '', path: '/admin/macro', icon: 'pi pi-cog', badge: 0 },
       { label: '', path: '/admin/monitoring', icon: 'pi pi-eye', badge: 0 },
       { label: '', path: '/admin/server-costs', icon: 'pi pi-wallet', badge: 0 },
       { label: '', path: '/admin/montao-rent', icon: 'pi pi-car', badge: 0 },
@@ -56,7 +58,8 @@ export class SidebarComponent implements OnInit {
     private translate: TranslateService,
     private langService: LangService,
     private userService: UserService,
-    private inventoryService: InventoryService
+    private inventoryService: InventoryService,
+    private cdr: ChangeDetectorRef
   ) {
     this.sidebarDisplayed = status.getState('sidebar') as boolean;
   }
@@ -67,7 +70,6 @@ export class SidebarComponent implements OnInit {
     // Defer HTTP calls so the UI paints first
     setTimeout(() => {
       this.loadSystemSettings();
-      this.loadUserProfile();
 
       // Check inventory stock
       if (this.authService.hasPrivilege('inventory', 'read') || this.isRootUser) {
@@ -105,10 +107,12 @@ export class SidebarComponent implements OnInit {
 
       // Force change detection by re-assigning options if needed (or just relying on getter)
       console.log('Sidebar - Current User Updated:', this.currentUser);
+      this.loadUserProfile();
     } else {
       this.currentUser = null;
       this.userName = '';
       this.isEmployeeUser = false;
+      this.hasInbox = false;
     }
   }
 
@@ -121,6 +125,8 @@ export class SidebarComponent implements OnInit {
           if (userData.photo) {
             this.userPhotoUrl = userData.photo;
           }
+          this.hasInbox = !!userData.inbox || !!userData.inbox2;
+          this.cdr.detectChanges(); // Force redraw the sidebar options
         },
         error: (error) => {
           console.error('Error loading user profile for sidebar:', error);
@@ -140,9 +146,9 @@ export class SidebarComponent implements OnInit {
 
     // Elementos del menú principal
     this.sidaberOptions.principalItems[0].label = this.translate.instant('sidebar.management');
-    this.sidaberOptions.principalItems[1].label = this.translate.instant('sidebar.inventory');
-    this.sidaberOptions.principalItems[2].label = 'Solicitudes';
-    this.sidaberOptions.principalItems[3].label = this.translate.instant('sidebar.macro');
+    this.sidaberOptions.principalItems[1].label = 'Empleados';
+    this.sidaberOptions.principalItems[2].label = this.translate.instant('sidebar.inventory');
+    this.sidaberOptions.principalItems[3].label = 'Solicitudes';
     this.sidaberOptions.principalItems[4].label = this.translate.instant('sidebar.monitoring');
     this.sidaberOptions.principalItems[5].label = this.translate.instant('sidebar.serverCosts');
     this.sidaberOptions.principalItems[6].label = this.translate.instant('sidebar.montaoRent');
@@ -194,17 +200,14 @@ export class SidebarComponent implements OnInit {
   // Getter para obtener los elementos del menú principal filtrados por root
   get filteredPrincipalItems() {
     return this.sidaberOptions.principalItems.filter(item => {
-      // Ocultar completamente la opción macro
-      if (item.path === '/admin/macro') {
-        return false;
-      }
-      // Ocultar completamente la opción comunicación
-      if (item.path === '/admin/communication') {
-        return false;
-      }
+
       // Ocultar el módulo de monitoreo si el usuario no es empleado
       if (!this.isEmployeeUser && item.path.startsWith('/admin/monitoring')) {
         return false;
+      }
+      // Ocultar el módulo de empleados a todos excepto a los usuarios root
+      if (item.path === '/admin/empleados') {
+        return this.isRootUser;
       }
       // Ocultar solicitudes si el usuario no es empleado
       if (!this.isEmployeeUser && item.path === '/admin/solicitudes') {
@@ -214,6 +217,10 @@ export class SidebarComponent implements OnInit {
       if (!this.isEmployeeUser && item.path === '/admin/processes') {
         return false;
       }
+      // Ocultar comunicación a los que no son empleados (y permitir a root)
+      if (item.path === '/admin/communication') {
+        return this.isRootUser || this.isEmployeeUser;
+      }
       // Ocultar interacciones si el usuario no es empleado
       if (!this.isEmployeeUser && item.path === '/admin/interacciones') {
         return false;
@@ -221,9 +228,9 @@ export class SidebarComponent implements OnInit {
       if (item.path === '/admin/server-costs') {
         return this.isRootUser;
       }
-      // Si es inventory, mostrar si es root o tiene permisos de lectura
+      // Si es inventory, mostrar solo si es empleado o root
       if (item.path === '/admin/inventory') {
-        return this.isRootUser || this.authService.hasPrivilege('inventory', 'read');
+        return this.isEmployeeUser || this.isRootUser;
       }
 
       // Opciones exclusivas para rent_a_car

@@ -1,0 +1,293 @@
+<p-toast></p-toast>
+<div class="empleados-container fade-in">
+    <div class="empleados-header">
+        <div class="header-title">
+            <i class="pi pi-id-card"></i>
+            <h2>Empleados del Sistema</h2>
+        </div>
+        
+        <div class="header-actions">
+            <div class="p-input-icon-left search-input">
+                <i class="pi pi-search"></i>
+                <input type="text" pInputText [(ngModel)]="searchTerm" placeholder="Buscar empleado..." />
+            </div>
+            <button pButton icon="pi pi-refresh" class="p-button-rounded p-button-text p-button-secondary" (click)="loadEmpleados()" [loading]="loading"></button>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="grid-container">
+        <div *ngFor="let i of [1,2,3,4,5,6]" class="empleado-card skeleton-card">
+            <div class="card-header">
+                <p-skeleton shape="circle" size="4rem"></p-skeleton>
+                <div class="card-title-skeleton">
+                    <p-skeleton width="80%" height="1.5rem" styleClass="mb-2"></p-skeleton>
+                    <p-skeleton width="50%" height="1rem"></p-skeleton>
+                </div>
+            </div>
+            <div class="card-body">
+                <p-skeleton width="100%" height="1rem" styleClass="mb-2"></p-skeleton>
+                <p-skeleton width="90%" height="1rem"></p-skeleton>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!loading && filteredEmpleados.length === 0" class="empty-state">
+        <i class="pi pi-users empty-icon"></i>
+        <h3>No se encontraron empleados</h3>
+        <p>Intenta con otros términos de búsqueda.</p>
+    </div>
+
+    <div *ngIf="!loading && filteredEmpleados.length > 0" class="grid-container">
+        <div *ngFor="let empleado of filteredEmpleados" class="empleado-card" (click)="showCurriculum(empleado)" style="cursor: pointer;">
+            <div class="card-header">
+                <div class="empleado-avatar">
+                    <img *ngIf="empleado.photo" [src]="empleado.photo" [alt]="empleado.name">
+                    <div *ngIf="!empleado.photo" class="avatar-placeholder">
+                        {{empleado.name.charAt(0) || ''}}{{empleado.last_name ? empleado.last_name.charAt(0) : ''}}
+                    </div>
+                    <!-- Status Badge -->
+                    <span class="status-indicator" [ngClass]="empleado.status ? 'status-online' : 'status-offline'" [title]="empleado.status ? 'Activo' : 'Inactivo'"></span>
+                </div>
+                
+                <div class="empleado-info">
+                    <h3 class="empleado-name">{{ empleado.name | titlecase }} <span *ngIf="empleado.last_name">{{empleado.last_name | titlecase}}</span></h3>
+                    <p class="empleado-role" *ngIf="empleado.department_id">
+                        <i class="pi pi-building"></i> {{ empleado.department_id | titlecase }}
+                    </p>
+                    <p class="empleado-role" *ngIf="!empleado.department_id">
+                        <i class="pi pi-building"></i> Departamento sin definir
+                    </p>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="info-row" *ngIf="empleado.email">
+                    <i class="pi pi-envelope"></i>
+                    <span>{{ empleado.email }}</span>
+                </div>
+                <div class="info-row" *ngIf="empleado.phone">
+                    <i class="pi pi-phone"></i>
+                    <span>{{ empleado.phone }}</span>
+                </div>
+                <div class="info-row" *ngIf="empleado.dni">
+                    <i class="pi pi-id-card"></i>
+                    <span>{{ empleado.dni }}</span>
+                </div>
+                <!-- Extra tags if needed -->
+
+                <!-- Barra de desempeño relativo -->
+                <div class="performance-indicator" style="margin-top: auto; padding-top: 0.5rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-color, var(--globalColorTextInput)); margin-bottom: 0.3rem;">
+                        <span style="opacity: 0.7; font-weight: 600; letter-spacing: 0.5px;">Desempeño</span>
+                        <span style="font-weight: bold; color: var(--globalColorPrimaryInmutable);">{{ getEmployeePerformance(empleado._id) }}%</span>
+                    </div>
+                    <div style="height: 6px; background: var(--surface-ground, rgba(0,0,0,0.06)); border-radius: 4px; overflow: hidden; width: 100%;">
+                        <div [style.width]="getEmployeePerformance(empleado._id) + '%'" style="background: var(--globalColorPrimaryInmutable); height: 100%; border-radius: 4px; transition: width 0.5s ease-in-out;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Curriculum -->
+<p-dialog [(visible)]="displayModal" [modal]="true" [style]="{width: '50vw', minWidth: '350px'}" [breakpoints]="{'960px': '75vw', '640px': '90vw'}" header="Perfil del Empleado" [draggable]="false" [resizable]="false" styleClass="curriculum-modal">
+    <div *ngIf="selectedEmpleado" class="curriculum-container">
+        
+        <!-- Header: Avatar y Nombre -->
+        <div class="curriculum-header">
+            <div class="curriculum-avatar">
+                <img *ngIf="selectedEmpleado.photo" [src]="selectedEmpleado.photo" [alt]="selectedEmpleado.name">
+                <div *ngIf="!selectedEmpleado.photo" class="avatar-placeholder large">
+                    {{selectedEmpleado.name.charAt(0) || ''}}{{selectedEmpleado.last_name ? selectedEmpleado.last_name.charAt(0) : ''}}
+                </div>
+                <span class="status-indicator modal-status" [ngClass]="selectedEmpleado.status ? 'status-online' : 'status-offline'" [title]="selectedEmpleado.status ? 'Activo' : 'Inactivo'"></span>
+            </div>
+            
+            <div class="curriculum-title">
+                <h2>{{ selectedEmpleado.name | titlecase }} <span *ngIf="selectedEmpleado.last_name">{{ selectedEmpleado.last_name | titlecase }}</span></h2>
+                <div class="curriculum-role" *ngIf="selectedEmpleado.department_id">
+                    <i class="pi pi-building"></i>
+                    <span>{{ selectedEmpleado.department_id | titlecase }}</span>
+                </div>
+                <div class="curriculum-role" *ngIf="!selectedEmpleado.department_id">
+                    <i class="pi pi-building"></i>
+                    <span>Departamento sin definir</span>
+                </div>
+                <!-- Etiquetas rápidas -->
+                <div class="curriculum-tags">
+                    <span class="p-tag" [ngClass]="selectedEmpleado.status ? 'p-tag-success' : 'p-tag-warning'">
+                        {{ selectedEmpleado.status ? 'Activo' : 'Inactivo' }}
+                    </span>
+                    <span class="p-tag p-tag-info" *ngIf="selectedEmpleado.access_level_id?.name" style="background-color: var(--globalColorPrimaryInmutable); color: white;">
+                        <i class="pi pi-briefcase" style="font-size: 0.7rem; margin-right: 0.3rem;"></i> {{ selectedEmpleado.access_level_id.name | titlecase }}
+                    </span>
+                    <span class="p-tag p-tag-secondary" *ngIf="selectedEmpleado.profile_type_id">
+                        {{ selectedEmpleado.profile_type_id | titlecase }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Body: Detalles -->
+        <div class="curriculum-body">
+            
+            <!-- Bloque de Contacto -->
+            <div class="curriculum-section">
+                <h3><i class="pi pi-address-book"></i> Información de Contacto</h3>
+                <div class="curriculum-grid">
+                    <div class="grid-item" *ngIf="selectedEmpleado.email">
+                        <span class="grid-label">Correo Electrónico</span>
+                        <span class="grid-value">{{ selectedEmpleado.email }}</span>
+                    </div>
+                    <div class="grid-item" *ngIf="selectedEmpleado.phone">
+                        <span class="grid-label">Teléfono Principal</span>
+                        <span class="grid-value">{{ selectedEmpleado.phone }}</span>
+                    </div>
+                    <div class="grid-item" *ngIf="selectedEmpleado.phone2">
+                        <span class="grid-label">Teléfono Secundario</span>
+                        <span class="grid-value">{{ selectedEmpleado.phone2 }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque de Métricas -->
+            <div class="curriculum-section">
+                <h3><i class="pi pi-chart-line"></i> Métricas de Desempeño</h3>
+                <div class="curriculum-grid">
+                    <div class="grid-item">
+                        <span class="grid-label">Procesos Totales Realizados</span>
+                        <span class="grid-value" style="font-size: 1.5rem; font-weight: bold; color: var(--globalColorPrimaryInmutable);">
+                            {{ getEmployeeProcessCount(selectedEmpleado._id) }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div *ngIf="chartData" style="margin-top: 1.5rem;">
+                    <span class="grid-label" style="display: block; margin-bottom: 0.5rem;">Actividad últimos 30 días</span>
+                    <p-chart type="line" [data]="chartData" [options]="chartOptions" height="150px"></p-chart>
+                </div>
+
+                <div *ngIf="getEmployeeProcessBreakdown(selectedEmpleado._id).length > 0" style="margin-top: 1.5rem; border-top: 1px dashed var(--border-color, rgba(0,0,0,0.1)); padding-top: 1rem;">
+                    <span class="grid-label" style="display: block; margin-bottom: 0.5rem;">Desglose Operativo</span>
+                    <div class="curriculum-tags">
+                        <span class="p-tag p-tag-rounded" style="background: var(--surface-bg, rgba(0,0,0,0.05)); color: var(--text-color, var(--globalColorTextInput)); border: 1px solid var(--border-color, rgba(0,0,0,0.1));" *ngFor="let stat of getEmployeeProcessBreakdown(selectedEmpleado._id)">
+                            {{ processTypeLabels[stat.type] || 'Desconocido' }}: <b style="margin-left: 4px; color: var(--globalColorPrimaryInmutable);">{{ stat.count }}</b>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque de Organización -->
+            <div class="curriculum-section">
+                <h3><i class="pi pi-sitemap"></i> Organización y Cargo</h3>
+                <div class="curriculum-grid">
+                    <div class="grid-item" style="grid-column: span 1;">
+                        <span class="grid-label">Departamento</span>
+                        <div *ngIf="!editingDepartment" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem;">
+                            <span class="grid-value" [ngStyle]="{'opacity': selectedEmpleado.department_id ? 1 : 0.5, 'font-weight': 600}">
+                                {{ selectedEmpleado.department_id || 'Sin asignar' }}
+                            </span>
+                            <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm" style="height: 1.5rem; width: 1.5rem;" (click)="toggleEditDepartment()" pTooltip="Cambiar Departamento"></button>
+                        </div>
+                        <div *ngIf="editingDepartment" class="p-inputgroup" style="margin-top: 0.3rem;">
+                            <p-dropdown [options]="departments" [(ngModel)]="tempDepartmentId" placeholder="Seleccionar" appendTo="body" [disabled]="savingDepartment" [style]="{'min-width': '150px'}"></p-dropdown>
+                            <button pButton icon="pi pi-check" class="p-button-success" [loading]="savingDepartment" (click)="saveDepartment()"></button>
+                            <button pButton icon="pi pi-times" class="p-button-danger p-button-outlined" [disabled]="savingDepartment" (click)="toggleEditDepartment()"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque de Integraciones -->
+            <div class="curriculum-section">
+                <h3><i class="pi pi-link"></i> Integraciones</h3>
+                <div class="curriculum-grid">
+                    <div class="grid-item" style="grid-column: span 1;">
+                        <span class="grid-label">ID de Chatwoot</span>
+                        <div *ngIf="!editingChatwoot" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem;">
+                            <span class="grid-value" [ngStyle]="{'opacity': selectedEmpleado.idchatwoot ? 1 : 0.5, 'font-family': 'monospace', 'font-size': '1.1rem'}">
+                                {{ selectedEmpleado.idchatwoot || 'No vinculado' }}
+                            </span>
+                            <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm" style="height: 1.5rem; width: 1.5rem;" (click)="toggleEditChatwoot()" pTooltip="Vincular con Chatwoot"></button>
+                        </div>
+                        <div *ngIf="editingChatwoot" class="p-inputgroup" style="margin-top: 0.3rem;">
+                            <span class="p-inputgroup-addon"><i class="pi pi-comments"></i></span>
+                            <input type="text" pInputText [(ngModel)]="tempChatwootId" placeholder="Ej: 84920" [disabled]="savingChatwoot" style="font-family: monospace;">
+                            <button pButton icon="pi pi-check" class="p-button-success" [loading]="savingChatwoot" (click)="saveChatwootId()"></button>
+                            <button pButton icon="pi pi-times" class="p-button-danger p-button-outlined" [disabled]="savingChatwoot" (click)="toggleEditChatwoot()"></button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid-item" style="grid-column: span 1;">
+                        <span class="grid-label">Inbox (Primario)</span>
+                        <div *ngIf="!editingInbox" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem;">
+                            <span class="grid-value" [ngStyle]="{'opacity': selectedEmpleado.inbox ? 1 : 0.5, 'font-family': 'monospace', 'font-size': '1.1rem'}">
+                                {{ selectedEmpleado.inbox || 'N/A' }}
+                            </span>
+                            <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm" style="height: 1.5rem; width: 1.5rem;" (click)="toggleEditInbox()" pTooltip="Editar Inbox Primario"></button>
+                        </div>
+                        <div *ngIf="editingInbox" class="p-inputgroup" style="margin-top: 0.3rem;">
+                            <span class="p-inputgroup-addon"><i class="pi pi-whatsapp"></i></span>
+                            <p-inputNumber [(ngModel)]="tempInbox" placeholder="Ej: 1" [disabled]="savingInbox" styleClass="p-inputtext-sm" [useGrouping]="false" [style]="{'font-family': 'monospace'}"></p-inputNumber>
+                            <button pButton icon="pi pi-check" class="p-button-success" [loading]="savingInbox" (click)="saveInbox()"></button>
+                            <button pButton icon="pi pi-times" class="p-button-danger p-button-outlined" [disabled]="savingInbox" (click)="toggleEditInbox()"></button>
+                        </div>
+                    </div>
+
+                    <div class="grid-item" style="grid-column: span 1;">
+                        <span class="grid-label">Inbox 2 (Secundario)</span>
+                        <div *ngIf="!editingInbox2" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem;">
+                            <span class="grid-value" [ngStyle]="{'opacity': selectedEmpleado.inbox2 ? 1 : 0.5, 'font-family': 'monospace', 'font-size': '1.1rem'}">
+                                {{ selectedEmpleado.inbox2 || 'N/A' }}
+                            </span>
+                            <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm" style="height: 1.5rem; width: 1.5rem;" (click)="toggleEditInbox2()" pTooltip="Editar Inbox Secundario"></button>
+                        </div>
+                        <div *ngIf="editingInbox2" class="p-inputgroup" style="margin-top: 0.3rem;">
+                            <span class="p-inputgroup-addon"><i class="pi pi-envelope"></i></span>
+                            <p-inputNumber [(ngModel)]="tempInbox2" placeholder="Ej: 2" [disabled]="savingInbox2" styleClass="p-inputtext-sm" [useGrouping]="false" [style]="{'font-family': 'monospace'}"></p-inputNumber>
+                            <button pButton icon="pi pi-check" class="p-button-success" [loading]="savingInbox2" (click)="saveInbox2()"></button>
+                            <button pButton icon="pi pi-times" class="p-button-danger p-button-outlined" [disabled]="savingInbox2" (click)="toggleEditInbox2()"></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque de Identidad -->
+            <div class="curriculum-section">
+                <h3><i class="pi pi-id-card"></i> Identidad y Ubicación</h3>
+                <div class="curriculum-grid">
+                    <div class="grid-item" *ngIf="selectedEmpleado.dni">
+                        <span class="grid-label">Documento (DNI)</span>
+                        <span class="grid-value">{{ selectedEmpleado.dni }}</span>
+                    </div>
+                    <div class="grid-item" *ngIf="selectedEmpleado.birth">
+                        <span class="grid-label">Fecha de Nacimiento</span>
+                        <span class="grid-value">{{ selectedEmpleado.birth | date:'longDate' }}</span>
+                    </div>
+                    <div class="grid-item" *ngIf="selectedEmpleado.address">
+                        <span class="grid-label">Dirección</span>
+                        <span class="grid-value">{{ selectedEmpleado.address }}</span>
+                    </div>
+                    <div class="grid-item" *ngIf="selectedEmpleado.province">
+                        <span class="grid-label">Provincia</span>
+                        <span class="grid-value">{{ selectedEmpleado.province }}</span>
+                    </div>
+                    <div class="grid-item" *ngIf="selectedEmpleado.municipality">
+                        <span class="grid-label">Municipio</span>
+                        <span class="grid-value">{{ selectedEmpleado.municipality }}</span>
+                    </div>
+                </div>
+            </div>
+
+
+
+        </div>
+
+    </div>
+    <ng-template pTemplate="footer">
+        <button pButton icon="pi pi-times" label="Cerrar" class="p-button-text" (click)="displayModal = false"></button>
+    </ng-template>
+</p-dialog>

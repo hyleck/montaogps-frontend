@@ -56,6 +56,11 @@ export interface User {
   photo?: string;
   settings?: UserSettings[];
   profile_type_id?: string;
+  affiliation_type_id?: string;
+  department_id?: string;
+  idchatwoot?: string;
+  inbox?: number;
+  inbox2?: number;
   root?: boolean;
   developer?: boolean;
   status?: boolean;

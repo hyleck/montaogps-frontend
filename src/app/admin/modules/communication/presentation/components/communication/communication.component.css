@@ -532,6 +532,22 @@
     word-break: break-word;
 }
 
+/* Agent Signature inline inside messages */
+::ng-deep .comm-msg-sig {
+    font-size: 0.65rem;
+    opacity: 0.5;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+::ng-deep .comm-msg-sig-icon {
+    font-size: 0.6rem;
+}
+::ng-deep .comm-msg-body {
+    line-height: 1.4;
+}
+
 .comm-email__msg-attachments {
     display: flex;
     flex-wrap: wrap;

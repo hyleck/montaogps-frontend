@@ -668,3 +668,90 @@
 :host-context(.app-dark) .push-meta__list { color: #e2e8f0; }
 :host-context(.app-dark) .push-meta__count { color: #94a3b8; }
 :host-context(.app-dark) .push-progress__text { color: #94a3b8; }
+
+/* ════ HISTORY MODAL TIMELINE ════ */
+::ng-deep .history-dialog .p-timeline-event-opposite {
+  display: none !important;
+}
+::ng-deep .history-dialog .p-card-body {
+  padding: 1rem !important;
+}
+::ng-deep .history-dialog .p-card .p-card-header {
+  padding: 0;
+}
+::ng-deep .history-dialog .p-card-title {
+  font-size: 1.05rem;
+  margin-bottom: 0.2rem;
+}
+::ng-deep .history-dialog .p-card-subtitle {
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+@media (max-width: 1530px) {
+  .hide-on-1530 {
+    display: none !important;
+  }
+}
+
+/* Ocultar los títulos de responsividad por defecto en Desktop */
+.p-column-title {
+  display: none !important;
+}
+
+@media (max-width: 1300px) {
+  /* Reducir Sidebar */
+  .inter-sidebar {
+    width: 220px !important;
+    min-width: 220px !important;
+  }
+  .inter-sidebar__title {
+    font-size: 0.9rem !important;
+  }
+  .inter-sidebar__search {
+    padding: 0.5rem !important;
+  }
+  .list-card {
+    padding: 0.5rem !important;
+  }
+  .list-card__name {
+    font-size: 0.85rem !important;
+  }
+  .list-card__count {
+    font-size: 0.75rem !important;
+  }
+  
+  /* Mostrar los títulos de columna en modo móvil/tarjeta */
+  .p-column-title {
+    display: block !important;
+    font-weight: 600;
+    color: var(--text-color, #a8b2c1);
+    margin-bottom: 0.25rem;
+    font-size: 0.8rem;
+  }
+
+  /* Opcional: PrimeNG cards overrides para p-table stack */
+  ::ng-deep .p-datatable-responsive-stack .p-datatable-tbody > tr > td {
+    padding: 0.75rem 1rem !important;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start !important;
+    border: none !important;
+  }
+  /* Borde inferior para separar "tarjetas" */
+  ::ng-deep .p-datatable-responsive-stack .p-datatable-tbody > tr {
+    border-bottom: 1px solid var(--surface-border, #334155);
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   HISTORY TIMELINE MODAL CARDS
+════════════════════════════════════════════════════ */
+::ng-deep .history-card.p-card,
+::ng-deep .history-card {
+  margin-bottom: 2rem !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+  border-radius: 12px !important;
+  border: 2px dotted #6366f1 !important;
+  background: var(--surface-section) !important;
+}
