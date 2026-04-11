@@ -9,6 +9,8 @@ export interface UserListFilters {
   profile_type_id?: string;
   status?: boolean;
   exclude_notified?: boolean;
+  force_empty?: boolean;
+  manual_user_ids?: string[];
 }
 
 export interface NotifiedHistory {
@@ -43,7 +45,7 @@ export interface UserList {
   external_count?: number;
   total_count?: number;
   notified_users?: NotifiedUser[];
-  objectives?: { id: string; title: string }[];
+  objectives?: { id: string; title: string; description?: string }[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -102,6 +104,8 @@ export class InteraccionesService {
     if (filters.profile_type_id) params.profile_type_id = filters.profile_type_id;
     if (filters.status !== undefined && filters.status !== null) params.status = filters.status.toString();
     if (filters.exclude_notified !== undefined) params.exclude_notified = filters.exclude_notified.toString();
+    if (filters.force_empty !== undefined) params.force_empty = filters.force_empty.toString();
+    if (filters.manual_user_ids && filters.manual_user_ids.length > 0) params.manual_user_ids = filters.manual_user_ids.join(',');
     if (listId) params.list_id = listId;
     return this.http.get<UserListUsersResponse>(`${this.api}/preview`, { params });
   }

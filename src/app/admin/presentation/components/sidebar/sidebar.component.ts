@@ -154,7 +154,7 @@ export class SidebarComponent implements OnInit {
     this.sidaberOptions.principalItems[6].label = this.translate.instant('sidebar.montaoRent');
     this.sidaberOptions.principalItems[7].label = 'Comunicación';
     this.sidaberOptions.principalItems[8].label = 'Procesos';
-    this.sidaberOptions.principalItems[9].label = 'Interacciones';
+    this.sidaberOptions.principalItems[9].label = 'Campañas';
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');

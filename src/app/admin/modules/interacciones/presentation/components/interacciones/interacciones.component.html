@@ -1,14 +1,14 @@
 <div class="inter-layout">
 
   <!-- ══════════════════════════════════════════════════════════
-       PANEL IZQUIERDO — Lista de listas guardadas
+       PANEL IZQUIERDO — Lista de campañas guardadas
   ══════════════════════════════════════════════════════════ -->
   <aside class="inter-sidebar">
     <div class="inter-sidebar__header">
       <h2 class="inter-sidebar__title">
-        <i class="pi pi-share-alt"></i> Interacciones
+        <i class="pi pi-share-alt"></i> Campañas
       </h2>
-      <button class="btn-nueva" (click)="openNewForm()" pTooltip="Nueva lista">
+      <button class="btn-nueva" (click)="openNewForm()" pTooltip="Nueva campaña">
         <i class="pi pi-plus"></i>
       </button>
     </div>
@@ -16,7 +16,7 @@
     <div class="inter-sidebar__search">
       <span class="p-input-icon-left w-full">
         <i class="pi pi-search"></i>
-        <input pInputText placeholder="Buscar lista..." class="w-full" />
+        <input pInputText placeholder="Buscar campaña..." class="w-full" />
       </span>
     </div>
 
@@ -31,7 +31,7 @@
     <!-- Lista vacía -->
     <div *ngIf="!loadingLists && lists.length === 0" class="inter-empty">
       <i class="pi pi-inbox"></i>
-      <span>No hay listas creadas</span>
+      <span>No hay campañas creadas</span>
     </div>
 
     <!-- Listado de listas -->
@@ -79,13 +79,13 @@
     <!-- ── FORMULARIO nueva/editar lista ── -->
     <div *ngIf="showForm" class="inter-form-panel">
       <div class="form-panel__header">
-        <h3>{{ isEditing ? 'Editar lista' : 'Nueva lista' }}</h3>
+        <h3>{{ isEditing ? 'Editar campaña' : 'Nueva campaña' }}</h3>
       </div>
 
       <div class="form-grid">
         <!-- Nombre -->
         <div class="form-group form-group--full">
-          <label>Nombre de la lista *</label>
+          <label>Nombre de la campaña *</label>
           <input pInputText [(ngModel)]="formName" placeholder="Ej. Clientes Rent a Car activos" class="w-full" />
         </div>
 
@@ -162,7 +162,30 @@
         <!-- Excluir Notificados -->
         <div class="form-group form-group--full" style="display: flex; align-items: center; gap: 8px;">
           <p-checkbox [(ngModel)]="formFilters.exclude_notified" [binary]="true" inputId="exclude_notified" (onChange)="onFilterChange()"></p-checkbox>
-          <label for="exclude_notified" style="cursor: pointer; margin: 0;">Excluir usuarios que ya fueron notificados en campañas anteriores mediante esta lista</label>
+          <label for="exclude_notified" style="cursor: pointer; margin: 0;">Excluir usuarios que ya fueron notificados en ejecuciones anteriores mediante esta campaña</label>
+        </div>
+
+        <div class="form-divider" style="margin-top: 1rem;">
+          <span><i class="pi pi-box"></i> Usuarios Manuales</span>
+        </div>
+
+        <!-- Lista Vacía / Sin Sistema -->
+        <div class="form-group form-group--full" style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+          <p-checkbox [(ngModel)]="formFilters.force_empty" [binary]="true" inputId="force_empty" (onChange)="onFilterChange()"></p-checkbox>
+          <label for="force_empty" style="cursor: pointer; margin: 0; font-weight: 500; color: #dc2626;">Forzar campaña vacía (Ignorar condiciones automáticas, útil para campañas exclusivamente manuales/externas)</label>
+        </div>
+
+        <!-- System Users AutoComplete -->
+        <div class="form-group form-group--full">
+          <label>Usuarios del Sistema (asignación manual)</label>
+          <p-autoComplete [(ngModel)]="formSystemContacts" [suggestions]="suggestedSystemUsers" (completeMethod)="searchSystemUsers($event)" [multiple]="true" optionLabel="name" placeholder="Buscar por nombre, correo o celular..." (onSelect)="onFilterChange()" (onUnselect)="onFilterChange()">
+            <ng-template let-user pTemplate="item">
+              <div class="flex align-items-center gap-2">
+                <div>{{ user.name }} {{ user.last_name }} <small style="color:var(--text-color-secondary)">({{ user.email || user.phone }})</small></div>
+              </div>
+            </ng-template>
+          </p-autoComplete>
+          <small>Busca y selecciona usuarios para agregarlos explícitamente a esta campaña.</small>
         </div>
       </div>
 
@@ -177,12 +200,20 @@
           No hay objetivos configurados. (Ej: "Ofrecer Premium", "Verificar Cédula").
         </div>
 
-        <div *ngFor="let obj of formObjectives; let i = index" class="grid" style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.75rem; align-items: end;">
-          <div class="form-group" style="margin-bottom: 0">
-            <label style="font-size: 0.8rem">Título del Objetivo *</label>
-            <input pInputText [(ngModel)]="obj.title" placeholder="Ej. Verificar cuenta en sistema" class="w-full" />
+        <div *ngFor="let obj of formObjectives; let i = index" class="p-card" style="padding: 1rem; border: 1px solid var(--surface-border); border-radius: 8px; margin-bottom: 0.75rem; background: var(--surface-card);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+            <div style="flex: 1;">
+              <div class="form-group" style="margin-bottom: 0.5rem">
+                <label style="font-size: 0.8rem">Título del Objetivo *</label>
+                <input pInputText [(ngModel)]="obj.title" placeholder="Ej. Verificar cuenta en sistema" class="w-full" />
+              </div>
+              <div class="form-group" style="margin-bottom: 0">
+                <label style="font-size: 0.8rem">Descripción del Objetivo (Opcional)</label>
+                <textarea pInputTextarea [(ngModel)]="obj.description" placeholder="Ej. El cliente debe enviar una foto de frente de su cédula..." rows="2" class="w-full"></textarea>
+              </div>
+            </div>
+            <button pButton icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm" (click)="removeObjective(i)" style="margin-top: 1.25rem;"></button>
           </div>
-          <button pButton icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm" (click)="removeObjective(i)"></button>
         </div>
       </div>
 
@@ -258,7 +289,7 @@
       <div class="form-actions">
         <button pButton label="Cancelar" icon="pi pi-times" class="p-button-text" (click)="cancelForm()"></button>
         <button pButton
-          [label]="isEditing ? 'Actualizar lista' : 'Guardar lista'"
+          [label]="isEditing ? 'Actualizar campaña' : 'Guardar campaña'"
           icon="pi pi-save"
           [loading]="savingForm"
           (click)="saveList()">
@@ -266,7 +297,7 @@
       </div>
     </div>
 
-    <!-- ── DETALLE de lista seleccionada ── -->
+    <!-- ── DETALLE de campaña seleccionada ── -->
     <div *ngIf="!showForm && selectedList" class="inter-detail-panel">
       <div class="detail-header">
         <div>
@@ -280,17 +311,17 @@
           <button pButton label="Enviar Email" icon="pi pi-envelope"
             class="p-button-outlined p-button-sm p-button-info"
             (click)="interactionChannel='email'; openPushModal()"
-            pTooltip="Enviar correo masivo a esta lista">
+            pTooltip="Enviar correo masivo a esta campaña">
           </button>
           <button pButton label="Enviar WhatsApp" icon="pi pi-whatsapp"
             class="p-button-outlined p-button-sm p-button-success"
             (click)="interactionChannel='whatsapp'; openPushModal()"
-            pTooltip="Enviar WhatsApp meta a esta lista">
+            pTooltip="Enviar WhatsApp meta a esta campaña">
           </button>
           <button pButton label="Notificación Push" icon="pi pi-bell"
             class="p-button-outlined p-button-sm p-button-warning"
             (click)="interactionChannel='push'; openPushModal()"
-            pTooltip="Enviar notificación push a todos los usuarios de esta lista">
+            pTooltip="Enviar notificación push a todos los usuarios de esta campaña">
           </button>
           <button pButton label="Editar" icon="pi pi-pencil" class="p-button-outlined p-button-sm" (click)="openEditForm(selectedList)"></button>
         </div>
@@ -299,7 +330,7 @@
       <div class="detail-stat" style="display: flex; gap: 15px; align-items: center;">
         <div>
           <i class="pi pi-users"></i>
-          <strong>{{ listUsersTotal }}</strong> perfiles en esta lista 
+          <strong>{{ listUsersTotal }}</strong> perfiles en esta campaña 
           <span style="font-size: 0.85rem; color: #6c757d; margin-left: 6px;">
             ({{ selectedList.user_count || 0 }} sistema, {{ selectedList.external_count || 0 }} externos)
           </span>
@@ -415,7 +446,7 @@
 
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="6" class="text-center p-4">No hay usuarios en esta lista</td>
+              <td colspan="6" class="text-center p-4">No hay usuarios en esta campaña</td>
             </tr>
           </ng-template>
         </p-table>
@@ -425,9 +456,9 @@
     <!-- ── Estado vacío inicial ── -->
     <div *ngIf="!showForm && !selectedList" class="inter-welcome">
       <i class="pi pi-share-alt inter-welcome__icon"></i>
-      <h3>Gestión de Interacciones</h3>
-      <p>Crea listas de usuarios segmentadas por categorías para enviar mensajes, notificaciones y llamadas automatizadas.</p>
-      <button pButton label="Crear primera lista" icon="pi pi-plus" (click)="openNewForm()"></button>
+      <h3>Gestión de Campañas</h3>
+      <p>Crea campañas de usuarios segmentadas por categorías para enviar mensajes, notificaciones y llamadas automatizadas.</p>
+      <button pButton label="Crear primera campaña" icon="pi pi-plus" (click)="openNewForm()"></button>
     </div>
 
   </main>
@@ -531,12 +562,12 @@
 <p-dialog
   [(visible)]="showHistoryModal"
   [modal]="true"
-  header="Historial de Interacciones"
+  header="Historial de la Campaña"
   styleClass="history-dialog"
   [style]="{width: '500px'}">
 
   <div *ngIf="selectedUserHistory">
-    <p>Se han enviado <strong>{{ selectedUserHistory.notification_count }}</strong> interacciones a este usuario desde esta lista.</p>
+    <p>Se han enviado <strong>{{ selectedUserHistory.notification_count }}</strong> interacciones a este usuario desde esta campaña.</p>
     <p-timeline [value]="selectedUserHistory.history" styleClass="w-full">
       <ng-template pTemplate="content" let-item>
         <p-card [header]="item.title" [subheader]="(item.sentAt | date:'medium') || ''" styleClass="history-card">
@@ -573,12 +604,17 @@
     </div>
 
     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-      <div *ngFor="let obj of selectedList?.objectives" class="p-card" style="padding: 1rem; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; display: flex; align-items: center; gap: 1rem; transition: background-color 0.2s, color 0.2s;" [style.border-color]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'var(--primary-color)' : 'var(--surface-border)'" [style.background-color]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'var(--surface-hover)' : 'var(--surface-card)'">
-        <p-checkbox [binary]="true" [ngModel]="isObjectiveCompleted(selectedChecklistUser, obj.id)" (onChange)="onObjectiveToggle(selectedChecklistUser, obj.id, $event)" [inputId]="'modal_chk_'+selectedChecklistUser._id+'_'+obj.id"></p-checkbox>
-        <label [for]="'modal_chk_'+selectedChecklistUser._id+'_'+obj.id" style="cursor: pointer; margin: 0; line-height: 1.4; color: var(--text-color); font-weight: 500; font-size: 1rem; flex: 1; user-select: none;" [style.text-decoration]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'line-through' : 'none'" [style.opacity]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? '0.7' : '1'">
-          {{ obj.title }}
-        </label>
-        <i class="pi pi-check-circle" *ngIf="isObjectiveCompleted(selectedChecklistUser, obj.id)" style="color: var(--primary-color); font-size: 1.2rem;"></i>
+      <div *ngFor="let obj of selectedList?.objectives" class="p-card" style="padding: 1rem; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; display: flex; align-items: flex-start; gap: 1rem; transition: background-color 0.2s, color 0.2s;" [style.border-color]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'var(--primary-color)' : 'var(--surface-border)'" [style.background-color]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'var(--surface-hover)' : 'var(--surface-card)'">
+        <p-checkbox [binary]="true" [ngModel]="isObjectiveCompleted(selectedChecklistUser, obj.id)" (onChange)="onObjectiveToggle(selectedChecklistUser, obj.id, $event)" [inputId]="'modal_chk_'+selectedChecklistUser._id+'_'+obj.id" styleClass="mt-1"></p-checkbox>
+        <div style="flex: 1; min-width: 0;">
+          <label [for]="'modal_chk_'+selectedChecklistUser._id+'_'+obj.id" style="cursor: pointer; margin: 0; line-height: 1.4; color: var(--text-color); font-weight: 500; font-size: 1rem; display: block; user-select: none;" [style.text-decoration]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'line-through' : 'none'" [style.opacity]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? '0.7' : '1'">
+            {{ obj.title }}
+          </label>
+          <div *ngIf="obj.description" style="font-size: 0.85rem; color: var(--text-color-secondary); margin-top: 4px; line-height: 1.4; user-select: none;" [style.opacity]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? '0.7' : '1'">
+            {{ obj.description }}
+          </div>
+        </div>
+        <i class="pi pi-check-circle mt-1" *ngIf="isObjectiveCompleted(selectedChecklistUser, obj.id)" style="color: var(--primary-color); font-size: 1.2rem;"></i>
       </div>
     </div>
   </div>

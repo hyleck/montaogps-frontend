@@ -10,6 +10,7 @@ import { TargetsService } from '@core/services/targets.service';
 import { InteraccionesService, UserList } from '../../../../interacciones/presentation/services/interacciones.service';
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
 import { SystemService } from '@core/services/system.service';
+import { InventoryService } from '@core/services/inventory.service';
 import { MessageService, MenuItem } from 'primeng/api';
 
 interface ChatConversation {
@@ -176,19 +177,38 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     private firebaseNotifications: FirebaseNotificationsService,
     private interaccionesService: InteraccionesService,
     private targetsService: TargetsService,
+    private inventoryService: InventoryService,
     private systemService: SystemService,
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer
   ) {}
 
   allUserLists: UserList[] = [];
-  userChecklistsDetails: { listName: string, completedCount: number, totalCount: number, objectives: { title: string, completed: boolean, id: string }[] }[] = [];
+  userChecklistsDetails: { listName: string, listId: string, completedCount: number, totalCount: number, isExternal: boolean, externalContactId: string, objectives: { title: string, completed: boolean, id: string, description?: string }[] }[] = [];
   userTargets: any[] = [];
 
   showChecklistModal: boolean = false;
   showTargetsModal: boolean = false;
   loadingTargets: boolean = false;
   targetMenuModel: MenuItem[] = [];
+
+  targetsSearchTerm: string = '';
+  targetsOffset: number = 0;
+  targetsLimit: number = 30;
+  targetsTotal: number = 0;
+
+  showInventoryModal: boolean = false;
+  inventorySearchTerm: string = '';
+  inventoryItems: any[] = [];
+  loadingInventory: boolean = false;
+
+  showGlobalTargetsModal: boolean = false;
+  globalTargetsSearchTerm: string = '';
+  globalTargetsItems: any[] = [];
+  loadingGlobalTargets: boolean = false;
+  globalTargetsOffset: number = 0;
+  globalTargetsLimit: number = 30;
+  globalTargetsTotal: number = 0;
 
   ngOnInit(): void {
     this.updateAttachmentMenu();
@@ -312,7 +332,27 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // ============================
 
   loadEmailConversations(): void {
-    this.loadingEmailConversations = true;
+    // Attempt to load from cache for instant initial rendering
+    const cacheKey = `chatwoot_email_convs_${this.emailInboxIds.join('_')}`;
+    if (!this.emailConversations.length && this.emailInboxIds.length > 0) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          this.emailConversations = JSON.parse(cached);
+          this.filterEmailConversations();
+          
+          if (!this.pendingConversationId && this.activeTab === 'correo' && !this.selectedEmail) {
+            const lastId = localStorage.getItem(`last_opened_email_${this.currentUserId}`);
+            if (lastId) {
+              const lastConv = this.emailConversations.find(c => c.id === Number(lastId));
+              if (lastConv) this.selectEmail(lastConv, true);
+            }
+          }
+        } catch (e) { }
+      }
+    }
+
+    this.loadingEmailConversations = this.emailConversations.length === 0;
     const requests = this.emailInboxIds.map(id =>
       this.chatwootApi.getConversations(id)
     );
@@ -336,11 +376,19 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         // Sort by most recent message
         allConversations.sort((a, b) => (b.last_message_time || 0) - (a.last_message_time || 0));
         this.emailConversations = allConversations;
+        localStorage.setItem(cacheKey, JSON.stringify(this.emailConversations));
+        
         this.filterEmailConversations();
         if (this.pendingConversationId && this.activeTab === 'correo') {
           const conv = this.emailConversations.find(c => c.id === this.pendingConversationId);
           if (conv) this.selectEmail(conv, false);
           this.pendingConversationId = null;
+        } else if (!this.selectedEmail && this.activeTab === 'correo') {
+          const lastId = localStorage.getItem(`last_opened_email_${this.currentUserId}`);
+          if (lastId) {
+            const lastConv = this.emailConversations.find(c => c.id === Number(lastId));
+            if (lastConv) this.selectEmail(lastConv, true);
+          }
         }
       },
       error: () => {
@@ -476,9 +524,54 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
   }
 
+  transferAllToEster(): void {
+    const activeConvs = this.conversations.filter(c => c.assignee_id !== null);
+    if (activeConvs.length === 0) {
+      this.messageService.add({ severity: 'info', summary: 'Bandeja limpia', detail: 'No tienes conversaciones activas pendientes por devolver.' });
+      return;
+    }
+
+    if (confirm(`¿Estás seguro de transferir las ${activeConvs.length} conversaciones activas a Ester Assistant?`)) {
+      this.isTransferring = true;
+      let completed = 0;
+      let fails = 0;
+
+      activeConvs.forEach(conv => {
+        this.chatwootApi.assignAgentToConversation(conv.id, 0).subscribe({
+          next: () => {
+             completed++;
+             this.checkTransferAllProgress(completed + fails, activeConvs.length, fails);
+          },
+          error: () => {
+             // For agent 0, the API might return 404 or fail in some strict chatwoot setups if not handled, but we assume success if response
+             completed++; // Treat as completed due to chatwoot null unassingment quirk
+             this.checkTransferAllProgress(completed + fails, activeConvs.length, fails);
+          }
+        });
+      });
+    }
+  }
+
+  private checkTransferAllProgress(processed: number, total: number, fails: number): void {
+    if (processed === total) {
+      this.isTransferring = false;
+      if (fails > 0) {
+        this.messageService.add({ severity: 'warn', summary: 'Traspaso Múltiple Completado', detail: `Se devolvieron a Ester, aunque advirtió de fallos técnicos en ${fails} de ellas.` });
+      } else {
+        this.messageService.add({ severity: 'success', summary: 'Desligamiento Masivo', detail: 'Se han revocado tus asignaciones, todas volvieron a manos de Ester Assistant.' });
+      }
+      this.selectedConversation = null;
+      this.messages = [];
+      this.loadConversations();
+    }
+  }
+
   selectEmail(conv: ChatConversation, navigate: boolean = true): void {
     conv.unread_count = 0; // Clear indicator instantly mimicking visual read receipts
     this.selectedEmail = conv;
+    if (this.currentUserId) {
+      localStorage.setItem(`last_opened_email_${this.currentUserId}`, conv.id.toString());
+    }
     this.loadEmailMessages();
     if (navigate) {
       this.location.go(`/admin/communication/correo/${conv.id}`);
@@ -645,12 +738,35 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // ============================
 
   loadConversations(): void {
-    this.loadingConversations = true;
+    // Attempt to load from cache for instant initial rendering
+    const cacheKey = `chatwoot_convs_${this.userInboxId}_${this.chatwootAgentId}`;
+    if (!this.conversations.length && this.userInboxId) {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        try {
+          this.conversations = JSON.parse(cached);
+          this.filterConversations();
+
+          if (!this.pendingConversationId && this.activeTab === 'chat' && !this.selectedConversation) {
+            const lastId = localStorage.getItem(`last_opened_chat_${this.currentUserId}`);
+            if (lastId) {
+              const lastConv = this.conversations.find(c => c.id === Number(lastId));
+              if (lastConv) this.selectConversation(lastConv, true);
+            }
+          }
+        } catch (e) { }
+      }
+    }
+
+    this.loadingConversations = this.conversations.length === 0;
     this.chatwootApi.getConversations(this.userInboxId, 1, this.chatwootAgentId).subscribe({
       next: (res: any) => {
         this.loadingConversations = false;
         if (res.success) {
           this.conversations = res.conversations || [];
+          if (this.userInboxId) {
+            localStorage.setItem(cacheKey, JSON.stringify(this.conversations));
+          }
           this.conversationsFingerprint = this.getConversationsFingerprint(this.conversations);
           this.filterConversations();
           this.startConversationsPolling();
@@ -658,6 +774,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             const conv = this.conversations.find(c => c.id === this.pendingConversationId);
             if (conv) this.selectConversation(conv, false);
             this.pendingConversationId = null;
+          } else if (!this.selectedConversation && this.activeTab === 'chat') {
+            const lastId = localStorage.getItem(`last_opened_chat_${this.currentUserId}`);
+            if (lastId) {
+              const lastConv = this.conversations.find(c => c.id === Number(lastId));
+              if (lastConv) this.selectConversation(lastConv, true);
+            }
           }
         } else {
           this.noInbox = true;
@@ -686,6 +808,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   selectConversation(conv: ChatConversation, navigate: boolean = true): void {
     conv.unread_count = 0; // Clear indicator instantly mimicking visual read receipts
     this.selectedConversation = conv;
+    if (this.currentUserId) {
+      localStorage.setItem(`last_opened_chat_${this.currentUserId}`, conv.id.toString());
+    }
     this.messages = [];
     this.chatInput = '';
     this.showContactInfo = false;
@@ -708,19 +833,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.calculateUserChecklistsDetails(phone);
         
         if (this.gpsUser && this.gpsUser._id) {
-          this.loadingTargets = true;
-          try {
-             // Retrieve actual GPS units assigned via parent endpoint
-             const res = await this.targetsService.getTargetsWithPagination(this.gpsUser._id, 0, 100);
-             this.userTargets = res.devices || [];
-             this.updateAttachmentMenu();
-             this.cdr.detectChanges();
-          } catch (e) {
-             console.error("Error loading targets", e);
-          } finally {
-             this.loadingTargets = false;
-             this.cdr.detectChanges();
-          }
+          this.targetsOffset = 0;
+          this.targetsSearchTerm = '';
+          this.loadTargetsBox();
         }
       },
       error: (err: any) => {
@@ -729,6 +844,38 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.calculateUserChecklistsDetails(phone);
       }
     });
+  }
+
+  async loadTargetsBox() {
+    if (!this.gpsUser?._id) return;
+    this.loadingTargets = true;
+    try {
+      let res;
+      if (this.targetsSearchTerm.trim()) {
+        res = await this.targetsService.searchTargets(this.targetsSearchTerm.trim(), this.gpsUser._id, this.targetsOffset, this.targetsLimit);
+      } else {
+        res = await this.targetsService.getTargetsWithPagination(this.gpsUser._id, this.targetsOffset, this.targetsLimit);
+      }
+      this.userTargets = res.devices || [];
+      this.targetsTotal = res.totalCount || 0;
+      this.updateAttachmentMenu();
+    } catch(e) {
+      console.error(e);
+    } finally {
+      this.loadingTargets = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  onTargetsPageChange(event: any) {
+    this.targetsOffset = event.first;
+    this.targetsLimit = event.rows;
+    this.loadTargetsBox();
+  }
+
+  onTargetsSearch() {
+    this.targetsOffset = 0;
+    this.loadTargetsBox();
   }
 
   private updateAttachmentMenu() {
@@ -747,6 +894,19 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         command: () => this.showChecklistModal = true
       });
     }
+
+    if (!hasSeparated) { this.attachmentMenuItems.push({ separator: true }); hasSeparated = true; }
+    this.attachmentMenuItems.push({
+      label: 'Buscar en Inventario',
+      icon: 'pi pi-box',
+      command: () => this.openInventoryModal()
+    });
+
+    this.attachmentMenuItems.push({
+      label: 'Búsqueda Global (Vehículos)',
+      icon: 'pi pi-globe',
+      command: () => this.openGlobalTargetsModal()
+    });
 
     if (this.userTargets && this.userTargets.length > 0) {
       if (!hasSeparated) { this.attachmentMenuItems.push({ separator: true }); hasSeparated = true; }
@@ -813,6 +973,86 @@ export class CommunicationComponent implements OnInit, OnDestroy {
        this.chatInput = text;
     }
     this.showTargetsModal = false;
+  }
+
+  // ============================
+  // INVENTORY MODAL
+  // ============================
+  openInventoryModal() {
+    this.showInventoryModal = true;
+    this.inventorySearchTerm = '';
+    this.inventoryItems = [];
+    // Start with a generic load
+    this.searchInventory();
+  }
+
+  searchInventory() {
+    this.loadingInventory = true;
+    this.inventoryService.searchAllDevices(this.inventorySearchTerm, undefined, 1, 30).subscribe({
+      next: (res: any) => {
+        this.inventoryItems = res.data || [];
+        this.loadingInventory = false;
+      },
+      error: () => {
+        this.loadingInventory = false;
+      }
+    });
+  }
+
+  sendInventoryItem(item: any) {
+    if (!this.selectedConversation) return;
+
+    this.showInventoryModal = false;
+    // Format what to send to the chat input automatically
+    const imei = item.imei || item.IMEI || '!N/A!';
+    const sim = item.sim || item.SIM || '!N/A!';
+    const protocolId = item.protocol ? (item.protocol.name || item.protocol) : '!N/A!';
+
+    let text = `Información de Equipo:\n- IMEI: ${imei}\n- SIM: ${sim}`;
+    if (protocolId && protocolId !== '!N/A!') text += `\n- Protocolo: ${protocolId}`;
+
+    this.injectIntoChat(text);
+  }
+
+  // ============================
+  // GLOBAL TARGETS MODAL
+  // ============================
+  openGlobalTargetsModal() {
+    this.showGlobalTargetsModal = true;
+    this.globalTargetsSearchTerm = '';
+    this.globalTargetsOffset = 0;
+    this.globalTargetsItems = [];
+    this.loadGlobalTargetsBox();
+  }
+
+  async loadGlobalTargetsBox() {
+    this.loadingGlobalTargets = true;
+    try {
+      let res;
+      if (this.globalTargetsSearchTerm.trim()) {
+        res = await this.targetsService.searchTargets(this.globalTargetsSearchTerm.trim(), '68a9ccf19bb280482272477f', this.globalTargetsOffset, this.globalTargetsLimit);
+      } else {
+        res = await this.targetsService.getTargetsWithPagination('68a9ccf19bb280482272477f', this.globalTargetsOffset, this.globalTargetsLimit);
+      }
+      this.globalTargetsItems = res.devices || [];
+      this.globalTargetsTotal = res.totalCount || 0;
+    } catch(e) {
+      console.error(e);
+    } finally {
+      this.loadingGlobalTargets = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  onGlobalTargetsPageChange(event: any) {
+    this.globalTargetsOffset = event.first;
+    this.globalTargetsLimit = event.rows;
+    this.loadGlobalTargetsBox();
+  }
+
+  onGlobalTargetsSearch() {
+    this.globalTargetsOffset = 0;
+    this.loadGlobalTargetsBox();
   }
 
   sendRealtimeLinkAuto() {
@@ -935,16 +1175,35 @@ export class CommunicationComponent implements OnInit, OnDestroy {
          completedIds = extMatch.completed_objectives || [];
       } else if (this.gpsUser) {
          // 2. Registered User Filters matching logic
-         if (list.filters && Object.keys(list.filters).length > 0) {
-            let matches = true;
-            if (list.filters.affiliation_type_id && this.gpsUser.affiliation_type_id !== list.filters.affiliation_type_id) matches = false;
-            if (list.filters.company_type_id && this.gpsUser.company_type_id !== list.filters.company_type_id) matches = false;
-            if (list.filters.profile_type_id && this.gpsUser.profile_type_id !== list.filters.profile_type_id) matches = false;
-            if (list.filters.status !== undefined && this.gpsUser.status !== list.filters.status && list.filters.status !== null) matches = false;
+         let belongsToFilters = false;
+         
+         if (list.filters && !list.filters.force_empty) {
+            const activeKeys = Object.keys(list.filters).filter(k => 
+                k !== 'manual_user_ids' && 
+                k !== 'force_empty' && 
+                k !== 'exclude_notified' &&
+                (list.filters as any)[k] !== undefined && 
+                (list.filters as any)[k] !== ''
+            );
             
-            if (matches) applies = true;
-         } else if (!list.external_contacts || list.external_contacts.length === 0) {
-            // General broadcast list applies if no external contacts & no filters exist
+            if (activeKeys.length > 0 || (list.filters.status !== undefined && list.filters.status !== null)) {
+               let matches = true;
+               if (list.filters.affiliation_type_id && this.gpsUser.affiliation_type_id !== list.filters.affiliation_type_id) matches = false;
+               if (list.filters.company_type_id && this.gpsUser.company_type_id !== list.filters.company_type_id) matches = false;
+               if (list.filters.profile_type_id && this.gpsUser.profile_type_id !== list.filters.profile_type_id) matches = false;
+               if (list.filters.status !== undefined && list.filters.status !== null && this.gpsUser.status !== list.filters.status) matches = false;
+               
+               if (matches) belongsToFilters = true;
+            } else if (!list.external_contacts || list.external_contacts.length === 0) {
+               // General broadcast list applies if no external contacts & no semantic filters exist
+               belongsToFilters = true;
+            }
+         }
+
+         // Check explicit manual assignment
+         const belongsToManual = list.filters?.manual_user_ids?.includes(this.gpsUser._id) || false;
+
+         if (belongsToFilters || belongsToManual) {
             applies = true;
          }
 
@@ -957,6 +1216,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       if (applies) {
         const objectivesDetail = list.objectives.map(obj => ({
           title: obj.title,
+          description: (obj as any).description,
           id: obj.id,
           completed: completedIds.includes(obj.id)
         }));

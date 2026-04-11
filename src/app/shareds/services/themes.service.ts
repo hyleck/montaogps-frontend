@@ -65,9 +65,11 @@ export class ThemesService {
   
     
         const html = document.documentElement;
-        html.classList.remove(this.darkModeClass);
+        html.classList.remove(this.darkModeClass, 'app-light');
         if (theme === 'dark') {
           html.classList.add(this.darkModeClass);
+        } else {
+          html.classList.add('app-light');
         }
     
     

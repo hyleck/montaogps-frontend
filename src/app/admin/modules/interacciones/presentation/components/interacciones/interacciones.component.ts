@@ -32,7 +32,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   formDescription = '';
   formFilters: UserListFilters = {};
   formExternalContacts: any[] = [];
-  formObjectives: { id: string; title: string; tempId?: number }[] = [];
+  formObjectives: any[] = [];
+  formSystemContacts: any[] = [];
+  suggestedSystemUsers: any[] = [];
 
   // ── Preview de usuarios ─────────────────────────────────────
   previewUsers: any[] = [];
@@ -244,6 +246,8 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.formFilters = {};
     this.formExternalContacts = [];
     this.formObjectives = [];
+    this.formSystemContacts = [];
+    this.suggestedSystemUsers = [];
     this.previewUsers = [];
     this.previewTotal = 0;
     this.selectedList = null;
@@ -259,6 +263,14 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.formFilters = { ...list.filters };
     this.formExternalContacts = list.external_contacts ? JSON.parse(JSON.stringify(list.external_contacts)) : [];
     this.formObjectives = list.objectives ? JSON.parse(JSON.stringify(list.objectives)) : [];
+    this.formSystemContacts = [];
+    if (this.formFilters.manual_user_ids?.length) {
+      this.formFilters.manual_user_ids.forEach((id: string) => {
+        this.userService.getById(id).pipe(takeUntil(this.destroy$)).subscribe({
+          next: (u) => { if (u) this.formSystemContacts.push(u); }
+        });
+      });
+    }
     this.showForm = true;
     this.runPreview();
   }
@@ -273,7 +285,20 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.onFilterChange();
   }
 
+  searchSystemUsers(event: any) {
+    this.userService.search(event.query, undefined, 0, 10).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        this.suggestedSystemUsers = res.users;
+      }
+    });
+  }
+
   onFilterChange() {
+    if (this.formSystemContacts && this.formSystemContacts.length > 0) {
+      this.formFilters.manual_user_ids = this.formSystemContacts.map((u: any) => u._id);
+    } else {
+      this.formFilters.manual_user_ids = [];
+    }
     this.previewTrigger$.next();
   }
 
@@ -287,11 +312,13 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       activeFilters.status = this.formFilters.status;
     }
     if (this.formFilters.exclude_notified) activeFilters.exclude_notified = true;
+    if (this.formFilters.force_empty) activeFilters.force_empty = true;
+    if (this.formFilters.manual_user_ids?.length) activeFilters.manual_user_ids = this.formFilters.manual_user_ids;
 
     const hasFilters = Object.keys(activeFilters).length > 0;
     const hasExternal = this.formExternalContacts.some(c => c.name.trim() !== '');
 
-    if (!hasFilters && !hasExternal) {
+    if (!hasFilters && !hasExternal && (!this.formFilters.manual_user_ids || this.formFilters.manual_user_ids.length === 0)) {
       this.previewUsers = [];
       this.previewTotal = 0;
       return;
@@ -325,11 +352,15 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       activeFilters.status = this.formFilters.status;
     }
     if (this.formFilters.exclude_notified) activeFilters.exclude_notified = true;
+    if (this.formFilters.force_empty) activeFilters.force_empty = true;
+    if (this.formFilters.manual_user_ids?.length) activeFilters.manual_user_ids = this.formFilters.manual_user_ids;
 
     this.savingForm = true;
     const validExternal = this.formExternalContacts.filter(c => c.name.trim() !== '');
     const validObjectives = this.formObjectives.filter(o => o.title.trim() !== '').map(o => {
-      return { id: o.id || Math.random().toString(36).substr(2, 9), title: o.title.trim() };
+      const obj: any = { id: o.id || Math.random().toString(36).substr(2, 9), title: o.title.trim() };
+      if (o.description && o.description.trim() !== '') obj.description = o.description.trim();
+      return obj;
     });
     const payload: any = { name: this.formName, description: this.formDescription, filters: activeFilters, external_contacts: validExternal, objectives: validObjectives };
 
@@ -478,7 +509,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   }
 
   addObjective() {
-    this.formObjectives.push({ id: Math.random().toString(36).substr(2, 9), title: '' });
+    this.formObjectives.push({ id: Math.random().toString(36).substring(2, 11), title: '', description: '' });
   }
 
   removeObjective(index: number) {
@@ -802,6 +833,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       badges.push(list.filters.status ? 'Activo' : 'Inactivo');
     }
     if (list.filters?.exclude_notified) badges.push('No Notificados');
+    if (list.filters?.force_empty) badges.push('Manual / Vacía');
     return badges;
   }
 
