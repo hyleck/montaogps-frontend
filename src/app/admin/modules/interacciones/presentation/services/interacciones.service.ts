@@ -11,6 +11,7 @@ export interface UserListFilters {
   exclude_notified?: boolean;
   force_empty?: boolean;
   manual_user_ids?: string[];
+  excluded_user_ids?: string[];
 }
 
 export interface NotifiedHistory {
@@ -106,6 +107,7 @@ export class InteraccionesService {
     if (filters.exclude_notified !== undefined) params.exclude_notified = filters.exclude_notified.toString();
     if (filters.force_empty !== undefined) params.force_empty = filters.force_empty.toString();
     if (filters.manual_user_ids && filters.manual_user_ids.length > 0) params.manual_user_ids = filters.manual_user_ids.join(',');
+    if (filters.excluded_user_ids && filters.excluded_user_ids.length > 0) params.excluded_user_ids = filters.excluded_user_ids.join(',');
     if (listId) params.list_id = listId;
     return this.http.get<UserListUsersResponse>(`${this.api}/preview`, { params });
   }

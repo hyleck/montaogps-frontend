@@ -20,6 +20,8 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
 
   // ── Estado de listas ────────────────────────────────────────
   lists: UserList[] = [];
+  filteredLists: UserList[] = [];
+  searchTerm: string = '';
   selectedList: UserList | null = null;
   loadingLists = false;
 
@@ -186,6 +188,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.interaccionesService.getAll().pipe(takeUntil(this.destroy$)).subscribe({
       next: (lists) => {
         this.lists = lists;
+        this.filterLists();
         this.loadingLists = false;
 
         const listId = this.route.snapshot.queryParamMap.get('listId');
@@ -204,6 +207,18 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar las listas' });
       }
     });
+  }
+
+  filterLists() {
+    if (!this.searchTerm.trim()) {
+      this.filteredLists = [...this.lists];
+    } else {
+      const term = this.searchTerm.toLowerCase();
+      this.filteredLists = this.lists.filter(l =>
+        l.name.toLowerCase().includes(term) ||
+        (l.description && l.description.toLowerCase().includes(term))
+      );
+    }
   }
 
   // ── Seleccionar lista ──────────────────────────────────────────────────
@@ -505,6 +520,44 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       return 'uenas tardes';
     } else {
       return 'uenas noches';
+    }
+  }
+
+  removeUserFromList(user: any) {
+    if (!this.selectedList) return;
+
+    if (user.is_external) {
+      this.selectedList.external_contacts = this.selectedList.external_contacts?.filter(c => c._id !== user._id) || [];
+      this.interaccionesService.update(this.selectedList._id, { external_contacts: this.selectedList.external_contacts } as any).subscribe(() => {
+        this.messageService.add({ severity: 'success', summary: 'Eliminado', detail: 'Contacto externo removido' });
+        this.loadLists();
+      });
+      return;
+    }
+
+    const filters = this.selectedList.filters;
+    let modified = false;
+
+    // Remove from manual_user_ids if it's there
+    if (filters.manual_user_ids && filters.manual_user_ids.includes(user._id)) {
+      filters.manual_user_ids = filters.manual_user_ids.filter((id: string) => id !== user._id);
+      modified = true;
+    } else {
+      // Add to excluded_user_ids if it's a dynamic user
+      if (!filters.excluded_user_ids) filters.excluded_user_ids = [];
+      if (!filters.excluded_user_ids.includes(user._id)) {
+        filters.excluded_user_ids.push(user._id);
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      // Optimistic update
+      this.listUsers = this.listUsers.filter(u => u._id !== user._id);
+      // We trigger a save (which will also refresh data properly via DB)
+      this.interaccionesService.update(this.selectedList._id, { filters: this.selectedList.filters }).subscribe(() => {
+        this.messageService.add({ severity: 'success', summary: 'Eliminado', detail: 'Usuario removido de la campaña' });
+      });
     }
   }
 

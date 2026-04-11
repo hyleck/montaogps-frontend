@@ -105,4 +105,14 @@ export class ChatwootApiService {
     sendWhatsAppTemplateToUser(payload: { phone: string; template_name: string; variables: string[]; agent_id?: string }): Observable<any> {
         return this.http.post(`${this.apiUrl}/send-whatsapp`, payload);
     }
+
+    check24hWindow(phone: string): Observable<any> {
+        return this.http.get(`${this.apiUrl}/check-24h-window`, {
+            params: { phone }
+        });
+    }
+
+    sendWhatsAppText(payload: { phone: string; message: string; contact_name?: string; agent_id?: string }): Observable<any> {
+        return this.http.post(`${this.apiUrl}/send-whatsapp-text`, payload);
+    }
 }

@@ -15,6 +15,8 @@ import { CloudService } from '@core/services/cloud.service';
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
 import { SystemService } from '@core/services/system.service';
 import { MapUtils } from 'src/app/shareds/helpers/map.helper';
+import { ChatwootApiService } from '@core/services/chatwoot-api.service';
+import { InteraccionesService, UserList } from '../../../../../interacciones/presentation/services/interacciones.service';
 
 declare var google: any;
 
@@ -182,6 +184,28 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     // Agregamos una nueva propiedad para controlar si estamos inicializando el formulario de edición
     private isInitializingEditForm: boolean = false;
 
+    // WhatsApp Messaging
+    showWaTemplateModal: boolean = false;
+    showWaFreeTextModal: boolean = false;
+    sendingWa: boolean = false;
+    waFreeText: string = '';
+    waConversationId: number | null = null;
+    chatwootAgentId: string = '';
+    waTemplateVars = {
+        headerUser: '',
+        bodySaludos: '',
+        name: '',
+        body: ''
+    };
+    waCheckingWindow: boolean = false;
+
+    // Campaign Assignment
+    showCampaignModal: boolean = false;
+    availableCampaigns: UserList[] = [];
+    selectedCampaign: UserList | null = null;
+    loadingCampaigns: boolean = false;
+    addingToCampaign: boolean = false;
+
     @ViewChild('municipalitySelect') municipalitySelectRef?: ElementRef<HTMLSelectElement>;
 
     constructor(
@@ -196,7 +220,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         private systemService: SystemService,
         private cdr: ChangeDetectorRef,
         private cloudService: CloudService,
-        private firebaseNotificationsService: FirebaseNotificationsService
+        private firebaseNotificationsService: FirebaseNotificationsService,
+        private chatwootApi: ChatwootApiService,
+        private interaccionesService: InteraccionesService
     ) { }
 
     onPhotoSelected(event: any) {
@@ -243,6 +269,55 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                     summary: 'Error',
                     detail: errorDetail
                 });
+            }
+        });
+    }
+
+    openCampaignModal() {
+        this.selectedCampaign = null;
+        this.showCampaignModal = true;
+        this.loadCampaigns();
+    }
+
+    loadCampaigns() {
+        this.loadingCampaigns = true;
+        this.interaccionesService.getAll().pipe(takeUntil(this.destroy$)).subscribe({
+            next: (lists) => {
+                this.availableCampaigns = lists;
+                this.loadingCampaigns = false;
+            },
+            error: () => {
+                this.loadingCampaigns = false;
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar las campañas disponibles' });
+            }
+        });
+    }
+
+    addToCampaign() {
+        if (!this.selectedCampaign || !this.user._id) return;
+        
+        this.addingToCampaign = true;
+        const manualIds = this.selectedCampaign.filters?.manual_user_ids || [];
+        
+        if (manualIds.includes(this.user._id)) {
+            this.messageService.add({ severity: 'info', summary: 'Aviso', detail: 'El usuario ya pertenece a esta campaña manualmente.' });
+            this.addingToCampaign = false;
+            this.showCampaignModal = false;
+            return;
+        }
+
+        const newManualIds = [...manualIds, this.user._id];
+        const newFilters = { ...this.selectedCampaign.filters, manual_user_ids: newManualIds };
+
+        this.interaccionesService.update(this.selectedCampaign._id, { filters: newFilters }).pipe(takeUntil(this.destroy$)).subscribe({
+            next: () => {
+                this.addingToCampaign = false;
+                this.showCampaignModal = false;
+                this.messageService.add({ severity: 'success', summary: 'Añadido', detail: `El usuario fue añadido a la campaña "${this.selectedCampaign!.name}"` });
+            },
+            error: () => {
+                this.addingToCampaign = false;
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo añadir el usuario a la campaña' });
             }
         });
     }
@@ -372,6 +447,15 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.confirmPassword = '';
         this.user.password = '';
         this.activeTabIndex = 0;
+
+        // Load current user's Chatwoot agent ID for conversation assignment
+        const currentUser = this.authService.getCurrentUser();
+        if (currentUser?.id) {
+            this.userService.getById(currentUser.id).subscribe({
+                next: (u: any) => { this.chatwootAgentId = u?.idchatwoot || ''; },
+                error: () => { this.chatwootAgentId = ''; }
+            });
+        }
 
         // Cargar provincias desde API real (usa el mismo backend de marcas/modelos)
         this.brandsService.getProvinces()
@@ -1183,6 +1267,141 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             this.userLocationMarker = new google.maps.Marker({
                 position: { lat, lng },
                 map: this.userLocationMap
+            });
+        }
+    }
+
+    // ─── WhatsApp Messaging ─────────────────────────────────
+    openWhatsApp() {
+        if (!this.userInput || !this.userInput.phone) return;
+        this.waCheckingWindow = true;
+
+        const phone = this.userInput.phone.replace(/[^0-9+]/g, '');
+
+        // Single backend call that checks ALL conversations for this contact
+        this.chatwootApi.check24hWindow(phone).subscribe({
+            next: (res: any) => {
+                this.waCheckingWindow = false;
+                
+                if (res.isOutside) {
+                    // Outside 24h window → must use template
+                    this.waConversationId = null;
+                    this.openWaTemplateModal();
+                } else {
+                    // Inside 24h window → free text via conversation (same as communication module)
+                    this.waConversationId = res.conversationId || null;
+                    this.showWaFreeTextModal = true;
+                    this.waFreeText = '';
+                }
+            },
+            error: () => {
+                this.waCheckingWindow = false;
+                this.waConversationId = null;
+                this.openWaTemplateModal();
+            }
+        });
+    }
+
+    private openWaTemplateModal() {
+        const toTitleCase = (str: string) => str.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
+        const currentUser = this.authService.getCurrentUser();
+        this.waTemplateVars.headerUser = toTitleCase(currentUser ? `${currentUser.name || ''} ${currentUser.last_name || ''}`.trim() : 'Asesor');
+        this.waTemplateVars.name = toTitleCase(this.userInput ? `${this.userInput.name || ''} ${this.userInput.last_name || ''}`.trim() : '');
+        this.waTemplateVars.body = '';
+
+        const hour = new Date().getHours();
+        if (hour < 12) this.waTemplateVars.bodySaludos = 'uenos días';
+        else if (hour < 19) this.waTemplateVars.bodySaludos = 'uenas tardes';
+        else this.waTemplateVars.bodySaludos = 'uenas noches';
+
+        this.showWaTemplateModal = true;
+    }
+
+    sendWaTemplate() {
+        if (!this.userInput?.phone) return;
+        this.sendingWa = true;
+
+        this.chatwootApi.sendWhatsAppTemplateToUser({
+            phone: this.userInput.phone,
+            template_name: 'simple_mensaje',
+            variables: [
+                this.waTemplateVars.headerUser,
+                this.waTemplateVars.bodySaludos,
+                this.waTemplateVars.name,
+                this.waTemplateVars.body
+            ],
+            agent_id: this.chatwootAgentId || undefined
+        }).subscribe({
+            next: (res: any) => {
+                this.sendingWa = false;
+                if (res.success) {
+                    this.showWaTemplateModal = false;
+                    this.messageService.add({ severity: 'success', summary: 'Enviado', detail: 'Plantilla WhatsApp enviada.' });
+                } else {
+                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo enviar la plantilla.' });
+                }
+            },
+            error: () => {
+                this.sendingWa = false;
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Error de red al enviar plantilla.' });
+            }
+        });
+    }
+
+    sendWaFreeText() {
+        if (!this.userInput?.phone || !this.waFreeText.trim()) return;
+        this.sendingWa = true;
+
+        const currentUser = this.authService.getCurrentUser();
+        const agentName = currentUser ? `${currentUser.name || ''} ${currentUser.last_name || ''}`.trim() : 'Asesor';
+        const finalMessage = `> ${agentName}\n${this.waFreeText.trim()}`;
+
+        if (this.waConversationId) {
+            // Send via existing conversation (same approach as communication module)
+            this.chatwootApi.sendConversationMessage(
+                this.waConversationId,
+                finalMessage,
+                undefined,
+                undefined,
+                this.chatwootAgentId || undefined
+            ).subscribe({
+                next: (res: any) => {
+                    this.sendingWa = false;
+                    if (res.success) {
+                        this.showWaFreeTextModal = false;
+                        this.waFreeText = '';
+                        this.messageService.add({ severity: 'success', summary: 'Enviado', detail: 'Mensaje WhatsApp enviado.' });
+                    } else {
+                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo enviar el mensaje.' });
+                    }
+                },
+                error: () => {
+                    this.sendingWa = false;
+                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Error de red al enviar mensaje.' });
+                }
+            });
+        } else {
+            // Fallback: send via Meta API
+            this.chatwootApi.sendWhatsAppText({
+                phone: this.userInput.phone,
+                message: this.waFreeText.trim(),
+                contact_name: `${this.userInput.name || ''} ${this.userInput.last_name || ''}`.trim(),
+                agent_id: this.chatwootAgentId || undefined
+            }).subscribe({
+                next: (res: any) => {
+                    this.sendingWa = false;
+                    if (res.success) {
+                        this.showWaFreeTextModal = false;
+                        this.waFreeText = '';
+                        this.messageService.add({ severity: 'success', summary: 'Enviado', detail: 'Mensaje WhatsApp enviado.' });
+                    } else {
+                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo enviar el mensaje.' });
+                    }
+                },
+                error: () => {
+                    this.sendingWa = false;
+                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Error de red al enviar mensaje.' });
+                }
             });
         }
     }

@@ -73,7 +73,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   loadingConversations: boolean = false;
   selectedConversation: ChatConversation | null = null;
   noInbox: boolean = false;
-  activeTab: 'chat' | 'correo' = 'chat';
+  sidebarDisplayed = true;
+  activeTab: 'chat' | 'correo' | 'foro' = 'chat';
   autoResponse: boolean = false;
   showContactInfo: boolean = false;
   gpsUser: any = null;
@@ -219,7 +220,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
     this.route.params.subscribe(params => {
       const tab = params['tab'];
-      if (tab === 'chat' || tab === 'correo') {
+      if (tab === 'chat' || tab === 'correo' || tab === 'foro') {
         this.activeTab = tab;
       }
       const convId = params['conversationId'];
@@ -292,7 +293,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
   }
 
-  navigateToTab(tab: 'chat' | 'correo'): void {
+  navigateToTab(tab: 'chat' | 'correo' | 'foro'): void {
+    this.activeTab = tab;
     this.router.navigate(['/admin/communication', tab]);
   }
 

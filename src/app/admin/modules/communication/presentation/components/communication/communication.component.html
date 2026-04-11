@@ -7,6 +7,9 @@
         <button *ngIf="hasEmailInbox" class="comm-tabs__btn" [class.comm-tabs__btn--active]="activeTab === 'correo'" (click)="navigateToTab('correo')">
             <i class="pi pi-envelope"></i> Correo
         </button>
+        <button class="comm-tabs__btn" [class.comm-tabs__btn--active]="activeTab === 'foro'" (click)="navigateToTab('foro')">
+            <i class="pi pi-comments"></i> Foro
+        </button>
     </div>
 
     <!-- No Inbox State -->
@@ -374,6 +377,11 @@
             </div>
         </div>
     </div>
+    </div>
+
+    <!-- ====== FORO TAB ====== -->
+    <div *ngIf="activeTab === 'foro'" class="comm-foro-row h-full">
+        <app-forum class="w-full h-full block"></app-forum>
     </div>
 
     <!-- ====== CORREO TAB ====== -->

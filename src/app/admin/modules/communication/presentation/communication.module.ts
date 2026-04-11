@@ -5,11 +5,13 @@ import { InputSwitchModule } from 'primeng/inputswitch';
 
 import { CommunicationRoutingModule } from './communication-routing.module';
 import { CommunicationComponent } from './components/communication/communication.component';
+import { ForumComponent } from './components/forum/forum.component';
 import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
 
 @NgModule({
   declarations: [
-    CommunicationComponent
+    CommunicationComponent,
+    ForumComponent
   ],
   imports: [
     CommonModule,

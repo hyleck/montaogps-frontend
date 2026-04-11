@@ -1,0 +1,262 @@
+<div class="forum-container">
+
+    <!-- BREADCRUMBS & HEADER -->
+    <div class="forum-header">
+        <h1 class="forum-title">
+            <i class="pi pi-comments"></i> Foro Montao GPS
+        </h1>
+        <div class="forum-breadcrumbs" *ngIf="view !== 'categories'">
+            <span class="crumb link" (click)="goToCategories()">Categorías</span>
+            
+            <ng-container *ngIf="selectedCategory">
+                <span class="separator"><i class="pi pi-chevron-right"></i></span>
+                <span class="crumb link" [class.active]="view === 'topics'" (click)="goToTopics(selectedCategory)">{{ selectedCategory.name }}</span>
+            </ng-container>
+
+            <ng-container *ngIf="selectedTopic && view === 'thread'">
+                <span class="separator"><i class="pi pi-chevron-right"></i></span>
+                <span class="crumb active title-crumb" pTooltip="{{selectedTopic.title}}" tooltipPosition="top">{{ selectedTopic.title }}</span>
+            </ng-container>
+        </div>
+    </div>
+
+    <!-- MAIN VIEWS -->
+    <div class="forum-body">
+        
+        <!-- ═══════════════ 1. CATEGORIES ═══════════════ -->
+        <div *ngIf="view === 'categories'" class="fade-in">
+            <div class="section-header">
+                <h3>Explorar Categorías</h3>
+                <button *ngIf="isRootUser()" pButton label="Nueva Categoría" icon="pi pi-plus" 
+                    style="background: transparent; border: 1px solid #6366f1; color: #6366f1; border-radius: 8px; font-size: 0.85rem;"
+                    (click)="openNewCategoryModal()"></button>
+            </div>
+
+            <div *ngIf="loadingCategories" style="text-align: center; padding: 4rem;">
+                <i class="pi pi-spin pi-spinner" style="font-size: 2.5rem; color: #6366f1;"></i>
+            </div>
+
+            <div *ngIf="!loadingCategories && categories.length === 0" class="empty-state">
+                <i class="pi pi-inbox" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                <p>No hay categorías creadas aún.</p>
+            </div>
+
+            <div class="categories-grid" *ngIf="!loadingCategories && categories.length > 0">
+                <div *ngFor="let cat of categories" class="category-card" (click)="goToTopics(cat)">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div class="category-icon">
+                            <i [class]="cat.icon || 'pi pi-folder'"></i>
+                        </div>
+                        <button *ngIf="isRootUser()" class="delete-icon-btn" pTooltip="Eliminar categoría" tooltipPosition="top" (click)="deleteCategory(cat, $event)">
+                            <i class="pi pi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="category-info">
+                        <h4>{{ cat.name }}</h4>
+                        <p>{{ cat.description || 'Sin descripción' }}</p>
+                    </div>
+                    <div class="category-stats">
+                        <div class="stat"><i class="pi pi-list"></i> <span>{{ cat.topicCount || 0 }}</span> temas</div>
+                        <div class="stat"><i class="pi pi-comments"></i> <span>{{ cat.postCount || 0 }}</span> res.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ 2. TOPICS ═══════════════ -->
+        <div *ngIf="view === 'topics' && selectedCategory" class="fade-in">
+            <div class="topics-header">
+                <div class="topics-header-info">
+                    <h2>
+                        <i [class]="selectedCategory.icon || 'pi pi-folder'"></i>
+                        {{ selectedCategory.name }}
+                    </h2>
+                    <p>{{ selectedCategory.description }}</p>
+                </div>
+                <button pButton label="Crear Tema" icon="pi pi-pencil"
+                    style="background: #6366f1; border-color: #6366f1; border-radius: 8px; font-size: 0.85rem;"
+                    (click)="openNewTopicModal()"></button>
+            </div>
+
+            <div *ngIf="loadingTopics" style="text-align: center; padding: 4rem;">
+                <i class="pi pi-spin pi-spinner" style="font-size: 2.5rem; color: #6366f1;"></i>
+            </div>
+
+            <div *ngIf="!loadingTopics && topics.length === 0" class="empty-state">
+                <i class="pi pi-comments" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                <p>No hay temas en esta categoría.</p>
+                <button pButton label="Sé el primero en publicar" icon="pi pi-pencil" 
+                    style="margin-top: 1rem; background: transparent; border: 1px solid #6366f1; color: #6366f1; border-radius: 8px; font-size: 0.85rem;"
+                    (click)="openNewTopicModal()"></button>
+            </div>
+
+            <div class="topics-list" *ngIf="!loadingTopics && topics.length > 0">
+                <div *ngFor="let topic of topics" class="topic-row" (click)="goToThread(topic)">
+                    <div class="topic-status">
+                        <i class="pi pi-thumbtack" *ngIf="topic.isPinned" pTooltip="Anclado"></i>
+                        <i class="pi pi-lock" *ngIf="topic.isClosed" pTooltip="Cerrado"></i>
+                        <i class="pi pi-comment" *ngIf="!topic.isPinned && !topic.isClosed"></i>
+                    </div>
+                    <div class="topic-main">
+                        <h4 class="topic-title">{{ topic.title }}</h4>
+                        <div class="topic-meta">
+                            Escrito por <strong>{{ topic.author?.name || 'Desconocido' }} {{ topic.author?.last_name || '' }}</strong> · {{ getTimeAgo(topic.createdAt) }}
+                        </div>
+                    </div>
+                    <div class="topic-counters hide-on-mobile">
+                        <span><i class="pi pi-eye"></i> {{ topic.views || 0 }}</span>
+                        <span><i class="pi pi-heart"></i> {{ topic.likes ? topic.likes.length : 0 }}</span>
+                        <span><i class="pi pi-reply"></i> {{ topic.postCount || 0 }}</span>
+                    </div>
+                    <div class="topic-last-reply hide-on-mobile">
+                        <ng-container *ngIf="topic.lastPostAt">
+                            <span>Última res.</span>
+                            <strong>{{ topic.lastPostAuthor?.name || 'Alguien' }}</strong>
+                            <span>{{ getTimeAgo(topic.lastPostAt) }}</span>
+                        </ng-container>
+                        <span *ngIf="!topic.lastPostAt">Sin respuestas</span>
+                    </div>
+                    <button *ngIf="isOwner(topic.authorId)" class="delete-icon-btn" pTooltip="Eliminar tema" tooltipPosition="left" (click)="deleteTopic(topic, $event)">
+                        <i class="pi pi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════ 3. THREAD ═══════════════ -->
+        <div *ngIf="view === 'thread' && selectedTopic" class="fade-in">
+            <div *ngIf="loadingPosts" style="text-align: center; padding: 4rem;">
+                <i class="pi pi-spin pi-spinner" style="font-size: 2.5rem; color: #6366f1;"></i>
+            </div>
+
+            <ng-container *ngIf="!loadingPosts">
+                <!-- OP (Original Post) -->
+                <div class="post-card original-post">
+                    <div class="post-author">
+                        <div class="avatar">
+                            <img *ngIf="selectedTopic.author?.photo" [src]="selectedTopic.author.photo" alt="avatar">
+                            <span *ngIf="!selectedTopic.author?.photo">{{ (selectedTopic.author?.name || '?')[0] }}</span>
+                        </div>
+                        <div class="author-details">
+                            <div class="author-name">{{ selectedTopic.author?.name }} {{ selectedTopic.author?.last_name }}</div>
+                            <div class="author-badge">Autor</div>
+                        </div>
+                    </div>
+                    <div class="post-content">
+                        <div class="post-meta">
+                            <span><i class="pi pi-clock" style="margin-right: 4px;"></i> {{ getTimeAgo(selectedTopic.createdAt) }}</span>
+                            <span><i class="pi pi-eye" style="margin-right: 4px;"></i> {{ selectedTopic.views }} vistas</span>
+                        </div>
+                        <h2 class="thread-title">{{ selectedTopic.title }}</h2>
+                        <div class="thread-body" style="white-space: pre-wrap;">{{ selectedTopic.content }}</div>
+                        <div class="post-actions">
+                            <button class="like-btn" [class.liked]="hasLiked(selectedTopic)" (click)="toggleLikeTopic()">
+                                <i class="pi pi-heart"></i>
+                                {{ selectedTopic.likes ? selectedTopic.likes.length : 0 }}
+                            </button>
+                            <button *ngIf="isOwner(selectedTopic.authorId)" class="delete-icon-btn ml-2" pTooltip="Eliminar tema" (click)="deleteTopic(selectedTopic, $event)">
+                                <i class="pi pi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Responses Section -->
+                <div class="responses-header" *ngIf="posts.length > 0">
+                    <i class="pi pi-reply"></i>
+                    {{ posts.length }} Respuesta(s)
+                </div>
+                
+                <div class="posts-list">
+                    <div *ngFor="let post of posts" class="post-card response">
+                        <div class="post-author">
+                            <div class="avatar avatar-sm">
+                                <img *ngIf="post.author?.photo" [src]="post.author.photo" alt="avatar">
+                                <span *ngIf="!post.author?.photo">{{ (post.author?.name || '?')[0] }}</span>
+                            </div>
+                            <div class="author-details">
+                                <div class="author-name">{{ post.author?.name }} {{ post.author?.last_name }}</div>
+                            </div>
+                        </div>
+                        <div class="post-content">
+                            <div class="post-meta">
+                                <span><i class="pi pi-clock" style="margin-right: 4px;"></i> {{ getTimeAgo(post.createdAt) }}</span>
+                            </div>
+                            <div class="thread-body" style="white-space: pre-wrap;">{{ post.content }}</div>
+                            <div class="post-actions">
+                                <button class="like-btn" [class.liked]="hasLiked(post)" (click)="toggleLikePost(post)">
+                                    <i class="pi pi-heart"></i>
+                                    {{ post.likes ? post.likes.length : 0 }}
+                                </button>
+                                <button *ngIf="isOwner(post.authorId)" class="delete-icon-btn ml-2" pTooltip="Eliminar respuesta" (click)="deletePost(post)">
+                                    <i class="pi pi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reply Box -->
+                <div class="reply-box" *ngIf="!selectedTopic.isClosed">
+                    <h4>Escribe tu respuesta</h4>
+                    <textarea pInputTextarea [(ngModel)]="replyContent" rows="4" style="width: 100%;" placeholder="Escribe tu mensaje aquí respetando las normas de la comunidad..." [disabled]="submittingReply"></textarea>
+                    <div style="display: flex; justify-content: flex-end; margin-top: 0.75rem;">
+                        <button pButton label="Publicar" icon="pi pi-send" [loading]="submittingReply" [disabled]="!replyContent.trim()" 
+                            style="background: #6366f1; border-color: #6366f1; border-radius: 8px;"
+                            (click)="submitReply()"></button>
+                    </div>
+                </div>
+
+                <div class="locked-box" *ngIf="selectedTopic.isClosed">
+                    <i class="pi pi-lock" style="font-size: 2rem; margin-bottom: 0.75rem;"></i>
+                    <p>Este hilo ha sido cerrado por un moderador. Ya no se admiten nuevas respuestas.</p>
+                </div>
+            </ng-container>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- New Category Modal -->
+<p-dialog [(visible)]="showNewCategoryModal" header="Nueva Categoría" [modal]="true" [style]="{width: '450px'}">
+    <div class="p-fluid">
+        <div class="p-field mb-3">
+            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Nombre de la Categoría *</label>
+            <input pInputText [(ngModel)]="newCategoryForm.name" placeholder="Ej. Actualizaciones de Plataforma" />
+        </div>
+        <div class="p-field mb-3">
+            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Descripción</label>
+            <textarea pInputTextarea [(ngModel)]="newCategoryForm.description" rows="2" placeholder="Agrega contexto a esta sección opcionalmente"></textarea>
+        </div>
+        <div class="p-field mb-3">
+            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Icono (Clase de PrimeIcons)</label>
+            <input pInputText [(ngModel)]="newCategoryForm.icon" placeholder="pi pi-folder" />
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button pButton label="Cancelar" icon="pi pi-times" class="p-button-text" style="color: #8b919d;" (click)="showNewCategoryModal = false"></button>
+        <button pButton label="Guardar" icon="pi pi-check" style="background: #6366f1; border-color: #6366f1; border-radius: 8px;" [disabled]="!newCategoryForm.name" (click)="saveCategory()"></button>
+    </ng-template>
+</p-dialog>
+
+<!-- New Topic Modal -->
+<p-dialog [(visible)]="showNewTopicModal" header="Crear Nuevo Tema" [modal]="true" [style]="{width: '600px'}">
+    <div class="p-fluid">
+        <div class="p-field mb-3">
+            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Título del Problema o Tema *</label>
+            <input pInputText [(ngModel)]="newTopicForm.title" placeholder="Escribe un título claro y conciso" />
+        </div>
+        <div class="p-field mb-3">
+            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Contenido del Mensaje *</label>
+            <textarea pInputTextarea [(ngModel)]="newTopicForm.content" rows="6" placeholder="Describe a detalle tu duda..."></textarea>
+            <small style="color: #636a78; margin-top: 0.5rem; display: block;">Por favor incluye toda la evidencia posible para recibir mejor ayuda.</small>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button pButton label="Cancelar" icon="pi pi-times" class="p-button-text" style="color: #8b919d;" (click)="showNewTopicModal = false"></button>
+        <button pButton label="Publicar Tema" icon="pi pi-send" style="background: #6366f1; border-color: #6366f1; border-radius: 8px;" [disabled]="!newTopicForm.title || !newTopicForm.content" (click)="saveTopic()"></button>
+    </ng-template>
+</p-dialog>
+
+<p-confirmDialog></p-confirmDialog>

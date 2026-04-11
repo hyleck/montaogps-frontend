@@ -14,10 +14,13 @@
     </div>
 
     <div class="inter-sidebar__search">
-      <span class="p-input-icon-left w-full">
-        <i class="pi pi-search"></i>
-        <input pInputText placeholder="Buscar campaña..." class="w-full" />
-      </span>
+      <div class="search-wrapper">
+        <i class="pi pi-search search-icon"></i>
+        <input type="text" placeholder="Buscar campaña..." [(ngModel)]="searchTerm" (input)="filterLists()" class="search-input" />
+        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm=''; filterLists()">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
     </div>
 
     <!-- Skeleton cargando -->
@@ -29,15 +32,15 @@
     </div>
 
     <!-- Lista vacía -->
-    <div *ngIf="!loadingLists && lists.length === 0" class="inter-empty">
+    <div *ngIf="!loadingLists && filteredLists.length === 0" class="inter-empty">
       <i class="pi pi-inbox"></i>
-      <span>No hay campañas creadas</span>
+      <span>{{ searchTerm ? 'Sin resultados para "' + searchTerm + '"' : 'No hay campañas creadas' }}</span>
     </div>
 
     <!-- Listado de listas -->
     <div *ngIf="!loadingLists" class="inter-sidebar__list">
       <div
-        *ngFor="let list of lists"
+        *ngFor="let list of filteredLists"
         class="list-card"
         [class.list-card--active]="selectedList?._id === list._id && !showForm"
         (click)="selectList(list)">
@@ -82,7 +85,7 @@
         <h3>{{ isEditing ? 'Editar campaña' : 'Nueva campaña' }}</h3>
       </div>
 
-      <div class="form-grid">
+      <div class="form-grid" style="margin-bottom: 1.5rem;">
         <!-- Nombre -->
         <div class="form-group form-group--full">
           <label>Nombre de la campaña *</label>
@@ -94,156 +97,165 @@
           <label>Descripción</label>
           <textarea pInputTextarea [(ngModel)]="formDescription" placeholder="Descripción opcional..." rows="2" class="w-full"></textarea>
         </div>
-
-        <div class="form-divider">
-          <span><i class="pi pi-filter"></i> Filtros de segmentación</span>
-        </div>
-
-        <!-- Tipo de afiliación -->
-        <div class="form-group">
-          <label>Tipo de usuario</label>
-          <p-dropdown
-            [options]="affiliationOptions"
-            [(ngModel)]="formFilters.affiliation_type_id"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Todos"
-            [showClear]="true"
-            (onChange)="onFilterChange()"
-            styleClass="w-full">
-          </p-dropdown>
-        </div>
-
-        <!-- Tipo de empresa -->
-        <div class="form-group">
-          <label>Tipo de empresa</label>
-          <p-dropdown
-            [options]="companyTypeOptions"
-            [(ngModel)]="formFilters.company_type_id"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Todos"
-            [showClear]="true"
-            (onChange)="onFilterChange()"
-            styleClass="w-full">
-          </p-dropdown>
-        </div>
-
-        <!-- Tipo de perfil -->
-        <div class="form-group">
-          <label>Tipo de perfil</label>
-          <p-dropdown
-            [options]="profileTypeOptions"
-            [(ngModel)]="formFilters.profile_type_id"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Todos"
-            [showClear]="true"
-            (onChange)="onFilterChange()"
-            styleClass="w-full">
-          </p-dropdown>
-        </div>
-
-        <!-- Estado -->
-        <div class="form-group">
-          <label>Estado</label>
-          <p-dropdown
-            [options]="statusOptions"
-            [(ngModel)]="formFilters.status"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Todos"
-            [showClear]="true"
-            (onChange)="onFilterChange()"
-            styleClass="w-full">
-          </p-dropdown>
-        </div>
-
-        <!-- Excluir Notificados -->
-        <div class="form-group form-group--full" style="display: flex; align-items: center; gap: 8px;">
-          <p-checkbox [(ngModel)]="formFilters.exclude_notified" [binary]="true" inputId="exclude_notified" (onChange)="onFilterChange()"></p-checkbox>
-          <label for="exclude_notified" style="cursor: pointer; margin: 0;">Excluir usuarios que ya fueron notificados en ejecuciones anteriores mediante esta campaña</label>
-        </div>
-
-        <div class="form-divider" style="margin-top: 1rem;">
-          <span><i class="pi pi-box"></i> Usuarios Manuales</span>
-        </div>
-
-        <!-- Lista Vacía / Sin Sistema -->
-        <div class="form-group form-group--full" style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
-          <p-checkbox [(ngModel)]="formFilters.force_empty" [binary]="true" inputId="force_empty" (onChange)="onFilterChange()"></p-checkbox>
-          <label for="force_empty" style="cursor: pointer; margin: 0; font-weight: 500; color: #dc2626;">Forzar campaña vacía (Ignorar condiciones automáticas, útil para campañas exclusivamente manuales/externas)</label>
-        </div>
-
-        <!-- System Users AutoComplete -->
-        <div class="form-group form-group--full">
-          <label>Usuarios del Sistema (asignación manual)</label>
-          <p-autoComplete [(ngModel)]="formSystemContacts" [suggestions]="suggestedSystemUsers" (completeMethod)="searchSystemUsers($event)" [multiple]="true" optionLabel="name" placeholder="Buscar por nombre, correo o celular..." (onSelect)="onFilterChange()" (onUnselect)="onFilterChange()">
-            <ng-template let-user pTemplate="item">
-              <div class="flex align-items-center gap-2">
-                <div>{{ user.name }} {{ user.last_name }} <small style="color:var(--text-color-secondary)">({{ user.email || user.phone }})</small></div>
-              </div>
-            </ng-template>
-          </p-autoComplete>
-          <small>Busca y selecciona usuarios para agregarlos explícitamente a esta campaña.</small>
-        </div>
       </div>
 
-      <!-- Objetivos Dinámicos ────────────────── -->
-      <div style="margin-top: 2rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-          <h4 style="margin: 0; font-size: 1rem; color: var(--text-color);">Objetivos / Tareas de la Campaña</h4>
-          <button pButton icon="pi pi-plus" label="Añadir objetivo" class="p-button-sm p-button-outlined p-button-info" (click)="addObjective()"></button>
-        </div>
+      <p-accordion [multiple]="true" styleClass="campaign-accordion">
         
-        <div *ngIf="formObjectives.length === 0" style="color: #6c757d; font-size: 0.9rem; font-style: italic;">
-          No hay objetivos configurados. (Ej: "Ofrecer Premium", "Verificar Cédula").
-        </div>
+        <!-- ======================= SEGMENTACIÓN ======================= -->
+        <p-accordionTab header="Segmentación de Usuarios">
+          <div class="form-grid">
+            <!-- Tipo de afiliación -->
+            <div class="form-group">
+              <label>Tipo de usuario</label>
+              <p-dropdown
+                [options]="affiliationOptions"
+                [(ngModel)]="formFilters.affiliation_type_id"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todos"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                styleClass="w-full">
+              </p-dropdown>
+            </div>
 
-        <div *ngFor="let obj of formObjectives; let i = index" class="p-card" style="padding: 1rem; border: 1px solid var(--surface-border); border-radius: 8px; margin-bottom: 0.75rem; background: var(--surface-card);">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
-            <div style="flex: 1;">
-              <div class="form-group" style="margin-bottom: 0.5rem">
-                <label style="font-size: 0.8rem">Título del Objetivo *</label>
-                <input pInputText [(ngModel)]="obj.title" placeholder="Ej. Verificar cuenta en sistema" class="w-full" />
+            <!-- Tipo de empresa -->
+            <div class="form-group">
+              <label>Tipo de empresa</label>
+              <p-dropdown
+                [options]="companyTypeOptions"
+                [(ngModel)]="formFilters.company_type_id"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todos"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                styleClass="w-full">
+              </p-dropdown>
+            </div>
+
+            <!-- Tipo de perfil -->
+            <div class="form-group">
+              <label>Tipo de perfil</label>
+              <p-dropdown
+                [options]="profileTypeOptions"
+                [(ngModel)]="formFilters.profile_type_id"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todos"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                styleClass="w-full">
+              </p-dropdown>
+            </div>
+
+            <!-- Estado -->
+            <div class="form-group">
+              <label>Estado</label>
+              <p-dropdown
+                [options]="statusOptions"
+                [(ngModel)]="formFilters.status"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todos"
+                [showClear]="true"
+                (onChange)="onFilterChange()"
+                styleClass="w-full">
+              </p-dropdown>
+            </div>
+
+            <!-- Excluir Notificados -->
+            <div class="form-group form-group--full" style="display: flex; align-items: center; gap: 8px;">
+              <p-checkbox [(ngModel)]="formFilters.exclude_notified" [binary]="true" inputId="exclude_notified" (onChange)="onFilterChange()"></p-checkbox>
+              <label for="exclude_notified" style="cursor: pointer; margin: 0;">Excluir usuarios que ya fueron notificados en ejecuciones anteriores mediante esta campaña</label>
+            </div>
+          </div>
+        </p-accordionTab>
+
+        <!-- ======================= USUARIOS MANUALES ======================= -->
+        <p-accordionTab header="Asignación Manual y Externa">
+          <!-- Lista Vacía / Sin Sistema -->
+          <div class="form-group form-group--full" style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+            <p-checkbox [(ngModel)]="formFilters.force_empty" [binary]="true" inputId="force_empty" (onChange)="onFilterChange()"></p-checkbox>
+            <label for="force_empty" style="cursor: pointer; margin: 0; font-weight: 500; color: #dc2626;">Forzar campaña vacía (Ignorar filtros superiores, útil para campañas puramente manuales)</label>
+          </div>
+
+          <!-- System Users AutoComplete -->
+          <div class="form-group form-group--full mb-4">
+            <label>Usuarios del Sistema (asignación manual)</label>
+            <p-autoComplete [(ngModel)]="formSystemContacts" [suggestions]="suggestedSystemUsers" (completeMethod)="searchSystemUsers($event)" [multiple]="true" optionLabel="name" placeholder="Buscar por nombre, correo o celular..." (onSelect)="onFilterChange()" (onUnselect)="onFilterChange()">
+              <ng-template let-user pTemplate="item">
+                <div class="flex align-items-center gap-2">
+                  <div>{{ user.name }} {{ user.last_name }} <small style="color:var(--text-color-secondary)">({{ user.email || user.phone }})</small></div>
+                </div>
+              </ng-template>
+            </p-autoComplete>
+            <small>Busca y selecciona usuarios específicos del sistema para forzar su inclusión en la campaña.</small>
+          </div>
+
+          <div class="form-divider" style="margin: 1.5rem 0 1rem;">
+            <span><i class="pi pi-globe"></i> Contactos Externos</span>
+          </div>
+
+          <!-- Contactos Externos ────────────────── -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <p style="margin: 0; font-size: 0.9rem; color: var(--text-color-secondary);">Personas que no están registradas en el sistema principal.</p>
+              <button pButton icon="pi pi-plus" label="Añadir contacto" class="p-button-sm p-button-outlined p-button-secondary" (click)="addExternalContact()"></button>
+            </div>
+            
+            <div *ngIf="formExternalContacts.length === 0" style="color: #6c757d; font-size: 0.9rem; font-style: italic;">
+              No se han agregado contactos externos.
+            </div>
+
+            <div *ngFor="let contact of formExternalContacts; let i = index" class="grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; margin-bottom: 0.75rem; align-items: end;">
+              <div class="form-group" style="margin-bottom: 0">
+                <label style="font-size: 0.8rem">Nombre *</label>
+                <input pInputText [(ngModel)]="contact.name" placeholder="Ej. Proveedor X" class="w-full" (input)="onFilterChange()" />
               </div>
               <div class="form-group" style="margin-bottom: 0">
-                <label style="font-size: 0.8rem">Descripción del Objetivo (Opcional)</label>
-                <textarea pInputTextarea [(ngModel)]="obj.description" placeholder="Ej. El cliente debe enviar una foto de frente de su cédula..." rows="2" class="w-full"></textarea>
+                <label style="font-size: 0.8rem">Teléfono</label>
+                <input pInputText [(ngModel)]="contact.phone" placeholder="+1..." class="w-full" />
+              </div>
+              <div class="form-group" style="margin-bottom: 0">
+                <label style="font-size: 0.8rem">Correo</label>
+                <input pInputText [(ngModel)]="contact.email" placeholder="@" class="w-full" />
+              </div>
+              <button pButton icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm" (click)="removeExternalContact(i)"></button>
+            </div>
+          </div>
+        </p-accordionTab>
+
+        <!-- ======================= OBJETIVOS ======================= -->
+        <p-accordionTab header="Objetivos (Checklist para Ejecutivos)">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <p style="margin: 0; font-size: 0.9rem; color: var(--text-color-secondary);">Metas que los agentes deben cumplir por cada usuario en esta campaña.</p>
+              <button pButton icon="pi pi-plus" label="Añadir objetivo" class="p-button-sm p-button-outlined p-button-info" (click)="addObjective()"></button>
+            </div>
+            
+            <div *ngIf="formObjectives.length === 0" style="color: #6c757d; font-size: 0.9rem; font-style: italic;">
+              No hay objetivos configurados. (Ej: "Ofrecer Premium", "Verificar Cédula").
+            </div>
+
+            <div *ngFor="let obj of formObjectives; let i = index" class="p-card" style="padding: 1rem; border: 1px solid var(--surface-border); border-radius: 8px; margin-bottom: 0.75rem; background: var(--surface-card);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+                <div style="flex: 1;">
+                  <div class="form-group" style="margin-bottom: 0.5rem">
+                    <label style="font-size: 0.8rem">Título del Objetivo *</label>
+                    <input pInputText [(ngModel)]="obj.title" placeholder="Ej. Verificar cuenta en sistema" class="w-full" />
+                  </div>
+                  <div class="form-group" style="margin-bottom: 0">
+                    <label style="font-size: 0.8rem">Descripción del Objetivo (Opcional)</label>
+                    <textarea pInputTextarea [(ngModel)]="obj.description" placeholder="Ej. El cliente debe enviar una foto de frente de su cédula..." rows="2" class="w-full"></textarea>
+                  </div>
+                </div>
+                <button pButton icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm" (click)="removeObjective(i)" style="margin-top: 1.25rem;"></button>
               </div>
             </div>
-            <button pButton icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm" (click)="removeObjective(i)" style="margin-top: 1.25rem;"></button>
           </div>
-        </div>
-      </div>
-
-      <!-- Contactos Externos ────────────────── -->
-      <div style="margin-top: 2rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-          <h4 style="margin: 0; font-size: 1rem; color: var(--text-color);">Contactos Externos manuales</h4>
-          <button pButton icon="pi pi-plus" label="Añadir contacto" class="p-button-sm p-button-outlined p-button-secondary" (click)="addExternalContact()"></button>
-        </div>
-        
-        <div *ngIf="formExternalContacts.length === 0" style="color: #6c757d; font-size: 0.9rem; font-style: italic;">
-          No hay contactos externos. Todos los envíos se basarán en los filtros superiores.
-        </div>
-
-        <div *ngFor="let contact of formExternalContacts; let i = index" class="grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; margin-bottom: 0.75rem; align-items: end;">
-          <div class="form-group" style="margin-bottom: 0">
-            <label style="font-size: 0.8rem">Nombre *</label>
-            <input pInputText [(ngModel)]="contact.name" placeholder="Ej. Proveedor X" class="w-full" (input)="onFilterChange()" />
-          </div>
-          <div class="form-group" style="margin-bottom: 0">
-            <label style="font-size: 0.8rem">Teléfono</label>
-            <input pInputText [(ngModel)]="contact.phone" placeholder="+1..." class="w-full" />
-          </div>
-          <div class="form-group" style="margin-bottom: 0">
-            <label style="font-size: 0.8rem">Correo</label>
-            <input pInputText [(ngModel)]="contact.email" placeholder="@" class="w-full" />
-          </div>
-          <button pButton icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm" (click)="removeExternalContact(i)"></button>
-        </div>
-      </div>
+        </p-accordionTab>
+      </p-accordion>
 
       <!-- Preview de usuarios ────────────────── -->
       <div class="preview-section">
@@ -439,6 +451,7 @@
                   <button pButton icon="pi pi-whatsapp" class="p-button-text p-button-sm p-button-rounded p-button-success" style="background: rgba(34,197,94,0.1);" (click)="openPersonalPushModal(user, 'whatsapp')" pTooltip="Enviar WhatsApp particular"></button>
                   <button *ngIf="!user.is_external" pButton icon="pi pi-send" class="p-button-text p-button-sm p-button-rounded p-button-warning" style="background: rgba(245,158,11,0.1);" (click)="openPersonalPushModal(user, 'push')" pTooltip="Enviar push particular"></button>
                   <button *ngIf="getUserHistory(user._id)" pButton icon="pi pi-history" class="p-button-outlined p-button-sm p-button-rounded" (click)="openUserHistory(user._id)" pTooltip="Ver envíos"></button>
+                  <button pButton icon="pi pi-trash" class="p-button-text p-button-sm p-button-rounded p-button-danger" style="background: rgba(239,68,68,0.1);" (click)="removeUserFromList(user)" pTooltip="Eliminar de la campaña"></button>
                 </div>
               </td>
             </tr>

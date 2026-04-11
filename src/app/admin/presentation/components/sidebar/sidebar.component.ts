@@ -221,9 +221,9 @@ export class SidebarComponent implements OnInit {
       if (item.path === '/admin/communication') {
         return this.isRootUser || this.isEmployeeUser;
       }
-      // Ocultar interacciones si el usuario no es empleado
-      if (!this.isEmployeeUser && item.path === '/admin/interacciones') {
-        return false;
+      // Ocultar campañas si el usuario no es root
+      if (item.path === '/admin/interacciones') {
+        return this.isRootUser;
       }
       if (item.path === '/admin/server-costs') {
         return this.isRootUser;
