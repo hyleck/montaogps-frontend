@@ -120,6 +120,54 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         }
     }
 
+    private createPulsingDot(r: number, g: number, b: number): any {
+        const size = 150;
+        const mapInstance = this.map;
+        
+        return {
+            width: size,
+            height: size,
+            data: new Uint8Array(size * size * 4),
+
+            onAdd: function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = this.width;
+                canvas.height = this.height;
+                this.context = canvas.getContext('2d', { willReadFrequently: true });
+            },
+
+            render: function() {
+                const duration = 3000;
+                const t1 = (performance.now() % duration) / duration;
+                const t2 = ((performance.now() + duration / 2) % duration) / duration;
+
+                const radius = (size / 2) * 0.1;
+                const context = this.context;
+
+                context.clearRect(0, 0, this.width, this.height);
+
+                context.beginPath();
+                const outerRadius1 = (size / 2) * 0.8 * t1 + radius;
+                const opacity1 = Math.max(0, 1 - t1);
+                context.arc(this.width / 2, this.height / 2, outerRadius1, 0, Math.PI * 2);
+                context.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity1})`;
+                context.fill();
+
+                context.beginPath();
+                const outerRadius2 = (size / 2) * 0.8 * t2 + radius;
+                const opacity2 = Math.max(0, 1 - t2);
+                context.arc(this.width / 2, this.height / 2, outerRadius2, 0, Math.PI * 2);
+                context.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity2})`;
+                context.fill();
+
+                this.data = context.getImageData(0, 0, this.width, this.height).data;
+                mapInstance.triggerRepaint();
+
+                return true;
+            }
+        };
+    }
+
     private setupMaplibreClusters() {
         this.map.addSource('devices', {
             type: 'geojson',
@@ -127,7 +175,33 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             cluster: false
         });
 
-        // Configurar capa genérica temporal para marcadores
+        if (!this.map.hasImage('pulsing-dot-online')) {
+            this.map.addImage('pulsing-dot-online', this.createPulsingDot(34, 197, 94), { pixelRatio: 2 });     // Verde
+            this.map.addImage('pulsing-dot-localizado', this.createPulsingDot(6, 182, 212), { pixelRatio: 2 }); // Verde azulado (Cyan)
+            this.map.addImage('pulsing-dot-offline', this.createPulsingDot(156, 163, 175), { pixelRatio: 2 });  // Gris
+            this.map.addImage('pulsing-dot-expired', this.createPulsingDot(239, 68, 68), { pixelRatio: 2 });    // Rojo
+        }
+
+        // Add the radar layer below the primary markers
+        this.map.addLayer({
+            id: 'pulsing-layer',
+            type: 'symbol',
+            source: 'devices',
+            layout: {
+                'icon-image': [
+                    'case',
+                    ['==', ['get', 'isExpired'], true], 'pulsing-dot-expired',
+                    ['==', ['get', 'status'], 'Localizado'], 'pulsing-dot-localizado',
+                    ['==', ['get', 'status'], 'online'], 'pulsing-dot-online',
+                    'pulsing-dot-offline'
+                ],
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'icon-size': 1
+            }
+        });
+
+        // Configurar capa genérica temporal para marcadores estáticos (por si falla la carga)
         this.map.addLayer({
             id: 'unclustered-point',
             type: 'circle',
@@ -140,12 +214,22 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             }
         });
         
-        // Cargar imagen de favicon de forma asincrónica e inyectarla en los puntos no agrupados
-        this.map.loadImage('logo/favicon.png').then((response: any) => {
-            const image = response.data || response;
+        // Cargar imágenes de favicon de forma asincrónica e inyectarlas
+        Promise.all([
+            this.map.loadImage('logo/favicon.png'),
+            this.map.loadImage('logo/favicon-gray.png')
+        ]).then(([normalResponse, grayResponse]: [any, any]) => {
+            const normalImage = normalResponse.data || normalResponse;
+            const grayImage = grayResponse.data || grayResponse;
+
             if (!this.map.hasImage('custom-marker')) {
-                this.map.addImage('custom-marker', image);
+                this.map.addImage('custom-marker', normalImage);
             }
+
+            if (!this.map.hasImage('custom-marker-offline')) {
+                this.map.addImage('custom-marker-offline', grayImage);
+            }
+
             if (this.map.getLayer('unclustered-point')) {
                this.map.removeLayer('unclustered-point');
             }
@@ -154,12 +238,24 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                 type: 'symbol',
                 source: 'devices',
                 layout: {
-                    'icon-image': 'custom-marker',
-                    'icon-size': 0.10,
+                    'icon-image': [
+                        'case',
+                        ['==', ['get', 'status'], 'online'], 'custom-marker',
+                        ['==', ['get', 'status'], 'Localizado'], 'custom-marker',
+                        'custom-marker-offline'
+                    ],
+                    'icon-size': 0.15,
                     'icon-allow-overlap': true,
                     'icon-ignore-placement': true
                 },
-                paint: {}
+                paint: {
+                    'icon-opacity': [
+                        'case',
+                        ['==', ['get', 'status'], 'online'], 1,
+                        ['==', ['get', 'status'], 'Localizado'], 1,
+                        0.6 // Translucidez para offline
+                    ]
+                }
             });
         }).catch((err: any) => console.log('Sin imagen de fallback'));
     }
@@ -225,7 +321,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                             type: 'Feature',
                             geometry: { type: 'Point', coordinates: [geo.longitude, geo.latitude] },
                             properties: {
-                                name: d.name || d.device_imei || 'Dispositivo'
+                                name: d.name || d.device_imei || 'Dispositivo',
+                                status: d.traccarInfo?.status || 'offline',
+                                isExpired: d.expiration_date ? new Date(d.expiration_date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0) : false
                             }
                         });
                     }
