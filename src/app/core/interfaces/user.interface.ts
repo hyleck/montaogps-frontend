@@ -59,6 +59,7 @@ export interface User {
   affiliation_type_id?: string;
   department_id?: string;
   idchatwoot?: string;
+  chatwoot_access_token?: string;
   inbox?: number;
   inbox2?: number;
   root?: boolean;
@@ -66,6 +67,7 @@ export interface User {
   status?: boolean;
   tag?: string;
   idSessions?: Array<{ date: string; device: string }>;
+  interaction_progress?: { listId: string; completed_objectives: string[] }[];
 }
 
 export interface UserSettings {

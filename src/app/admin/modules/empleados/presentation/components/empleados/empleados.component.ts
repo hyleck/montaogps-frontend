@@ -30,6 +30,10 @@ export class EmpleadosComponent implements OnInit {
   tempChatwootId: string = '';
   savingChatwoot: boolean = false;
 
+  editingChatwootToken: boolean = false;
+  tempChatwootToken: string = '';
+  savingChatwootToken: boolean = false;
+
   editingInbox: boolean = false;
   tempInbox: number | null = null;
   savingInbox: boolean = false;
@@ -158,10 +162,12 @@ export class EmpleadosComponent implements OnInit {
   showCurriculum(empleado: User): void {
     this.selectedEmpleado = empleado;
     this.editingChatwoot = false;
+    this.editingChatwootToken = false;
     this.editingDepartment = false;
     this.editingInbox = false;
     this.editingInbox2 = false;
     this.tempChatwootId = empleado.idchatwoot || '';
+    this.tempChatwootToken = empleado.chatwoot_access_token || '';
     this.tempDepartmentId = empleado.department_id || '';
     this.tempInbox = empleado.inbox || null;
     this.tempInbox2 = empleado.inbox2 || null;
@@ -255,6 +261,41 @@ export class EmpleadosComponent implements OnInit {
         console.error('Error al actualizar ID de Chatwoot:', err);
         this.savingChatwoot = false;
         this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar el ID de Chatwoot' });
+      }
+    });
+  }
+
+  toggleEditChatwootToken(): void {
+    if (!this.selectedEmpleado) return;
+    this.editingChatwootToken = !this.editingChatwootToken;
+    if (this.editingChatwootToken) {
+      this.tempChatwootToken = this.selectedEmpleado.chatwoot_access_token || '';
+    }
+  }
+
+  saveChatwootToken(): void {
+    if (!this.selectedEmpleado) return;
+    this.savingChatwootToken = true;
+    this.userService.update(this.selectedEmpleado._id, { chatwoot_access_token: this.tempChatwootToken }).subscribe({
+      next: (updatedUser: User) => {
+        if (this.selectedEmpleado) {
+          this.selectedEmpleado.chatwoot_access_token = this.tempChatwootToken;
+        }
+        
+        // Update it in the full list as well
+        const index = this.empleados.findIndex(e => e._id === this.selectedEmpleado?._id);
+        if (index !== -1) {
+          this.empleados[index].chatwoot_access_token = this.tempChatwootToken;
+        }
+
+        this.editingChatwootToken = false;
+        this.savingChatwootToken = false;
+        this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Token de Chatwoot actualizado' });
+      },
+      error: (err) => {
+        console.error('Error al actualizar Token de Chatwoot:', err);
+        this.savingChatwootToken = false;
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar el Token de Chatwoot' });
       }
     });
   }

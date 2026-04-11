@@ -101,4 +101,11 @@ export class UserService {
   getEmployees(): Observable<User[]> {
     return this.http.get<User[]>(`${this.apiUrl}/employees`);
   }
+
+  toggleInteractionProgress(userId: string, listId: string, objectiveId: string, completed: boolean): Observable<any> {
+    return this.http.patch<any>(`${this.apiUrl}/${userId}/interaction-progress/${listId}`, {
+      objectiveId,
+      completed
+    });
+  }
 }

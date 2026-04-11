@@ -5,12 +5,25 @@ export const authInterceptor: HttpInterceptorFn = (
   next: HttpHandlerFn
 ) => {
   const token = localStorage.getItem('authtoken');
+  const userStr = localStorage.getItem('user');
+  let headersToSet: any = {};
   
   if (token) {
-    req = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
+    headersToSet['Authorization'] = `Bearer ${token}`;
+  }
+
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      if (user.chatwoot_access_token) {
+        headersToSet['x-chatwoot-token'] = user.chatwoot_access_token;
       }
+    } catch (e) {}
+  }
+
+  if (Object.keys(headersToSet).length > 0) {
+    req = req.clone({
+      setHeaders: headersToSet
     });
   }
 

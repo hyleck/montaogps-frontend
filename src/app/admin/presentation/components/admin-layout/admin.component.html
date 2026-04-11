@@ -17,3 +17,28 @@
         </div>
     </div>
 </div>
+
+<p-dialog header="Transferencia Entrante" [(visible)]="showChatTransferModal" [modal]="true" [style]="{width: '30vw', minWidth: '400px'}" 
+    [closable]="true" [draggable]="false" [resizable]="false">
+    <div style="display: block; width: 100%; text-align: center; padding: 1rem 0;">
+        
+        <div class="incoming-call-icon">
+            <i class="pi pi-phone" style="font-size: 2.2rem;"></i>
+        </div>
+        
+        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.4rem; font-weight: 700;">Se te solicita en esta conversación</h3>
+        <p style="margin: 0 0 2rem 0; color: #a1a1aa; line-height: 1.5;">Se te ha asignado a un nuevo chat y requieren tu atención inmediata.</p>
+        
+        <div *ngIf="transferSummaryText" style="display: block; width: 100%; text-align: left; background: #1e293b; border-radius: 8px; padding: 1.25rem; margin-bottom: 2rem; border: 1px solid #334155; box-sizing: border-box;">
+            <div style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Resumen del requerimiento:</div>
+            <div style="font-weight: 500; line-height: 1.5; color: #f8fafc; font-size: 1rem;">
+                {{ transferSummaryText }}
+            </div>
+        </div>
+
+        <button style="display: flex; align-items: center; justify-content: center; width: 100%; padding: 1rem; font-size: 1.1rem; font-weight: bold; background: #10b981; border: none; border-radius: 8px; color: white; cursor: pointer; transition: background 0.2s;" 
+           (click)="goToConversation()" onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
+            <i class="pi pi-arrow-right" style="margin-right: 0.75rem;"></i> Ir a la conversación
+        </button>
+    </div>
+</p-dialog>

@@ -25,10 +25,6 @@
         <!-- Header -->
         <div class="comm-sidebar__header">
             <h2>Comunicación</h2>
-            <div class="comm-auto-reply">
-                <p-inputSwitch [(ngModel)]="autoResponse" (ngModelChange)="toggleAutoResponse()"></p-inputSwitch>
-                <span class="comm-auto-reply__label">Auto</span>
-            </div>
         </div>
 
         <!-- Search -->
@@ -54,6 +50,7 @@
 
             <div *ngFor="let conv of filteredConversations" class="comm-contact"
                 [class.comm-contact--active]="selectedConversation?.id === conv.id"
+                [class.comm-contact--ester]="!conv.assignee_id"
                 (click)="selectConversation(conv)">
                 <div class="comm-contact__avatar">
                     <img *ngIf="conv.contact.avatar" [src]="conv.contact.avatar" alt="avatar" />
@@ -64,8 +61,14 @@
                         <div class="comm-contact__name">{{ conv.contact.name }}</div>
                         <div class="comm-contact__time">{{ getTimeAgo(conv.last_message_time) }}</div>
                     </div>
-                    <div class="comm-contact__bottom">
-                        <div class="comm-contact__last-msg">{{ conv.last_message || 'Sin mensajes' }}</div>
+                    <!-- Estado Estándar (Agente Asignado) -->
+                    <div class="comm-contact__bottom" *ngIf="conv.assignee_id">
+                        <div class="comm-contact__last-msg">{{ getCleanPreview(conv.last_message) }}</div>
+                        <div *ngIf="conv.unread_count > 0" class="comm-contact__badge">{{ conv.unread_count }}</div>
+                    </div>
+                    <!-- Estado Bot (Ester Assistant Activa) -->
+                    <div class="comm-contact__bottom" *ngIf="!conv.assignee_id">
+                        <div class="comm-contact__ester-badge"><i class="pi pi-bolt"></i> Gestionado por Ester Assistant</div>
                         <div *ngIf="conv.unread_count > 0" class="comm-contact__badge">{{ conv.unread_count }}</div>
                     </div>
                 </div>
@@ -92,14 +95,17 @@
                     <i class="pi pi-arrow-left"></i>
                 </button>
                 <div class="comm-chat__header-avatar">
-                    <img *ngIf="selectedConversation.contact.avatar" [src]="selectedConversation.contact.avatar" alt="avatar" />
-                    <span *ngIf="!selectedConversation.contact.avatar">{{ getInitials(selectedConversation.contact.name) }}</span>
+                    <img *ngIf="gpsUser?.photo || selectedConversation.contact.avatar" [src]="gpsUser?.photo || selectedConversation.contact.avatar" alt="avatar" />
+                    <span *ngIf="!gpsUser?.photo && !selectedConversation.contact.avatar">{{ getInitials(gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name) }}</span>
                 </div>
                 <div class="comm-chat__header-info">
-                    <div class="comm-chat__header-name">{{ selectedConversation.contact.name }}</div>
+                    <div class="comm-chat__header-name">{{ gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name }}</div>
                     <div class="comm-chat__header-phone">{{ selectedConversation.contact.phone }}</div>
                 </div>
                 <div class="comm-chat__header-actions">
+                    <button class="comm-info-btn comm-action-btn" (click)="openTransferModal()" title="Transferir Conversación a otro Agente">
+                        <i class="pi pi-sort-alt"></i>
+                    </button>
                     <div class="comm-chat__header-status">
                         <span class="comm-status-dot" [class.comm-status-dot--open]="selectedConversation.status === 'open'"
                             [class.comm-status-dot--resolved]="selectedConversation.status === 'resolved'"></span>
@@ -157,6 +163,37 @@
                             </div>
                         </ng-container>
                         <div *ngIf="msg.text" class="comm-message__text" [innerHTML]="msg.parsedHtml || msg.text"></div>
+                        <div *ngIf="msg.safeRealtimeUrl" class="comm-message__realtime-trigger" (click)="openRealtimeModal(msg.safeRealtimeUrl)">
+                            <div class="comm-message__rt-icon">
+                                <i class="pi pi-map"></i>
+                            </div>
+                            <div class="comm-message__rt-info">
+                                <span class="comm-message__rt-title">Link en tiempo real</span>
+                                <span class="comm-message__rt-subtitle">Toca para abrir el mapa</span>
+                            </div>
+                        </div>
+
+                        <!-- Google Maps Card -->
+                        <a *ngIf="msg.googleMapsUrl" [href]="msg.googleMapsUrl" target="_blank" class="comm-message__realtime-trigger" style="text-decoration: none;">
+                            <div class="comm-message__rt-icon" style="background: linear-gradient(135deg, #4285F4, #0F9D58);">
+                                <i class="pi pi-map-marker" style="color: white;"></i>
+                            </div>
+                            <div class="comm-message__rt-info">
+                                <span class="comm-message__rt-title" style="color: #4285F4;">Link de Google Maps</span>
+                                <span class="comm-message__rt-subtitle">Toca para abrir aplicación</span>
+                            </div>
+                        </a>
+
+                        <!-- Waze Card -->
+                        <a *ngIf="msg.wazeUrl" [href]="msg.wazeUrl" target="_blank" class="comm-message__realtime-trigger" style="text-decoration: none;">
+                            <div class="comm-message__rt-icon" style="background: linear-gradient(135deg, #33ccff, #0099cc);">
+                                <i class="pi pi-car" style="color: white;"></i>
+                            </div>
+                            <div class="comm-message__rt-info">
+                                <span class="comm-message__rt-title" style="color: #33ccff;">Link de Waze</span>
+                                <span class="comm-message__rt-subtitle">Toca para navegar</span>
+                            </div>
+                        </a>
                         <div class="comm-message__time">{{ msg.time | date:'HH:mm' }}</div>
                     </div>
                 </div>
@@ -166,10 +203,15 @@
                 </div>
             </div>
 
-            <!-- Hidden file input -->
-            <input type="file" #fileInput (change)="onFileSelected($event)"
-                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.rar"
+            <!-- Hidden file inputs -->
+            <input type="file" #mediaFileInput (change)="onFileSelected($event)"
+                accept="image/*,video/*"
                 style="display: none;" />
+            <input type="file" #docFileInput (change)="onFileSelected($event)"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,.txt,audio/*"
+                style="display: none;" />
+            
+            <p-menu #attachMenu [popup]="true" [model]="attachmentMenuItems" appendTo="body"></p-menu>
 
             <!-- Reply preview -->
             <div *ngIf="replyingTo" class="comm-reply-preview">
@@ -177,7 +219,7 @@
                     <i class="pi pi-reply"></i>
                     <div class="comm-reply-preview__text">
                         <span class="comm-reply-preview__label">Respondiendo a {{ replyingTo.from === 'me' ? 'ti' : selectedConversation!.contact.name }}</span>
-                        <span class="comm-reply-preview__msg">{{ replyingTo.text | slice:0:60 }}{{ replyingTo.text.length > 60 ? '...' : '' }}</span>
+                        <span class="comm-reply-preview__msg">{{ replyingTo.text | slice:0:60 }}{{ (replyingTo.text?.length || 0) > 60 ? '...' : '' }}</span>
                     </div>
                 </div>
                 <button class="comm-reply-preview__close" (click)="cancelReply()">
@@ -185,12 +227,12 @@
                 </button>
             </div>
 
-            <!-- Input -->
-            <div class="comm-chat__input">
-                <button class="comm-attach-btn" (click)="fileInput.click()" [disabled]="sendingMessage">
+            <!-- Input (Only shown if assigned AND inside 24h window) -->
+            <div class="comm-chat__input" *ngIf="selectedConversation.assignee_id && !isOutside24hWindow(selectedConversation)">
+                <button class="comm-attach-btn" (click)="attachMenu.toggle($event)" [disabled]="sendingMessage">
                     <i class="pi pi-paperclip"></i>
                 </button>
-                <textarea [(ngModel)]="chatInput" placeholder="Escribe un mensaje..."
+                <textarea #messageInput [(ngModel)]="chatInput" placeholder="Escribe un mensaje..."
                     rows="1"
                     (keydown.enter)="$event.preventDefault(); sendMessage()"
                     [disabled]="sendingMessage"></textarea>
@@ -198,6 +240,25 @@
                     [disabled]="!chatInput.trim() || sendingMessage">
                     <i class="pi pi-send"></i>
                 </button>
+            </div>
+
+            <!-- WhatsApp Template Banner (Shown if assigned BUT >24h) -->
+            <div *ngIf="selectedConversation.assignee_id && isOutside24hWindow(selectedConversation)" style="display: flex; justify-content: center; align-items: center; padding: 1.5rem; background: var(--surface-b, #1e293b); border-top: 1px solid var(--surface-border, #334155);">
+                <div style="text-align: center; color: var(--text-color-secondary, #94a3b8); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <div><i class="pi pi-clock" style="font-size: 1.2rem; color: #10b981;"></i></div>
+                    <span style="font-size: 0.95rem;">Han pasado más de 24 horas desde el último mensaje del usuario.</span>
+                    <button pButton label="Iniciar conversación" icon="pi pi-whatsapp" class="p-button-sm p-button-success mt-2" (click)="openTemplateModal()"></button>
+                </div>
+            </div>
+
+            <!-- Ester Assistant Banner (Shown if unassigned) -->
+            <div *ngIf="!selectedConversation.assignee_id" style="display: flex; justify-content: center; align-items: center; padding: 1.5rem; background: rgba(139, 92, 246, 0.05); border-top: 1px solid rgba(139, 92, 246, 0.2);">
+                <div style="text-align: center; color: var(--text-color-secondary, #94a3b8); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+                    <div><i class="pi pi-bolt" style="font-size: 1.5rem; color: #8b5cf6;"></i></div>
+                    <span style="font-size: 1rem; color: #8b5cf6; font-weight: 500;">Gestionado por Ester Assistant</span>
+                    <span style="font-size: 0.85rem;">Esta conversación está siendo atendida de forma automática.</span>
+                    <button pButton label="Tomar control de la conversación" icon="pi pi-user-plus" class="p-button-sm p-button-outlined mt-2" style="color: #8b5cf6; border-color: #8b5cf6;" (click)="assignToMe()"></button>
+                </div>
             </div>
         </ng-container>
     </div>
@@ -283,6 +344,32 @@
                     <i class="pi pi-hashtag"></i>
                     <span>Conv #{{ selectedConversation.id }}</span>
                 </div>
+
+                <!-- Checklists section -->
+                <ng-container *ngIf="userChecklistsDetails.length > 0">
+                    <div class="comm-contact-panel__divider" style="margin-top: 1rem;"></div>
+                    <div style="padding-top: 0.5rem;">
+                        <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-color); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="pi pi-check-square" style="color: var(--primary-color);"></i>
+                            Objetivos de Campañas
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div *ngFor="let listDetail of userChecklistsDetails; let i = index" style="background: var(--surface-hover); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--surface-border);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                    <span style="font-size: 0.85rem; font-weight: bold; color: var(--text-color);">{{ listDetail.listName }}</span>
+                                    <span style="font-size: 0.75rem; color: #6c757d; font-weight: bold;">{{ listDetail.completedCount }}/{{ listDetail.totalCount }}</span>
+                                </div>
+                                <p-progressBar [value]="(listDetail.completedCount / (listDetail.totalCount || 1)) * 100" [showValue]="false" styleClass="h-1 w-full" [style]="{'margin-bottom': '0.75rem'}"></p-progressBar>
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <div *ngFor="let obj of listDetail.objectives" style="display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.8rem;">
+                                        <p-checkbox [binary]="true" [ngModel]="obj.completed" (onChange)="toggleChecklistObjective(i, obj.id, $event.checked)" [inputId]="'side_chk_'+i+'_'+obj.id"></p-checkbox>
+                                        <label [for]="'side_chk_'+i+'_'+obj.id" style="cursor: pointer; margin: 0; line-height: 1.25; color: var(--text-color);" [style.text-decoration]="obj.completed ? 'line-through' : 'none'" [style.opacity]="obj.completed ? '0.6' : '1'">{{ obj.title }}</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </ng-container>
             </div>
         </div>
     </div>
@@ -363,7 +450,7 @@
                             <span class="comm-email__item-sender">{{ conv.contact.name }}</span>
                             <span class="comm-email__item-time">{{ getTimeAgo(conv.last_message_time) }}</span>
                         </div>
-                        <div class="comm-email__item-preview">{{ conv.last_message || 'Sin contenido' }}</div>
+                        <div class="comm-email__item-preview">{{ getCleanPreview(conv.last_message) }}</div>
                     </div>
                     <div *ngIf="conv.unread_count > 0" class="comm-email__item-badge">{{ conv.unread_count }}</div>
                 </div>
@@ -539,6 +626,33 @@
 
 </div>
 
+<!-- Modal Expiracion Enlace Realtime -->
+<p-dialog header="Configurar Enlace de Monitoreo" [(visible)]="showExpirationModal" [modal]="true" [style]="{width: '25vw', minWidth: '320px'}" [draggable]="false" [resizable]="false" (onHide)="pendingRealtimeTarget = null">
+    <div class="flex flex-column gap-3 py-2">
+        <label style="color: var(--text-color-secondary); font-size: 0.9rem; line-height: 1.5;">
+            ¿Por cuántas horas deseas que este enlace de seguimiento permanezca activo antes de autodestruirse?
+        </label>
+        <div class="flex align-items-center mt-2" style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);">
+            <i class="pi pi-clock mr-3" style="color: var(--primary-color); font-size: 1.2rem;"></i>
+            <input type="number" pInputText [(ngModel)]="expirationHours" min="1" max="720" style="width: 80px; text-align: center; border-radius: 6px; border: 1px solid var(--primary-color);" />
+            <span class="ml-3 font-semibold" style="color: var(--text-color-secondary);">Horas de validez</span>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text p-button-secondary p-button-sm mr-2" (click)="showExpirationModal = false"></button>
+        <button pButton pRipple label="Generar y Enviar" icon="pi pi-send" class="p-button-sm" (click)="sendRealtimeLinkAuto()"></button>
+    </ng-template>
+</p-dialog>
+
+<!-- Modal Realtime GPS -->
+<p-dialog header="Monitoreo GPS en Vivo" [(visible)]="showRealtimeModal" [modal]="true" [dismissableMask]="true" [style]="{width: '90vw', maxWidth: '800px', padding: '0px'}" (onHide)="closeRealtimeModal()">
+    <ng-template pTemplate="content">
+        <div style="width: 100%; height: 60vh; min-height: 400px; max-height: 700px; background: #000; margin: -10px -15px -15px -15px;">
+            <iframe *ngIf="currentRealtimeUrl" [src]="currentRealtimeUrl" sandbox="allow-scripts allow-same-origin allow-popups" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
+    </ng-template>
+</p-dialog>
+
 <!-- Lightbox Modal -->
 <div *ngIf="lightboxUrl" class="comm-lightbox" (click)="closeMedia()">
     <div class="comm-lightbox__backdrop"></div>
@@ -551,3 +665,179 @@
         <i class="pi pi-download"></i> Abrir original
     </a>
 </div>
+
+<!-- Transfer Modal -->
+<p-dialog [(visible)]="showTransferModal" header="Transferir Conversación" [modal]="true" [style]="{width: '35vw', minWidth: '400px'}"
+    [draggable]="false" [resizable]="false">
+    <div *ngIf="isTransferring" class="flex flex-column align-items-center justify-content-center p-4">
+        <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: var(--primary-color)"></i>
+        <p class="mt-3">Transfiriendo chat...</p>
+    </div>
+    
+    <div *ngIf="!isTransferring">
+        <div class="mb-4 text-secondary text-sm" style="line-height: 1.5; margin-bottom: 1.5rem;">
+            Selecciona el agente al cual deseas enviar esta conversación y detalla un resumen del requerimiento.
+        </div>
+        
+        <div style="display: block; width: 100%; margin-bottom: 1.5rem;">
+            <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Resumen para el agente <span style="color: #ef4444">*</span></label>
+            <textarea [(ngModel)]="transferSummary" rows="4" style="display: block; width: 100%; box-sizing: border-box; resize: none; padding: 0.75rem; border: 1px solid var(--surface-border, #495057); border-radius: 6px; font-family: inherit; background: var(--surface-a, #1f2937); color: var(--text-color, #e4e4e7); outline: none;" placeholder="Escribe aquí el contexto de la transferencia..."></textarea>
+        </div>
+        
+        <div style="display: block; width: 100%; margin-bottom: 1.5rem;">
+            <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Empleado destino <span style="color: #ef4444">*</span></label>
+            <p-dropdown [options]="transferAgents" [(ngModel)]="selectedTransferAgentId" [style]="{'width':'100%', 'display': 'flex'}"
+                placeholder="Seleccionar Empleado destino" [filter]="true" filterBy="name,last_name"
+                [showClear]="true" optionLabel="name" optionValue="idchatwoot" appendTo="body">
+                <ng-template let-selectedOption pTemplate="selectedItem">
+                    <div class="flex align-items-center gap-2" *ngIf="selectedOption">
+                        <i class="pi pi-user text-primary"></i>
+                        <span>{{selectedOption.name}} {{selectedOption.last_name}}</span>
+                    </div>
+                </ng-template>
+                <ng-template let-agent pTemplate="item">
+                    <div class="flex align-items-center gap-2">
+                        <i class="pi pi-user text-secondary"></i>
+                        <div>
+                            <div class="font-bold">{{agent.name}} {{agent.last_name}}</div>
+                            <div class="text-xs text-secondary">{{agent.email}}</div>
+                        </div>
+                    </div>
+                </ng-template>
+            </p-dropdown>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+            <p-button label="Cancelar" icon="pi pi-times" styleClass="p-button-text p-button-secondary" (onClick)="showTransferModal = false"></p-button>
+            <p-button label="Confirmar Transferencia" icon="pi pi-check" styleClass="p-button-primary" (onClick)="confirmTransfer()" [disabled]="(selectedTransferAgentId !== 0 && !selectedTransferAgentId) || !transferSummary.trim()"></p-button>
+        </div>
+    </div>
+</p-dialog>
+
+<!-- WhatsApp Template Modal -->
+<p-dialog header="Contactar por WhatsApp" [(visible)]="showTemplateModal" [modal]="true" [style]="{width: '35vw', minWidth: '400px'}" 
+    [closable]="true" [draggable]="false" [resizable]="false">
+    
+    <div *ngIf="selectedConversation" style="padding: 0.5rem 0;">
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Nombre del destinatario <span style="color: #ef4444">*</span></label>
+            <input pInputText [(ngModel)]="whatsappTemplateVars.name" placeholder="Ej. Juan Pérez" style="width: 100%; border-radius: 6px;" [disabled]="sendingTemplate" />
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Cuerpo del mensaje <span style="color: #ef4444">*</span></label>
+            <textarea pInputTextarea [(ngModel)]="whatsappTemplateVars.body" rows="3" style="width: 100%; resize: none; border-radius: 6px;" placeholder="Escribe el cuerpo del mensaje aquí..." [disabled]="sendingTemplate"></textarea>
+        </div>
+
+        <!-- WhatsApp Layout Preview (Mirrored from Interacciones) -->
+        <div style="padding: 1.2rem; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; margin-bottom: 1.5rem;">
+            <h5 style="margin-top: 0; margin-bottom: 0.5rem; color: #10b981; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                <i class="pi pi-whatsapp"></i> Previsualización
+            </h5>
+            <div style="font-size: 0.95rem; line-height: 1.6; color: var(--text-color); background: var(--surface-card); padding: 1rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <strong style="font-size: 1.05rem; display: block; margin-bottom: 0.75rem;">{{ whatsappTemplateVars.headerUser || 'Cliente' }}:</strong>
+                B{{ whatsappTemplateVars.bodySaludos || 'uenas' }}, <strong>{{ whatsappTemplateVars.name || '[Nombre]' }}</strong>.<br>
+                <span style="white-space: pre-wrap; display: block; margin-top: 0.25rem;">{{ whatsappTemplateVars.body || '[Cuerpo del mensaje]' }}</span><br>
+                <span style="display: block; margin-top: 0.5rem;">Seguimos a tu orden por este número.</span>
+                <span style="opacity: 0.5; font-size: 0.8rem; display: block; margin-top: 0.75rem;">Montao GPS</span>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+            <p-button label="Cancelar" icon="pi pi-times" styleClass="p-button-text p-button-secondary" [disabled]="sendingTemplate" (onClick)="showTemplateModal = false"></p-button>
+            <p-button label="Iniciar conversación" icon="pi pi-send" styleClass="p-button-success" [loading]="sendingTemplate" [disabled]="!whatsappTemplateVars.name.trim() || !whatsappTemplateVars.body.trim()" (onClick)="sendTemplateMessage()"></p-button>
+        </div>
+    </div>
+</p-dialog>
+
+<!-- ── Modal Checklist Interactivo (Comunicación) ────────────────────────────────────── -->
+<p-dialog
+  [(visible)]="showChecklistModal"
+  [modal]="true"
+  header="Objetivos de Campañas Activas"
+  styleClass="checklist-dialog"
+  [style]="{width: '450px'}">
+  
+  <div *ngIf="userChecklistsDetails.length > 0; else noChecklists">
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <div *ngFor="let listDetail of userChecklistsDetails; let i = index" class="p-card" style="padding: 1rem; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <span style="font-size: 1.1rem; font-weight: bold; color: var(--text-color);">{{ listDetail.listName }}</span>
+          <span style="font-size: 0.85rem; color: #6c757d; font-weight: bold; background: var(--surface-hover); padding: 0.25rem 0.5rem; border-radius: 4px;">{{ listDetail.completedCount }} / {{ listDetail.totalCount }}</span>
+        </div>
+        <p-progressBar [value]="(listDetail.completedCount / (listDetail.totalCount || 1)) * 100" [showValue]="false" styleClass="h-2 w-full custom-progress-bar" [style]="{'margin-bottom': '1rem'}"></p-progressBar>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <div *ngFor="let obj of listDetail.objectives" style="display: flex; align-items: flex-start; gap: 0.75rem; background: var(--surface-hover); padding: 0.75rem; border-radius: 8px; transition: background-color 0.2s, color 0.2s;" [style.border-color]="obj.completed ? 'var(--primary-color)' : 'var(--surface-border)'" [style.border]="obj.completed ? '1px solid var(--primary-color)' : '1px solid transparent'">
+            <p-checkbox [binary]="true" [ngModel]="obj.completed" (onChange)="toggleChecklistObjective(i, obj.id, $event.checked)" [inputId]="'modal_chk_'+i+'_'+obj.id"></p-checkbox>
+            <label [for]="'modal_chk_'+i+'_'+obj.id" style="cursor: pointer; margin: 0; line-height: 1.4; color: var(--text-color); font-weight: 500; font-size: 0.95rem; flex: 1; user-select: none;" [style.text-decoration]="obj.completed ? 'line-through' : 'none'" [style.opacity]="obj.completed ? '0.7' : '1'">
+              {{ obj.title }}
+            </label>
+            <i class="pi pi-check-circle" *ngIf="obj.completed" style="color: var(--primary-color); font-size: 1.2rem;"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <ng-template #noChecklists>
+    <div style="text-align: center; padding: 2rem; color: var(--text-color-secondary);">
+      <i class="pi pi-inbox" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+      <p style="margin: 0;">Este usuario no requiere ninguna lista de interacción u objetivos.</p>
+    </div>
+  </ng-template>
+</p-dialog>
+
+<!-- ── Modal GPS Targets (Comunicación) ────────────────────────────────────── -->
+<p-dialog
+  [(visible)]="showTargetsModal"
+  [modal]="true"
+  header="Objetivos (Vehículos)"
+  styleClass="targets-dialog"
+  [style]="{width: '550px'}">
+  
+  <div *ngIf="loadingTargets" style="text-align: center; padding: 2rem;">
+    <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: var(--primary-color);"></i>
+    <p style="margin-top: 1rem; color: var(--text-color-secondary);">Cargando objetivos...</p>
+  </div>
+
+  <div *ngIf="!loadingTargets && userTargets.length > 0; else noTargets">
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+      <div *ngFor="let target of userTargets" class="p-card" style="padding: 1rem; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0;">
+          <div style="width: 40px; height: 40px; min-width: 40px; border-radius: 8px; background: rgba(99, 102, 241, 0.1); color: #6366f1; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+            <i class="pi pi-car"></i>
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 600; font-size: 1.05rem; color: var(--text-color);">
+                 {{ target.name || target.device_name || 'Vehículo sin nombre' }}
+            </div>
+            <div style="margin-top: 4px; margin-bottom: 6px;">
+                 <span style="font-size: 0.75rem; font-weight: normal; padding: 2px 6px; border-radius: 4px; display: inline-block; white-space: nowrap;"
+                       [ngStyle]="{
+                         'background': target.traccarInfo?.status === 'online' ? 'rgba(34, 197, 94, 0.1)' : (target.traccarInfo?.status === 'Localizado' ? 'rgba(6, 182, 212, 0.1)' : 'rgba(239, 68, 68, 0.1)'),
+                         'color': target.traccarInfo?.status === 'online' ? '#22c55e' : (target.traccarInfo?.status === 'Localizado' ? '#06b6d4' : '#ef4444')
+                       }">
+                   {{ target.traccarInfo?.status === 'online' ? 'Conectado' : (target.traccarInfo?.status === 'Localizado' ? 'Localizado' : 'Desconectado') }}
+                 </span>
+            </div>
+            <div style="font-size: 0.85rem; color: #6c757d; display: flex; flex-wrap: wrap; gap: 0.75rem;">
+              <span style="white-space: nowrap;"><i class="pi pi-hashtag" style="font-size: 0.75rem;"></i> IMEI: {{ target.imei || target.device_imei || 'N/A' }}</span>
+              <span *ngIf="target.simCard?.phone || target.sim_card_number" style="white-space: nowrap;"><i class="pi pi-phone" style="font-size: 0.75rem;"></i> {{ target.simCard?.phone || target.sim_card_number }}</span>
+            </div>
+          </div>
+        </div>
+        <div style="min-width: max-content;">
+          <button pButton pRipple icon="pi pi-send" label="Enviar" class="p-button-outlined p-button-sm p-button-secondary" (click)="openTargetSendMenu(target, $event, targetMenu)"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #noTargets>
+    <div *ngIf="!loadingTargets" style="text-align: center; padding: 2rem; color: var(--text-color-secondary);">
+      <i class="pi pi-ban" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+      <p style="margin: 0;">No se encontraron vehículos vinculados a la cuenta.</p>
+    </div>
+  </ng-template>
+  
+  <p-menu #targetMenu [popup]="true" [model]="targetMenuModel" appendTo="body"></p-menu>
+</p-dialog>

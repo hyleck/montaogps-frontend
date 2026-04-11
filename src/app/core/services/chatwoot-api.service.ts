@@ -12,13 +12,14 @@ export class ChatwootApiService {
 
     constructor(private http: HttpClient) { }
 
-    sendMessage(phone: string, message: string, contactName?: string, inboxId?: number, files?: File[]): Observable<any> {
+    sendMessage(phone: string, message: string, contactName?: string, inboxId?: number, files?: File[], agentId?: string): Observable<any> {
         if (files && files.length > 0) {
             const formData = new FormData();
             formData.append('phone', phone);
             formData.append('message', message);
             if (contactName) formData.append('contact_name', contactName);
             if (inboxId) formData.append('inbox_id', inboxId.toString());
+            if (agentId) formData.append('agent_id', agentId);
             for (const file of files) {
                 formData.append('files', file);
             }
@@ -29,6 +30,7 @@ export class ChatwootApiService {
             message,
             contact_name: contactName,
             inbox_id: inboxId,
+            agent_id: agentId
         });
     }
 
@@ -94,5 +96,13 @@ export class ChatwootApiService {
         return this.http.get(`${this.apiUrl}/inbox-details`, {
             params: { inbox_id: inboxId.toString() }
         });
+    }
+
+    assignAgentToConversation(conversationId: number, agentId: number): Observable<any> {
+        return this.http.post(`${this.apiUrl}/conversation-assign`, { conversation_id: conversationId, agent_id: agentId });
+    }
+
+    sendWhatsAppTemplateToUser(payload: { phone: string; template_name: string; variables: string[]; agent_id?: string }): Observable<any> {
+        return this.http.post(`${this.apiUrl}/send-whatsapp`, payload);
     }
 }

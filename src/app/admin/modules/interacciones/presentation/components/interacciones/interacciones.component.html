@@ -166,6 +166,26 @@
         </div>
       </div>
 
+      <!-- Objetivos Dinámicos ────────────────── -->
+      <div style="margin-top: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h4 style="margin: 0; font-size: 1rem; color: var(--text-color);">Objetivos / Tareas de la Campaña</h4>
+          <button pButton icon="pi pi-plus" label="Añadir objetivo" class="p-button-sm p-button-outlined p-button-info" (click)="addObjective()"></button>
+        </div>
+        
+        <div *ngIf="formObjectives.length === 0" style="color: #6c757d; font-size: 0.9rem; font-style: italic;">
+          No hay objetivos configurados. (Ej: "Ofrecer Premium", "Verificar Cédula").
+        </div>
+
+        <div *ngFor="let obj of formObjectives; let i = index" class="grid" style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; margin-bottom: 0.75rem; align-items: end;">
+          <div class="form-group" style="margin-bottom: 0">
+            <label style="font-size: 0.8rem">Título del Objetivo *</label>
+            <input pInputText [(ngModel)]="obj.title" placeholder="Ej. Verificar cuenta en sistema" class="w-full" />
+          </div>
+          <button pButton icon="pi pi-trash" class="p-button-danger p-button-text p-button-sm" (click)="removeObjective(i)"></button>
+        </div>
+      </div>
+
       <!-- Contactos Externos ────────────────── -->
       <div style="margin-top: 2rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -312,6 +332,7 @@
               <th class="hide-on-1530">Tipo</th>
               <th class="hide-on-1530">Estado</th>
               <th>Última interacción</th>
+              <th *ngIf="selectedList?.objectives?.length">Objetivos</th>
               <th style="width: 6rem; text-align: center;">Acciones</th>
             </tr>
           </ng-template>
@@ -365,6 +386,20 @@
                   </ng-template>
                 </ng-container>
                 <ng-template #noInt>—</ng-template>
+              </td>
+              <td *ngIf="selectedList?.objectives?.length">
+                <span class="p-column-title">Objetivos</span>
+                <div class="flex" style="padding-top: 0.25rem;">
+                  <button pButton 
+                    [class]="getCompletedObjectivesCount(user) === selectedList!.objectives!.length ? 'p-button-success' : (getCompletedObjectivesCount(user) > 0 ? 'p-button-info' : 'p-button-secondary')"
+                    [label]="getCompletedObjectivesCount(user) + '/' + selectedList!.objectives!.length" 
+                    icon="pi pi-check-square" 
+                    class="p-button-sm p-button-rounded p-button-outlined"
+                    style="min-width: 4rem; padding: 0.25rem 0.75rem; font-weight: bold;"
+                    (click)="openChecklistModal(user)"
+                    pTooltip="Ver objetivos del usuario">
+                  </button>
+                </div>
               </td>
               <td>
                 <span class="p-column-title">Acciones</span>
@@ -509,5 +544,42 @@
         </p-card>
       </ng-template>
     </p-timeline>
+  </div>
+</p-dialog>
+
+<!-- ── Modal Checklist Interactivo ────────────────────────────────────── -->
+<p-dialog
+  [(visible)]="showChecklistModal"
+  [modal]="true"
+  header="Objetivos de la Campaña"
+  styleClass="checklist-dialog"
+  (onHide)="closeChecklistModal()"
+  [style]="{width: '450px'}">
+  
+  <div *ngIf="selectedChecklistUser">
+    <div class="flex" style="align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; background: var(--surface-hover); padding: 1rem; border-radius: 8px;">
+      <div class="user-avatar" style="flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; background: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; overflow: hidden;">
+        <img *ngIf="selectedChecklistUser.photo" [src]="selectedChecklistUser.photo" alt="foto" style="width: 100%; height: 100%; object-fit: cover;">
+        <span *ngIf="!selectedChecklistUser.photo">{{ (selectedChecklistUser.name || '?')[0].toUpperCase() }}</span>
+      </div>
+      <div style="display: flex; flex-direction: column; line-height: 1.2;">
+        <span style="font-weight: bold; font-size: 1.1rem; color: var(--text-color);">{{ getUserFullName(selectedChecklistUser) }}</span>
+        <span style="color: #6c757d; font-size: 0.85rem; margin-top: 4px;">{{ selectedChecklistCompletedCount }} de {{ selectedChecklistTotal }} objetivos logrados</span>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 2rem;">
+      <p-progressBar [value]="(selectedChecklistCompletedCount / (selectedChecklistTotal || 1)) * 100" [showValue]="false" styleClass="h-2 w-full custom-progress-bar"></p-progressBar>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <div *ngFor="let obj of selectedList?.objectives" class="p-card" style="padding: 1rem; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; display: flex; align-items: center; gap: 1rem; transition: background-color 0.2s, color 0.2s;" [style.border-color]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'var(--primary-color)' : 'var(--surface-border)'" [style.background-color]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'var(--surface-hover)' : 'var(--surface-card)'">
+        <p-checkbox [binary]="true" [ngModel]="isObjectiveCompleted(selectedChecklistUser, obj.id)" (onChange)="onObjectiveToggle(selectedChecklistUser, obj.id, $event)" [inputId]="'modal_chk_'+selectedChecklistUser._id+'_'+obj.id"></p-checkbox>
+        <label [for]="'modal_chk_'+selectedChecklistUser._id+'_'+obj.id" style="cursor: pointer; margin: 0; line-height: 1.4; color: var(--text-color); font-weight: 500; font-size: 1rem; flex: 1; user-select: none;" [style.text-decoration]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? 'line-through' : 'none'" [style.opacity]="isObjectiveCompleted(selectedChecklistUser, obj.id) ? '0.7' : '1'">
+          {{ obj.title }}
+        </label>
+        <i class="pi pi-check-circle" *ngIf="isObjectiveCompleted(selectedChecklistUser, obj.id)" style="color: var(--primary-color); font-size: 1.2rem;"></i>
+      </div>
+    </div>
   </div>
 </p-dialog>

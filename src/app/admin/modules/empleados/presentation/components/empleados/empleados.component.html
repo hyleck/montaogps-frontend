@@ -220,6 +220,22 @@
                             <button pButton icon="pi pi-times" class="p-button-danger p-button-outlined" [disabled]="savingChatwoot" (click)="toggleEditChatwoot()"></button>
                         </div>
                     </div>
+
+                    <div class="grid-item" style="grid-column: span 1;">
+                        <span class="grid-label">Token de Chatwoot</span>
+                        <div *ngIf="!editingChatwootToken" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem;">
+                            <span class="grid-value" [ngStyle]="{'opacity': selectedEmpleado.chatwoot_access_token ? 1 : 0.5, 'font-family': 'monospace', 'font-size': '0.9rem', 'white-space': 'nowrap', 'overflow': 'hidden', 'text-overflow': 'ellipsis', 'max-width': '120px'}">
+                                {{ selectedEmpleado.chatwoot_access_token ? '••••••••••••' : 'No vinculado' }}
+                            </span>
+                            <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm" style="height: 1.5rem; width: 1.5rem;" (click)="toggleEditChatwootToken()" pTooltip="Configurar Token"></button>
+                        </div>
+                        <div *ngIf="editingChatwootToken" class="p-inputgroup" style="margin-top: 0.3rem;">
+                            <span class="p-inputgroup-addon"><i class="pi pi-key"></i></span>
+                            <input type="text" pInputText [(ngModel)]="tempChatwootToken" placeholder="Pegar token..." [disabled]="savingChatwootToken" style="font-family: monospace; font-size: 0.8rem;">
+                            <button pButton icon="pi pi-check" class="p-button-success" [loading]="savingChatwootToken" (click)="saveChatwootToken()"></button>
+                            <button pButton icon="pi pi-times" class="p-button-danger p-button-outlined" [disabled]="savingChatwootToken" (click)="toggleEditChatwootToken()"></button>
+                        </div>
+                    </div>
                     
                     <div class="grid-item" style="grid-column: span 1;">
                         <span class="grid-label">Inbox (Primario)</span>

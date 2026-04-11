@@ -29,6 +29,7 @@ export interface ExternalContact {
   name: string;
   phone?: string;
   email?: string;
+  completed_objectives?: string[];
 }
 
 export interface UserList {
@@ -42,6 +43,7 @@ export interface UserList {
   external_count?: number;
   total_count?: number;
   notified_users?: NotifiedUser[];
+  objectives?: { id: string; title: string }[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -114,5 +116,9 @@ export class InteraccionesService {
   
   sendWhatsAppToUser(payload: { phone: string; template_name: string; variables: string[]; agent_id?: string }): Observable<any> {
     return this.http.post<any>(`${environment.apiUrl}/chatwoot/send-whatsapp`, payload);
+  }
+
+  toggleExternalInteractionProgress(listId: string, contactId: string, objectiveId: string, completed: boolean): Observable<any> {
+    return this.http.patch<any>(`${this.api}/${listId}/external-progress/${contactId}`, { objectiveId, completed });
   }
 }

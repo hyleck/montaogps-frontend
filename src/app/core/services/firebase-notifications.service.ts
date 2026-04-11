@@ -8,7 +8,7 @@ import {
   MessagePayload,
   onMessage,
 } from 'firebase/messaging';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 
@@ -32,6 +32,7 @@ export class FirebaseNotificationsService {
   private messaging: Messaging | null = null;
   private initialized = false;
   private subscribedTopic: string | null = null;
+  public chatTransferReceived$ = new Subject<{ conversationId?: string, summary?: string }>();
 
   constructor(
     private readonly http: HttpClient,
@@ -161,6 +162,22 @@ export class FirebaseNotificationsService {
           data: payload.data ?? {},
         });
       }
+
+      // Reproducir sonido de alerta
+      const alertAudio = new Audio('/assets/alert.mp3');
+      alertAudio.play().catch(e => console.warn('Autoplay bloqueado por el navegador', e));
+
+      // Emitir Subject de Transferencia Global si aplica
+      if (payload.data?.['tab'] === 'chat') {
+        const titleMatch = title.toLowerCase().includes('transferi');
+        if (titleMatch || payload.data?.['conversationId']) {
+          this.chatTransferReceived$.next({ 
+            conversationId: payload.data?.['conversationId'],
+            summary: payload.data?.['summary']
+          });
+        }
+      }
+
     } catch (error) {
       console.error('Error mostrando notificación en primer plano', error);
     }

@@ -32,6 +32,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   formDescription = '';
   formFilters: UserListFilters = {};
   formExternalContacts: any[] = [];
+  formObjectives: { id: string; title: string; tempId?: number }[] = [];
 
   // ── Preview de usuarios ─────────────────────────────────────
   previewUsers: any[] = [];
@@ -242,6 +243,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.formDescription = '';
     this.formFilters = {};
     this.formExternalContacts = [];
+    this.formObjectives = [];
     this.previewUsers = [];
     this.previewTotal = 0;
     this.selectedList = null;
@@ -256,6 +258,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.formDescription = list.description || '';
     this.formFilters = { ...list.filters };
     this.formExternalContacts = list.external_contacts ? JSON.parse(JSON.stringify(list.external_contacts)) : [];
+    this.formObjectives = list.objectives ? JSON.parse(JSON.stringify(list.objectives)) : [];
     this.showForm = true;
     this.runPreview();
   }
@@ -325,7 +328,10 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
 
     this.savingForm = true;
     const validExternal = this.formExternalContacts.filter(c => c.name.trim() !== '');
-    const payload: any = { name: this.formName, description: this.formDescription, filters: activeFilters, external_contacts: validExternal };
+    const validObjectives = this.formObjectives.filter(o => o.title.trim() !== '').map(o => {
+      return { id: o.id || Math.random().toString(36).substr(2, 9), title: o.title.trim() };
+    });
+    const payload: any = { name: this.formName, description: this.formDescription, filters: activeFilters, external_contacts: validExternal, objectives: validObjectives };
 
     const op = this.isEditing
       ? this.interaccionesService.update(this.selectedList!._id, payload)
@@ -405,6 +411,37 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.showPushModal = true;
   }
 
+  showChecklistModal = false;
+  selectedChecklistUser: any = null;
+  selectedChecklistCompletedCount = 0;
+  selectedChecklistTotal = 0;
+
+  openChecklistModal(user: any) {
+    this.selectedChecklistUser = user;
+    this.calculateChecklistStats();
+    this.showChecklistModal = true;
+  }
+
+  closeChecklistModal() {
+    this.showChecklistModal = false;
+    this.selectedChecklistUser = null;
+  }
+
+  getCompletedObjectivesCount(user: any): number {
+    if (!user || !this.selectedList?.objectives?.length) return 0;
+    if (user.is_external) {
+      return user.completed_objectives?.filter((id: string) => this.selectedList!.objectives!.some(o => o.id === id)).length || 0;
+    }
+    const listProgress = user.interaction_progress?.find((p: any) => p.listId === this.selectedList!._id);
+    if (!listProgress) return 0;
+    return listProgress.completed_objectives.filter((id: string) => this.selectedList!.objectives!.some(o => o.id === id)).length;
+  }
+
+  calculateChecklistStats() {
+    this.selectedChecklistTotal = this.selectedList?.objectives?.length || 0;
+    this.selectedChecklistCompletedCount = this.getCompletedObjectivesCount(this.selectedChecklistUser);
+  }
+
   targetUserId: string | null = null;
   targetUserName: string | null = null;
   targetUserEmail: string | null = null;
@@ -438,6 +475,63 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     } else {
       return 'uenas noches';
     }
+  }
+
+  addObjective() {
+    this.formObjectives.push({ id: Math.random().toString(36).substr(2, 9), title: '' });
+  }
+
+  removeObjective(index: number) {
+    this.formObjectives.splice(index, 1);
+  }
+
+  onObjectiveToggle(user: any, objectiveId: string, event: any) {
+    if (!this.selectedList || !user._id) return;
+    const isChecked = event.checked;
+
+    if (user.is_external) {
+      if (!user.completed_objectives) user.completed_objectives = [];
+      if (isChecked && !user.completed_objectives.includes(objectiveId)) user.completed_objectives.push(objectiveId);
+      if (!isChecked) user.completed_objectives = user.completed_objectives.filter((id: string) => id !== objectiveId);
+
+      this.interaccionesService.toggleExternalInteractionProgress(this.selectedList._id, user._id, objectiveId, isChecked)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar el progreso' })
+        });
+    } else {
+      // Optimistic UI Update against User tracking logic
+      if (!user.interaction_progress) user.interaction_progress = [];
+      const listProgress = user.interaction_progress.find((p: any) => p.listId === this.selectedList!._id);
+      if (listProgress) {
+        if (isChecked && !listProgress.completed_objectives.includes(objectiveId)) listProgress.completed_objectives.push(objectiveId);
+        if (!isChecked) listProgress.completed_objectives = listProgress.completed_objectives.filter((id: string) => id !== objectiveId);
+      } else if (isChecked) {
+        user.interaction_progress.push({ listId: this.selectedList._id, completed_objectives: [objectiveId] });
+      }
+
+      this.userService.toggleInteractionProgress(user._id, this.selectedList._id, objectiveId, isChecked)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar el progreso' })
+        });
+    }
+
+    if (this.showChecklistModal && this.selectedChecklistUser?._id === user._id) {
+      this.calculateChecklistStats();
+    }
+  }
+
+  isObjectiveCompleted(user: any, objectiveId: string): boolean {
+    if (!user) return false;
+    if (user.is_external) {
+      return user.completed_objectives?.includes(objectiveId) || false;
+    }
+
+    if (!user.interaction_progress || !user.interaction_progress.length) return false;
+    const listProgress = user.interaction_progress.find((p: any) => p.listId === this.selectedList?._id);
+    if (!listProgress) return false;
+    return listProgress.completed_objectives.includes(objectiveId);
   }
 
   openPersonalPushModal(user: any, channel: 'push' | 'email' | 'whatsapp' = 'push') {

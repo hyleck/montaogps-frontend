@@ -1,9 +1,16 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { forkJoin, of } from 'rxjs';
 import { ChatwootApiService } from '@core/services/chatwoot-api.service';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
+import { TargetsService } from '@core/services/targets.service';
+import { InteraccionesService, UserList } from '../../../../interacciones/presentation/services/interacciones.service';
+import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
+import { SystemService } from '@core/services/system.service';
+import { MessageService, MenuItem } from 'primeng/api';
 
 interface ChatConversation {
   id: number;
@@ -21,6 +28,21 @@ interface ChatConversation {
   inbox_id?: number;
   last_message_type?: number;
   labels?: string[];
+  assignee_id?: number | null;
+  contact_last_seen_at?: number | null;
+}
+
+interface ChatMessage {
+  id?: number;
+  from: 'me' | 'incoming' | 'system';
+  text?: string;
+  parsedHtml?: string;
+  time: Date;
+  attachments?: ChatAttachment[];
+  replyTo?: { id: number; text: string; from: string };
+  safeRealtimeUrl?: SafeResourceUrl;
+  googleMapsUrl?: string;
+  wazeUrl?: string;
 }
 
 interface EmailInbox {
@@ -34,15 +56,6 @@ interface ChatAttachment {
   content_type: string;
 }
 
-interface ChatMessage {
-  id?: number;
-  from: 'me' | 'incoming' | 'system';
-  text: string;
-  parsedHtml?: string;
-  time: Date;
-  attachments?: ChatAttachment[];
-  replyTo?: { id: number; text: string; from: string };
-}
 
 @Component({
   selector: 'app-communication',
@@ -95,9 +108,42 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // Lightbox
   lightboxUrl: string | null = null;
   lightboxType: 'image' | 'video' = 'image';
+
+  // Realtime Modal
+  showRealtimeModal: boolean = false;
+  currentRealtimeUrl: SafeResourceUrl | null = null;
+  
+  // Realtime Expiration Config
+  showExpirationModal: boolean = false;
+  expirationHours: number = 24;
+  pendingRealtimeTarget: any = null;
+
+  // New Compose Modal
+  showComposeModal: boolean = false;
   loadingMessages: boolean = false;
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
-  @ViewChild('fileInput') fileInput!: ElementRef;
+  @ViewChild('mediaFileInput') mediaFileInput!: ElementRef;
+  @ViewChild('docFileInput') docFileInput!: ElementRef;
+  @ViewChild('messageInput') messageInput!: ElementRef;
+
+  attachmentMenuItems: MenuItem[] = [];
+
+  // Transfer Modal
+  showTransferModal: boolean = false;
+  transferAgents: any[] = [];
+  selectedTransferAgentId: number | null = null;
+  isTransferring: boolean = false;
+  transferSummary: string = '';
+
+  // WhatsApp Template Modal
+  showTemplateModal: boolean = false;
+  sendingTemplate: boolean = false;
+  whatsappTemplateVars = {
+    headerUser: 'Cliente',
+    bodySaludos: 'Buenas tardes',
+    name: '',
+    body: ''
+  };
 
   // Polling
   private chatPollingInterval: any = null;
@@ -124,11 +170,33 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     private authService: AuthService,
     private userService: UserService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private location: Location,
+    private messageService: MessageService,
+    private firebaseNotifications: FirebaseNotificationsService,
+    private interaccionesService: InteraccionesService,
+    private targetsService: TargetsService,
+    private systemService: SystemService,
+    private cdr: ChangeDetectorRef,
+    private sanitizer: DomSanitizer
   ) {}
 
+  allUserLists: UserList[] = [];
+  userChecklistsDetails: { listName: string, completedCount: number, totalCount: number, objectives: { title: string, completed: boolean, id: string }[] }[] = [];
+  userTargets: any[] = [];
+
+  showChecklistModal: boolean = false;
+  showTargetsModal: boolean = false;
+  loadingTargets: boolean = false;
+  targetMenuModel: MenuItem[] = [];
+
   ngOnInit(): void {
+    this.updateAttachmentMenu();
+
     this.loadUserInbox();
+    this.interaccionesService.getAll().subscribe({
+      next: (lists) => this.allUserLists = lists
+    });
     this.route.params.subscribe(params => {
       const tab = params['tab'];
       if (tab === 'chat' || tab === 'correo') {
@@ -314,11 +382,106 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.filterEmailConversations();
   }
 
+  // ============================
+  // TRANSFER CONVERSATION
+  // ============================
+  
+  openTransferModal(): void {
+    if (!this.selectedConversation) return;
+    this.showTransferModal = true;
+    this.selectedTransferAgentId = null;
+    this.isTransferring = false;
+    this.transferSummary = '';
+    
+    // Si ya cargamos los agentes, no lo hacemos de nuevo
+    if (this.transferAgents.length === 0) {
+      this.userService.getEmployees().subscribe({
+        next: (employees: any[]) => {
+          // Filtrar los empleados que tengan un ID de Chatwoot y no sean el propio usuario actual
+          const agents = employees.filter((e: any) => e.idchatwoot && e.id !== this.currentUserId);
+          
+          // Inyectamos a Ester Assistant estáticamente con ID 0 para representar desasignación
+          agents.unshift({
+             name: 'Ester',
+             last_name: 'Assistant (IA)',
+             email: 'system@n8n.bot',
+             idchatwoot: 0
+          });
+
+          this.transferAgents = agents;
+        },
+        error: (err: any) => console.error('Error cargando empleados para transferencia', err)
+      });
+    }
+  }
+
+  confirmTransfer(): void {
+    const isEster = this.selectedTransferAgentId === 0;
+    if (!this.selectedConversation || (!this.selectedTransferAgentId && !isEster) || !this.transferSummary.trim()) return;
+    
+    this.isTransferring = true;
+    const conversationId = this.selectedConversation.id;
+    const targetAgentId = this.selectedTransferAgentId as number;
+
+    const processSuccess = () => {
+        this.showTransferModal = false;
+        this.isTransferring = false;
+        
+        if (targetAgentId === 0) {
+            this.selectedConversation!.assignee_id = null;
+        }
+        
+        // Buscar el agente en memoria para sacar su ID de Mongo y enviarle el Push (si es humano)
+        const assignedAgent = this.transferAgents.find((a: any) => a.idchatwoot === targetAgentId);
+        const contactName = this.selectedConversation?.contact.name || 'un cliente';
+        
+        if (assignedAgent && (assignedAgent.id || assignedAgent._id)) {
+          const topic = assignedAgent.id || assignedAgent._id;
+          this.firebaseNotifications.sendTestNotification({
+            topic: topic,
+            title: 'Nueva Conversación Transferida',
+            body: `Se te ha transferido el chat de ${contactName}.`,
+            data: { tab: 'chat', conversationId: conversationId.toString(), summary: this.transferSummary.trim() }
+          }).subscribe({
+            error: (err) => console.error('Error enviando push de transferencia', err)
+          });
+        }
+
+        // Mostramos Toast / System Message y actualizamos la vista
+        // Y cerramos la interfaz de inmediato para bloquear acceso a continuar escribiendo
+        this.selectedConversation = null;
+        this.messages = []; // Clear current feed array
+        this.messageService.add({ severity: 'success', summary: targetAgentId === 0 ? 'Chat Cedido a IA' : 'Transferencia Completa', detail: targetAgentId === 0 ? 'Control devuelto a Ester Assistant correctamente.' : 'La conversación ha sido transferida exitosamente.' });
+        this.loadConversations(); // Recargar lista para reflejar salida
+    };
+
+    this.chatwootApi.assignAgentToConversation(conversationId, targetAgentId).subscribe({
+      next: (res) => {
+        if (res.success || targetAgentId === 0) {
+           processSuccess();
+        } else {
+           this.isTransferring = false;
+           this.messages.push({ from: 'system', text: '✗ Error interno al transferir', time: new Date() });
+        }
+      },
+      error: () => {
+        if (targetAgentId === 0) {
+           processSuccess();
+        } else {
+           this.isTransferring = false;
+           this.showTransferModal = false;
+           this.messages.push({ from: 'system', text: '✗ Error de conexión al transferir', time: new Date() });
+        }
+      }
+    });
+  }
+
   selectEmail(conv: ChatConversation, navigate: boolean = true): void {
+    conv.unread_count = 0; // Clear indicator instantly mimicking visual read receipts
     this.selectedEmail = conv;
     this.loadEmailMessages();
     if (navigate) {
-      this.router.navigate(['/admin/communication', 'correo', conv.id]);
+      this.location.go(`/admin/communication/correo/${conv.id}`);
     }
   }
 
@@ -378,7 +541,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       : this.composeBody.trim();
 
     const files = this.composeFiles.length > 0 ? this.composeFiles : undefined;
-    this.chatwootApi.sendMessage(this.composeEmail.trim(), fullMessage, undefined, this.composeFromInboxId || this.userInbox2Id, files).subscribe({
+    this.chatwootApi.sendMessage(this.composeEmail.trim(), fullMessage, undefined, this.composeFromInboxId || this.userInbox2Id, files, this.chatwootAgentId).subscribe({
       next: () => {
         this.sendingEmail = false;
         this.showCompose = false;
@@ -521,6 +684,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   selectConversation(conv: ChatConversation, navigate: boolean = true): void {
+    conv.unread_count = 0; // Clear indicator instantly mimicking visual read receipts
     this.selectedConversation = conv;
     this.messages = [];
     this.chatInput = '';
@@ -529,23 +693,321 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.loadMessages();
     this.loadGpsUser(conv.contact.phone);
     if (navigate) {
-      this.router.navigate(['/admin/communication', 'chat', conv.id]);
+      this.location.go(`/admin/communication/chat/${conv.id}`);
     }
   }
 
   private loadGpsUser(phone: string): void {
     if (!phone) return;
+    this.userChecklistsDetails = [];
+    this.userTargets = [];
     this.userService.getByPhone(phone).subscribe({
-      next: (user: any) => {
+      next: async (user: any) => {
         console.log('[Contact Panel] by-phone response:', user);
         this.gpsUser = user?._id ? user : null;
+        this.calculateUserChecklistsDetails(phone);
+        
+        if (this.gpsUser && this.gpsUser._id) {
+          this.loadingTargets = true;
+          try {
+             // Retrieve actual GPS units assigned via parent endpoint
+             const res = await this.targetsService.getTargetsWithPagination(this.gpsUser._id, 0, 100);
+             this.userTargets = res.devices || [];
+             this.updateAttachmentMenu();
+             this.cdr.detectChanges();
+          } catch (e) {
+             console.error("Error loading targets", e);
+          } finally {
+             this.loadingTargets = false;
+             this.cdr.detectChanges();
+          }
+        }
       },
       error: (err: any) => {
         console.error('[Contact Panel] by-phone error:', err);
         this.gpsUser = null;
+        this.calculateUserChecklistsDetails(phone);
       }
     });
   }
+
+  private updateAttachmentMenu() {
+    this.attachmentMenuItems = [
+      { label: 'Fotos y Videos', icon: 'pi pi-image', command: () => this.mediaFileInput.nativeElement.click() },
+      { label: 'Documento', icon: 'pi pi-file', command: () => this.docFileInput.nativeElement.click() }
+    ];
+
+    let hasSeparated = false;
+
+    if (this.userChecklistsDetails.length > 0) {
+      if (!hasSeparated) { this.attachmentMenuItems.push({ separator: true }); hasSeparated = true; }
+      this.attachmentMenuItems.push({
+        label: 'Checklists de Campaña',
+        icon: 'pi pi-check-square',
+        command: () => this.showChecklistModal = true
+      });
+    }
+
+    if (this.userTargets && this.userTargets.length > 0) {
+      if (!hasSeparated) { this.attachmentMenuItems.push({ separator: true }); hasSeparated = true; }
+      this.attachmentMenuItems.push({
+        label: 'Objetivos del Cliente',
+        icon: 'pi pi-car',
+        command: () => this.showTargetsModal = true
+      });
+    }
+  }
+
+  openTargetSendMenu(target: any, event: Event, menu: any) {
+    const baseUrl = window.location.origin;
+    const lat = target.traccarInfo?.geolocation?.latitude ?? target.traccarInfo?.lastLocation?.latitude ?? target.traccarInfo?.latitude;
+    const lng = target.traccarInfo?.geolocation?.longitude ?? target.traccarInfo?.lastLocation?.longitude ?? target.traccarInfo?.longitude;
+    const imei = target.device_imei || target.imei || 'N/A';
+    
+    this.targetMenuModel = [
+      {
+        label: 'Link en tiempo real',
+        icon: 'pi pi-compass',
+        command: () => {
+             this.pendingRealtimeTarget = target;
+             this.expirationHours = 24;
+             this.showExpirationModal = true;
+        }
+      },
+      {
+        label: 'Link de Google Maps',
+        icon: 'pi pi-map',
+        command: () => {
+             if (lat !== undefined && lng !== undefined) {
+                 this.sendAppUrlAuto(`https://www.google.com/maps?q=${lat},${lng}`);
+             } else this.messageService.add({ severity: 'warn', summary: 'Ubicación faltante', detail: 'El dispositivo no posee coordenadas activas.'});
+        }
+      },
+      {
+        label: 'Link de Waze',
+        icon: 'pi pi-car',
+        command: () => {
+             if (lat !== undefined && lng !== undefined) {
+                 this.sendAppUrlAuto(`https://www.waze.com/ul?ll=${lat}%2C${lng}&navigate=yes&zoom=17`);
+             } else this.messageService.add({ severity: 'warn', summary: 'Ubicación faltante', detail: 'El dispositivo no posee coordenadas activas.'});
+        }
+      },
+      {
+        label: 'Detalles del objetivo',
+        icon: 'pi pi-list',
+        command: () => this.injectIntoChat(`Vehículo: ${target.name || target.device_name || 'Sin nombre'}\nIMEI: ${imei}\nLínea: ${target.sim_card_number || target.simCard?.phone || 'N/A'}`)
+      },
+      {
+        label: 'Solo el IMEI',
+        icon: 'pi pi-hashtag',
+        command: () => this.injectIntoChat(imei)
+      }
+    ];
+    menu.toggle(event);
+  }
+
+  injectIntoChat(text: string) {
+    if (this.chatInput) {
+       this.chatInput += '\n' + text;
+    } else {
+       this.chatInput = text;
+    }
+    this.showTargetsModal = false;
+  }
+
+  sendRealtimeLinkAuto() {
+      if (!this.pendingRealtimeTarget || !this.selectedConversation) return;
+
+      this.showExpirationModal = false;
+      this.showTargetsModal = false;
+      const target = this.pendingRealtimeTarget;
+      const hours = this.expirationHours || 24;
+      const baseUrl = window.location.origin;
+
+      this.systemService.getAll().subscribe({
+        next: (systems: any) => {
+           const googleConfig = systems && systems[0] ? systems[0].map_api1 : null;
+           const mapboxConfig = systems && systems[0] ? systems[0].map_api2 : null;
+           const key = googleConfig?.key || mapboxConfig?.key || 'AIzaSyDTcpHcDElgnEB8fXzoZ5Ee30H_kpIwEjI';
+           
+           const expirationDate = new Date();
+           expirationDate.setHours(expirationDate.getHours() + hours);
+           const linkData = { trgt: target._id, exprcn: expirationDate.toISOString(), gkey: key };
+           const encodedData = btoa(JSON.stringify(linkData));
+           const realtimeUrl = `${baseUrl}/realtimelink?data=${encodedData}`;
+
+           const deptStr = this.currentUserDepartment ? ` - ${this.currentUserDepartment}` : '';
+           const textToSend = `> ${this.currentUserName}${deptStr}\nhttps://tracker.montao.net/realtimelink?data=${encodedData}`;
+
+           const pendingMsg: ChatMessage = { from: 'me', text: textToSend, parsedHtml: this.parseMessageContent(textToSend), time: new Date() };
+           this.enrichWithAppUrls(pendingMsg);
+           this.messages.push(pendingMsg);
+           this.scrollToBottom();
+
+           this.chatwootApi.sendConversationMessage(
+             this.selectedConversation!.id,
+             textToSend,
+             undefined,
+             undefined,
+             this.chatwootAgentId
+           ).subscribe({
+             next: (res) => {
+               if (!res.success) {
+                 this.messages.push({ from: 'system', text: '✗ Error al enviar enlace', time: new Date() });
+               } else {
+                 this.loadMessages();
+               }
+               this.scrollToBottom();
+               this.pendingRealtimeTarget = null;
+             },
+             error: () => {
+               this.messages.push({ from: 'system', text: '✗ Error de conexión', time: new Date() });
+               this.scrollToBottom();
+               this.pendingRealtimeTarget = null;
+             }
+           });
+        }
+      });
+  }
+
+  sendAppUrlAuto(url: string) {
+      if (!this.selectedConversation) return;
+
+      this.showTargetsModal = false;
+      const deptStr = this.currentUserDepartment ? ` - ${this.currentUserDepartment}` : '';
+      const textToSend = `> ${this.currentUserName}${deptStr}\n${url}`;
+
+      const pendingMsg: ChatMessage = { from: 'me', text: textToSend, parsedHtml: this.parseMessageContent(textToSend), time: new Date() };
+      this.enrichWithAppUrls(pendingMsg);
+      this.messages.push(pendingMsg);
+      this.scrollToBottom();
+
+      this.chatwootApi.sendConversationMessage(
+         this.selectedConversation!.id,
+         textToSend,
+         undefined,
+         undefined,
+         this.chatwootAgentId
+      ).subscribe({
+         next: (res) => {
+             if (!res.success) {
+                 this.messages.push({ from: 'system', text: '✗ Error al enviar enlace', time: new Date() });
+             } else {
+                 this.loadMessages();
+             }
+             this.scrollToBottom();
+         },
+         error: () => {
+             this.messages.push({ from: 'system', text: '✗ Error de conexión', time: new Date() });
+             this.scrollToBottom();
+         }
+      });
+  }
+
+  calculateUserChecklistsDetails(phone: string) {
+    this.userChecklistsDetails = [];
+    const cleanPhone = phone ? phone.replace(/[^\d]/g, '') : '';
+    if (!cleanPhone || !this.allUserLists) {
+       this.updateAttachmentMenu();
+       return;
+    }
+
+    for (const list of this.allUserLists) {
+      if (!list.objectives || list.objectives.length === 0) continue;
+
+      let applies = false;
+      let completedIds: string[] = [];
+      let isExternal = false;
+      let externalContactId = '';
+
+      // 1. External Contacts matching logic
+      const extMatch = list.external_contacts?.find(e => {
+         if (!e.phone) return false;
+         const ep = e.phone.replace(/[^\d]/g, '');
+         if (!ep) return false;
+         return ep === cleanPhone || ep.endsWith(cleanPhone.slice(-10)) || cleanPhone.endsWith(ep.slice(-10));
+      });
+
+      if (extMatch) {
+         applies = true;
+         isExternal = true;
+         externalContactId = (extMatch as any)._id;
+         completedIds = extMatch.completed_objectives || [];
+      } else if (this.gpsUser) {
+         // 2. Registered User Filters matching logic
+         if (list.filters && Object.keys(list.filters).length > 0) {
+            let matches = true;
+            if (list.filters.affiliation_type_id && this.gpsUser.affiliation_type_id !== list.filters.affiliation_type_id) matches = false;
+            if (list.filters.company_type_id && this.gpsUser.company_type_id !== list.filters.company_type_id) matches = false;
+            if (list.filters.profile_type_id && this.gpsUser.profile_type_id !== list.filters.profile_type_id) matches = false;
+            if (list.filters.status !== undefined && this.gpsUser.status !== list.filters.status && list.filters.status !== null) matches = false;
+            
+            if (matches) applies = true;
+         } else if (!list.external_contacts || list.external_contacts.length === 0) {
+            // General broadcast list applies if no external contacts & no filters exist
+            applies = true;
+         }
+
+         if (applies) {
+             const progress = this.gpsUser.interaction_progress?.find((p: any) => p.listId === list._id);
+             if (progress) completedIds = progress.completed_objectives || [];
+         }
+      }
+
+      if (applies) {
+        const objectivesDetail = list.objectives.map(obj => ({
+          title: obj.title,
+          id: obj.id,
+          completed: completedIds.includes(obj.id)
+        }));
+
+        this.userChecklistsDetails.push({
+          listName: list.name,
+          listId: list._id,
+          completedCount: completedIds.length,
+          totalCount: list.objectives.length,
+          isExternal,
+          externalContactId,
+          objectives: objectivesDetail
+        } as any);
+      }
+    }
+    this.updateAttachmentMenu();
+  }
+
+  toggleChecklistObjective(checklistIndex: number, objectiveId: string, completed: boolean) {
+    const detail: any = this.userChecklistsDetails[checklistIndex];
+    if (!detail) return;
+
+    // Optimistic Update Array Mutation
+    const obj = detail.objectives.find((o: any) => o.id === objectiveId);
+    if (obj) obj.completed = completed;
+    detail.completedCount = detail.objectives.filter((o: any) => o.completed).length;
+
+    if (detail.isExternal) {
+        if (!detail.externalContactId) return;
+        this.interaccionesService.toggleExternalInteractionProgress(detail.listId, detail.externalContactId, objectiveId, completed).subscribe({
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar avance.' })
+        });
+    } else {
+        if (!this.gpsUser) return;
+        if (!this.gpsUser.interaction_progress) this.gpsUser.interaction_progress = [];
+        
+        let listProgress = this.gpsUser.interaction_progress.find((p: any) => p.listId === detail.listId);
+        if (!listProgress) {
+            listProgress = { listId: detail.listId, completed_objectives: [] };
+            this.gpsUser.interaction_progress.push(listProgress);
+        }
+
+        if (completed && !listProgress.completed_objectives.includes(objectiveId)) listProgress.completed_objectives.push(objectiveId);
+        if (!completed) listProgress.completed_objectives = listProgress.completed_objectives.filter((id: string) => id !== objectiveId);
+
+        this.userService.toggleInteractionProgress(this.gpsUser._id, detail.listId, objectiveId, completed).subscribe({
+            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar avance.' })
+        });
+    }
+  }
+
 
   private startConversationsPolling(): void {
     this.stopConversationsPolling();
@@ -583,11 +1045,65 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   private parseMessageContent(text: string): string {
     if (!text) return '';
-    const match = text.match(/^>\s*(.*?)\s*\n(.*)$/s);
+    
+    // Procesar Markdown de WhatsApp (negrita con asteriscos)
+    let parsedText = text.replace(/\*(.*?)\*/g, '<b>$1</b>');
+
+    // Match signature that might or might not have a body
+    const match = parsedText.match(/^>\s*([^\n]+)(?:\n([\s\S]*))?$/);
     if (match) {
-        return `<div class="comm-msg-sig"><i class="pi pi-user comm-msg-sig-icon"></i> <span>${match[1]}</span></div><div class="comm-msg-body">${match[2].replace(/\n/g, '<br/>')}</div>`;
+        const sig = match[1].trim();
+        const body = (match[2] || '').trim().replace(/\n/g, '<br/>');
+        return `<div class="comm-msg-sig"><i class="pi pi-user comm-msg-sig-icon"></i> <span>${sig}</span></div>` +
+               (body ? `<div class="comm-msg-body">${body}</div>` : '');
     }
-    return text.replace(/\n/g, '<br/>');
+    return parsedText.trim().replace(/\n/g, '<br/>');
+  }
+
+  getCleanPreview(text: string | undefined): string {
+    if (!text) return 'Sin mensajes';
+    let clean = text;
+    const match = text.match(/^>\s*([^\n]+)(?:\n([\s\S]*))?$/);
+    if (match) {
+        clean = match[2] ? match[2] : 'Monitoreo / Adjunto';
+    }
+    // Opcionalmente quitar asteriscos para la vista previa
+    clean = clean.replace(/\*(.*?)\*/g, '$1');
+    return clean.replace(/\n/g, ' ').trim() || 'Sin mensajes';
+  }
+
+  private enrichWithAppUrls(msg: ChatMessage): ChatMessage {
+      if (!msg.text) return msg;
+
+      // Realtime Link
+      const rtMatch = msg.text.match(/(https?:\/\/[^\s<]+realtimelink\?[^\s<]+)/);
+      if (rtMatch) {
+          const url = rtMatch[1];
+          msg.safeRealtimeUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+          msg.text = msg.text.replace(url, '').trim();
+          msg.parsedHtml = this.parseMessageContent(msg.text);
+          return msg;
+      }
+
+      // Google Maps Link
+      const gmMatch = msg.text.match(/(https?:\/\/[^\s<]+google\.com\/maps[^\s<]+)/);
+      if (gmMatch) {
+          msg.googleMapsUrl = gmMatch[1];
+          msg.text = msg.text.replace(gmMatch[1], '').trim();
+          msg.parsedHtml = this.parseMessageContent(msg.text);
+          return msg;
+      }
+
+      // Waze Link
+      const wMatch = msg.text.match(/(https?:\/\/[^\s<]+waze\.com\/ul[^\s<]+)/);
+      if (wMatch) {
+          msg.wazeUrl = wMatch[1];
+          msg.text = msg.text.replace(wMatch[1], '').trim();
+          msg.parsedHtml = this.parseMessageContent(msg.text);
+          return msg;
+      }
+
+      return msg;
   }
 
   loadMessages(): void {
@@ -615,6 +1131,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
               time: new Date(msg.created_at * 1000),
               attachments: msg.attachments || [],
             };
+            this.enrichWithAppUrls(mapped);
             if (msg.in_reply_to && msgMap.has(msg.in_reply_to)) {
               const ref = msgMap.get(msg.in_reply_to)!;
               mapped.replyTo = { id: msg.in_reply_to, text: ref.text, from: ref.from };
@@ -641,14 +1158,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const text = this.chatInput.trim();
     const replyMsg = this.replyingTo;
     const newMsg: ChatMessage = { from: 'me', text, parsedHtml: this.parseMessageContent(text), time: new Date() };
+    this.enrichWithAppUrls(newMsg);
     if (replyMsg) {
-      newMsg.replyTo = { id: replyMsg.id!, text: replyMsg.text, from: replyMsg.from };
+      newMsg.replyTo = { id: replyMsg.id!, text: replyMsg.text || '📎 Adjunto', from: replyMsg.from };
     }
     this.messages.push(newMsg);
     
     // Inject the internal agent name prefix for Chatwoot outbound delivery
     const deptStr = this.currentUserDepartment ? ` - ${this.currentUserDepartment}` : '';
-    const finalApiText = `> ${this.currentUserName}${deptStr}\n\n${text}`;
+    const finalApiText = `> ${this.currentUserName}${deptStr}\n${text}`;
 
     this.chatInput = '';
     this.replyingTo = null;
@@ -668,13 +1186,23 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           this.messages.push({ from: 'system', text: '✗ Error al enviar', time: new Date() });
         }
         this.scrollToBottom();
+        this.refocusInput();
       },
       error: () => {
         this.sendingMessage = false;
         this.messages.push({ from: 'system', text: '✗ Error de conexión', time: new Date() });
         this.scrollToBottom();
+        this.refocusInput();
       }
     });
+  }
+
+  private refocusInput(): void {
+    setTimeout(() => {
+      if (this.messageInput && this.messageInput.nativeElement) {
+        this.messageInput.nativeElement.focus();
+      }
+    }, 50);
   }
 
   setReplyTo(msg: ChatMessage): void {
@@ -692,6 +1220,16 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   closeMedia(): void {
     this.lightboxUrl = null;
+  }
+
+  openRealtimeModal(url: SafeResourceUrl): void {
+      this.currentRealtimeUrl = url;
+      this.showRealtimeModal = true;
+  }
+
+  closeRealtimeModal(): void {
+      this.showRealtimeModal = false;
+      this.currentRealtimeUrl = null;
   }
 
   onFileSelected(event: Event): void {
@@ -724,6 +1262,109 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
   }
 
+  assignToMe(): void {
+    if (!this.selectedConversation || !this.chatwootAgentId) return;
+
+    const agentIdNum = Number(this.chatwootAgentId);
+
+    this.chatwootApi.assignAgentToConversation(this.selectedConversation.id, agentIdNum).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.selectedConversation!.assignee_id = agentIdNum;
+          this.messageService.add({severity:'success', summary:'Control Tomado', detail:'Te has asignado esta conversación. Ester Assistant está desactivado para este flujo.'});
+        } else {
+          this.messageService.add({severity:'error', summary:'Error', detail:'No se pudo asignar el chat.'});
+        }
+      },
+      error: () => {
+        this.messageService.add({severity:'error', summary:'Error', detail:'Problema en la red al asignar.'});
+      }
+    });
+  }
+
+  isOutside24hWindow(conv: ChatConversation): boolean {
+    if (!conv) return false;
+    
+    // Buscamos el último mensaje físico enviado por el usuario
+    // Las políticas 24h asumen que la ventana inicia cuando el usuario final envió algo.
+    const incomingMessages = this.messages.filter(m => m.from === 'incoming');
+    
+    // Si no encontramos ningún mensaje del usuario en el lote descargado,
+    // usamos la fecha de fallback del sistema Chatwoot.
+    if (incomingMessages.length === 0) {
+      const timeRef = conv.contact_last_seen_at || conv.last_message_time;
+      if (!timeRef) return true; // Failsafe cerrado total
+      
+      let lastSeenMs = 0;
+      if (typeof timeRef === 'string') {
+        const parsed = new Date(timeRef).getTime();
+        lastSeenMs = isNaN(parsed) ? 0 : parsed;
+      } else if (typeof timeRef === 'number') {
+        lastSeenMs = timeRef < 10000000000 ? timeRef * 1000 : timeRef;
+      }
+      if (lastSeenMs === 0) return true;
+      return (Date.now() - lastSeenMs) > 86400000;
+    }
+
+    // Si encontramos mensajes físicos del cliente, usamos el más reciente
+    const lastIncoming = incomingMessages[incomingMessages.length - 1];
+    const diff = Date.now() - lastIncoming.time.getTime();
+    
+    return diff > 86400000;
+  }
+
+  openTemplateModal(): void {
+    if (!this.selectedConversation) return;
+    this.whatsappTemplateVars.headerUser = this.currentUserName || 'Asesor';
+    
+    const gpsName = this.gpsUser ? `${this.gpsUser.name} ${this.gpsUser.last_name || ''}`.trim() : null;
+    const chatwootName = this.selectedConversation.contact.name !== 'Sin nombre' ? this.selectedConversation.contact.name : '';
+    this.whatsappTemplateVars.name = gpsName || chatwootName;
+    
+    this.whatsappTemplateVars.body = '';
+    
+    const hour = new Date().getHours();
+    if (hour < 12) this.whatsappTemplateVars.bodySaludos = 'uenos días';
+    else if (hour < 19) this.whatsappTemplateVars.bodySaludos = 'uenas tardes';
+    else this.whatsappTemplateVars.bodySaludos = 'uenas noches';
+
+    this.showTemplateModal = true;
+  }
+
+  sendTemplateMessage(): void {
+    if (!this.selectedConversation || !this.selectedConversation.contact.phone) {
+      this.messageService.add({severity:'error', summary:'Error', detail:'El contacto no tiene número de teléfono registrado.'});
+      return;
+    }
+    this.sendingTemplate = true;
+    
+    this.chatwootApi.sendWhatsAppTemplateToUser({
+        phone: this.selectedConversation.contact.phone,
+        template_name: 'simple_mensaje',
+        variables: [
+          this.whatsappTemplateVars.headerUser,
+          this.whatsappTemplateVars.bodySaludos,
+          this.whatsappTemplateVars.name,
+          this.whatsappTemplateVars.body
+        ],
+        agent_id: this.chatwootAgentId ? this.chatwootAgentId.toString() : undefined
+    }).subscribe({
+      next: (res) => {
+        this.sendingTemplate = false;
+        if (res.success) {
+          this.showTemplateModal = false;
+          this.messageService.add({severity:'success', summary:'Enviado', detail:'Plantilla enviada exitosamente.'});
+        } else {
+          this.messageService.add({severity:'error', summary:'Error', detail:'Hubo un inconveniente al emitir la plantilla en Meta.'});
+        }
+      },
+      error: () => {
+        this.sendingTemplate = false;
+        this.messageService.add({severity:'error', summary:'Error en Red', detail:'No se pudo conectar con el servidor para emitir plantilla.'});
+      }
+    });
+  }
+
   // ============================
   // POLLING
   // ============================
@@ -739,14 +1380,17 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             const newestId = res.messages[res.messages.length - 1].id;
             if (newestId !== this.lastApiMessageId) {
               // New messages detected — replace with latest from API
-              this.messages = res.messages.map((msg: any) => ({
-                id: msg.id,
-                from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
-                text: msg.content,
-                parsedHtml: this.parseMessageContent(msg.content),
-                time: new Date(msg.created_at * 1000),
-                attachments: msg.attachments || [],
-              }));
+              this.messages = res.messages.map((msg: any) => {
+                const mapped: ChatMessage = {
+                  id: msg.id,
+                  from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
+                  text: msg.content,
+                  parsedHtml: this.parseMessageContent(msg.content),
+                  time: new Date(msg.created_at * 1000),
+                  attachments: msg.attachments || [],
+                };
+                return this.enrichWithAppUrls(mapped);
+              });
               this.lastApiMessageId = newestId;
               this.scrollToBottom();
             }

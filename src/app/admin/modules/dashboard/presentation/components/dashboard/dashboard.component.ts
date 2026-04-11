@@ -2,11 +2,7 @@ import { Component, AfterViewInit, OnDestroy, ElementRef, ViewChild, OnInit } fr
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { SystemService } from '../../../../../../core/services/system.service';
 import { MonitoringService } from '../../../../../../core/services/monitoring.service';
-import { MapUtils } from '../../../../../../shareds/helpers/map.helper';
-import { MarkerClusterer } from '@googlemaps/markerclusterer';
-
-
-declare const google: any;
+import * as maplibregl from 'maplibre-gl';
 
 @Component({
     selector: 'app-dashboard',
@@ -16,12 +12,12 @@ declare const google: any;
 })
 export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     @ViewChild('mapElement') mapElement!: ElementRef;
-    
-    map: any;
-    markers: any[] = [];
-    markerCluster: any = null;
+    map: maplibregl.Map | any;
     currentUser: any = null;
     isEmployee: boolean = false;
+    private mapLoaded = false;
+    private pendingData: any[] | null = null;
+    private pendingDataType: 'fullmap' | 'reports' | null = null;
 
     constructor(
         private authService: AuthService,
@@ -47,40 +43,60 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     private async initializeMap() {
-        console.log('[Dashboard] Dentro de initializeMap() - Buscando configuración...');
+        console.log('[Dashboard] Dentro de initializeMap() - Generando base MapLibre...');
+        
         try {
-            // Obtener configuración del sistema para la API de Maps
-            const systems = await this.systemService.getAll().toPromise();
-            console.log('[Dashboard] Configuración del sistema obtenida.');
-            const systemConfigs = systems && systems.length > 0 ? systems[0] : null;
-            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
-
-            if (MAP_API1_KEY) {
-                // Inyectar el script de Google API dinámicamente
-                await MapUtils.loadMapScript('google', MAP_API1_KEY, systemConfigs?.map_api1?.url || 'https://maps.googleapis.com/maps/api/js');
-            }
-
-            if (typeof google === 'undefined' || !google.maps) {
-                console.warn('[Dashboard] Google Maps object not found. Map bounds will be blank.');
-                return;
-            }
-
-            const mapOptions = {
-                center: { lat: 18.4861, lng: -69.9312 }, // República Dominicana
+            this.map = new maplibregl.Map({
+                container: this.mapElement.nativeElement,
+                style: {
+                    version: 8,
+                    sources: {
+                        'osm': {
+                            type: 'raster',
+                            tiles: [
+                                'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                            ],
+                            tileSize: 256,
+                            attribution: '© OpenStreetMap Contributors'
+                        }
+                    },
+                    layers: [
+                        {
+                            id: 'osm-layer',
+                            type: 'raster',
+                            source: 'osm',
+                            minzoom: 0,
+                            maxzoom: 22
+                        }
+                    ]
+                },
+                center: [-69.9312, 18.4861], // [lng, lat]
                 zoom: 8,
-                mapTypeId: google.maps.MapTypeId.ROADMAP,
-                disableDefaultUI: false, // Permitir controles
-                fullscreenControl: false,
-                streetViewControl: false,
-                mapTypeControl: false,
-                zoomControl: true
-            };
+                attributionControl: false
+            });
 
-            this.map = new google.maps.Map(this.mapElement.nativeElement, mapOptions);
+            this.map.addControl(new maplibregl.NavigationControl(), 'top-right');
+            this.map.addControl(new maplibregl.FullscreenControl(), 'top-right');
+
+            this.map.on('load', () => {
+                this.mapLoaded = true;
+                this.setupMaplibreClusters();
+                
+                if (this.pendingData && this.pendingDataType === 'fullmap') {
+                    this.plotFullmapMarkers(this.pendingData);
+                    this.pendingData = null;
+                    this.pendingDataType = null;
+                } else if (this.pendingData && this.pendingDataType === 'reports') {
+                    this.plotDeviceMarkers(this.pendingData);
+                    this.pendingData = null;
+                    this.pendingDataType = null;
+                }
+            });
 
             // Condicionar según tipo de usuario
             if (this.isEmployee) {
-                // Cargar el fullmap ligero explícitamente para el Empleado
                 console.log(`[Dashboard] Identificado como Empleado. Solicitando Fullmap ligero específico: 68a9ccf19bb280482272477f`);
                 this.monitoringService.getLatestFullmap('68a9ccf19bb280482272477f').subscribe({
                     next: (res) => {
@@ -90,7 +106,6 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                     error: (err) => console.error('[Dashboard] Error cargando Fullmap del empleado', err)
                 });
             } else {
-                // Si es Cliente, consumir la nueva colección ultraligera (Fullmaps)
                 console.log(`[Dashboard] Identificado como Cliente. Solicitando Fullmap ligero para: ${this.currentUser.id}`);
                 this.monitoringService.getLatestFullmap(this.currentUser.id).subscribe({
                     next: (res) => {
@@ -100,10 +115,53 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                     error: (err) => console.error('[Dashboard] Error cargando Fullmap del cliente', err)
                 });
             }
-
         } catch(error) {
-            console.error('Failed retrieving API key or constructing map element:', error);
+            console.error('Failed constructing map element:', error);
         }
+    }
+
+    private setupMaplibreClusters() {
+        this.map.addSource('devices', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] },
+            cluster: false
+        });
+
+        // Configurar capa genérica temporal para marcadores
+        this.map.addLayer({
+            id: 'unclustered-point',
+            type: 'circle',
+            source: 'devices',
+            paint: {
+                'circle-color': '#11b4da',
+                'circle-radius': 6,
+                'circle-stroke-width': 1,
+                'circle-stroke-color': '#fff'
+            }
+        });
+        
+        // Cargar imagen de favicon de forma asincrónica e inyectarla en los puntos no agrupados
+        this.map.loadImage('logo/favicon.png').then((response: any) => {
+            const image = response.data || response;
+            if (!this.map.hasImage('custom-marker')) {
+                this.map.addImage('custom-marker', image);
+            }
+            if (this.map.getLayer('unclustered-point')) {
+               this.map.removeLayer('unclustered-point');
+            }
+            this.map.addLayer({
+                id: 'unclustered-point',
+                type: 'symbol',
+                source: 'devices',
+                layout: {
+                    'icon-image': 'custom-marker',
+                    'icon-size': 0.10,
+                    'icon-allow-overlap': true,
+                    'icon-ignore-placement': true
+                },
+                paint: {}
+            });
+        }).catch((err: any) => console.log('Sin imagen de fallback'));
     }
 
     private loadUserDevicesOnMap(userId: string) {
@@ -151,92 +209,97 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     private plotDeviceMarkers(dataPackages: Array<{ route: any[], devices: any[] }>) {
-        if (!this.map || typeof google === 'undefined') return;
-
-        if (this.markerCluster) {
-            this.markerCluster.clearMarkers();
+        if (!this.mapLoaded) {
+            this.pendingData = dataPackages;
+            this.pendingDataType = 'reports';
+            return;
         }
 
-        let bounds = new google.maps.LatLngBounds();
-        let addedMarkers = 0;
-        const currentMarkers: any[] = [];
-
+        const features: any[] = [];
         dataPackages.forEach(dataPackage => {
             if (dataPackage.devices && Array.isArray(dataPackage.devices)) {
-                dataPackage.devices.forEach(device => {
-                    const geo = device?.traccarInfo?.geolocation;
-                    
+                dataPackage.devices.forEach(d => {
+                    const geo = d?.traccarInfo?.geolocation;
                     if (geo && geo.latitude && geo.longitude) {
-                        const position = { lat: geo.latitude, lng: geo.longitude };
-                        
-                        const nameStr = device.name || device.device_imei || 'Dispositivo';
-                        const marker = new google.maps.Marker({
-                            position,
-                            map: this.map,
-                            title: nameStr,
-                            label: {
-                                text: nameStr,
-                                className: 'custom-map-label'
-                            },
-                            icon: {
-                                url: 'logo/favicon.png',
-                                scaledSize: new google.maps.Size(32, 32)
+                        features.push({
+                            type: 'Feature',
+                            geometry: { type: 'Point', coordinates: [geo.longitude, geo.latitude] },
+                            properties: {
+                                name: d.name || d.device_imei || 'Dispositivo'
                             }
                         });
-
-                        bounds.extend(position);
-                        currentMarkers.push(marker);
-                        addedMarkers++;
                     }
                 });
             }
         });
 
-        if (addedMarkers > 0) {
-            this.markerCluster = new MarkerClusterer({ map: this.map, markers: currentMarkers });
-            this.map.fitBounds(bounds);
-        }
+        this.updateGeoJSONSource(features);
     }
 
     private plotFullmapMarkers(devices: Array<{nombre: string, latitud: number, longitud: number}>) {
-        if (!this.map || typeof google === 'undefined' || !devices) return;
-
-        if (this.markerCluster) {
-            this.markerCluster.clearMarkers();
+        if (!this.mapLoaded) {
+            this.pendingData = devices;
+            this.pendingDataType = 'fullmap';
+            return;
         }
 
-        let bounds = new google.maps.LatLngBounds();
-        let addedMarkers = 0;
-        const currentMarkers: any[] = [];
-
-        devices.forEach(device => {
-            if (device.latitud && device.longitud) {
-                const position = { lat: device.latitud, lng: device.longitud };
-                
-                const nameStr = device.nombre || 'Dispositivo';
-                const marker = new google.maps.Marker({
-                    position,
-                    map: this.map,
-                    title: nameStr,
-                    label: {
-                        text: nameStr,
-                        className: 'custom-map-label'
-                    },
-                    icon: {
-                        url: 'logo/favicon.png',
-                        scaledSize: new google.maps.Size(32, 32)
-                    }
-                });
-
-                bounds.extend(position);
-                currentMarkers.push(marker);
-                addedMarkers++;
+        const features = (devices || []).filter(d => d && d.latitud && d.longitud).map(d => ({
+            type: 'Feature',
+            geometry: {
+                type: 'Point',
+                coordinates: [d.longitud, d.latitud]
+            },
+            properties: {
+                name: d.nombre || 'Dispositivo'
             }
-        });
+        }));
 
-        if (addedMarkers > 0) {
-            this.markerCluster = new MarkerClusterer({ map: this.map, markers: currentMarkers });
-            this.map.fitBounds(bounds);
+        this.updateGeoJSONSource(features);
+    }
+
+    private updateGeoJSONSource(features: any[]) {
+        const source: any = this.map.getSource('devices');
+        if (source) {
+            
+            // Adjust bounds first before drawing
+            if (features.length > 0) {
+               const bounds = new maplibregl.LngLatBounds();
+               features.forEach(f => {
+                   if (Array.isArray(f.geometry.coordinates)) {
+                       bounds.extend([f.geometry.coordinates[0], f.geometry.coordinates[1]] as [number, number]);
+                   }
+               });
+               this.map.fitBounds(bounds, { padding: 50, maxZoom: 14 });
+            }
+
+            // Animación de aparición consecutiva y aleatoria
+            const shuffledFeatures = features.slice().sort(() => Math.random() - 0.5);
+            let currentIndex = 0;
+            const batchSize = Math.max(1, Math.floor(features.length / 60)); // Aproximadamente 1 segundo en llenar el mapa
+
+            const animatePoints = () => {
+                if (currentIndex < shuffledFeatures.length) {
+                    currentIndex += batchSize;
+                    const chunk = shuffledFeatures.slice(0, currentIndex);
+                    
+                    source.setData({
+                        type: 'FeatureCollection',
+                        features: chunk
+                    });
+
+                    // Delegar al pintado del navegador
+                    requestAnimationFrame(animatePoints);
+                } else {
+                    // Fianza para evitar desincronía
+                    source.setData({
+                        type: 'FeatureCollection',
+                        features: features 
+                    });
+                }
+            };
+
+            // Iniciar animación
+            requestAnimationFrame(animatePoints);
         }
     }
 }
