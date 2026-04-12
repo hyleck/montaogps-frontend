@@ -1323,7 +1323,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
         this.chatwootApi.sendWhatsAppTemplateToUser({
             phone: this.userInput.phone,
-            template_name: 'simple_mensaje',
+            template_name: 'simple',
             variables: [
                 this.waTemplateVars.headerUser,
                 this.waTemplateVars.bodySaludos,

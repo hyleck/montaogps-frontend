@@ -19,6 +19,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private pendingData: any[] | null = null;
     private pendingDataType: 'fullmap' | 'reports' | null = null;
 
+    // ── Map Filtering State ──
+    filterOnline = true;
+    filterOffline = true;
+    filterLocalizado = true;
+    filterExpired = true;
+
     constructor(
         private authService: AuthService,
         private systemService: SystemService,
@@ -334,7 +340,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.updateGeoJSONSource(features);
     }
 
-    private plotFullmapMarkers(devices: Array<{nombre: string, latitud: number, longitud: number}>) {
+    private plotFullmapMarkers(devices: Array<{nombre: string, latitud: number, longitud: number, status?: string, isExpired?: boolean}>) {
         if (!this.mapLoaded) {
             this.pendingData = devices;
             this.pendingDataType = 'fullmap';
@@ -348,7 +354,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                 coordinates: [d.longitud, d.latitud]
             },
             properties: {
-                name: d.nombre || 'Dispositivo'
+                name: d.nombre || 'Dispositivo',
+                status: d.status || 'offline',
+                isExpired: d.isExpired || false
             }
         }));
 
@@ -398,6 +406,45 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
             // Iniciar animación
             requestAnimationFrame(animatePoints);
+        }
+        this.applyMapFilters();
+    }
+
+    toggleFilter(type: 'online' | 'offline' | 'localizado' | 'expired') {
+        if (type === 'online') this.filterOnline = !this.filterOnline;
+        if (type === 'offline') this.filterOffline = !this.filterOffline;
+        if (type === 'localizado') this.filterLocalizado = !this.filterLocalizado;
+        if (type === 'expired') this.filterExpired = !this.filterExpired;
+
+        this.applyMapFilters();
+    }
+
+    private applyMapFilters() {
+        if (!this.map || !this.map.getLayer('pulsing-layer')) return;
+
+        const filter: any[] = ['any'];
+
+        if (this.filterExpired) {
+            filter.push(['==', ['get', 'isExpired'], true]);
+        }
+        
+        if (this.filterLocalizado) {
+            filter.push(['all', ['==', ['get', 'isExpired'], false], ['==', ['get', 'status'], 'Localizado']]);
+        }
+        
+        if (this.filterOnline) {
+            filter.push(['all', ['==', ['get', 'isExpired'], false], ['==', ['get', 'status'], 'online']]);
+        }
+        
+        if (this.filterOffline) {
+            filter.push(['all', ['==', ['get', 'isExpired'], false], ['!=', ['get', 'status'], 'online'], ['!=', ['get', 'status'], 'Localizado']]);
+        }
+
+        const finalFilter = filter.length > 1 ? filter : ['==', 1, 0];
+
+        this.map.setFilter('pulsing-layer', finalFilter);
+        if (this.map.getLayer('unclustered-point')) {
+            this.map.setFilter('unclustered-point', finalFilter);
         }
     }
 }

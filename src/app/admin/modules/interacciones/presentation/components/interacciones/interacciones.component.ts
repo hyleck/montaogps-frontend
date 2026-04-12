@@ -687,12 +687,13 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
         for (const user of users) {
           if (this.interactionChannel === 'whatsapp') {
             const phone = user.phone;
-            if (!phone) { this.pushErrorCount++; continue; }
+            if (!phone) { console.warn('[WA-CAMPAIGN] User sin teléfono:', user._id, user.name); this.pushErrorCount++; continue; }
             try {
-              await this.interaccionesService.sendWhatsAppToUser({
+              console.log(`[WA-CAMPAIGN] Enviando a: "${phone}" | Usuario: ${user.name || user._id}`);
+              const res = await this.interaccionesService.sendWhatsAppToUser({
                 phone: phone,
-                template_name: 'simple_mensaje',
-                // Si está en masa y dejaron el comodín, lo reemplazamos. Si escribieron otra cosa, lo usamos literal
+                template_name: 'simple',
+                // Template 'simple' (Utility): header (user) + body (saludos, name, body) = 4 params
                 variables: [
                   this.whatsappTemplateVars.headerUser,
                   this.whatsappTemplateVars.bodySaludos,
@@ -701,9 +702,15 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
                 ],
                 agent_id: this.chatwootAgentId ? this.chatwootAgentId : undefined
               }).toPromise();
+              console.log(`[WA-CAMPAIGN] Respuesta para "${phone}":`, JSON.stringify(res));
+              if (res && res.success === false) {
+                 console.error('[WA-CAMPAIGN] Meta API Error:', res.error);
+                 throw new Error(res.error);
+              }
               this.pushSentCount++;
               successIds.push(user._id.toString());
-            } catch {
+            } catch (err: any) {
+              console.error(`[WA-CAMPAIGN] ❌ Falló para "${phone}":`, err?.message || err);
               this.pushErrorCount++;
             }
           } else if (this.interactionChannel === 'email') {
@@ -798,9 +805,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       
       if (this.interactionChannel === 'whatsapp') {
          if (!this.targetUserPhone) throw new Error('El usuario no tiene teléfono configurado');
-         await this.interaccionesService.sendWhatsAppToUser({
+         const res = await this.interaccionesService.sendWhatsAppToUser({
         phone: this.targetUserPhone,
-        template_name: 'simple_mensaje',
+        template_name: 'simple',
         variables: [
           this.whatsappTemplateVars.headerUser,
           this.whatsappTemplateVars.bodySaludos,
@@ -809,6 +816,10 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
         ],
         agent_id: this.chatwootAgentId ? this.chatwootAgentId : undefined
       }).toPromise();
+      if (res && res.success === false) {
+         console.error('Meta API Error:', res.error);
+         throw new Error(res.error);
+      }
          isSuccess = true;
       } else if (this.interactionChannel === 'email') {
          if (!this.targetUserEmail) throw new Error('El usuario no tiene correo electrónico configurado');

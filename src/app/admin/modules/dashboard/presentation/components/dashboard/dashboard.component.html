@@ -11,5 +11,24 @@
         <button class="btn-gestion-cta mt-3" routerLink="/admin/devices">
             Ir a Gestión
         </button>
+
+        <!-- Map Filters -->
+        <div class="map-filters mt-4">
+            <h3 class="filters-title">Filtros de Mapa</h3>
+            <div class="filter-chips">
+                <div class="filter-chip" [class.active]="filterOnline" (click)="toggleFilter('online')">
+                    <span class="dot bg-online"></span> En Línea
+                </div>
+                <div class="filter-chip" [class.active]="filterOffline" (click)="toggleFilter('offline')">
+                    <span class="dot bg-offline"></span> Fuera de Línea
+                </div>
+                <div class="filter-chip" [class.active]="filterLocalizado" (click)="toggleFilter('localizado')">
+                    <span class="dot bg-localizado"></span> Localizado
+                </div>
+                <div class="filter-chip" [class.active]="filterExpired" (click)="toggleFilter('expired')">
+                    <span class="dot bg-expired"></span> Expirado
+                </div>
+            </div>
+        </div>
     </div>
 </div>

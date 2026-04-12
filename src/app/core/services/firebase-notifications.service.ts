@@ -163,9 +163,7 @@ export class FirebaseNotificationsService {
         });
       }
 
-      // Reproducir sonido de alerta
-      const alertAudio = new Audio('/assets/alert.mp3');
-      alertAudio.play().catch(e => console.warn('Autoplay bloqueado por el navegador', e));
+
 
       // Emitir Subject de Transferencia Global si aplica
       if (payload.data?.['tab'] === 'chat') {

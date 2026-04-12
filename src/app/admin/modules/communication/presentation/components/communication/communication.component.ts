@@ -1602,7 +1602,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     
     this.chatwootApi.sendWhatsAppTemplateToUser({
         phone: this.selectedConversation.contact.phone,
-        template_name: 'simple_mensaje',
+        template_name: 'simple',
         variables: [
           this.whatsappTemplateVars.headerUser,
           this.whatsappTemplateVars.bodySaludos,
