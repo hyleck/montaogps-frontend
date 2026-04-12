@@ -86,7 +86,7 @@ export class InteraccionesService {
 
   // ── Usuarios de una lista guardada ────────────────────────────────────
 
-  logCampaignUsers(listId: string, payload: { userIds: string[]; title: string; body: string; sentAt?: Date }): Observable<void> {
+  logCampaignUsers(listId: string, payload: { userIds: string[]; title: string; body: string; sentAt?: Date; callId?: string }): Observable<void> {
     return this.http.post<void>(`${this.api}/${listId}/notified-users/log`, payload);
   }
 
@@ -122,6 +122,16 @@ export class InteraccionesService {
   
   sendWhatsAppToUser(payload: { phone: string; template_name: string; variables: string[]; agent_id?: string }): Observable<any> {
     return this.http.post<any>(`${environment.apiUrl}/chatwoot/send-whatsapp`, payload);
+  }
+
+  // ── VAPI AI Voice ────────────────────────────────────────────────
+  
+  sendVapiCall(payload: { phone: string; query: string; name: string; listId?: string; userId?: string; isExternal?: boolean; objectives?: any[] }): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/vapi/send-call`, payload);
+  }
+
+  getVapiCallRecording(callId: string): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/vapi/call-recording/${callId}`);
   }
 
   toggleExternalInteractionProgress(listId: string, contactId: string, objectiveId: string, completed: boolean): Observable<any> {

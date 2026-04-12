@@ -46,6 +46,11 @@ export interface SystemSettings {
     url: string;
     key: string;
   };
+  whatsapp_quota?: {
+    date: string;
+    count: number;
+    limit: number;
+  };
   created_at?: Date;
   updated_at?: Date;
 }

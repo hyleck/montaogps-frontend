@@ -335,6 +335,12 @@
             (click)="interactionChannel='push'; openPushModal()"
             pTooltip="Enviar notificación push a todos los usuarios de esta campaña">
           </button>
+          <button pButton label="Llamada IA" icon="pi pi-phone"
+            class="p-button-outlined p-button-sm"
+            style="color: #a855f7; border-color: #a855f7"
+            (click)="interactionChannel='vapi'; openPushModal()"
+            pTooltip="Llamar a la campaña usando el Asistente de IA (Vapi)">
+          </button>
           <button pButton label="Editar" icon="pi pi-pencil" class="p-button-outlined p-button-sm" (click)="openEditForm(selectedList)"></button>
         </div>
       </div>
@@ -450,6 +456,7 @@
                   <button pButton icon="pi pi-envelope" class="p-button-text p-button-sm p-button-rounded p-button-info" style="background: rgba(59,130,246,0.1);" (click)="openPersonalPushModal(user, 'email')" pTooltip="Enviar correo particular"></button>
                   <button pButton icon="pi pi-whatsapp" class="p-button-text p-button-sm p-button-rounded p-button-success" style="background: rgba(34,197,94,0.1);" (click)="openPersonalPushModal(user, 'whatsapp')" pTooltip="Enviar WhatsApp particular"></button>
                   <button *ngIf="!user.is_external" pButton icon="pi pi-send" class="p-button-text p-button-sm p-button-rounded p-button-warning" style="background: rgba(245,158,11,0.1);" (click)="openPersonalPushModal(user, 'push')" pTooltip="Enviar push particular"></button>
+                  <button pButton icon="pi pi-phone" class="p-button-text p-button-sm p-button-rounded" style="background: rgba(168,85,247,0.1); color: #a855f7" (click)="openPersonalPushModal(user, 'vapi')" pTooltip="Llamar con IA"></button>
                   <button *ngIf="getUserHistory(user._id)" pButton icon="pi pi-history" class="p-button-outlined p-button-sm p-button-rounded" (click)="openUserHistory(user._id)" pTooltip="Ver envíos"></button>
                   <button pButton icon="pi pi-trash" class="p-button-text p-button-sm p-button-rounded p-button-danger" style="background: rgba(239,68,68,0.1);" (click)="removeUserFromList(user)" pTooltip="Eliminar de la campaña"></button>
                 </div>
@@ -486,7 +493,7 @@
   [modal]="true"
   [closable]="!sendingPush"
   (onHide)="closePushModal()"
-  [header]="interactionChannel === 'email' ? 'Enviar Correo Electrónico' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp' : 'Enviar Notificación Push'"
+  [header]="interactionChannel === 'email' ? 'Enviar Correo Electrónico' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp' : interactionChannel === 'vapi' ? 'Realizar Llamada IA' : 'Enviar Notificación Push'"
   styleClass="push-dialog"
   [style]="{width: '480px'}">
 
@@ -502,6 +509,17 @@
     </div>
 
     <div *ngIf="interactionChannel === 'whatsapp'" style="margin-top:1rem;">
+      <div style="background-color: rgba(245, 158, 11, 0.1); color: #d97706; border-left: 4px solid #f59e0b; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem;">
+        <i class="pi pi-shield" style="margin-right: 0.5rem;"></i>
+        <strong>Límite Diario (Nivel 1):</strong> Según políticas de Meta, tienes un límite de envío masivo de <strong>{{ whatsappQuota.limit }} clientes únicos</strong> cada 24 horas. Te quedan <strong>{{ whatsappQuota.available }}</strong> envíos disponibles hoy.
+        <span *ngIf="!targetUserName && listUsersTotal > whatsappQuota.available" style="display: block; margin-top: 5px; color: #dc2626; font-weight: bold;">
+          <i class="pi pi-times-circle" style="margin-right: 4px;"></i> Tu campaña actual tiene {{ listUsersTotal }} usuarios, pero solo te quedan {{ whatsappQuota.available }}. El botón de envío ha sido bloqueado.
+        </span>
+        <span *ngIf="targetUserName && whatsappQuota.available === 0" style="display: block; margin-top: 5px; color: #dc2626; font-weight: bold;">
+          <i class="pi pi-times-circle" style="margin-right: 4px;"></i> Has agotado todos tus envíos de WhatsApp permitidos por hoy.
+        </span>
+      </div>
+
       <div class="form-group form-group--full">
         <label>Nombre del destinatario *</label>
         <input pInputText [(ngModel)]="whatsappTemplateVars.name" placeholder="Ej. Juan Pérez" class="w-full" [disabled]="sendingPush" />
@@ -524,7 +542,27 @@
       </div>
     </div>
 
-    <ng-container *ngIf="interactionChannel !== 'whatsapp'">
+    <ng-container *ngIf="interactionChannel === 'vapi'">
+      <div style="background-color: rgba(168, 85, 247, 0.1); color: #9333ea; border-left: 4px solid #a855f7; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem;">
+        <i class="pi pi-sparkles" style="margin-right: 0.5rem;"></i>
+        <strong>Llamadas gestionadas por IA:</strong> Se iniciarán llamadas telefónicas reales a los usuarios utilizando a Ester (Asistente de IA). Se enviará 1 llamada cada 30 segundos para evitar bloqueos y facturación simultánea excesiva.
+      </div>
+      <div class="form-group form-group--full" style="margin-top:1rem">
+        <label>Motivo de la llamada (Instrucción para Ester) *</label>
+        <textarea pInputTextarea
+          [(ngModel)]="vapiQuery"
+          placeholder="Ej: Llamar para recordar pago vencido de su mensualidad de GPS."
+          rows="4"
+          [disabled]="sendingPush"
+          class="w-full">
+        </textarea>
+        <small style="color: #64748b; margin-top: 0.25rem; display: block;">
+          Ester leerá esto como su objetivo de conversación con el usuario. Hablará naturally en Dominicano.
+        </small>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="interactionChannel === 'push' || interactionChannel === 'email'">
       <div class="form-group form-group--full" style="margin-top:1rem">
         <label>Título *</label>
         <input pInputText [(ngModel)]="pushTitle"
@@ -562,10 +600,10 @@
       (click)="closePushModal()">
     </button>
     <button pButton
-      [label]="targetUserName ? (interactionChannel === 'email' ? 'Enviar email a usuario' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a usuario' : 'Enviar push a usuario') : (interactionChannel === 'email' ? 'Enviar email a todos' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a todos' : 'Enviar push a todos')"
-      [icon]="interactionChannel === 'email' ? 'pi pi-envelope' : interactionChannel === 'whatsapp' ? 'pi pi-whatsapp' : 'pi pi-send'"
+      [label]="targetUserName ? (interactionChannel === 'email' ? 'Enviar email a usuario' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a usuario' : interactionChannel === 'vapi' ? 'Llamar usuario con IA' : 'Enviar push a usuario') : (interactionChannel === 'email' ? 'Enviar email a todos' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a todos' : interactionChannel === 'vapi' ? 'Llamar a todos con IA' : 'Enviar push a todos')"
+      [icon]="interactionChannel === 'email' ? 'pi pi-envelope' : interactionChannel === 'whatsapp' ? 'pi pi-whatsapp' : interactionChannel === 'vapi' ? 'pi pi-phone' : 'pi pi-send'"
       [loading]="sendingPush"
-      [disabled]="(interactionChannel === 'whatsapp' && (!whatsappTemplateVars.name.trim() || !whatsappTemplateVars.body.trim())) || (interactionChannel !== 'whatsapp' && (!pushTitle.trim() || !pushBody.trim()))"
+      [disabled]="(interactionChannel === 'whatsapp' && ((!targetUserName && listUsersTotal > whatsappQuota.available) || (targetUserName && whatsappQuota.available === 0) || !whatsappTemplateVars.name.trim() || !whatsappTemplateVars.body.trim())) || (interactionChannel === 'vapi' && !vapiQuery.trim()) || ((interactionChannel === 'push' || interactionChannel === 'email') && (!pushTitle.trim() || !pushBody.trim()))"
       (click)="sendPushToList()">
     </button>
   </ng-template>
@@ -585,6 +623,64 @@
       <ng-template pTemplate="content" let-item>
         <p-card [header]="item.title" [subheader]="(item.sentAt | date:'medium') || ''" styleClass="history-card">
           <div [innerHTML]="parseBasicMarkdown(item.body)"></div>
+
+          <!-- VAPI Call Recording Section -->
+          <ng-container *ngIf="item.callId">
+            <!-- Load Recording Button (when not yet loaded) -->
+            <div *ngIf="!item.recordingUrl && !item._recordingError" style="margin-top: 0.75rem;">
+              <button pButton class="p-button-outlined p-button-sm" icon="pi pi-headphones" 
+                label="Cargar Audio de Llamada"
+                [loading]="item._loadingRecording"
+                (click)="loadCallRecording(item)"
+                [style]="{'font-size': '0.8rem', 'border-color': '#a855f7', 'color': '#a855f7'}">
+              </button>
+              <span *ngIf="item._callDuration" style="margin-left: 0.5rem; font-size: 0.75rem; color: var(--text-color-secondary);">
+                Duración: {{ item._callDuration }}s
+              </span>
+            </div>
+
+            <!-- Error Message -->
+            <div *ngIf="item._recordingError" style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-color-secondary); display: flex; align-items: center; gap: 0.4rem;">
+              <i class="pi pi-info-circle"></i> {{ item._recordingError }}
+              <button pButton class="p-button-text p-button-sm" icon="pi pi-refresh" label="Reintentar" 
+                (click)="item._recordingError = null; loadCallRecording(item)"
+                [style]="{'font-size': '0.7rem'}">
+              </button>
+            </div>
+
+            <!-- Audio Player (when loaded) -->
+            <div *ngIf="item.recordingUrl" style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(168, 85, 247, 0.08); border-radius: 8px; border: 1px solid rgba(168, 85, 247, 0.2);">
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
+                <i class="pi pi-volume-up" style="color: #a855f7;"></i>
+                <span style="font-size: 0.8rem; font-weight: 600; color: #a855f7;">Grabación de Llamada</span>
+                <span *ngIf="item._callDuration" style="font-size: 0.7rem; color: var(--text-color-secondary); margin-left: auto;">{{ item._callDuration }}s</span>
+              </div>
+              <audio controls preload="metadata" [src]="item.recordingUrl" style="width: 100%; height: 36px; border-radius: 6px;">
+                Tu navegador no soporta el elemento de audio.
+              </audio>
+            </div>
+
+            <!-- Transcript -->
+            <div *ngIf="item.transcript" style="margin-top: 0.5rem;">
+              <button pButton class="p-button-text p-button-sm" icon="pi pi-comments" 
+                [label]="item._showTranscript ? 'Ocultar Transcripción' : 'Ver Transcripción'" 
+                (click)="item._showTranscript = !item._showTranscript"
+                [style]="{'font-size': '0.75rem', 'padding': '0.25rem 0.5rem'}">
+              </button>
+              <div *ngIf="item._showTranscript" style="margin-top: 0.5rem; padding: 0.75rem; background: var(--surface-ground); border-radius: 10px; font-size: 0.82rem; max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.4rem;">
+                <ng-container *ngFor="let line of formatTranscript(item.transcript)">
+                  <div [style]="line.isAI 
+                    ? 'align-self: flex-start; background: rgba(168,85,247,0.12); color: var(--text-color); padding: 0.4rem 0.7rem; border-radius: 10px 10px 10px 2px; max-width: 85%;' 
+                    : 'align-self: flex-end; background: rgba(59,130,246,0.12); color: var(--text-color); padding: 0.4rem 0.7rem; border-radius: 10px 10px 2px 10px; max-width: 85%; text-align: right;'">
+                    <span [style]="'font-size: 0.65rem; font-weight: 700; display: block; margin-bottom: 2px; color:' + (line.isAI ? '#a855f7' : '#3b82f6')">
+                      {{ line.isAI ? '🤖 Ester' : '👤 Usuario' }}
+                    </span>
+                    {{ line.text }}
+                  </div>
+                </ng-container>
+              </div>
+            </div>
+          </ng-container>
         </p-card>
       </ng-template>
     </p-timeline>

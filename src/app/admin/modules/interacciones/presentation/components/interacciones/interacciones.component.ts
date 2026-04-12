@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { InteraccionesService, UserList, UserListFilters } from '../../services/interacciones.service';
 import { MessageService, ConfirmationService } from 'primeng/api';
@@ -54,6 +55,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   showPushModal = false;
   pushTitle = '';
   pushBody = '';
+  vapiQuery = '';
   sendingPush = false;
   pushSentCount = 0;
   pushErrorCount = 0;
@@ -104,13 +106,18 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     private router: Router,
     private route: ActivatedRoute,
     private authService: AuthService,
-    private userService: UserService
+    private userService: UserService,
+    private sanitizer: DomSanitizer
   ) {}
 
   systemContacts: any[] = [];
   chatwootAgentId: string = '';
 
+  // ── WhatsApp Quotas ─────────────────────────────────────────
+  whatsappQuota = { limit: 1000, count: 0, available: 1000 };
+
   ngOnInit() {
+    this.loadSystemSettings();
     this.loadAgentId();
     this.loadLists();
     this.loadSystemContacts();
@@ -124,6 +131,25 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  loadSystemSettings() {
+    this.systemService.getAll().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (res) => {
+        if (res && res.length > 0) {
+          const quota = res[0].whatsapp_quota;
+          if (quota) {
+            const today = new Date().toISOString().split('T')[0];
+            if (quota.date === today) {
+                this.whatsappQuota.limit = quota.limit || 1000;
+                this.whatsappQuota.count = quota.count || 0;
+                this.whatsappQuota.available = Math.max(0, this.whatsappQuota.limit - this.whatsappQuota.count);
+            }
+          }
+        }
+      },
+      error: (e) => console.log('Error cargando system settings', e)
+    });
   }
 
   loadSystemContacts() {
@@ -492,7 +518,8 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   targetUserName: string | null = null;
   targetUserEmail: string | null = null;
   targetUserPhone: string | null = null;
-  interactionChannel: 'push' | 'email' | 'whatsapp' = 'push';
+  targetUserIsExternal: boolean = false;
+  interactionChannel: 'push' | 'email' | 'whatsapp' | 'vapi' = 'push';
 
   // WhatsApp Variables Mad-Libs style
   whatsappTemplateVars = { headerUser: '', bodySaludos: '', name: '', body: '' };
@@ -618,11 +645,12 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     return listProgress.completed_objectives.includes(objectiveId);
   }
 
-  openPersonalPushModal(user: any, channel: 'push' | 'email' | 'whatsapp' = 'push') {
+  openPersonalPushModal(user: any, channel: 'push' | 'email' | 'whatsapp' | 'vapi' = 'push') {
     this.targetUserId = user._id;
     this.targetUserName = this.getUserFullName(user);
     this.targetUserEmail = user.email || null;
     this.targetUserPhone = user.phone || null;
+    this.targetUserIsExternal = !!user.is_external;
     this.interactionChannel = channel;
     this.pushTitle = '';
     this.pushBody = '';
@@ -642,6 +670,11 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     if (this.interactionChannel === 'whatsapp') {
       if (!this.whatsappTemplateVars.name.trim() || !this.whatsappTemplateVars.body.trim()) {
         this.messageService.add({ severity: 'warn', summary: 'Atención', detail: 'Debe rellenar todas las variables de la plantilla' });
+        return;
+      }
+    } else if (this.interactionChannel === 'vapi') {
+      if (!this.vapiQuery.trim()) {
+        this.messageService.add({ severity: 'warn', summary: 'Atención', detail: 'El motivo de la llamada es requerido' });
         return;
       }
     } else {
@@ -713,6 +746,43 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
               console.error(`[WA-CAMPAIGN] ❌ Falló para "${phone}":`, err?.message || err);
               this.pushErrorCount++;
             }
+          } else if (this.interactionChannel === 'vapi') {
+            const phone = user.phone;
+            if (!phone) { this.pushErrorCount++; continue; }
+            try {
+              console.log(`[VAPI-CAMPAIGN] Llamando a: "${phone}"`);
+              const res = await this.interaccionesService.sendVapiCall({
+                phone: phone,
+                query: this.vapiQuery,
+                name: this.toTitleCase(this.getUserFullName(user)),
+                listId: this.selectedList?._id,
+                userId: user._id,
+                isExternal: !!user.is_external,
+                objectives: this.selectedList?.objectives?.map((o: any) => ({ id: o.id, title: o.title }))
+              }).toPromise();
+              if (res && res.success === false) throw new Error(res.error);
+              
+              this.pushSentCount++;
+              successIds.push(user._id.toString());
+
+              // Log inmediato con callId para que el historial tenga el ID de VAPI asociado
+              const vapiCallId = res?.data?.id || null;
+              try {
+                await this.interaccionesService.logCampaignUsers(this.selectedList!._id, {
+                  userIds: [user._id.toString()],
+                  title: 'Llamada de IA (Ester) Iniciada',
+                  body: `Motivo: ${this.vapiQuery}`,
+                  callId: vapiCallId
+                }).toPromise();
+              } catch (logErr) {
+                console.error('[VAPI-CAMPAIGN] Error logging individual call history', logErr);
+              }
+
+              // Esperar 30 segundos usando delay según requerimiento
+              await new Promise(r => setTimeout(r, 30000));
+            } catch (err) {
+              this.pushErrorCount++;
+            }
           } else if (this.interactionChannel === 'email') {
             const email = user.email;
             if (!email) { this.pushErrorCount++; continue; }
@@ -760,7 +830,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       }
     }
 
-    if (successIds.length > 0) {
+    if (successIds.length > 0 && this.interactionChannel !== 'vapi') {
       try {
         let prefix = '';
         let finalTitle = this.pushTitle;
@@ -783,6 +853,11 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       } catch (e) {
         console.error('Error logging campaign history', e);
       }
+    }
+
+    // Para VAPI, recargar las listas (ya se loguearon individualmente arriba)
+    if (this.interactionChannel === 'vapi' && successIds.length > 0) {
+      this.loadLists();
     }
 
     this.sendingPush = false;
@@ -820,7 +895,21 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
          console.error('Meta API Error:', res.error);
          throw new Error(res.error);
       }
+          isSuccess = true;
+      } else if (this.interactionChannel === 'vapi') {
+         if (!this.targetUserPhone) throw new Error('El usuario no tiene teléfono configurado');
+         const res = await this.interaccionesService.sendVapiCall({
+           phone: this.targetUserPhone,
+           query: this.vapiQuery,
+           name: this.targetUserName || 'Usuario',
+           listId: this.selectedList?._id,
+           userId: this.targetUserId || undefined,
+           isExternal: this.targetUserIsExternal,
+           objectives: this.selectedList?.objectives?.map((o: any) => ({ id: o.id, title: o.title }))
+         }).toPromise();
+         if (res && res.success === false) throw new Error(res.error);
          isSuccess = true;
+         (this as any)._lastVapiCallId = res?.data?.id || null;
       } else if (this.interactionChannel === 'email') {
          if (!this.targetUserEmail) throw new Error('El usuario no tiene correo electrónico configurado');
          await this.interaccionesService.sendEmailToUser({
@@ -845,17 +934,23 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           let prefix = '';
           let finalTitle = this.pushTitle;
           let finalBody = this.pushBody;
+          let callId: string | undefined;
           if (this.interactionChannel === 'email') {
             prefix = '';
             finalTitle = 'Mensaje enviado por correo';
           } else if (this.interactionChannel === 'whatsapp') {
             finalTitle = `Mensaje enviado por WhatsApp`;
             finalBody = `B${this.whatsappTemplateVars.bodySaludos}, ${this.whatsappTemplateVars.name}.\n${this.whatsappTemplateVars.body}\n\nSeguimos a tu orden por este número.\nMontao GPS`;
+          } else if (this.interactionChannel === 'vapi') {
+            finalTitle = `Llamada de IA (Ester) Iniciada`;
+            finalBody = `Motivo: ${this.vapiQuery}`;
+            callId = (this as any)._lastVapiCallId;
           }
           await this.interaccionesService.logCampaignUsers(this.selectedList!._id, {
             userIds: [this.targetUserId!],
             title: prefix + finalTitle,
-            body: finalBody
+            body: finalBody,
+            callId
           }).toPromise();
           this.loadLists();
         } catch (e) {
@@ -950,6 +1045,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       if (lastItem.title.includes('[WhatsApp]') || lastItem.title.includes('Mensaje enviado por WhatsApp')) {
         return 'WhatsApp';
       }
+      if (lastItem.title.includes('Llamada de IA') || lastItem.title.includes('Ester')) {
+        return 'Llamada IA (Ester)';
+      }
     }
     return 'Notificación push';
   }
@@ -963,6 +1061,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       }
       if (lastItem.title.includes('[WhatsApp]') || lastItem.title.includes('Mensaje enviado por WhatsApp')) {
         return 'pi-whatsapp text-green-500';
+      }
+      if (lastItem.title.includes('Llamada de IA') || lastItem.title.includes('Ester')) {
+        return 'pi-phone';
       }
     }
     return 'pi-bell';
@@ -989,6 +1090,22 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     return `<div class="md-preview" style="font-family: inherit; font-size: 0.95rem; line-height: 1.5; color: var(--text-color);">${parsed}</div>`;
   }
 
+  formatTranscript(transcript: string): { isAI: boolean; text: string }[] {
+    if (!transcript) return [];
+    // Split by newlines, each line starts with "AI: " or "User: "
+    const lines = transcript.split('\n').filter(l => l.trim());
+    return lines.map(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('AI:')) {
+        return { isAI: true, text: trimmed.replace(/^AI:\s*/, '') };
+      } else if (trimmed.startsWith('User:')) {
+        return { isAI: false, text: trimmed.replace(/^User:\s*/, '') };
+      }
+      // Fallback: treat as AI if unknown
+      return { isAI: true, text: trimmed };
+    });
+  }
+
   openUserHistory(userId: string) {
     const historyData = this.getUserHistory(userId);
     if (historyData) {
@@ -1007,5 +1124,27 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       this.selectedUserHistory = { ...historyData, history: hList };
       this.showHistoryModal = true;
     }
+  }
+
+  loadCallRecording(item: any) {
+    if (!item.callId || item._loadingRecording) return;
+    item._loadingRecording = true;
+    this.interaccionesService.getVapiCallRecording(item.callId).subscribe({
+      next: (res: any) => {
+        item._loadingRecording = false;
+        if (res.success && res.recordingUrl) {
+          item.recordingUrl = this.sanitizer.bypassSecurityTrustUrl(res.recordingUrl);
+          item.transcript = res.transcript || item.transcript;
+          item._callStatus = res.status;
+          item._callDuration = res.duration;
+        } else {
+          item._recordingError = res.status === 'ended' ? 'La grabación aún se está procesando. Intenta en unos minutos.' : (res.error || 'Llamada aún en curso...');
+        }
+      },
+      error: (err: any) => {
+        item._loadingRecording = false;
+        item._recordingError = 'Error consultando VAPI';
+      }
+    });
   }
 }
