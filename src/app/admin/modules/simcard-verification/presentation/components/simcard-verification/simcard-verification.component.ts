@@ -19,7 +19,7 @@ export interface VerifiedIccid {
 })
 export class SimcardVerificationComponent {
   parsedData: any[] = [];
-  iccidList: string[] = [];
+  iccidList: any[] = [];
   verifiedList: VerifiedIccid[] = [];
   displayList: any[] = [];
   isVerifying: boolean = false;
@@ -40,53 +40,73 @@ export class SimcardVerificationComponent {
 
   onFileSelect(event: any) {
     const target = event.target as HTMLInputElement;
-    const file = target.files?.[0];
-    if (!file) return;
+    const files = target.files;
+    if (!files || files.length === 0) return;
 
     this.hasVerified = false;
     this.verifiedList = [];
     this.registeredList = { active: [], canceled: [], expired: [], suspended: [], counts: {} };
     this.unregisteredList = [];
     this.duplicatedList = [];
-    this.parseExcel(file);
-    target.value = '';
+    this.iccidList = [];
+
+    const filePromises: Promise<{iccid: string, sourceFile: string}[]>[] = [];
+    for (let i = 0; i < files.length; i++) {
+       filePromises.push(this.parseExcelPromise(files[i]));
+    }
+
+    Promise.all(filePromises).then((results: {iccid: string, sourceFile: string}[][]) => {
+       // Aplanar resultados de múltiples exceles
+       this.iccidList = results.reduce((acc, val) => acc.concat(val), []);
+       this.displayList = [...this.iccidList];
+       
+       target.value = '';
+
+       // Disparar auto-verificación centralizada
+       if (this.iccidList.length > 0) {
+          this.verifyIccids();
+       }
+    }).catch(err => {
+       console.error("Error al parsear matriz de archivos Excel", err);
+       target.value = '';
+    });
   }
 
-  parseExcel(file: File) {
-    const reader = new FileReader();
+  parseExcelPromise(file: File): Promise<{iccid: string, sourceFile: string}[]> {
+    return new Promise((resolve, reject) => {
+       const reader = new FileReader();
 
-    reader.onload = (e: any) => {
-      const bstr: string = e.target.result;
-      const wb: xlsx.WorkBook = xlsx.read(bstr, { type: 'binary' });
-      const wsname: string = wb.SheetNames[0];
-      const ws: xlsx.WorkSheet = wb.Sheets[wsname];
+       reader.onload = (e: any) => {
+          try {
+             const bstr: string = e.target.result;
+             const wb: xlsx.WorkBook = xlsx.read(bstr, { type: 'binary' });
+             const wsname: string = wb.SheetNames[0];
+             const ws: xlsx.WorkSheet = wb.Sheets[wsname];
 
-      this.parsedData = xlsx.utils.sheet_to_json(ws);
+             const parsedData = xlsx.utils.sheet_to_json(ws);
+             const extracted: {iccid: string, sourceFile: string}[] = [];
 
-      const iccids: string[] = [];
-      for (const row of this.parsedData) {
-        let keyToUse = Object.keys(row).find(k => k.toLowerCase().trim() === 'iccid');
-        
-        // Fallback al campo "telefono2" si "iccid" no viene en el excel
-        if (!keyToUse) {
-           keyToUse = Object.keys(row).find(k => k.toLowerCase().trim() === 'telefono2');
-        }
+             for (const row of parsedData as any[]) {
+                let keyToUse = Object.keys(row).find(k => k.toLowerCase().trim() === 'iccid');
+                if (!keyToUse) {
+                   keyToUse = Object.keys(row).find(k => k.toLowerCase().trim() === 'telefono2');
+                }
+                if (keyToUse && row[keyToUse]) {
+                   extracted.push({
+                     iccid: String(row[keyToUse]).trim(),
+                     sourceFile: file.name
+                   });
+                }
+             }
+             resolve(extracted);
+          } catch(err) {
+             reject(err);
+          }
+       };
 
-        if (keyToUse && row[keyToUse]) {
-          iccids.push(String(row[keyToUse]).trim());
-        }
-      }
-
-      this.iccidList = iccids;
-      this.displayList = [...iccids];
-      
-      // Auto-trigger verification
-      if (this.iccidList.length > 0) {
-         this.verifyIccids();
-      }
-    };
-
-    reader.readAsBinaryString(file);
+       reader.onerror = (error) => reject(error);
+       reader.readAsBinaryString(file);
+    });
   }
 
   exportExcel(type: 'active' | 'canceled' | 'expired' | 'suspended' | 'unregistered' | 'duplicated') {
@@ -128,7 +148,8 @@ export class SimcardVerificationComponent {
       
       if (type === 'unregistered') {
         dataToExport = this.unregisteredList.map((i: any) => ({
-          ICCID: i.iccid
+          ICCID: i.iccid,
+          'Archivo Origen': i.sourceFile || 'Desconocido'
         }));
       } else {
         const sourceList = (this.registeredList as any)[type] || [];
@@ -153,7 +174,8 @@ export class SimcardVerificationComponent {
     
     this.isVerifying = true;
     try {
-      const matchedDevices = await this.targetsService.bulkVerifyIccids(this.iccidList);
+      const iccidsForDb = this.iccidList.map(item => item.iccid);
+      const matchedDevices = await this.targetsService.bulkVerifyIccids(iccidsForDb);
       
       let registeredCount = 0;
       let unregisteredCount = 0;
@@ -171,12 +193,19 @@ export class SimcardVerificationComponent {
       const now = new Date();
 
       // Build the display list
-      this.verifiedList = this.iccidList.map(iccid => {
-        // Find ALL matches for this specific iccid in the matched devices
-        const matches = matchedDevices.filter((d: any) => d.sim_card_number === iccid);
+      this.verifiedList = this.iccidList.map(item => {
+        const iccid = item.iccid;
+        const sourceFile = item.sourceFile;
+
+        // Find ALL matches for this specific iccid in the matched devices comparing without symbols
+        const matches = matchedDevices.filter((d: any) => {
+           if (!d.sim_card_number) return false;
+           return String(d.sim_card_number).replace(/[^a-zA-Z0-9]/g, '').toLowerCase() === String(iccid).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+        });
         
         if (matches.length > 0) {
-          registeredCount++;
+           // ... (same as before)
+           registeredCount++;
           
           // Enriquecemos todos los matches con su estado calculado
           const enrichedMatches = matches.map((m: any) => {
@@ -205,7 +234,7 @@ export class SimcardVerificationComponent {
              activeCount++;
           }
 
-          const item: any = {
+          const registeredItem: any = {
             iccid,
             isRegistered: true,
             deviceName: firstMatch.name,
@@ -215,22 +244,23 @@ export class SimcardVerificationComponent {
             deviceStatusType
           };
 
-          registeredTemp.push(item);
+          registeredTemp.push(registeredItem);
 
           if (matches.length > 1) {
             duplicatedInDB++;
-            this.duplicatedList.push(item);
+            this.duplicatedList.push(registeredItem);
           }
           
-          return item;
+          return registeredItem;
         } else {
           unregisteredCount++;
-          const item = {
+          const unregItem = {
             iccid,
+            sourceFile,
             isRegistered: false
           };
-          this.unregisteredList.push(item);
-          return item;
+          this.unregisteredList.push(unregItem);
+          return unregItem;
         }
       });
 

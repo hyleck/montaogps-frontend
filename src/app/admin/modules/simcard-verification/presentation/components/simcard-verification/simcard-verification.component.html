@@ -11,6 +11,7 @@
       #fileInput 
       (change)="onFileSelect($event)" 
       accept=".xlsx, .xls, .csv" 
+      multiple
       style="display: none;">
     
     <!-- Custom button to trigger input -->
@@ -34,7 +35,11 @@
     </div>
     
     <!-- MODERN TABBED INTERFACE FOR RESULTS -->
-    <div *ngIf="hasVerified" class="mt-4 fadein animation-duration-300">
+    <div *ngIf="hasVerified" class="mt-5 fade-in">
+      <h3 class="mt-4 mb-2">
+        Resultados ({{ displayList.length }} registros procesados) 
+        <span *ngIf="statsDuplicatedInDB" class="text-purple-500 ml-2" style="font-size: 1.1rem; font-weight: bold;">| {{ statsDuplicatedInDB }} Duplicados Detectados</span>
+      </h3>
       <p-tabView styleClass="clean-tabview">
         
         <!-- ACTIVOS -->
@@ -73,7 +78,7 @@
           <ng-template pTemplate="header">
              <i class="pi pi-ban mr-2 text-600"></i>
             <span class="font-medium mr-2">Cancelados</span>
-            <p-tag severity="secondary" [style]="{'background': 'var(--surface-500)', 'color': '#ffffff'}" [value]="(registeredList?.counts?.canceled || 0) + ''" [rounded]="true"></p-tag>
+            <p-tag severity="secondary" [value]="(registeredList?.counts?.canceled || 0) + ''" [rounded]="true"></p-tag>
           </ng-template>
           
           <div class="pt-2">
@@ -176,13 +181,14 @@
             <p-table [value]="unregisteredList" styleClass="p-datatable-sm p-datatable-gridlines" [rowHover]="true" responsiveLayout="scroll" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15,30,50]">
               <ng-template pTemplate="header">
                 <tr>
-                  <th style="width: 3rem">#</th><th>ICCID (Número Desconocido / Inválido)</th>
+                  <th style="width: 3rem">#</th><th>ICCID (Número Desconocido / Inválido)</th><th>Archivo Analizado</th>
                 </tr>
               </ng-template>
               <ng-template pTemplate="body" let-item let-rowIndex="rowIndex">
                 <tr>
                   <td><span class="text-500">{{ rowIndex + 1 }}</span></td>
                   <td><span style="font-family: monospace; font-size: 1.1rem; font-weight: bold; color: #f97316 !important;">{{ item.iccid }}</span></td>
+                  <td><span class="text-600">{{ item.sourceFile || 'Desconocido' }}</span></td>
                 </tr>
               </ng-template>
             </p-table>
@@ -193,8 +199,7 @@
         <p-tabPanel [disabled]="!statsDuplicatedInDB">
           <ng-template pTemplate="header">
             <i class="pi pi-copy mr-2 text-purple-500"></i>
-            <span class="font-medium mr-2">Duplicados Anómalos</span>
-            <p-tag [style]="{'background': 'var(--purple-500)', 'color': '#ffffff'}" [value]="statsDuplicatedInDB + ''" [rounded]="true"></p-tag>
+            <span class="font-medium mr-2">Duplicados Anómalos ({{statsDuplicatedInDB}})</span>
           </ng-template>
           
           <div class="pt-2">
