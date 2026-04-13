@@ -508,6 +508,35 @@
       </div>
     </div>
 
+    <!-- Sender Email Selection -->
+    <div *ngIf="interactionChannel === 'email'" class="flex flex-column gap-2" style="margin-top: 1rem;">
+      <label for="emailInbox" style="font-weight: 500; font-size: 0.9rem;">Bandeja de Salida (Remitente)</label>
+      <p-dropdown 
+        [options]="emailInboxes" 
+        [(ngModel)]="selectedEmailInbox" 
+        optionLabel="email" 
+        optionValue="id"
+        [filter]="false"
+        placeholder="Seleccionar el correo de origen"
+        styleClass="w-full">
+        <ng-template let-inbox pTemplate="item">
+          <div class="flex align-items-center gap-2">
+            <i class="pi pi-envelope" style="color: #6366f1;"></i>
+            <div>
+              <div style="font-weight: 600;">{{ inbox.email }}</div>
+              <div style="font-size: 0.8rem; color: var(--text-color-secondary);">{{ inbox.name }}</div>
+            </div>
+          </div>
+        </ng-template>
+        <ng-template let-inbox pTemplate="selectedItem">
+          <div *ngIf="inbox" class="flex align-items-center gap-2">
+            <i class="pi pi-envelope"></i>
+            <div>{{ inbox.email }} <span style="font-size: 0.8rem; color: var(--text-color-secondary);">({{ inbox.name }})</span></div>
+          </div>
+        </ng-template>
+      </p-dropdown>
+    </div>
+
     <div *ngIf="interactionChannel === 'whatsapp'" style="margin-top:1rem;">
       <div style="background-color: rgba(245, 158, 11, 0.1); color: #d97706; border-left: 4px solid #f59e0b; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem;">
         <i class="pi pi-shield" style="margin-right: 0.5rem;"></i>

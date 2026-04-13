@@ -114,7 +114,11 @@ export class InteraccionesService {
 
   // ── Chatwoot Correo ──────────────────────────────────────────────────
 
-  sendEmailToUser(payload: { email: string; subject: string; message: string; contact_name?: string; is_html?: boolean; agent_id?: string }): Observable<any> {
+  getEmailInboxes(): Observable<{ id: number; name: string; email: string }[]> {
+    return this.http.get<{ id: number; name: string; email: string }[]>(`${environment.apiUrl}/chatwoot/email-inboxes`);
+  }
+
+  sendEmailToUser(payload: { email: string; subject: string; message: string; contact_name?: string; is_html?: boolean; agent_id?: string; inbox_id?: number }): Observable<any> {
     return this.http.post<any>(`${environment.apiUrl}/chatwoot/send-email`, payload);
   }
 

@@ -113,6 +113,10 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   systemContacts: any[] = [];
   chatwootAgentId: string = '';
 
+  // ── Email Inboxes ───────────────────────────────────────────
+  emailInboxes: { id: number, name: string, email: string }[] = [];
+  selectedEmailInbox: number | null = null;
+
   // ── WhatsApp Quotas ─────────────────────────────────────────
   whatsappQuota = { limit: 1000, count: 0, available: 1000 };
 
@@ -121,6 +125,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.loadAgentId();
     this.loadLists();
     this.loadSystemContacts();
+    this.loadEmailInboxes();
 
     // Debounce el preview para no llamar en cada cambio de filtro
     this.previewTrigger$
@@ -159,6 +164,19 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           this.systemContacts = systems[0].contacts || [];
         }
       }
+    });
+  }
+
+  loadEmailInboxes() {
+    this.interaccionesService.getEmailInboxes().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (inboxes) => {
+        this.emailInboxes = inboxes || [];
+        if (this.emailInboxes.length > 0) {
+          // Set the first one as default
+          this.selectedEmailInbox = this.emailInboxes[0].id;
+        }
+      },
+      error: (e) => console.log('Error loading email inboxes', e)
     });
   }
 
@@ -792,7 +810,8 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
                 subject: this.pushTitle,
                 message: this.getDefaultEmailMarkdown(this.pushBody),
                 contact_name: this.getUserFullName(user),
-                agent_id: this.chatwootAgentId ? this.chatwootAgentId : undefined
+                agent_id: this.chatwootAgentId ? this.chatwootAgentId : undefined,
+                inbox_id: this.selectedEmailInbox || undefined
               }).toPromise();
               this.pushSentCount++;
               successIds.push(user._id.toString());
@@ -917,7 +936,8 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
            subject: this.pushTitle,
            message: this.getDefaultEmailMarkdown(this.pushBody),
            contact_name: this.targetUserName || undefined,
-           agent_id: this.chatwootAgentId ? this.chatwootAgentId : undefined
+           agent_id: this.chatwootAgentId ? this.chatwootAgentId : undefined,
+           inbox_id: this.selectedEmailInbox || undefined
          }).toPromise();
          isSuccess = true;
       } else {
