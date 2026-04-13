@@ -41,6 +41,7 @@ export class SidebarComponent implements OnInit {
       { label: '', path: '/admin/communication', icon: 'pi pi-comments', badge: 0 },
       { label: '', path: '/admin/processes', icon: 'pi pi-list', badge: 0 },
       { label: '', path: '/admin/interacciones', icon: 'pi pi-share-alt', badge: 0 },
+      { label: '', path: '/admin/simcard-verification', icon: 'pi pi-mobile', badge: 0 },
     ],
     profileTitle: '',
     profileItems: [
@@ -155,6 +156,7 @@ export class SidebarComponent implements OnInit {
     this.sidaberOptions.principalItems[7].label = 'Comunicación';
     this.sidaberOptions.principalItems[8].label = 'Procesos';
     this.sidaberOptions.principalItems[9].label = 'Campañas';
+    this.sidaberOptions.principalItems[10].label = 'Verificación SIMs';
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');
@@ -231,6 +233,10 @@ export class SidebarComponent implements OnInit {
       // Si es inventory, mostrar solo si es empleado o root
       if (item.path === '/admin/inventory') {
         return this.isEmployeeUser || this.isRootUser;
+      }
+      // Ocultar simcard-verification si no es root
+      if (item.path === '/admin/simcard-verification') {
+        return this.isRootUser;
       }
 
       // Opciones exclusivas para rent_a_car

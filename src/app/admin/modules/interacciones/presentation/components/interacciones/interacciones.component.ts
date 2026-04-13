@@ -113,6 +113,20 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   systemContacts: any[] = [];
   chatwootAgentId: string = '';
 
+  // ── Manual Interactions ───────────────────────────────────────
+  showManualInteractionModal: boolean = false;
+  manualInteractionType: string = '';
+  manualInteractionNotes: string = '';
+  savingManualInteraction: boolean = false;
+  manualInteractionTypes: any[] = [
+    { label: 'Visita Presencial', value: 'Visita Presencial', icon: 'pi pi-map-marker' },
+    { label: 'Revisión de Dispositivos', value: 'Revisión de Dispositivos', icon: 'pi pi-wrench' },
+    { label: 'Llamada Manual', value: 'Llamada Manual', icon: 'pi pi-phone' },
+    { label: 'Mensaje de WhatsApp Manual', value: 'Mensaje de WhatsApp Manual', icon: 'pi pi-whatsapp' },
+    { label: 'Correo Electrónico Manual', value: 'Correo Electrónico Manual', icon: 'pi pi-envelope' },
+    { label: 'Otra (Interacción Indirecta)', value: 'Otra (Interacción Indirecta)', icon: 'pi pi-ellipsis-h' }
+  ];
+
   // ── Email Inboxes ───────────────────────────────────────────
   emailInboxes: { id: number, name: string, email: string }[] = [];
   selectedEmailInbox: number | null = null;
@@ -1144,6 +1158,66 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       this.selectedUserHistory = { ...historyData, history: hList };
       this.showHistoryModal = true;
     }
+  }
+
+  saveObservation(item: any) {
+    if (!this.selectedList || !this.selectedUserHistory) return;
+    item._savingObservation = true;
+    this.interaccionesService.saveInteractionObservation(
+      this.selectedList._id,
+      this.selectedUserHistory.userId,
+      item._id,
+      item.observation || ''
+    ).subscribe({
+      next: (res) => {
+        item._savingObservation = false;
+        item._editObservation = false;
+        this.messageService.add({ severity: 'success', summary: 'Guardado', detail: 'Observación guardada' });
+      },
+      error: (err) => {
+        item._savingObservation = false;
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar la observación' });
+      }
+    });
+  }
+
+  openManualInteractionModal() {
+    this.manualInteractionType = this.manualInteractionTypes[0].value;
+    this.manualInteractionNotes = '';
+    this.showManualInteractionModal = true;
+  }
+
+  saveManualInteraction() {
+    if (!this.selectedList || !this.selectedUserHistory || !this.manualInteractionType) return;
+    this.savingManualInteraction = true;
+
+    const payload = {
+      userIds: [this.selectedUserHistory.userId],
+      title: this.manualInteractionType,
+      body: this.manualInteractionNotes || 'Interacción manual registrada',
+      sentAt: new Date()
+    };
+
+    this.interaccionesService.logCampaignUsers(this.selectedList._id, payload).subscribe({
+      next: () => {
+        this.savingManualInteraction = false;
+        this.showManualInteractionModal = false;
+        this.messageService.add({ severity: 'success', summary: 'Registrado', detail: 'Interacción manual registrada con éxito' });
+        
+        // Optimistic UI update for timeline
+        this.selectedUserHistory!.notification_count = (this.selectedUserHistory!.notification_count || 0) + 1;
+        this.selectedUserHistory!.history.unshift({
+          title: payload.title,
+          body: payload.body,
+          sentAt: payload.sentAt,
+          observation: ''
+        });
+      },
+      error: () => {
+        this.savingManualInteraction = false;
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar la interacción manual' });
+      }
+    });
   }
 
   loadCallRecording(item: any) {

@@ -642,9 +642,14 @@
 <p-dialog
   [(visible)]="showHistoryModal"
   [modal]="true"
-  header="Historial de la Campaña"
   styleClass="history-dialog"
   [style]="{width: '500px'}">
+  <ng-template pTemplate="header">
+    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+      <span class="p-dialog-title" style="font-weight: 600; font-size: 1.25rem;">Historial de la Campaña</span>
+      <button pButton icon="pi pi-plus" label="Interacción Manual" class="p-button-sm p-button-outlined" (click)="openManualInteractionModal()"></button>
+    </div>
+  </ng-template>
 
   <div *ngIf="selectedUserHistory">
     <p>Se han enviado <strong>{{ selectedUserHistory.notification_count }}</strong> interacciones a este usuario desde esta campaña.</p>
@@ -710,6 +715,31 @@
               </div>
             </div>
           </ng-container>
+
+          <!-- Observation Section -->
+          <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed var(--surface-border);">
+            <div *ngIf="!item._editObservation" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+              <div style="flex: 1;">
+                <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-color-secondary); margin-bottom: 0.25rem;">
+                  <i class="pi pi-bookmark" style="font-size: 0.7rem; margin-right: 4px;"></i> Observación
+                </div>
+                <div *ngIf="item.observation" style="font-size: 0.85rem; color: var(--text-color); white-space: pre-wrap; line-height: 1.4;">{{ item.observation }}</div>
+                <div *ngIf="!item.observation" style="font-size: 0.8rem; color: #a1a1aa; font-style: italic;">Sin observaciones.</div>
+              </div>
+              <button pButton icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm p-button-secondary" (click)="item._editObservation = true" pTooltip="Editar observación"></button>
+            </div>
+
+            <div *ngIf="item._editObservation" style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="font-size: 0.75rem; font-weight: 600; color: var(--primary-color); margin-bottom: 0.25rem;">
+                <i class="pi pi-bookmark" style="font-size: 0.7rem; margin-right: 4px;"></i> Escribir Observación
+              </div>
+              <textarea pInputTextarea [(ngModel)]="item.observation" rows="3" class="w-full" style="font-size: 0.85rem;" placeholder="Escribe un resumen o nota sobre esta interacción..."></textarea>
+              <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button pButton label="Cancelar" class="p-button-text p-button-sm p-button-secondary" (click)="item._editObservation = false" [disabled]="item._savingObservation"></button>
+                <button pButton label="Guardar" icon="pi pi-check" class="p-button-sm" (click)="saveObservation(item)" [loading]="item._savingObservation"></button>
+              </div>
+            </div>
+          </div>
         </p-card>
       </ng-template>
     </p-timeline>
@@ -756,4 +786,47 @@
       </div>
     </div>
   </div>
+</p-dialog>
+
+<!-- ── Modal Interacción Manual ────────────────────────────────────── -->
+<p-dialog
+  [(visible)]="showManualInteractionModal"
+  [modal]="true"
+  header="Registrar Interacción Manual"
+  styleClass="manual-interaction-dialog"
+  [style]="{width: '450px'}">
+  
+  <div class="form-group" style="margin-bottom: 1rem;">
+    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Tipo de Interacción</label>
+    <p-dropdown 
+      [options]="manualInteractionTypes" 
+      [(ngModel)]="manualInteractionType" 
+      optionLabel="label" 
+      optionValue="value" 
+      styleClass="w-full"
+      appendTo="body">
+      <ng-template pTemplate="selectedItem" let-selectedOption>
+        <div class="flex align-items-center gap-2">
+          <i [class]="selectedOption?.icon"></i>
+          <div>{{ selectedOption?.label }}</div>
+        </div>
+      </ng-template>
+      <ng-template pTemplate="item" let-option>
+        <div class="flex align-items-center gap-2">
+          <i [class]="option.icon"></i>
+          <div>{{ option.label }}</div>
+        </div>
+      </ng-template>
+    </p-dropdown>
+  </div>
+
+  <div class="form-group" style="margin-bottom: 1rem;">
+    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Notas / Observación</label>
+    <textarea pInputTextarea [(ngModel)]="manualInteractionNotes" rows="4" class="w-full" placeholder="Detalles de la interacción (opcional)..."></textarea>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancelar" icon="pi pi-times" class="p-button-text p-button-secondary" (click)="showManualInteractionModal = false" [disabled]="savingManualInteraction"></button>
+    <button pButton label="Guardar" icon="pi pi-save" (click)="saveManualInteraction()" [loading]="savingManualInteraction" [disabled]="!manualInteractionType"></button>
+  </ng-template>
 </p-dialog>

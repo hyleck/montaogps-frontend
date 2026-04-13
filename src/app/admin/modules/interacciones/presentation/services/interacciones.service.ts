@@ -141,4 +141,8 @@ export class InteraccionesService {
   toggleExternalInteractionProgress(listId: string, contactId: string, objectiveId: string, completed: boolean): Observable<any> {
     return this.http.patch<any>(`${this.api}/${listId}/external-progress/${contactId}`, { objectiveId, completed });
   }
+
+  saveInteractionObservation(listId: string, userId: string, historyId: string, observation: string): Observable<any> {
+    return this.http.patch<any>(`${this.api}/${listId}/user/${userId}/history/${historyId}/observation`, { observation });
+  }
 }

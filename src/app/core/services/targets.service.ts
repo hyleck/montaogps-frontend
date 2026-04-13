@@ -296,4 +296,9 @@ export class TargetsService {
     const observable = this.http.post<{ url: string; thumbnailUrl?: string; fromCache?: boolean }>(`${this.apiUrl}/generate-image`, data);
     return await lastValueFrom(observable);
   }
+
+  async bulkVerifyIccids(iccids: string[]): Promise<any[]> {
+    const observable = this.http.post<any[]>(`${this.apiUrl}/bulk-verify-iccids`, { iccids });
+    return await lastValueFrom(observable);
+  }
 }

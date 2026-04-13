@@ -67,6 +67,10 @@ const routes: Routes = [
         path: 'empleados',
         loadChildren: () => import('../modules/empleados/presentation/empleados.module').then(m => m.EmpleadosModule)
       },
+      {
+        path: 'simcard-verification',
+        loadChildren: () => import('../modules/simcard-verification/simcard-verification.module').then(m => m.SimcardVerificationModule)
+      },
     ]
   }
 ];
