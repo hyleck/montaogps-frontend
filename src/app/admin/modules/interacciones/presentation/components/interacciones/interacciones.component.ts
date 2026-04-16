@@ -1082,6 +1082,13 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       if (lastItem.title.includes('Llamada de IA') || lastItem.title.includes('Ester')) {
         return 'Llamada IA (Ester)';
       }
+      if (lastItem.title.includes('Revisión de Dispositivos')) {
+        return 'Revisión de Dispositivos';
+      }
+      // Si el título no coincide con ninguno conocido, usarlo directamente
+      if (lastItem.title && !lastItem.title.includes('Notificación')) {
+        return lastItem.title;
+      }
     }
     return 'Notificación push';
   }
@@ -1098,6 +1105,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       }
       if (lastItem.title.includes('Llamada de IA') || lastItem.title.includes('Ester')) {
         return 'pi-phone';
+      }
+      if (lastItem.title.includes('Revisión de Dispositivos')) {
+        return 'pi-wrench';
       }
     }
     return 'pi-bell';

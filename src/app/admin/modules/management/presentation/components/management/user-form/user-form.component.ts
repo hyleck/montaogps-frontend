@@ -206,6 +206,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     loadingCampaigns: boolean = false;
     addingToCampaign: boolean = false;
 
+    // Subcliente parent email
+    subclienteParentEmail: string = '';
+
     @ViewChild('municipalitySelect') municipalitySelectRef?: ElementRef<HTMLSelectElement>;
 
     constructor(
@@ -527,6 +530,13 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.selectedProfileType = user.profile_type_id || 'personal';
         this.selectedCompanyType = user.company_type_id || '';
 
+        // Pre-fill parent email for subcliente
+        if (this.selectedAffiliationType === 'subcliente' && (user as any).parent_id) {
+            this.fetchParentEmail((user as any).parent_id);
+        } else {
+            this.subclienteParentEmail = '';
+        }
+
         // Forzar detección de cambios
         this.cdr.detectChanges();
 
@@ -792,7 +802,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             sector: this.user.sector || undefined,
             latitude: this.user.latitude || undefined,
             longitude: this.user.longitude || undefined,
-            services: this.selectedAffiliationType?.startsWith('tecnico') ? (this.technicianServices || []) : []
+            services: this.selectedAffiliationType?.startsWith('tecnico') ? (this.technicianServices || []) : [],
+            // Correo del cliente principal para subclientes
+            subclient_parent_email: this.selectedAffiliationType === 'subcliente' ? (this.subclienteParentEmail || undefined) : undefined
         };
         console.log('User to submit:', userToSubmit);
 
@@ -950,6 +962,17 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 this.municipalities = MUNICIPALITIES[''];
                 this.technicianServices = [];
             }
+            // Fetch parent email when subcliente is selected
+            if (value === 'subcliente') {
+                const parentId = this.route.snapshot.params['user'] || (this.userInput as any)?.parent_id;
+                if (parentId) {
+                    this.fetchParentEmail(parentId);
+                } else {
+                    this.subclienteParentEmail = '';
+                }
+            } else {
+                this.subclienteParentEmail = '';
+            }
         }
 
         // Resetear company_type si el perfil ya no es empresa
@@ -958,6 +981,17 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 this.selectedCompanyType = '';
             }
         }
+    }
+
+    private fetchParentEmail(parentId: string) {
+        this.userService.getById(parentId).pipe(takeUntil(this.destroy$)).subscribe({
+            next: (parentUser: any) => {
+                this.subclienteParentEmail = parentUser?.email || '';
+            },
+            error: () => {
+                this.subclienteParentEmail = '';
+            }
+        });
     }
 
     private sanitizeString(value?: string | null): string {

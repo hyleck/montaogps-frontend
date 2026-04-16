@@ -1,0 +1,170 @@
+<div style="height: calc(100vh - 120px); display: flex; flex-direction: column; padding: 2rem;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+            <h2 style="margin: 0; color: var(--text-color);">Embudo de Reactivación</h2>
+            <span style="font-size: 0.9rem; color: var(--text-color-secondary);">
+                Pipeline automatizado de detección, reactivación y seguimiento de dispositivos offline.
+            </span>
+        </div>
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <button pButton icon="pi pi-arrow-left" label="Volver" class="p-button-outlined p-button-sm" (click)="goBack()"></button>
+        </div>
+    </div>
+
+    <!-- Stepper -->
+    <div class="stepper-container">
+        <ng-container *ngFor="let step of phases; let i = index; let last = last">
+            <div class="stepper-step">
+                <div class="stepper-icon" [ngClass]="getPhaseStatus(step.phase)">
+                    <i *ngIf="getPhaseStatus(step.phase) === 'completed'" class="pi pi-check"></i>
+                    <i *ngIf="getPhaseStatus(step.phase) !== 'completed'" [class]="step.icon"></i>
+                </div>
+                <span class="stepper-label" [ngClass]="getPhaseStatus(step.phase)">{{ step.label }}</span>
+            </div>
+            <div *ngIf="!last" class="stepper-line" [ngClass]="{'completed': session?.phase > step.phase}"></div>
+        </ng-container>
+    </div>
+
+    <!-- Launch Panel (when no session or completed) -->
+    <div *ngIf="!session || session?.status === 'completed' || session?.status === 'failed'"
+        style="background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 8px; padding: 2rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 2rem;">
+            <div style="flex: 1;">
+                <h3 style="margin: 0 0 0.5rem 0; color: var(--text-color);">Configurar y Lanzar Embudo</h3>
+                <p style="color: var(--text-color-secondary); margin: 0; font-size: 0.9rem;">
+                    El embudo tomará los dispositivos offline detectados, ejecutará el proceso completo de reactivación (SIM + APN + Servidor), esperará el tiempo configurado, y luego re-verificará cuáles siguen sin conexión.
+                </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="text-align: center;">
+                    <label style="font-size: 0.75rem; color: var(--text-color-secondary); display: block; margin-bottom: 0.3rem;">Horas de espera</label>
+                    <input type="number" [(ngModel)]="waitHours" min="1" max="24" 
+                        style="width: 70px; padding: 0.5rem; border: 1px solid var(--surface-border); border-radius: 6px; text-align: center; font-size: 1.1rem; font-weight: 800; background: var(--surface-ground); color: var(--text-color);">
+                </div>
+                <button pButton icon="pi pi-play" label="Iniciar Embudo" class="p-button-primary p-button-lg" (click)="startFunnel()" [loading]="loading"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Banner (active session) -->
+    <div *ngIf="session && session.status !== 'completed' && session.status !== 'failed'"
+        style="background: var(--surface-card); border: 1px solid var(--primary-color); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <div style="font-weight: 800; color: var(--text-color); font-size: 1.1rem;">
+                    <i class="pi pi-spin pi-spinner" style="color: var(--primary-color); margin-right: 0.5rem;"></i>
+                    {{ session.message }}
+                </div>
+                <div *ngIf="session.status === 'waiting'" style="margin-top: 0.5rem; color: var(--text-color-secondary);">
+                    <i class="pi pi-clock"></i> {{ getTimeRemaining() }}
+                </div>
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary-color);">{{ session.totalDevices || 0 }}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-color-secondary);">Dispositivos</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 800; color: #22c55e;">{{ session.activationsTriggered || 0 }}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-color-secondary);">Activados</div>
+                </div>
+                <button *ngIf="session.status === 'waiting'" pButton icon="pi pi-refresh" label="Forzar Re-verificación" 
+                    class="p-button-outlined p-button-warning p-button-sm" (click)="forceRecheck()"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results (completed session) -->
+    <div *ngIf="session?.status === 'completed' && devices.length > 0" style="flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 1rem;">
+        <!-- Results Summary -->
+        <div style="display: flex; gap: 1rem;">
+            <div style="flex: 1; background: linear-gradient(135deg, #22c55e22, #22c55e08); border: 1px solid #22c55e44; border-radius: 8px; padding: 1.2rem; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 800; color: #22c55e;">{{ session.devicesRecovered || 0 }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-color-secondary);">Recuperados</div>
+            </div>
+            <div style="flex: 1; background: linear-gradient(135deg, #ef444422, #ef444408); border: 1px solid #ef444444; border-radius: 8px; padding: 1.2rem; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 800; color: #ef4444;">{{ session.devicesPersistent || 0 }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-color-secondary);">Requieren Contacto</div>
+            </div>
+            <div style="flex: 1; background: linear-gradient(135deg, #3b82f622, #3b82f608); border: 1px solid #3b82f644; border-radius: 8px; padding: 1.2rem; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 800; color: #3b82f6;">{{ contactedCount }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-color-secondary);">Ya Contactados</div>
+            </div>
+            <div style="flex: 1; background: linear-gradient(135deg, #f59e0b22, #f59e0b08); border: 1px solid #f59e0b44; border-radius: 8px; padding: 1.2rem; text-align: center;">
+                <div style="font-size: 2rem; font-weight: 800; color: #f59e0b;">{{ pendingContactCount }}</div>
+                <div style="font-size: 0.8rem; color: var(--text-color-secondary);">Pendientes</div>
+            </div>
+        </div>
+
+        <!-- Contact List -->
+        <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-right: 0.5rem;">
+            <h3 style="margin: 0.5rem 0; color: var(--text-color);">
+                <i class="pi pi-users" style="margin-right: 0.5rem;"></i> Listado de Clientes a Contactar
+            </h3>
+            
+            <div *ngFor="let device of persistentDevices" class="device-card" [ngClass]="{'contacted': device.contacted, 'pending-contact': !device.contacted}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem;">
+                            <i class="pi pi-user" style="color: var(--primary-color); font-size: 0.85rem;"></i>
+                            <span style="font-weight: 800; color: var(--text-color); font-size: 1rem;">{{ device.userName }}</span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-color); margin-bottom: 0.2rem;">
+                            <i class="pi pi-box" style="font-size: 0.7rem;"></i> {{ device.deviceName }}
+                        </div>
+                        <div style="font-size: 0.75rem; font-family: monospace; color: var(--text-color-secondary);">
+                            IMEI: {{ device.imei }} &nbsp;|&nbsp; SIM: {{ device.simCompany || 'N/A' }}
+                        </div>
+                        <div *ngIf="device.activationResult" style="font-size: 0.7rem; color: var(--text-color-secondary); margin-top: 0.3rem;">
+                            <i class="pi pi-info-circle"></i> {{ device.activationResult }}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div *ngIf="device.contacted" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem;">
+                            <span style="color: #22c55e; font-weight: 800; font-size: 0.85rem;">
+                                <i class="pi pi-check-circle"></i> Contactado
+                            </span>
+                            <span style="font-size: 0.7rem; color: var(--text-color-secondary); max-width: 200px; text-align: right;">
+                                "{{ device.contactResponse }}"
+                            </span>
+                        </div>
+                        <button *ngIf="!device.contacted" pButton icon="pi pi-phone" label="Marcar Contacto" 
+                            class="p-button-warning p-button-sm p-button-outlined" (click)="openContactForm(device._id)"></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recovered devices (collapsed) -->
+            <div *ngIf="recoveredDevices.length > 0" style="margin-top: 1rem;">
+                <h4 style="color: #22c55e; margin: 0.5rem 0;">
+                    <i class="pi pi-check-circle"></i> Dispositivos Recuperados ({{ recoveredDevices.length }})
+                </h4>
+                <div *ngFor="let device of recoveredDevices" 
+                    style="padding: 0.6rem 1rem; border: 1px solid #22c55e33; border-radius: 6px; margin-bottom: 0.3rem; background: #22c55e08; display: flex; justify-content: space-between;">
+                    <span style="color: var(--text-color);">{{ device.userName }} — {{ device.deviceName }}</span>
+                    <span style="color: #22c55e; font-weight: 600; font-size: 0.8rem;">Online ✓</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Form Modal -->
+    <div *ngIf="contactDeviceId" class="contact-form-overlay" (click)="cancelContact()">
+        <div class="contact-form" (click)="$event.stopPropagation()">
+            <h3 style="margin: 0 0 1rem 0; color: var(--text-color);">
+                <i class="pi pi-phone" style="color: var(--primary-color);"></i> Registrar Contacto
+            </h3>
+            <div style="margin-bottom: 1rem;">
+                <label style="font-size: 0.85rem; color: var(--text-color-secondary); display: block; margin-bottom: 0.5rem;">Respuesta del cliente:</label>
+                <textarea [(ngModel)]="contactResponse" rows="4" 
+                    style="width: 100%; padding: 0.8rem; border: 1px solid var(--surface-border); border-radius: 8px; resize: vertical; font-family: inherit; background: var(--surface-ground); color: var(--text-color);"
+                    placeholder="Ej: Cliente indica que el vehículo está en taller..."></textarea>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button pButton label="Cancelar" class="p-button-outlined p-button-sm" (click)="cancelContact()"></button>
+                <button pButton icon="pi pi-check" label="Guardar Contacto" class="p-button-primary p-button-sm" (click)="submitContact()"></button>
+            </div>
+        </div>
+    </div>
+</div>

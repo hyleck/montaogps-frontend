@@ -1,0 +1,174 @@
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 2rem;
+    font-size: 0.85rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-badge.running {
+    background-color: var(--blue-100);
+    color: var(--blue-700);
+}
+
+.status-badge.completed {
+    background-color: var(--green-100);
+    color: var(--green-700);
+}
+
+.status-badge.failed {
+    background-color: var(--red-100);
+    color: var(--red-700);
+}
+
+:host ::ng-deep .p-progressbar {
+    height: 12px;
+    background-color: var(--surface-d);
+}
+
+:host ::ng-deep .p-progressbar .p-progressbar-value {
+    background-color: var(--primary-color);
+}
+
+/* n8n Dynamic Flow Canvas */
+.n8n-flow-container {
+    margin-top: 1.5rem;
+    background-color: var(--surface-b);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--surface-border);
+}
+
+.n8n-flow-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed var(--surface-border);
+}
+
+.n8n-canvas {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0;
+}
+
+/* n8n Node Base */
+.n8n-node {
+    background: var(--surface-card);
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.n8n-node:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.n8n-node-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.n8n-node-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.n8n-node-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-color-secondary);
+    letter-spacing: 0.5px;
+}
+
+.n8n-node-detail {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Node Variants */
+.user-node.full-width {
+    width: 100%;
+    border-left: 5px solid var(--primary-color);
+    background: var(--surface-ground);
+    margin-bottom: 0.5rem;
+}
+.user-node .n8n-node-icon {
+    background: rgba(var(--primary-color-rgb), 0.1);
+    color: var(--primary-color);
+}
+
+.device-node {
+    margin-bottom: 0;
+}
+
+.device-node.completed { border-top: 4px solid #22c55e !important; }
+.device-node.completed .n8n-node-icon { background: #dcfce7 !important; color: #16a34a !important; }
+
+.device-node.active { border-top: 4px solid #3b82f6 !important; }
+.device-node.active .n8n-node-icon { background: #dbeafe !important; color: #2563eb !important; }
+
+.device-node.pending { border-top: 4px solid #eab308 !important; opacity: 0.9; }
+.device-node.pending .n8n-node-icon { background: #fef9c3 !important; color: #ca8a04 !important; }
+
+/* Devices Grid Pattern */
+.n8n-devices-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    width: 100%;
+}
+.mt-3 { margin-top: 1rem; }
+
+/* Animations */
+.pulsing {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(var(--primary-color-rgb), 0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(var(--primary-color-rgb), 0); }
+}
+
+@keyframes textBluePulse {
+    0%, 100% { opacity: 1; color: var(--primary-color); }
+    50% { opacity: 0.4; color: var(--primary-color); }
+}
+
+.text-pulsing-blue {
+    animation: textBluePulse 1.5s ease-in-out infinite;
+    color: var(--primary-color);
+}
+
+@keyframes rawFadePulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.2; }
+    100% { opacity: 1; }
+}
+
+.pulsing-blue-text {
+    animation: rawFadePulse 1.2s ease-in-out infinite;
+}

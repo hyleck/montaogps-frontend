@@ -42,6 +42,7 @@ export class SidebarComponent implements OnInit {
       { label: '', path: '/admin/processes', icon: 'pi pi-list', badge: 0 },
       { label: '', path: '/admin/interacciones', icon: 'pi pi-share-alt', badge: 0 },
       { label: '', path: '/admin/simcard-verification', icon: 'pi pi-mobile', badge: 0 },
+      { label: '', path: '/admin/monitor-ia', icon: 'pi pi-android', badge: 0 },
     ],
     profileTitle: '',
     profileItems: [
@@ -157,6 +158,7 @@ export class SidebarComponent implements OnInit {
     this.sidaberOptions.principalItems[8].label = 'Procesos';
     this.sidaberOptions.principalItems[9].label = 'Campañas';
     this.sidaberOptions.principalItems[10].label = 'Verificación SIMs';
+    this.sidaberOptions.principalItems[11].label = 'Monitor IA';
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');
@@ -237,6 +239,11 @@ export class SidebarComponent implements OnInit {
       // Ocultar simcard-verification si no es root
       if (item.path === '/admin/simcard-verification') {
         return this.isRootUser;
+      }
+      
+      // Ocultar Monitor IA del sidebar
+      if (item.path === '/admin/monitor-ia') {
+        return false;
       }
 
       // Opciones exclusivas para rent_a_car

@@ -1,0 +1,123 @@
+.stepper-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: var(--surface-card);
+    border-radius: 8px;
+    border: 1px solid var(--surface-border);
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.stepper-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 2;
+    flex: 1;
+}
+
+.stepper-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    border: 2px solid var(--surface-border);
+    background: var(--surface-ground);
+    color: var(--text-color-secondary);
+    transition: all 0.3s ease;
+}
+
+.stepper-icon.completed {
+    background: #22c55e;
+    border-color: #22c55e;
+    color: #fff;
+}
+
+.stepper-icon.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+    animation: stepPulse 1.5s ease-in-out infinite;
+}
+
+.stepper-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-color-secondary);
+    text-align: center;
+}
+
+.stepper-label.active {
+    color: var(--primary-color);
+    font-weight: 800;
+}
+
+.stepper-label.completed {
+    color: #22c55e;
+}
+
+.stepper-line {
+    flex: 1;
+    height: 2px;
+    background: var(--surface-border);
+    margin: 0 -0.5rem;
+    align-self: flex-start;
+    margin-top: 22px;
+    z-index: 1;
+}
+
+.stepper-line.completed {
+    background: #22c55e;
+}
+
+@keyframes stepPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(59,130,246,0); }
+}
+
+.device-card {
+    padding: 1rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 8px;
+    background: var(--surface-card);
+    transition: all 0.2s ease;
+}
+
+.device-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.device-card.contacted {
+    border-left: 4px solid #22c55e;
+    opacity: 0.7;
+}
+
+.device-card.pending-contact {
+    border-left: 4px solid #f59e0b;
+}
+
+.contact-form-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.contact-form {
+    background: var(--surface-card);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 450px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}

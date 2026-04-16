@@ -42,7 +42,7 @@
                                             <input [(ngModel)]="user.phone" name="phone"
                                                 placeholder="Ej: (809) 555-0123" type="tel" id="phone" required>
                                         </div>
-                                        <div class="user-form__field" *ngIf="userInput && userInput.phone">
+                                        <div class="user-form__field" *ngIf="userInput && userInput.phone && isCurrentUserEmployee">
                                             <button
                                                 style="background:#25D366!important; color:white!important; text-align: left; width: 100%; border-radius: 8px; padding: 0.65rem 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; border: none; cursor: pointer; font-size: 0.9rem;"
                                                 type="button"
@@ -396,6 +396,20 @@
                                             </select>
                                             <small class="settings-description">{{
                                                 'management.userForm.affiliationDescription' | translate }}</small>
+                                        </div>
+
+                                        <div class="settings-item" *ngIf="selectedAffiliationType === 'subcliente'">
+                                            <div class="settings-item__header">
+                                                <i class="pi pi-envelope"></i>
+                                                <label for="subclienteEmail">Correo del Cliente Principal</label>
+                                            </div>
+                                            <input [(ngModel)]="subclienteParentEmail"
+                                                name="subclienteEmail" id="subclienteEmail"
+                                                type="email"
+                                                placeholder="Ej: cliente@empresa.com"
+                                                class="settings-dropdown"
+                                                style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--surface-card); color: var(--text-color); font-size: 0.9rem;">
+                                            <small class="settings-description">Correo electrónico del cliente principal al que pertenece este subcliente. Se llena automáticamente si existe un usuario padre.</small>
                                         </div>
 
                                         <div class="settings-item">

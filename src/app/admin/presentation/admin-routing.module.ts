@@ -71,6 +71,10 @@ const routes: Routes = [
         path: 'simcard-verification',
         loadChildren: () => import('../modules/simcard-verification/simcard-verification.module').then(m => m.SimcardVerificationModule)
       },
+      {
+        path: 'monitor-ia',
+        loadChildren: () => import('../modules/monitor-ia/presentation/monitor-ia.module').then(m => m.MonitorIaModule)
+      },
     ]
   }
 ];
