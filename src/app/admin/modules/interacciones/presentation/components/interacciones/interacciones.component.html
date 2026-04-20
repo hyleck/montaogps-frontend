@@ -559,6 +559,13 @@
         <textarea pInputTextarea [(ngModel)]="whatsappTemplateVars.body" placeholder="Escribe el cuerpo del mensaje aquí..." rows="4" class="w-full" [disabled]="sendingPush"></textarea>
       </div>
 
+      <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+        <p-checkbox [(ngModel)]="assignToEster" [binary]="true" inputId="assignToEster"></p-checkbox>
+        <label for="assignToEster" style="margin-bottom: 0; cursor: pointer; color: #a855f7; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 0.4rem;">
+          <i class="pi pi-sparkles"></i> Dejar conversación sin agente (Responderá Ester)
+        </label>
+      </div>
+
       <div class="whatsapp-preview" style="margin-top: 1.5rem; padding: 1.2rem; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px;">
         <h5 style="margin-top: 0; margin-bottom: 0.5rem; color: #10b981; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;"><i class="pi pi-whatsapp"></i> Previsualización del Mensaje</h5>
         <div style="font-size: 0.95rem; line-height: 1.6; color: var(--text-color); background: var(--surface-card); padding: 1rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">

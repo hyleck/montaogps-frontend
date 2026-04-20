@@ -112,6 +112,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
 
   systemContacts: any[] = [];
   chatwootAgentId: string = '';
+  assignToEster: boolean = false;
 
   // ── Manual Interactions ───────────────────────────────────────
   showManualInteractionModal: boolean = false;
@@ -765,7 +766,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
                   this.whatsappTemplateVars.name === '[Nombre del usuario]' ? this.toTitleCase(this.getUserFullName(user)) : this.whatsappTemplateVars.name, 
                   this.whatsappTemplateVars.body
                 ],
-                agent_id: this.chatwootAgentId ? this.chatwootAgentId : undefined
+                agent_id: this.assignToEster ? '0' : (this.chatwootAgentId ? this.chatwootAgentId : undefined)
               }).toPromise();
               console.log(`[WA-CAMPAIGN] Respuesta para "${phone}":`, JSON.stringify(res));
               if (res && res.success === false) {
@@ -922,7 +923,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           this.whatsappTemplateVars.name,
           this.whatsappTemplateVars.body
         ],
-        agent_id: this.chatwootAgentId ? this.chatwootAgentId : undefined
+        agent_id: this.assignToEster ? '0' : (this.chatwootAgentId ? this.chatwootAgentId : undefined)
       }).toPromise();
       if (res && res.success === false) {
          console.error('Meta API Error:', res.error);
