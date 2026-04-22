@@ -116,6 +116,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
 
   // ── Manual Interactions ───────────────────────────────────────
   showManualInteractionModal: boolean = false;
+  showAutocontactWarning: boolean = false;
   manualInteractionType: string = '';
   manualInteractionNotes: string = '';
   savingManualInteraction: boolean = false;
@@ -552,6 +553,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   targetUserEmail: string | null = null;
   targetUserPhone: string | null = null;
   targetUserIsExternal: boolean = false;
+  targetUserAutocontact: boolean | null = null;
   interactionChannel: 'push' | 'email' | 'whatsapp' | 'vapi' = 'push';
 
   // WhatsApp Variables Mad-Libs style
@@ -684,6 +686,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.targetUserEmail = user.email || null;
     this.targetUserPhone = user.phone || null;
     this.targetUserIsExternal = !!user.is_external;
+    this.targetUserAutocontact = user.autocontact !== undefined ? user.autocontact : null;
     this.interactionChannel = channel;
     this.pushTitle = '';
     this.pushBody = '';
@@ -751,6 +754,12 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
         if (users.length === 0) break;
 
         for (const user of users) {
+          // Si el usuario tiene explícitamente autocontact en false, no se envían campañas automatizadas de estos tipos
+          if (user.autocontact === false && ['whatsapp', 'vapi', 'email'].includes(this.interactionChannel)) {
+            console.warn(`[CAMPAIGN] Omitiendo a "${user.name || user._id}" porque autocontact = false`);
+            continue;
+          }
+
           if (this.interactionChannel === 'whatsapp') {
             const phone = user.phone;
             if (!phone) { console.warn('[WA-CAMPAIGN] User sin teléfono:', user._id, user.name); this.pushErrorCount++; continue; }
@@ -904,12 +913,17 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     });
   }
 
-  async sendPersonalPush() {
+  async sendPersonalPush(force = false) {
+    if (!force && this.targetUserAutocontact === false && ['whatsapp', 'vapi', 'email'].includes(this.interactionChannel)) {
+      this.showAutocontactWarning = true;
+      return;
+    }
+
     this.sendingPush = true;
     this.pushSentCount = 0;
     this.pushErrorCount = 0;
-    
     try {
+
       let isSuccess = false;
       
       if (this.interactionChannel === 'whatsapp') {

@@ -837,3 +837,28 @@
     <button pButton label="Guardar" icon="pi pi-save" (click)="saveManualInteraction()" [loading]="savingManualInteraction" [disabled]="!manualInteractionType"></button>
   </ng-template>
 </p-dialog>
+
+<!-- ── Modal Advertencia Autocontact ────────────────────────────────────── -->
+<p-dialog
+  [(visible)]="showAutocontactWarning"
+  [modal]="true"
+  [closable]="false"
+  header="Advertencia de Contacto"
+  styleClass="autocontact-warning-dialog"
+  [style]="{width: '450px'}">
+  
+  <div class="flex flex-column align-items-center text-center p-4">
+    <i class="pi pi-exclamation-triangle text-orange-500 mb-3" style="font-size: 3rem;"></i>
+    <h3 style="margin-top: 0; margin-bottom: 0.5rem; color: var(--text-color);">Usuario Restringido</h3>
+    <p style="color: var(--text-color-secondary); line-height: 1.5; margin-bottom: 1.5rem;">
+      Este usuario ha indicado que <strong>no desea recibir mensajes automatizados</strong> (tiene la propiedad de autocontacto deshabilitada).
+      <br><br>
+      ¿Estás seguro de que deseas forzar el envío de este mensaje?
+    </p>
+  </div>
+
+  <ng-template pTemplate="footer">
+    <button pButton label="Cancelar" icon="pi pi-times" class="p-button-text p-button-secondary" (click)="showAutocontactWarning = false"></button>
+    <button pButton label="Enviar de todos modos" icon="pi pi-send" class="p-button-warning" (click)="showAutocontactWarning = false; sendPersonalPush(true)"></button>
+  </ng-template>
+</p-dialog>

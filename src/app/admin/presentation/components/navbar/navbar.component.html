@@ -694,11 +694,11 @@
                             <span class="canceled-badge">{{ 'common.canceled' | translate }}</span>
                         </div>
                         <div class="target-actions">
-                            <button type="button" class="restore-btn" (click)="restoreTarget(target._id!)"
+                            <button *ngIf="currentUser?.affiliation_type_id === 'empleado'" type="button" class="restore-btn" (click)="restoreTarget(target._id!)"
                                 title="{{ 'navbar.restoreTarget' | translate }}">
                                 <i class="pi pi-refresh"></i>
                             </button>
-                            <button type="button" class="delete-btn" (click)="deleteTarget(target._id!)"
+                            <button *ngIf="currentUser?.affiliation_type_id === 'empleado'" type="button" class="delete-btn" (click)="deleteTarget(target._id!)"
                                 title="{{ 'navbar.deleteTarget' | translate }}">
                                 <i class="pi pi-trash"></i>
                             </button>
@@ -1019,7 +1019,7 @@
     </ng-template>
 
     <ng-template pTemplate="footer">
-        <button type="button" (click)="restoreTarget(selectedTargetDetails?._id!)" class="button button--primary">
+        <button *ngIf="currentUser?.affiliation_type_id === 'empleado'" type="button" (click)="restoreTarget(selectedTargetDetails?._id!)" class="button button--primary">
             <i class="pi pi-refresh"></i>
             {{ 'navbar.restoreTarget' | translate }}
         </button>
