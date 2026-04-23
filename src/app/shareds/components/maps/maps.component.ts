@@ -43,6 +43,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   generatedLink: string = '';
   showCopySuccess: boolean = false;
   showVehicleImageModal: boolean = false;
+  discrepancyMessage: string | null = null;
 
   constructor(
     private _theme: ThemesService,
@@ -416,6 +417,26 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     this.offlineDuration = timeText;
     this.lastUpdateText = lastUpdateDate.toLocaleString();
+    
+    this.discrepancyMessage = null;
+    const lastValidLocationStr = this.selectedTarget?.traccarInfo?.geolocation?.deviceTime 
+        || this.selectedTarget?.traccarInfo?.geolocation?.fixTime
+        || this.selectedTarget?.historicalLocation?.deviceTime
+        || this.selectedTarget?.historicalLocation?.fixTime;
+        
+    if (lastUpdate && lastValidLocationStr) {
+      const validDate = new Date(lastValidLocationStr);
+      if (!isNaN(validDate.getTime())) {
+        const diffMs = lastUpdateDate.getTime() - validDate.getTime();
+        // Si hay una diferencia mayor a 60 minutos (3600000 ms)
+        if (diffMs > 3600000) {
+          const formatOptions: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+          const formattedUpdate = lastUpdateDate.toLocaleString('es-ES', formatOptions);
+          const formattedValid = validDate.toLocaleString('es-ES', formatOptions);
+          this.discrepancyMessage = `Este vehículo entró en línea por última vez el ${formattedUpdate} pero su última ubicación válida registrada fue el ${formattedValid}`;
+        }
+      }
+    }
   }
 
   private async updateTargetMarker(): Promise<void> {

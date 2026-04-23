@@ -461,9 +461,15 @@ export class ReportsComponent implements OnInit {
       // Verificar si es una opción offline que requiere lastUpdate
       if (preset.value.startsWith('fromLastLocation')) {
         const selectedTarget = this.reportFilter.selectedTargets[0];
-        if (selectedTarget?.traccarInfo?.lastUpdate) {
-          const lastUpdate = new Date(selectedTarget.traccarInfo.lastUpdate);
-          range = preset.getRange(lastUpdate);
+        
+        // Determinar la última ubicación VÁLIDA
+        const lastValidLocationStr = selectedTarget?.traccarInfo?.geolocation?.deviceTime 
+          || selectedTarget?.traccarInfo?.geolocation?.fixTime 
+          || selectedTarget?.traccarInfo?.lastUpdate;
+          
+        if (lastValidLocationStr) {
+          const lastValidLocationDate = new Date(lastValidLocationStr);
+          range = preset.getRange(lastValidLocationDate);
         } else {
           this.messageService.add({
             severity: 'warn',
@@ -552,14 +558,19 @@ export class ReportsComponent implements OnInit {
 
       // Verificar si el target no está online
       if (this.isTargetOffline) {
-        const lastUpdate = new Date(targetInfo.traccarInfo.lastUpdate);
+        // Determinar la última ubicación VÁLIDA
+        const lastValidLocationStr = targetInfo.traccarInfo?.geolocation?.deviceTime 
+          || targetInfo.traccarInfo?.geolocation?.fixTime 
+          || targetInfo.traccarInfo?.lastUpdate;
+          
+        const lastUpdate = new Date(lastValidLocationStr);
         const fromDate = new Date(lastUpdate);
-        fromDate.setDate(fromDate.getDate() - 15); // 15 días antes de lastUpdate
+        fromDate.setDate(fromDate.getDate() - 15); // 15 días antes de la última ubicación
         
         console.log('🔍 [REPORTES] Target offline detectado, ajustando fechas desde 15 días antes de última ubicación:', {
-          lastUpdate: lastUpdate.toISOString(),
+          lastValidLocation: lastUpdate.toISOString(),
           fromDate: fromDate.toISOString(),
-          range: '15 días antes de lastUpdate hasta lastUpdate'
+          range: '15 días antes de última ubicación válida'
         });
 
         // Establecer la fecha "desde" como 15 días antes de lastUpdate y "hasta" como lastUpdate
@@ -572,7 +583,7 @@ export class ReportsComponent implements OnInit {
         this.messageService.add({
           severity: 'info',
           summary: 'Fechas ajustadas',
-          detail: `El dispositivo está offline. Se ha ajustado el rango de fechas desde la última ubicación: ${lastUpdate.toLocaleString()}`
+          detail: `El dispositivo está offline. Se ha ajustado el rango de fechas desde la última ubicación válida: ${lastUpdate.toLocaleString()}`
         });
 
         console.log('🔍 [REPORTES] Fechas ajustadas para target offline:', {

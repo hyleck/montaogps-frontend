@@ -2,6 +2,12 @@
     <div class="maps">
         <div class="maps__map" id="map"></div>
         <!-- Vehicle image overlay -->
+        <div class="location-discrepancy-overlay" *ngIf="discrepancyMessage && selectedTarget?.traccarStatus !== 'online'">
+            <i class="pi pi-info-circle"></i>
+            <span>{{ discrepancyMessage }}</span>
+            <button class="close-discrepancy" (click)="discrepancyMessage = null"><i class="pi pi-times"></i></button>
+        </div>
+        
         <div class="vehicle-image-overlay"
             [ngClass]="['provider-' + provider, selectedTarget?.traccarStatus === 'online' ? 'status-online' : '']"
             *ngIf="selectedTarget && getVehicleImageUrl()">
