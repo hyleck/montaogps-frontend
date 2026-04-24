@@ -83,19 +83,46 @@ export class SimcardVerificationComponent {
              const wsname: string = wb.SheetNames[0];
              const ws: xlsx.WorkSheet = wb.Sheets[wsname];
 
-             const parsedData = xlsx.utils.sheet_to_json(ws);
+             const parsedData = xlsx.utils.sheet_to_json(ws, { header: 1 });
              const extracted: {iccid: string, sourceFile: string}[] = [];
 
-             for (const row of parsedData as any[]) {
-                let keyToUse = Object.keys(row).find(k => k.toLowerCase().trim() === 'iccid');
-                if (!keyToUse) {
-                   keyToUse = Object.keys(row).find(k => k.toLowerCase().trim() === 'telefono2');
+             let simColumnIndices: number[] = [];
+
+             for (let i = 0; i < parsedData.length; i++) {
+                const row = parsedData[i] as any[];
+                if (!row || !Array.isArray(row)) continue;
+                
+                // Buscar encabezados en la fila actual
+                const foundIndices: number[] = [];
+                for (let c = 0; c < row.length; c++) {
+                   const cell = row[c];
+                   if (typeof cell === 'string') {
+                      const normalized = cell.toLowerCase().trim();
+                      if (['iccid', 'telefono2', 'telefono 2', 'teléfono 2', 'número sim', 'numero sim', 'sim card', 'simcard', 'sim_card', 'sim'].includes(normalized)) {
+                         foundIndices.push(c);
+                      }
+                   }
                 }
-                if (keyToUse && row[keyToUse]) {
-                   extracted.push({
-                     iccid: String(row[keyToUse]).trim(),
-                     sourceFile: file.name
-                   });
+
+                if (foundIndices.length > 0) {
+                   simColumnIndices = foundIndices; // Actualizar columnas de SIM para las siguientes filas
+                   continue; // Es una fila de encabezado, pasamos a la siguiente
+                }
+
+                // Extraer de las columnas activas
+                for (const colIndex of simColumnIndices) {
+                   const val = row[colIndex];
+                   if (val !== undefined && val !== null) {
+                      const strVal = String(val).trim();
+                      const noSpaces = strVal.replace(/\s+/g, '');
+                      // Validar que parece un ICCID / número (contiene al menos un dígito, min 4 chars, caracteres válidos)
+                      if (noSpaces.length >= 4 && /\d/.test(noSpaces) && /^[a-zA-Z0-9\+\-]+$/.test(noSpaces)) {
+                         extracted.push({
+                           iccid: strVal,
+                           sourceFile: file.name
+                         });
+                      }
+                   }
                 }
              }
              resolve(extracted);
