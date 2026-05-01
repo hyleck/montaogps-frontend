@@ -505,6 +505,25 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       || normalizedCompany === 'global-e';
   }
 
+  private getNormalizedSimStatus(device: any): 'active' | 'suspended' | '' {
+    const simCompany = device?.sim_company?.toString().toLowerCase() ?? '';
+    const status = device?.simStatus?.status?.toString().toLowerCase() ?? '';
+
+    if (status === 'active' || status === 'activated') {
+      return 'active';
+    }
+
+    if (status.includes('suspend')) {
+      return 'suspended';
+    }
+
+    if (simCompany === 'global-e' && this.supportsSimStatusFilter(simCompany)) {
+      return 'suspended';
+    }
+
+    return '';
+  }
+
   get selectedActivationFilter(): string {
     return this._selectedActivationFilter;
   }
@@ -1556,9 +1575,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
         if (this._selectedSimStatusFilter && this._selectedSimStatusFilter !== '') {
           filteredDevices = filteredDevices.filter(device => {
-            const simStatus = device?.simStatus?.status;
-            if (!simStatus) return false;
-            return simStatus.toLowerCase() === this._selectedSimStatusFilter.toLowerCase();
+            const simStatus = this.getNormalizedSimStatus(device);
+            return simStatus === this._selectedSimStatusFilter.toLowerCase();
           });
         }
 
@@ -1879,10 +1897,11 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       return 'sim-active';
     }
     const simStatus = device?.simStatus;
-    if (!simStatus || !simStatus.status) {
+    const normalizedStatus = this.getNormalizedSimStatus(device);
+    if (!simStatus?.status && normalizedStatus !== 'suspended') {
       return '';
     }
-    return simStatus.status === 'Active' ? 'sim-active' : simStatus.status === 'Suspended' ? 'sim-suspended' : '';
+    return normalizedStatus === 'active' ? 'sim-active' : normalizedStatus === 'suspended' ? 'sim-suspended' : '';
   }
 
   applyFilters(): void {
