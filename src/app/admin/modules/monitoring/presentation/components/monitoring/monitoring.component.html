@@ -473,7 +473,7 @@
           </select>
         </div>
 
-        <div class="field" *ngIf="selectedSimCompanyFilter === 'global-m'">
+        <div class="field" *ngIf="supportsSimStatusFilter(selectedSimCompanyFilter)">
           <label>{{ 'MONITORING.FILTERS_SIM_STATUS' | translate }}</label>
           <select [(ngModel)]="selectedSimStatusFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_SIM_STATUSES' | translate }}</option>

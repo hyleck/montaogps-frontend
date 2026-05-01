@@ -482,7 +482,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     if (this._selectedSimCompanyFilter !== value) {
       this._selectedSimCompanyFilter = value;
       // Reset SIM status filter when SIM company changes
-      if (value !== 'global-m') {
+      if (!this.supportsSimStatusFilter(value)) {
         this._selectedSimStatusFilter = '';
       }
     }
@@ -496,6 +496,13 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     if (this._selectedSimStatusFilter !== value) {
       this._selectedSimStatusFilter = value;
     }
+  }
+
+  supportsSimStatusFilter(simCompany: string | null | undefined): boolean {
+    const normalizedCompany = simCompany?.toString().toLowerCase();
+    return normalizedCompany === 'global-m'
+      || normalizedCompany === 'global-m2'
+      || normalizedCompany === 'global-e';
   }
 
   get selectedActivationFilter(): string {
