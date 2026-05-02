@@ -1,0 +1,191 @@
+<section class="emnify-page">
+  <header class="emnify-header">
+    <div>
+      <p class="eyebrow">Emnify verificación</p>
+      <h2>Filtro en tiempo real de SIM cards</h2>
+      <p>Consulta directa a la API de Emnify con filtros de nombre, ICCID, estado y conexión.</p>
+    </div>
+
+    <button
+      pButton
+      type="button"
+      label="Volver"
+      icon="pi pi-arrow-left"
+      class="p-button-outlined"
+      routerLink="/admin/simcard-verification">
+    </button>
+  </header>
+
+  <div class="filters-section">
+    <div class="filters-title">
+      <div>
+        <span>Filtros</span>
+        <strong>{{ total }} registros encontrados</strong>
+      </div>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-refresh"
+        class="p-button-text p-button-sm"
+        [loading]="loading"
+        (click)="loadSimcards()">
+      </button>
+    </div>
+
+    <div class="filter-grid">
+      <div class="field search-field">
+        <label for="search">Buscar</label>
+        <span class="input-with-icon">
+          <i class="pi pi-search"></i>
+          <input
+            id="search"
+            type="text"
+            pInputText
+            [(ngModel)]="search"
+            placeholder="Nombre, ICCID o estado"
+            (input)="applyFilters()"
+            (keyup.enter)="applyFilters()" />
+        </span>
+      </div>
+
+      <div class="field">
+        <label for="estado">Estado</label>
+        <select id="estado" class="native-select" [(ngModel)]="estado" (change)="applyFilters()">
+          <option value="">Todos</option>
+          <option *ngFor="let option of estadoOptions" [value]="option">{{ option }}</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="conexion">Conexión</label>
+        <select id="conexion" class="native-select" [(ngModel)]="conexion" (change)="applyFilters()">
+          <option value="">Todas</option>
+          <option *ngFor="let option of conexionOptions" [value]="option">{{ option }}</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="existsInMontao">Montao GPS</label>
+        <select id="existsInMontao" class="native-select" [(ngModel)]="existsInMontao" (change)="applyFilters()">
+          <option value="">Todos</option>
+          <option value="exists">Existe en Montao GPS</option>
+          <option value="missing">No existe en Montao GPS</option>
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button
+          pButton
+          type="button"
+          icon="pi pi-filter"
+          [loading]="loading"
+          (click)="applyFilters()">
+        </button>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-times"
+          class="p-button-outlined"
+          (click)="clearFilters()">
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="table-section">
+    <div class="table-header">
+      <div>
+        <p class="section-label">Resultados</p>
+        <h3>SIM cards Emnify</h3>
+      </div>
+      <div class="table-actions">
+        <span class="record-count">{{ total }} registros</span>
+        <button
+          pButton
+          type="button"
+          label="Exportar Excel"
+          icon="pi pi-file-excel"
+          class="p-button-success p-button-sm"
+          [loading]="exporting"
+          [disabled]="loading || !total"
+          (click)="exportExcel()">
+        </button>
+      </div>
+    </div>
+
+    <p class="form-message error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+    <p-table
+      [value]="simcards"
+      [loading]="loading"
+      [lazy]="true"
+      [totalRecords]="total"
+      [first]="firstRowIndex"
+      [rows]="limit"
+      [paginator]="true"
+      [rowsPerPageOptions]="[25,50,100,250]"
+      (onPage)="onPageChange($event)"
+      styleClass="p-datatable-sm p-datatable-gridlines"
+      responsiveLayout="scroll">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Nombre</th>
+          <th>Estado</th>
+          <th>Estado SIM</th>
+          <th>Conexión</th>
+          <th>ICCID</th>
+          <th>Devices Montao GPS</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-simcard>
+        <tr>
+          <td>
+            <div class="endpoint-name">{{ simcard.nombre }}</div>
+            <span class="endpoint-id">ID {{ simcard.id }}</span>
+          </td>
+          <td>
+            <span class="status-pill" [ngClass]="simcard.estado === 'Habilitado' ? 'enabled' : 'disabled'">
+              {{ simcard.estado }}
+            </span>
+          </td>
+          <td>
+            <span class="status-pill sim-status" [ngClass]="simcard.simEstado?.toLowerCase()">
+              {{ simcard.simEstado }}
+            </span>
+          </td>
+          <td>
+            <span class="connection-pill">{{ simcard.conexion }}</span>
+          </td>
+          <td><span class="iccid">{{ simcard.iccid }}</span></td>
+          <td>
+            <div class="device-matches" *ngIf="simcard.devices?.length; else noDevices">
+              <div class="device-match" *ngFor="let device of simcard.devices">
+                <div class="device-row-head">
+                  <div class="device-name">{{ device.name || 'Sin nombre' }}</div>
+                  <span class="connection-dot" [ngClass]="device.isOnline ? 'online' : 'offline'"></span>
+                </div>
+                <div class="device-meta">
+                  <span>IMEI: {{ device.imei || 'N/A' }}</span>
+                  <span>Placa: {{ device.plate || 'N/A' }}</span>
+                  <span>{{ getDeviceStatusLabel(device) }}</span>
+                </div>
+                <div class="device-connection" [ngClass]="device.isOnline ? 'online' : 'offline'">
+                  {{ getDeviceConnectionLabel(device) }}
+                  <span *ngIf="device.lastUpdate">Ultima conexion: {{ device.lastUpdate | date:'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+              </div>
+            </div>
+            <ng-template #noDevices>
+              <span class="empty-devices">No existe en Montao GPS</span>
+            </ng-template>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr>
+          <td colspan="6">No hay SIM cards para los filtros seleccionados.</td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
+</section>

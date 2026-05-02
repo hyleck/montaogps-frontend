@@ -1,233 +1,261 @@
-<div class="card" style="padding: 2rem; background: var(--surface-card); border-radius: 12px; margin: 2rem;">
-  <h2>Verificación de SIM Cards</h2>
-  <p style="color: var(--text-color-secondary); margin-bottom: 2rem;">
-    Sube un archivo de Excel para extraer el listado de números ICCID.
-  </p>
+<section class="simcard-page">
+  <header class="module-header">
+    <div>
+      <p class="eyebrow">Verificación SIM</p>
+      <h2>Verificación de SIM Cards</h2>
+      <p>Sube archivos Excel o CSV para cruzar ICCID contra los dispositivos registrados en Montao GPS.</p>
+    </div>
 
-  <div class="flex align-items-center gap-3 mb-4">
-    <!-- Hidden file input -->
-    <input 
-      type="file" 
-      #fileInput 
-      (change)="onFileSelect($event)" 
-      accept=".xlsx, .xls, .csv" 
-      multiple
-      style="display: none;">
-    
-    <!-- Custom button to trigger input -->
-    <button 
-      pButton 
-      type="button" 
-      label="Subir Archivo Excel" 
-      icon="pi pi-upload" 
-      class="p-button-primary p-button-outlined" 
-      (click)="fileInput.click()">
-    </button>
+    <div class="header-actions">
+      <input
+        type="file"
+        #fileInput
+        (change)="onFileSelect($event)"
+        accept=".xlsx, .xls, .csv"
+        multiple
+        class="file-input" />
+
+      <button
+        pButton
+        type="button"
+        label="Subir Excel"
+        icon="pi pi-upload"
+        class="p-button-primary"
+        (click)="fileInput.click()">
+      </button>
+
+      <button
+        pButton
+        type="button"
+        label="Emnify verificación"
+        icon="pi pi-list-check"
+        class="p-button-outlined"
+        routerLink="/admin/simcard-verification/emnify-verificacion">
+      </button>
+    </div>
+  </header>
+
+  <div class="empty-state" *ngIf="!iccidList?.length">
+    <div class="empty-icon">
+      <i class="pi pi-file-excel"></i>
+    </div>
+    <h3>Sin archivo cargado</h3>
+    <p>Selecciona uno o varios archivos para iniciar la verificación automática.</p>
   </div>
 
-  <div *ngIf="iccidList && iccidList.length > 0" class="mt-4">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <h3 style="margin: 0;">Resultados ({{ iccidList.length }} registros)</h3>
-      <button *ngIf="!hasVerified" pButton type="button" label="Verificar en MontaoGPS" icon="pi pi-check-circle" class="p-button-success" (click)="verifyIccids()" [loading]="isVerifying"></button>
-      <div *ngIf="hasVerified" style="color: var(--green-500); font-weight: 500;">
-        <i class="pi pi-check" style="margin-right: 0.5rem;"></i>Verificación Completada
+  <section *ngIf="iccidList && iccidList.length > 0" class="results-shell">
+    <div class="results-toolbar">
+      <div>
+        <p class="section-label">Archivo procesado</p>
+        <h3>{{ iccidList.length }} ICCID detectados</h3>
+      </div>
+
+      <button
+        *ngIf="!hasVerified"
+        pButton
+        type="button"
+        label="Verificar en Montao GPS"
+        icon="pi pi-check-circle"
+        class="p-button-success"
+        (click)="verifyIccids()"
+        [loading]="isVerifying">
+      </button>
+
+      <div *ngIf="hasVerified" class="verified-chip">
+        <i class="pi pi-check"></i>
+        Verificación completada
       </div>
     </div>
-    
-    <!-- MODERN TABBED INTERFACE FOR RESULTS -->
-    <div *ngIf="hasVerified" class="mt-5 fade-in">
-      <h3 class="mt-4 mb-2">
-        Resultados ({{ displayList.length }} registros procesados) 
-        <span *ngIf="statsDuplicatedInDB" class="text-purple-500 ml-2" style="font-size: 1.1rem; font-weight: bold;">| {{ statsDuplicatedInDB }} Duplicados Detectados</span>
-      </h3>
-      <p-tabView styleClass="clean-tabview">
-        
-        <!-- ACTIVOS -->
+
+    <div *ngIf="hasVerified" class="summary-grid">
+      <div class="summary-card total">
+        <span>Total</span>
+        <strong>{{ statsTotal }}</strong>
+      </div>
+      <div class="summary-card success">
+        <span>Registrados</span>
+        <strong>{{ statsRegistered }}</strong>
+      </div>
+      <div class="summary-card warning">
+        <span>No registrados</span>
+        <strong>{{ statsUnregistered }}</strong>
+      </div>
+      <div class="summary-card danger">
+        <span>Duplicados</span>
+        <strong>{{ statsDuplicatedInDB }}</strong>
+      </div>
+    </div>
+
+    <div *ngIf="hasVerified" class="tabs-shell fade-in">
+      <p-tabView styleClass="verification-tabs">
         <p-tabPanel [disabled]="!registeredList?.counts?.active">
           <ng-template pTemplate="header">
-            <i class="pi pi-bolt mr-2 text-green-500"></i>
-            <span class="font-medium mr-2">Activos</span>
+            <i class="pi pi-bolt tab-icon success"></i>
+            <span>Activos</span>
             <p-tag severity="success" [value]="(registeredList?.counts?.active || 0) + ''" [rounded]="true"></p-tag>
           </ng-template>
-          
-          <div class="pt-2">
-            <div class="flex justify-content-end mb-2">
-              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar a Excel" (onClick)="exportExcel('active')"></p-button>
+
+          <div class="tab-content">
+            <div class="table-actions">
+              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar" (onClick)="exportExcel('active')"></p-button>
             </div>
-            <p-table [value]="registeredList?.active" styleClass="p-datatable-sm p-datatable-gridlines" [rowHover]="true" responsiveLayout="scroll" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15,30,50]">
+            <p-table [value]="registeredList?.active" styleClass="p-datatable-sm verification-table" [rowHover]="true" responsiveLayout="scroll" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15,30,50]">
               <ng-template pTemplate="header">
-                <tr>
-                  <th style="width: 3rem">#</th><th>ICCID</th><th>Dispositivo (Target)</th><th>IMEI</th><th>Placa</th>
-                </tr>
+                <tr><th>#</th><th>ICCID</th><th>Dispositivo</th><th>IMEI</th><th>Placa</th></tr>
               </ng-template>
               <ng-template pTemplate="body" let-item let-rowIndex="rowIndex">
                 <tr>
-                  <td><span class="text-500">{{ rowIndex + 1 }}</span></td>
-                  <td><span style="font-family: monospace; font-size: 1.05rem; font-weight: bold; color: #22c55e !important;">{{ item.iccid }}</span></td>
-                  <td><span class="font-medium">{{ item.deviceName || 'N/A' }}</span></td>
-                  <td><span class="text-600">{{ item.deviceImei || 'N/A' }}</span></td>
-                  <td><span style="background: var(--surface-100); padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; border: 1px solid var(--surface-200);">{{ item.plateNumber || 'N/A' }}</span></td>
+                  <td class="index-cell">{{ rowIndex + 1 }}</td>
+                  <td><span class="iccid success">{{ item.iccid }}</span></td>
+                  <td class="font-medium">{{ item.deviceName || 'N/A' }}</td>
+                  <td class="muted">{{ item.deviceImei || 'N/A' }}</td>
+                  <td><span class="plate">{{ item.plateNumber || 'N/A' }}</span></td>
                 </tr>
               </ng-template>
             </p-table>
           </div>
         </p-tabPanel>
 
-        <!-- CANCELADOS (GRIS) -->
         <p-tabPanel [disabled]="!registeredList?.counts?.canceled">
           <ng-template pTemplate="header">
-             <i class="pi pi-ban mr-2 text-600"></i>
-            <span class="font-medium mr-2">Cancelados</span>
+            <i class="pi pi-ban tab-icon neutral"></i>
+            <span>Cancelados</span>
             <p-tag severity="secondary" [value]="(registeredList?.counts?.canceled || 0) + ''" [rounded]="true"></p-tag>
           </ng-template>
-          
-          <div class="pt-2">
-            <div class="flex justify-content-end mb-2">
-              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar a Excel" (onClick)="exportExcel('canceled')"></p-button>
+
+          <div class="tab-content">
+            <div class="table-actions">
+              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar" (onClick)="exportExcel('canceled')"></p-button>
             </div>
-            <p-table [value]="registeredList?.canceled" styleClass="p-datatable-sm p-datatable-gridlines" [rowHover]="true" responsiveLayout="scroll" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15,30,50]">
+            <p-table [value]="registeredList?.canceled" styleClass="p-datatable-sm verification-table" [rowHover]="true" responsiveLayout="scroll" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15,30,50]">
               <ng-template pTemplate="header">
-                <tr>
-                  <th style="width: 3rem">#</th><th>ICCID</th><th>Dispositivo (Target)</th><th>IMEI</th><th>Placa</th>
-                </tr>
+                <tr><th>#</th><th>ICCID</th><th>Dispositivo</th><th>IMEI</th><th>Placa</th></tr>
               </ng-template>
               <ng-template pTemplate="body" let-item let-rowIndex="rowIndex">
                 <tr>
-                  <td><span class="text-500">{{ rowIndex + 1 }}</span></td>
-                  <td><span style="font-family: monospace; font-size: 1.05rem; font-weight: bold; color: #64748b !important;">{{ item.iccid }}</span></td>
-                  <td><span class="font-medium">{{ item.deviceName || 'N/A' }}</span></td>
-                  <td><span class="text-600">{{ item.deviceImei || 'N/A' }}</span></td>
-                  <td><span style="background: var(--surface-100); padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; border: 1px solid var(--surface-200);">{{ item.plateNumber || 'N/A' }}</span></td>
+                  <td class="index-cell">{{ rowIndex + 1 }}</td>
+                  <td><span class="iccid neutral">{{ item.iccid }}</span></td>
+                  <td class="font-medium">{{ item.deviceName || 'N/A' }}</td>
+                  <td class="muted">{{ item.deviceImei || 'N/A' }}</td>
+                  <td><span class="plate">{{ item.plateNumber || 'N/A' }}</span></td>
                 </tr>
               </ng-template>
             </p-table>
           </div>
         </p-tabPanel>
 
-        <!-- EXPIRADOS (ROJOS) -->
         <p-tabPanel [disabled]="!registeredList?.counts?.expired">
           <ng-template pTemplate="header">
-            <i class="pi pi-clock mr-2 text-red-500"></i>
-            <span class="font-medium mr-2">Expirados</span>
+            <i class="pi pi-clock tab-icon danger"></i>
+            <span>Expirados</span>
             <p-tag severity="danger" [value]="(registeredList?.counts?.expired || 0) + ''" [rounded]="true"></p-tag>
           </ng-template>
-          
-          <div class="pt-2">
-            <div class="flex justify-content-end mb-2">
-              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar a Excel" (onClick)="exportExcel('expired')"></p-button>
+
+          <div class="tab-content">
+            <div class="table-actions">
+              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar" (onClick)="exportExcel('expired')"></p-button>
             </div>
-            <p-table [value]="registeredList?.expired" styleClass="p-datatable-sm p-datatable-gridlines" [rowHover]="true" responsiveLayout="scroll" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15,30,50]">
+            <p-table [value]="registeredList?.expired" styleClass="p-datatable-sm verification-table" [rowHover]="true" responsiveLayout="scroll" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15,30,50]">
               <ng-template pTemplate="header">
-                <tr>
-                  <th style="width: 3rem">#</th><th>ICCID</th><th>Dispositivo (Target)</th><th>IMEI</th><th>Placa</th>
-                </tr>
+                <tr><th>#</th><th>ICCID</th><th>Dispositivo</th><th>IMEI</th><th>Placa</th></tr>
               </ng-template>
               <ng-template pTemplate="body" let-item let-rowIndex="rowIndex">
                 <tr>
-                  <td><span class="text-500">{{ rowIndex + 1 }}</span></td>
-                  <td><span style="font-family: monospace; font-size: 1.05rem; font-weight: bold; color: #ef4444 !important;">{{ item.iccid }}</span></td>
-                  <td><span class="font-medium">{{ item.deviceName || 'N/A' }}</span></td>
-                  <td><span class="text-600">{{ item.deviceImei || 'N/A' }}</span></td>
-                  <td><span style="background: var(--surface-100); padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; border: 1px solid var(--surface-200);">{{ item.plateNumber || 'N/A' }}</span></td>
+                  <td class="index-cell">{{ rowIndex + 1 }}</td>
+                  <td><span class="iccid danger">{{ item.iccid }}</span></td>
+                  <td class="font-medium">{{ item.deviceName || 'N/A' }}</td>
+                  <td class="muted">{{ item.deviceImei || 'N/A' }}</td>
+                  <td><span class="plate">{{ item.plateNumber || 'N/A' }}</span></td>
                 </tr>
               </ng-template>
             </p-table>
           </div>
         </p-tabPanel>
 
-        <!-- SUSPENDIDOS (AZUL) -->
         <p-tabPanel [disabled]="!registeredList?.counts?.suspended">
           <ng-template pTemplate="header">
-            <i class="pi pi-pause mr-2 text-blue-500"></i>
-            <span class="font-medium mr-2">Suspendidos</span>
+            <i class="pi pi-pause tab-icon info"></i>
+            <span>Suspendidos</span>
             <p-tag severity="info" [value]="(registeredList?.counts?.suspended || 0) + ''" [rounded]="true"></p-tag>
           </ng-template>
-          
-          <div class="pt-2">
-            <div class="flex justify-content-end mb-2">
-              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar a Excel" (onClick)="exportExcel('suspended')"></p-button>
+
+          <div class="tab-content">
+            <div class="table-actions">
+              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar" (onClick)="exportExcel('suspended')"></p-button>
             </div>
-            <p-table [value]="registeredList?.suspended" styleClass="p-datatable-sm p-datatable-gridlines" [rowHover]="true" responsiveLayout="scroll" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15,30,50]">
+            <p-table [value]="registeredList?.suspended" styleClass="p-datatable-sm verification-table" [rowHover]="true" responsiveLayout="scroll" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15,30,50]">
               <ng-template pTemplate="header">
-                <tr>
-                  <th style="width: 3rem">#</th><th>ICCID</th><th>Dispositivo (Target)</th><th>IMEI</th><th>Placa</th>
-                </tr>
+                <tr><th>#</th><th>ICCID</th><th>Dispositivo</th><th>IMEI</th><th>Placa</th></tr>
               </ng-template>
               <ng-template pTemplate="body" let-item let-rowIndex="rowIndex">
                 <tr>
-                  <td><span class="text-500">{{ rowIndex + 1 }}</span></td>
-                  <td><span style="font-family: monospace; font-size: 1.05rem; font-weight: bold; color: #3b82f6 !important;">{{ item.iccid }}</span></td>
-                  <td><span class="font-medium">{{ item.deviceName || 'N/A' }}</span></td>
-                  <td><span class="text-600">{{ item.deviceImei || 'N/A' }}</span></td>
-                  <td><span style="background: var(--surface-100); padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; border: 1px solid var(--surface-200);">{{ item.plateNumber || 'N/A' }}</span></td>
+                  <td class="index-cell">{{ rowIndex + 1 }}</td>
+                  <td><span class="iccid info">{{ item.iccid }}</span></td>
+                  <td class="font-medium">{{ item.deviceName || 'N/A' }}</td>
+                  <td class="muted">{{ item.deviceImei || 'N/A' }}</td>
+                  <td><span class="plate">{{ item.plateNumber || 'N/A' }}</span></td>
                 </tr>
               </ng-template>
             </p-table>
           </div>
         </p-tabPanel>
 
-        <!-- NO REGISTRADOS (NARANJA) -->
         <p-tabPanel [disabled]="!statsUnregistered">
           <ng-template pTemplate="header">
-            <i class="pi pi-times-circle mr-2 text-orange-500"></i>
-            <span class="font-medium mr-2">No Registrados</span>
+            <i class="pi pi-times-circle tab-icon warning"></i>
+            <span>No registrados</span>
             <p-tag severity="warning" [value]="statsUnregistered + ''" [rounded]="true"></p-tag>
           </ng-template>
-          
-          <div class="pt-2">
-            <div class="flex justify-content-end mb-2">
-              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar a Excel" (onClick)="exportExcel('unregistered')"></p-button>
+
+          <div class="tab-content">
+            <div class="table-actions">
+              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar" (onClick)="exportExcel('unregistered')"></p-button>
             </div>
-            <p-table [value]="unregisteredList" styleClass="p-datatable-sm p-datatable-gridlines" [rowHover]="true" responsiveLayout="scroll" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15,30,50]">
+            <p-table [value]="unregisteredList" styleClass="p-datatable-sm verification-table" [rowHover]="true" responsiveLayout="scroll" [paginator]="true" [rows]="15" [rowsPerPageOptions]="[15,30,50]">
               <ng-template pTemplate="header">
-                <tr>
-                  <th style="width: 3rem">#</th><th>ICCID (Número Desconocido / Inválido)</th><th>Archivo Analizado</th>
-                </tr>
+                <tr><th>#</th><th>ICCID</th><th>Archivo analizado</th></tr>
               </ng-template>
               <ng-template pTemplate="body" let-item let-rowIndex="rowIndex">
                 <tr>
-                  <td><span class="text-500">{{ rowIndex + 1 }}</span></td>
-                  <td><span style="font-family: monospace; font-size: 1.1rem; font-weight: bold; color: #f97316 !important;">{{ item.iccid }}</span></td>
-                  <td><span class="text-600">{{ item.sourceFile || 'Desconocido' }}</span></td>
+                  <td class="index-cell">{{ rowIndex + 1 }}</td>
+                  <td><span class="iccid warning">{{ item.iccid }}</span></td>
+                  <td class="muted">{{ item.sourceFile || 'Desconocido' }}</td>
                 </tr>
               </ng-template>
             </p-table>
           </div>
         </p-tabPanel>
 
-        <!-- DUPLICADOS EN BD (MORADOS) -->
         <p-tabPanel [disabled]="!statsDuplicatedInDB">
           <ng-template pTemplate="header">
-            <i class="pi pi-copy mr-2 text-purple-500"></i>
-            <span class="font-medium mr-2">Duplicados Anómalos ({{statsDuplicatedInDB}})</span>
+            <i class="pi pi-copy tab-icon duplicate"></i>
+            <span>Duplicados anómalos</span>
+            <p-tag [value]="statsDuplicatedInDB + ''" [rounded]="true"></p-tag>
           </ng-template>
-          
-          <div class="pt-2">
-            <div class="flex justify-content-end mb-2">
-              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar a Excel (Combinados)" (onClick)="exportExcel('duplicated')"></p-button>
+
+          <div class="tab-content">
+            <div class="table-actions">
+              <p-button icon="pi pi-file-excel" styleClass="p-button-success p-button-sm" label="Exportar combinados" (onClick)="exportExcel('duplicated')"></p-button>
             </div>
-            <p-accordion [multiple]="true" styleClass="clean-accordion">
+            <p-accordion [multiple]="true" styleClass="duplicate-accordion">
               <p-accordionTab *ngFor="let item of duplicatedList">
-                
                 <ng-template pTemplate="header">
-                  <span class="font-medium text-700">Anomalía - ICCID: </span>
-                  <span class="font-bold mx-2" style="font-family: monospace; font-size: 1.1rem; color: #a855f7 !important;">{{ item.iccid }}</span>
-                  <span class="font-medium text-700">asignado a ({{ item.allMatches.length }}) targets</span>
+                  <span class="accordion-title">ICCID duplicado</span>
+                  <span class="iccid duplicate">{{ item.iccid }}</span>
+                  <span class="muted">{{ item.allMatches.length }} targets</span>
                 </ng-template>
 
-                <p-table [value]="item.allMatches" styleClass="p-datatable-sm p-datatable-gridlines" [rowHover]="true" responsiveLayout="scroll">
+                <p-table [value]="item.allMatches" styleClass="p-datatable-sm verification-table" [rowHover]="true" responsiveLayout="scroll">
                   <ng-template pTemplate="header">
-                    <tr>
-                      <th>Target en Conflicto</th><th>IMEI</th><th>Placa</th><th>Estado Real</th>
-                    </tr>
+                    <tr><th>Target en conflicto</th><th>IMEI</th><th>Placa</th><th>Estado real</th></tr>
                   </ng-template>
                   <ng-template pTemplate="body" let-match>
                     <tr>
-                      <td><span class="font-medium">{{ match.name || 'N/A' }}</span></td>
-                      <td><span class="text-600">{{ match.device_imei || 'N/A' }}</span></td>
-                      <td><span style="background: var(--surface-100); padding: 0.25rem 0.5rem; border-radius: 4px; font-family: monospace; border: 1px solid var(--surface-200);">{{ match.target_plate_number || 'N/A' }}</span></td>
+                      <td class="font-medium">{{ match.name || 'N/A' }}</td>
+                      <td class="muted">{{ match.device_imei || 'N/A' }}</td>
+                      <td><span class="plate">{{ match.target_plate_number || 'N/A' }}</span></td>
                       <td>
-                        <p-tag *ngIf="match.deviceStatusType === 'canceled'" [style]="{'background': 'var(--surface-500)', 'color': '#ffffff'}" value="Cancelado"></p-tag>
+                        <p-tag *ngIf="match.deviceStatusType === 'canceled'" severity="secondary" value="Cancelado"></p-tag>
                         <p-tag *ngIf="match.deviceStatusType === 'expired'" severity="danger" value="Expirado"></p-tag>
                         <p-tag *ngIf="match.deviceStatusType === 'suspended'" severity="info" value="Suspendido"></p-tag>
                         <p-tag *ngIf="match.deviceStatusType === 'active'" severity="success" value="Activo"></p-tag>
@@ -235,14 +263,11 @@
                     </tr>
                   </ng-template>
                 </p-table>
-
               </p-accordionTab>
             </p-accordion>
           </div>
         </p-tabPanel>
-
       </p-tabView>
     </div>
-
-  </div>
-</div>
+  </section>
+</section>
