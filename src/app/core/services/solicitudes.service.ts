@@ -58,6 +58,12 @@ export interface Solicitud {
     updatedAt?: string;
 }
 
+export interface SolicitudesRealtimeState {
+    version: string;
+    total: number;
+    latestUpdatedAt: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SolicitudesService {
     private readonly apiUrl = `${environment.apiUrl}/solicitudes`;
@@ -72,6 +78,14 @@ export class SolicitudesService {
         if (filters?.page) params = params.set('page', filters.page.toString());
         if (filters?.limit) params = params.set('limit', filters.limit.toString());
         return this.http.get<{ data: Solicitud[]; total: number }>(this.apiUrl, { params });
+    }
+
+    getRealtimeState(filters?: { type?: string; status?: string; search?: string }): Observable<SolicitudesRealtimeState> {
+        let params = new HttpParams();
+        if (filters?.type) params = params.set('type', filters.type);
+        if (filters?.status) params = params.set('status', filters.status);
+        if (filters?.search) params = params.set('search', filters.search);
+        return this.http.get<SolicitudesRealtimeState>(`${this.apiUrl}/realtime-state`, { params });
     }
 
     getById(id: string): Observable<Solicitud> {

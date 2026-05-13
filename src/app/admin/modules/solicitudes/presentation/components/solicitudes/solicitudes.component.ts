@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
 import { SolicitudesService, Solicitud } from '../../../../../../core/services/solicitudes.service';
 import { VehicleBrandsService } from '../../../../../../core/services/vehicle-brands.service';
@@ -26,7 +26,7 @@ interface SelectOption {
     standalone: false,
     encapsulation: ViewEncapsulation.None
 })
-export class SolicitudesComponent implements OnInit {
+export class SolicitudesComponent implements OnInit, OnDestroy {
     items: MenuItem[] = [{ label: 'Solicitudes' }];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
@@ -177,6 +177,10 @@ export class SolicitudesComponent implements OnInit {
     loading = false;
     totalItems = 0;
     currentPage = 1;
+    private readonly realtimeRefreshMs = 5000;
+    private realtimeRefreshTimer?: ReturnType<typeof setInterval>;
+    private realtimeStateVersion = '';
+    private realtimeStateInFlight = false;
 
     // Filters
     filterType = '';
@@ -306,7 +310,12 @@ export class SolicitudesComponent implements OnInit {
 
     ngOnInit(): void {
         this.loadSolicitudes(false);
+        this.startRealtimeRefresh();
         this.initialDataPromise = this.loadInitialData();
+    }
+
+    ngOnDestroy(): void {
+        this.stopRealtimeRefresh();
     }
 
     async loadInitialData(): Promise<void> {
@@ -488,9 +497,12 @@ export class SolicitudesComponent implements OnInit {
         }
     }
 
-    loadSolicitudes(resetPage = true): void {
+    loadSolicitudes(resetPage = true, options: { silent?: boolean } = {}): void {
         if (resetPage) this.currentPage = 1;
-        this.loading = true;
+        const silent = options.silent === true;
+        if (!silent) {
+            this.loading = true;
+        }
         this.solicitudesService.getAll({
             type: this.filterType || undefined,
             status: this.filterStatus || undefined,
@@ -501,13 +513,59 @@ export class SolicitudesComponent implements OnInit {
             next: (response: { data: Solicitud[]; total: number }) => {
                 this.solicitudes = response.data;
                 this.totalItems = response.total;
-                this.loading = false;
+                if (!silent) {
+                    this.loading = false;
+                }
                 this.loadModelNamesForTable();
                 this.resolveUserNames();
             },
             error: () => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar las solicitudes' });
-                this.loading = false;
+                if (!silent) {
+                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar las solicitudes' });
+                    this.loading = false;
+                }
+            }
+        });
+    }
+
+    private startRealtimeRefresh(): void {
+        if (this.realtimeRefreshTimer) return;
+        this.realtimeRefreshTimer = setInterval(() => {
+            this.checkRealtimeSolicitudChanges();
+        }, this.realtimeRefreshMs);
+    }
+
+    private stopRealtimeRefresh(): void {
+        if (!this.realtimeRefreshTimer) return;
+        clearInterval(this.realtimeRefreshTimer);
+        this.realtimeRefreshTimer = undefined;
+    }
+
+    private restartRealtimeRefresh(): void {
+        this.stopRealtimeRefresh();
+        this.startRealtimeRefresh();
+    }
+
+    private checkRealtimeSolicitudChanges(): void {
+        if (this.realtimeStateInFlight || this.loading || this.draggedSolicitud) {
+            return;
+        }
+
+        this.realtimeStateInFlight = true;
+        this.solicitudesService.getRealtimeState({
+            type: this.filterType || undefined,
+            status: this.filterStatus || undefined,
+            search: this.searchQuery || undefined,
+        }).subscribe({
+            next: (state) => {
+                if (state.version && state.version !== this.realtimeStateVersion) {
+                    this.realtimeStateVersion = state.version;
+                    this.loadSolicitudes(false, { silent: true });
+                }
+                this.realtimeStateInFlight = false;
+            },
+            error: () => {
+                this.realtimeStateInFlight = false;
             }
         });
     }
@@ -1125,14 +1183,18 @@ async initLocationMap(): Promise<void> {
     }
 
     onSearch(): void {
+        this.realtimeStateVersion = '';
         this.loadSolicitudes();
+        this.restartRealtimeRefresh();
     }
 
     clearSearch(): void {
         this.searchQuery = '';
         this.filterType = '';
         this.filterStatus = '';
+        this.realtimeStateVersion = '';
         this.loadSolicitudes();
+        this.restartRealtimeRefresh();
     }
 
     countByStatus(status: string): number {
