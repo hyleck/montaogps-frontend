@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap, switchMap, BehaviorSubject } from 'rxjs';
+import { Observable, tap, switchMap, BehaviorSubject, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { jwtDecode } from 'jwt-decode';
 import { User, BasicUser } from '../interfaces/user.interface';
@@ -88,6 +88,28 @@ export class AuthService {
         }
         return new Observable(observer => observer.next(response));
       })
+    );
+  }
+
+  completeSsoLogin(token: string, user: BasicUser, sessionDate?: string): Observable<any> {
+    this.saveToken(token);
+
+    if (sessionDate) {
+      localStorage.setItem('session_date', sessionDate);
+    }
+
+    this.saveUser(user);
+
+    if (!user?.id) {
+      return of({ access_token: token, user });
+    }
+
+    return this.userService.getById(user.id).pipe(
+      tap(userData => {
+        this.updateUserWithPrivileges(userData);
+        this.configureUserSettings(userData);
+      }),
+      switchMap(() => of({ access_token: token, user }))
     );
   }
 
