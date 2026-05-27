@@ -143,8 +143,16 @@ export class ManagementService {
     this.op = params['op'];
     this.currentUserId = params['user'];
     const managementState: any = this.status.getState('management');
+    const currentUser = this.authService.getCurrentUser();
 
     if (!managementState) {
+      this.goDefaultRoute();
+      return;
+    }
+
+    const storedUserId = managementState.url_route?.[2];
+    if (!params['op'] && !params['user'] && storedUserId && currentUser?.id && storedUserId !== currentUser.id) {
+      this.status.removeState('management');
       this.goDefaultRoute();
       return;
     }
@@ -173,7 +181,7 @@ export class ManagementService {
   goDefaultRoute() {
     const currentUser = this.authService.getCurrentUser();
     if (currentUser) {
-      this.router.navigate(['admin/management', 'u', currentUser.id]);
+      this.router.navigate(['admin/management', 'u', currentUser.id], { replaceUrl: true });
     } else {
       this.router.navigate(['auth/login']);
     }

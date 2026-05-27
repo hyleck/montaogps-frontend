@@ -37,7 +37,7 @@ export class SsoLoginComponent implements OnInit {
     try {
       const parsedUser = JSON.parse(decodeURIComponent(user));
       this.authService.completeSsoLogin(token, parsedUser, sessionDate).subscribe({
-        next: () => void this.router.navigate(['/admin/management']),
+        next: () => void this.router.navigate(['/admin/management'], { replaceUrl: true }),
         error: () => {
           this.errorMessage = 'No se pudieron cargar los permisos del usuario.';
         }

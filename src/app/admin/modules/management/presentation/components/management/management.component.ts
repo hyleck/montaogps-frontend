@@ -2096,7 +2096,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const managementState: any = this.status.getState('management');
     const storedUserId = managementState?.url_route ? managementState.url_route[2] : null;
 
-    if (storedUserId) {
+    if (storedUserId && storedUserId === currentUser.id) {
       this.loadUserFromParams(storedUserId);
     } else {
       this.loadUserFromParams(currentUser.id);

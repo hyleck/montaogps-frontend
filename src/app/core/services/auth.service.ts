@@ -10,6 +10,7 @@ import { ThemesService } from '../../shareds/services/themes.service';
 import { TranslateService } from '@ngx-translate/core';
 import { LangService } from '../../shareds/services/langi18/lang.service';
 import { UserService } from './user.service';
+import { StatusService } from '../../shareds/services/status.service';
 
 @Injectable({
   providedIn: 'root'
@@ -28,7 +29,8 @@ export class AuthService {
     private themesService: ThemesService,
     private translate: TranslateService,
     private langService: LangService,
-    private userService: UserService
+    private userService: UserService,
+    private statusService: StatusService
   ) {
     // Inicializar el estado de autenticación
     this.authStateSubject.next(this.isAuthenticated());
@@ -308,6 +310,7 @@ export class AuthService {
     const keepRememberedEmail = options.keepRememberedEmail ?? true;
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     localStorage.clear();
+    this.statusService.clearState();
 
     if (options.clearSessionStorage) {
       sessionStorage.clear();
