@@ -1,0 +1,27 @@
+.sso-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  background: #242424;
+  color: #f4eeee;
+  font-family: Arial, sans-serif;
+}
+
+.sso-panel {
+  width: min(420px, calc(100% - 32px));
+  border: 1px solid #454545;
+  border-radius: 8px;
+  padding: 28px;
+  background: #303030;
+  text-align: center;
+}
+
+.sso-panel h1 {
+  margin: 0 0 10px;
+  font-size: 1.35rem;
+}
+
+.sso-panel p {
+  margin: 0;
+  color: #bbb;
+}

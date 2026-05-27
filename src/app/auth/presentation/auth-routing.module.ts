@@ -2,10 +2,12 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { LoginComponent } from './components/login/login.component';
+import { SsoLoginComponent } from './components/sso-login/sso-login.component';
 
 
 const routes: Routes = [
-  { path: 'login', component: LoginComponent } // Ruta predeterminada para mostrar el login
+  { path: 'login', component: LoginComponent },
+  { path: 'sso', component: SsoLoginComponent }
 ];
 
 @NgModule({
