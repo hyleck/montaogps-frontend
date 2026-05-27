@@ -92,7 +92,7 @@ export class AuthService {
   }
 
   completeSsoLogin(token: string, user: BasicUser, sessionDate?: string): Observable<any> {
-    this.clearStoredSession(false);
+    this.clearStoredSession({ keepRememberedEmail: false, clearSessionStorage: true });
     this.saveToken(token);
 
     if (sessionDate) {
@@ -298,9 +298,21 @@ export class AuthService {
     this.clearStoredSession();
   }
 
-  private clearStoredSession(keepRememberedEmail: boolean = true): void {
+  clearSessionForSso(): void {
+    this.clearStoredSession({ keepRememberedEmail: false, clearSessionStorage: true });
+  }
+
+  private clearStoredSession(
+    options: { keepRememberedEmail?: boolean; clearSessionStorage?: boolean } = {},
+  ): void {
+    const keepRememberedEmail = options.keepRememberedEmail ?? true;
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     localStorage.clear();
+
+    if (options.clearSessionStorage) {
+      sessionStorage.clear();
+    }
+
     if (keepRememberedEmail && rememberedEmail) {
       localStorage.setItem('rememberedEmail', rememberedEmail);
     }

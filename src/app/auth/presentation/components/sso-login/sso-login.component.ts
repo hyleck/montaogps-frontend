@@ -18,6 +18,8 @@ export class SsoLoginComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.authService.clearSessionForSso();
+
     const token = this.route.snapshot.queryParamMap.get('token');
     const user = this.route.snapshot.queryParamMap.get('user');
     const sessionDate = this.route.snapshot.queryParamMap.get('session_date') || undefined;
