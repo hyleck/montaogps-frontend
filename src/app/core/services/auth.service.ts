@@ -92,7 +92,7 @@ export class AuthService {
   }
 
   completeSsoLogin(token: string, user: BasicUser, sessionDate?: string): Observable<any> {
-    this.clearStoredSession();
+    this.clearStoredSession(false);
     this.saveToken(token);
 
     if (sessionDate) {
@@ -298,10 +298,10 @@ export class AuthService {
     this.clearStoredSession();
   }
 
-  private clearStoredSession(): void {
+  private clearStoredSession(keepRememberedEmail: boolean = true): void {
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     localStorage.clear();
-    if (rememberedEmail) {
+    if (keepRememberedEmail && rememberedEmail) {
       localStorage.setItem('rememberedEmail', rememberedEmail);
     }
     // Emitir cambio en el estado de autenticación
