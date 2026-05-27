@@ -43,6 +43,7 @@ export class SidebarComponent implements OnInit {
       { label: '', path: '/admin/interacciones', icon: 'pi pi-share-alt', badge: 0 },
       { label: '', path: '/admin/simcard-verification', icon: 'pi pi-mobile', badge: 0 },
       { label: '', path: '/admin/monitor-ia', icon: 'pi pi-android', badge: 0 },
+      { label: '', path: '/external/montao-index', icon: 'pi pi-th-large', badge: 0, externalUrl: 'https://index.montao.net' },
     ],
     profileTitle: '',
     profileItems: [
@@ -159,6 +160,7 @@ export class SidebarComponent implements OnInit {
     this.sidaberOptions.principalItems[9].label = 'Campañas';
     this.sidaberOptions.principalItems[10].label = 'Verificación SIMs';
     this.sidaberOptions.principalItems[11].label = 'Monitor IA';
+    this.sidaberOptions.principalItems[12].label = 'Montao Index';
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');
@@ -187,6 +189,12 @@ export class SidebarComponent implements OnInit {
   }
 
   handleItemClick(event: Event, item: any) {
+    if (item.externalUrl) {
+      event.preventDefault();
+      window.location.href = item.externalUrl;
+      return;
+    }
+
     if (item.path === '/admin/montao-rent') {
       event.preventDefault();
       if (this.currentUser && this.currentUser.id) {
