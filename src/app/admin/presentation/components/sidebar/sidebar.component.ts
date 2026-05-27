@@ -28,6 +28,7 @@ export class SidebarComponent implements OnInit {
     favoriteTitle: '',
     favoriteItems: [
       { label: '', path: '/admin/dashboard', icon: 'pi pi-objects-column', badge: 5 },
+      { label: '', path: '/external/montao-index', icon: 'pi pi-th-large', badge: 0, externalUrl: 'https://index.montao.net' },
     ],
     principalTitle: '',
     principalItems: [
@@ -43,7 +44,6 @@ export class SidebarComponent implements OnInit {
       { label: '', path: '/admin/interacciones', icon: 'pi pi-share-alt', badge: 0 },
       { label: '', path: '/admin/simcard-verification', icon: 'pi pi-mobile', badge: 0 },
       { label: '', path: '/admin/monitor-ia', icon: 'pi pi-android', badge: 0 },
-      { label: '', path: '/external/montao-index', icon: 'pi pi-th-large', badge: 0, externalUrl: 'https://index.montao.net' },
     ],
     profileTitle: '',
     profileItems: [
@@ -146,6 +146,7 @@ export class SidebarComponent implements OnInit {
 
     // Elementos favoritos
     this.sidaberOptions.favoriteItems[0].label = this.translate.instant('sidebar.dashboard');
+    this.sidaberOptions.favoriteItems[1].label = 'Montao Index';
 
     // Elementos del menú principal
     this.sidaberOptions.principalItems[0].label = this.translate.instant('sidebar.management');
@@ -160,7 +161,6 @@ export class SidebarComponent implements OnInit {
     this.sidaberOptions.principalItems[9].label = 'Campañas';
     this.sidaberOptions.principalItems[10].label = 'Verificación SIMs';
     this.sidaberOptions.principalItems[11].label = 'Monitor IA';
-    this.sidaberOptions.principalItems[12].label = 'Montao Index';
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');
@@ -189,9 +189,11 @@ export class SidebarComponent implements OnInit {
   }
 
   handleItemClick(event: Event, item: any) {
-    if (item.externalUrl) {
+    const externalUrl = this.getExternalUrl(item);
+
+    if (externalUrl) {
       event.preventDefault();
-      window.location.href = item.externalUrl;
+      window.location.href = externalUrl;
       return;
     }
 
@@ -202,6 +204,14 @@ export class SidebarComponent implements OnInit {
         window.open(`https://rent.montao.net/connect-gps?id=${base64Id}`, '_blank');
       }
     }
+  }
+
+  getExternalUrl(item: unknown): string {
+    if (!item || typeof item !== 'object' || !('externalUrl' in item)) {
+      return '';
+    }
+
+    return String((item as { externalUrl?: string }).externalUrl || '');
   }
 
   // Getter para verificar si el usuario es root
