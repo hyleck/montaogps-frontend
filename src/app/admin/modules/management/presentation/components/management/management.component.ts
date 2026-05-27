@@ -2095,11 +2095,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private loadUserFromState(currentUser: any): void {
     const managementState: any = this.status.getState('management');
     const storedUserId = managementState?.url_route ? managementState.url_route[2] : null;
+    const currentUserId = currentUser.id || currentUser._id;
 
-    if (storedUserId && storedUserId === currentUser.id) {
+    if (storedUserId && storedUserId === currentUserId) {
       this.loadUserFromParams(storedUserId);
     } else {
-      this.loadUserFromParams(currentUser.id);
+      this.loadUserFromParams(currentUserId);
     }
   }
 

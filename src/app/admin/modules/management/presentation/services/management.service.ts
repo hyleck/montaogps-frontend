@@ -180,8 +180,9 @@ export class ManagementService {
 
   goDefaultRoute() {
     const currentUser = this.authService.getCurrentUser();
-    if (currentUser) {
-      this.router.navigate(['admin/management', 'u', currentUser.id], { replaceUrl: true });
+    const currentUserId = currentUser?.id || (currentUser as any)?._id;
+    if (currentUserId) {
+      this.router.navigate(['admin/management', 'u', currentUserId], { replaceUrl: true });
     } else {
       this.router.navigate(['auth/login']);
     }

@@ -158,7 +158,7 @@ export class AuthService {
 
       // Guardar solo la información básica del usuario
       const basicUserInfo = {
-        id: user.id,
+        id: user.id || (user as any)._id,
         name: user.name,
         last_name: user.last_name,
         email: this.normalizeEmail(user.email),
