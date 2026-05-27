@@ -23,12 +23,12 @@ export class SsoLoginComponent implements OnInit {
     const sessionDate = this.route.snapshot.queryParamMap.get('session_date') || undefined;
 
     if (!token) {
-      this.errorMessage = 'No se recibio una sesion valida.';
+      this.errorMessage = 'No se recibió una sesión válida.';
       return;
     }
 
     if (!user) {
-      this.errorMessage = 'No se recibio el usuario de la sesion.';
+      this.errorMessage = 'No se recibió el usuario de la sesión.';
       return;
     }
 
@@ -41,7 +41,7 @@ export class SsoLoginComponent implements OnInit {
         }
       });
     } catch {
-      this.errorMessage = 'No se pudo leer el usuario de la sesion.';
+      this.errorMessage = 'No se pudo leer el usuario de la sesión.';
     }
   }
 }
