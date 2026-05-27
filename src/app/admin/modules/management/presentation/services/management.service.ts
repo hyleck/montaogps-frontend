@@ -1,9 +1,11 @@
 import { Injectable, Inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { UserService } from '@app/core/services/user.service';
 import { StatusService } from '@app/shareds/services/status.service';
 import { User } from '@app/core/interfaces/user.interface';
 import { AuthService } from '@app/core/services/auth.service';
+import { MenuItem } from 'primeng/api';
 
 @Injectable({
   providedIn: 'root'
@@ -69,6 +71,24 @@ export class ManagementService {
         }
       });
     });
+  }
+
+  async buildUserPath(userId: string): Promise<MenuItem[]> {
+    const path: MenuItem[] = [];
+    const visited = new Set<string>();
+    let currentId: string | undefined = userId;
+
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId);
+      const user: User = await firstValueFrom(this.userService.getById(currentId));
+      path.unshift({
+        label: `${user.name} ${user.last_name}`,
+        routerLink: ['/admin/management', 'u', user._id]
+      });
+      currentId = (user as any).parent_id;
+    }
+
+    return path;
   }
 
   verifyURLStatus(params: any) {
