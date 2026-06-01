@@ -164,6 +164,7 @@ export class AuthService {
         email: this.normalizeEmail(user.email),
         access_level_id: user.access_level_id,
         affiliation_type_id: (user as any).affiliation_type_id || (user as any).affiliation_type,
+        profile_type_id: (user as any).profile_type_id || (user as any).profile_type,
         company_type_id: (user as any).company_type_id,
         company_type: (user as any).company_type,
         root: rootBoolean,
@@ -200,6 +201,7 @@ export class AuthService {
         ...currentUser,
         privileges: privilegesToSave,
         affiliation_type_id: completeUserData.affiliation_type_id || completeUserData.affiliation_type,
+        profile_type_id: completeUserData.profile_type_id || completeUserData.profile_type,
         access_level_id: completeUserData.access_level_id
       };
 
