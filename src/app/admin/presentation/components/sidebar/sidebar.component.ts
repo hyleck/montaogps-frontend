@@ -22,6 +22,7 @@ export class SidebarComponent implements OnInit {
   systemLogo: string = 'logo/LOGO.png'; // Default logo
   currentUser: BasicUser | null = null;
   private isEmployeeUser: boolean = false;
+  private isCompanyUser: boolean = false;
   private hasInbox: boolean = false;
 
   sidaberOptions = {
@@ -102,11 +103,9 @@ export class SidebarComponent implements OnInit {
       this.userName = `${this.currentUser.name} ${this.currentUser.last_name} [${compType}]`;
       this.sidaberOptions.profileItems[1].label = this.userName;
       this.isEmployeeUser = this.currentUser.affiliation_type_id === 'empleado';
+      this.isCompanyUser = this.currentUser.profile_type_id === 'empresa';
 
-      // Set monitoring path with current user ID when the current user is an employee
-      if (this.isEmployeeUser) {
-        this.sidaberOptions.principalItems[4].path = `/admin/monitoring/${this.currentUser.id}`;
-      }
+      this.updateMonitoringPath();
 
       // Force change detection by re-assigning options if needed (or just relying on getter)
       console.log('Sidebar - Current User Updated:', this.currentUser);
@@ -115,6 +114,7 @@ export class SidebarComponent implements OnInit {
       this.currentUser = null;
       this.userName = '';
       this.isEmployeeUser = false;
+      this.isCompanyUser = false;
       this.hasInbox = false;
     }
   }
@@ -125,6 +125,16 @@ export class SidebarComponent implements OnInit {
     if (currentUser && currentUser.id) {
       this.userService.getById(currentUser.id).subscribe({
         next: (userData: any) => {
+          this.isCompanyUser = userData.profile_type_id === 'empresa';
+          this.isEmployeeUser = userData.affiliation_type_id === 'empleado';
+          this.currentUser = {
+            ...currentUser,
+            profile_type_id: userData.profile_type_id || currentUser.profile_type_id,
+            affiliation_type_id: userData.affiliation_type_id || currentUser.affiliation_type_id,
+          };
+          localStorage.setItem('user', JSON.stringify(this.currentUser));
+          this.updateMonitoringPath();
+
           if (userData.photo) {
             this.userPhotoUrl = userData.photo;
           }
@@ -135,6 +145,16 @@ export class SidebarComponent implements OnInit {
           console.error('Error loading user profile for sidebar:', error);
         }
       });
+    }
+  }
+
+  private updateMonitoringPath() {
+    const monitoringItem = this.sidaberOptions.principalItems.find(item =>
+      item.path.startsWith('/admin/monitoring')
+    );
+
+    if (monitoringItem && this.currentUser?.id && this.canAccessMonitoring) {
+      monitoringItem.path = `/admin/monitoring/${this.currentUser.id}`;
     }
   }
 
@@ -219,12 +239,16 @@ export class SidebarComponent implements OnInit {
     return this.currentUser?.root === true;
   }
 
+  get canAccessMonitoring(): boolean {
+    return this.isEmployeeUser || this.isCompanyUser || this.isRootUser;
+  }
+
   // Getter para obtener los elementos del menú principal filtrados por root
   get filteredPrincipalItems() {
     return this.sidaberOptions.principalItems.filter(item => {
 
-      // Ocultar el módulo de monitoreo si el usuario no es empleado
-      if (!this.isEmployeeUser && item.path.startsWith('/admin/monitoring')) {
+      // Ocultar el módulo de monitoreo si el usuario no es empleado, empresa o root
+      if (!this.canAccessMonitoring && item.path.startsWith('/admin/monitoring')) {
         return false;
       }
       // Ocultar el módulo de empleados a todos excepto a los usuarios root
