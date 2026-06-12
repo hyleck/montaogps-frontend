@@ -16,6 +16,12 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
 
     drawingManager: any;
     currentPolygon: any;
+    drawingClickListener: any;
+    nativeClickHandler?: (event: MouseEvent) => void;
+    vertexMarkers: any[] = [];
+    manualCoordinates: Array<{ lat: number; lng: number }> = [];
+    isManualDrawing = false;
+    private lastVertexClick: { lat: number; lng: number; at: number } | null = null;
 
     map: any;
 
@@ -36,6 +42,8 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
         if (this.drawingManager) {
             this.drawingManager.setMap(null);
         }
+        this.disableManualDrawing();
+        this.clearVertexMarkers();
     }
 
     private initializeMap(): void {
@@ -59,8 +67,8 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
                 );
 
                 if (this.provider === 'google') {
-                    this.initializeDrawingManager();
                     this.updateMarkers();
+                    this.startDrawing(false);
                 }
             }).catch(err => {
                 console.error('Error loading map script:', err);
@@ -74,24 +82,29 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
             return;
         }
 
-        this.drawingManager = new google.maps.drawing.DrawingManager({
-            drawingMode: google.maps.drawing.OverlayType.POLYGON,
-            drawingControl: true,
-            drawingControlOptions: {
-                position: google.maps.ControlPosition.TOP_CENTER,
-                drawingModes: [google.maps.drawing.OverlayType.POLYGON]
-            },
-            polygonOptions: {
-                fillColor: '#1a73e8',
-                fillOpacity: 0.3,
-                strokeWeight: 2,
-                strokeColor: '#1a73e8',
-                clickable: true,
-                editable: true,
-                draggable: true,
-                zIndex: 1
-            }
-        });
+        try {
+            this.drawingManager = new google.maps.drawing.DrawingManager({
+                drawingMode: null,
+                drawingControl: false,
+                drawingControlOptions: {
+                    position: google.maps.ControlPosition.TOP_CENTER,
+                    drawingModes: [google.maps.drawing.OverlayType.POLYGON]
+                },
+                polygonOptions: {
+                    fillColor: '#1a73e8',
+                    fillOpacity: 0.3,
+                    strokeWeight: 2,
+                    strokeColor: '#1a73e8',
+                    clickable: true,
+                    editable: true,
+                    draggable: true,
+                    zIndex: 1
+                }
+            });
+        } catch (error) {
+            console.warn('Google Maps DrawingManager unavailable, using manual perimeter drawing', error);
+            return;
+        }
 
         this.drawingManager.setMap(this.map);
 
@@ -102,9 +115,11 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
             }
 
             this.currentPolygon = polygon;
+            this.rebuildVertexMarkers();
 
             // Desactivar modo dibujo después de completar uno
             this.drawingManager.setDrawingMode(null);
+            this.disableManualDrawing();
 
             // Escuchar cambios en el polígono
             this.addPolygonListeners(polygon);
@@ -112,21 +127,33 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
     }
 
     private addPolygonListeners(polygon: any): void {
-        const path = polygon.getPath();
+        const path = polygon.getPath?.();
+        if (!path) return;
         google.maps.event.addListener(path, 'set_at', () => {
+            this.syncManualCoordinatesFromPolygon();
             this.logPolygonCoordinates();
+            this.rebuildVertexMarkers();
         });
         google.maps.event.addListener(path, 'insert_at', () => {
+            this.syncManualCoordinatesFromPolygon();
             this.logPolygonCoordinates();
+            this.rebuildVertexMarkers();
         });
         google.maps.event.addListener(path, 'remove_at', () => {
+            this.syncManualCoordinatesFromPolygon();
             this.logPolygonCoordinates();
+            this.rebuildVertexMarkers();
         });
     }
 
     private logPolygonCoordinates(): void {
         if (!this.currentPolygon) return;
-        const path = this.currentPolygon.getPath();
+        const path = this.currentPolygon.getPath?.();
+        if (!path) {
+            console.log('Perimeter coordinates:', this.manualCoordinates);
+            return;
+        }
+
         const coordinates = [];
         for (let i = 0; i < path.getLength(); i++) {
             const xy = path.getAt(i);
@@ -135,14 +162,178 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
         console.log('Perimeter coordinates:', coordinates);
     }
 
+    startDrawing(clearExisting: boolean = true): void {
+        if (!this.map || this.provider !== 'google') return;
+
+        if (clearExisting) {
+            this.removeCurrentPolygon();
+        }
+
+        if (this.drawingManager) {
+            this.drawingManager.setDrawingMode(null);
+        }
+
+        this.disableManualDrawing();
+        this.isManualDrawing = true;
+        this.map.setOptions?.({ draggableCursor: 'crosshair' });
+        this.nativeClickHandler = (event: MouseEvent) => {
+            const target = event.target as HTMLElement | null;
+            if (target?.closest('.map-toolbar')) return;
+
+            const latLng = this.getLatLngFromContainerClick(event);
+            if (latLng) {
+                this.addManualVertex(latLng);
+            }
+        };
+        this.mapContainer.nativeElement.addEventListener('click', this.nativeClickHandler, true);
+    }
+
+    finishDrawing(): void {
+        this.disableManualDrawing();
+    }
+
     clearPerimeter(): void {
+        this.removeCurrentPolygon();
+        this.startDrawing(false);
+    }
+
+    private createEditablePolygon(paths: any[]): any {
+        return new google.maps.Polygon({
+            paths,
+            fillColor: '#1a73e8',
+            fillOpacity: 0.3,
+            strokeWeight: 2,
+            strokeColor: '#1a73e8',
+            clickable: false,
+            editable: true,
+            draggable: false,
+            zIndex: 1
+        });
+    }
+
+    private addManualVertex(latLng: any): void {
+        const lat = latLng.lat();
+        const lng = latLng.lng();
+        const now = Date.now();
+
+        if (
+            this.lastVertexClick &&
+            now - this.lastVertexClick.at < 250 &&
+            Math.abs(this.lastVertexClick.lat - lat) < 0.000001 &&
+            Math.abs(this.lastVertexClick.lng - lng) < 0.000001
+        ) {
+            return;
+        }
+
+        this.lastVertexClick = { lat, lng, at: now };
+        this.manualCoordinates.push({ lat, lng });
+
+        if (!this.currentPolygon) {
+            this.currentPolygon = this.createEditablePolygon(this.manualCoordinates);
+            this.currentPolygon.setMap(this.map);
+            this.addPolygonListeners(this.currentPolygon);
+        } else {
+            this.currentPolygon.setPath(this.manualCoordinates);
+        }
+
+        this.addVertexMarker(latLng);
+        this.logPolygonCoordinates();
+    }
+
+    private disableManualDrawing(): void {
+        if (this.drawingClickListener) {
+            google.maps.event.removeListener(this.drawingClickListener);
+            this.drawingClickListener = null;
+        }
+        if (this.nativeClickHandler && this.mapContainer?.nativeElement) {
+            this.mapContainer.nativeElement.removeEventListener('click', this.nativeClickHandler, true);
+            this.nativeClickHandler = undefined;
+        }
+        this.isManualDrawing = false;
+        this.map?.setOptions?.({ draggableCursor: null });
+    }
+
+    private getLatLngFromContainerClick(event: MouseEvent): any | null {
+        if (!this.map || !this.mapContainer?.nativeElement) return null;
+
+        const rect = this.mapContainer.nativeElement.getBoundingClientRect();
+        const point = new google.maps.Point(event.clientX - rect.left, event.clientY - rect.top);
+        const projection = this.map.getProjection?.();
+        const bounds = this.map.getBounds?.();
+
+        if (!projection || !bounds) return null;
+
+        const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
+        const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
+        const scale = Math.pow(2, this.map.getZoom());
+        const worldPoint = new google.maps.Point(
+            bottomLeft.x + point.x / scale,
+            topRight.y + point.y / scale
+        );
+
+        return projection.fromPointToLatLng(worldPoint);
+    }
+
+    private removeCurrentPolygon(): void {
         if (this.currentPolygon) {
             this.currentPolygon.setMap(null);
             this.currentPolygon = null;
         }
-        if (this.drawingManager) {
-            this.drawingManager.setDrawingMode(google.maps.drawing.OverlayType.POLYGON);
+        this.manualCoordinates = [];
+        this.clearVertexMarkers();
+    }
+
+    private addVertexMarker(position: any): void {
+        const marker = new google.maps.Marker({
+            position,
+            map: this.map,
+            clickable: false,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 5,
+                fillColor: '#1a73e8',
+                fillOpacity: 1,
+                strokeColor: '#ffffff',
+                strokeWeight: 2
+            },
+            zIndex: 2
+        });
+
+        this.vertexMarkers.push(marker);
+    }
+
+    private clearVertexMarkers(): void {
+        this.vertexMarkers.forEach(marker => marker.setMap(null));
+        this.vertexMarkers = [];
+    }
+
+    private rebuildVertexMarkers(): void {
+        this.clearVertexMarkers();
+        if (!this.currentPolygon) return;
+
+        const path = this.currentPolygon.getPath?.();
+        if (!path) {
+            this.manualCoordinates.forEach(coord => {
+                this.addVertexMarker(new google.maps.LatLng(coord.lat, coord.lng));
+            });
+            return;
         }
+
+        for (let i = 0; i < path.getLength(); i++) {
+            this.addVertexMarker(path.getAt(i));
+        }
+    }
+
+    private syncManualCoordinatesFromPolygon(): void {
+        const path = this.currentPolygon?.getPath?.();
+        if (!path) return;
+
+        const coordinates: Array<{ lat: number; lng: number }> = [];
+        for (let i = 0; i < path.getLength(); i++) {
+            const point = path.getAt(i);
+            coordinates.push({ lat: point.lat(), lng: point.lng() });
+        }
+        this.manualCoordinates = coordinates;
     }
 
     /**
@@ -155,29 +346,18 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
         }
 
         // Limpiar polígono existente
-        if (this.currentPolygon) {
-            this.currentPolygon.setMap(null);
-        }
+        this.removeCurrentPolygon();
+        this.manualCoordinates = coordinates.map(coord => ({ lat: coord.lat, lng: coord.lng }));
 
         // Crear nuevo polígono con las coordenadas proporcionadas
-        this.currentPolygon = new google.maps.Polygon({
-            paths: coordinates,
-            fillColor: '#1a73e8',
-            fillOpacity: 0.3,
-            strokeWeight: 2,
-            strokeColor: '#1a73e8',
-            clickable: true,
-            editable: true,
-            draggable: true,
-            zIndex: 1
-        });
+        this.currentPolygon = this.createEditablePolygon(this.manualCoordinates);
 
         this.currentPolygon.setMap(this.map);
+        this.rebuildVertexMarkers();
 
         // Desactivar modo dibujo
-        if (this.drawingManager) {
-            this.drawingManager.setDrawingMode(null);
-        }
+        this.disableManualDrawing();
+        if (this.drawingManager) this.drawingManager.setDrawingMode(null);
 
         // Agregar listeners para detectar cambios
         this.addPolygonListeners(this.currentPolygon);
@@ -292,11 +472,17 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
     }
 
     getPolygonCoordinates(): Array<{ lat: number; lng: number }> | null {
+        if (this.manualCoordinates.length >= 3) {
+            return [...this.manualCoordinates];
+        }
+
         if (!this.currentPolygon) {
             return null;
         }
 
-        const path = this.currentPolygon.getPath();
+        const path = this.currentPolygon.getPath?.();
+        if (!path) return null;
+
         const coordinates: Array<{ lat: number; lng: number }> = [];
 
         for (let i = 0; i < path.getLength(); i++) {

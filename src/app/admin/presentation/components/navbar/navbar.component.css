@@ -2510,8 +2510,8 @@ body .p-dialog-mask {
 }
 
 .perimeter-map-form app-map-alert {
-  max-height: 350px;
-  overflow: hidden;
+  display: block;
+  height: 400px;
 }
 
 /* Responsive design for mobile */
@@ -2536,7 +2536,7 @@ body .p-dialog-mask {
   }
 
   .perimeter-map-form app-map-alert {
-    max-height: 300px;
+    height: 300px;
   }
 }
 

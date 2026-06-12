@@ -1,1 +1,14 @@
-<div class="map-container" #mapContainer></div>
+<div class="map-alert-shell">
+    <div class="map-toolbar">
+        <button type="button" class="map-tool-btn" [class.active]="isManualDrawing" (click)="startDrawing()" title="Dibujar perímetro">
+            <i class="pi pi-pencil"></i>
+        </button>
+        <button type="button" class="map-tool-btn" (click)="finishDrawing()" title="Finalizar perímetro">
+            <i class="pi pi-check"></i>
+        </button>
+        <button type="button" class="map-tool-btn danger" (click)="clearPerimeter()" title="Limpiar perímetro">
+            <i class="pi pi-trash"></i>
+        </button>
+    </div>
+    <div class="map-container" #mapContainer></div>
+</div>

@@ -65,7 +65,7 @@ export class MapUtils {
       }
 
       const script = document.createElement('script');
-      script.src = provider === 'google' ? `${url}${key}&libraries=drawing` : `${url}?access_token=${key}`;
+      script.src = provider === 'google' ? MapUtils.buildGoogleMapsUrl(url, key) : `${url}?access_token=${key}`;
       script.async = true;
       script.defer = true;
       script.onload = () => {
@@ -78,6 +78,12 @@ export class MapUtils {
       };
       document.head.appendChild(script);
     });
+  }
+
+  private static buildGoogleMapsUrl(url: string, key: string): string {
+    const googleUrl = new URL(url, window.location.origin);
+    googleUrl.searchParams.set('key', key);
+    return googleUrl.toString();
   }
 
   static cleanupPreviousScripts(currentProvider: 'google' | 'mapbox'): void {
