@@ -1,13 +1,18 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef, ElementRef, QueryList, ViewChildren } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import * as maplibregl from 'maplibre-gl';
 import { MenuItem, MessageService } from 'primeng/api';
 import { TargetsService } from '@core/services/targets.service';
 import { ProtocolsService } from '@core/services/protocols.service';
 import { TranslateService } from '@ngx-translate/core';
 import { AuthService } from '@core/services/auth.service';
 import { ThemesService } from '@shared/services/themes.service';
+import { SystemService } from '@core/services/system.service';
 import { RouteHistoryResponse, RouteHistoryPosition } from '@core/interfaces';
-import { ReportsMapInfoPanelData } from '../../../../../../shareds/components/reports-map/reports-map.component';
+import { ReportsMapInfoPanelData, ReportsMapInfoPanelItem } from '../../../../../../shareds/components/reports-map/reports-map.component';
+import { firstValueFrom } from 'rxjs';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 export interface ReportFilter {
   reportType: string;
@@ -39,7 +44,8 @@ export interface ReportFilter {
     styleUrl: './reports.component.css',
     standalone: false
 })
-export class ReportsComponent implements OnInit {
+export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
+    @ViewChildren('stopMap') stopMapElements!: QueryList<ElementRef<HTMLElement>>;
 
     items: MenuItem[] = [{ label: 'Reportes' }];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
@@ -85,6 +91,25 @@ export class ReportsComponent implements OnInit {
     isTargetOffline: boolean = false;
 
     mapInfoPanelData: ReportsMapInfoPanelData | null = null;
+    routeDistanceMeters: number | null = null;
+    loadingRouteDistance: boolean = false;
+    hasGeneratedRouteReport: boolean = false;
+    calculatedStops: any[] = [];
+    private stopPreviewMaps: maplibregl.Map[] = [];
+    private stopPreviewKeys: string[] = [];
+    private stopPreviewRenderScheduled: boolean = false;
+    private mapboxAccessToken: string | null = null;
+    private reverseGeocodeCache = new Map<string, string>();
+    private routeStopsLoadedFromCache: boolean = false;
+    private routeReportCacheContext: {
+      deviceImei: string;
+      fromDate: string;
+      toDate: string;
+      source: string;
+      minStopDuration: number;
+    } | null = null;
+    private routeReportCacheSyncTimer: any = null;
+    private lastRouteReportCacheSyncSignature: string = '';
     
     // Obtener opciones rápidas según el estado del target
     get availableQuickDateRanges() {
@@ -268,6 +293,7 @@ export class ReportsComponent implements OnInit {
       private translate: TranslateService,
       private authService: AuthService,
       private themesService: ThemesService,
+      private systemService: SystemService,
       private route: ActivatedRoute,
       private cdr: ChangeDetectorRef
     ) {}
@@ -278,6 +304,7 @@ export class ReportsComponent implements OnInit {
       
       // Inicializar tipos de reportes básicos (sin Historial de Recorrido)
       this.updateAvailableReportTypes(false);
+      this.loadMapboxAccessToken();
       
       this.loadTargets();
       
@@ -306,6 +333,19 @@ export class ReportsComponent implements OnInit {
           this.preselectReportType(type);
         }
       });
+    }
+
+    ngAfterViewInit(): void {
+      this.stopMapElements?.changes.subscribe(() => {
+        this.scheduleStopPreviewMaps();
+      });
+    }
+
+    ngOnDestroy(): void {
+      if (this.routeReportCacheSyncTimer) {
+        clearTimeout(this.routeReportCacheSyncTimer);
+      }
+      this.destroyStopPreviewMaps();
     }
 
     private async loadTargets(): Promise<void> {
@@ -682,6 +722,13 @@ export class ReportsComponent implements OnInit {
       }
 
       this.generatingReport = true;
+      this.routeDistanceMeters = null;
+      this.mapInfoPanelData = null;
+      this.hasGeneratedRouteReport = false;
+      this.calculatedStops = [];
+      this.routeStopsLoadedFromCache = false;
+      this.lastRouteReportCacheSyncSignature = '';
+      this.destroyStopPreviewMaps();
       
       // Limpiar protocolo anterior para forzar nueva consulta
       this.targetProtocol = null;
@@ -698,6 +745,10 @@ export class ReportsComponent implements OnInit {
           
           // Las paradas ahora se calculan automáticamente en el mapa a partir de velocidades 0
           this.stops = []; // Limpiar paradas del backend
+          this.applyCachedStopsOrCalculate();
+          this.hasGeneratedRouteReport = true;
+          this.cdr.detectChanges();
+          this.scheduleStopPreviewMaps();
           
         } else {
           // Para otros tipos de reporte, simular generación
@@ -868,8 +919,18 @@ export class ReportsComponent implements OnInit {
         this.routeHistory = await this.targetsService.getRouteHistory(
           deviceImei, 
           fromDate, 
-          toDate
+          toDate,
+          this.reportFilter.minStopDurationFilter
         );
+        this.routeReportCacheContext = {
+          deviceImei,
+          fromDate,
+          toDate,
+          source: 'hybrid',
+          minStopDuration: Number(this.reportFilter.minStopDurationFilter || 20)
+        };
+        await this.loadRouteDistance(selectedTargetId, fromDate, toDate);
+        this.refreshRouteSummaryInfoPanel();
         
       
         
@@ -908,7 +969,718 @@ export class ReportsComponent implements OnInit {
     }
 
     onMapInfoPanelChange(data: ReportsMapInfoPanelData | null): void {
-      this.mapInfoPanelData = data;
+      this.mapInfoPanelData = this.withRouteDistanceInfo(data);
+    }
+
+    onCalculatedStopsChange(stops: any[]): void {
+      if (this.routeStopsLoadedFromCache && this.calculatedStops.length > 0) {
+        return;
+      }
+
+      const incomingStops = stops?.length ? stops : this.calculateStopsFromRouteHistory();
+      this.calculatedStops = [...(incomingStops || [])].sort((a, b) => {
+        const aTime = new Date(a.startTime || a.endTime || 0).getTime();
+        const bTime = new Date(b.startTime || b.endTime || 0).getTime();
+        return aTime - bTime;
+      });
+      this.enrichStopAddresses();
+      this.cdr.detectChanges();
+      this.scheduleStopPreviewMaps();
+    }
+
+    private applyCachedStopsOrCalculate(): void {
+      const cachedStops = this.routeHistory?.cachedStops || [];
+
+      if (cachedStops.length > 0) {
+        this.calculatedStops = [...cachedStops].sort((a, b) => {
+          const aTime = new Date(a.startTime || a.endTime || 0).getTime();
+          const bTime = new Date(b.startTime || b.endTime || 0).getTime();
+          return aTime - bTime;
+        });
+        this.routeStopsLoadedFromCache = true;
+        this.enrichStopAddresses();
+        return;
+      }
+
+      this.routeStopsLoadedFromCache = false;
+      this.updateStopsFromRouteHistory();
+    }
+
+    private updateStopsFromRouteHistory(): void {
+      this.calculatedStops = this.calculateStopsFromRouteHistory();
+      this.enrichStopAddresses();
+    }
+
+    private async loadMapboxAccessToken(): Promise<void> {
+      try {
+        const systems = await firstValueFrom(this.systemService.getAll());
+        const mapboxConfig = systems?.[0]?.map_api2;
+        this.mapboxAccessToken = mapboxConfig?.key || null;
+      } catch (error) {
+        console.warn('No se pudo cargar la configuración de Mapbox:', error);
+        this.mapboxAccessToken = null;
+      }
+    }
+
+    private enrichStopAddresses(): void {
+      if (!this.calculatedStops.length) {
+        return;
+      }
+
+      if (!this.mapboxAccessToken) {
+        this.loadMapboxAccessToken().then(() => this.enrichStopAddresses());
+        return;
+      }
+
+      this.calculatedStops.forEach((stop, index) => {
+        const lat = Number(stop.latitude);
+        const lng = Number(stop.longitude);
+        if (Number.isNaN(lat) || Number.isNaN(lng)) {
+          return;
+        }
+
+        const cacheKey = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+        const cachedAddress = this.reverseGeocodeCache.get(cacheKey);
+        if (cachedAddress) {
+          this.calculatedStops[index] = { ...stop, address: cachedAddress };
+          this.scheduleRouteReportCacheSync();
+          return;
+        }
+
+        if (!stop.address || stop.address === 'Dirección no disponible') {
+          this.calculatedStops[index] = { ...stop, address: 'Buscando dirección...' };
+        }
+
+        this.getMapboxAddress(lat, lng)
+          .then(address => {
+            if (!address) {
+              return;
+            }
+
+            this.reverseGeocodeCache.set(cacheKey, address);
+            this.calculatedStops = this.calculatedStops.map((currentStop, currentIndex) =>
+              currentIndex === index ? { ...currentStop, address } : currentStop
+            );
+            this.cdr.detectChanges();
+            this.scheduleRouteReportCacheSync();
+          })
+          .catch(error => {
+            console.warn('No se pudo obtener dirección de Mapbox:', error);
+          });
+      });
+
+      this.scheduleRouteReportCacheSync();
+    }
+
+    private async getMapboxAddress(lat: number, lng: number): Promise<string | null> {
+      if (!this.mapboxAccessToken) {
+        return null;
+      }
+
+      const url = new URL(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json`);
+      url.searchParams.set('access_token', this.mapboxAccessToken);
+      url.searchParams.set('language', 'es');
+      url.searchParams.set('limit', '1');
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        throw new Error(`Mapbox geocoding error ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data?.features?.[0]?.place_name || null;
+    }
+
+    private scheduleRouteReportCacheSync(): void {
+      if (!this.routeReportCacheContext || !this.routeHistory?.positions?.length) {
+        return;
+      }
+
+      if (this.routeReportCacheSyncTimer) {
+        clearTimeout(this.routeReportCacheSyncTimer);
+      }
+
+      this.routeReportCacheSyncTimer = setTimeout(() => {
+        this.syncRouteReportCache().catch(error => {
+          console.warn('No se pudo sincronizar la caché del reporte:', error);
+        });
+      }, 1200);
+    }
+
+    private async syncRouteReportCache(): Promise<void> {
+      if (!this.routeReportCacheContext || !this.routeHistory?.positions?.length) {
+        return;
+      }
+
+      const stopsToCache = this.calculatedStops.map((stop, index) => ({
+        ...stop,
+        stopNumber: stop.stopNumber || index + 1,
+        durationText: this.getStopDuration(stop),
+        address: stop.address && stop.address !== 'Buscando dirección...'
+          ? stop.address
+          : 'Dirección no disponible'
+      }));
+      const signature = JSON.stringify({
+        context: this.routeReportCacheContext,
+        positions: this.routeHistory.totalPositions || this.routeHistory.positions.length,
+        stops: stopsToCache.map(stop => ({
+          startTime: stop.startTime,
+          endTime: stop.endTime,
+          latitude: stop.latitude,
+          longitude: stop.longitude,
+          address: stop.address
+        })),
+        distanceMeters: this.routeDistanceMeters
+      });
+
+      if (signature === this.lastRouteReportCacheSyncSignature) {
+        return;
+      }
+
+      this.lastRouteReportCacheSyncSignature = signature;
+      await this.targetsService.updateRouteHistoryCache(this.routeReportCacheContext.deviceImei, {
+        fromDate: this.routeReportCacheContext.fromDate,
+        toDate: this.routeReportCacheContext.toDate,
+        source: this.routeReportCacheContext.source,
+        minStopDuration: this.routeReportCacheContext.minStopDuration,
+        positions: this.routeHistory.positions,
+        totalPositions: this.routeHistory.totalPositions || this.routeHistory.positions.length,
+        stops: stopsToCache,
+        distanceMeters: this.routeDistanceMeters
+      });
+    }
+
+    private calculateStopsFromRouteHistory(): any[] {
+      const positions = this.routeHistory?.positions || [];
+      if (positions.length === 0) {
+        return [];
+      }
+
+      const sortedPositions = [...positions].sort((a, b) => {
+        const aTime = new Date(a.fixTime || a.deviceTime || a.serverTime || 0).getTime();
+        const bTime = new Date(b.fixTime || b.deviceTime || b.serverTime || 0).getTime();
+        return aTime - bTime;
+      });
+      const minStopDurationMs = Math.max(0, Number(this.reportFilter.minStopDurationFilter || 1)) * 60000;
+      const maxDistanceMeters = 80;
+      const stoppedSpeedThreshold = 1;
+      const stops: any[] = [];
+      let currentStop: any = null;
+
+      for (const position of sortedPositions) {
+        const speed = Number(position.speed || 0);
+        const lat = Number(position.latitude);
+        const lng = Number(position.longitude);
+        const time = position.fixTime || position.deviceTime || position.serverTime;
+
+        if (Number.isNaN(lat) || Number.isNaN(lng) || !time) {
+          continue;
+        }
+
+        const isStopped = speed <= stoppedSpeedThreshold;
+
+        if (isStopped) {
+          if (!currentStop) {
+            currentStop = {
+              startPosition: position,
+              endPosition: position,
+              startTime: time,
+              endTime: time,
+              latitude: lat,
+              longitude: lng,
+              positions: [position],
+              address: position.address || 'Dirección no disponible'
+            };
+            continue;
+          }
+
+          const distance = this.calculateDistanceMeters(currentStop.latitude, currentStop.longitude, lat, lng);
+          if (distance <= maxDistanceMeters) {
+            currentStop.endPosition = position;
+            currentStop.endTime = time;
+            currentStop.positions.push(position);
+          } else {
+            this.pushStopIfValid(stops, currentStop, minStopDurationMs);
+            currentStop = {
+              startPosition: position,
+              endPosition: position,
+              startTime: time,
+              endTime: time,
+              latitude: lat,
+              longitude: lng,
+              positions: [position],
+              address: position.address || 'Dirección no disponible'
+            };
+          }
+        } else if (currentStop) {
+          this.pushStopIfValid(stops, currentStop, minStopDurationMs);
+          currentStop = null;
+        }
+      }
+
+      if (currentStop) {
+        this.pushStopIfValid(stops, currentStop, minStopDurationMs);
+      }
+
+      return stops.map((stop, index) => ({
+        ...stop,
+        stopNumber: index + 1,
+        durationText: this.getStopDuration(stop)
+      }));
+    }
+
+    private pushStopIfValid(stops: any[], stop: any, minStopDurationMs: number): void {
+      const startTime = new Date(stop.startTime || 0).getTime();
+      const endTime = new Date(stop.endTime || 0).getTime();
+
+      if (Number.isNaN(startTime) || Number.isNaN(endTime)) {
+        return;
+      }
+
+      if (endTime - startTime >= minStopDurationMs) {
+        stops.push(stop);
+      }
+    }
+
+    private calculateDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+      const earthRadiusMeters = 6371000;
+      const toRadians = (degrees: number) => degrees * Math.PI / 180;
+      const deltaLat = toRadians(lat2 - lat1);
+      const deltaLng = toRadians(lng2 - lng1);
+      const a =
+        Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+        Math.cos(toRadians(lat1)) *
+          Math.cos(toRadians(lat2)) *
+          Math.sin(deltaLng / 2) *
+          Math.sin(deltaLng / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return earthRadiusMeters * c;
+    }
+
+    showStopsPanel(): boolean {
+      return this.reportFilter.reportType === 'route_history' && this.hasGeneratedRouteReport;
+    }
+
+    backToReportFilters(): void {
+      this.hasGeneratedRouteReport = false;
+      this.destroyStopPreviewMaps();
+    }
+
+    formatStopDate(dateString: string): string {
+      if (!dateString) {
+        return 'Sin fecha';
+      }
+
+      const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) {
+        return 'Sin fecha';
+      }
+
+      return date.toLocaleString('es-DO', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+
+    getStopDuration(stop: any): string {
+      if (stop?.durationText) {
+        return stop.durationText;
+      }
+
+      const startTime = new Date(stop?.startTime || 0).getTime();
+      const endTime = new Date(stop?.endTime || 0).getTime();
+
+      if (!startTime || !endTime || Number.isNaN(startTime) || Number.isNaN(endTime) || endTime < startTime) {
+        return 'Sin duración';
+      }
+
+      const durationMs = endTime - startTime;
+      const hours = Math.floor(durationMs / 3600000);
+      const minutes = Math.floor((durationMs % 3600000) / 60000);
+      const seconds = Math.floor((durationMs % 60000) / 1000);
+
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      }
+
+      if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+      }
+
+      return `${seconds}s`;
+    }
+
+    generateStopsPdf(): void {
+      if (!this.calculatedStops.length) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Sin paradas',
+          detail: 'No hay paradas para exportar.'
+        });
+        return;
+      }
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+      const target = this.getSelectedTargetInfo();
+      const targetName = target?.name || target?.alias || target?.device_imei || 'Vehiculo';
+      const generatedAt = new Date().toLocaleString('es-DO', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      const totalDuration = this.formatStopDurationMs(
+        this.calculatedStops.reduce((sum, stop) => sum + this.getStopDurationMs(stop), 0)
+      );
+      const dateRangeLabel = `${this.formatPdfDate(this.reportFilter.dateRange.start)} - ${this.formatPdfDate(this.reportFilter.dateRange.end)}`;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(17);
+      doc.setTextColor(31, 41, 55);
+      doc.text('Reporte de paradas', 14, 16);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(85, 85, 85);
+      doc.text(`Vehiculo: ${targetName}`, 14, 24);
+      doc.text(`Rango: ${dateRangeLabel}`, 14, 30);
+      doc.text(`Generado: ${generatedAt}`, 14, 36);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(220, 38, 38);
+      doc.text(`${this.calculatedStops.length} parada${this.calculatedStops.length === 1 ? '' : 's'}`, pageWidth - 14, 24, { align: 'right' });
+      doc.setTextColor(37, 99, 235);
+      doc.text(`Duracion total: ${totalDuration}`, pageWidth - 14, 30, { align: 'right' });
+
+      autoTable(doc, {
+        startY: 45,
+        head: [['#', 'Inicio', 'Fin', 'Duracion', 'Direccion', 'Coordenadas']],
+        body: this.calculatedStops.map((stop, index) => [
+          String(index + 1),
+          this.formatPdfDate(stop.startTime),
+          this.formatPdfDate(stop.endTime),
+          this.getStopDuration(stop),
+          this.getStopAddressForPdf(stop),
+          this.getStopCoordinates(stop)
+        ]),
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+          overflow: 'linebreak',
+          valign: 'top'
+        },
+        headStyles: {
+          fillColor: [220, 38, 38],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold'
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        columnStyles: {
+          0: { cellWidth: 9, halign: 'center' },
+          1: { cellWidth: 26 },
+          2: { cellWidth: 26 },
+          3: { cellWidth: 20 },
+          4: { cellWidth: 73 },
+          5: { cellWidth: 34 }
+        },
+        margin: { left: 14, right: 14 },
+        didDrawPage: () => {
+          const pageNumber = doc.getNumberOfPages();
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          doc.setTextColor(120, 120, 120);
+          doc.text(`Pagina ${pageNumber}`, pageWidth - 14, pageHeight - 8, { align: 'right' });
+        }
+      });
+
+      const timestamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+      doc.save(`reporte-paradas-${this.sanitizeFileName(targetName)}-${timestamp}.pdf`);
+    }
+
+    private getStopDurationMs(stop: any): number {
+      const startTime = new Date(stop?.startTime || 0).getTime();
+      const endTime = new Date(stop?.endTime || 0).getTime();
+
+      if (!startTime || !endTime || Number.isNaN(startTime) || Number.isNaN(endTime) || endTime < startTime) {
+        return 0;
+      }
+
+      return endTime - startTime;
+    }
+
+    private formatStopDurationMs(durationMs: number): string {
+      if (!durationMs || durationMs < 0) {
+        return 'Sin duracion';
+      }
+
+      const hours = Math.floor(durationMs / 3600000);
+      const minutes = Math.floor((durationMs % 3600000) / 60000);
+      const seconds = Math.floor((durationMs % 60000) / 1000);
+
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      }
+
+      if (minutes > 0) {
+        return `${minutes}m ${seconds}s`;
+      }
+
+      return `${seconds}s`;
+    }
+
+    private formatPdfDate(dateValue: Date | string | null | undefined): string {
+      if (!dateValue) {
+        return 'Sin fecha';
+      }
+
+      const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+      if (Number.isNaN(date.getTime())) {
+        return 'Sin fecha';
+      }
+
+      return date.toLocaleString('es-DO', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+
+    private getStopAddressForPdf(stop: any): string {
+      if (stop?.address && stop.address !== 'Buscando dirección...') {
+        return stop.address;
+      }
+
+      return 'Direccion no disponible';
+    }
+
+    private getStopCoordinates(stop: any): string {
+      const lat = Number(stop?.latitude);
+      const lng = Number(stop?.longitude);
+
+      if (Number.isNaN(lat) || Number.isNaN(lng)) {
+        return 'Sin coordenadas';
+      }
+
+      return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    }
+
+    private sanitizeFileName(value: string): string {
+      return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .toLowerCase() || 'vehiculo';
+    }
+
+    trackByStop(index: number, stop: any): string {
+      const lat = Number(stop?.latitude);
+      const lng = Number(stop?.longitude);
+      const start = stop?.startTime || '';
+      const end = stop?.endTime || '';
+      const latPart = Number.isNaN(lat) ? 'na' : lat.toFixed(6);
+      const lngPart = Number.isNaN(lng) ? 'na' : lng.toFixed(6);
+
+      return `${start}-${end}-${latPart}-${lngPart}-${index}`;
+    }
+
+    private scheduleStopPreviewMaps(): void {
+      if (this.stopPreviewRenderScheduled) {
+        return;
+      }
+
+      this.stopPreviewRenderScheduled = true;
+      requestAnimationFrame(() => {
+        this.stopPreviewRenderScheduled = false;
+        this.renderStopPreviewMaps();
+      });
+    }
+
+    private renderStopPreviewMaps(): void {
+      if (!this.showStopsPanel() || !this.stopMapElements) {
+        return;
+      }
+
+      const elements = this.stopMapElements.toArray();
+      this.trimStopPreviewMaps(elements.length);
+
+      elements.forEach((elementRef, index) => {
+        const stop = this.calculatedStops[index];
+        const lat = Number(stop?.latitude);
+        const lng = Number(stop?.longitude);
+
+        if (!stop || Number.isNaN(lat) || Number.isNaN(lng)) {
+          return;
+        }
+
+        const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+        const existingMap = this.stopPreviewMaps[index];
+
+        if (existingMap && existingMap.getContainer() === elementRef.nativeElement) {
+          if (this.stopPreviewKeys[index] !== key) {
+            existingMap.jumpTo({ center: [lng, lat], zoom: 15 });
+            this.stopPreviewKeys[index] = key;
+            existingMap.resize();
+          }
+          return;
+        }
+
+        if (existingMap) {
+          existingMap.remove();
+          this.stopPreviewMaps[index] = undefined as any;
+          this.stopPreviewKeys[index] = '';
+        }
+
+        const map = new maplibregl.Map({
+          container: elementRef.nativeElement,
+          style: {
+            version: 8,
+            sources: {
+              osm: {
+                type: 'raster',
+                tiles: [
+                  'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                ],
+                tileSize: 256,
+                attribution: '© OpenStreetMap Contributors'
+              }
+            },
+            layers: [
+              {
+                id: 'osm-layer',
+                type: 'raster',
+                source: 'osm',
+                minzoom: 0,
+                maxzoom: 22
+              }
+            ]
+          },
+          center: [lng, lat],
+          zoom: 15,
+          interactive: false,
+          attributionControl: false
+        });
+
+        this.stopPreviewMaps[index] = map;
+        this.stopPreviewKeys[index] = key;
+      });
+    }
+
+    private trimStopPreviewMaps(nextLength: number): void {
+      for (let i = this.stopPreviewMaps.length - 1; i >= nextLength; i--) {
+        this.stopPreviewMaps[i]?.remove();
+        this.stopPreviewMaps.pop();
+        this.stopPreviewKeys.pop();
+      }
+    }
+
+    private destroyStopPreviewMaps(): void {
+      this.stopPreviewMaps.forEach(map => map.remove());
+      this.stopPreviewMaps = [];
+      this.stopPreviewKeys = [];
+    }
+
+    private async loadRouteDistance(deviceId: string, fromDate: string, toDate: string): Promise<void> {
+      this.loadingRouteDistance = true;
+
+      try {
+        const distanceResponse = await this.targetsService.getDeviceDistance(deviceId, fromDate, toDate);
+        this.routeDistanceMeters = typeof distanceResponse.distance === 'number'
+          ? distanceResponse.distance
+          : null;
+      } catch (error) {
+        console.warn('No se pudo cargar la distancia recorrida del reporte:', error);
+        this.routeDistanceMeters = null;
+      } finally {
+        this.loadingRouteDistance = false;
+      }
+    }
+
+    private getRouteDistanceInfoItem(): ReportsMapInfoPanelItem {
+      return {
+        label: 'Kilómetros recorridos',
+        value: this.formatRouteDistance(),
+        color: this.routeDistanceMeters !== null ? '#2563eb' : undefined
+      };
+    }
+
+    private formatRouteDistance(): string {
+      if (this.loadingRouteDistance) {
+        return 'Calculando...';
+      }
+
+      if (this.routeDistanceMeters === null) {
+        return 'No disponible';
+      }
+
+      const kilometers = this.routeDistanceMeters / 1000;
+      return `${kilometers.toLocaleString('es-DO', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })} km`;
+    }
+
+    private withRouteDistanceInfo(data: ReportsMapInfoPanelData | null): ReportsMapInfoPanelData | null {
+      if (this.reportFilter.reportType !== 'route_history') {
+        return data;
+      }
+
+      const distanceItem = this.getRouteDistanceInfoItem();
+
+      if (!data) {
+        if (!this.routeHistory) {
+          return null;
+        }
+
+        return {
+          title: 'Resumen del recorrido',
+          items: [distanceItem]
+        };
+      }
+
+      const allowedLabels = new Set([
+        'fecha y hora',
+        'fecha y hora final',
+        'fecha y hora de detención',
+        'velocidad',
+        'velocidad final'
+      ]);
+      const visibleRouteItems = data.items
+        .filter(item => allowedLabels.has(item.label.toLowerCase()))
+        .map(item => ({
+          ...item,
+          label: item.label.toLowerCase().startsWith('fecha y hora')
+            ? 'Fecha y hora'
+            : item.label.toLowerCase().startsWith('velocidad')
+              ? 'Velocidad'
+              : item.label
+        }));
+
+      return {
+        ...data,
+        title: /^Posición\s+\d+/i.test(data.title) ? 'Recorrido' : data.title,
+        items: [distanceItem, ...visibleRouteItems]
+      };
+    }
+
+    private refreshRouteSummaryInfoPanel(): void {
+      this.mapInfoPanelData = this.withRouteDistanceInfo(this.mapInfoPanelData);
+      this.cdr.detectChanges();
     }
 
 
@@ -923,6 +1695,9 @@ export class ReportsComponent implements OnInit {
       
       // Convertir a número por si viene como string del select
       this.reportFilter.minStopDurationFilter = Number(minDuration);
+      this.updateStopsFromRouteHistory();
+      this.cdr.detectChanges();
+      this.scheduleStopPreviewMaps();
       
       // Si hay un reporte ya generado y las paradas están habilitadas, actualizar en tiempo real
       if (this.routeHistory && this.routeHistory.positions && this.routeHistory.positions.length > 0 && this.reportFilter.includeStops) {
@@ -1010,12 +1785,42 @@ export class ReportsComponent implements OnInit {
           throw new Error('Fechas inválidas para la carga progresiva');
         }
 
+        const fullFromDate = startDate.toISOString();
+        const fullToDate = endDate.toISOString();
+        this.routeReportCacheContext = {
+          deviceImei,
+          fromDate: fullFromDate,
+          toDate: fullToDate,
+          source: 'hybrid',
+          minStopDuration: Number(this.reportFilter.minStopDurationFilter || 20)
+        };
+
+        const cachedFullHistory = await this.targetsService.getRouteHistory(
+          deviceImei,
+          fullFromDate,
+          fullToDate,
+          this.reportFilter.minStopDurationFilter,
+          true
+        );
+
+        if (cachedFullHistory?.fromCache && cachedFullHistory.positions?.length) {
+          this.routeHistory = cachedFullHistory;
+          this.progressiveLoading.totalPositionsLoaded = cachedFullHistory.positions.length;
+          this.progressiveLoading.isActive = false;
+          this.progressiveLoading.isStreamingMode = false;
+          this.progressiveLoading.replayStarted = false;
+          await this.loadRouteDistance(selectedTargetId, fullFromDate, fullToDate);
+          this.refreshRouteSummaryInfoPanel();
+          this.cdr.detectChanges();
+          return;
+        }
+
         // Dividir en bloques de 5 horas
         const hourRanges = this.getHourRanges(startDate, endDate);
         this.progressiveLoading.totalBlocks = hourRanges.length;
         this.progressiveLoading.currentBlock = 0;
-        
-     
+        await this.loadRouteDistance(selectedTargetId, fullFromDate, fullToDate);
+        this.refreshRouteSummaryInfoPanel();
         
         // STREAMING MODE: Cargar primer bloque e iniciar reproducción
         await this.loadFirstBlockAndStartReplay(hourRanges, deviceImei);
@@ -1059,7 +1864,8 @@ export class ReportsComponent implements OnInit {
         const firstBlockHistory = await this.targetsService.getRouteHistory(
           deviceImei,
           firstHourRange.start.toISOString(),
-          firstHourRange.end.toISOString()
+          firstHourRange.end.toISOString(),
+          this.reportFilter.minStopDurationFilter
         );
         
         if (firstBlockHistory && firstBlockHistory.positions && firstBlockHistory.positions.length > 0) {
@@ -1120,7 +1926,8 @@ export class ReportsComponent implements OnInit {
           const blockHistory = await this.targetsService.getRouteHistory(
             deviceImei,
             hourRange.start.toISOString(),
-            hourRange.end.toISOString()
+            hourRange.end.toISOString(),
+            this.reportFilter.minStopDurationFilter
           );
           
           if (blockHistory && blockHistory.positions && blockHistory.positions.length > 0) {
@@ -1154,6 +1961,10 @@ export class ReportsComponent implements OnInit {
       this.progressiveLoading.isActive = false;
       this.progressiveLoading.isStreamingMode = false;
       this.loadingRouteHistory = false;
+      this.routeStopsLoadedFromCache = false;
+      this.updateStopsFromRouteHistory();
+      this.scheduleStopPreviewMaps();
+      this.scheduleRouteReportCacheSync();
       
       // Forzar detección de cambios para que el mapa sea notificado del cambio de estado
       this.cdr.detectChanges();
@@ -1201,6 +2012,15 @@ export class ReportsComponent implements OnInit {
       // Limpiar datos cargados
       this.routeHistory = null;
       this.stops = [];
+      this.calculatedStops = [];
+      this.hasGeneratedRouteReport = false;
+      this.routeStopsLoadedFromCache = false;
+      this.routeReportCacheContext = null;
+      this.lastRouteReportCacheSyncSignature = '';
+      if (this.routeReportCacheSyncTimer) {
+        clearTimeout(this.routeReportCacheSyncTimer);
+      }
+      this.destroyStopPreviewMaps();
       
       this.messageService.add({
         severity: 'info',

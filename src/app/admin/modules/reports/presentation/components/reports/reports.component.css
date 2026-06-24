@@ -1,3 +1,5 @@
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
 /* ==================== LAYOUT SIMPLE ==================== */
 .reports-container {
   padding: 16px;
@@ -301,6 +303,207 @@ input[type="datetime-local"] {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.stops-panel {
+  background: var(--reportsFormBackground);
+  max-height: calc(100vh - 126px);
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.stops-panel__summary {
+  align-items: center;
+  color: var(--reportsText);
+  display: flex;
+  font-size: 0.875rem;
+  font-weight: 600;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.stops-panel__actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.stops-panel__pdf {
+  align-items: center;
+  background: #dc2626;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.75rem;
+  font-weight: 700;
+  gap: 6px;
+  padding: 7px 9px;
+}
+
+.stops-panel__pdf:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #dc2626;
+}
+
+.stops-panel__pdf:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.stops-panel__back {
+  align-items: center;
+  background: var(--reportsFormInput);
+  border: 1px solid var(--reportsCardBorder);
+  border-radius: 6px;
+  color: var(--reportsText);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 0.75rem;
+  gap: 6px;
+  padding: 7px 9px;
+}
+
+.stops-panel__back:hover {
+  border-color: var(--reportsCardBorderHover);
+  background: var(--reportsTableHeader);
+}
+
+.stops-empty {
+  align-items: center;
+  background: var(--reportsCardBackground);
+  border: 1px dashed var(--reportsCardBorder);
+  border-radius: 8px;
+  color: var(--reportsMutedText);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 180px;
+  justify-content: center;
+  padding: 18px;
+  text-align: center;
+}
+
+.stops-empty i {
+  color: var(--reportsButtonPrimary);
+  font-size: 1.5rem;
+}
+
+.stops-empty strong {
+  color: var(--reportsText);
+}
+
+.stops-empty span {
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.stop-card {
+  background: var(--reportsCardBackground);
+  border: 1px solid var(--reportsCardBorder);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.stop-card__map-wrap {
+  background: var(--reportsTableHeader);
+  height: 120px;
+  position: relative;
+  width: 100%;
+}
+
+.stop-card__map {
+  height: 100%;
+  width: 100%;
+}
+
+.stop-card__pin {
+  align-items: center;
+  background: #dc2626;
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  display: flex;
+  font-size: 0.85rem;
+  font-weight: 800;
+  height: 34px;
+  justify-content: center;
+  left: 50%;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  z-index: 5;
+}
+
+.stop-card__pin::after {
+  background: rgba(220, 38, 38, 0.28);
+  border-radius: 999px;
+  content: '';
+  inset: -8px;
+  position: absolute;
+  z-index: -1;
+}
+
+.stop-card__body {
+  background: var(--reportsCardBackground);
+  padding: 10px;
+}
+
+.stop-card__title {
+  align-items: center;
+  color: var(--reportsText);
+  display: flex;
+  font-size: 0.9rem;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.stop-card__title span {
+  font-weight: 700;
+}
+
+.stop-card__meta {
+  color: var(--reportsMutedText);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.stop-card__duration {
+  align-items: center;
+  background: rgba(37, 99, 235, 0.16);
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  border-radius: 6px;
+  color: #bfdbfe;
+  display: flex;
+  font-size: 0.8rem;
+  font-weight: 700;
+  gap: 7px;
+  margin: 0 0 8px;
+  padding: 7px 8px;
+}
+
+.stop-card__duration i {
+  color: #60a5fa;
+}
+
+.stop-card__meta span {
+  align-items: flex-start;
+  display: flex;
+  gap: 6px;
+}
+
+.stop-card__meta i {
+  color: var(--reportsButtonPrimary);
+  margin-top: 2px;
 }
 
 /* Área principal */

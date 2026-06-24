@@ -13,14 +13,20 @@
     <div class="reports__filters-panel">
       <!-- Header de filtros -->
       <div class="filters__header">
-        <h2>
+        <h2 *ngIf="!showStopsPanel(); else stopsHeader">
           <i class="fas fa-filter"></i>
           {{ 'reports.filters' | translate }}
         </h2>
+        <ng-template #stopsHeader>
+          <h2>
+            <i class="fas fa-map-pin"></i>
+            Paradas del vehículo
+          </h2>
+        </ng-template>
       </div>
 
       <!-- Contenido de filtros -->
-      <div class="filters__content">
+      <div class="filters__content" *ngIf="!showStopsPanel(); else stopsPanel">
         
         <!-- Tipo de reporte -->
         <div class="filter-group">
@@ -212,7 +218,7 @@
       </div>
 
       <!-- Botón de generar reporte -->
-      <div class="generate-report-section">
+      <div class="generate-report-section" *ngIf="!showStopsPanel()">
         <button 
           type="button"
           class="generate-report-btn"
@@ -228,6 +234,60 @@
           </span>
         </div>
       </div>
+
+      <ng-template #stopsPanel>
+        <div class="stops-panel">
+          <div class="stops-panel__summary">
+            <span>{{ calculatedStops.length }} parada{{ calculatedStops.length === 1 ? '' : 's' }}</span>
+            <div class="stops-panel__actions">
+              <button
+                type="button"
+                class="stops-panel__pdf"
+                [disabled]="calculatedStops.length === 0"
+                (click)="generateStopsPdf()">
+                <i class="fas fa-file-pdf"></i>
+                Generar PDF
+              </button>
+              <button type="button" class="stops-panel__back" (click)="backToReportFilters()">
+                <i class="fas fa-sliders-h"></i>
+                Filtros
+              </button>
+            </div>
+          </div>
+
+          <div class="stops-empty" *ngIf="calculatedStops.length === 0">
+            <i class="fas fa-map-marker-alt"></i>
+            <strong>Sin paradas detectadas</strong>
+            <span>Cuando el mapa termine de procesar el recorrido, las paradas aparecerán aquí.</span>
+          </div>
+
+          <div class="stop-card" *ngFor="let stop of calculatedStops; let i = index; trackBy: trackByStop">
+            <div class="stop-card__map-wrap">
+              <div class="stop-card__map" #stopMap></div>
+              <div class="stop-card__pin">{{ i + 1 }}</div>
+            </div>
+            <div class="stop-card__body">
+              <div class="stop-card__title">
+                <span>Parada {{ i + 1 }}</span>
+              </div>
+              <div class="stop-card__duration">
+                <i class="fas fa-hourglass-half"></i>
+                <span>Duración: {{ getStopDuration(stop) }}</span>
+              </div>
+              <div class="stop-card__meta">
+                <span>
+                  <i class="fas fa-clock"></i>
+                  {{ formatStopDate(stop.startTime) }}
+                </span>
+                <span *ngIf="stop.address">
+                  <i class="fas fa-map-marker-alt"></i>
+                  {{ stop.address }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-template>
     </div>
 
     <!-- ÁREA PRINCIPAL DERECHA: Mapa/Resultados -->
@@ -333,7 +393,8 @@
             [autoStartReplay]="progressiveLoading.replayStarted"
             [isStreamingMode]="progressiveLoading.isStreamingMode"
             [targetProtocol]="targetProtocol"
-            (infoPanelChange)="onMapInfoPanelChange($event)">
+            (infoPanelChange)="onMapInfoPanelChange($event)"
+            (calculatedStopsChange)="onCalculatedStopsChange($event)">
           </app-reports-map>
         </div>
       </div>

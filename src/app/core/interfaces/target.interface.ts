@@ -246,6 +246,13 @@ export interface RouteHistoryPosition {
 export interface RouteHistoryResponse {
   positions: RouteHistoryPosition[];
   totalPositions: number;
+  cachedStops?: any[];
+  totalCachedStops?: number;
+  fromCache?: boolean;
+  cacheMiss?: boolean;
+  cacheKey?: string;
+  generatedAt?: string | Date;
+  error?: string;
 }
 
 // Interfaces para procesos de targets
@@ -282,4 +289,4 @@ export interface ProcessResponse {
   createdAt?: string;
   updatedAt?: string;
   expanded?: boolean; // Propiedad para controlar la expansión del accordion
-} 
+}

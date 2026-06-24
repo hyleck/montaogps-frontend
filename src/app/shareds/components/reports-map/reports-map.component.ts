@@ -33,6 +33,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   @Input() isStreamingMode: boolean = false;
   @Input() targetProtocol: any = null;
   @Output() infoPanelChange = new EventEmitter<ReportsMapInfoPanelData | null>();
+  @Output() calculatedStopsChange = new EventEmitter<any[]>();
 
   // Configuración de zona horaria para los labels de marcadores
   // NOTA: Este valor se usa solo como FALLBACK si el protocolo no tiene utcOffset configurado
@@ -341,7 +342,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         const marker = new google.maps.Marker({
           position: { lat: pos.latitude, lng: pos.longitude },
           map: this.map,
-          title: `Posición ${i + 1}`,
+          title: 'Punto del recorrido',
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             scale: 4,
@@ -354,7 +355,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
         // InfoWindow para posición intermedia
         marker.addListener('click', () => {
-          const content = this.createPositionPopupContent(pos, `Posición ${i + 1}`, '#3b82f6');
+          const content = this.createPositionPopupContent(pos, 'Punto del recorrido', '#3b82f6');
           this.infoWindow.setContent(content);
           this.infoWindow.open(this.map, marker);
           this.isReplayPopupOpen = false; // Marcar que NO es el popup de reproducción
@@ -1267,7 +1268,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     } else {
       this.updateInfoPanelFromPosition(
         currentPosition,
-        `Posición ${this.currentPositionIndex + 1}`,
+        'Recorrido',
       );
     }
     
@@ -1404,14 +1405,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   private createMovementReplayPopupContent(position: any, positionNumber: number): string {
     const date = this.formatDateForPopup(position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
-    this.updateInfoPanelFromPosition(position, `Posición ${positionNumber}`, {
-      extraItems: [
-        {
-          label: 'Progreso',
-          value: `${positionNumber} de ${this.replayPositions.length}`,
-        },
-      ],
-    });
+    this.updateInfoPanelFromPosition(position, 'Recorrido');
     
     return `
       <div class="reports-popup">
@@ -1421,7 +1415,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
               <polygon points="5,3 19,12 5,21"></polygon>
             </svg>
           </div>
-          <h3 class="reports-popup-title">🚗 Reproduciendo - Posición ${positionNumber}</h3>
+          <h3 class="reports-popup-title">🚗 Reproduciendo recorrido</h3>
         </div>
         <div class="reports-popup-content">
           <div class="reports-info-item">
@@ -1447,17 +1441,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
             <div class="reports-info-content">
               <span class="reports-info-label">Velocidad</span>
               <span class="reports-info-value">${speed} km/h</span>
-            </div>
-          </div>
-          <div class="reports-info-item">
-            <div class="reports-info-icon">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
-                <path d="M9 11H7l5-5 5 5h-2v8h-6v-8z"></path>
-              </svg>
-            </div>
-            <div class="reports-info-content">
-              <span class="reports-info-label">Progreso</span>
-              <span class="reports-info-value">${positionNumber} de ${this.replayPositions.length}</span>
             </div>
           </div>
         </div>
@@ -1488,10 +1471,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
         {
           label: isStart ? 'Inicio de parada' : 'Fin de parada',
           value: date,
-        },
-        {
-          label: 'Progreso',
-          value: `${positionNumber} de ${this.replayPositions.length}`,
         },
       ],
     );
@@ -1533,17 +1512,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
             <div class="reports-info-content">
               <span class="reports-info-label">Duración total</span>
               <span class="reports-info-value">${stopData.durationText}</span>
-            </div>
-          </div>
-          <div class="reports-info-item">
-            <div class="reports-info-icon">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2">
-                <path d="M9 11H7l5-5 5 5h-2v8h-6v-8z"></path>
-              </svg>
-            </div>
-            <div class="reports-info-content">
-              <span class="reports-info-label">Progreso</span>
-              <span class="reports-info-value">${positionNumber} de ${this.replayPositions.length}</span>
             </div>
           </div>
         </div>
@@ -1779,6 +1747,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     if (stopsUpdated) {
   
       this.updateCalculatedStopMarkers();
+      this.emitCalculatedStops();
     } else {
 
     }
@@ -1807,6 +1776,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
    */
   private detectStopsFromStaticPositions(allPositions: any[]): void {
     if (!allPositions || allPositions.length === 0) {
+      this.calculatedStops = [];
+      this.emitCalculatedStops();
       return;
     }
 
@@ -1903,6 +1874,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     this.calculatedStops = stops;
+    this.emitCalculatedStops();
 
     // Actualizar índice procesado para futuras actualizaciones incrementales
     this.lastProcessedPositionIndex = sortedPositions.length - 1;
@@ -2089,6 +2061,10 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     this.calculatedStopMarkers = [];
   }
 
+  private emitCalculatedStops(): void {
+    this.calculatedStopsChange.emit([...(this.calculatedStops || [])]);
+  }
+
   /**
    * Crear contenido del popup para paradas calculadas
    */
@@ -2155,7 +2131,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       dateLabel?: string;
       speedLabel?: string;
       includeSpeed?: boolean;
-      includeCoordinates?: boolean;
       extraItems?: ReportsMapInfoPanelItem[];
     } = {},
   ): void {
@@ -2183,42 +2158,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       items.push({
         label: options.speedLabel || 'Velocidad',
         value: `${speedValue} km/h`,
-      });
-    }
-
-    const includeCoordinates = options.includeCoordinates !== false;
-    const lat =
-      typeof position.latitude === 'number'
-        ? position.latitude
-        : parseFloat(position.latitude);
-    const lng =
-      typeof position.longitude === 'number'
-        ? position.longitude
-        : parseFloat(position.longitude);
-    if (includeCoordinates && !Number.isNaN(lat) && !Number.isNaN(lng)) {
-      items.push({
-        label: 'Coordenadas',
-        value: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
-      });
-    }
-
-    if (position.dbfrom) {
-      const dbfromLower = position.dbfrom.toLowerCase();
-      let source = position.dbfrom.toUpperCase();
-      let color: string | undefined;
-
-      if (dbfromLower === 'traccar') {
-        source = 'TR';
-        color = '#60a5fa'; // azul claro
-      } else if (dbfromLower === 'mongodb') {
-        source = 'MDB';
-        color = '#10b981'; // verde MongoDB
-      }
-
-      items.push({
-        label: 'Fuente',
-        value: source,
-        color,
       });
     }
 
@@ -2260,32 +2199,10 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       items.push({ label: 'Dirección', value: stop.address });
     }
 
-    const lat =
-      typeof stop.latitude === 'number'
-        ? stop.latitude
-        : parseFloat(stop.latitude);
-    const lng =
-      typeof stop.longitude === 'number'
-        ? stop.longitude
-        : parseFloat(stop.longitude);
-    if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
-      items.push({
-        label: 'Coordenadas',
-        value: `${lat.toFixed(5)}, ${lng.toFixed(5)}`,
-      });
-    }
-
     if (stop.ignitionOff !== undefined) {
       items.push({
         label: 'Motor',
         value: stop.ignitionOff ? 'Apagado' : 'Encendido',
-      });
-    }
-
-    if (stop.positionCount !== undefined) {
-      items.push({
-        label: 'Posiciones',
-        value: String(stop.positionCount),
       });
     }
 

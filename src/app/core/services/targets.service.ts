@@ -149,7 +149,7 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
-  async getRouteHistory(deviceId: string, fromDate?: string, toDate?: string): Promise<RouteHistoryResponse> {
+  async getRouteHistory(deviceId: string, fromDate?: string, toDate?: string, minStopDuration?: number, cacheOnly: boolean = false): Promise<RouteHistoryResponse> {
     let url = `${environment.apiUrl}/reports/device/${deviceId}/route-history`;
 
     const params = new URLSearchParams();
@@ -158,6 +158,12 @@ export class TargetsService {
     }
     if (toDate) {
       params.append('toDate', toDate);
+    }
+    if (minStopDuration !== undefined && minStopDuration !== null) {
+      params.append('minStopDuration', String(minStopDuration));
+    }
+    if (cacheOnly) {
+      params.append('cacheOnly', 'true');
     }
 
     if (params.toString()) {
@@ -169,6 +175,24 @@ export class TargetsService {
     return await lastValueFrom(observable.pipe(
       timeout(60000) // 60 second timeout
     ));
+  }
+
+  async updateRouteHistoryCache(
+    deviceId: string,
+    payload: {
+      fromDate: string;
+      toDate: string;
+      source?: string;
+      minStopDuration?: number;
+      positions?: RouteHistoryResponse['positions'];
+      stops?: any[];
+      totalPositions?: number;
+      distanceMeters?: number | null;
+    }
+  ): Promise<any> {
+    const url = `${environment.apiUrl}/reports/device/${deviceId}/route-history/cache`;
+    const observable = this.http.post(url, payload);
+    return await lastValueFrom(observable.pipe(timeout(60000)));
   }
 
 
