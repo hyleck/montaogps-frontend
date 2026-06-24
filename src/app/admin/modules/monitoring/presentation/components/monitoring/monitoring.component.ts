@@ -174,8 +174,9 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   formatDeviceDistance(device: any): string {
-    const distance = device?.distanceReport?.distance;
-    if (typeof distance !== 'number') {
+    const rawDistance = device?.distanceReport?.distance;
+    const distance = typeof rawDistance === 'number' ? rawDistance : Number(rawDistance);
+    if (Number.isNaN(distance)) {
       return 'N/D';
     }
     const kilometers = distance / 1000;
@@ -193,6 +194,17 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       return '';
     }
     return `${from.toLocaleDateString()} - ${to.toLocaleDateString()}`;
+  }
+
+  private buildMileageRange(): { from: string; to: string } | undefined {
+    if (this.monitoringType !== 'mileage') {
+      return undefined;
+    }
+
+    return {
+      from: new Date(this.mileageFrom).toISOString(),
+      to: new Date(this.mileageTo).toISOString()
+    };
   }
 
   getMonitoringTypeLabel(type?: 'device-status' | 'mileage'): string {
@@ -782,9 +794,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       }
     }
 
-    const range = this.monitoringType === 'mileage'
-      ? { from: this.mileageFrom, to: this.mileageTo }
-      : undefined;
+    const range = this.buildMileageRange();
 
     this.monitoringService.monitorUser(this.userId, this.monitoringType, range).subscribe({
       next: (result) => {
@@ -829,9 +839,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       }
     }
 
-    const range = this.monitoringType === 'mileage'
-      ? { from: this.mileageFrom, to: this.mileageTo }
-      : undefined;
+    const range = this.buildMileageRange();
 
     this.monitoringService.monitorUser(this.userId, this.monitoringType, range).subscribe({
       next: (result) => {
