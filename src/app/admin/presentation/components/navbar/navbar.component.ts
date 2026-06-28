@@ -135,6 +135,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   loadingSpeedAlerts: boolean = false;
   togglingAlertId: string | null = null;
   speedAlertMessage: string = '';
+  speedAlertFiveHourLimit: boolean = false;
 
   // Perimeter alert variables
   perimeterNotificationTrigger: string = 'enter';
@@ -267,6 +268,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   togglingIgnitionAlertId: string | null = null;
   deletingIgnitionAlertId: string | null = null;
   ignitionAlertMessage: string = '';
+  ignitionAlertFiveHourLimit: boolean = false;
 
   // Movement alert variables
   movementAlertDialogVisible: boolean = false;
@@ -298,6 +300,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   togglingConnectionAlertId: string | null = null;
   deletingConnectionAlertId: string | null = null;
   connectionAlertMessage: string = '';
+  connectionAlertFiveHourLimit: boolean = false;
 
   // Modal de transferir targets
   transferDialogVisible: boolean = false;
@@ -864,7 +867,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       maxSpeed: this.maxSpeedValue,
       targetIds,
       userTopic: this.notificationEmailUserId || undefined,
-      message: this.speedAlertMessage?.trim() || undefined
+      message: this.speedAlertMessage?.trim() || undefined,
+      oneNotificationEveryFiveHours: this.speedAlertFiveHourLimit
     };
 
     this.creatingAlert = true;
@@ -880,6 +884,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
       this.maxSpeedValue = null;
       this.speedAlertMessage = '';
+      this.speedAlertFiveHourLimit = false;
       this.resetNotificationEmailToCurrentUser();
       await this.loadSpeedAlerts();
     } catch (error: any) {
@@ -1276,7 +1281,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
         ignitionTrigger: this.ignitionTrigger,
         targetIds,
         userTopic: this.ignitionNotificationEmailUserId || undefined,
-        message: this.ignitionAlertMessage?.trim() || undefined
+        message: this.ignitionAlertMessage?.trim() || undefined,
+        oneNotificationEveryFiveHours: this.ignitionAlertFiveHourLimit
       };
 
       await firstValueFrom(this.alertsService.createAlert(payload));
@@ -1291,6 +1297,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
       this.ignitionTrigger = 'on';
       this.ignitionAlertMessage = '';
+      this.ignitionAlertFiveHourLimit = false;
       this.ignitionNotificationEmail = '';
       this.ignitionNotificationEmailUserId = null;
     } catch (error) {
@@ -3157,7 +3164,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       targetIds,
       userTopic: this.connectionNotificationEmailUserId || undefined,
       email: this.connectionNotificationEmail || undefined,
-      message: this.connectionAlertMessage?.trim() || undefined
+      message: this.connectionAlertMessage?.trim() || undefined,
+      oneNotificationEveryFiveHours: this.connectionAlertFiveHourLimit
     };
 
     this.creatingConnectionAlert = true;
@@ -3172,6 +3180,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       });
 
       this.connectionAlertMessage = '';
+      this.connectionAlertFiveHourLimit = false;
       this.resetConnectionNotificationEmail();
       await this.loadConnectionAlerts();
     } catch (error: any) {

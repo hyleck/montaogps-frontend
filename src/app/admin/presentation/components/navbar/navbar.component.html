@@ -172,6 +172,12 @@
                     style="width: 100%;" />
             </div>
 
+            <button type="button" class="alert-cooldown-toggle" [class.active]="speedAlertFiveHourLimit"
+                (click)="speedAlertFiveHourLimit = !speedAlertFiveHourLimit">
+                <i [class]="speedAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
+                <span>Enviar máximo 1 vez cada 5 horas</span>
+            </button>
+
             <button type="submit" class="create-alert-btn" [disabled]="speedAlertForm.invalid || creatingAlert">
                 <i *ngIf="creatingAlert" class="pi pi-spin pi-spinner"></i>
                 <span *ngIf="!creatingAlert">{{ 'navbar.createAlert' | translate }}</span>
@@ -300,6 +306,12 @@
                     [placeholder]="ignitionTrigger === 'on' ? 'Ej: El motor se ha encendido' : 'Ej: El motor se ha apagado'"
                     [(ngModel)]="ignitionAlertMessage" style="width: 100%;" />
             </div>
+
+            <button type="button" class="alert-cooldown-toggle" [class.active]="ignitionAlertFiveHourLimit"
+                (click)="ignitionAlertFiveHourLimit = !ignitionAlertFiveHourLimit">
+                <i [class]="ignitionAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
+                <span>Enviar máximo 1 vez cada 5 horas</span>
+            </button>
 
             <button type="submit" class="create-alert-btn" [disabled]="creatingIgnitionAlert">
                 <i *ngIf="creatingIgnitionAlert" class="pi pi-spin pi-spinner"></i>
@@ -1429,6 +1441,12 @@
                     [placeholder]="connectionAlertType === 'online' ? 'Ej: El dispositivo está en línea' : 'Ej: El dispositivo está fuera de línea'"
                     [(ngModel)]="connectionAlertMessage" style="width: 100%;" />
             </div>
+
+            <button type="button" class="alert-cooldown-toggle" [class.active]="connectionAlertFiveHourLimit"
+                (click)="connectionAlertFiveHourLimit = !connectionAlertFiveHourLimit">
+                <i [class]="connectionAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
+                <span>Enviar máximo 1 vez cada 5 horas</span>
+            </button>
 
             <button type="submit" class="create-alert-btn" [disabled]="creatingConnectionAlert">
                 <i *ngIf="creatingConnectionAlert" class="pi pi-spin pi-spinner"></i>

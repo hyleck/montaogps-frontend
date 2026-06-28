@@ -15,6 +15,7 @@ export interface CreateAlertDto {
   userTopic?: string;
   email?: string;
   connectionAlertType?: 'online' | 'offline';
+  oneNotificationEveryFiveHours?: boolean;
 }
 
 export interface AlertUserTopic {
