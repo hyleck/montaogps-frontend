@@ -1403,6 +1403,10 @@ async initLocationMap(): Promise<void> {
         return solicitud.technician_response === 'rechazada' || solicitud.status === 'rechazada';
     }
 
+    isTechnicianAccepted(solicitud: Solicitud): boolean {
+        return solicitud.technician_response === 'aceptada';
+    }
+
     private sortSolicitudesForDisplay(items: Solicitud[]): Solicitud[] {
         return [...items].sort((a, b) => {
             const aUnavailable = this.isTechnicianUnavailable(a) ? 1 : 0;

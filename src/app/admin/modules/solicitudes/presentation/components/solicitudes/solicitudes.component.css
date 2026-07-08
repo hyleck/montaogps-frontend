@@ -371,6 +371,20 @@
     white-space: normal;
 }
 
+.sol-technician-accepted {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.15;
+    white-space: normal;
+}
+
 .sol-plate {
     font-weight: 700;
     font-family: 'SF Mono', 'Fira Code', monospace;
