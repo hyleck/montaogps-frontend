@@ -5,6 +5,7 @@ export const INSTALLATION_LOCATIONS = [
   { label: 'Bajo el tablero', value: 'bajo_tablero' },
   { label: 'En el maletero', value: 'maletero' },
   { label: 'Bajo el asiento del conductor', value: 'asiento_conductor' },
+  { label: 'Asiento del chofer', value: 'asiento_chofer' },
   { label: 'En el compartimento del motor', value: 'compartimento_motor' },
   { label: 'En el panel de instrumentos', value: 'panel_instrumentos' },
   { label: 'Debajo del volante', value: 'debajo_volante' },

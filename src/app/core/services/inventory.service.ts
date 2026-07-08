@@ -134,13 +134,16 @@ export class InventoryService {
   }
 
   // Search methods
-  searchAllDevices(query: string, storageId?: string, page = 1, limit = 20, status?: string): Observable<{ data: InventoryItem[]; total: number; page: number; lastPage: number }> {
+  searchAllDevices(query: string, storageId?: string, page = 1, limit = 20, status?: string, userId?: string): Observable<{ data: InventoryItem[]; total: number; page: number; lastPage: number }> {
     let url = `${this.apiUrl}/search/global?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`;
     if (storageId) {
       url += `&storage_id=${storageId}`;
     }
     if (status) {
       url += `&status=${status}`;
+    }
+    if (userId) {
+      url += `&user_id=${userId}`;
     }
     return this.http.get<{ data: InventoryItem[]; total: number; page: number; lastPage: number }>(url);
   }
@@ -233,4 +236,3 @@ export class InventoryService {
     return this.http.post<Conduce>(this.conducesUrl, payload);
   }
 }
-

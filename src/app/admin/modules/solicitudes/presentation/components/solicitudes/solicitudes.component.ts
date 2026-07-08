@@ -30,6 +30,7 @@ interface SelectOption {
     encapsulation: ViewEncapsulation.None
 })
 export class SolicitudesComponent implements OnInit, OnDestroy {
+    private readonly solicitudAutocompleteUserId = '68a9ccf19bb280482272477f';
     items: MenuItem[] = [{ label: 'Solicitudes' }];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
@@ -775,7 +776,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     searchClientEmails(event: { query: string }): void {
         const query = (event.query || '').trim();
-        const parentId = this.authService.getCurrentUser()?.id;
+        const parentId = this.solicitudAutocompleteUserId;
 
         if (!query || query.length < 2 || !parentId) {
             this.clientEmailSuggestions = [];
@@ -832,8 +833,15 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
         try {
             const [inventoryResult, targetsResult] = await Promise.allSettled([
-                firstValueFrom(this.inventoryService.searchAllDevices(query, undefined, 1, 12, status)),
-                this.targetsService.searchTargets(query, undefined, 0, 12)
+                firstValueFrom(this.inventoryService.searchAllDevices(
+                    query,
+                    undefined,
+                    1,
+                    12,
+                    status,
+                    this.solicitudAutocompleteUserId
+                )),
+                this.targetsService.searchTargets(query, this.solicitudAutocompleteUserId, 0, 12)
             ]);
 
             const inventoryDevices = inventoryResult.status === 'fulfilled'
@@ -965,7 +973,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
         try {
             // Buscamos si existe con los permisos de targets
-            const result = await this.targetsService.searchTargets(imei, undefined, 0, 10);
+            const result = await this.targetsService.searchTargets(imei, this.solicitudAutocompleteUserId, 0, 10);
             if (result && result.devices && result.devices.length > 0) {
                 // Find exact match by IMEI or Name
                 const exactMatch: any = result.devices.find((d: any) => d.device_imei === imei || d.name === imei) || result.devices[0];
