@@ -1192,6 +1192,22 @@
     background: linear-gradient(180deg, #6366f1, #8b5cf6);
 }
 
+.sol-kanban-card--accepted {
+    background: linear-gradient(180deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.04)), var(--managementColorBackgroundUser);
+    border-color: rgba(16, 185, 129, 0.55);
+    box-shadow: 0 10px 24px rgba(16, 185, 129, 0.16);
+}
+
+.sol-kanban-card--accepted::before,
+.sol-kanban-card--accepted:hover::before {
+    width: 5px;
+    background: linear-gradient(180deg, #10b981, #34d399);
+}
+
+.sol-kanban-card--accepted .sol-kanban-client {
+    color: #10b981;
+}
+
 .sol-kanban-card--unavailable {
     background: linear-gradient(180deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.04)), var(--managementColorBackgroundUser);
     border-color: rgba(239, 68, 68, 0.52);
