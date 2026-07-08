@@ -36,10 +36,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     solicitudes: Solicitud[] = [];
     
-    get pendientes() { return this.solicitudes.filter(s => s.status === 'pendiente').sort((a, b) => (a.order || 0) - (b.order || 0)); }
-    get enProgreso() { return this.solicitudes.filter(s => s.status === 'en_progreso').sort((a, b) => (a.order || 0) - (b.order || 0)); }
-    get porConfirmar() { return this.solicitudes.filter(s => s.status === 'por_confirmar').sort((a, b) => (a.order || 0) - (b.order || 0)); }
-    get completadas() { return this.solicitudes.filter(s => s.status === 'completada').sort((a, b) => (a.order || 0) - (b.order || 0)); }
+    get pendientes() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'pendiente' || s.status === 'rechazada')); }
+    get enProgreso() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'aceptada' || s.status === 'en_progreso')); }
+    get porConfirmar() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'por_confirmar')); }
+    get completadas() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'completada' || s.status === 'cancelada')); }
     
     // Drag and Drop
     draggedSolicitud: Solicitud | null = null;
@@ -256,6 +256,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     statusOptions = [
         { label: 'Todos', value: '' },
         { label: 'Pendiente', value: 'pendiente' },
+        { label: 'Aceptada', value: 'aceptada' },
+        { label: 'Rechazada', value: 'rechazada' },
         { label: 'En Progreso', value: 'en_progreso' },
         { label: 'Por Confirmar', value: 'por_confirmar' },
         { label: 'Completada', value: 'completada' },
@@ -273,6 +275,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     statusLabels: Record<string, string> = {
         pendiente: 'Pendiente',
+        aceptada: 'Aceptada',
+        rechazada: 'Rechazada',
         en_progreso: 'En Progreso',
         por_confirmar: 'Por Confirmar',
         completada: 'Completada',
@@ -1385,12 +1389,27 @@ async initLocationMap(): Promise<void> {
     getStatusIcon(status: string): string {
         const map: Record<string, string> = {
             pendiente: 'pi pi-clock',
+            aceptada: 'pi pi-check-circle',
+            rechazada: 'pi pi-times-circle',
             en_progreso: 'pi pi-spinner',
             por_confirmar: 'pi pi-question-circle',
             completada: 'pi pi-check-circle',
             cancelada: 'pi pi-times-circle'
         };
         return map[status] || 'pi pi-circle';
+    }
+
+    isTechnicianUnavailable(solicitud: Solicitud): boolean {
+        return solicitud.technician_response === 'rechazada' || solicitud.status === 'rechazada';
+    }
+
+    private sortSolicitudesForDisplay(items: Solicitud[]): Solicitud[] {
+        return [...items].sort((a, b) => {
+            const aUnavailable = this.isTechnicianUnavailable(a) ? 1 : 0;
+            const bUnavailable = this.isTechnicianUnavailable(b) ? 1 : 0;
+            if (aUnavailable !== bUnavailable) return bUnavailable - aUnavailable;
+            return (a.order || 0) - (b.order || 0);
+        });
     }
 
     onSearch(): void {

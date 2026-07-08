@@ -32,18 +32,19 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('pendiente')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" *ngFor="let sol of pendientes" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" *ngFor="let sol of pendientes" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
                 </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
-                    <div style="margin-bottom: 0.5rem; display: flex; gap: 0.5rem;">
+                    <div class="sol-card-tags">
                         <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
-                        <span class="sol-status" [attr.data-status]="sol.status">
+                        <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
+                        <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
                         <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
@@ -73,25 +74,26 @@
             </div>
         </div>
 
-        <!-- En Progreso Column -->
+        <!-- Aceptadas / En Progreso Column -->
         <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'en_progreso')" (dragleave)="onDragLeave($event)">
             <div class="sol-kanban-header" style="border-bottom-color: var(--yellow-500);">
-                <div>En Progreso <span style="font-size: 0.8rem; opacity: 0.7;">({{ enProgreso.length }})</span></div>
+                <div>Aceptadas / En Progreso <span style="font-size: 0.8rem; opacity: 0.7;">({{ enProgreso.length }})</span></div>
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('en_progreso')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" *ngFor="let sol of enProgreso" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" *ngFor="let sol of enProgreso" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
                 </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
-                    <div style="margin-bottom: 0.5rem; display: flex; gap: 0.5rem;">
+                    <div class="sol-card-tags">
                         <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
-                        <span class="sol-status" [attr.data-status]="sol.status">
+                        <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
+                        <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
                         <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
@@ -128,18 +130,19 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('por_confirmar')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" *ngFor="let sol of porConfirmar" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" *ngFor="let sol of porConfirmar" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
                 </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
-                    <div style="margin-bottom: 0.5rem; display: flex; gap: 0.5rem;">
+                    <div class="sol-card-tags">
                         <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
-                        <span class="sol-status" [attr.data-status]="sol.status">
+                        <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
+                        <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
                         <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
@@ -166,25 +169,26 @@
             </div>
         </div>
 
-        <!-- Completadas Column -->
+        <!-- Cerradas Column -->
         <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'completada')" (dragleave)="onDragLeave($event)">
             <div class="sol-kanban-header">
-                <div>Completadas <span style="font-size: 0.8rem; opacity: 0.7;">({{ completadas.length }})</span></div>
+                <div>Cerradas <span style="font-size: 0.8rem; opacity: 0.7;">({{ completadas.length }})</span></div>
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('completada')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" *ngFor="let sol of completadas" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" *ngFor="let sol of completadas" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
                 </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
-                    <div style="margin-bottom: 0.5rem; display: flex; gap: 0.5rem;">
+                    <div class="sol-card-tags">
                         <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
-                        <span class="sol-status" [attr.data-status]="sol.status">
+                        <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
+                        <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
                         <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">

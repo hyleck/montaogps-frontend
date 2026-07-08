@@ -39,6 +39,7 @@ export interface Solicitud {
     _id?: string;
     type: string;
     status: string;
+    technician_response?: string;
     quantity?: number;
     order?: number;
     installations?: InstallationDetail[];
