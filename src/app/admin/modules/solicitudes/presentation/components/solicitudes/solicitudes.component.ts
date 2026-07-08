@@ -36,8 +36,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     solicitudes: Solicitud[] = [];
     
-    get pendientes() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'pendiente' || s.status === 'rechazada')); }
-    get enProgreso() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'aceptada' || s.status === 'en_progreso')); }
+    get pendientes() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'pendiente' || s.status === 'aceptada' || s.status === 'rechazada')); }
+    get enProgreso() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'en_progreso')); }
     get porConfirmar() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'por_confirmar')); }
     get completadas() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'completada' || s.status === 'cancelada')); }
     
