@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
 import { SolicitudesService, Solicitud } from '../../../../../../core/services/solicitudes.service';
 import { VehicleBrandsService } from '../../../../../../core/services/vehicle-brands.service';
@@ -8,6 +9,8 @@ import { TargetsService } from '../../../../../../core/services/targets.service'
 import { ProtocolsService } from '../../../../../../core/services/protocols.service';
 import { PlansService } from '../../../../../../core/services/plans.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
+import { InventoryItem, InventoryService } from '../../../../../../core/services/inventory.service';
+import { User } from '../../../../../../core/interfaces/user.interface';
 import { Protocol } from '../../../../../../core/interfaces/protocol.interface';
 import { Plan } from '../../../../../../core/interfaces/plan.interface';
 import { SIM_CARD_TYPES } from '../../../../../../core/constants/sim-card-types.constant';
@@ -186,6 +189,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     filterType = '';
     filterStatus = '';
     searchQuery = '';
+    clientEmailSuggestions: User[] = [];
+    inventoryDeviceSuggestions: any[] = [];
 
     // Select options for vehicle
     availableBrands: SelectOption[] = [];
@@ -231,12 +236,16 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     typeOptions = [
         { label: 'Todas', value: '' },
         { label: 'Instalación', value: 'instalacion' },
-        { label: 'Chequeo', value: 'chequeo' }
+        { label: 'Reinstalación', value: 'reinstalacion' },
+        { label: 'Desinstalación', value: 'desinstalacion' },
+        { label: 'Chequeo', value: 'chequeo' },
+        { label: 'Cambio de GPS', value: 'cambio' }
     ];
 
     getEntityName(plural: boolean = false): string {
         const t = this.selectedSolicitud?.type || 'instalacion';
         if (t === 'chequeo') return plural ? 'Chequeos' : 'Chequeo';
+        if (t === 'reinstalacion') return plural ? 'Reinstalaciones' : 'Reinstalación';
         if (t === 'desinstalacion') return plural ? 'Desinstalaciones' : 'Desinstalación';
         if (t === 'cambio') return plural ? 'Cambios' : 'Cambio';
         if (t === 'otro') return plural ? 'Procesos' : 'Proceso';
@@ -254,6 +263,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     typeLabels: Record<string, string> = {
         instalacion: 'Instalación',
+        reinstalacion: 'Reinstalación',
         chequeo: 'Chequeo',
         cambio: 'Cambio',
         desinstalacion: 'Desinstalación',
@@ -302,6 +312,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         private targetsService: TargetsService,
         private protocolsService: ProtocolsService,
         private plansService: PlansService,
+        private inventoryService: InventoryService,
         private authService: AuthService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService,
@@ -599,6 +610,27 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.dialogVisible = true;
         setTimeout(() => this.initRootLocationMap(), 200);
     }
+
+    onTypeChange(): void {
+        if (!this.selectedSolicitud) return;
+        this.onQuantityChange();
+
+        if (this.isDeviceRequiredForSolicitud()) {
+            this.showInstallationsCards = true;
+        }
+    }
+
+    isDeviceRequiredForSolicitud(): boolean {
+        return ['chequeo', 'desinstalacion', 'cambio'].includes(this.selectedSolicitud?.type || '');
+    }
+
+    isInstallationFlow(type?: string): boolean {
+        return ['instalacion', 'reinstalacion'].includes(type || '');
+    }
+
+    getInstallActionLabel(solicitud: Solicitud | null = this.solicitudToInstall): string {
+        return solicitud?.type === 'reinstalacion' ? 'Reinstalar' : 'Instalar';
+    }
     
     onQuantityChange(): void {
         if (!this.selectedSolicitud) return;
@@ -739,6 +771,171 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         } catch (error) {
             // Se ignora si no existe
         }
+    }
+
+    searchClientEmails(event: { query: string }): void {
+        const query = (event.query || '').trim();
+        const parentId = this.authService.getCurrentUser()?.id;
+
+        if (!query || query.length < 2 || !parentId) {
+            this.clientEmailSuggestions = [];
+            return;
+        }
+
+        this.userService.search(query, parentId, 0, 12).subscribe({
+            next: (response) => {
+                this.clientEmailSuggestions = (response.users || [])
+                    .filter(user => !!user.email);
+            },
+            error: () => {
+                this.clientEmailSuggestions = [];
+            }
+        });
+    }
+
+    onClientEmailSelect(event: { value: User | string }): void {
+        const user = typeof event.value === 'string'
+            ? this.clientEmailSuggestions.find(item => item.email === event.value)
+            : event.value;
+        if (!this.selectedSolicitud || !user) return;
+
+        this.selectedSolicitud.client_email = user.email || '';
+        this.selectedSolicitud.client_name = `${user.name || ''} ${user.last_name || ''}`.trim() || this.selectedSolicitud.client_name;
+        if (user.phone) {
+            this.selectedSolicitud.client_phone = user.phone;
+        }
+    }
+
+    selectFirstClientEmail(event?: Event): void {
+        const user = this.clientEmailSuggestions[0];
+        if (!user) return;
+        event?.preventDefault();
+        event?.stopPropagation();
+        this.onClientEmailSelect({ value: user });
+    }
+
+    async searchInventoryDevices(event: { query: string }, target: 'current' | 'new' = 'current'): Promise<void> {
+        const activeSolicitudType = this.selectedSolicitud?.type || this.solicitudToInstall?.type;
+        const query = (event.query || '').trim();
+        if (!query || query.length < 2) {
+            this.inventoryDeviceSuggestions = [];
+            return;
+        }
+
+        const status = target === 'new'
+            ? 'available'
+            : ['instalacion', 'reinstalacion'].includes(activeSolicitudType || '')
+            ? 'available'
+            : ['chequeo', 'desinstalacion', 'cambio'].includes(activeSolicitudType || '')
+                ? 'installed'
+                : undefined;
+
+        try {
+            const [inventoryResult, targetsResult] = await Promise.allSettled([
+                firstValueFrom(this.inventoryService.searchAllDevices(query, undefined, 1, 12, status)),
+                this.targetsService.searchTargets(query, undefined, 0, 12)
+            ]);
+
+            const inventoryDevices = inventoryResult.status === 'fulfilled'
+                ? (inventoryResult.value.data || [])
+                : [];
+            const targetDevices = targetsResult.status === 'fulfilled'
+                ? (targetsResult.value.devices || [])
+                : [];
+
+            this.inventoryDeviceSuggestions = this.mergeDeviceSuggestions(inventoryDevices, targetDevices);
+        } catch {
+            this.inventoryDeviceSuggestions = [];
+        }
+    }
+
+    onInventoryDeviceSelect(event: { value: InventoryItem | string }, index?: number, target: 'current' | 'new' = 'current'): void {
+        const device = typeof event.value === 'string'
+            ? this.inventoryDeviceSuggestions.find(item => this.getInventoryDeviceImei(item) === event.value)
+            : event.value;
+        if (!device) return;
+
+        const imei = this.getInventoryDeviceImei(device);
+        const sim = this.getInventoryDeviceSim(device);
+        const protocolId = this.getInventoryDeviceProtocolId(device);
+
+        if (typeof index === 'number' && this.selectedSolicitud?.installations?.[index]) {
+            const inst = this.selectedSolicitud.installations[index];
+            if (target === 'new') {
+                inst.new_device_imei = imei;
+                if (sim) {
+                    inst.new_sim_card_number = sim;
+                }
+                if (protocolId) {
+                    inst.new_protocol = protocolId;
+                }
+                return;
+            }
+            inst.device_imei = imei;
+            if (sim) {
+                inst.sim_card_number = sim;
+            }
+            return;
+        }
+
+        this.installData.device_imei = imei;
+        if (sim) {
+            this.installData.sim_card_number = sim;
+        }
+        if (protocolId) {
+            this.installData.type = protocolId;
+        }
+    }
+
+    selectFirstInventoryDevice(event?: Event, index?: number, target: 'current' | 'new' = 'current'): void {
+        const device = this.inventoryDeviceSuggestions[0];
+        if (!device) return;
+        event?.preventDefault();
+        event?.stopPropagation();
+        this.onInventoryDeviceSelect({ value: device }, index, target);
+    }
+
+    private mergeDeviceSuggestions(inventoryDevices: any[], targetDevices: any[]): any[] {
+        const seen = new Set<string>();
+        return [...inventoryDevices, ...targetDevices].filter(device => {
+            const imei = this.getInventoryDeviceImei(device);
+            if (!imei || seen.has(imei)) return false;
+            seen.add(imei);
+            return true;
+        });
+    }
+
+    getInventoryDeviceImei(device: any): string {
+        return device?.IMEI || device?.imei || device?.device_imei || device?.name || '';
+    }
+
+    getInventoryDeviceSim(device: any): string {
+        return device?.SIM || device?.sim || device?.sim_card_number || '';
+    }
+
+    getInventoryDeviceProtocolName(device: any): string {
+        const protocol = device?.Protocol || device?.protocol || device?.type;
+        if (typeof protocol === 'object' && protocol) {
+            return protocol.name || protocol.label || this.getProtocolNameById(protocol._id || protocol.id) || '';
+        }
+        return this.getProtocolNameById(protocol) || (this.isMongoObjectId(protocol) ? '' : (protocol || ''));
+    }
+
+    private getInventoryDeviceProtocolId(device: any): string {
+        const protocol = device?.Protocol || device?.protocol || device?.type;
+        if (typeof protocol === 'object' && protocol) {
+            return protocol._id || protocol.id || '';
+        }
+        return protocol || '';
+    }
+
+    private getProtocolNameById(protocolId?: string): string {
+        if (!protocolId) return '';
+        return this.availableProtocols.find(protocol => protocol._id === protocolId)?.name || '';
+    }
+
+    private isMongoObjectId(value?: string): boolean {
+        return typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
     }
 
     async onClientPhoneBlur(): Promise<void> {
@@ -1089,16 +1286,22 @@ async initLocationMap(): Promise<void> {
     saveSolicitud(): void {
         if (!this.selectedSolicitud) return;
 
-        // Custom validation for Chequeos
-        if (this.selectedSolicitud.type === 'chequeo') {
+        // Chequeos y desinstalaciones necesitan identificar el dispositivo.
+        if (this.isDeviceRequiredForSolicitud()) {
             const hasMissingDevice = this.selectedSolicitud.installations?.some(inst => !inst.device_imei || inst.device_imei.trim() === '');
             if (hasMissingDevice) {
-                this.messageService.add({ severity: 'error', summary: 'Validación Fallida', detail: 'Debe ingresar el IMEI del dispositivo para todos los vehículos a chequear.' });
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Validación Fallida',
+                    detail: `Debe ingresar el IMEI del dispositivo para todas las ${this.getEntityName(true).toLowerCase()}.`
+                });
                 
                 // Try to aggressively expand the installations and device config if not open
                 this.showInstallationsCards = true;
+                this.showDeviceData = true;
                 return;
             }
+
         }
 
         if (this.isEditMode && this.selectedSolicitud._id) {
@@ -1463,7 +1666,7 @@ async initLocationMap(): Promise<void> {
                 });
             }
 
-            this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Dispositivo instalado correctamente' });
+            this.messageService.add({ severity: 'success', summary: 'Éxito', detail: `Dispositivo ${sol.type === 'reinstalacion' ? 'reinstalado' : 'instalado'} correctamente` });
             this.installDialogVisible = false;
         } catch (error: any) {
             this.messageService.add({ severity: 'error', summary: 'Error', detail: error?.error?.message || 'Error al crear el dispositivo' });

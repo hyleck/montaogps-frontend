@@ -276,6 +276,11 @@
     color: #3b82f6;
 }
 
+.sol-tag[data-type="reinstalacion"] {
+    background: rgba(99, 102, 241, 0.12);
+    color: #6366f1;
+}
+
 .sol-tag[data-type="chequeo"] {
     background: rgba(16, 185, 129, 0.12);
     color: #10b981;
@@ -595,6 +600,94 @@
 .sol-form-field textarea {
     resize: vertical;
     min-height: 60px;
+}
+
+.sol-email-autocomplete,
+.sol-email-autocomplete .p-autocomplete,
+.sol-email-autocomplete .p-inputtext,
+.sol-device-autocomplete,
+.sol-device-autocomplete .p-autocomplete,
+.sol-device-autocomplete .p-inputtext {
+    width: 100%;
+}
+
+.sol-email-autocomplete .p-inputtext,
+.sol-email-autocomplete-input,
+.sol-device-autocomplete .p-inputtext,
+.sol-device-autocomplete-input {
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 8px;
+    background: var(--managementColorCardBackground);
+    color: var(--managementColorTextUser);
+    font-size: 0.85rem;
+    font-family: inherit;
+}
+
+.sol-email-field .p-autocomplete,
+.sol-email-field .sol-email-autocomplete {
+    display: flex !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    height: 36px !important;
+    min-height: 36px !important;
+}
+
+.sol-email-field .p-autocomplete-input,
+.sol-email-field .sol-email-autocomplete-input {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 0.75rem !important;
+    border: 1px solid var(--managementFieldsBorder) !important;
+    border-radius: 8px 0 0 8px !important;
+    background: var(--managementColorCardBackground) !important;
+    color: var(--managementColorTextUser) !important;
+    font-size: 0.85rem !important;
+    line-height: normal !important;
+    box-sizing: border-box !important;
+}
+
+.sol-email-field .p-autocomplete-dropdown {
+    flex: 0 0 36px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    border: 1px solid var(--managementFieldsBorder) !important;
+    border-left: 0 !important;
+    border-radius: 0 8px 8px 0 !important;
+    background: var(--managementColorCardBackground) !important;
+    color: var(--managementColorTextUser) !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+}
+
+.sol-email-field .p-autocomplete-input:focus,
+.sol-email-field .sol-email-autocomplete-input:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
+}
+
+.sol-email-suggestion,
+.sol-device-suggestion {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.sol-email-suggestion strong,
+.sol-device-suggestion strong {
+    color: var(--managementColorTextUser);
+    font-size: 0.9rem;
+}
+
+.sol-email-suggestion small,
+.sol-device-suggestion small {
+    color: var(--text-color-secondary);
+    font-size: 0.78rem;
 }
 
 /* Footer buttons */

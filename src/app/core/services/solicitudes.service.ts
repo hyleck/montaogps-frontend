@@ -11,8 +11,11 @@ export interface InstallationDetail {
     plate?: string;
     chassis?: string;
     device_imei?: string;
+    new_device_imei?: string;
     sim_card_number?: string;
+    new_sim_card_number?: string;
     sim_company?: string;
+    new_protocol?: string;
     province?: string;
     municipality?: string;
     sector?: string;

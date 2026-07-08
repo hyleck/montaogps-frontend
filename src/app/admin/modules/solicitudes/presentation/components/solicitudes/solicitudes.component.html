@@ -11,7 +11,7 @@
             </div>
             <div>
                 <h1 class="sol-title">Solicitudes</h1>
-                <span class="sol-subtitle">Gestión de instalaciones, chequeos y cambios</span>
+                <span class="sol-subtitle">Gestión de instalaciones, reinstalaciones, desinstalaciones, chequeos y cambios</span>
             </div>
         </div>
     </div>
@@ -59,9 +59,9 @@
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
                     <div class="sol-kanban-actions">
-                        <button *ngIf="sol.type === 'instalacion' && sol.status !== 'completada'" pButton pRipple
+                        <button *ngIf="isInstallationFlow(sol.type) && sol.status !== 'completada'" pButton pRipple
                             icon="pi pi-wrench" class="p-button-rounded p-button-sm p-button-outlined"
-                            (click)="openInstallDialog(sol)" pTooltip="Instalar" tooltipPosition="top"></button>
+                            (click)="openInstallDialog(sol)" [pTooltip]="getInstallActionLabel(sol)" tooltipPosition="top"></button>
                         <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
@@ -107,9 +107,9 @@
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
                     <div class="sol-kanban-actions">
-                        <button *ngIf="sol.type === 'instalacion' && sol.status !== 'completada'" pButton pRipple
+                        <button *ngIf="isInstallationFlow(sol.type) && sol.status !== 'completada'" pButton pRipple
                             icon="pi pi-wrench" class="p-button-rounded p-button-sm p-button-outlined"
-                            (click)="openInstallDialog(sol)" pTooltip="Acción" tooltipPosition="top"></button>
+                            (click)="openInstallDialog(sol)" [pTooltip]="getInstallActionLabel(sol)" tooltipPosition="top"></button>
                         <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
@@ -235,7 +235,7 @@
             <div class="sol-form-row sol-form-row-3">
                 <div class="sol-form-field">
                     <label>Tipo de Proceso *</label>
-                    <select [(ngModel)]="selectedSolicitud.type" required [disabled]="isEditMode">
+                    <select [(ngModel)]="selectedSolicitud.type" required [disabled]="isEditMode" (change)="onTypeChange()">
                         <option value="">Seleccionar tipo</option>
                         <option *ngFor="let opt of typeOptions.slice(1)" [value]="opt.value">{{ opt.label }}</option>
                     </select>
@@ -253,9 +253,32 @@
             </div>
 
             <div class="sol-form-row sol-form-row-3">
-                <div class="sol-form-field">
+                <div class="sol-form-field sol-email-field">
                     <label>Email *</label>
-                    <input type="email" [(ngModel)]="selectedSolicitud.client_email" (blur)="onClientEmailBlur()" placeholder="cliente@ejemplo.com" required />
+                    <p-autoComplete
+                        [(ngModel)]="selectedSolicitud.client_email"
+                        [suggestions]="clientEmailSuggestions"
+                        (completeMethod)="searchClientEmails($event)"
+                        (onSelect)="onClientEmailSelect($event)"
+                        (keydown.enter)="selectFirstClientEmail($event)"
+                        (onBlur)="onClientEmailBlur()"
+                        optionLabel="email"
+                        optionValue="email"
+                        [forceSelection]="false"
+                        [dropdown]="true"
+                        [minLength]="2"
+                        appendTo="body"
+                        placeholder="cliente@ejemplo.com"
+                        inputStyleClass="sol-email-autocomplete-input"
+                        styleClass="sol-email-autocomplete"
+                        required>
+                        <ng-template let-user pTemplate="item">
+                            <div class="sol-email-suggestion">
+                                <strong>{{ user.name }} {{ user.last_name }}</strong>
+                                <small>{{ user.email }}<span *ngIf="user.phone"> · {{ user.phone }}</span></small>
+                            </div>
+                        </ng-template>
+                    </p-autoComplete>
                 </div>
                 <div class="sol-form-field">
                     <label>Nombre del Cliente *</label>
@@ -343,8 +366,8 @@
                     <div class="sol-form-field">
                         <label>Permisos para Confirmar</label>
                         <select [(ngModel)]="selectedSolicitud.confirmation_permission">
-                            <option value="no">No puede confirmar instalación</option>
-                            <option value="si">Puede confirmar instalación</option>
+                            <option value="no">No puede confirmar {{ getEntityName().toLowerCase() }}</option>
+                            <option value="si">Puede confirmar {{ getEntityName().toLowerCase() }}</option>
                         </select>
                     </div>
                     <div class="sol-form-field">
@@ -533,7 +556,7 @@
                 <div style="display: flex; align-items: center; gap: 0.6rem;">
                     <i class="pi pi-microchip" style="color: #6366f1;"></i>
                     <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">
-                        Dispositivo {{ selectedSolicitud.type === 'chequeo' ? '(Requerido)' : '(Opcional)' }}
+                        Dispositivo {{ isDeviceRequiredForSolicitud() ? '(Requerido)' : '(Opcional)' }}
                     </span>
                 </div>
                 <i class="pi" [ngClass]="showDeviceData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
@@ -543,7 +566,32 @@
                 <div class="sol-form-row sol-form-row-3">
                     <div class="sol-form-field">
                         <label>IMEI</label>
-                        <input type="text" [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].device_imei" (blur)="onImeiBlur(editingInstallationIndex)" placeholder="IMEI del dispositivo" />
+                        <p-autoComplete
+                            [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].device_imei"
+                            [suggestions]="inventoryDeviceSuggestions"
+                            (completeMethod)="searchInventoryDevices($event, 'current')"
+                            (onBlur)="onImeiBlur(editingInstallationIndex)"
+                            (onSelect)="onInventoryDeviceSelect($event, editingInstallationIndex, 'current')"
+                            (keydown.enter)="selectFirstInventoryDevice($event, editingInstallationIndex, 'current')"
+                            optionLabel="IMEI"
+                            optionValue="IMEI"
+                            [forceSelection]="false"
+                            [dropdown]="true"
+                            [minLength]="2"
+                            appendTo="body"
+                            placeholder="Buscar IMEI en inventario"
+                            inputStyleClass="sol-device-autocomplete-input"
+                            styleClass="sol-device-autocomplete">
+                            <ng-template let-device pTemplate="item">
+                                <div class="sol-device-suggestion">
+                                    <strong>{{ getInventoryDeviceImei(device) }}</strong>
+                                    <small>
+                                        <span *ngIf="getInventoryDeviceSim(device)">SIM: {{ getInventoryDeviceSim(device) }}</span>
+                                        <span *ngIf="getInventoryDeviceProtocolName(device)"> · {{ getInventoryDeviceProtocolName(device) }}</span>
+                                    </small>
+                                </div>
+                            </ng-template>
+                        </p-autoComplete>
                     </div>
                     <div class="sol-form-field">
                         <label>SIM</label>
@@ -557,13 +605,48 @@
                         </select>
                     </div>
                 </div>
+
+                <div class="sol-form-row" *ngIf="selectedSolicitud.type === 'cambio'">
+                    <div class="sol-form-field">
+                        <label>Nuevo GPS</label>
+                        <p-autoComplete
+                            [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].new_device_imei"
+                            [suggestions]="inventoryDeviceSuggestions"
+                            (completeMethod)="searchInventoryDevices($event, 'new')"
+                            (onSelect)="onInventoryDeviceSelect($event, editingInstallationIndex, 'new')"
+                            (keydown.enter)="selectFirstInventoryDevice($event, editingInstallationIndex, 'new')"
+                            optionLabel="IMEI"
+                            optionValue="IMEI"
+                            [forceSelection]="false"
+                            [dropdown]="true"
+                            [minLength]="2"
+                            appendTo="body"
+                            placeholder="Buscar IMEI disponible"
+                            inputStyleClass="sol-device-autocomplete-input"
+                            styleClass="sol-device-autocomplete">
+                            <ng-template let-device pTemplate="item">
+                                <div class="sol-device-suggestion">
+                                    <strong>{{ getInventoryDeviceImei(device) }}</strong>
+                                    <small>
+                                        <span *ngIf="getInventoryDeviceSim(device)">SIM: {{ getInventoryDeviceSim(device) }}</span>
+                                        <span *ngIf="getInventoryDeviceProtocolName(device)"> · {{ getInventoryDeviceProtocolName(device) }}</span>
+                                    </small>
+                                </div>
+                            </ng-template>
+                        </p-autoComplete>
+                    </div>
+                    <div class="sol-form-field">
+                        <label>SIM Nueva</label>
+                        <input type="text" [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].new_sim_card_number" placeholder="SIM del nuevo GPS" />
+                    </div>
+                </div>
             </div>
 
             <!-- Optional: Installation -->
             <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('install')" [class.active]="showInstallData" style="cursor: pointer; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 0.6rem;">
                     <i class="pi pi-wrench" style="color: #6366f1;"></i>
-                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">Instalación (Opcional)</span>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">{{ getEntityName() }} (Opcional)</span>
                 </div>
                 <i class="pi" [ngClass]="showInstallData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
             </div>
@@ -571,7 +654,7 @@
             <div *ngIf="showInstallData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
                 <div class="sol-form-row">
                     <div class="sol-form-field" style="grid-column: span 2;">
-                        <label>Lugar de Instalación</label>
+                        <label>Lugar de {{ getEntityName() }}</label>
                         <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].installation_location">
                             <option value="">Seleccionar lugar</option>
                             <option *ngFor="let loc of installationLocations" [value]="loc.value">{{ loc.label }}</option>
@@ -649,7 +732,7 @@
 
 <!-- Install Dialog -->
 <p-dialog [(visible)]="installDialogVisible" [style]="{width: '720px'}"
-    header="Instalar Dispositivo" [modal]="true" styleClass="p-fluid app-dark-dialog"
+    [header]="getInstallActionLabel() + ' Dispositivo'" [modal]="true" styleClass="p-fluid app-dark-dialog"
     (onHide)="hideInstallDialog()">
     <ng-template pTemplate="content">
         <div *ngIf="solicitudToInstall" class="sol-form">
@@ -697,7 +780,31 @@
             <div class="sol-form-row sol-form-row-3">
                 <div class="sol-form-field">
                     <label>IMEI *</label>
-                    <input type="text" [(ngModel)]="installData.device_imei" placeholder="IMEI del dispositivo" />
+                    <p-autoComplete
+                        [(ngModel)]="installData.device_imei"
+                        [suggestions]="inventoryDeviceSuggestions"
+                        (completeMethod)="searchInventoryDevices($event)"
+                        (onSelect)="onInventoryDeviceSelect($event)"
+                        (keydown.enter)="selectFirstInventoryDevice($event)"
+                        optionLabel="IMEI"
+                        optionValue="IMEI"
+                        [forceSelection]="false"
+                        [dropdown]="true"
+                        [minLength]="2"
+                        appendTo="body"
+                        placeholder="Buscar IMEI en inventario"
+                        inputStyleClass="sol-device-autocomplete-input"
+                        styleClass="sol-device-autocomplete">
+                        <ng-template let-device pTemplate="item">
+                            <div class="sol-device-suggestion">
+                                <strong>{{ getInventoryDeviceImei(device) }}</strong>
+                                <small>
+                                    <span *ngIf="getInventoryDeviceSim(device)">SIM: {{ getInventoryDeviceSim(device) }}</span>
+                                    <span *ngIf="getInventoryDeviceProtocolName(device)"> · {{ getInventoryDeviceProtocolName(device) }}</span>
+                                </small>
+                            </div>
+                        </ng-template>
+                    </p-autoComplete>
                 </div>
                 <div class="sol-form-field">
                     <label>SIM *</label>
@@ -790,7 +897,7 @@
         </button>
         <button type="button" class="sol-btn sol-btn-install" (click)="installDevice()" [disabled]="installing">
             <i class="pi" [ngClass]="installing ? 'pi-spin pi-spinner' : 'pi-download'"></i>
-            {{ installing ? 'Instalando...' : 'Instalar' }}
+            {{ installing ? (getInstallActionLabel() + '...') : getInstallActionLabel() }}
         </button>
     </ng-template>
 </p-dialog>
