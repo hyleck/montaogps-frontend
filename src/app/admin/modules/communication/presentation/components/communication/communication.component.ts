@@ -165,7 +165,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   emailReplyFile: File | null = null;
 
   private readonly mailboxApiUrl = `${environment.apiUrl}/mailbox`;
-  private readonly MAILBOX_STATUS_TIMEOUT_MS = 20000;
+  private readonly MAILBOX_STATUS_TIMEOUT_MS = 60000;
   mailConfigPassword: string = '';
   mailConfigLoading: boolean = false;
   mailConfigError: string = '';
