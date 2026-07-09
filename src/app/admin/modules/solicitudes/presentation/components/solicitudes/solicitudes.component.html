@@ -32,7 +32,7 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('pendiente')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" *ngFor="let sol of pendientes" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of pendientes" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
@@ -44,6 +44,7 @@
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
+                        <span class="sol-technician-verifying" *ngIf="isTechnicianVerifying(sol)"><i class="pi pi-spin pi-spinner"></i> Verificando</span>
                         <span class="sol-technician-accepted" *ngIf="isTechnicianAccepted(sol)">Técnico aceptó</span>
                         <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
@@ -57,6 +58,13 @@
                             </span>
                         </div>
                     </div>
+                </div>
+                <div class="sol-tech-row" *ngIf="sol.mechanic_id" (click)="$event.stopPropagation()">
+                    <button type="button" class="sol-tech-button"
+                        [class.is-loading]="isAvailabilityLoading(sol)" (click)="openTechnicianAvailabilityDialog(sol, $event)">
+                        <i class="pi" [ngClass]="isAvailabilityLoading(sol) ? 'pi-spin pi-spinner' : 'pi-user'"></i>
+                        <span>{{ getTechnicianDisplayName(sol) }}</span>
+                    </button>
                 </div>
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
@@ -82,7 +90,7 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('en_progreso')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" *ngFor="let sol of enProgreso" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of enProgreso" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
@@ -94,6 +102,7 @@
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
+                        <span class="sol-technician-verifying" *ngIf="isTechnicianVerifying(sol)"><i class="pi pi-spin pi-spinner"></i> Verificando</span>
                         <span class="sol-technician-accepted" *ngIf="isTechnicianAccepted(sol)">Técnico aceptó</span>
                         <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
@@ -107,6 +116,13 @@
                             </span>
                         </div>
                     </div>
+                </div>
+                <div class="sol-tech-row" *ngIf="sol.mechanic_id" (click)="$event.stopPropagation()">
+                    <button type="button" class="sol-tech-button"
+                        [class.is-loading]="isAvailabilityLoading(sol)" (click)="openTechnicianAvailabilityDialog(sol, $event)">
+                        <i class="pi" [ngClass]="isAvailabilityLoading(sol) ? 'pi-spin pi-spinner' : 'pi-user'"></i>
+                        <span>{{ getTechnicianDisplayName(sol) }}</span>
+                    </button>
                 </div>
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
@@ -132,7 +148,7 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('por_confirmar')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" *ngFor="let sol of porConfirmar" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of porConfirmar" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
@@ -144,6 +160,7 @@
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
+                        <span class="sol-technician-verifying" *ngIf="isTechnicianVerifying(sol)"><i class="pi pi-spin pi-spinner"></i> Verificando</span>
                         <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
@@ -156,6 +173,13 @@
                             </span>
                         </div>
                     </div>
+                </div>
+                <div class="sol-tech-row" *ngIf="sol.mechanic_id" (click)="$event.stopPropagation()">
+                    <button type="button" class="sol-tech-button"
+                        [class.is-loading]="isAvailabilityLoading(sol)" (click)="openTechnicianAvailabilityDialog(sol, $event)">
+                        <i class="pi" [ngClass]="isAvailabilityLoading(sol) ? 'pi-spin pi-spinner' : 'pi-user'"></i>
+                        <span>{{ getTechnicianDisplayName(sol) }}</span>
+                    </button>
                 </div>
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
@@ -178,7 +202,7 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('completada')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" *ngFor="let sol of completadas" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of completadas" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
@@ -190,6 +214,7 @@
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
+                        <span class="sol-technician-verifying" *ngIf="isTechnicianVerifying(sol)"><i class="pi pi-spin pi-spinner"></i> Verificando</span>
                         <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
@@ -202,6 +227,13 @@
                             </span>
                         </div>
                     </div>
+                </div>
+                <div class="sol-tech-row" *ngIf="sol.mechanic_id" (click)="$event.stopPropagation()">
+                    <button type="button" class="sol-tech-button"
+                        [class.is-loading]="isAvailabilityLoading(sol)" (click)="openTechnicianAvailabilityDialog(sol, $event)">
+                        <i class="pi" [ngClass]="isAvailabilityLoading(sol) ? 'pi-spin pi-spinner' : 'pi-user'"></i>
+                        <span>{{ getTechnicianDisplayName(sol) }}</span>
+                    </button>
                 </div>
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
@@ -224,6 +256,48 @@
         </div>
     </div>
 </div>
+
+<p-dialog [(visible)]="technicianDialogVisible" [style]="{width: '460px'}" header="Técnico asignado"
+    [modal]="true" styleClass="app-dark-dialog sol-technician-dialog" [draggable]="false" [resizable]="false">
+    <ng-template pTemplate="content">
+        <div class="sol-technician-modal" *ngIf="selectedTechnicianSolicitud as selectedSol">
+            <div class="sol-technician-profile">
+                <div class="sol-technician-avatar">
+                    <i class="pi pi-user"></i>
+                </div>
+                <div>
+                    <h3>{{ getTechnicianDisplayName(selectedSol) }}</h3>
+                    <span>{{ typeLabels[selectedSol.type] || selectedSol.type }} · {{ getScheduledDateDisplay(selectedSol) || 'Sin fecha programada' }}</span>
+                </div>
+            </div>
+
+            <div class="sol-technician-details" *ngIf="getTechnicianById(selectedSol.mechanic_id) as technician">
+                <div>
+                    <label>Teléfono</label>
+                    <strong>{{ technician.phone || technician.phone2 || 'Sin teléfono' }}</strong>
+                </div>
+                <div>
+                    <label>Email</label>
+                    <strong>{{ technician.email || 'Sin email' }}</strong>
+                </div>
+                <div>
+                    <label>Estado de verificación</label>
+                    <strong>{{ isTechnicianVerifying(selectedSol) ? 'Verificando' : (isTechnicianAccepted(selectedSol) ? 'Aceptada' : (isTechnicianUnavailable(selectedSol) ? 'Técnico no disponible' : 'Pendiente')) }}</strong>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="technicianDialogVisible = false">
+            <i class="pi pi-times"></i> Cerrar
+        </button>
+        <button type="button" class="sol-btn sol-btn-save" [disabled]="isAvailabilityLoading(selectedTechnicianSolicitud)"
+            (click)="verifyTechnicianAvailability()">
+            <i class="pi" [ngClass]="isAvailabilityLoading(selectedTechnicianSolicitud) ? 'pi-spin pi-spinner' : 'pi-phone'"></i>
+            Verificar disponibilidad
+        </button>
+    </ng-template>
+</p-dialog>
 
 <!-- Create / Edit Dialog -->
 <p-dialog [(visible)]="dialogVisible" [style]="{width: '700px'}"

@@ -185,6 +185,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     private realtimeRefreshTimer?: ReturnType<typeof setInterval>;
     private realtimeStateVersion = '';
     private realtimeStateInFlight = false;
+    technicianDialogVisible = false;
+    selectedTechnicianSolicitud: Solicitud | null = null;
+    verifyingAvailabilityId = '';
 
     // Filters
     filterType = '';
@@ -1405,6 +1408,70 @@ async initLocationMap(): Promise<void> {
 
     isTechnicianAccepted(solicitud: Solicitud): boolean {
         return solicitud.technician_response === 'aceptada';
+    }
+
+    isTechnicianVerifying(solicitud: Solicitud): boolean {
+        return solicitud.technician_response === 'verificando';
+    }
+
+    getTechnicianById(id?: string): User | null {
+        if (!id) return null;
+        return this.availableTechnicians.find(tech => (tech._id || (tech as any).id) === id) || null;
+    }
+
+    getTechnicianDisplayName(solicitud: Solicitud | null): string {
+        const technician = this.getTechnicianById(solicitud?.mechanic_id);
+        if (!technician) return 'Técnico asignado';
+        return `${technician.name || ''} ${technician.last_name || ''}`.trim() || technician.email || 'Técnico asignado';
+    }
+
+    openTechnicianAvailabilityDialog(solicitud: Solicitud, event?: Event): void {
+        event?.stopPropagation();
+        this.selectedTechnicianSolicitud = solicitud;
+        this.technicianDialogVisible = true;
+    }
+
+    verifyTechnicianAvailability(): void {
+        const solicitud = this.selectedTechnicianSolicitud;
+        if (!solicitud?._id) return;
+
+        const previousResponse = solicitud.technician_response;
+        this.verifyingAvailabilityId = solicitud._id;
+        solicitud.technician_response = 'verificando';
+
+        this.solicitudesService.verifyAvailability(solicitud._id).subscribe({
+            next: (updated) => {
+                this.upsertSolicitud(updated);
+                this.selectedTechnicianSolicitud = updated;
+                this.verifyingAvailabilityId = '';
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Verificando disponibilidad',
+                    detail: 'La llamada al técnico fue iniciada.'
+                });
+                this.realtimeStateVersion = '';
+                this.restartRealtimeRefresh();
+            },
+            error: (error) => {
+                solicitud.technician_response = previousResponse;
+                this.verifyingAvailabilityId = '';
+                const detail = error?.error?.message || 'No se pudo iniciar la llamada de disponibilidad.';
+                this.messageService.add({ severity: 'error', summary: 'No se pudo llamar', detail });
+            }
+        });
+    }
+
+    isAvailabilityLoading(solicitud: Solicitud | null): boolean {
+        return !!solicitud?._id && (this.verifyingAvailabilityId === solicitud._id || this.isTechnicianVerifying(solicitud));
+    }
+
+    private upsertSolicitud(updated: Solicitud): void {
+        const index = this.solicitudes.findIndex(sol => sol._id === updated._id);
+        if (index >= 0) {
+            this.solicitudes[index] = updated;
+            return;
+        }
+        this.solicitudes = [updated, ...this.solicitudes];
     }
 
     private sortSolicitudesForDisplay(items: Solicitud[]): Solicitud[] {

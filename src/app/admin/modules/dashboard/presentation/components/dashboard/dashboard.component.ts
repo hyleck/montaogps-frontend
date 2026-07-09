@@ -25,6 +25,13 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     filterLocalizado = true;
     filterExpired = true;
 
+    private readonly americasBounds = {
+        minLat: -60,
+        maxLat: 85,
+        minLng: -170,
+        maxLng: -30,
+    };
+
     constructor(
         private authService: AuthService,
         private systemService: SystemService,
@@ -322,7 +329,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             if (dataPackage.devices && Array.isArray(dataPackage.devices)) {
                 dataPackage.devices.forEach(d => {
                     const geo = d?.traccarInfo?.geolocation;
-                    if (geo && geo.latitude && geo.longitude) {
+                    if (this.isCoordinateInAmericas(geo?.latitude, geo?.longitude)) {
                         features.push({
                             type: 'Feature',
                             geometry: { type: 'Point', coordinates: [geo.longitude, geo.latitude] },
@@ -347,7 +354,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             return;
         }
 
-        const features = (devices || []).filter(d => d && d.latitud && d.longitud).map(d => ({
+        const features = (devices || [])
+            .filter(d => this.isCoordinateInAmericas(d?.latitud, d?.longitud))
+            .map(d => ({
             type: 'Feature',
             geometry: {
                 type: 'Point',
@@ -361,6 +370,19 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         }));
 
         this.updateGeoJSONSource(features);
+    }
+
+    private isCoordinateInAmericas(latValue: any, lngValue: any): boolean {
+        const lat = Number(latValue);
+        const lng = Number(lngValue);
+
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+
+        return lat >= this.americasBounds.minLat
+            && lat <= this.americasBounds.maxLat
+            && lng >= this.americasBounds.minLng
+            && lng <= this.americasBounds.maxLng;
     }
 
     private updateGeoJSONSource(features: any[]) {

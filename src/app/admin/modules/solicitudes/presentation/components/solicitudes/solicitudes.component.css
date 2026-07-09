@@ -385,6 +385,21 @@
     white-space: normal;
 }
 
+.sol-technician-verifying {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: 100%;
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    background: rgba(59, 130, 246, 0.12);
+    color: #2563eb;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.15;
+    white-space: normal;
+}
+
 .sol-plate {
     font-weight: 700;
     font-family: 'SF Mono', 'Fira Code', monospace;
@@ -1224,6 +1239,22 @@
     color: #ef4444;
 }
 
+.sol-kanban-card--verifying {
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.04)), var(--managementColorBackgroundUser);
+    border-color: rgba(59, 130, 246, 0.48);
+    box-shadow: 0 10px 24px rgba(59, 130, 246, 0.14);
+}
+
+.sol-kanban-card--verifying::before,
+.sol-kanban-card--verifying:hover::before {
+    width: 5px;
+    background: linear-gradient(180deg, #2563eb, #60a5fa);
+}
+
+.sol-kanban-card--verifying .sol-kanban-client {
+    color: #2563eb;
+}
+
 .sol-kanban-card-top {
     display: flex;
     justify-content: space-between;
@@ -1273,6 +1304,46 @@
     border-top: 1px solid var(--managementFieldsBorder);
     padding-top: 0.65rem;
     margin-top: 0.15rem;
+}
+
+.sol-tech-row {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    margin-top: -0.15rem;
+}
+
+.sol-tech-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.35rem;
+    width: 100%;
+    max-width: 100%;
+    min-height: 34px;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.08);
+    color: #4f46e5;
+    font-size: 0.74rem;
+    font-weight: 800;
+    cursor: pointer;
+    text-align: left;
+}
+
+.sol-tech-button span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sol-tech-button:hover,
+.sol-tech-button.is-loading {
+    background: rgba(59, 130, 246, 0.13);
+    border-color: rgba(59, 130, 246, 0.38);
+    color: #2563eb;
 }
 
 .sol-kanban-actions {
@@ -1373,4 +1444,77 @@
 .sol-kanban-inst-item i.pi-circle {
     color: #f59e0b; /* Yellow Icon for Pending */
     opacity: 1;
+}
+
+.sol-technician-dialog .p-dialog-content {
+    padding-top: 1rem;
+}
+
+.sol-technician-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sol-technician-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 12px;
+    background: var(--managementFieldsBackground);
+}
+
+.sol-technician-avatar {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.12);
+    color: #4f46e5;
+    font-size: 1.25rem;
+    flex: 0 0 auto;
+}
+
+.sol-technician-profile h3 {
+    margin: 0 0 0.15rem;
+    color: var(--managementColorTitleUser);
+    font-size: 1rem;
+}
+
+.sol-technician-profile span {
+    color: var(--managementColorTextUser);
+    font-size: 0.82rem;
+}
+
+.sol-technician-details {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.sol-technician-details div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--managementFieldsBorder);
+}
+
+.sol-technician-details div:last-child {
+    border-bottom: 0;
+}
+
+.sol-technician-details label {
+    color: var(--managementColorTextUser);
+    font-size: 0.78rem;
+    font-weight: 700;
+    opacity: 0.75;
+}
+
+.sol-technician-details strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.84rem;
+    text-align: right;
 }

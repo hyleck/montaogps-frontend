@@ -29,7 +29,6 @@ export class SidebarComponent implements OnInit {
     favoriteTitle: '',
     favoriteItems: [
       { label: '', path: '/admin/dashboard', icon: 'pi pi-objects-column', badge: 5 },
-      { label: '', path: '/external/montao-index', icon: 'pi pi-th-large', badge: 0, externalUrl: 'https://index.montao.net' },
     ],
     principalTitle: '',
     principalItems: [
@@ -166,7 +165,6 @@ export class SidebarComponent implements OnInit {
 
     // Elementos favoritos
     this.sidaberOptions.favoriteItems[0].label = this.translate.instant('sidebar.dashboard');
-    this.sidaberOptions.favoriteItems[1].label = 'Montao Index';
 
     // Elementos del menú principal
     this.sidaberOptions.principalItems[0].label = this.translate.instant('sidebar.management');

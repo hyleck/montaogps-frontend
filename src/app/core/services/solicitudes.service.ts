@@ -40,6 +40,9 @@ export interface Solicitud {
     type: string;
     status: string;
     technician_response?: string;
+    technician_response_call_id?: string;
+    technician_response_transcript?: string;
+    technician_response_updated_at?: string | Date;
     quantity?: number;
     order?: number;
     installations?: InstallationDetail[];
@@ -102,6 +105,10 @@ export class SolicitudesService {
 
     update(id: string, solicitud: Partial<Solicitud>): Observable<Solicitud> {
         return this.http.patch<Solicitud>(`${this.apiUrl}/${id}`, solicitud);
+    }
+
+    verifyAvailability(id: string): Observable<Solicitud> {
+        return this.http.post<Solicitud>(`${this.apiUrl}/${id}/verify-availability`, {});
     }
 
     delete(id: string): Observable<void> {
