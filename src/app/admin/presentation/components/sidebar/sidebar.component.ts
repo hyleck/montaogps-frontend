@@ -27,6 +27,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private isCompanyUser: boolean = false;
   private hasInbox: boolean = false;
   private chatwootBadgeSubscription?: Subscription;
+  private chatwootAttentionSubscription?: Subscription;
 
   sidaberOptions = {
     favoriteTitle: '',
@@ -101,10 +102,15 @@ export class SidebarComponent implements OnInit, OnDestroy {
       this.updatePrincipalBadge('/admin/communication', count);
       this.cdr.detectChanges();
     });
+    this.chatwootAttentionSubscription = this.chatwootNotificationSound.esterPendingCount$.subscribe((count) => {
+      this.updatePrincipalAttention('/admin/communication', count > 0);
+      this.cdr.detectChanges();
+    });
   }
 
   ngOnDestroy(): void {
     this.chatwootBadgeSubscription?.unsubscribe();
+    this.chatwootAttentionSubscription?.unsubscribe();
   }
 
   updateCurrentUser() {
@@ -224,6 +230,17 @@ export class SidebarComponent implements OnInit, OnDestroy {
     if (item) {
       item.badge = Math.max(0, Number(badge) || 0);
     }
+  }
+
+  private updatePrincipalAttention(path: string, attention: boolean): void {
+    const item = this.sidaberOptions.principalItems.find(option => option.path === path);
+    if (item) {
+      (item as any).attention = attention;
+    }
+  }
+
+  hasAttention(item: unknown): boolean {
+    return Boolean((item as { attention?: boolean })?.attention);
   }
 
   toggleSidebar() {

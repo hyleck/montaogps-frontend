@@ -104,6 +104,20 @@
 
 }
 
+.sidebar__option--attention,
+.sidebar__option--attention .sidebar__option-text,
+.sidebar__option--attention .sidebar__option-icon i {
+    color: #facc15;
+}
+
+.sidebar__option--attention .sidebar__option-text {
+    text-shadow: 0 0 10px rgba(250, 204, 21, 0.32);
+}
+
+.sidebar__option--active.sidebar__option--attention {
+    color: #facc15;
+}
+
 
 
 .sidebar__option-icon {

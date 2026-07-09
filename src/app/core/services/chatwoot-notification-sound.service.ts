@@ -10,6 +10,7 @@ interface ChatwootConversationSummary {
   last_message?: string;
   last_message_time?: number | null;
   unread_count?: number;
+  assignee_id?: number | null;
 }
 
 interface ConversationNotificationState {
@@ -23,6 +24,8 @@ interface ConversationNotificationState {
 export class ChatwootNotificationSoundService implements OnDestroy {
   private pendingCountSubject = new BehaviorSubject<number>(0);
   pendingCount$ = this.pendingCountSubject.asObservable();
+  private esterPendingCountSubject = new BehaviorSubject<number>(0);
+  esterPendingCount$ = this.esterPendingCountSubject.asObservable();
 
   private pollingSubscription?: Subscription;
   private authSubscription?: Subscription;
@@ -134,12 +137,14 @@ export class ChatwootNotificationSoundService implements OnDestroy {
     this.agentId = '';
     this.conversationState.clear();
     this.pendingCountSubject.next(0);
+    this.esterPendingCountSubject.next(0);
   }
 
   private processConversations(conversations: ChatwootConversationSummary[]): void {
     const nextState = new Map<number, ConversationNotificationState>();
     let shouldPlay = false;
     let totalPending = 0;
+    let esterPending = 0;
 
     for (const conversation of conversations) {
       const id = Number(conversation.id);
@@ -147,6 +152,9 @@ export class ChatwootNotificationSoundService implements OnDestroy {
 
       const unreadCount = Number(conversation.unread_count || 0);
       totalPending += unreadCount;
+      if (!conversation.assignee_id) {
+        esterPending += unreadCount;
+      }
       const fingerprint = [
         conversation.last_message || '',
         conversation.last_message_time || '',
@@ -174,6 +182,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
 
     this.conversationState = nextState;
     this.pendingCountSubject.next(totalPending);
+    this.esterPendingCountSubject.next(esterPending);
 
     if (!this.initialized) {
       this.initialized = true;

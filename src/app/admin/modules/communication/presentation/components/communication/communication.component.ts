@@ -301,15 +301,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
     this.route.params.subscribe(params => {
       const tab = params['tab'];
-      if (tab === 'chat' || tab === 'correo' || tab === 'foro') {
+      if (tab === 'chat') {
         this.activeTab = tab;
+      } else if (tab === 'correo' || tab === 'foro') {
+        this.navigateToTab('chat');
+        return;
       }
       const convId = params['conversationId'];
       if (convId) {
         this.pendingConversationId = +convId;
-      }
-      if (this.activeTab === 'correo') {
-        this.initializeMailbox();
       }
     });
   }
@@ -371,11 +371,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   navigateToTab(tab: 'chat' | 'correo' | 'foro'): void {
+    if (tab === 'correo' || tab === 'foro') {
+      this.activeTab = 'chat';
+      this.router.navigate(['/admin/communication', 'chat']);
+      return;
+    }
+
     this.activeTab = tab;
     this.router.navigate(['/admin/communication', tab]);
-    if (tab === 'correo') {
-      this.initializeMailbox();
-    }
   }
 
   private loadInboxEmail(): void {

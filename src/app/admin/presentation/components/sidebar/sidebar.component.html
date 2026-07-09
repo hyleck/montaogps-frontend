@@ -16,7 +16,8 @@
                 <div [routerLink]="getExternalUrl(item) ? null : item.path"
                     [routerLinkActive]="getExternalUrl(item) ? '' : 'sidebar__option--active'"
                     (click)="handleItemClick($event, item)" *ngFor="let item of filteredFavoriteItems"
-                    class="sidebar__option ">
+                    class="sidebar__option "
+                    [class.sidebar__option--attention]="hasAttention(item)">
                     <div class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
                     <div class="sidebar__option-text"> <span>{{ item.label }}</span></div>
                     <div *ngIf="item.badge !== 0" class="sidebar__option-badge"><p-badge severity="info"
@@ -32,7 +33,8 @@
                 <div [routerLink]="getExternalUrl(item) ? null : item.path"
                     [routerLinkActive]="getExternalUrl(item) ? '' : 'sidebar__option--active'"
                     (click)="handleItemClick($event, item)" *ngFor="let item of filteredPrincipalItems"
-                    class="sidebar__option ">
+                    class="sidebar__option "
+                    [class.sidebar__option--attention]="hasAttention(item)">
                     <div class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
                     <div class="sidebar__option-text"> <span>{{ item.label }}</span></div>
                     <div *ngIf="item.badge !== 0" class="sidebar__option-badge"><p-badge
@@ -48,7 +50,8 @@
                     <span>{{sidaberOptions.profileTitle}}</span>
                 </div>
                 <div [routerLink]="item.path" routerLinkActive="sidebar__option--active"
-                    *ngFor="let item of filteredProfileItems" class="sidebar__option">
+                    *ngFor="let item of filteredProfileItems" class="sidebar__option"
+                    [class.sidebar__option--attention]="hasAttention(item)">
                     <div class="sidebar__option-icon">
                         <img *ngIf="item.path === '/admin/profile' && userPhotoUrl" [src]="userPhotoUrl"
                             class="sidebar-user-photo" alt="User">
@@ -80,7 +83,8 @@
                 <div [routerLink]="getExternalUrl(item) ? null : item.path"
                     [routerLinkActive]="getExternalUrl(item) ? '' : 'sidebar__option--active'"
                     (click)="handleItemClick($event, item)" *ngFor="let item of filteredFavoriteItems"
-                    class="sidebar__option ">
+                    class="sidebar__option "
+                    [class.sidebar__option--attention]="hasAttention(item)">
                     <div *ngIf="item.badge !== 0" class="sidebar__option-icon"> <i class="{{ item.icon }}" pBadge
                             severity="info" [value]="item.badge"></i></div>
                     <div *ngIf="item.badge === 0" class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
@@ -95,7 +99,8 @@
                 <div [routerLink]="getExternalUrl(item) ? null : item.path"
                     [routerLinkActive]="getExternalUrl(item) ? '' : 'sidebar__option--active'"
                     (click)="handleItemClick($event, item)" *ngFor="let item of filteredPrincipalItems"
-                    class="sidebar__option ">
+                    class="sidebar__option "
+                    [class.sidebar__option--attention]="hasAttention(item)">
                     <div *ngIf="item.badge !== 0" class="sidebar__option-icon"> <i class="{{ item.icon }}" pBadge
                             severity="info" [value]="item.badge"></i></div>
                     <div *ngIf="item.badge === 0" class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
@@ -110,7 +115,8 @@
                     <span>{{sidaberOptions.profileTitle}}</span>
                 </div>
                 <div [routerLink]="item.path" routerLinkActive="sidebar__option--active"
-                    *ngFor="let item of filteredProfileItems" class="sidebar__option">
+                    *ngFor="let item of filteredProfileItems" class="sidebar__option"
+                    [class.sidebar__option--attention]="hasAttention(item)">
                     <div *ngIf="item.badge !== 0" class="sidebar__option-icon">
                         <img *ngIf="item.path === '/admin/profile' && userPhotoUrl" [src]="userPhotoUrl"
                             class="sidebar-user-photo" alt="User">
