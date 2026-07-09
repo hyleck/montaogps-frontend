@@ -651,12 +651,12 @@
     
     <div *ngIf="!isTransferring">
         <div class="mb-4 text-secondary text-sm" style="line-height: 1.5; margin-bottom: 1.5rem;">
-            Selecciona el agente al cual deseas enviar esta conversación y detalla un resumen del requerimiento.
+            Selecciona el agente al cual deseas enviar esta conversación. Puedes agregar un resumen si lo necesitas.
         </div>
         
         <div style="display: block; width: 100%; margin-bottom: 1.5rem;">
-            <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Resumen para el agente <span style="color: #ef4444">*</span></label>
-            <textarea [(ngModel)]="transferSummary" rows="4" style="display: block; width: 100%; box-sizing: border-box; resize: none; padding: 0.75rem; border: 1px solid var(--surface-border, #495057); border-radius: 6px; font-family: inherit; background: var(--surface-a, #1f2937); color: var(--text-color, #e4e4e7); outline: none;" placeholder="Escribe aquí el contexto de la transferencia..."></textarea>
+            <label class="comm-transfer-label">Resumen para el agente <span class="comm-transfer-label__optional">Opcional</span></label>
+            <textarea class="comm-transfer-textarea" [(ngModel)]="transferSummary" rows="4" placeholder="Escribe aquí el contexto de la transferencia..."></textarea>
         </div>
         
         <div style="display: block; width: 100%; margin-bottom: 1.5rem;">
@@ -684,7 +684,7 @@
         
         <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
             <p-button label="Cancelar" icon="pi pi-times" styleClass="p-button-text p-button-secondary" (onClick)="showTransferModal = false"></p-button>
-            <p-button label="Confirmar Transferencia" icon="pi pi-check" styleClass="p-button-primary" (onClick)="confirmTransfer()" [disabled]="(selectedTransferAgentId !== 0 && !selectedTransferAgentId) || !transferSummary.trim()"></p-button>
+            <p-button label="Confirmar Transferencia" icon="pi pi-check" styleClass="p-button-primary" (onClick)="confirmTransfer()" [disabled]="selectedTransferAgentId !== 0 && !selectedTransferAgentId"></p-button>
         </div>
     </div>
 </p-dialog>

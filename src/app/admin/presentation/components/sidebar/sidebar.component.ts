@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { StatusService } from '../../../../shareds/services/status.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { SystemService } from '../../../../core/services/system.service';
@@ -8,6 +8,8 @@ import { LangService } from '../../../../shareds/services/langi18/lang.service';
 import { InventoryService } from '../../../../core/services/inventory.service';
 import { BasicUser } from '../../../../core/interfaces/user.interface';
 import { ChangeDetectorRef } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { ChatwootNotificationSoundService } from '../../../../core/services/chatwoot-notification-sound.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -15,7 +17,7 @@ import { ChangeDetectorRef } from '@angular/core';
   styleUrl: './sidebar.component.css',
   standalone: false
 })
-export class SidebarComponent implements OnInit {
+export class SidebarComponent implements OnInit, OnDestroy {
 
   sidebarDisplayed = true;
   userName: string = '';
@@ -24,6 +26,7 @@ export class SidebarComponent implements OnInit {
   private isEmployeeUser: boolean = false;
   private isCompanyUser: boolean = false;
   private hasInbox: boolean = false;
+  private chatwootBadgeSubscription?: Subscription;
 
   sidaberOptions = {
     favoriteTitle: '',
@@ -61,6 +64,7 @@ export class SidebarComponent implements OnInit {
     private langService: LangService,
     private userService: UserService,
     private inventoryService: InventoryService,
+    private chatwootNotificationSound: ChatwootNotificationSoundService,
     private cdr: ChangeDetectorRef
   ) {
     this.sidebarDisplayed = status.getState('sidebar') as boolean;
@@ -92,6 +96,15 @@ export class SidebarComponent implements OnInit {
 
     // Carga inicial del usuario
     this.updateCurrentUser();
+
+    this.chatwootBadgeSubscription = this.chatwootNotificationSound.pendingCount$.subscribe((count) => {
+      this.updatePrincipalBadge('/admin/communication', count);
+      this.cdr.detectChanges();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.chatwootBadgeSubscription?.unsubscribe();
   }
 
   updateCurrentUser() {
@@ -203,6 +216,13 @@ export class SidebarComponent implements OnInit {
     const item = this.sidaberOptions.principalItems.find(option => option.path === path);
     if (item) {
       item.label = label;
+    }
+  }
+
+  private updatePrincipalBadge(path: string, badge: number): void {
+    const item = this.sidaberOptions.principalItems.find(option => option.path === path);
+    if (item) {
+      item.badge = Math.max(0, Number(badge) || 0);
     }
   }
 

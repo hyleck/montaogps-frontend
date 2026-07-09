@@ -966,7 +966,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   confirmTransfer(): void {
     const isEster = this.selectedTransferAgentId === 0;
-    if (!this.selectedConversation || (!this.selectedTransferAgentId && !isEster) || !this.transferSummary.trim()) return;
+    if (!this.selectedConversation || (!this.selectedTransferAgentId && !isEster)) return;
     
     this.isTransferring = true;
     const conversationId = this.selectedConversation.id;

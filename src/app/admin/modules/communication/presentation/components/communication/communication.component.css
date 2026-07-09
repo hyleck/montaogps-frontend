@@ -2602,6 +2602,66 @@
 :host-context(.app-light) .comm-attach-btn:hover { background: #e2e8f0; color: #000000; }
 :host-context(.app-light) .comm-send-btn { background: linear-gradient(135deg, #dc2626, #991b1b); color: #ffffff; }
 
+.comm-transfer-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-color, #e4e4e7);
+    font-weight: 700;
+}
+
+.comm-transfer-label__optional {
+    margin-left: 0.35rem;
+    color: #94a3b8;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.comm-transfer-textarea {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    resize: none;
+    padding: 0.75rem;
+    border: 1px solid var(--surface-border, #495057);
+    border-radius: 6px;
+    font-family: inherit;
+    background: #1f2937;
+    color: #e4e4e7;
+    outline: none;
+}
+
+.comm-transfer-textarea::placeholder {
+    color: rgba(228, 228, 231, 0.45);
+}
+
+.comm-transfer-textarea:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.16);
+}
+
+:host-context(.app-light) .comm-transfer-label {
+    color: #334155;
+}
+
+:host-context(.app-light) .comm-transfer-label__optional {
+    color: #64748b;
+}
+
+:host-context(.app-light) .comm-transfer-textarea {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #111827;
+}
+
+:host-context(.app-light) .comm-transfer-textarea::placeholder {
+    color: #94a3b8;
+}
+
+:host-context(.app-light) .comm-transfer-textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+
 /* Contact Sidebar (Right) FIX */
 :host-context(.app-light) .comm-contact-panel { background: #ffffff; border-left: 1px solid #e2e8f0; }
 :host-context(.app-light) .comm-contact-panel__header { border-bottom: 1px solid #e2e8f0; background: #f8fafc; color: #1e293b; }

@@ -8,6 +8,7 @@ import { Subject } from 'rxjs';
 import { FirebaseNotificationsService } from './core/services/firebase-notifications.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../environments/environment';
+import { ChatwootNotificationSoundService } from './core/services/chatwoot-notification-sound.service';
 
 @Component({
   selector: 'app-root',
@@ -24,7 +25,8 @@ export class AppComponent implements OnInit, OnDestroy {
     private chatwootService: ChatwootService,
     private router: Router,
     private firebaseNotifications: FirebaseNotificationsService,
-    private http: HttpClient
+    private http: HttpClient,
+    private chatwootNotificationSound: ChatwootNotificationSoundService,
   ) {
     // this.themes.setTheme('light');
   }
@@ -32,6 +34,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit() {
     // Monitorear cambios en la autenticación
     this.monitorAuthentication();
+    this.chatwootNotificationSound.start();
 
     // Monitorear cambios de ruta para reinicializar Chatwoot si es necesario
     this.router.events.pipe(
@@ -48,6 +51,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Limpiar Chatwoot al destruir el componente
     this.chatwootService.removeChatwoot();
+    this.chatwootNotificationSound.stop();
   }
 
   /**
