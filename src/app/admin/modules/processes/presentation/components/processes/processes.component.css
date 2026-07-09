@@ -99,6 +99,20 @@
     min-width: 150px;
 }
 
+.filter-group--search {
+    flex: 1.8;
+    min-width: 280px;
+}
+
+.search-field {
+    display: block;
+    width: 100%;
+}
+
+.search-field input {
+    width: 100%;
+}
+
 .filter-actions {
     display: flex;
     gap: 6px;

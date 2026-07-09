@@ -399,7 +399,12 @@
                     El usuario logueado debe ser un buzón {{ '@' + mailboxDomain }} para iniciar sesión en el servidor de correo.
                 </p>
                 <p *ngIf="mailConfigError" class="comm-mail-feedback comm-mail-feedback--error">{{ mailConfigError }}</p>
+                <p *ngIf="mailError" class="comm-mail-feedback comm-mail-feedback--error">{{ mailError }}</p>
                 <p *ngIf="mailboxLoading" class="comm-mail-feedback">Verificando cuenta en cPanel...</p>
+                <button *ngIf="mailError && !mailboxLoading" type="button" class="comm-mail-retry" (click)="loadMailboxStatus(true)">
+                    <i class="pi pi-refresh"></i>
+                    Reintentar
+                </button>
             </section>
         </div>
 

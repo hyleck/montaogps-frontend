@@ -24,6 +24,15 @@
     <!-- Filters -->
     <div class="processes-filters">
         <div class="filters-row">
+            <div class="filter-group filter-group--search">
+                <span class="p-input-icon-left search-field">
+                    <i class="pi pi-search"></i>
+                    <input pInputText type="text" [(ngModel)]="searchQuery"
+                        placeholder="Buscar por target, IMEI, referencia o detalle"
+                        (keyup.enter)="applyFilters()">
+                </span>
+            </div>
+
             <div class="filter-group">
                 <p-dropdown [options]="typeOptions" [(ngModel)]="selectedType"
                     placeholder="Tipo de proceso" [showClear]="true"
@@ -50,7 +59,8 @@
 
             <div class="filter-group">
                 <p-calendar [(ngModel)]="dateFrom" dateFormat="yy-mm-dd"
-                    placeholder="Desde" [showIcon]="true"
+                    placeholder="Desde fecha y hora" [showIcon]="true"
+                    [showTime]="true" [hourFormat]="'24'" [showSeconds]="false"
                     [style]="{'width': '100%'}" inputStyleClass="filter-calendar-input"
                     (onSelect)="applyFilters()" (onClear)="applyFilters()">
                 </p-calendar>
@@ -58,13 +68,16 @@
 
             <div class="filter-group">
                 <p-calendar [(ngModel)]="dateTo" dateFormat="yy-mm-dd"
-                    placeholder="Hasta" [showIcon]="true"
+                    placeholder="Hasta fecha y hora" [showIcon]="true"
+                    [showTime]="true" [hourFormat]="'24'" [showSeconds]="false"
                     [style]="{'width': '100%'}" inputStyleClass="filter-calendar-input"
                     (onSelect)="applyFilters()" (onClear)="applyFilters()">
                 </p-calendar>
             </div>
 
             <div class="filter-actions">
+                <button pButton icon="pi pi-search" label="Buscar"
+                    class="p-button-sm" (click)="applyFilters()"></button>
                 <button pButton icon="pi pi-file-excel" label="Excel"
                     class="p-button-sm p-button-success" (click)="exportExcel()"></button>
                 <button pButton icon="pi pi-times" label="Limpiar"

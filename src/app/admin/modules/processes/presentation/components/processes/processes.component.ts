@@ -27,8 +27,8 @@ export class ProcessesComponent implements OnInit {
   selectedType: number | null = null;
   selectedCreator: string | null = null;
   selectedMechanic: string | null = null;
-  dateFrom: Date | null = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  dateTo: Date | null = new Date();
+  dateFrom: Date | null = this.getTodayRange().from;
+  dateTo: Date | null = this.getTodayRange().to;
 
   typeOptions = Object.entries(PROCESS_TYPE_LABELS).map(([key, label]) => ({
     label,
@@ -80,8 +80,8 @@ export class ProcessesComponent implements OnInit {
     if (this.selectedType !== null && this.selectedType !== undefined) filters.type = this.selectedType;
     if (this.selectedCreator) filters.creator = this.selectedCreator;
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
-    if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString().split('T')[0];
-    if (this.dateTo) filters.dateTo = this.dateTo.toISOString().split('T')[0];
+    if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString();
+    if (this.dateTo) filters.dateTo = this.dateTo.toISOString();
     if (this.searchQuery?.trim()) filters.search = this.searchQuery.trim();
 
     this.processesService.getPaginated(this.currentPage, this.rowsPerPage, filters).subscribe({
@@ -119,8 +119,9 @@ export class ProcessesComponent implements OnInit {
     this.selectedType = null;
     this.selectedCreator = null;
     this.selectedMechanic = null;
-    this.dateFrom = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    this.dateTo = new Date();
+    const todayRange = this.getTodayRange();
+    this.dateFrom = todayRange.from;
+    this.dateTo = todayRange.to;
     this.currentPage = 1;
     this.loadProcesses();
   }
@@ -136,8 +137,9 @@ export class ProcessesComponent implements OnInit {
     if (this.selectedType !== null && this.selectedType !== undefined) filters.type = this.selectedType;
     if (this.selectedCreator) filters.creator = this.selectedCreator;
     if (this.selectedMechanic) filters.mechanic = this.selectedMechanic;
-    if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString().split('T')[0];
-    if (this.dateTo) filters.dateTo = this.dateTo.toISOString().split('T')[0];
+    if (this.dateFrom) filters.dateFrom = this.dateFrom.toISOString();
+    if (this.dateTo) filters.dateTo = this.dateTo.toISOString();
+    if (this.searchQuery?.trim()) filters.search = this.searchQuery.trim();
 
     const res = await this.processesService.getPaginated(1, 10000, filters).toPromise();
     const allProcesses = res?.data || [];
@@ -226,6 +228,16 @@ export class ProcessesComponent implements OnInit {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Procesos');
     XLSX.writeFile(wb, `procesos_${new Date().toISOString().split('T')[0]}.xlsx`);
+  }
+
+  private getTodayRange(): { from: Date; to: Date } {
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+
+    const to = new Date();
+    to.setHours(23, 59, 59, 999);
+
+    return { from, to };
   }
 
   getTypeLabel(type: number): string {

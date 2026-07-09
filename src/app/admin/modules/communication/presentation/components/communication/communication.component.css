@@ -167,6 +167,24 @@
     background: rgba(251, 113, 133, 0.1);
 }
 
+.comm-mail-retry {
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border: 1px solid rgba(52, 211, 153, 0.45);
+    border-radius: 8px;
+    background: rgba(52, 211, 153, 0.12);
+    color: #34d399;
+    padding: 0.65rem 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.comm-mail-retry:hover {
+    background: rgba(52, 211, 153, 0.18);
+}
+
 .comm-email__sidebar {
     width: 220px;
     flex-shrink: 0;

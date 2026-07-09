@@ -165,6 +165,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   emailReplyFile: File | null = null;
 
   private readonly mailboxApiUrl = `${environment.apiUrl}/mailbox`;
+  private readonly MAILBOX_STATUS_TIMEOUT_MS = 20000;
   mailConfigPassword: string = '';
   mailConfigLoading: boolean = false;
   mailConfigError: string = '';
@@ -512,9 +513,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
     this.mailboxLoading = true;
     this.mailError = '';
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), this.MAILBOX_STATUS_TIMEOUT_MS);
 
     fetch(`${this.mailboxApiUrl}/status${this.mailboxQuery()}`, {
-      headers: this.mailboxHeaders()
+      headers: this.mailboxHeaders(),
+      signal: controller.signal
     })
       .then(async response => {
         if (response.status === 401) {
@@ -539,9 +543,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         }
       })
       .catch(error => {
-        this.mailError = error instanceof Error ? error.message : 'No se pudo cargar el buzon';
+        this.mailError = error?.name === 'AbortError'
+          ? 'El servidor tardo demasiado preparando el buzon. Intenta de nuevo.'
+          : error instanceof Error ? error.message : 'No se pudo cargar el buzon';
       })
       .finally(() => {
+        window.clearTimeout(timeout);
         this.mailboxLoading = false;
         this.cdr.detectChanges();
       });

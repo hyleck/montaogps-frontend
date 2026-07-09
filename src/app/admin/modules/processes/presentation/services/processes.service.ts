@@ -70,8 +70,8 @@ export class ProcessesService {
     if (filters?.type !== undefined && filters.type !== null) url += `&type=${filters.type}`;
     if (filters?.creator) url += `&creator=${encodeURIComponent(filters.creator)}`;
     if (filters?.mechanic) url += `&mechanic=${encodeURIComponent(filters.mechanic)}`;
-    if (filters?.dateFrom) url += `&dateFrom=${filters.dateFrom}`;
-    if (filters?.dateTo) url += `&dateTo=${filters.dateTo}`;
+    if (filters?.dateFrom) url += `&dateFrom=${encodeURIComponent(filters.dateFrom)}`;
+    if (filters?.dateTo) url += `&dateTo=${encodeURIComponent(filters.dateTo)}`;
     if (filters?.search) url += `&search=${encodeURIComponent(filters.search)}`;
     return this.http.get<PaginatedProcessResponse>(url);
   }
