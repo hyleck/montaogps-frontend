@@ -1,8 +1,7 @@
 import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
-import { forkJoin, of } from 'rxjs';
 import { ChatwootApiService } from '@core/services/chatwoot-api.service';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
@@ -12,6 +11,7 @@ import { FirebaseNotificationsService } from '@core/services/firebase-notificati
 import { SystemService } from '@core/services/system.service';
 import { InventoryService } from '@core/services/inventory.service';
 import { MessageService, MenuItem } from 'primeng/api';
+import { environment } from '../../../../../../../environments/environment';
 
 interface ChatConversation {
   id: number;
@@ -49,6 +49,68 @@ interface ChatMessage {
 interface EmailInbox {
   id: number;
   email: string;
+}
+
+interface MailAddress {
+  name: string;
+  address: string;
+}
+
+interface MailboxOption {
+  email: string;
+  label: string;
+  own: boolean;
+  delegated: boolean;
+}
+
+interface MailboxStatus {
+  configured: boolean;
+  email: string;
+  selectedMailboxEmail: string;
+  mailboxes: MailboxOption[];
+  folders?: MailFolderItem[];
+  domain: string;
+  imapHost: string;
+  smtpHost: string;
+  messages: number;
+  unseen: number;
+}
+
+interface MailMessageSummary {
+  uid: number;
+  mailboxEmail?: string;
+  subject: string;
+  from: MailAddress[];
+  date: string | null;
+  unread: boolean;
+  flagged: boolean;
+  size: number;
+}
+
+interface MailMessageDetail extends MailMessageSummary {
+  to: MailAddress[];
+  cc: MailAddress[];
+  bcc: MailAddress[];
+  text: string;
+  html: string;
+  attachments: Array<{
+    filename: string;
+    contentType: string;
+    size: number;
+  }>;
+}
+
+interface MailMessageListResponse {
+  box: string;
+  mailboxEmail: string;
+  total: number;
+  messages: MailMessageSummary[];
+}
+
+interface MailFolderItem {
+  id: string;
+  label: string;
+  icon: string;
 }
 
 interface ChatAttachment {
@@ -101,6 +163,24 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   sendingEmailReply: boolean = false;
   composeFiles: File[] = [];
   emailReplyFile: File | null = null;
+
+  private readonly mailboxApiUrl = `${environment.apiUrl}/mailbox`;
+  mailConfigPassword: string = '';
+  mailConfigLoading: boolean = false;
+  mailConfigError: string = '';
+  mailboxStatus: MailboxStatus | null = null;
+  mailboxLoading: boolean = false;
+  mailReading: boolean = false;
+  mailError: string = '';
+  mailMessage: string = '';
+  selectedMailboxEmail: string = '';
+  selectedMailBox: string = 'INBOX';
+  mailMessages: MailMessageSummary[] = [];
+  mailMessagesTotal: number = 0;
+  selectedMailMessage: MailMessageDetail | null = null;
+  mailFolders: MailFolderItem[] = [
+    { id: 'INBOX', label: 'Entrada', icon: 'pi-inbox' },
+  ];
 
   // Chat
   messages: ChatMessage[] = [];
@@ -227,6 +307,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       if (convId) {
         this.pendingConversationId = +convId;
       }
+      if (this.activeTab === 'correo') {
+        this.initializeMailbox();
+      }
     });
   }
 
@@ -246,6 +329,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       return;
     }
     this.currentUserId = currentUser.id;
+    this.currentUserEmail = currentUser.email || '';
+    this.hasEmailInbox = true;
+    this.noInbox = false;
     this.userService.getById(currentUser.id).subscribe({
       next: (user: any) => {
         this.autoResponse = user?.auto_response || false;
@@ -259,26 +345,16 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           this.noInbox = false;
           this.loadConversations();
         } else {
-          this.noInbox = true;
+          this.noInbox = false;
         }
-        if (user?.inbox2) {
-          this.userInbox2Id = user.inbox2;
-          this.emailInboxIds.push(user.inbox2);
-          this.loadInboxEmail();
-        }
-        if (user?.inbox3) {
-          this.userInbox3Id = user.inbox3;
-          this.emailInboxIds.push(user.inbox3);
-        }
-        this.hasEmailInbox = this.emailInboxIds.length > 0;
-        if (this.hasEmailInbox) {
-          this.loadEmailConversations();
-          this.loadAllInboxEmails();
+        this.hasEmailInbox = true;
+        if (this.activeTab === 'correo') {
+          this.initializeMailbox();
         }
       },
       error: () => {
-        this.noInbox = true;
-        this.hasEmailInbox = false;
+        this.noInbox = false;
+        this.hasEmailInbox = true;
       }
     });
   }
@@ -296,6 +372,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   navigateToTab(tab: 'chat' | 'correo' | 'foro'): void {
     this.activeTab = tab;
     this.router.navigate(['/admin/communication', tab]);
+    if (tab === 'correo') {
+      this.initializeMailbox();
+    }
   }
 
   private loadInboxEmail(): void {
@@ -330,106 +409,526 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   // ============================
-  // EMAIL (INBOX 2)
+  // GPS MAILBOX
   // ============================
 
-  loadEmailConversations(): void {
-    // Attempt to load from cache for instant initial rendering
-    const cacheKey = `chatwoot_email_convs_${this.emailInboxIds.join('_')}`;
-    if (!this.emailConversations.length && this.emailInboxIds.length > 0) {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        try {
-          this.emailConversations = JSON.parse(cached);
-          this.filterEmailConversations();
-          
-          if (!this.pendingConversationId && this.activeTab === 'correo' && !this.selectedEmail) {
-            const lastId = localStorage.getItem(`last_opened_email_${this.currentUserId}`);
-            if (lastId) {
-              const lastConv = this.emailConversations.find(c => c.id === Number(lastId));
-              if (lastConv) this.selectEmail(lastConv, true);
-            }
-          }
-        } catch (e) { }
-      }
-    }
-
-    this.loadingEmailConversations = this.emailConversations.length === 0;
-    const requests = this.emailInboxIds.map(id =>
-      this.chatwootApi.getConversations(id)
-    );
-    if (requests.length === 0) {
-      this.loadingEmailConversations = false;
-      return;
-    }
-    forkJoin(requests).subscribe({
-      next: (results: any[]) => {
-        this.loadingEmailConversations = false;
-        let allConversations: ChatConversation[] = [];
-        results.forEach((res, index) => {
-          if (res.success) {
-            const convs = (res.conversations || []).map((c: ChatConversation) => ({
-              ...c,
-              inbox_id: this.emailInboxIds[index]
-            }));
-            allConversations = allConversations.concat(convs);
-          }
-        });
-        // Sort by most recent message
-        allConversations.sort((a, b) => (b.last_message_time || 0) - (a.last_message_time || 0));
-        this.emailConversations = allConversations;
-        localStorage.setItem(cacheKey, JSON.stringify(this.emailConversations));
-        
-        this.filterEmailConversations();
-        if (this.pendingConversationId && this.activeTab === 'correo') {
-          const conv = this.emailConversations.find(c => c.id === this.pendingConversationId);
-          if (conv) this.selectEmail(conv, false);
-          this.pendingConversationId = null;
-        } else if (!this.selectedEmail && this.activeTab === 'correo') {
-          const lastId = localStorage.getItem(`last_opened_email_${this.currentUserId}`);
-          if (lastId) {
-            const lastConv = this.emailConversations.find(c => c.id === Number(lastId));
-            if (lastConv) this.selectEmail(lastConv, true);
-          }
-        }
-      },
-      error: () => {
-        this.loadingEmailConversations = false;
-      }
-    });
+  get isMailboxSessionAvailable(): boolean {
+    return !!this.mailboxAuthToken();
   }
 
-  filterEmailConversations(): void {
-    let source = this.emailConversations;
+  get mailboxOptions(): MailboxOption[] {
+    return this.mailboxStatus?.mailboxes || [];
+  }
 
-    // Filter by Inbox
-    if (this.selectedInboxFilter !== 0) {
-      source = source.filter(c => c.inbox_id === this.selectedInboxFilter);
+  get mailboxDomain(): string {
+    return (this.mailboxStatus?.domain || 'montao.net').toLowerCase();
+  }
+
+  get mailConfigEmailIsCompatible(): boolean {
+    const email = this.currentUserEmail.trim().toLowerCase();
+    return !!email && email.endsWith(`@${this.mailboxDomain}`);
+  }
+
+  get visibleMailMessages(): MailMessageSummary[] {
+    const term = this.emailSearchTerm.trim().toLowerCase();
+    if (!term) return this.mailMessages;
+
+    return this.mailMessages.filter(message =>
+      [
+        message.subject,
+        this.mailAddressLine(message.from),
+        this.formatMailDate(message.date)
+      ].join(' ').toLowerCase().includes(term)
+    );
+  }
+
+  initializeMailbox(): void {
+    if (!this.isMailboxSessionAvailable || this.mailboxLoading) {
+      return;
     }
 
-    // Filter by Type (received vs sent vs spam)
-    if (this.selectedTypeFilter === 'spam') {
-      source = source.filter(c => c.labels?.includes('spam') || c.labels?.includes('Spam'));
-    } else if (this.selectedTypeFilter === 'sent') {
-      source = source.filter(c => c.last_message_type === 1 && !c.labels?.includes('spam') && !c.labels?.includes('Spam'));
-    } else { // 'received' as default
-      source = source.filter(c => c.last_message_type !== 1 && !c.labels?.includes('spam') && !c.labels?.includes('Spam'));
+    this.loadMailboxStatus(true);
+  }
+
+  saveMailboxConfig(): void {
+    const password = this.mailConfigPassword;
+
+    if (!this.mailConfigEmailIsCompatible) {
+      this.mailConfigError = `El usuario logueado debe ser un correo @${this.mailboxDomain}.`;
+      return;
     }
 
-    if (!this.emailSearchTerm.trim()) {
-      this.filteredEmailConversations = [...source];
-    } else {
-      const term = this.emailSearchTerm.toLowerCase();
-      this.filteredEmailConversations = source.filter(c =>
-        c.contact.name.toLowerCase().includes(term) ||
-        (c.last_message || '').toLowerCase().includes(term)
-      );
+    if (!password) {
+      this.mailConfigError = 'Escribe la contrasena del buzon.';
+      return;
     }
+
+    this.mailConfigLoading = true;
+    this.mailConfigError = '';
+
+    fetch(`${this.mailboxApiUrl}/config`, {
+      method: 'POST',
+      headers: {
+        ...this.mailboxHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ password })
+    })
+      .then(async response => {
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({ message: 'No se pudo configurar el buzon' }));
+          throw new Error(payload.message || 'No se pudo configurar el buzon');
+        }
+        return response.json();
+      })
+      .then((status: MailboxStatus) => {
+        this.mailboxStatus = status;
+        this.selectedMailboxEmail = status.selectedMailboxEmail || status.email || status.mailboxes?.[0]?.email || '';
+        this.mailConfigPassword = '';
+        this.loadMailboxStatus(true);
+      })
+      .catch(error => {
+        this.mailConfigError = error instanceof Error ? error.message : 'No se pudo configurar el buzon';
+      })
+      .finally(() => {
+        this.mailConfigLoading = false;
+        this.cdr.detectChanges();
+      });
+  }
+
+  resetMailboxView(): void {
+    this.mailboxStatus = null;
+    this.mailMessages = [];
+    this.mailMessagesTotal = 0;
+    this.selectedMailMessage = null;
+    this.selectedMailboxEmail = '';
+    this.selectedMailBox = 'INBOX';
+    this.mailError = '';
+    this.mailMessage = '';
+  }
+
+  loadMailboxStatus(loadMessages: boolean = false): void {
+    if (!this.isMailboxSessionAvailable) return;
+
+    this.mailboxLoading = true;
+    this.mailError = '';
+
+    fetch(`${this.mailboxApiUrl}/status${this.mailboxQuery()}`, {
+      headers: this.mailboxHeaders()
+    })
+      .then(async response => {
+        if (response.status === 401) {
+          this.resetMailboxView();
+          throw new Error('La sesion expiro. Inicia sesion de nuevo.');
+        }
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({ message: 'No se pudo cargar el buzon' }));
+          throw new Error(payload.message || 'No se pudo cargar el buzon');
+        }
+        return response.json();
+      })
+      .then((status: MailboxStatus) => {
+        this.mailboxStatus = status;
+        this.selectedMailboxEmail = status.selectedMailboxEmail || status.email || status.mailboxes?.[0]?.email || '';
+        this.mailFolders = status.folders?.length ? status.folders : [{ id: 'INBOX', label: 'Entrada', icon: 'pi-inbox' }];
+        if (!this.mailFolders.some(folder => folder.id === this.selectedMailBox)) {
+          this.selectedMailBox = this.mailFolders[0]?.id || 'INBOX';
+        }
+        if (loadMessages && status.configured) {
+          this.loadMailMessages();
+        }
+      })
+      .catch(error => {
+        this.mailError = error instanceof Error ? error.message : 'No se pudo cargar el buzon';
+      })
+      .finally(() => {
+        this.mailboxLoading = false;
+        this.cdr.detectChanges();
+      });
+  }
+
+  updateSelectedMailbox(email: string): void {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || cleanEmail === this.selectedMailboxEmail) return;
+
+    this.selectedMailboxEmail = cleanEmail;
+    this.selectedMailBox = 'INBOX';
+    this.selectedMailMessage = null;
+    this.mailMessages = [];
+    this.mailMessagesTotal = 0;
+    this.loadMailboxStatus(true);
+  }
+
+  updateMailFolder(folderId: string): void {
+    const nextFolder = this.mailFolders.find(folder => folder.id === folderId)?.id || 'INBOX';
+    if (nextFolder === this.selectedMailBox) return;
+
+    this.selectedMailBox = nextFolder;
+    this.selectedMailMessage = null;
+    this.mailMessages = [];
+    this.mailMessagesTotal = 0;
+    this.loadMailMessages();
+  }
+
+  loadMailMessages(): void {
+    if (!this.isMailboxSessionAvailable || !this.mailboxStatus?.configured) return;
+
+    this.mailboxLoading = true;
+    this.mailError = '';
+
+    fetch(`${this.mailboxApiUrl}/messages${this.mailboxQuery({ limit: '50' })}`, {
+      headers: this.mailboxHeaders()
+    })
+      .then(async response => {
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({ message: 'No se pudieron cargar los correos' }));
+          throw new Error(payload.message || 'No se pudieron cargar los correos');
+        }
+        return response.json();
+      })
+      .then((payload: MailMessageListResponse) => {
+        this.mailMessages = payload.messages || [];
+        this.mailMessagesTotal = payload.total || 0;
+        this.selectedMailBox = payload.box || this.selectedMailBox;
+        this.selectedMailboxEmail = payload.mailboxEmail || this.selectedMailboxEmail;
+        this.selectedMailMessage = null;
+      })
+      .catch(error => {
+        this.mailError = error instanceof Error ? error.message : 'No se pudieron cargar los correos';
+      })
+      .finally(() => {
+        this.mailboxLoading = false;
+        this.cdr.detectChanges();
+      });
+  }
+
+  openMailMessage(message: MailMessageSummary): void {
+    if (!this.isMailboxSessionAvailable) return;
+
+    this.mailReading = true;
+    this.mailError = '';
+
+    fetch(`${this.mailboxApiUrl}/messages/${message.uid}${this.mailboxQuery()}`, {
+      headers: this.mailboxHeaders()
+    })
+      .then(async response => {
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({ message: 'No se pudo abrir el correo' }));
+          throw new Error(payload.message || 'No se pudo abrir el correo');
+        }
+        return response.json();
+      })
+      .then((detail: MailMessageDetail) => {
+        this.selectedMailMessage = detail;
+        if (message.unread) {
+          this.markMailRead(message.uid);
+          this.mailMessages = this.mailMessages.map(item =>
+            item.uid === message.uid ? { ...item, unread: false } : item
+          );
+          if (this.mailboxStatus) {
+            this.mailboxStatus = {
+              ...this.mailboxStatus,
+              unseen: Math.max(0, (this.mailboxStatus.unseen || 0) - 1)
+            };
+          }
+        }
+      })
+      .catch(error => {
+        this.mailError = error instanceof Error ? error.message : 'No se pudo abrir el correo';
+      })
+      .finally(() => {
+        this.mailReading = false;
+        this.cdr.detectChanges();
+      });
+  }
+
+  goBackEmail(): void {
+    this.selectedMailMessage = null;
+  }
+
+  moveSelectedMail(targetBox: string, label: string): void {
+    const selected = this.selectedMailMessage;
+    if (!this.isMailboxSessionAvailable || !selected) return;
+
+    this.mailReading = true;
+    this.clearMailFeedback();
+
+    fetch(`${this.mailboxApiUrl}/messages/${selected.uid}/move${this.mailboxQuery()}`, {
+      method: 'PATCH',
+      headers: {
+        ...this.mailboxHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ targetBox })
+    })
+      .then(async response => {
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({ message: `No se pudo mover a ${label}` }));
+          throw new Error(payload.message || `No se pudo mover a ${label}`);
+        }
+      })
+      .then(() => {
+        this.mailMessages = this.mailMessages.filter(message => message.uid !== selected.uid);
+        this.mailMessagesTotal = Math.max(0, this.mailMessagesTotal - 1);
+        this.selectedMailMessage = null;
+        this.mailMessage = `Correo movido a ${label}`;
+      })
+      .catch(error => {
+        this.mailError = error instanceof Error ? error.message : `No se pudo mover a ${label}`;
+      })
+      .finally(() => {
+        this.mailReading = false;
+        this.cdr.detectChanges();
+      });
+  }
+
+  toggleSelectedMailReadState(): void {
+    const selected = this.selectedMailMessage;
+    if (!this.isMailboxSessionAvailable || !selected) return;
+
+    const read = selected.unread;
+    this.clearMailFeedback();
+
+    fetch(`${this.mailboxApiUrl}/messages/${selected.uid}/read-state${this.mailboxQuery()}`, {
+      method: 'PATCH',
+      headers: {
+        ...this.mailboxHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ read })
+    })
+      .then(async response => {
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({ message: 'No se pudo marcar el correo' }));
+          throw new Error(payload.message || 'No se pudo marcar el correo');
+        }
+      })
+      .then(() => {
+        const nextUnread = !read;
+        this.selectedMailMessage = { ...selected, unread: nextUnread };
+        this.mailMessages = this.mailMessages.map(message =>
+          message.uid === selected.uid ? { ...message, unread: nextUnread } : message
+        );
+        this.mailMessage = read ? 'Correo marcado como leido' : 'Correo marcado como no leido';
+      })
+      .catch(error => {
+        this.mailError = error instanceof Error ? error.message : 'No se pudo marcar el correo';
+      })
+      .finally(() => this.cdr.detectChanges());
+  }
+
+  replyToSelected(): void {
+    const selected = this.selectedMailMessage;
+    if (!selected) return;
+
+    this.openCompose();
+    this.composeEmail = selected.from[0]?.address || '';
+    this.composeSubject = selected.subject.toLowerCase().startsWith('re:') ? selected.subject : `Re: ${selected.subject}`;
+    this.composeBody = `\n\n---\n${selected.text || ''}`.trimStart();
+  }
+
+  replyAllToSelected(): void {
+    const selected = this.selectedMailMessage;
+    if (!selected) return;
+
+    const currentMailbox = this.selectedMailboxEmail.toLowerCase();
+    const recipients = [...selected.from, ...selected.to, ...selected.cc]
+      .map(address => address.address || address.name)
+      .filter(Boolean)
+      .filter((address, index, list) => {
+        const normalized = address.toLowerCase();
+        return normalized !== currentMailbox && list.findIndex(item => item.toLowerCase() === normalized) === index;
+      });
+
+    this.openCompose();
+    this.composeEmail = recipients.join(', ');
+    this.composeSubject = selected.subject.toLowerCase().startsWith('re:') ? selected.subject : `Re: ${selected.subject}`;
+    this.composeBody = `\n\n---\n${selected.text || ''}`.trimStart();
+  }
+
+  forwardSelected(): void {
+    const selected = this.selectedMailMessage;
+    if (!selected) return;
+
+    this.openCompose();
+    this.composeEmail = '';
+    this.composeSubject = selected.subject.toLowerCase().startsWith('fwd:') ? selected.subject : `Fwd: ${selected.subject}`;
+    this.composeBody = `\n\n--- Mensaje reenviado ---\nDe: ${this.mailAddressLine(selected.from)}\nPara: ${this.mailAddressLine(selected.to)}\nFecha: ${this.formatMailDate(selected.date)}\nAsunto: ${this.mailSubject(selected)}\n\n${selected.text || ''}`.trimStart();
+  }
+
+  mailFolderBadge(folderId: string): string {
+    if (folderId === 'INBOX') {
+      const unseen = this.mailboxStatus?.unseen || 0;
+      return unseen > 0 ? String(unseen) : '';
+    }
+
+    if (folderId === this.selectedMailBox && this.mailMessagesTotal > 0) {
+      return String(this.mailMessagesTotal);
+    }
+
+    return '';
   }
 
   setTypeFilter(type: 'received' | 'sent' | 'spam'): void {
     this.selectedTypeFilter = type;
-    this.filterEmailConversations();
+    const labelByType = {
+      received: 'Entrada',
+      sent: 'Enviados',
+      spam: 'SPAM'
+    } as const;
+    const folder = this.mailFolders.find(item => item.label === labelByType[type]);
+    this.updateMailFolder(folder?.id || 'INBOX');
+  }
+
+  filterEmailConversations(): void {
+    this.cdr.detectChanges();
+  }
+
+  private markMailRead(uid: number): void {
+    if (!this.isMailboxSessionAvailable) return;
+
+    fetch(`${this.mailboxApiUrl}/messages/${uid}/read${this.mailboxQuery()}`, {
+      method: 'PATCH',
+      headers: this.mailboxHeaders()
+    }).catch(() => undefined);
+  }
+
+  private mailboxQuery(extra: Record<string, string> = {}): string {
+    const params = new URLSearchParams();
+
+    if (this.selectedMailBox) {
+      params.set('box', this.selectedMailBox);
+    }
+
+    if (this.selectedMailboxEmail) {
+      params.set('mailboxEmail', this.selectedMailboxEmail);
+    }
+
+    for (const [key, value] of Object.entries(extra)) {
+      params.set(key, value);
+    }
+
+    const query = params.toString();
+    return query ? `?${query}` : '';
+  }
+
+  private mailboxHeaders(): Record<string, string> {
+    return { Authorization: `Bearer ${this.mailboxAuthToken()}` };
+  }
+
+  private mailboxAuthToken(): string {
+    return localStorage.getItem('authtoken') || '';
+  }
+
+  private clearMailFeedback(): void {
+    this.mailError = '';
+    this.mailMessage = '';
+    this.mailConfigError = '';
+  }
+
+  mailAddressLine(addresses: MailAddress[] = []): string {
+    return addresses
+      .map(address => address.name || address.address)
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  mailSenderName(addresses: MailAddress[] = []): string {
+    return this.mailAddressLine(addresses) || 'Remitente desconocido';
+  }
+
+  mailSenderInitial(addresses: MailAddress[] = []): string {
+    const sender = this.mailSenderName(addresses).trim();
+    return (sender[0] || 'C').toUpperCase();
+  }
+
+  mailSubject(message: Pick<MailMessageSummary, 'subject'>): string {
+    return message.subject?.trim() || '(sin asunto)';
+  }
+
+  mailBodyHtml(message: MailMessageDetail): SafeHtml {
+    const text = message.text?.trim() || 'Este correo no tiene contenido de texto.';
+    const linked = this.linkifyMailBody(this.escapeHtml(text));
+
+    return this.sanitizer.bypassSecurityTrustHtml(linked.replace(/\n/g, '<br>'));
+  }
+
+  private linkifyMailBody(escapedText: string): string {
+    const anchors: string[] = [];
+    const addAnchor = (url: string, label = url): string => {
+      const cleanUrl = url.trim();
+      const href = cleanUrl.toLowerCase().startsWith('www.') ? `https://${cleanUrl}` : cleanUrl;
+      const token = `__MAIL_LINK_${anchors.length}__`;
+      anchors.push(`<a href="${href}" target="_blank" rel="noopener noreferrer">${label.trim()}</a>`);
+      return token;
+    };
+
+    let linked = escapedText.replace(
+      /\[([^\]]+)\]\(((?:https?:\/\/|www\.)[^)\s]+)\)/gi,
+      (_match, label: string, url: string) => addAnchor(url, label),
+    );
+
+    linked = linked.replace(
+      /\[((?:https?:\/\/|www\.)[^\]\s]+)\]/gi,
+      (_match, url: string) => addAnchor(url),
+    );
+
+    linked = linked.replace(
+      /((?:https?:\/\/|www\.)[^\s<]+)/gi,
+      (match) => {
+        const clean = match.replace(/[.,;:!?)]*$/, '');
+        const trailing = match.slice(clean.length);
+        return `${addAnchor(clean)}${trailing}`;
+      },
+    );
+
+    return anchors.reduce(
+      (body, anchor, index) => body.replace(`__MAIL_LINK_${index}__`, anchor),
+      linked,
+    );
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  mailRowPreview(message: MailMessageSummary): string {
+    return message.unread ? 'Sin leer' : 'Leido';
+  }
+
+  formatMailDate(value: string | null): string {
+    if (!value) return '-';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const isSameYear = date.getFullYear() === now.getFullYear();
+
+    if (isToday) {
+      return date.toLocaleTimeString('es-DO', {
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    }
+
+    return date.toLocaleDateString('es-DO', {
+      day: 'numeric',
+      month: 'short',
+      ...(isSameYear ? {} : { year: 'numeric' })
+    });
+  }
+
+  formatAttachmentSize(size: number): string {
+    if (!Number.isFinite(size) || size <= 0) return '0 KB';
+    if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   }
 
   // ============================
@@ -568,145 +1067,91 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
   }
 
-  selectEmail(conv: ChatConversation, navigate: boolean = true): void {
-    conv.unread_count = 0; // Clear indicator instantly mimicking visual read receipts
-    this.selectedEmail = conv;
-    if (this.currentUserId) {
-      localStorage.setItem(`last_opened_email_${this.currentUserId}`, conv.id.toString());
-    }
-    this.loadEmailMessages();
-    if (navigate) {
-      this.location.go(`/admin/communication/correo/${conv.id}`);
-    }
-  }
-
-  loadEmailMessages(): void {
-    if (!this.selectedEmail) return;
-    this.loadingEmailMessages = true;
-    this.chatwootApi.getConversationMessages(this.selectedEmail.id).subscribe({
-      next: (res: any) => {
-        this.loadingEmailMessages = false;
-        if (res.success && res.messages?.length) {
-          this.emailMessages = res.messages.map((msg: any) => ({
-            id: msg.id,
-            from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
-            text: msg.content,
-            time: new Date(msg.created_at * 1000),
-            attachments: msg.attachments || [],
-          }));
-        } else {
-          this.emailMessages = [];
-        }
-      },
-      error: () => {
-        this.loadingEmailMessages = false;
-      }
-    });
-  }
-
-  goBackEmail(): void {
-    this.selectedEmail = null;
-    this.emailMessages = [];
-    this.router.navigate(['/admin/communication', 'correo']);
-  }
-
   openCompose(): void {
+    if (!this.mailboxStatus?.configured) {
+      this.mailError = 'No hay buzon disponible para enviar correos.';
+      return;
+    }
+
     this.showCompose = true;
     this.sendingEmail = false;
     this.composeEmail = '';
     this.composeSubject = '';
     this.composeBody = '';
     this.composeFiles = [];
-    if (this.emailInboxes.length > 0) {
-      this.composeFromInboxId = this.emailInboxes[0].id;
-    }
+    this.clearMailFeedback();
   }
 
   closeCompose(): void {
+    if (this.sendingEmail) return;
+
     this.showCompose = false;
     this.sendingEmail = false;
+    this.composeEmail = '';
+    this.composeSubject = '';
+    this.composeBody = '';
     this.composeFiles = [];
+    this.clearMailFeedback();
   }
 
   sendComposedEmail(): void {
-    if (!this.composeEmail.trim() || !this.composeBody.trim()) return;
+    if (!this.isMailboxSessionAvailable) {
+      this.mailError = 'Tu sesion expiro. Inicia sesion de nuevo.';
+      return;
+    }
+
+    const recipients = this.composeEmail.trim();
+    const hasContent = this.composeSubject.trim() || this.composeBody.trim() || this.composeFiles.length;
+
+    if (!recipients) {
+      this.mailError = 'Agrega al menos un destinatario.';
+      return;
+    }
+
+    if (!hasContent) {
+      this.mailError = 'Escribe un asunto, mensaje o adjunta un archivo.';
+      return;
+    }
+
     this.sendingEmail = true;
-    const fullMessage = this.composeSubject.trim()
-      ? `${this.composeSubject.trim()}\n\n${this.composeBody.trim()}`
-      : this.composeBody.trim();
+    this.clearMailFeedback();
 
-    const files = this.composeFiles.length > 0 ? this.composeFiles : undefined;
-    this.chatwootApi.sendMessage(this.composeEmail.trim(), fullMessage, undefined, this.composeFromInboxId || this.userInbox2Id, files, this.chatwootAgentId).subscribe({
-      next: () => {
-        this.sendingEmail = false;
-        this.showCompose = false;
-        this.composeFiles = [];
-        this.loadEmailConversations();
-      },
-      error: () => {
-        this.sendingEmail = false;
-      }
-    });
-  }
+    const formData = new FormData();
+    formData.append('mailboxEmail', this.selectedMailboxEmail);
+    formData.append('to', recipients);
+    formData.append('subject', this.composeSubject.trim());
+    formData.append('text', this.composeBody);
 
-  sendEmailReply(): void {
-    if (!this.selectedEmail) return;
-    // Allow sending file without text or text without file
-    if (!this.emailReplyInput.trim() && !this.emailReplyFile) return;
-    this.sendingEmailReply = true;
+    for (const file of this.composeFiles) {
+      formData.append('attachments', file, file.name);
+    }
 
-    const sendTextAndFile = () => {
-      // Send text message
-      const replyText = this.emailReplyInput.trim();
-      const textObs = replyText
-        ? this.chatwootApi.sendConversationMessage(this.selectedEmail!.id, replyText, undefined, undefined, this.chatwootAgentId)
-        : of(null);
-
-      textObs.subscribe({
-        next: () => {
-          if (this.emailReplyInput.trim()) {
-            const sentMsg: ChatMessage = {
-              id: Date.now(),
-              from: 'me',
-              text: this.emailReplyInput.trim(),
-              time: new Date(),
-              attachments: []
-            };
-            this.emailMessages.push(sentMsg);
-          }
-          this.emailReplyInput = '';
-
-          // Send file if any
-          if (this.emailReplyFile && this.selectedEmail) {
-            this.chatwootApi.sendAttachment(this.selectedEmail.id, this.emailReplyFile).subscribe({
-              next: () => {
-                this.sendingEmailReply = false;
-                const fileMsg: ChatMessage = {
-                  id: Date.now() + 1,
-                  from: 'me',
-                  text: '📎 Archivo adjunto enviado',
-                  time: new Date(),
-                  attachments: []
-                };
-                this.emailMessages.push(fileMsg);
-                this.emailReplyFile = null;
-              },
-              error: () => {
-                this.sendingEmailReply = false;
-                this.emailReplyFile = null;
-              }
-            });
-          } else {
-            this.sendingEmailReply = false;
-          }
-        },
-        error: () => {
-          this.sendingEmailReply = false;
+    fetch(`${this.mailboxApiUrl}/send`, {
+      method: 'POST',
+      headers: this.mailboxHeaders(),
+      body: formData
+    })
+      .then(async response => {
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({ message: 'No se pudo enviar el correo' }));
+          throw new Error(payload.message || 'No se pudo enviar el correo');
         }
+      })
+      .then(() => {
+        this.sendingEmail = false;
+        this.closeCompose();
+        this.mailMessage = 'Correo enviado';
+        if (this.mailFolders.find(folder => folder.id === this.selectedMailBox)?.label === 'Enviados') {
+          this.loadMailMessages();
+        }
+      })
+      .catch(error => {
+        this.mailError = error instanceof Error ? error.message : 'No se pudo enviar el correo';
+      })
+      .finally(() => {
+        this.sendingEmail = false;
+        this.cdr.detectChanges();
       });
-    };
-
-    sendTextAndFile();
   }
 
   onComposeFileSelect(event: Event): void {

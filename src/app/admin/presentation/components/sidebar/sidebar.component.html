@@ -29,8 +29,8 @@
                 <div *ngIf="sidaberOptions.principalItems" class="sidebar__title">
                     <span>{{sidaberOptions.principalTitle}}</span>
                 </div>
-                <div [routerLink]="getExternalUrl(item) || item.path === '/admin/montao-rent' ? null : item.path"
-                    [routerLinkActive]="getExternalUrl(item) || item.path === '/admin/montao-rent' ? '' : 'sidebar__option--active'"
+                <div [routerLink]="getExternalUrl(item) ? null : item.path"
+                    [routerLinkActive]="getExternalUrl(item) ? '' : 'sidebar__option--active'"
                     (click)="handleItemClick($event, item)" *ngFor="let item of filteredPrincipalItems"
                     class="sidebar__option ">
                     <div class="sidebar__option-icon"> <i class="{{ item.icon }}"></i></div>
@@ -92,8 +92,8 @@
                 <div *ngIf="sidaberOptions.principalItems" class="sidebar__title">
                     <span>{{sidaberOptions.principalTitle}}</span>
                 </div>
-                <div [routerLink]="getExternalUrl(item) || item.path === '/admin/montao-rent' ? null : item.path"
-                    [routerLinkActive]="getExternalUrl(item) || item.path === '/admin/montao-rent' ? '' : 'sidebar__option--active'"
+                <div [routerLink]="getExternalUrl(item) ? null : item.path"
+                    [routerLinkActive]="getExternalUrl(item) ? '' : 'sidebar__option--active'"
                     (click)="handleItemClick($event, item)" *ngFor="let item of filteredPrincipalItems"
                     class="sidebar__option ">
                     <div *ngIf="item.badge !== 0" class="sidebar__option-icon"> <i class="{{ item.icon }}" pBadge

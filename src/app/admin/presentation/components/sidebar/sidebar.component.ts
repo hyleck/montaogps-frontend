@@ -38,7 +38,6 @@ export class SidebarComponent implements OnInit {
       { label: '', path: '/admin/solicitudes', icon: 'pi pi-clipboard', badge: 0 },
       { label: '', path: '/admin/monitoring', icon: 'pi pi-eye', badge: 0 },
       { label: '', path: '/admin/server-costs', icon: 'pi pi-wallet', badge: 0 },
-      { label: '', path: '/admin/montao-rent', icon: 'pi pi-car', badge: 0 },
       { label: '', path: '/admin/communication', icon: 'pi pi-comments', badge: 0 },
       { label: '', path: '/admin/processes', icon: 'pi pi-list', badge: 0 },
       { label: '', path: '/admin/interacciones', icon: 'pi pi-share-alt', badge: 0 },
@@ -167,18 +166,17 @@ export class SidebarComponent implements OnInit {
     this.sidaberOptions.favoriteItems[0].label = this.translate.instant('sidebar.dashboard');
 
     // Elementos del menú principal
-    this.sidaberOptions.principalItems[0].label = this.translate.instant('sidebar.management');
-    this.sidaberOptions.principalItems[1].label = 'Empleados';
-    this.sidaberOptions.principalItems[2].label = this.translate.instant('sidebar.inventory');
-    this.sidaberOptions.principalItems[3].label = 'Solicitudes';
-    this.sidaberOptions.principalItems[4].label = this.translate.instant('sidebar.monitoring');
-    this.sidaberOptions.principalItems[5].label = this.translate.instant('sidebar.serverCosts');
-    this.sidaberOptions.principalItems[6].label = this.translate.instant('sidebar.montaoRent');
-    this.sidaberOptions.principalItems[7].label = 'Comunicación';
-    this.sidaberOptions.principalItems[8].label = 'Procesos';
-    this.sidaberOptions.principalItems[9].label = 'Campañas';
-    this.sidaberOptions.principalItems[10].label = 'Verificación SIMs';
-    this.sidaberOptions.principalItems[11].label = 'Monitor IA';
+    this.setPrincipalLabel('/admin/management/', this.translate.instant('sidebar.management'));
+    this.setPrincipalLabel('/admin/empleados', 'Empleados');
+    this.setPrincipalLabel('/admin/inventory', this.translate.instant('sidebar.inventory'));
+    this.setPrincipalLabel('/admin/solicitudes', 'Solicitudes');
+    this.setPrincipalLabel('/admin/monitoring', this.translate.instant('sidebar.monitoring'));
+    this.setPrincipalLabel('/admin/server-costs', this.translate.instant('sidebar.serverCosts'));
+    this.setPrincipalLabel('/admin/communication', 'Comunicación');
+    this.setPrincipalLabel('/admin/processes', 'Procesos');
+    this.setPrincipalLabel('/admin/interacciones', 'Campañas');
+    this.setPrincipalLabel('/admin/simcard-verification', 'Verificación SIMs');
+    this.setPrincipalLabel('/admin/monitor-ia', 'Monitor IA');
 
     // Elementos del perfil
     this.sidaberOptions.profileItems[0].label = this.translate.instant('sidebar.settings');
@@ -201,6 +199,13 @@ export class SidebarComponent implements OnInit {
     });
   }
 
+  private setPrincipalLabel(path: string, label: string): void {
+    const item = this.sidaberOptions.principalItems.find(option => option.path === path);
+    if (item) {
+      item.label = label;
+    }
+  }
+
   toggleSidebar() {
     this.sidebarDisplayed = !this.sidebarDisplayed;
     this.status.setState('sidebar', this.sidebarDisplayed);
@@ -215,13 +220,6 @@ export class SidebarComponent implements OnInit {
       return;
     }
 
-    if (item.path === '/admin/montao-rent') {
-      event.preventDefault();
-      if (this.currentUser && this.currentUser.id) {
-        const base64Id = btoa(this.currentUser.id.toString());
-        window.open(`https://rent.montao.net/connect-gps?id=${base64Id}`, '_blank');
-      }
-    }
   }
 
   getExternalUrl(item: unknown): string {
@@ -284,31 +282,6 @@ export class SidebarComponent implements OnInit {
       // Ocultar Monitor IA del sidebar
       if (item.path === '/admin/monitor-ia') {
         return false;
-      }
-
-      // Opciones exclusivas para rent_a_car
-      const rentACarOptions = [
-        '/admin/montao-rent'
-      ];
-
-      if (rentACarOptions.includes(item.path)) {
-        if (!this.currentUser) return false;
-
-        // Verificar si es rent_a_car (usando company_type_id o company_type según corresponda)
-        // Check settings first as it might be stored there
-        const settings = (this.currentUser as any).settings;
-
-        let companyType = (this.currentUser as any).company_type || (this.currentUser as any).company_type_id;
-
-        if (!companyType && Array.isArray(settings) && settings.length > 0) {
-          companyType = settings[0].company_type;
-        } else if (!companyType && settings && typeof settings === 'object') {
-          companyType = settings.company_type;
-        }
-
-        // console.log('Checking Rent A Car option:', item.path, 'CompanyType:', companyType, 'User:', this.currentUser);
-
-        return companyType === 'rent_a_car';
       }
 
       // Para otros elementos, mostrar siempre

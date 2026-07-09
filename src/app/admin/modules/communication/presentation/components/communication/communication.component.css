@@ -83,6 +83,90 @@
     box-sizing: border-box;
 }
 
+.comm-mail-connect {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: #0f1318;
+}
+
+.comm-mail-connect__card {
+    width: min(420px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    background: #111820;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.24);
+}
+
+.comm-mail-connect__card > i {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.1);
+    font-size: 1.25rem;
+}
+
+.comm-mail-connect__card h2,
+.comm-mail-connect__card p {
+    margin: 0;
+}
+
+.comm-mail-connect__card h2 {
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 1.25rem;
+}
+
+.comm-mail-connect__card p {
+    color: rgba(255, 255, 255, 0.56);
+    line-height: 1.45;
+}
+
+.comm-mail-connect__card label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    color: rgba(255, 255, 255, 0.68);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.comm-mail-connect__card input {
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.92);
+    padding: 0.75rem 0.85rem;
+    outline: none;
+}
+
+.comm-mail-connect__card input:focus {
+    border-color: rgba(52, 211, 153, 0.45);
+}
+
+.comm-mail-feedback {
+    margin: 0.5rem 1rem 0;
+    padding: 0.55rem 0.75rem;
+    border-radius: 8px;
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.08);
+    font-size: 0.78rem;
+}
+
+.comm-mail-feedback--error {
+    color: #fb7185;
+    background: rgba(251, 113, 133, 0.1);
+}
+
 .comm-email__sidebar {
     width: 220px;
     flex-shrink: 0;
@@ -92,6 +176,45 @@
     flex-direction: column;
     padding: 1rem 0.75rem;
     gap: 1rem;
+}
+
+.comm-email__account {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.86);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.comm-email__account strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+}
+
+.comm-email__account button,
+.comm-email__refresh {
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.62);
+    background: rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+}
+
+.comm-email__account button:hover,
+.comm-email__refresh:hover {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.1);
 }
 
 .comm-email__compose {
@@ -132,6 +255,10 @@
     font-size: 0.82rem;
     cursor: pointer;
     transition: all 0.15s;
+    border: 0;
+    width: 100%;
+    text-align: left;
+    background: transparent;
 }
 
 .comm-email__folder:hover {
@@ -182,6 +309,10 @@
     padding: 0.75rem 1rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     flex-shrink: 0;
+    display: grid;
+    grid-template-columns: 1fr minmax(180px, 280px) auto;
+    gap: 0.75rem;
+    align-items: center;
 }
 
 .comm-email__list-header h3 {
@@ -259,6 +390,10 @@
     margin-top: 0.5rem;
 }
 
+.comm-email__list-header .comm-email__search {
+    margin-top: 0;
+}
+
 .comm-email__search i {
     color: rgba(255, 255, 255, 0.3);
     font-size: 0.8rem;
@@ -315,10 +450,16 @@
     display: flex;
     align-items: center;
     gap: 0.65rem;
+    width: 100%;
     padding: 0.65rem 0.85rem;
     cursor: pointer;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    border-top: 0;
+    border-right: 0;
+    border-left: 0;
     transition: background 0.12s;
+    background: transparent;
+    text-align: left;
 }
 
 .comm-email__item:hover {
@@ -393,6 +534,16 @@
     margin-top: 2px;
 }
 
+.comm-email__item-subject {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.78rem;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .comm-email__item-badge {
     background: #34d399;
     color: #000;
@@ -432,6 +583,73 @@
 .comm-email__detail-back:hover {
     color: #fff;
     background: rgba(255, 255, 255, 0.06);
+}
+
+.comm-email__reader-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    overflow-x: auto;
+    flex-shrink: 0;
+}
+
+.comm-email__reader-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border: 0;
+    border-radius: 8px;
+    padding: 0.42rem 0.65rem;
+    color: rgba(255, 255, 255, 0.68);
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 0.76rem;
+}
+
+.comm-email__reader-toolbar button:hover {
+    color: #34d399;
+    background: rgba(52, 211, 153, 0.1);
+}
+
+.comm-email__reader {
+    max-width: 820px;
+    padding: 1rem;
+}
+
+.comm-email__reader h2 {
+    margin: 0 0 0.5rem;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 1.15rem;
+}
+
+.comm-email__reader p {
+    margin: 0 0 1rem;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 0.82rem;
+}
+
+.comm-email__message-text {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: inherit;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.comm-email__message-text a {
+    color: #60a5fa;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.comm-email__message-text a:hover {
+    color: #93c5fd;
 }
 
 .comm-email__detail-sender {
@@ -2249,6 +2467,11 @@
 :host-context(.app-light) .comm-email__detail-sender-email { color: #64748b; }
 :host-context(.app-light) .comm-email__detail-back { color: #64748b; }
 :host-context(.app-light) .comm-email__detail-back:hover { background: #f1f5f9; color: #000000; }
+:host-context(.app-light) .comm-email__reader h2 { color: #111827; }
+:host-context(.app-light) .comm-email__reader p { color: #64748b; }
+:host-context(.app-light) .comm-email__message-text { color: #111827; }
+:host-context(.app-light) .comm-email__message-text a { color: #2563eb; }
+:host-context(.app-light) .comm-email__message-text a:hover { color: #1d4ed8; }
 
 :host-context(.app-light) .comm-email__msg { background: #f1f5f9; border-color: #e2e8f0; }
 :host-context(.app-light) .comm-email__msg--outgoing { background: rgba(220, 38, 38, 0.08); border-color: rgba(220, 38, 38, 0.15); }
