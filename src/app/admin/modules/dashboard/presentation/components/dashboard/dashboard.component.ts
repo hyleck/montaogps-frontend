@@ -18,6 +18,12 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private mapLoaded = false;
     private pendingData: any[] | null = null;
     private pendingDataType: 'fullmap' | 'reports' | null = null;
+    private currentFeatures: any[] = [];
+    private readonly dominicanRepublicBounds: [[number, number], [number, number]] = [
+        [-72.1, 17.45],
+        [-68.2, 20.1],
+    ];
+    private readonly dominicanRepublicMarkerThreshold = 200;
 
     // ── Map Filtering State ──
     filterOnline = true;
@@ -388,17 +394,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private updateGeoJSONSource(features: any[]) {
         const source: any = this.map.getSource('devices');
         if (source) {
-            
-            // Adjust bounds first before drawing
-            if (features.length > 0) {
-               const bounds = new maplibregl.LngLatBounds();
-               features.forEach(f => {
-                   if (Array.isArray(f.geometry.coordinates)) {
-                       bounds.extend([f.geometry.coordinates[0], f.geometry.coordinates[1]] as [number, number]);
-                   }
-               });
-               this.map.fitBounds(bounds, { padding: 50, maxZoom: 14 });
-            }
+            this.currentFeatures = features;
+            this.adjustMapViewport(features);
 
             // Animación de aparición consecutiva y aleatoria
             const shuffledFeatures = features.slice().sort(() => Math.random() - 0.5);
@@ -468,5 +465,55 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         if (this.map.getLayer('unclustered-point')) {
             this.map.setFilter('unclustered-point', finalFilter);
         }
+
+        this.adjustMapViewport(this.visibleFeatures(this.currentFeatures));
+    }
+
+    private adjustMapViewport(features: any[]) {
+        if (!this.map || !features.length) return;
+
+        if (features.length > this.dominicanRepublicMarkerThreshold) {
+            this.map.fitBounds(this.dominicanRepublicBounds, {
+                padding: 30,
+                maxZoom: 8,
+                duration: 0,
+            });
+            return;
+        }
+
+        const bounds = new maplibregl.LngLatBounds();
+        let hasValidCoordinate = false;
+
+        features.forEach(f => {
+            if (Array.isArray(f.geometry?.coordinates)) {
+                bounds.extend([f.geometry.coordinates[0], f.geometry.coordinates[1]] as [number, number]);
+                hasValidCoordinate = true;
+            }
+        });
+
+        if (hasValidCoordinate) {
+            this.map.fitBounds(bounds, { padding: 50, maxZoom: 14 });
+        }
+    }
+
+    private visibleFeatures(features: any[]): any[] {
+        return features.filter(feature => {
+            const status = feature.properties?.status;
+            const isExpired = Boolean(feature.properties?.isExpired);
+
+            if (isExpired) {
+                return this.filterExpired;
+            }
+
+            if (status === 'Localizado') {
+                return this.filterLocalizado;
+            }
+
+            if (status === 'online') {
+                return this.filterOnline;
+            }
+
+            return this.filterOffline;
+        });
     }
 }
