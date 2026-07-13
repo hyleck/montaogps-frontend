@@ -392,12 +392,14 @@
           <select [(ngModel)]="selectedConnectionFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_CONNECTIONS' | translate }}</option>
             <option value="online">{{ 'MONITORING.FILTERS_ONLINE' | translate }}</option>
+            <option value="initial">{{ 'MONITORING.FILTERS_INITIAL_STATE' | translate }}</option>
+            <option value="initial-or-offline">{{ 'MONITORING.FILTERS_INITIAL_OR_OFFLINE' | translate }}</option>
             <option value="offline">{{ 'MONITORING.FILTERS_OFFLINE' | translate }}</option>
           </select>
         </div>
 
-        <div class="field" *ngIf="selectedConnectionFilter === 'offline'">
-          <label>{{ 'MONITORING.FILTERS_OFFLINE_DURATION' | translate }}</label>
+        <div class="field" *ngIf="supportsOfflineDurationFilter(selectedConnectionFilter)">
+          <label>{{ getConnectionDurationFilterLabel() | translate }}</label>
           <select [(ngModel)]="selectedOfflineDurationFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_OFFLINE_DURATION_ANY' | translate }}</option>
             <option *ngFor="let option of offlineDurationOptions" [value]="option.value">
@@ -407,7 +409,7 @@
         </div>
 
         <div class="field-row"
-          *ngIf="selectedConnectionFilter === 'offline' && (selectedOfflineDurationFilter === 'custom' || selectedOfflineDurationFilter === 'custom-no-data')"
+          *ngIf="supportsOfflineDurationFilter(selectedConnectionFilter) && selectedOfflineDurationFilter === 'custom'"
           style="display: flex; gap: 10px;">
           <div class="field" style="flex: 1;">
             <label>{{ 'MONITORING.FILTERS_CUSTOM_UNIT' | translate }}</label>

@@ -70,7 +70,6 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   offlineDurationOptions: Array<{ label: string; value: string; minutes: number; comparison: 'lt' | 'gte' | 'custom' }> = [
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_NO_DATA', value: 'no-data', minutes: 0, comparison: 'lt' },
-    { label: 'MONITORING.FILTERS_OFFLINE_DURATION_CUSTOM_NO_DATA', value: 'custom-no-data', minutes: 0, comparison: 'custom' as any }, // Using 'custom' to reuse the UI logic
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_1H', value: 'lt-1h', minutes: 60, comparison: 'lt' },
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_5H', value: 'lt-5h', minutes: 5 * 60, comparison: 'lt' },
     { label: 'MONITORING.FILTERS_OFFLINE_DURATION_LT_20H', value: 'lt-20h', minutes: 20 * 60, comparison: 'lt' },
@@ -403,7 +402,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     if (this._selectedConnectionFilter !== value) {
       this._selectedConnectionFilter = value;
 
-      if (value !== 'offline') {
+      if (!this.supportsOfflineDurationFilter(value)) {
         this._selectedOfflineDurationFilter = '';
       }
     }
@@ -1616,13 +1615,19 @@ export class MonitoringComponent implements OnInit, OnDestroy {
             case 'online':
               filteredDevices = filteredDevices.filter(device => this.isDeviceOnline(device));
               break;
-            case 'offline':
+            case 'initial':
+              filteredDevices = filteredDevices.filter(device => this.isDeviceInitialState(device));
+              break;
+            case 'initial-or-offline':
               filteredDevices = filteredDevices.filter(device => !this.isDeviceOnline(device));
+              break;
+            case 'offline':
+              filteredDevices = filteredDevices.filter(device => !this.isDeviceOnline(device) && !this.isDeviceInitialState(device));
               break;
           }
         }
 
-        if (this._selectedConnectionFilter === 'offline' && this._selectedOfflineDurationFilter) {
+        if (this.supportsOfflineDurationFilter(this._selectedConnectionFilter) && this._selectedOfflineDurationFilter) {
           const durationOption = this.offlineDurationOptions.find(
             option => option.value === this._selectedOfflineDurationFilter
           );
@@ -1863,6 +1868,31 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return device?.traccarInfo?.status === 'Localizado';
   }
 
+  isDeviceInitialState(device: any): boolean {
+    const lastUpdate =
+      device?.traccarInfo?.lastUpdate ||
+      device?.traccarInfo?.last_update ||
+      device?.traccarInfo?.['lastUpdate'];
+
+    return !lastUpdate || lastUpdate?.toString().toLowerCase() === 'never';
+  }
+
+  supportsOfflineDurationFilter(connectionFilter: string): boolean {
+    return connectionFilter === 'offline' || connectionFilter === 'initial' || connectionFilter === 'initial-or-offline';
+  }
+
+  getConnectionDurationFilterLabel(): string {
+    if (this.selectedConnectionFilter === 'initial') {
+      return 'MONITORING.FILTERS_INITIAL_DURATION';
+    }
+
+    if (this.selectedConnectionFilter === 'initial-or-offline') {
+      return 'MONITORING.FILTERS_INITIAL_OR_OFFLINE_DURATION';
+    }
+
+    return 'MONITORING.FILTERS_OFFLINE_DURATION';
+  }
+
   getConnectionDisplay(device: any): string {
     if (this.isDeviceOnline(device)) {
       return 'En línea';
@@ -2040,34 +2070,40 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return Math.floor(diffInMs / (1000 * 60));
   }
 
+  private getInitialStateDurationInMinutes(device: any): number | null {
+    const referenceDate = device.createdAt || device.activation_date;
+    if (!referenceDate) {
+      return null;
+    }
+
+    const parsedDate = new Date(referenceDate);
+    if (isNaN(parsedDate.getTime())) {
+      return null;
+    }
+
+    const diffInMs = Date.now() - parsedDate.getTime();
+    if (diffInMs < 0) {
+      return 0;
+    }
+
+    return Math.floor(diffInMs / (1000 * 60));
+  }
+
+  private getConnectionDurationInMinutes(device: any): number | null {
+    if (this.isDeviceInitialState(device)) {
+      return this.getInitialStateDurationInMinutes(device);
+    }
+
+    return this.getOfflineDurationInMinutes(device);
+  }
+
   private matchesOfflineDuration(
     device: any,
     option: { minutes: number; comparison: 'lt' | 'gte' | 'custom' }
   ): boolean {
-    const duration = this.getOfflineDurationInMinutes(device);
+    const duration = this.getConnectionDurationInMinutes(device);
     if (this._selectedOfflineDurationFilter === 'no-data') {
       return duration === null;
-    }
-
-    if (this._selectedOfflineDurationFilter === 'custom-no-data') {
-      if (duration !== null) {
-        return false; // This filter is ONLY for devices that have NO update date
-      }
-
-      const referenceDate = device.createdAt || device.activation_date;
-      if (!referenceDate) {
-        return false;
-      }
-
-      const refDateParsed = new Date(referenceDate);
-      if (isNaN(refDateParsed.getTime())) {
-        return false;
-      }
-
-      const diffInMs = Date.now() - refDateParsed.getTime();
-      const registrationDuration = diffInMs < 0 ? 0 : Math.floor(diffInMs / (1000 * 60));
-
-      return this.evaluateCustomOfflineDuration(registrationDuration);
     }
 
     if (duration === null) {
