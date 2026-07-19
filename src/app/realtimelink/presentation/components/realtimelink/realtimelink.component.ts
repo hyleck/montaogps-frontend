@@ -36,7 +36,31 @@ export class RealtimelinkComponent implements OnInit, AfterViewInit, OnDestroy {
 
     ngOnInit(): void {
         // Leer los query parameters
-        this.route.queryParams.subscribe(params => {
+        this.route.queryParams.subscribe(async params => {
+            const shortCode = params['c'] || params['code'];
+            if (shortCode) {
+                try {
+                    const linkData = await this.targetsService.resolvePublicRealtimeShortLink(shortCode);
+                    this.targetId = linkData.target_id || null;
+                    this.apiKey = linkData.gkey || null;
+
+                    if (linkData.expires_at) {
+                        this.expirationDate = new Date(linkData.expires_at);
+                        this.startCountdown();
+                    }
+
+                    if (this.targetId && this.map) {
+                        this.loadAndDisplayTarget();
+                    } else if (this.targetId && !this.map) {
+                        this.initializeMap();
+                    }
+                } catch (error) {
+                    console.error('Error resolviendo link corto en tiempo real:', error);
+                    this.isExpired = true;
+                }
+                return;
+            }
+
             // Verificar si hay datos encriptados
             const encodedData = params['data'];
 

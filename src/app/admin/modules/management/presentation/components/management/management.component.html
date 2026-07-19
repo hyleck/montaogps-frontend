@@ -5,17 +5,17 @@
     [resizable]="false">
     <div style="display: flex; flex-direction: column; gap: 15px; padding: 10px;">
         <div class="field-checkbox" style="display: flex; align-items: center; gap: 8px;">
-            <p-radioButton name="status" value="all" [(ngModel)]="filterStatus" (onClick)="onFilterChange()"
+            <p-radioButton name="status" value="all" [(ngModel)]="filterStatus" (onClick)="onStatusFilterChange('all')"
                 inputId="status_all"></p-radioButton>
             <label for="status_all" style="cursor: pointer;">Todos</label>
         </div>
         <div class="field-checkbox" style="display: flex; align-items: center; gap: 8px;">
-            <p-radioButton name="status" value="online" [(ngModel)]="filterStatus" (onClick)="onFilterChange()"
+            <p-radioButton name="status" value="online" [(ngModel)]="filterStatus" (onClick)="onStatusFilterChange('online')"
                 inputId="status_online"></p-radioButton>
             <label for="status_online" style="cursor: pointer;">{{ 'management.status.online' | translate }}</label>
         </div>
         <div class="field-checkbox" style="display: flex; align-items: center; gap: 8px;">
-            <p-radioButton name="status" value="offline" [(ngModel)]="filterStatus" (onClick)="onFilterChange()"
+            <p-radioButton name="status" value="offline" [(ngModel)]="filterStatus" (onClick)="onStatusFilterChange('offline')"
                 inputId="status_offline"></p-radioButton>
             <label for="status_offline" style="cursor: pointer;">{{ 'management.status.offline' | translate }}</label>
         </div>
@@ -330,19 +330,29 @@
                                                 <span (click)="handleTargetClick(target, $event)"
                                                     class="management__content-table-link" [ngClass]="{
                                                             'target-online': target.traccarStatus === 'online',
+                                                            'target-weak-signal': target.traccarStatus === 'Señal débil',
                                                             'target-localizado': target.traccarStatus === 'Localizado',
-                                                            'target-offline': target.traccarStatus !== 'online' && target.traccarStatus !== 'Localizado',
+                                                            'target-offline': target.traccarStatus !== 'online' && target.traccarStatus !== 'Señal débil' && target.traccarStatus !== 'Localizado',
                                                             'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
-                                                            'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
+                                                            'target-expired': !isTargetSuspended(target) && getExpirationStatus(target.expiration_date) === 'expired'
                                                           }"
                                                     title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña">
                                                     <i class="pi pi-map-marker" [ngClass]="{
                                                              'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
                                                            }"></i>
                                                     <span class="target-name" [ngClass]="{
-                                                          'target-inactive': !target.originalTarget?.status,
-                                                          'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
+                                                          'target-inactive': isTargetSuspended(target),
+                                                          'target-expired': !isTargetSuspended(target) && getExpirationStatus(target.expiration_date) === 'expired'
                                                         }">{{target.name}}</span>
+                                                    <span *ngIf="!isTargetSuspended(target) && (target.traccarStatus === 'online' || target.traccarStatus === 'Señal débil') && getExpirationStatus(target.expiration_date) !== 'expired'"
+                                                        class="target-signal-bars"
+                                                        [class.target-signal-bars--weak]="target.traccarStatus === 'Señal débil'"
+                                                        [attr.title]="target.traccarStatus === 'Señal débil' ? 'Señal débil' : 'Señal buena'">
+                                                        <span></span>
+                                                        <span></span>
+                                                        <span></span>
+                                                        <span></span>
+                                                    </span>
 
                                                     <i *ngIf="target.isShared"
                                                         class="pi pi-share-alt target-shared-indicator"
@@ -356,8 +366,22 @@
                                                         title="Seleccionado desde URL"
                                                         style="color: #22c55e; margin-left: 4px;"></i>
                                                 </span>
-                                                <div style="margin-bottom: 10px;">
-                                                    <div *ngIf="hasOfflineActivationStatus(target) && currentUserAffiliationTypeId === 'empleado'" style="margin-top: 4px; margin-bottom: 6px; cursor: pointer;" (click)="showTargetFormOnTab(target, 3, $event)">
+                                                <span class="target-subtext-line">
+                                                    <span class="target-movement-status"
+                                                        [ngClass]="getTargetMovementClass(target)">
+                                                        <i *ngIf="getTargetMovementIcon(target) as movementIcon"
+                                                            [class]="movementIcon" aria-hidden="true"></i>
+                                                        <span>{{ getTargetMovementLabel(target) }}</span>
+                                                    </span>
+                                                    <span *ngIf="hasLinkedAdditionalGps(target)"
+                                                        class="target-linked-additional"
+                                                        title="Vinculado a otro dispositivo">
+                                                        <i class="pi pi-link" aria-hidden="true"></i>
+                                                        <span>Vinculado</span>
+                                                    </span>
+                                                </span>
+                                                    <div style="margin-bottom: 10px;">
+                                                    <div *ngIf="hasOfflineActivationStatus(target) && currentUserAffiliationTypeId === 'empleado'" style="margin-top: 4px; margin-bottom: 6px; cursor: pointer;" (click)="showTargetFormOnTab(target, 1, $event)">
                                                         <span class="activation-status-badge" [ngClass]="{
                                                                   'activation-status-badge--success': getLastActivationStep(target)?.status === 'success',
                                                                   'activation-status-badge--error': getLastActivationStep(target)?.status === 'error',
@@ -380,22 +404,25 @@
                                                         {{ 'management.targetForm.connectionPriority' | translate }}
                                                     </span>
                                                     <span style="display: block;" [ngClass]="{
-                                                                'target-inactive': !target.originalTarget?.status,
-                                                                'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
-                                                              }">IMEI: {{target.imei}}</span>
+                                                                'target-inactive': isTargetSuspended(target),
+                                                                'target-expired': !isTargetSuspended(target) && getExpirationStatus(target.expiration_date) === 'expired'
+                                                              }">IMEI: {{target.imei}}<i *ngIf="isTargetVerified(target)"
+                                                            class="pi pi-check-circle target-verified-check"
+                                                            title="Objetivo verificado"
+                                                            aria-label="Objetivo verificado"
+                                                            style="margin-left: 5px; color: #22c55e; font-size: 12px; vertical-align: -1px;"></i></span>
                                                     <span style="display: block;" class="target-sim-info"
                                                         *ngIf="target.sim || target.sim_card_number">
                                                         SIM: {{ target.sim || target.sim_card_number }}
                                                     </span>
-                                                    <span *ngIf="!target.originalTarget?.status"
-                                                        class="target-suspended-text">(Suspendido)</span>
-                                                    <div *ngIf="target.offlineTimeText" class="offline-info-container">
+                                                    <div *ngIf="!isTargetSuspended(target) && target.offlineTimeText && getExpirationStatus(target.expiration_date) !== 'expired'" class="offline-info-container">
                                                         <span
-                                                            class="target-offline-time">{{target.offlineTimeText}}</span>
+                                                            class="target-offline-time"
+                                                            [class.target-weak-time]="target.traccarStatus === 'Señal débil'">{{target.offlineTimeText}}</span>
                                                         <span
                                                             class="target-offline-date">{{target.offlineDateText}}</span>
                                                     </div>
-                                                    <button *ngIf="target.traccarStatus !== 'online' && target.originalTarget?.status && currentUserAffiliationTypeId === 'empleado' && !activatingTargets.has(target._id) && !isTargetAirtag(target)" type="button"
+                                                    <button *ngIf="target.traccarStatus !== 'online' && target.traccarStatus !== 'Señal débil' && target.originalTarget?.status && currentUserAffiliationTypeId === 'empleado' && !activatingTargets.has(target._id) && !isTargetAirtag(target)" type="button"
                                                         (click)="startActivationFromList(target, $event)"
                                                         class="activation-btn">
                                                         <i class="pi pi-bolt" style="font-size: 10px;"></i>
@@ -524,11 +551,13 @@
                     <option value="google-dark">Mapa 2</option>
                     <option value="mapbox-light" *ngIf="showAdvancedMapOptions">Mapa 3</option>
                     <option value="mapbox-dark" *ngIf="showAdvancedMapOptions">Mapa 4</option>
+                    <option value="osm-light">Mapa 5</option>
                 </select>
             </div>
             <app-maps *ngIf="mapsKey" [attr.data-key]="mapsKey" [provider]="providerType" [theme]="providerTheme"
                 [selectedTarget]="selectedTargetForMap" [targetsForMap]="allTargets"
-                [vehicleTypeGetter]="getVehicleTypeByModelId.bind(this)" [preloadedStopTime]="selectedTargetStopTime">
+                [vehicleTypeGetter]="getVehicleTypeByModelId.bind(this)" [preloadedStopTime]="selectedTargetStopTime"
+                (additionalTargetSelected)="showAdditionalTargetOnMap($event)">
             </app-maps>
         </div>
         <div *ngIf="isMobileView && showMobileMapFullscreen" class="mobile-back-button">
@@ -636,11 +665,6 @@
 
                 </div>
                 <div class="management__header-actions" style="display: flex; gap: 8px;">
-                    <p-splitButton label="Proceso ({{targetsSelected.length}})" icon="pi pi-cog"
-                        [model]="processMenuItems" styleClass="p-button-sm"
-                        *ngIf="targetsSelected && targetsSelected.length > 0 && canDeleteDevices() && currentUserAffiliationTypeId === 'empleado'"
-                        [style]="{'font-size': '0.8rem'}">
-                    </p-splitButton>
                     <button (click)="toggleFilters()" class="button button--flat" title="Filtros">
                         <i class="pi pi-filter" style="color: orange;"></i>
                     </button>
@@ -754,9 +778,24 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="card" *ngIf="targetsList.length > 0">
+                        <div class="card target-card-list" *ngIf="targetsList.length > 0">
+                            <div class="target-card-list__toolbar">
+                                <button *ngIf="canUpdateDevices()" pButton type="button"
+                                        [icon]="selectingAllTargets ? 'pi pi-spin pi-spinner' : 'pi pi-check-square'"
+                                        class="p-button-rounded p-button-text p-button-sm target-card-list__select-all"
+                                        (click)="selectAllTargets()"
+                                        [disabled]="selectingAllTargets"
+                                        pTooltip="Seleccionar todos (cargar faltantes)"
+                                        tooltipPosition="right">
+                                </button>
+                                <div class="target-card-list__title">
+                                    <span>Objetivos</span>
+                                    <small *ngIf="filterStatus === 'online'">Solo en línea</small>
+                                    <small *ngIf="filterStatus === 'offline'">Solo fuera de línea</small>
+                                </div>
+                            </div>
                             <p-table [value]="targetsList" [(selection)]="targetsSelected" dataKey="_id"
-                                [tableStyle]="{'min-width': '50rem'}">
+                                [tableStyle]="{'width': '100%', 'min-width': '0'}">
                                 <ng-template pTemplate="header">
                                     <tr>
                                         <th style="width: 4rem; text-align: center;">
@@ -788,13 +827,14 @@
                                     </tr>
                                 </ng-template>
                                 <ng-template pTemplate="body" let-target>
-                                    <tr class="management__content-table-tr" [ngClass]="{
+                                        <tr class="management__content-table-tr" [ngClass]="{
                                           'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
                                           'external-user-target': shouldShowParentUserButton(target),
                                           'shared-target-row': target.isShared
                                         }"
                                         [style.background]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'rgba(34, 197, 94, 0.1)' : ''"
                                         [style.border]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
+                                        [style.--vib]="isTargetVehicleInfoIncomplete(target) ? '#ef4444' : '#22c55e'"
                                         [title]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'TARGET SELECCIONADO - ID: ' + target._id : ''">
                                         <td style="width: 4rem; text-align: center;" [ngClass]="{'shared-checkbox-cell': target.isShared}">
                                             <p-tableCheckbox *ngIf="canUpdateDevices() && !target.isShared" [value]="target" />
@@ -839,18 +879,28 @@
                                                     <span (click)="handleTargetClick(target, $event)"
                                                         class="management__content-table-link" [ngClass]="{
                                                         'target-online': target.traccarStatus === 'online',
+                                                        'target-weak-signal': target.traccarStatus === 'Señal débil',
                                                         'target-localizado': target.traccarStatus === 'Localizado',
-                                                        'target-offline': target.traccarStatus !== 'online' && target.traccarStatus !== 'Localizado',
+                                                        'target-offline': target.traccarStatus !== 'online' && target.traccarStatus !== 'Señal débil' && target.traccarStatus !== 'Localizado',
                                                         'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
-                                                        'target-expired': getExpirationStatus(target.expiration_date) === 'expired'
+                                                        'target-expired': !isTargetSuspended(target) && getExpirationStatus(target.expiration_date) === 'expired'
                                                       }" title="Click: Mostrar en mapa | Ctrl + Click: Abrir en nueva pestaña"
                                                         style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                         <i class="pi pi-map-marker" [ngClass]="{
                                                              'map-marker-active': selectedTargetForMap && selectedTargetForMap._id === target._id
                                                            }"> </i>
                                                         <span class="target-name"
-                                                            [ngClass]="{'target-inactive': !target.originalTarget?.status}">
+                                                            [ngClass]="{'target-inactive': isTargetSuspended(target)}">
                                                             {{target.name}}</span>
+                                                        <span *ngIf="!isTargetSuspended(target) && (target.traccarStatus === 'online' || target.traccarStatus === 'Señal débil') && getExpirationStatus(target.expiration_date) !== 'expired'"
+                                                            class="target-signal-bars"
+                                                            [class.target-signal-bars--weak]="target.traccarStatus === 'Señal débil'"
+                                                            [attr.title]="target.traccarStatus === 'Señal débil' ? 'Señal débil' : 'Señal buena'">
+                                                            <span></span>
+                                                            <span></span>
+                                                            <span></span>
+                                                            <span></span>
+                                                        </span>
 
                                                         <i *ngIf="target.isShared"
                                                             class="pi pi-share-alt target-shared-indicator"
@@ -860,7 +910,27 @@
                                                             class="pi pi-eye target-map-indicator"
                                                             title="Mostrando en mapa"></i>
                                                     </span>
-                                                    <div *ngIf="hasOfflineActivationStatus(target) && currentUserAffiliationTypeId === 'empleado'" style="margin-top: 4px; margin-bottom: 2px; cursor: pointer;" (click)="showTargetFormOnTab(target, 3, $event)">
+                                                    <span class="target-subtext-line">
+                                                        <span class="target-movement-status"
+                                                            [ngClass]="getTargetMovementClass(target)">
+                                                            <i *ngIf="getTargetMovementIcon(target) as movementIcon"
+                                                                [class]="movementIcon" aria-hidden="true"></i>
+                                                        <span>{{ getTargetMovementLabel(target) }}</span>
+                                                    </span>
+                                                    <span *ngIf="currentUserAffiliationTypeId === 'empleado' && isTargetMissingTechnician(target)"
+                                                        class="target-missing-technician"
+                                                        title="Este objetivo no tiene técnico asignado">
+                                                        <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+                                                        <span>Sin técnico</span>
+                                                    </span>
+                                                    <span *ngIf="hasLinkedAdditionalGps(target)"
+                                                        class="target-linked-additional"
+                                                        title="Vinculado a otro dispositivo">
+                                                            <i class="pi pi-link" aria-hidden="true"></i>
+                                                            <span>Vinculado</span>
+                                                        </span>
+                                                    </span>
+                                                    <div *ngIf="hasOfflineActivationStatus(target) && currentUserAffiliationTypeId === 'empleado'" style="margin-top: 4px; margin-bottom: 2px; cursor: pointer;" (click)="showTargetFormOnTab(target, 1, $event)">
                                                         <span class="activation-status-badge" [ngClass]="{
                                                                   'activation-status-badge--success': getLastActivationStep(target)?.status === 'success',
                                                                   'activation-status-badge--error': getLastActivationStep(target)?.status === 'error',
@@ -888,41 +958,35 @@
                                         </td>
                                         <td>
                                             <div class="imei-container">
-                                                <span
-                                                    [ngClass]="{'target-inactive': !target.originalTarget?.status}">{{target.imei}}</span>
-                                                <span *ngIf="!target.originalTarget?.status"
-                                                    class="target-suspended-text">(Suspendido)</span>
-                                                <div *ngIf="target.offlineTimeText" class="offline-info-container">
-                                                    <span class="target-offline-time">{{target.offlineTimeText}}</span>
+                                                <span class="target-card-imei"
+                                                    [ngClass]="{'target-inactive': isTargetSuspended(target)}">IMEI: {{target.imei}}<i
+                                                        *ngIf="isTargetVerified(target)"
+                                                        class="pi pi-check-circle target-verified-check"
+                                                        title="Objetivo verificado"
+                                                        aria-label="Objetivo verificado"
+                                                        style="margin-left: 5px; color: #22c55e; font-size: 12px; vertical-align: -1px;"></i></span>
+                                                <span class="target-card-sim" [title]="target.sim || target.sim_card_number || 'Sin SIM'">
+                                                    SIM: {{ target.sim || target.sim_card_number || '—' }}
+                                                </span>
+                                                <span class="target-card-expiration" [ngClass]="{
+                                                    'expiration-normal': !isTargetSuspended(target) && getExpirationStatus(target.expiration_date) === 'normal',
+                                                    'expiration-warning': !isTargetSuspended(target) && getExpirationStatus(target.expiration_date) === 'warning',
+                                                    'expiration-expired': !isTargetSuspended(target) && getExpirationStatus(target.expiration_date) === 'expired'
+                                                  }">
+                                                    Exp: {{target.expiration_date ? (target.expiration_date | date:'dd/MM/yyyy') : '-'}}
+                                                </span>
+                                                <div *ngIf="!isTargetSuspended(target) && target.offlineTimeText && getExpirationStatus(target.expiration_date) !== 'expired'" class="offline-info-container">
+                                                    <span class="target-offline-time"
+                                                        [class.target-weak-time]="target.traccarStatus === 'Señal débil'">{{target.offlineTimeText}}</span>
                                                     <span class="target-offline-date">{{target.offlineDateText}}</span>
                                                 </div>
-                                                <button *ngIf="target.traccarStatus !== 'online' && target.originalTarget?.status && currentUserAffiliationTypeId === 'empleado' && !activatingTargets.has(target._id) && !isTargetAirtag(target)" type="button"
+                                                <button *ngIf="target.traccarStatus !== 'online' && target.traccarStatus !== 'Señal débil' && target.originalTarget?.status && currentUserAffiliationTypeId === 'empleado' && !activatingTargets.has(target._id) && !isTargetAirtag(target)" type="button"
                                                     (click)="startActivationFromList(target, $event)"
                                                     class="activation-btn">
                                                     <i class="pi pi-bolt" style="font-size: 10px;"></i>
                                                     {{ target.traccarInfo?.lastUpdate ? 'Reactivar GPS' : 'Activar GPS' }}
                                                 </button>
                                             </div>
-                                        </td>
-                                        <td>
-                                            {{ target.sim || target.sim_card_number || '—' }}
-                                        </td>
-                                        <td [ngClass]="{
-                                          'target-inactive': !target.originalTarget?.status,
-                                          'expiration-normal': getExpirationStatus(target.expiration_date) === 'normal',
-                                          'expiration-warning': getExpirationStatus(target.expiration_date) === 'warning',
-                                          'expiration-expired': getExpirationStatus(target.expiration_date) === 'expired'
-                                        }">
-                                            <div *ngIf="getExpirationStatus(target.expiration_date) === 'expired'"
-                                                class="expiration-expired-content">
-                                                <span class="expiration-label">EXPIRADO</span>
-                                                <span class="expiration-date">{{target.expiration_date |
-                                                    date:'dd/MM/yyyy'}}</span>
-                                            </div>
-                                            <span *ngIf="getExpirationStatus(target.expiration_date) !== 'expired'">
-                                                {{target.expiration_date ? (target.expiration_date | date:'dd/MM/yyyy')
-                                                : '-'}}
-                                            </span>
                                         </td>
                                         <td>
                                             <div class="management__user-table-controls">
@@ -975,35 +1039,49 @@
                             <!-- Loading para scroll infinito - aparece debajo de los targets existentes -->
                             <div *ngIf="isLoadingMoreTargets" class="loading-more-targets">
                                 <!-- Skeleton de targets -->
-                                <div class="skeleton-targets-container">
-                                    <div class="skeleton-target-row" *ngFor="let item of [1,2,3,4,5,6,7,8,9,10]">
-                                        <div class="skeleton-target-cell">
-                                            <!-- <p-skeleton [ngStyle]="{ 'width': '100%', 'height': '20px', 'border-radius': '4px' }"></p-skeleton> -->
-                                            <p-skeleton
-                                                [ngStyle]="{ 'width': '80%', 'height': '16px', 'border-radius': '4px', 'margin-top': '4px' }"></p-skeleton>
-                                        </div>
-                                        <div class="skeleton-target-cell">
-                                            <p-skeleton
-                                                [ngStyle]="{ 'width': '60%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
-                                        </div>
-                                        <div class="skeleton-target-cell">
-                                            <p-skeleton
-                                                [ngStyle]="{ 'width': '40%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
-                                        </div>
-                                        <div class="skeleton-target-cell">
-                                            <p-skeleton
-                                                [ngStyle]="{ 'width': '30%', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
-                                        </div>
-                                        <div class="skeleton-target-cell">
-                                            <div style="display: flex; gap: 4px;">
+                                <p-table class="target-card-skeleton-table" [value]="[1,2,3,4,5,6]"
+                                    [tableStyle]="{'width': '100%', 'min-width': '0'}">
+                                    <ng-template pTemplate="body" let-item>
+                                        <tr class="management__content-table-tr" style="--vib: rgba(34, 197, 94, 0.72);">
+                                            <td style="width: 4rem; text-align: center;">
                                                 <p-skeleton
-                                                    [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
-                                                <p-skeleton
-                                                    [ngStyle]="{ 'width': '28px', 'height': '28px', 'border-radius': '4px' }"></p-skeleton>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                                    [ngStyle]="{ 'width': '24px', 'height': '24px', 'border-radius': '6px' }"></p-skeleton>
+                                            </td>
+                                            <td>
+                                                <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '40px', 'height': '40px', 'border-radius': '7px', 'flex': '0 0 40px' }"></p-skeleton>
+                                                    <div style="display: flex; flex-direction: column; gap: 5px; min-width: 0;">
+                                                        <p-skeleton
+                                                            [ngStyle]="{ 'width': item % 3 === 0 ? '230px' : item % 2 === 0 ? '190px' : '260px', 'height': '15px', 'border-radius': '4px' }"></p-skeleton>
+                                                        <p-skeleton
+                                                            [ngStyle]="{ 'width': item % 2 === 0 ? '96px' : '118px', 'height': '11px', 'border-radius': '4px' }"></p-skeleton>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="imei-container">
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '188px', 'height': '12px', 'border-radius': '4px' }"></p-skeleton>
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': item % 2 === 0 ? '170px' : '205px', 'height': '12px', 'border-radius': '4px' }"></p-skeleton>
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '94px', 'height': '12px', 'border-radius': '4px' }"></p-skeleton>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="target-controls-own">
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '24px', 'height': '24px', 'border-radius': '5px' }"></p-skeleton>
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '24px', 'height': '24px', 'border-radius': '5px' }"></p-skeleton>
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': '24px', 'height': '24px', 'border-radius': '5px' }"></p-skeleton>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </ng-template>
+                                </p-table>
 
                                 <!-- Loading original -->
                                 <div class="loading-content">
@@ -1023,36 +1101,51 @@
                     </ng-container>
 
                     <ng-template #loadingTargetsSkeletons>
-                        <div class="card">
-                            <p-table [value]="[1,2,3,4,5]" [tableStyle]="{'min-width': '50rem'}">
-                                <ng-template pTemplate="header">
-                                    <tr>
-                                        <th style="width: 4rem">
-                                            <p-skeleton [ngStyle]="{ 'width': '20px', 'height': '20px' }"></p-skeleton>
-                                        </th>
-                                        <th>{{ 'management.table.name' | translate }}</th>
-                                        <th>{{ 'management.table.imei' | translate }}</th>
-                                        <th>{{ 'management.table.sim' | translate }}</th>
-                                        <th></th>
-                                    </tr>
-                                </ng-template>
-                                <ng-template pTemplate="body" let-skel>
-                                    <tr>
-                                        <td>
-                                            <p-skeleton [ngStyle]="{ 'width': '20px', 'height': '20px' }"></p-skeleton>
+                        <div class="card target-card-list target-card-list--skeleton">
+                            <div class="target-card-list__toolbar">
+                                <p-skeleton
+                                    [ngStyle]="{ 'width': '24px', 'height': '24px', 'border-radius': '6px' }"></p-skeleton>
+                                <p-skeleton
+                                    [ngStyle]="{ 'width': '120px', 'height': '18px', 'border-radius': '4px' }"></p-skeleton>
+                            </div>
+                            <p-table class="target-card-skeleton-table" [value]="[1,2,3,4,5,6,7,8]"
+                                [tableStyle]="{'width': '100%', 'min-width': '0'}">
+                                <ng-template pTemplate="body" let-item>
+                                    <tr class="management__content-table-tr" style="--vib: rgba(34, 197, 94, 0.72);">
+                                        <td style="width: 4rem; text-align: center;">
+                                            <p-skeleton
+                                                [ngStyle]="{ 'width': '24px', 'height': '24px', 'border-radius': '6px' }"></p-skeleton>
                                         </td>
                                         <td>
-                                            <p-skeleton [ngStyle]="{ 'width': '120px', 'height': '20px' }"></p-skeleton>
-                                        </td>
-                                        <td>
-                                            <p-skeleton [ngStyle]="{ 'width': '100px', 'height': '20px' }"></p-skeleton>
-                                        </td>
-                                        <td>
-                                            <div style="display: flex; gap: 8px;">
+                                            <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
                                                 <p-skeleton
-                                                    [ngStyle]="{ 'width': '32px', 'height': '32px', 'border-radius': '4px' }"></p-skeleton>
+                                                    [ngStyle]="{ 'width': '40px', 'height': '40px', 'border-radius': '7px', 'flex': '0 0 40px' }"></p-skeleton>
+                                                <div style="display: flex; flex-direction: column; gap: 5px; min-width: 0;">
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': item % 3 === 0 ? '230px' : item % 2 === 0 ? '190px' : '260px', 'height': '15px', 'border-radius': '4px' }"></p-skeleton>
+                                                    <p-skeleton
+                                                        [ngStyle]="{ 'width': item % 2 === 0 ? '96px' : '118px', 'height': '11px', 'border-radius': '4px' }"></p-skeleton>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="imei-container">
                                                 <p-skeleton
-                                                    [ngStyle]="{ 'width': '32px', 'height': '32px', 'border-radius': '4px' }"></p-skeleton>
+                                                    [ngStyle]="{ 'width': '188px', 'height': '12px', 'border-radius': '4px' }"></p-skeleton>
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': item % 2 === 0 ? '170px' : '205px', 'height': '12px', 'border-radius': '4px' }"></p-skeleton>
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '94px', 'height': '12px', 'border-radius': '4px' }"></p-skeleton>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="target-controls-own">
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '24px', 'height': '24px', 'border-radius': '5px' }"></p-skeleton>
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '24px', 'height': '24px', 'border-radius': '5px' }"></p-skeleton>
+                                                <p-skeleton
+                                                    [ngStyle]="{ 'width': '24px', 'height': '24px', 'border-radius': '5px' }"></p-skeleton>
                                             </div>
                                         </td>
                                     </tr>
@@ -1071,7 +1164,7 @@
 
 <div class="card flex justify-content-center">
 
-    <p-dialog [modal]="true" [visible]="targetFormDisplay"
+    <p-dialog styleClass="target-form-dialog" [style]="{ width: '860px', maxWidth: '94vw' }" [modal]="true" [visible]="targetFormDisplay"
         (onHide)="onHideTargetForm()" (visibleChange)="!$event && onHideTargetForm()">
         <ng-template pTemplate="header">
             <div style="position: relative; width: 100%;">
@@ -1095,7 +1188,166 @@
 
     <p-dialog header="Formulario de usuario" [modal]="true" [visible]="userFormDisplay" (onHide)="onHideUserForm()"
         (visibleChange)="!$event && onHideUserForm()">
-        <app-user-form [userInput]="userToEdit" [showWhatsappButton]="hasUserInbox" (userCreated)="onUserCreated()" (openChatEvent)="openChat($event)"></app-user-form>
+        <app-user-form [userInput]="userToEdit" [showWhatsappButton]="hasUserInbox" (userCreated)="onUserCreated($event)" (openChatEvent)="openChat($event)"></app-user-form>
+    </p-dialog>
+
+    <p-dialog [(visible)]="createAccountTransferMethodDialogVisible" [modal]="true" [resizable]="false"
+        [draggable]="false" [style]="{width: '420px', maxWidth: '92vw'}" styleClass="create-account-method-dialog">
+        <div class="create-account-method">
+            <h2>Metodo de creacion de la cuenta:</h2>
+            <p>
+                Selecciona como quieres crear la cuenta donde se transferiran
+                {{ pendingCreateUserTransferTargets.length }} dispositivos.
+            </p>
+
+            <div class="create-account-method__actions">
+                <button type="button" class="button button--primary-flat-red"
+                    (click)="openManualCreateAccountTransfer()">
+                    <i class="pi pi-user-plus"></i>
+                    Manual
+                </button>
+                <button type="button" class="button button--outline-red"
+                    [disabled]="creatingRegistrationLink"
+                    (click)="openRegistrationLinkAffiliationDialog()">
+                    <i class="pi" [ngClass]="creatingRegistrationLink ? 'pi-spin pi-spinner' : 'pi-link'"></i>
+                    Link de registro
+                </button>
+            </div>
+        </div>
+    </p-dialog>
+
+    <p-dialog header="Tipo de cuenta" [(visible)]="registrationLinkAffiliationDialogVisible" [modal]="true"
+        [resizable]="false" [draggable]="false" [style]="{width: '430px', maxWidth: '92vw'}"
+        styleClass="create-account-method-dialog">
+        <div class="create-account-method">
+            <h2>Afiliacion del usuario:</h2>
+            <p>
+                Selecciona si la cuenta creada desde este link sera cliente o subcliente.
+            </p>
+
+            <div class="registration-affiliation-options">
+                <button type="button" class="registration-affiliation-option"
+                    [class.registration-affiliation-option--active]="selectedRegistrationLinkAffiliation === 'cliente'"
+                    (click)="selectedRegistrationLinkAffiliation = 'cliente'">
+                    <i class="pi pi-user"></i>
+                    <span>Cliente</span>
+                </button>
+                <button type="button" class="registration-affiliation-option"
+                    [class.registration-affiliation-option--active]="selectedRegistrationLinkAffiliation === 'subcliente'"
+                    (click)="selectedRegistrationLinkAffiliation = 'subcliente'">
+                    <i class="pi pi-users"></i>
+                    <span>Subcliente</span>
+                </button>
+            </div>
+
+            <label class="registration-parent-field">
+                <span>Por debajo de:</span>
+                <p-autoComplete
+                    [(ngModel)]="registrationLinkParentEmail"
+                    [suggestions]="registrationLinkParentSuggestions"
+                    (completeMethod)="searchRegistrationLinkParents($event)"
+                    (onSelect)="onRegistrationLinkParentSelected($event)"
+                    optionLabel="email"
+                    optionValue="email"
+                    [forceSelection]="false"
+                    [dropdown]="true"
+                    [minLength]="2"
+                    appendTo="body"
+                    placeholder="correo@ejemplo.com"
+                    styleClass="registration-parent-autocomplete"
+                    inputStyleClass="registration-parent-autocomplete__input">
+                    <ng-template let-user pTemplate="item">
+                        <div class="registration-parent-suggestion">
+                            <strong>{{ user.name }} {{ user.last_name }}</strong>
+                            <small>{{ user.email }}<span *ngIf="user.phone"> · {{ user.phone }}</span></small>
+                        </div>
+                    </ng-template>
+                </p-autoComplete>
+            </label>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button type="button" class="button button--outline-red"
+                (click)="registrationLinkAffiliationDialogVisible = false; createAccountTransferMethodDialogVisible = true">
+                Volver
+            </button>
+            <button type="button" class="button button--primary-flat-red"
+                [disabled]="creatingRegistrationLink"
+                (click)="createRegistrationLinkForSelectedTargets()">
+                <i class="pi" [ngClass]="creatingRegistrationLink ? 'pi-spin pi-spinner' : 'pi-link'"></i>
+                Crear link
+            </button>
+        </ng-template>
+    </p-dialog>
+
+    <p-dialog header="Link de registro" [(visible)]="registrationLinkDialogVisible" [modal]="true"
+        [resizable]="false" [draggable]="false" [style]="{width: '500px', maxWidth: '94vw'}">
+        <div class="registration-link-result">
+            <div class="registration-link-result__icon">
+                <i class="pi pi-link"></i>
+            </div>
+            <div>
+                <h3>Link listo para enviar</h3>
+                <p>
+                    El cliente podra registrarse sin iniciar sesion. Al terminar, la cuenta quedara debajo de esta
+                    cuenta y se transferiran {{ registrationLinkTargetCount }} dispositivos.
+                </p>
+            </div>
+            <input pInputText type="text" readonly [value]="registrationLinkUrl">
+            <small *ngIf="registrationLinkExpiresAt">
+                Expira: {{ registrationLinkExpiresAt | date:'dd/MM/yyyy, h:mm a' }}
+            </small>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button type="button" class="button button--outline-red" (click)="registrationLinkDialogVisible = false">
+                Cerrar
+            </button>
+            <button type="button" class="button button--primary-flat-red" (click)="copyRegistrationLink()">
+                <i class="pi pi-copy"></i>
+                Copiar link
+            </button>
+        </ng-template>
+    </p-dialog>
+
+    <p-dialog header="Dispositivos transferidos" [(visible)]="transferCreatedAccountSummaryVisible" [modal]="true"
+        [resizable]="false" [draggable]="false" [style]="{width: '520px', maxWidth: '94vw'}">
+        <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                <i class="pi pi-check-circle" style="color: #22c55e; font-size: 22px; margin-top: 2px;"></i>
+                <div>
+                    <h3 style="margin: 0 0 4px; font-size: 18px;">Transferencia completada</h3>
+                    <p style="margin: 0; color: var(--globalColorTextMuted); line-height: 1.35;">
+                        Se transfirieron {{ transferCreatedAccountSuccessCount }} dispositivos a
+                        <strong>{{ transferCreatedAccountUser?.name }} {{ transferCreatedAccountUser?.last_name || '' }}</strong>.
+                    </p>
+                    <p *ngIf="transferCreatedAccountErrorCount > 0"
+                        style="margin: 6px 0 0; color: #f59e0b; line-height: 1.35;">
+                        {{ transferCreatedAccountErrorCount }} dispositivos no pudieron transferirse.
+                    </p>
+                </div>
+            </div>
+
+            <div style="max-height: 260px; overflow: auto; display: flex; flex-direction: column; gap: 8px;">
+                <div *ngFor="let target of transferCreatedAccountTargets"
+                    style="border: 1px solid var(--globalColorBorderLight); border-radius: 8px; padding: 9px 10px; background: var(--globalColorCardBackground);">
+                    <div style="font-weight: 700; color: var(--globalColorTextDark);">
+                        {{ target.name || 'Dispositivo sin nombre' }}
+                    </div>
+                    <div style="font-size: 12px; color: var(--globalColorTextMuted); margin-top: 2px;">
+                        IMEI: {{ target.imei || target.device_imei || '—' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button type="button" class="button button--primary-flat-red"
+                (click)="transferCreatedAccountSummaryVisible = false">
+                <i class="pi pi-check" style="margin-right: 6px;"></i>
+                Entendido
+            </button>
+        </ng-template>
     </p-dialog>
 </div>
 

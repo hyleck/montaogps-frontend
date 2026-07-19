@@ -37,6 +37,27 @@
   gap: 10px;
 }
 
+.navbar__selection-actions {
+  display: flex;
+  align-items: center;
+}
+
+.navbar__selection-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.navbar__selection-chevron {
+  font-size: 10px !important;
+  margin-left: 2px;
+}
+
+:host ::ng-deep .selected-actions-menu {
+  min-width: 210px;
+}
+
 .navbar__drupdown {
   color: rgba(255, 255, 255, 0.806);
   display: none;
@@ -54,6 +75,10 @@
 
   .navbar__controls-base {
     display: none;
+  }
+
+  .navbar__selection-button {
+    padding-inline: 10px;
   }
 }
 
@@ -1711,6 +1736,264 @@ body .p-dialog-mask {
 /* ====================================
    MODAL DE COMPARTIR TARGETS
    ==================================== */
+
+.share-method-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--managementColorTitle, #1f2937);
+}
+
+.share-method-header i {
+  color: var(--globalColorAccent, #dc2626);
+  font-size: 18px;
+}
+
+.share-method-content,
+.realtime-share-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 4px 0 8px;
+}
+
+.share-method-title {
+  margin: 0;
+  color: var(--managementColorTextSecondary, #6b7280);
+  font-size: 0.95rem;
+}
+
+.share-method-options {
+  display: grid;
+  gap: 12px;
+}
+
+.share-method-option {
+  width: 100%;
+  border: 1px solid var(--managementColorBorderInput, #e5e7eb);
+  background: var(--globalColorBackground, #fff);
+  color: var(--managementColorTitle, #1f2937);
+  border-radius: 8px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.share-method-option:hover {
+  border-color: var(--globalColorAccent, #dc2626);
+  background: rgba(220, 38, 38, 0.06);
+  transform: translateY(-1px);
+}
+
+.share-method-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.1);
+  color: var(--globalColorAccent, #dc2626);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.share-method-option strong {
+  display: block;
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.share-method-option small {
+  display: block;
+  margin-top: 4px;
+  color: var(--managementColorTextSecondary, #6b7280);
+  line-height: 1.35;
+}
+
+.realtime-target-summary {
+  border: 1px solid var(--managementColorBorderInput, #e5e7eb);
+  background: var(--managementColorBackground, #f8fafc);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.realtime-target-summary strong {
+  color: var(--managementColorTitle, #1f2937);
+  font-size: 0.95rem;
+}
+
+.realtime-target-summary span,
+.realtime-generated-link small {
+  color: var(--managementColorTextSecondary, #6b7280);
+  font-size: 0.85rem;
+}
+
+.realtime-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--managementColorTitle, #1f2937);
+  font-weight: 600;
+}
+
+.realtime-select {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--managementColorBorderInput, #e5e7eb);
+  border-radius: 8px;
+  background: var(--globalColorBackground, #fff);
+  color: var(--managementColorTitle, #1f2937);
+  padding: 0 12px;
+  font-size: 0.95rem;
+}
+
+.realtime-generated-link {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.realtime-generated-label {
+  color: var(--managementColorTitle, #1f2937);
+  font-weight: 600;
+}
+
+.realtime-link-box {
+  display: grid;
+  grid-template-columns: 1fr 42px;
+  align-items: stretch;
+  border: 1px solid var(--managementColorBorderInput, #e5e7eb);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--globalColorBackground, #fff);
+}
+
+.realtime-link-box span {
+  padding: 12px;
+  color: var(--managementColorTextSecondary, #6b7280);
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.realtime-link-box button {
+  border: 0;
+  border-left: 1px solid var(--managementColorBorderInput, #e5e7eb);
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--globalColorAccent, #dc2626);
+  cursor: pointer;
+}
+
+.realtime-copy-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #16a34a;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.realtime-modal-button {
+  min-height: 44px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.realtime-modal-button--primary {
+  background: var(--globalColorPrimaryInmutable, #dc2626);
+  color: #fff;
+}
+
+.realtime-modal-button--secondary {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+
+.realtime-modal-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+:host ::ng-deep .share-method-dialog .p-dialog,
+:host ::ng-deep .realtime-share-dialog .p-dialog {
+  background: #18191d;
+  border: 1px solid #4b4d55;
+}
+
+:host ::ng-deep .share-method-dialog .p-dialog-header,
+:host ::ng-deep .share-method-dialog .p-dialog-content,
+:host ::ng-deep .realtime-share-dialog .p-dialog-header,
+:host ::ng-deep .realtime-share-dialog .p-dialog-content,
+:host ::ng-deep .realtime-share-dialog .p-dialog-footer {
+  background: #18191d;
+  color: #f3f4f6;
+}
+
+:host ::ng-deep .share-method-dialog .p-dialog-header-close,
+:host ::ng-deep .realtime-share-dialog .p-dialog-header-close {
+  color: #d1d5db;
+}
+
+:host ::ng-deep .share-method-dialog .share-method-header,
+:host ::ng-deep .share-method-dialog .share-method-option,
+:host ::ng-deep .realtime-share-dialog .realtime-field,
+:host ::ng-deep .realtime-share-dialog .realtime-target-summary strong,
+:host ::ng-deep .realtime-share-dialog .realtime-generated-label,
+.dark .share-method-header,
+.dark .share-method-option,
+.dark .realtime-field,
+.dark .realtime-target-summary strong,
+.dark .realtime-generated-label {
+  color: #f3f4f6;
+}
+
+:host ::ng-deep .share-method-dialog .share-method-title,
+:host ::ng-deep .share-method-dialog .share-method-option small,
+:host ::ng-deep .realtime-share-dialog .realtime-target-summary span,
+:host ::ng-deep .realtime-share-dialog .realtime-generated-link small,
+:host ::ng-deep .realtime-share-dialog .realtime-link-box span,
+.dark .share-method-title,
+.dark .share-method-option small,
+.dark .realtime-target-summary span,
+.dark .realtime-generated-link small,
+.dark .realtime-link-box span {
+  color: #c7cbd1;
+}
+
+:host ::ng-deep .share-method-dialog .share-method-option,
+:host ::ng-deep .realtime-share-dialog .realtime-select,
+:host ::ng-deep .realtime-share-dialog .realtime-link-box,
+.dark .share-method-option,
+.dark .realtime-select,
+.dark .realtime-link-box {
+  background: #1f1f1f;
+  border-color: #3a3a3a;
+}
+
+:host ::ng-deep .realtime-share-dialog .realtime-target-summary,
+.dark .realtime-target-summary {
+  background: #242424;
+  border-color: #3a3a3a;
+}
+
+:host ::ng-deep .share-method-dialog .share-method-option:hover,
+.dark .share-method-option:hover {
+  background: rgba(248, 113, 113, 0.12);
+}
 
 .share-dialog-content {
   padding: 1rem 0;

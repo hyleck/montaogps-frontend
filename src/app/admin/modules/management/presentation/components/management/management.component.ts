@@ -33,6 +33,7 @@ import { InventoryService, Warehouse, InventoryItem } from '@core/services/inven
 import { SolicitudesService } from '@core/services/solicitudes.service';
 import { Protocol } from '@core/interfaces/protocol.interface';
 import { SIM_CARD_TYPES } from '@core/constants/sim-card-types.constant';
+import type { MapProvider } from '@shared/helpers/map.helper';
 
 @Component({
   selector: 'app-management',
@@ -61,14 +62,34 @@ export class ManagementComponent implements OnInit, OnDestroy {
   generatingAITargets: Set<string> = new Set();
   activatingTargets: Set<string> = new Set();
   activatingTargetStatus: Map<string, any> = new Map();
+  private readonly onlineActivationAudioSrc = 'assets/online.mp3';
+  private onlineActivationAudio: HTMLAudioElement | null = null;
+  private playedOnlineActivationSounds: Set<string> = new Set();
   showTargetFormImageModal: boolean = false;
   targetFormFullImageUrl: string | null = null;
   targetsSelected: any[] = [];
+  pendingCreateUserTransferTargets: any[] = [];
+  transferCreatedAccountSummaryVisible: boolean = false;
+  transferCreatedAccountUser: any | null = null;
+  transferCreatedAccountTargets: any[] = [];
+  transferCreatedAccountSuccessCount: number = 0;
+  transferCreatedAccountErrorCount: number = 0;
+  createAccountTransferMethodDialogVisible: boolean = false;
+  registrationLinkAffiliationDialogVisible: boolean = false;
+  registrationLinkDialogVisible: boolean = false;
+  creatingRegistrationLink: boolean = false;
+  selectedRegistrationLinkAffiliation: 'cliente' | 'subcliente' = 'cliente';
+  registrationLinkParentEmail: string = '';
+  registrationLinkParentSuggestions: User[] = [];
+  registrationLinkUrl: string = '';
+  registrationLinkExpiresAt: string = '';
+  registrationLinkTargetCount: number = 0;
   targetToEdit: any | null = null;
   @ViewChild('targetFormRef') targetFormRef: any;
   selectedTargetForMap: any | null = null;
   selectedTargetStopTime: string | undefined = undefined;
   targetIdFromUrl: string | null = null;
+  private readonly registrationLinkSearchRootId = '68a9ccf19bb280482272477f';
 
   // Dialogo de prioridad
   showPriorityDialog: boolean = false;
@@ -138,20 +159,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     { label: 'Investigación en curso', value: 'investigation' },
     { label: 'Suspensión temporal', value: 'temporary_suspension' },
     { label: 'Otro motivo', value: 'other' }
-  ];
-
-  // Process dropdown menu items for selected targets
-  processMenuItems: MenuItem[] = [
-    {
-      label: 'Cancelar',
-      icon: 'pi pi-ban',
-      command: () => this.confirmMassCancelSelected()
-    },
-    {
-      label: 'Suspender',
-      icon: 'pi pi-pause-circle',
-      command: () => this.openMassSuspendSelected()
-    }
   ];
 
   // ====================================
@@ -312,6 +319,82 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return !!matchedProtocol?.isAirtag;
   }
 
+  private getDisplayTraccarStatus(target: any): string {
+    const rawStatus = target?.traccarInfo?.status || target?.traccarStatus || 'offline';
+
+    if (rawStatus === 'online' || rawStatus === 'Localizado' || rawStatus === 'No localizado') {
+      return rawStatus;
+    }
+
+    if (this.isTargetAirtag(target)) {
+      return rawStatus;
+    }
+
+    const offlineMinutes = this.getOfflineDurationInMinutes(target);
+    if (offlineMinutes !== null && offlineMinutes <= 10) {
+      return 'online';
+    }
+
+    if (offlineMinutes !== null && offlineMinutes > 10 && offlineMinutes <= 60) {
+      return 'Señal débil';
+    }
+
+    return rawStatus;
+  }
+
+  private getOfflineDurationInMinutes(target: any): number | null {
+    const lastUpdate = target?.traccarInfo?.lastUpdate || target?.originalTarget?.traccarInfo?.lastUpdate;
+    if (!lastUpdate) return null;
+
+    const lastUpdateDate = new Date(lastUpdate);
+    if (isNaN(lastUpdateDate.getTime())) return null;
+
+    const diffMs = Date.now() - lastUpdateDate.getTime();
+    if (diffMs < 0) return null;
+
+    return Math.floor(diffMs / (1000 * 60));
+  }
+
+  private normalizeConnectionStatus(status?: string | null): string {
+    return (status || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  private isOnlineLikeStatus(status?: string | null): boolean {
+    const normalized = this.normalizeConnectionStatus(status);
+    return normalized === 'online' || normalized === 'senal debil';
+  }
+
+  private isConnectionFilterActive(): boolean {
+    return this.filterStatus === 'online' || this.filterStatus === 'offline';
+  }
+
+  private matchesConnectionFilter(target: any): boolean {
+    if (this.filterStatus === 'all') return true;
+
+    const displayStatus = this.getDisplayTraccarStatus(target);
+    const isOnlineLike = this.isOnlineLikeStatus(displayStatus);
+
+    return this.filterStatus === 'online' ? isOnlineLike : !isOnlineLike;
+  }
+
+  private applyConnectionFilterToView(targets: any[]): any[] {
+    if (this.filterStatus === 'all') return targets;
+
+    return targets.filter(target => {
+      const status = target?.traccarStatus || this.getDisplayTraccarStatus(target);
+      const isOnlineLike = this.isOnlineLikeStatus(status);
+      return this.filterStatus === 'online' ? isOnlineLike : !isOnlineLike;
+    });
+  }
+
+  private buildTargetsView(targets: Target[] | any[]): any[] {
+    return this.applyConnectionFilterToView(this.mapTargetsToView(targets as Target[]));
+  }
+
   // ====================================
   // PROPIEDADES PÚBLICAS - DELEGADAS A SERVICIOS
   // ====================================
@@ -332,7 +415,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   // Map Provider (delegado a MapProviderService)
   get selectedMap(): string { return this.mapProviderService.selectedMap; }
-  get providerType(): 'google' | 'mapbox' { return this.mapProviderService.providerType; }
+  get providerType(): MapProvider { return this.mapProviderService.providerType; }
   get providerTheme(): 'light' | 'dark' { return this.mapProviderService.providerTheme; }
   get mapsKey(): string | null { return this.mapProviderService.mapsKey; }
   get showAdvancedMapOptions(): boolean { return !!this.selectedTargetForMap; }
@@ -649,7 +732,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           console.log('Expected User ID:', deviceInstallationData.userId);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error al verificar datos de instalación:', error);
       sessionStorage.removeItem('deviceInstallationData');
     }
@@ -1017,7 +1100,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
       this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Etiqueta actualizada correctamente' });
       this.tagDialogVisible = false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving tag:', error);
       this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar la etiqueta' });
     }
@@ -1043,7 +1126,169 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.pendingCreateUserTransferTargets = [];
+    this.userToEdit = null;
     this.uiService.showUserForm();
+  }
+
+  openCreateUserAndTransferSelected() {
+    if (!this.targetsSelected || this.targetsSelected.length === 0) return;
+
+    if (!this.canCreateUsers()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.users.no_create_permission'),
+        detail: this.translate.instant('management.users.contact_admin')
+      });
+      return;
+    }
+
+    this.pendingCreateUserTransferTargets = [...this.targetsSelected];
+    this.createAccountTransferMethodDialogVisible = true;
+  }
+
+  openManualCreateAccountTransfer() {
+    this.createAccountTransferMethodDialogVisible = false;
+    this.userToEdit = null;
+    this.uiService.showUserForm();
+  }
+
+  openRegistrationLinkAffiliationDialog() {
+    if (this.creatingRegistrationLink || this.pendingCreateUserTransferTargets.length === 0) return;
+    const currentUser: any = this.authService.getCurrentUser();
+
+    if (!this.isLoggedEmployee()) {
+      this.selectedRegistrationLinkAffiliation = 'subcliente';
+      this.registrationLinkParentEmail = this.selectedUser?.email || currentUser?.email || '';
+      this.createAccountTransferMethodDialogVisible = false;
+      this.createRegistrationLinkForSelectedTargets();
+      return;
+    }
+
+    this.selectedRegistrationLinkAffiliation = 'cliente';
+    this.registrationLinkParentEmail = this.selectedUser?.email || currentUser?.email || '';
+    this.registrationLinkParentSuggestions = [];
+    this.createAccountTransferMethodDialogVisible = false;
+    this.registrationLinkAffiliationDialogVisible = true;
+  }
+
+  searchRegistrationLinkParents(event: { query?: string }) {
+    const query = String(event?.query || '').trim();
+    if (query.length < 2) {
+      this.registrationLinkParentSuggestions = [];
+      return;
+    }
+
+    this.userService.search(query, this.registrationLinkSearchRootId, 0, 10).subscribe({
+      next: (response) => {
+        this.registrationLinkParentSuggestions = response?.users || [];
+      },
+      error: () => {
+        this.registrationLinkParentSuggestions = [];
+      }
+    });
+  }
+
+  onRegistrationLinkParentSelected(event: any) {
+    const selectedUser = event?.value;
+    if (selectedUser?.email) {
+      this.registrationLinkParentEmail = selectedUser.email;
+    }
+  }
+
+  private isLoggedEmployee(): boolean {
+    const currentUser: any = this.authService.getCurrentUser();
+    return String(currentUser?.affiliation_type_id || '').toLowerCase() === 'empleado';
+  }
+
+  async createRegistrationLinkForSelectedTargets() {
+    if (this.creatingRegistrationLink || this.pendingCreateUserTransferTargets.length === 0) return;
+
+    const isEmployee = this.isLoggedEmployee();
+    const parentEmail = String(this.registrationLinkParentEmail || '').trim();
+    if (isEmployee && !parentEmail) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Correo requerido',
+        detail: 'Indica debajo de cual cuenta se creara el usuario.'
+      });
+      return;
+    }
+
+    const currentUser: any = this.authService.getCurrentUser();
+    const accessLevelId = typeof currentUser?.access_level_id === 'string'
+      ? currentUser.access_level_id
+      : currentUser?.access_level_id?._id;
+    const targetIds = this.pendingCreateUserTransferTargets
+      .map(target => target?._id)
+      .filter(Boolean);
+
+    this.creatingRegistrationLink = true;
+    try {
+      let parentId = this.route.snapshot.params['user'] || this.selectedUser?._id || '';
+
+      if (isEmployee) {
+        const selectedEmail = String(this.selectedUser?.email || '').trim().toLowerCase();
+        const normalizedParentEmail = parentEmail.toLowerCase();
+        parentId = normalizedParentEmail === selectedEmail
+          ? (this.selectedUser?._id || parentId)
+          : '';
+      }
+
+      if (isEmployee && !parentId) {
+        const parentUser = await lastValueFrom(this.userService.getByEmail(parentEmail));
+        parentId = parentUser?._id;
+      }
+
+      if (!parentId) {
+        throw new Error('No se encontro la cuenta indicada');
+      }
+
+      const response = await lastValueFrom(this.userService.createRegistrationLink({
+        parent_id: parentId,
+        target_ids: targetIds,
+        access_level_id: accessLevelId,
+        affiliation_type_id: this.selectedRegistrationLinkAffiliation
+      }));
+      const registrationCode = response.short_code || response.token;
+      if (!registrationCode) {
+        throw new Error('El backend no devolvió un código para el link de registro');
+      }
+      this.registrationLinkUrl = `${window.location.origin}/registro/${registrationCode}`;
+      this.registrationLinkExpiresAt = response.expires_at;
+      this.registrationLinkTargetCount = response.target_count;
+      this.createAccountTransferMethodDialogVisible = false;
+      this.registrationLinkAffiliationDialogVisible = false;
+      this.registrationLinkDialogVisible = true;
+    } catch (error: any) {
+      console.error('Error creando link de registro:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'No se pudo crear el link',
+        detail: error?.error?.message || error?.message || 'Intenta nuevamente o usa el metodo manual.'
+      });
+    } finally {
+      this.creatingRegistrationLink = false;
+    }
+  }
+
+  async copyRegistrationLink() {
+    if (!this.registrationLinkUrl) return;
+    try {
+      await navigator.clipboard.writeText(this.registrationLinkUrl);
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Link copiado',
+        detail: 'El link de registro fue copiado al portapapeles.'
+      });
+    } catch (error) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Link listo',
+        detail: this.registrationLinkUrl,
+        life: 8000
+      });
+    }
   }
 
   editUser(user: User) {
@@ -1064,14 +1309,92 @@ export class ManagementComponent implements OnInit, OnDestroy {
   onHideUserForm() {
     this.uiService.hideUserForm();
     this.userToEdit = null;
+    this.pendingCreateUserTransferTargets = [];
   }
 
-  onUserCreated() {
+  async onUserCreated(createdUser?: any) {
+    const shouldTransferToCreatedUser = !!createdUser && this.pendingCreateUserTransferTargets.length > 0;
+    const targetsPendingTransfer = [...this.pendingCreateUserTransferTargets];
     this.uiService.hideUserForm();
     this.userToEdit = null;
 
+    if (shouldTransferToCreatedUser) {
+      await this.transferPendingTargetsToCreatedUser(createdUser, targetsPendingTransfer);
+      return;
+    }
+
     if (this.selectedUser) {
       this.loadUsersForUser(this.selectedUser._id);
+    }
+  }
+
+  private async transferPendingTargetsToCreatedUser(createdUser: any, pendingTargets: any[] = this.pendingCreateUserTransferTargets): Promise<void> {
+    const newUserId = createdUser?._id || createdUser?.id || createdUser?.user?._id || createdUser?.data?._id;
+    const targetsToTransfer = [...pendingTargets];
+    this.pendingCreateUserTransferTargets = [];
+
+    if (!newUserId || targetsToTransfer.length === 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Transferencia pendiente',
+        detail: 'La cuenta fue creada, pero no se pudo identificar el ID del usuario para transferir los GPS.',
+        life: 6000
+      });
+      return;
+    }
+
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Transferencia iniciada',
+      detail: `Transfiriendo ${targetsToTransfer.length} GPS a la cuenta creada...`,
+      life: 3000
+    });
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const target of targetsToTransfer) {
+      try {
+        await this.targetsService.transferTarget(target._id, newUserId);
+        successCount++;
+      } catch (error) {
+        errorCount++;
+        console.error('Error transfiriendo GPS a cuenta creada:', { target, error });
+      }
+    }
+
+    const createdAccountUser = await this.getCreatedAccountUser(createdUser, newUserId);
+
+    this.targetsSelected = [];
+    this.selectionService.clearSelection();
+    this.transferCreatedAccountUser = createdAccountUser || createdUser;
+    this.transferCreatedAccountTargets = targetsToTransfer;
+    this.transferCreatedAccountSuccessCount = successCount;
+    this.transferCreatedAccountErrorCount = errorCount;
+    this.transferCreatedAccountSummaryVisible = true;
+    this.managementService.setOp('t', newUserId);
+
+    this.messageService.add({
+      severity: errorCount > 0 ? 'warn' : 'success',
+      summary: errorCount > 0 ? 'Transferencia parcial' : 'Transferencia completada',
+      detail: errorCount > 0
+        ? `Se transfirieron ${successCount} GPS y fallaron ${errorCount}.`
+        : `Se transfirieron ${successCount} GPS a la cuenta creada.`,
+      life: 6000
+    });
+  }
+
+  private async getCreatedAccountUser(createdUser: any, userId: string): Promise<any> {
+    const directUser = createdUser?.email || createdUser?.name ? createdUser : (createdUser?.user || createdUser?.data);
+    if (directUser?.email || directUser?.name) {
+      return directUser;
+    }
+
+    try {
+      return await lastValueFrom(this.userService.getById(userId));
+    } catch (error) {
+      console.error('No se pudo cargar la cuenta creada para el resumen:', error);
+      return createdUser;
     }
   }
 
@@ -1156,6 +1479,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
+  onStatusFilterChange(status: 'all' | 'online' | 'offline') {
+    this.filterStatus = status;
+    this.onFilterChange();
+  }
+
   clearFilters() {
     this.filterStatus = 'all';
     this.filterTag = null;
@@ -1210,21 +1538,28 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const currentUserEmail = this.selectedUser?.email;
 
     return targets.map(target => {
-      const traccarStatus = target.traccarInfo?.status || 'offline';
+      const traccarStatus = this.getDisplayTraccarStatus(target);
       const isOnline = traccarStatus === 'online';
       const isLocalizado = traccarStatus === 'Localizado';
+      const isWeakSignal = traccarStatus === 'Señal débil';
+
+      const targetAny = target as any;
 
       // Intentamos recuperar isShared si fue inyectado, o lo deducimos (menos fiable sin el contexto de sharedTargets original)
       // Pero espera, en loadTargetsForUser original:
       // const isShared = sharedTargetIds.has(target._id);
       // Si guardamos 'isShared' en el target dentro de 'this.targets', todo es más fácil.
       // Asumiremos que 'target' tiene la propiedad 'isShared' inyectada (lo haré en el siguiente paso).
-      const isShared = (target as any).isShared === true;
+      const isShared = targetAny.isShared === true;
 
       // Calcular tiempo offline
       let offlineTimeText = '';
       let offlineDateText = '';
-      if (!isOnline && target.traccarInfo?.['lastUpdate']) {
+      if (isWeakSignal && target.traccarInfo?.['lastUpdate']) {
+        const offlineInfo = this.calculateOfflineTime(target.traccarInfo['lastUpdate']);
+        offlineTimeText = 'Señal débil';
+        offlineDateText = offlineInfo.dateText;
+      } else if (!isOnline && target.traccarInfo?.['lastUpdate']) {
         const offlineInfo = this.calculateOfflineTime(target.traccarInfo['lastUpdate'], isLocalizado);
         offlineTimeText = offlineInfo.timeText;
         offlineDateText = offlineInfo.dateText;
@@ -1233,6 +1568,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
       let translatedStatus = '';
       if (isOnline) {
         translatedStatus = this.translate.instant('management.status.online');
+      } else if (isWeakSignal) {
+        translatedStatus = 'Señal débil';
       } else if (isLocalizado) {
         translatedStatus = 'Localizado';
       } else {
@@ -1248,8 +1585,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
         _id: target._id,
         traccarStatus: traccarStatus,
         traccarInfo: target.traccarInfo,
-        ignition_sensor: (target as any).ignition_sensor,
+        ignition_sensor: targetAny.ignition_sensor,
         connection_priority: target.connection_priority,
+        verificado: targetAny.verificado,
+        verified: targetAny.verified,
+        matricula_img: targetAny.matricula_img,
         originalTarget: target,
         isShared: isShared,
         offlineTimeText: offlineTimeText,
@@ -1319,6 +1659,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   handleTargetClick(target: any, event: MouseEvent) {
+    // Check if target is suspended before any other status.
+    if (this.isTargetSuspended(target)) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Dispositivo Suspendido',
+        detail: 'Este dispositivo está suspendido y no se puede seleccionar.',
+        life: 5000
+      });
+      return;
+    }
+
     // Check if target is expired
     if (this.getExpirationStatus(target.expiration_date) === 'expired') {
       // Show toast message and prevent normal action
@@ -1326,18 +1677,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
         severity: 'warn',
         summary: 'Dispositivo Expirado',
         detail: 'Este dispositivo está expirado y no se puede seleccionar.',
-        life: 5000
-      });
-      return; // Prevent any further action
-    }
-
-    // Check if target is suspended (status false)
-    if (!target.originalTarget?.status) {
-      // Show toast message and prevent normal action
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Dispositivo Suspendido',
-        detail: 'Este dispositivo está suspendido y no se puede seleccionar.',
         life: 5000
       });
       return; // Prevent any further action
@@ -1376,6 +1715,33 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
 
       }
+    }
+  }
+
+  showAdditionalTargetOnMap(target: any): void {
+    if (!target?._id) {
+      return;
+    }
+
+    const listedTarget = this.targetsList.find((item: any) => item._id === target._id);
+    const mappedTarget = listedTarget || this.mapTargetsToView([target as Target])[0] || target;
+
+    this.addTargetToUrl(mappedTarget);
+
+    if (!this.selectedTargetForMap || this.selectedTargetForMap._id !== mappedTarget._id) {
+      this.stopPolling();
+      this.selectedTargetStopTime = undefined;
+      this.selectedTargetForMap = mappedTarget;
+      this.startPolling();
+      this.scrollToSelectedTarget();
+    }
+
+    if (this.isMobileView) {
+      if (!this.uiService.areMapsVisible()) {
+        this.uiService.toggleMaps();
+      }
+      this.showMobileMapFullscreen = true;
+      this.cdr.detectChanges();
     }
   }
 
@@ -1424,6 +1790,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (this.activatingTargets.has(target._id)) return true;
     // Then check persisted activation_status
     if (target?.traccarStatus === 'online') return false;
+    if (target?.traccarStatus === 'Señal débil') return false;
     const activation = target?.originalTarget?.activation_status;
     return !!(activation && activation.steps && activation.steps.length > 0);
   }
@@ -1454,6 +1821,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   async startActivationFromList(target: any, event: Event): Promise<void> {
     event.stopPropagation();
     try {
+      this.prepareOnlineActivationSound(target._id);
       // Clear any previous activation status
       await this.targetsService.updateTarget(target._id, { activation_status: null } as any);
       // Start the activation in the backend
@@ -1483,6 +1851,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
             };
           }
           if (updated.activation_status.completed || updated.activation_status.cancelled) {
+            this.playOnlineActivationSoundIfNeeded(targetId, updated.activation_status);
             this.activatingTargets.delete(targetId);
             this.activatingTargetStatus.delete(targetId);
             clearInterval(interval);
@@ -1497,12 +1866,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   onActivationEvent(event: { targetId: string, type: string, activation_status?: any }) {
     if (event.type === 'started') {
+      this.prepareOnlineActivationSound(event.targetId);
       this.activatingTargets.add(event.targetId);
       this.activatingTargetStatus.set(event.targetId, null);
     } else if (event.type === 'progress') {
       this.activatingTargets.add(event.targetId);
       this.activatingTargetStatus.set(event.targetId, event.activation_status);
     } else if (event.type === 'completed' || event.type === 'error') {
+      this.playOnlineActivationSoundIfNeeded(event.targetId, event.activation_status);
       this.activatingTargets.delete(event.targetId);
       this.activatingTargetStatus.delete(event.targetId);
       // Update the persisted data in the list
@@ -1519,6 +1890,109 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.targetsList = [...this.targetsList];
       }
     }
+  }
+
+  private prepareOnlineActivationSound(targetId?: string): void {
+    if (targetId) this.playedOnlineActivationSounds.delete(targetId);
+    if (typeof Audio === 'undefined') return;
+
+    let audio: HTMLAudioElement | null = null;
+    let originalVolume = 1;
+    try {
+      if (!this.onlineActivationAudio) {
+        this.onlineActivationAudio = new Audio(this.onlineActivationAudioSrc);
+        this.onlineActivationAudio.preload = 'auto';
+      }
+
+      const preparedAudio = this.onlineActivationAudio;
+      audio = preparedAudio;
+      originalVolume = preparedAudio.volume;
+      preparedAudio.load();
+
+      preparedAudio.volume = 0;
+      const playPromise = preparedAudio.play();
+      if (playPromise) {
+        playPromise
+          .then(() => {
+            preparedAudio.pause();
+            preparedAudio.currentTime = 0;
+            preparedAudio.volume = originalVolume;
+          })
+          .catch(() => {
+            preparedAudio.volume = originalVolume;
+          });
+      } else {
+        preparedAudio.volume = originalVolume;
+      }
+    } catch (error) {
+      if (audio) audio.volume = originalVolume;
+      console.warn('No se pudo preparar el audio de activación online', error);
+    }
+  }
+
+  private playOnlineActivationSoundIfNeeded(targetId: string, activationStatus: any): void {
+    if (!targetId || this.playedOnlineActivationSounds.has(targetId)) return;
+    if (!this.isSuccessfulOnlineActivation(activationStatus)) return;
+
+    this.playedOnlineActivationSounds.add(targetId);
+    const targetName = this.getActivationTargetName(targetId);
+    this.messageService.add({
+      severity: 'success',
+      summary: 'Vehículo en línea',
+      detail: `${targetName || 'El vehículo'} entró en línea y finalizó la activación.`,
+      life: 6000
+    });
+
+    if (typeof Audio === 'undefined') return;
+
+    try {
+      const audio = this.onlineActivationAudio || new Audio(this.onlineActivationAudioSrc);
+      this.onlineActivationAudio = audio;
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = 1;
+      audio.play().catch(error => {
+        console.warn('No se pudo reproducir online.mp3', error);
+      });
+    } catch (error) {
+      console.warn('No se pudo reproducir online.mp3', error);
+    }
+  }
+
+  private getActivationTargetName(targetId: string): string {
+    const target = this.targetsList.find((item: any) => item?._id === targetId);
+    return target?.name || target?.originalTarget?.name || '';
+  }
+
+  private isSuccessfulOnlineActivation(activationStatus: any): boolean {
+    if (!activationStatus?.completed || activationStatus?.cancelled) return false;
+
+    const steps = Array.isArray(activationStatus.steps) ? activationStatus.steps : [];
+    if (steps.some((step: any) => step?.status === 'error')) return false;
+
+    const hasSuccessfulOnlineStep = steps.some((step: any) => {
+      const label = this.normalizeActivationText(step?.label);
+      const description = this.normalizeActivationText(step?.description);
+      const isConnectionStep = label.includes('verificar conexion') || label.includes('mover el vehiculo');
+      const saysOnline = description.includes('conexion exitosamente') || description.includes('dispositivo se conecto');
+      return step?.status === 'success' && (isConnectionStep || saysOnline);
+    });
+
+    if (hasSuccessfulOnlineStep) return true;
+
+    const logs = Array.isArray(activationStatus.logs) ? activationStatus.logs : [];
+    return logs.some((log: any) => {
+      if (log?.type !== 'success') return false;
+      const message = this.normalizeActivationText(log?.message);
+      return message.includes('dispositivo en linea') || message.includes('se ha conectado');
+    });
+  }
+
+  private normalizeActivationText(value: any): string {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
   }
 
   async loadTargetDetails(target: any) {
@@ -1626,6 +2100,260 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   public getDeviceSpeed(target: any): string {
     return this.vehicleDataService.getDeviceSpeed(target);
+  }
+
+  public isTargetVehicleInfoIncomplete(target: any): boolean {
+    const source = target?.originalTarget || target || {};
+
+    const hasBrand = this.hasVehicleFieldValue(
+      source.target_brand_id,
+      source.brand_id,
+      source.brand,
+      source.marca,
+      source.marca_id
+    );
+    const hasModel = this.hasVehicleFieldValue(
+      source.target_model_id,
+      source.model_id,
+      source.model,
+      source.modelo,
+      source.modelo_id
+    );
+    const hasYear = this.hasVehicleFieldValue(
+      source.target_year,
+      source.year,
+      source.anio,
+      source.ano,
+      source['año']
+    );
+    const hasColor = this.hasVehicleFieldValue(
+      source.target_color,
+      source.color,
+      source.color_id
+    );
+
+    return !(hasBrand && hasModel && hasYear && hasColor);
+  }
+
+  public isTargetMissingTechnician(target: any): boolean {
+    const source = target?.originalTarget || target || {};
+    const mechanicId = target?.mechanic_id
+      ?? source.mechanic_id
+      ?? target?.technician_id
+      ?? source.technician_id
+      ?? target?.mechanic
+      ?? source.mechanic;
+
+    if (mechanicId === null || mechanicId === undefined) {
+      return true;
+    }
+
+    if (typeof mechanicId === 'string') {
+      const normalized = mechanicId.trim().toLowerCase();
+      return !normalized || normalized === 'null' || normalized === 'undefined' || normalized === 'no asignado';
+    }
+
+    if (typeof mechanicId === 'object') {
+      return !(mechanicId._id || mechanicId.id || mechanicId.value);
+    }
+
+    return false;
+  }
+
+  public isTargetVerified(target: any): boolean {
+    const source = target?.originalTarget || target || {};
+    const device = source.device || target?.device || {};
+    const explicitValues = [
+      target?.verificado,
+      target?.verified,
+      target?.is_verified,
+      target?.vehicle_verified,
+      source.verificado,
+      source.verified,
+      source.is_verified,
+      source.vehicle_verified,
+      device.verificado,
+      device.verified,
+      device.is_verified,
+      device.vehicle_verified
+    ];
+
+    if (explicitValues.some(value => this.isBooleanLikeTrue(value))) {
+      return true;
+    }
+
+    if (explicitValues.some(value => this.isBooleanLikeFalse(value))) {
+      return false;
+    }
+
+    return this.hasVerificationMetadata(target?.matricula_img)
+      || this.hasVerificationMetadata(source.matricula_img)
+      || this.hasVerificationMetadata(device.matricula_img);
+  }
+
+  public hasLinkedAdditionalGps(target: any): boolean {
+    const source = target?.originalTarget || target || {};
+    const linkedGps = target?.gps_adicional ?? source.gps_adicional ?? target?.additional_gps ?? source.additional_gps;
+
+    if (typeof linkedGps === 'string') {
+      return linkedGps.trim().length > 0;
+    }
+
+    return !!linkedGps;
+  }
+
+  public isTargetSuspended(target: any): boolean {
+    const source = target?.originalTarget || target || {};
+    const status = source.status ?? target?.status;
+
+    return status === false
+      || status === 'inactive'
+      || status === 'suspended'
+      || source.suspended === true;
+  }
+
+  public getTargetMovementLabel(target: any): string {
+    if (this.isTargetSuspended(target)) {
+      return 'Suspendido';
+    }
+
+    if (this.isTargetExpiredForMovement(target)) {
+      return 'Expirado';
+    }
+
+    const status = target?.traccarStatus || this.getDisplayTraccarStatus(target);
+    if (this.isTargetOfflineForMovement(status)) {
+      return 'Fuera de línea';
+    }
+
+    if (status === 'Señal débil') {
+      return 'Señal débil';
+    }
+
+    const speedData = this.vehicleDataService.getDeviceSpeedData(target);
+    return speedData.speedInKmh >= 1 ? `Moviendo · ${speedData.displayText}` : 'Estacionado';
+  }
+
+  public getTargetMovementClass(target: any): string {
+    const status = target?.traccarStatus || this.getDisplayTraccarStatus(target);
+    const classes: string[] = [];
+
+    if (this.isTargetSuspended(target)) {
+      classes.push('target-inactive');
+    } else if (this.isTargetExpiredForMovement(target)) {
+      classes.push('target-expired');
+    } else if (this.isTargetOfflineForMovement(status)) {
+      classes.push('target-movement-status--offline', 'target-offline');
+    } else if (status === 'Señal débil') {
+      classes.push('target-movement-status--weak', 'target-weak-signal');
+    } else {
+      const speedData = this.vehicleDataService.getDeviceSpeedData(target);
+      classes.push(speedData.speedInKmh >= 1 ? 'target-movement-status--moving' : 'target-movement-status--parked');
+      classes.push(this.getTargetStatusColorClass(target));
+    }
+
+    if (this.selectedTargetForMap && this.selectedTargetForMap._id === target?._id) {
+      classes.push('target-showing-on-map');
+    }
+
+    if (this.isTargetSuspended(target)) {
+      classes.push('target-inactive');
+    }
+
+    return classes.join(' ');
+  }
+
+  public getTargetMovementIcon(target: any): string {
+    if (this.isTargetSuspended(target)) {
+      return 'pi pi-pause-circle';
+    }
+
+    if (this.isTargetExpiredForMovement(target)) {
+      return 'pi pi-calendar-times';
+    }
+
+    const status = target?.traccarStatus || this.getDisplayTraccarStatus(target);
+    if (this.isTargetOfflineForMovement(status)) {
+      return 'pi pi-ban';
+    }
+
+    if (status === 'Señal débil') {
+      return 'pi pi-wifi';
+    }
+
+    const speedData = this.vehicleDataService.getDeviceSpeedData(target);
+    return speedData.speedInKmh >= 1 ? 'pi pi-car' : 'pi pi-circle-fill';
+  }
+
+  private getTargetStatusColorClass(target: any): string {
+    const status = target?.traccarStatus || this.getDisplayTraccarStatus(target);
+    if (status === 'online') return 'target-online';
+    if (status === 'Señal débil') return 'target-weak-signal';
+    if (status === 'Localizado') return 'target-localizado';
+    return 'target-offline';
+  }
+
+  private isTargetOfflineForMovement(status?: string | null): boolean {
+    return status !== 'online' && status !== 'Señal débil' && status !== 'Localizado';
+  }
+
+  private isTargetExpiredForMovement(target: any): boolean {
+    return this.getExpirationStatus(target?.expiration_date) === 'expired';
+  }
+
+  private hasVehicleFieldValue(...values: any[]): boolean {
+    return values.some(value => {
+      if (value === null || value === undefined) return false;
+      if (typeof value === 'string') return value.trim().length > 0;
+      if (typeof value === 'object') return !!(value._id || value.id || value.value || value.name || value.nombre);
+      return true;
+    });
+  }
+
+  private isBooleanLikeTrue(value: any): boolean {
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return normalized === 'true' || normalized === '1' || normalized === 'yes' || normalized === 'si' || normalized === 'sí';
+    }
+
+    return value === true || value === 1;
+  }
+
+  private isBooleanLikeFalse(value: any): boolean {
+    if (value === null || value === undefined || value === '') {
+      return false;
+    }
+
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return normalized === 'false' || normalized === '0' || normalized === 'no';
+    }
+
+    return value === false || value === 0;
+  }
+
+  private hasVerificationMetadata(value: any): boolean {
+    if (!value) {
+      return false;
+    }
+
+    if (typeof value === 'string') {
+      return value.trim().length > 0;
+    }
+
+    if (typeof value !== 'object') {
+      return false;
+    }
+
+    return !!(
+      value.path
+      || value.url
+      || value.file_path
+      || value.route
+      || value.verified_at
+      || value.metadata
+      || value.extracted_data
+    );
   }
 
   public getTargetImageUrl(target: any): string | null {
@@ -1780,6 +2508,24 @@ export class ManagementComponent implements OnInit, OnDestroy {
       })
     );
 
+    this.subscriptions.push(
+      this.selectionService.selectedTargetsBulkAction$.subscribe(action => {
+        if (!this.targetsSelected || this.targetsSelected.length === 0) return;
+
+        if ((action === 'cancel' || action === 'suspend') && (!this.canDeleteDevices() || this.currentUserAffiliationTypeId !== 'empleado')) {
+          return;
+        }
+
+        if (action === 'cancel') {
+          this.confirmMassCancelSelected();
+        } else if (action === 'suspend') {
+          this.openMassSuspendSelected();
+        } else if (action === 'create-transfer') {
+          this.openCreateUserAndTransferSelected();
+        }
+      })
+    );
+
     // Suscribirse a cambios de UI state
     this.subscriptions.push(
       this.uiService.uiState$.subscribe(uiState => {
@@ -1855,7 +2601,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
               this.hasMoreTargets = true;
               this.targets = [];
               const parentId = this.managementService.getCurrentUserId();
-              return from(this.targetsService.getTargetsByUserId(this.selectedUser._id, parentId, 0, this.pageSize)).pipe(
+              return from(this.targetsService.getTargetsByUserId(
+                this.selectedUser._id,
+                parentId,
+                0,
+                this.pageSize,
+                this.filterStatus,
+                this.filterTag || undefined,
+                this.filterSimCompany || undefined
+              )).pipe(
                 switchMap(response => from([{ devices: response.devices, totalCount: response.totalCount }]))
               );
             }
@@ -1868,24 +2622,35 @@ export class ManagementComponent implements OnInit, OnDestroy {
             this.hasMoreTargets = true;
             this.targets = [];
             const parentId = this.managementService.getCurrentUserId();
-            return from(this.targetsService.searchTargets(searchTerm, parentId, 0, this.pageSize));
+            return from(this.targetsService.searchTargets(
+              searchTerm,
+              parentId,
+              0,
+              this.pageSize,
+              this.filterStatus,
+              this.filterTag || undefined,
+              this.filterSimCompany || undefined
+            ));
           }
         })
       ).subscribe({
         next: (response) => {
           // Siempre recibimos un objeto con devices y totalCount
-          this.targets = response.devices;
-          this.totalTargetsCount = response.totalCount;
-          this.hasMoreTargets = this.targets.length < this.totalTargetsCount;
+          this.targets = response.devices || [];
 
           // Transformar targets para la lista usando el helper
           if (this.targets && this.targets.length > 0) {
-            this.targetsList = this.mapTargetsToView(this.targets);
+            this.targetsList = this.buildTargetsView(this.targets);
             // Check cache and save images to devices that don't have one
             this.populateDeviceImagesFromCache(this.targetsList);
           } else {
             this.targetsList = [];
           }
+
+          this.totalTargetsCount = response.totalCount;
+          this.hasMoreTargets = this.targets.length < this.totalTargetsCount;
+          this.currentOffset = this.targets.length;
+          this.showNoTargetMessage = this.targetsList.length === 0;
 
 
           // Actualizar estado de polling después de búsqueda/carga
@@ -2502,7 +3267,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           parentId,
           0,
           LIMIT,
-          this.filterStatus,
+          'all',
           this.filterTag || undefined,
           this.filterSimCompany || undefined
         );
@@ -2512,7 +3277,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           parentId,
           0,
           LIMIT,
-          this.filterStatus,
+          'all',
           this.filterTag || undefined,
           this.filterSimCompany || undefined
         );
@@ -2525,11 +3290,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Filtrar targets compartidos manualmente (frontend)
       let filteredSharedTargets = sharedTargets;
       if (this.filterStatus !== 'all') {
-        filteredSharedTargets = sharedTargets.filter(t => {
-          const traccarStatus = t.traccarInfo?.status || 'offline';
-          const isOnline = traccarStatus === 'online';
-          return this.filterStatus === 'online' ? isOnline : !isOnline;
-        });
+        filteredSharedTargets = sharedTargets.filter(t => this.matchesConnectionFilter(t));
       }
 
       if (this.filterTag) {
@@ -2560,10 +3321,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.hasMoreTargets = false;
       this.currentOffset = fetchedTargets.length;
       
-      this.showNoTargetMessage = this.targets.length === 0;
-
-      // Mapear directamente a la vista
-      this.targetsList = this.mapTargetsToView(this.targets);
+      // Mapear y aplicar un filtro final ya con estados normalizados.
+      this.targetsList = this.buildTargetsView(this.targets);
+      this.totalTargetsCount = this.isConnectionFilterActive() ? this.targetsList.length : this.totalTargetsCount;
+      this.showNoTargetMessage = this.targetsList.length === 0;
       
       // Check cache and save images to devices that don't have one
       this.populateDeviceImagesFromCache(this.targetsList);
@@ -2583,7 +3344,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
     } finally {
       this.selectingAllTargets = false;
     }
-  }  // Método para cargar más targets (scroll infinito)
+  }
+
+  // Método para cargar más targets (scroll infinito)
   private async loadMoreTargets() {
     // Verificaciones de seguridad para evitar cargas múltiples
     if (!this.selectedUser || this.loadingMoreTargets || !this.hasMoreTargets || this.loadingTargets) {
@@ -2603,7 +3366,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           parentId,
           this.currentOffset,
           this.pageSize,
-          this.filterStatus, // Pasar filtro
+          this.filterStatus,
           this.filterTag || undefined,
           this.filterSimCompany || undefined
         );
@@ -2632,13 +3395,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.targets = [...this.targets, ...newDevices];
         this.totalTargetsCount = response.totalCount;
         this.hasMoreTargets = this.targets.length < this.totalTargetsCount;
-        this.currentOffset += this.pageSize;
+        this.currentOffset += newDevices.length;
 
         console.log(`[SCROLL INFINITO] ✅ Cargados ${response.devices.length} targets más. Total: ${this.targets.length}/${this.totalTargetsCount}`);
 
         // Transformar targets para la lista directamente
         if (this.targets && this.targets.length > 0) {
-          this.targetsList = this.mapTargetsToView(this.targets);
+          this.targetsList = this.buildTargetsView(this.targets);
         }
       }
 
@@ -2815,13 +3578,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const userEmail = this.selectedUser?.email;
 
       const pageSizeForRequest = resetPagination ? this.initialPageSize : this.pageSize;
+      const requestOffset = this.currentOffset;
 
       const targetsPromise = this.targetsService.getTargetsByUserId(
         userId,
         parentId,
-        this.currentOffset,
+        requestOffset,
         pageSizeForRequest,
-        this.filterStatus, // Pasar filtro al backend
+        this.filterStatus,
         this.filterTag || undefined,
         this.filterSimCompany || undefined
       );
@@ -2832,11 +3596,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Filtrar targets compartidos manualmente (frontend) ya que la API de shared no soporta filtro por status aún
       let filteredSharedTargets = sharedTargets;
       if (this.filterStatus !== 'all') {
-        filteredSharedTargets = sharedTargets.filter(t => {
-          const traccarStatus = t.traccarInfo?.status || 'offline';
-          const isOnline = traccarStatus === 'online';
-          return this.filterStatus === 'online' ? isOnline : !isOnline;
-        });
+        filteredSharedTargets = sharedTargets.filter(t => this.matchesConnectionFilter(t));
       }
 
       if (this.filterTag) {
@@ -2854,13 +3614,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
         filteredSharedTargets: filteredSharedTargets,
         userId: userId,
         parentId: parentId,
-        currentOffset: this.currentOffset,
-        pageSize: this.pageSize
+        currentOffset: requestOffset,
+        pageSize: pageSizeForRequest,
+        connectionFilter: this.filterStatus
       });
 
       // Extraer devices y totalCount de la respuesta
-      const targets = targetsResponse.devices;
-      this.totalTargetsCount = targetsResponse.totalCount;
+      const targets = targetsResponse.devices || [];
+      const backendTotalCount = targetsResponse.totalCount || targets.length;
+      this.totalTargetsCount = backendTotalCount;
 
       // Combinar targets: compartidos primero, luego propios (evitando duplicados)
       const ownTargetIds = new Set(targets.map(t => t._id));
@@ -2876,15 +3638,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
       }
 
       // Verificar si hay más targets disponibles
-      const newOffset = this.currentOffset + targets.length;
+      const newOffset = requestOffset + targets.length;
       if (typeof this.totalTargetsCount === 'number' && this.totalTargetsCount > 0) {
         this.hasMoreTargets = newOffset < this.totalTargetsCount;
+        this.currentOffset = newOffset;
       } else {
         this.hasMoreTargets = targets.length === pageSizeForRequest;
+        this.currentOffset = newOffset;
       }
-      this.currentOffset = newOffset;
-
-      this.showNoTargetMessage = this.targets.length === 0;
 
       if (this.targets && this.targets.length > 0) {
         // Crear un Set con los IDs de targets compartidos para verificación rápida
@@ -2895,13 +3656,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
           (t as any).isShared = sharedTargetIds.has(t._id);
         });
 
-        // Mapear directamente a la vista (el filtrado ya se hizo en backend/manual)
-        this.targetsList = this.mapTargetsToView(this.targets);
+        // Mapear y aplicar un filtro final ya con estados normalizados.
+        this.targetsList = this.buildTargetsView(this.targets);
+        this.totalTargetsCount = backendTotalCount;
         // Check cache and save images to devices that don't have one
         this.populateDeviceImagesFromCache(this.targetsList);
       } else {
         this.targetsList = [];
+        this.totalTargetsCount = backendTotalCount;
       }
+
+      this.showNoTargetMessage = this.targetsList.length === 0;
 
 
 
@@ -2968,7 +3733,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         parentId,
         0,
         LIMIT,
-        this.filterStatus,
+        'all',
         this.filterTag || undefined,
         this.filterSimCompany || undefined
       );
@@ -2977,15 +3742,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
       const [targetsResponse, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
 
-      // Filtrar targets compartidos manualmente
+      // Para el mapa no aplicamos el filtro de conexión, porque debe poder mostrar
+      // también objetivos fuera de línea con última ubicación.
       let filteredSharedTargets = sharedTargets;
-      if (this.filterStatus !== 'all') {
-        filteredSharedTargets = sharedTargets.filter(t => {
-          const traccarStatus = t.traccarInfo?.status || 'offline';
-          const isOnline = traccarStatus === 'online';
-          return this.filterStatus === 'online' ? isOnline : !isOnline;
-        });
-      }
 
       if (this.filterTag) {
         filteredSharedTargets = filteredSharedTargets.filter(t => t.tag === this.filterTag);
@@ -3008,7 +3767,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
         (t as any).isShared = sharedTargetIds.has(t._id);
       });
 
-      // Mapear para la vista
+      // Mapear para el mapa sin aplicar el filtro de conexión del listado.
+      // El mapa debe poder pintar también objetivos fuera de línea con última ubicación.
       this.allTargets = this.mapTargetsToView(combinedTargets);
 
       console.log(`🗺️ ✅ ${this.allTargets.length} targets cargados para el mapa (de ${combinedTargets.length} combinados)`);
@@ -3026,7 +3786,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private enforceDefaultMapWhenNoTarget(): void {
-    if (!this.selectedTargetForMap && this.selectedMap !== 'google-light') {
+    if (!this.selectedTargetForMap && this.selectedMap !== 'google-light' && this.selectedMap !== 'osm-light') {
       this.setMapProvider('google-light');
     }
   }
@@ -3045,11 +3805,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
       },
       error: (error) => {
         console.error('Error al eliminar usuario:', error);
+        const backendMessage = Array.isArray(error?.error?.message)
+          ? error.error.message.join(' ')
+          : error?.error?.message;
+        const detail = error?.status === 409
+          ? (backendMessage || 'Este usuario no se puede eliminar porque tiene GPS/usuarios dentro.')
+          : this.translate.instant('management.errorDeleteUser');
         this.messageService.add({
           severity: 'error',
           summary: this.translate.instant('management.error'),
-          detail: this.translate.instant('management.errorDeleteUser'),
-          life: 3000
+          detail,
+          life: 5000
         });
       }
     });
@@ -3117,7 +3883,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           // Preservar información adicional que pueda tener el target local
           traccarInfo: updatedTarget.traccarInfo || this.selectedTargetForMap.traccarInfo,
           // IMPORTANTE: Sincronizar traccarStatus para que el mapa lo detecte
-          traccarStatus: updatedTarget.traccarInfo?.status || 'offline',
+          traccarStatus: this.getDisplayTraccarStatus(updatedTarget),
           isShared: this.selectedTargetForMap.isShared
         };
 
@@ -3170,7 +3936,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Comparar con el estado anterior y actualizar los que cambiaron
       updatedTargets.forEach((updatedTarget: Target) => {
         const targetId = updatedTarget._id;
-        const newStatus = updatedTarget.traccarInfo?.status || 'offline';
+        const existingTarget = this.targetsList.find(t => t._id === targetId);
+        const newStatus = this.getDisplayTraccarStatus({
+          ...existingTarget,
+          ...updatedTarget,
+          originalTarget: updatedTarget
+        });
         const previousStatus = this.previousTargetsStatus.get(targetId);
 
         // Detectar cualquier cambio de status
@@ -3195,20 +3966,60 @@ export class ManagementComponent implements OnInit, OnDestroy {
           // Actualizar en la lista de targets
           const targetIndex = this.targetsList.findIndex(t => t._id === targetId);
           if (targetIndex !== -1) {
+            const previousTarget = this.targetsList[targetIndex];
+            const previousOriginalTarget = previousTarget.originalTarget || previousTarget;
+            const mergedUpdatedTarget = {
+              ...previousOriginalTarget,
+              ...updatedTarget,
+              verificado: (updatedTarget as any).verificado ?? previousOriginalTarget.verificado ?? previousTarget.verificado,
+              verified: (updatedTarget as any).verified ?? previousOriginalTarget.verified ?? previousTarget.verified,
+              matricula_img: (updatedTarget as any).matricula_img ?? previousOriginalTarget.matricula_img ?? previousTarget.matricula_img
+            };
             const isOnline = newStatus === 'online';
+            const isWeakSignal = newStatus === 'Señal débil';
+            let offlineTimeText = previousTarget.offlineTimeText;
+            let offlineDateText = previousTarget.offlineDateText;
+
+            if (isOnline || isWeakSignal) {
+              if (isWeakSignal && updatedTarget.traccarInfo?.['lastUpdate']) {
+                const offlineInfo = this.calculateOfflineTime(updatedTarget.traccarInfo['lastUpdate']);
+                offlineTimeText = 'Señal débil';
+                offlineDateText = offlineInfo.dateText;
+              } else {
+                offlineTimeText = '';
+                offlineDateText = '';
+              }
+            } else if (updatedTarget.traccarInfo?.['lastUpdate']) {
+              const offlineInfo = this.calculateOfflineTime(updatedTarget.traccarInfo['lastUpdate'], newStatus === 'Localizado');
+              offlineTimeText = offlineInfo.timeText;
+              offlineDateText = offlineInfo.dateText;
+            }
+
             this.targetsList[targetIndex] = {
-              ...this.targetsList[targetIndex],
-              status: isOnline ? this.translate.instant('management.status.online') : this.translate.instant('management.status.offline'),
+              ...previousTarget,
+              status: isOnline ? this.translate.instant('management.status.online') : (isWeakSignal ? 'Señal débil' : this.translate.instant('management.status.offline')),
               traccarStatus: newStatus,
               traccarInfo: updatedTarget.traccarInfo,
-              originalTarget: updatedTarget
+              verificado: mergedUpdatedTarget.verificado,
+              verified: mergedUpdatedTarget.verified,
+              matricula_img: mergedUpdatedTarget.matricula_img,
+              originalTarget: mergedUpdatedTarget,
+              offlineTimeText,
+              offlineDateText
             };
           }
 
           // Actualizar también en la lista de targets originales
           const originalTargetIndex = this.targets.findIndex(t => t._id === targetId);
           if (originalTargetIndex !== -1) {
-            this.targets[originalTargetIndex] = updatedTarget;
+            const previousOriginalTarget = this.targets[originalTargetIndex] as any;
+            this.targets[originalTargetIndex] = {
+              ...previousOriginalTarget,
+              ...updatedTarget,
+              verificado: (updatedTarget as any).verificado ?? previousOriginalTarget.verificado,
+              verified: (updatedTarget as any).verified ?? previousOriginalTarget.verified,
+              matricula_img: (updatedTarget as any).matricula_img ?? previousOriginalTarget.matricula_img
+            } as Target;
           }
 
           // IMPORTANTE: Actualizar selectedTargetForMap si este target es el que está seleccionado
@@ -3223,8 +4034,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
               // IMPORTANTE: Establecer traccarStatus para que el mapa lo detecte
               traccarStatus: newStatus,
               isShared: this.selectedTargetForMap.isShared,
-              offlineTimeText: this.selectedTargetForMap.offlineTimeText,
-              offlineDateText: this.selectedTargetForMap.offlineDateText
+              offlineTimeText: newStatus === 'online' || newStatus === 'Señal débil' ? '' : this.selectedTargetForMap.offlineTimeText,
+              offlineDateText: newStatus === 'online' || newStatus === 'Señal débil' ? '' : this.selectedTargetForMap.offlineDateText
             };
 
 

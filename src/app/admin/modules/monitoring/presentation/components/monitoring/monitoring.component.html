@@ -392,6 +392,9 @@
           <select [(ngModel)]="selectedConnectionFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_CONNECTIONS' | translate }}</option>
             <option value="online">{{ 'MONITORING.FILTERS_ONLINE' | translate }}</option>
+            <option value="weak-signal">{{ 'MONITORING.FILTERS_WEAK_SIGNAL' | translate }}</option>
+            <option value="localizado">{{ 'MONITORING.FILTERS_LOCALIZADO' | translate }}</option>
+            <option value="no-localizado">{{ 'MONITORING.FILTERS_NO_LOCALIZADO' | translate }}</option>
             <option value="initial">{{ 'MONITORING.FILTERS_INITIAL_STATE' | translate }}</option>
             <option value="initial-or-offline">{{ 'MONITORING.FILTERS_INITIAL_OR_OFFLINE' | translate }}</option>
             <option value="offline">{{ 'MONITORING.FILTERS_OFFLINE' | translate }}</option>
@@ -459,7 +462,7 @@
           <label>{{ 'MONITORING.FILTERS_PROTOCOL' | translate }}</label>
           <select [(ngModel)]="selectedProtocolFilter" class="filter-select">
             <option value="">{{ 'MONITORING.FILTERS_ALL_PROTOCOLS' | translate }}</option>
-            <option *ngFor="let protocol of protocols" [value]="protocol._id">
+            <option *ngFor="let protocol of filteredProtocolOptions" [value]="protocol._id">
               {{ protocol.name }}
             </option>
           </select>
@@ -667,8 +670,10 @@
                 </td>
                 <td>
                   <span class="connection-status" [class.online]="isDeviceOnline(device)"
+                    [class.weak-signal]="isDeviceWeakSignal(device)"
                     [class.localizado]="isDeviceLocalizado(device)"
-                    [class.offline]="!isDeviceOnline(device) && !isDeviceLocalizado(device)">
+                    [class.no-localizado]="isDeviceNoLocalizado(device)"
+                    [class.offline]="!isDeviceOnline(device) && !isDeviceWeakSignal(device) && !isDeviceLocalizado(device) && !isDeviceNoLocalizado(device)">
                     {{ getConnectionDisplay(device) }}
                   </span>
                 </td>

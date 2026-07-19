@@ -37,8 +37,11 @@
                                         </div>
 
                                         <div class="user-form__field">
-                                            <label for="phone">{{ translations.phone | translate }} <span
-                                                    class="required-label">(Requerido)</span></label>
+                                            <label for="phone" class="user-form__label-with-icon">
+                                                <i class="pi pi-whatsapp user-form__label-whatsapp-icon"></i>
+                                                <span>{{ translations.phone | translate }}</span>
+                                                <span class="required-label">(Requerido)</span>
+                                            </label>
                                             <input [(ngModel)]="user.phone" name="phone"
                                                 placeholder="Ej: (809) 555-0123" type="tel" id="phone" required>
                                         </div>
@@ -145,12 +148,6 @@
                                                 (click)="openPushModal()">
                                                 <i class="pi pi-send"></i> Enviar Notificación Personalizada
                                             </button>
-
-                                            <!-- New Campaign Button -->
-                                            <p-button label="Añadir a una Campaña Manual" icon="pi pi-tags"
-                                                styleClass="p-button-outlined p-button-secondary w-full"
-                                                (onClick)="openCampaignModal()">
-                                            </p-button>
                                         </div>
                                     </div>
                                 </div>

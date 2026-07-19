@@ -16,6 +16,10 @@ const routes: Routes = [
     loadChildren: () => import('./realtimelink/realtimelink.module').then(m => m.RealtimelinkModule)
   },
   {
+    path: 'registro',
+    loadChildren: () => import('./public-registration/public-registration.module').then(m => m.PublicRegistrationModule)
+  },
+  {
     path: 'admin',
     redirectTo: '/admin/management',
     pathMatch: 'full'

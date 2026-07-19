@@ -2,14 +2,14 @@
     <div class="maps">
         <div class="maps__map" id="map"></div>
         <!-- Vehicle image overlay -->
-        <div class="location-discrepancy-overlay" *ngIf="discrepancyMessage && selectedTarget?.traccarStatus !== 'online'">
+        <div class="location-discrepancy-overlay" *ngIf="discrepancyMessage && !isSelectedTargetOnlineLike()">
             <i class="pi pi-info-circle"></i>
             <span>{{ discrepancyMessage }}</span>
             <button class="close-discrepancy" (click)="discrepancyMessage = null"><i class="pi pi-times"></i></button>
         </div>
         
         <div class="vehicle-image-overlay"
-            [ngClass]="['provider-' + provider, selectedTarget?.traccarStatus === 'online' ? 'status-online' : '']"
+            [ngClass]="['provider-' + provider, isSelectedTargetOnlineLike() ? 'status-online' : '']"
             *ngIf="selectedTarget && getVehicleImageUrl()">
             <img [src]="getVehicleImageUrl()" 
                  [alt]="selectedTarget?.name || 'Vehículo'"
@@ -25,6 +25,48 @@
             <button class="vehicle-image-modal-close" (click)="showVehicleImageModal = false">
                 <i class="pi pi-times"></i>
             </button>
+        </div>
+        <div class="additional-online-modal-overlay" *ngIf="showAdditionalOnlineModal" (click)="closeAdditionalOnlineModal()">
+            <div class="additional-online-modal" [class.additional-online-modal--localized]="additionalOnlineModalMode === 'localizedTag'"
+                [class.additional-online-modal--recent]="additionalOnlineModalMode === 'recentLocation'"
+                (click)="$event.stopPropagation()">
+                <button type="button" class="additional-online-modal__close" (click)="closeAdditionalOnlineModal()">
+                    <i class="pi pi-times"></i>
+                </button>
+                <div class="additional-online-modal__icon">
+                    <i [class]="additionalOnlineModalMode === 'online' ? 'pi pi-signal' : 'pi pi-map-marker'"></i>
+                </div>
+                <div class="additional-online-modal__content">
+                    <h3>
+                        {{ additionalOnlineModalMode === 'localizedTag'
+                            ? 'Tienes un MTAG adicional'
+                            : (additionalOnlineModalMode === 'recentLocation'
+                                ? 'Uno de los GPS adicionales tiene una ubicación más reciente'
+                                : 'Uno de los GPS adicionales está en línea') }}
+                    </h3>
+                    <p>
+                        {{ additionalOnlineModalMode === 'localizedTag'
+                            ? 'Su última ubicación fue ' + additionalTagLastLocationText + '.'
+                            : (additionalOnlineModalMode === 'recentLocation'
+                                ? 'Todos los GPS adicionales están fuera de línea, pero este adicional ubicó más reciente: ' + additionalTagLastLocationText + '.'
+                                : 'El objetivo seleccionado está fuera de línea, pero hay una instalación adicional con conexión disponible.') }}
+                    </p>
+                    <div class="additional-online-modal__target" *ngIf="onlineAdditionalTarget">
+                        <strong>{{ onlineAdditionalTarget?.name || 'GPS adicional' }}</strong>
+                        <span>IMEI: {{ onlineAdditionalTarget?.device_imei || onlineAdditionalTarget?.imei || 'No disponible' }}</span>
+                        <small>{{ onlineAdditionalTarget?.traccarStatus || onlineAdditionalTarget?.traccarInfo?.status || 'En línea' }}</small>
+                    </div>
+                </div>
+                <div class="additional-online-modal__actions">
+                    <button type="button" class="additional-online-modal__secondary" (click)="closeAdditionalOnlineModal()">
+                        Cerrar
+                    </button>
+                    <button type="button" class="additional-online-modal__primary" (click)="viewOnlineAdditionalTarget()">
+                        <i class="pi pi-map-marker"></i>
+                        {{ additionalOnlineModalMode === 'localizedTag' ? 'Ver MTAG en mapa' : 'Ver en mapa' }}
+                    </button>
+                </div>
+            </div>
         </div>
         <button class="tools-button" type="button" (click)="openToolsModal()"
             *ngIf="selectedTarget && !selectedTarget.isShared">

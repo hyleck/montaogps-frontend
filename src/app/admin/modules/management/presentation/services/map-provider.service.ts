@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
 import { StatusService } from '@shared/services/status.service';
+import type { MapProvider } from '@shared/helpers/map.helper';
 
 export interface MapProviderConfig {
   selectedMap: string;
-  providerType: 'google' | 'mapbox';
+  providerType: MapProvider;
   providerTheme: 'light' | 'dark';
   mapsKey: string | null;
 }
@@ -52,7 +53,7 @@ export class MapProviderService {
     
     this.config.selectedMap = value;
     const [type, theme] = value.split('-');
-    this.config.providerType = type as 'google' | 'mapbox';
+    this.config.providerType = type as MapProvider;
     this.config.providerTheme = theme as 'light' | 'dark';
     
   
@@ -104,7 +105,7 @@ export class MapProviderService {
     return this.config.selectedMap;
   }
 
-  get providerType(): 'google' | 'mapbox' {
+  get providerType(): MapProvider {
     return this.config.providerType;
   }
 
@@ -122,4 +123,4 @@ export class MapProviderService {
   getConfig(): MapProviderConfig {
     return { ...this.config };
   }
-} 
+}

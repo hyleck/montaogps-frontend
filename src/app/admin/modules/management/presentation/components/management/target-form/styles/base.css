@@ -77,6 +77,107 @@
     opacity: 0.8;
 }
 
+.linked-gps-input {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.linked-gps-input input {
+    width: 100%;
+    padding-right: 2.2rem;
+}
+
+.linked-gps-input i {
+    position: absolute;
+    right: 0.75rem;
+    color: var(--globalColorTextMuted);
+    font-size: 0.9rem;
+}
+
+.linked-gps-status {
+    display: flex;
+    align-items: center;
+    min-height: 18px;
+    color: var(--globalColorTextMuted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.linked-gps-status--valid {
+    color: #16a34a;
+}
+
+.linked-gps-status--invalid {
+    color: #dc2626;
+}
+
+.additional-installations-card {
+    gap: 0.55rem;
+    padding: 0.7rem;
+    border: 1px solid rgba(34, 197, 94, 0.18);
+    border-radius: 8px;
+    background: rgba(34, 197, 94, 0.06);
+}
+
+.additional-installations-card__header {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--managementColorTextUser);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.additional-installations-card__header i {
+    color: #16a34a;
+}
+
+.additional-installations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.additional-installation-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.55rem;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.68);
+}
+
+.additional-installation-item__main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.14rem;
+}
+
+.additional-installation-item__main strong,
+.additional-installation-item__main span,
+.additional-installation-item__sim {
+    overflow-wrap: anywhere;
+}
+
+.additional-installation-item__main strong {
+    color: var(--managementColorTextUser);
+    font-size: 0.78rem;
+    line-height: 1.2;
+}
+
+.additional-installation-item__main span,
+.additional-installation-item__sim {
+    color: var(--globalColorTextMuted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 /* Contenedor para precio con iconos */
 .price-input-container {
     display: flex;
@@ -840,23 +941,6 @@
     }
 }
 
-/* ===== ESTILOS ACTIVACIÓN ===== */
-.activation-section {
-    padding: 1.5rem;
-    background-color: var(--globalColorBackground);
-    min-height: 200px;
-    display: flex;
-    justify-content: center;
-}
-
-.activation-content {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    max-width: 400px;
-    width: 100%;
-}
-
 .activation-field {
     display: flex;
     flex-direction: column;
@@ -894,10 +978,6 @@
     border-color: var(--globalColorAccent);
 }
 
-.activation-action {
-    padding-top: 0.5rem;
-}
-
 .activation-btn {
     display: flex;
     align-items: center;
@@ -930,7 +1010,6 @@
     font-size: 1.1rem;
 }
 
-/* Workflow 2 columnas */
 .activation-workflow {
     display: grid;
     grid-template-columns: 1fr 280px;
@@ -949,7 +1028,6 @@
     flex-direction: column;
 }
 
-/* Cards */
 .activation-card {
     background-color: var(--globalColorCardBackground);
     border-radius: 10px;
@@ -977,7 +1055,6 @@
     padding: 0.75rem 1rem;
 }
 
-/* Status rows */
 .status-row {
     display: flex;
     justify-content: space-between;
@@ -1031,7 +1108,6 @@
     color: var(--globalColorAccent);
 }
 
-/* Map section */
 .activation-map-card {
     overflow: hidden;
 }
@@ -1066,7 +1142,6 @@
     font-size: 0.8rem;
 }
 
-/* Cancel/Back button */
 .cancel-activation-btn {
     display: flex;
     align-items: center;
@@ -1087,7 +1162,6 @@
     border-color: var(--globalColorAccent);
 }
 
-/* Steps wizard */
 .steps-body {
     padding: 1rem 1.25rem;
 }
@@ -1194,7 +1268,6 @@
     color: #ef4444;
 }
 
-/* Error state */
 .activation-step.error .step-circle {
     border-color: #ef4444;
     background-color: #ef4444;
@@ -1205,7 +1278,6 @@
     color: #ef4444;
 }
 
-/* Activation Logs */
 .activation-logs-card {
     margin-top: 1rem;
 }
@@ -1258,7 +1330,6 @@
     word-break: break-word;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .activation-workflow {
         grid-template-columns: 1fr;
@@ -3276,4 +3347,323 @@ textarea[readonly]:focus {
     color: #4b5563 !important;
     /* Darker description text */
     font-weight: 500 !important;
+}
+
+.main {
+    width: min(820px, calc(100vw - 24px));
+    padding: 0.75rem;
+    box-sizing: border-box;
+}
+
+.target-form {
+    background: transparent;
+    border-radius: 8px;
+    box-shadow: none;
+    color: var(--managementColorTextUser);
+}
+
+.target-form .card {
+    background: var(--managementColorBackgroundUser);
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 8px;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+.target-form__base,
+.process,
+.target-form__cloud-shell {
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.72), rgba(255, 255, 255, 0));
+    padding: 1.1rem;
+}
+
+.target-form__form,
+.process__form-main {
+    width: 100%;
+}
+
+.target-form__grid,
+.process-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.target-form__column {
+    min-width: 0;
+    gap: 0.85rem;
+    padding: 0.95rem;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.target-form__field label,
+.activation-label {
+    min-height: 20px;
+    color: var(--managementColorTextUser);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.required-label {
+    color: #ef4444;
+    font-size: 0.68rem;
+    font-weight: 600;
+    opacity: 0.78;
+}
+
+.target-form__actions {
+    justify-content: flex-end;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.target-form__actions button {
+    width: auto;
+    min-width: 180px;
+    height: 40px;
+    border-radius: 7px;
+}
+
+.process {
+    gap: 1rem;
+}
+
+.process__form {
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.process-grid {
+    min-height: 0;
+}
+
+.process .target-form__column {
+    min-height: 280px;
+}
+
+.full-height-field .auto-resize-textarea {
+    min-height: 226px;
+}
+
+.add-process-container {
+    margin-top: 0.25rem;
+}
+
+.add-field-btn,
+.view-history-btn,
+.cancel-activation-btn {
+    min-height: 40px;
+    border-radius: 7px;
+    border: 1px solid rgba(148, 163, 184, 0.34);
+    background: rgba(255, 255, 255, 0.84);
+    color: var(--managementColorTextUser);
+    font-weight: 700;
+    letter-spacing: 0;
+    box-shadow: none;
+}
+
+.add-field-btn:hover,
+.view-history-btn:hover,
+.cancel-activation-btn:hover {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: var(--globalColorAccent);
+    color: var(--managementColorTitleUser);
+    transform: translateY(-1px);
+}
+
+.process__logs {
+    align-items: flex-end;
+}
+
+.activation-section {
+    min-height: 0;
+    justify-content: stretch;
+}
+
+.activation-content {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.78);
+}
+
+.activation-field {
+    gap: 0.45rem;
+}
+
+.activation-select {
+    min-height: 40px;
+    border-radius: 7px;
+}
+
+.activation-action {
+    padding-top: 0;
+}
+
+.activation-btn {
+    min-height: 42px;
+    border-radius: 7px;
+    background: var(--managementColorTitleUser);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.16);
+}
+
+.activation-workflow {
+    grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr);
+    gap: 1rem;
+}
+
+.activation-card {
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(255, 255, 255, 0.84);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+
+.activation-card-header {
+    min-height: 44px;
+    padding: 0.75rem 0.9rem;
+    background: rgba(248, 250, 252, 0.78);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    letter-spacing: 0;
+}
+
+.activation-card-body {
+    padding: 0.9rem;
+}
+
+.status-row {
+    gap: 1rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.status-value {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.steps-body {
+    padding: 1rem;
+}
+
+.step-title {
+    letter-spacing: 0;
+}
+
+.step-status-badge,
+.status-badge {
+    border-radius: 6px;
+    letter-spacing: 0;
+}
+
+.activation-logs {
+    background: rgba(15, 23, 42, 0.03);
+}
+
+.target-form__cloud-shell {
+    padding: 1rem;
+}
+
+.command-management-link {
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 7px;
+    padding: 0.7rem 0.85rem;
+    background: rgba(255, 255, 255, 0.78);
+    font-weight: 700;
+}
+
+.activation-inline-card {
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 8px;
+    background: rgba(248, 250, 252, 0.82);
+}
+
+.activation-inline-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--managementColorTitleUser);
+    font-size: 0.86rem;
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.activation-inline-header i {
+    color: var(--globalColorAccent);
+}
+
+.activation-inline-last {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--globalColorTextMuted);
+    font-size: 0.72rem;
+    line-height: 1.35;
+}
+
+.activation-inline-last i {
+    color: var(--globalColorTextMuted);
+    font-size: 0.76rem;
+}
+
+.activation-inline-last b {
+    color: var(--managementColorTextUser);
+}
+
+.activation-inline-result {
+    padding: 0.08rem 0.38rem;
+    border-radius: 6px;
+    background: rgba(34, 197, 94, 0.14);
+    color: #15803d;
+    font-size: 0.66rem;
+    font-weight: 800;
+}
+
+.activation-inline-result--error {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+}
+
+@media (max-width: 768px) {
+    .main {
+        width: 100%;
+        padding: 0.5rem !important;
+    }
+
+    .target-form__base,
+    .process,
+    .activation-section,
+    .target-form__cloud-shell {
+        padding: 0.75rem !important;
+    }
+
+    .target-form__grid,
+    .process-grid,
+    .activation-workflow {
+        grid-template-columns: 1fr !important;
+    }
+
+    .target-form__column,
+    .process .target-form__column {
+        min-height: 0;
+        padding: 0.8rem;
+    }
+
+    .target-form__actions button,
+    .activation-btn {
+        width: 100%;
+        min-width: 0;
+    }
 }

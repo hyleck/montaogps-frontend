@@ -54,7 +54,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     @Input() userInput: ExtendedUser | null = null;
     @Input() showWhatsappButton: boolean = false;
-    @Output() userCreated = new EventEmitter<void>();
+    @Output() userCreated = new EventEmitter<any>();
     @Output() openChatEvent = new EventEmitter<any>();
 
     // Claves de traducción
@@ -829,7 +829,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                             detail: this.translate.instant('management.userForm.userUpdated'),
                             life: 3000
                         });
-                        this.userCreated.emit();
+                        this.userCreated.emit(response);
                         this.resetForm();
                     },
                     error: (error) => {
@@ -858,7 +858,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                             detail: this.translate.instant('management.userForm.userCreated'),
                             life: 3000
                         });
-                        this.userCreated.emit();
+                        this.userCreated.emit(response);
                         this.resetForm();
                     },
                     error: (error) => {

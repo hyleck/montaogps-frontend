@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+
+export type SelectedTargetsBulkAction = 'cancel' | 'suspend' | 'create-transfer';
 
 @Injectable({
   providedIn: 'root'
@@ -8,6 +10,7 @@ export class SelectionService {
   private selectedTargetsSubject = new BehaviorSubject<any[]>([]);
   private selectedTargetsCountSubject = new BehaviorSubject<number>(0);
   private targetsUpdatedSubject = new BehaviorSubject<boolean>(false);
+  private selectedTargetsBulkActionSubject = new Subject<SelectedTargetsBulkAction>();
 
   constructor() {}
 
@@ -30,6 +33,10 @@ export class SelectionService {
    */
   get targetsUpdated$(): Observable<boolean> {
     return this.targetsUpdatedSubject.asObservable();
+  }
+
+  get selectedTargetsBulkAction$(): Observable<SelectedTargetsBulkAction> {
+    return this.selectedTargetsBulkActionSubject.asObservable();
   }
 
   /**
@@ -106,5 +113,9 @@ export class SelectionService {
    */
   notifyTargetsUpdated(): void {
     this.targetsUpdatedSubject.next(true);
+  }
+
+  requestSelectedTargetsBulkAction(action: SelectedTargetsBulkAction): void {
+    this.selectedTargetsBulkActionSubject.next(action);
   }
 }

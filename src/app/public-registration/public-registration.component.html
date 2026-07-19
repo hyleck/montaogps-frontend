@@ -1,0 +1,139 @@
+<p-toast></p-toast>
+
+<main class="registration-page">
+  <section class="registration-card">
+    <div class="registration-brand">
+      <div class="registration-brand__mark">M</div>
+      <div>
+        <h1>Crear cuenta GPS</h1>
+        <p *ngIf="info">
+          Registro para {{ info.parent.name }} {{ info.parent.last_name || '' }}
+        </p>
+      </div>
+    </div>
+
+    <div *ngIf="loading" class="registration-state">
+      <p-progressSpinner strokeWidth="4" styleClass="registration-spinner"></p-progressSpinner>
+      <span>Validando link...</span>
+    </div>
+
+    <div *ngIf="!loading && errorMessage" class="registration-error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <div *ngIf="!loading && !errorMessage && completed" class="registration-success">
+      <i class="pi pi-check-circle"></i>
+      <h2>Cuenta creada correctamente</h2>
+      <p>Los dispositivos seleccionados fueron asignados a tu nueva cuenta.</p>
+    </div>
+
+    <section *ngIf="!loading && !errorMessage && !completed && !identityScanned" class="identity-scan">
+      <div class="identity-scan__header">
+        <i class="pi pi-id-card"></i>
+        <div>
+          <h2>Verifica tu identidad</h2>
+          <p>Sube una foto clara de tu cédula para completar tus datos automáticamente.</p>
+        </div>
+      </div>
+
+      <label class="identity-upload">
+        <input type="file" accept="image/*" (change)="onIdentityFileSelected($event)">
+        <i class="pi pi-cloud-upload"></i>
+        <span>{{ identityFile ? identityFile.name : 'Subir foto de la cédula' }}</span>
+      </label>
+
+      <img *ngIf="identityPreviewUrl" class="identity-preview" [src]="identityPreviewUrl" alt="Vista previa de la cédula">
+
+      <div *ngIf="scanningIdentity" class="registration-state">
+        <p-progressSpinner strokeWidth="4" styleClass="registration-spinner"></p-progressSpinner>
+        <span>Escaneando cédula con IA...</span>
+      </div>
+
+      <div *ngIf="identityScanError" class="registration-error">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>{{ identityScanError }}</span>
+      </div>
+
+    </section>
+
+    <form *ngIf="!loading && !errorMessage && !completed && identityScanned" class="registration-form" (ngSubmit)="submit()">
+      <label *ngIf="showRegistrationField('name')">
+        Nombre
+        <input pInputText type="text" name="name" [(ngModel)]="form.name" autocomplete="given-name"
+          placeholder="Escribe tu nombre" required>
+      </label>
+
+      <label *ngIf="showRegistrationField('last_name')">
+        Apellido
+        <input pInputText type="text" name="last_name" [(ngModel)]="form.last_name" autocomplete="family-name"
+          placeholder="Escribe tu apellido" required>
+      </label>
+
+      <label *ngIf="showRegistrationField('email')">
+        Correo
+        <input pInputText type="email" name="email" [(ngModel)]="form.email" autocomplete="email"
+          placeholder="correo@ejemplo.com" required>
+      </label>
+
+      <label *ngIf="showRegistrationField('phone')">
+        Whatsapp
+        <input pInputText type="tel" name="phone" [(ngModel)]="form.phone" autocomplete="tel"
+          placeholder="809-000-0000" required>
+      </label>
+
+      <label *ngIf="showRegistrationField('dni')">
+        DNI / Cedula
+        <input pInputText type="text" name="dni" [(ngModel)]="form.dni" autocomplete="off"
+          placeholder="000-0000000-0">
+      </label>
+
+      <div *ngIf="showRegistrationField('registration_device_platform')" class="platform-field">
+        <span class="platform-field__label">¿Dónde instalarás Montao GPS?</span>
+        <div class="platform-options">
+          <button pButton type="button" class="platform-option"
+            [class.platform-option--selected]="form.registration_device_platform === 'android'"
+            (click)="form.registration_device_platform = 'android'">
+            <i class="pi pi-android"></i>
+            <span>Android</span>
+          </button>
+          <button pButton type="button" class="platform-option"
+            [class.platform-option--selected]="form.registration_device_platform === 'iphone'"
+            (click)="form.registration_device_platform = 'iphone'">
+            <i class="pi pi-apple"></i>
+            <span>iPhone</span>
+          </button>
+        </div>
+      </div>
+
+      <label *ngIf="showRegistrationField('province')">
+        Provincia
+        <input pInputText type="text" name="province" [(ngModel)]="form.province" autocomplete="address-level1"
+          placeholder="Provincia">
+      </label>
+
+      <label *ngIf="showRegistrationField('municipality')">
+        Municipio
+        <input pInputText type="text" name="municipality" [(ngModel)]="form.municipality" autocomplete="address-level2"
+          placeholder="Municipio">
+      </label>
+
+      <label *ngIf="showRegistrationField('password')">
+        Contrasena
+        <input pInputText type="password" name="password" [(ngModel)]="form.password" autocomplete="new-password"
+          placeholder="Crea una contrasena" required>
+      </label>
+
+      <label *ngIf="showRegistrationField('confirm_password')">
+        Confirmar contrasena
+        <input pInputText type="password" name="confirm_password" [(ngModel)]="form.confirm_password"
+          autocomplete="new-password" placeholder="Repite la contrasena" required>
+      </label>
+
+      <button pButton type="submit" class="registration-submit" [disabled]="submitting">
+        <i class="pi" [ngClass]="submitting ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+        <span>{{ submitting ? 'Creando cuenta...' : 'Crear cuenta' }}</span>
+      </button>
+    </form>
+  </section>
+</main>

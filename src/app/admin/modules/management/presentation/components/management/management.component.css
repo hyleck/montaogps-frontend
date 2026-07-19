@@ -569,6 +569,296 @@
   border-bottom: 1px solid var(--globalColorBorderDark);
 }
 
+.target-card-list {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 12px 16px 16px;
+  box-sizing: border-box;
+}
+
+.target-card-list__toolbar {
+  width: 100%;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  margin-bottom: 8px;
+  border: 1px solid rgba(248, 113, 113, 0.18);
+  border-radius: 8px;
+  background: var(--managementColorInputSearch);
+}
+
+.target-card-list__title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-weight: 700;
+  color: var(--managementColorTextUser);
+}
+
+.target-card-list__title small {
+  color: #f59e0b;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .target-card-list .p-datatable,
+:host ::ng-deep .target-card-list .p-datatable-wrapper,
+:host ::ng-deep .target-card-list .p-datatable-table-container,
+:host ::ng-deep .target-card-list .p-datatable-table {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: block !important;
+  border-collapse: separate !important;
+  overflow: visible !important;
+}
+
+:host ::ng-deep .target-card-list .p-datatable-thead {
+  display: none !important;
+}
+
+:host ::ng-deep .target-card-list .p-datatable-tbody {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+:host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr {
+  width: 100%;
+  height: 60px;
+  min-height: 60px;
+  max-height: 60px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 320px minmax(160px, auto);
+  column-gap: 18px;
+  align-items: center;
+  overflow: visible;
+  box-sizing: border-box;
+  border: 1px solid rgba(203,213,225,.74) !important;
+  border-left:4px solid var(--vib,#22c55e)!important;
+  border-radius: 8px !important;
+  background: var(--managementColorBackgroundUser) !important;
+  color: var(--managementColorTextUser) !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+:host-context(.app-dark) ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr {
+  border-color:#222!important;
+  border-left-color:var(--vib)!important;
+}
+
+:host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr > td {
+  height: 60px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  overflow: visible;
+  box-sizing: border-box;
+  padding: 0 10px !important;
+  border-bottom: 0 !important;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr > td:first-child {
+  justify-content: center;
+  padding: 0 8px !important;
+}
+
+:host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr > td:nth-child(2) {
+  padding-left: 2px !important;
+}
+
+:host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr > td:nth-child(2) > div {
+  width: 100%;
+  min-width: 0;
+  gap: 8px !important;
+}
+
+:host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr > td:nth-child(2) > div > div:first-child {
+  width: 40px !important;
+  height: 40px !important;
+  flex: 0 0 40px !important;
+}
+
+:host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr > td:nth-child(2) img {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 7px !important;
+}
+
+:host ::ng-deep .target-card-list .management__content-table-link,
+:host ::ng-deep .target-card-list .target-name {
+  min-width: 0;
+  max-width: none;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+.target-subtext-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 1px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.target-movement-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700 !important;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.target-movement-status i {
+  font-size: 9px;
+}
+
+.target-linked-additional {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.target-linked-additional i {
+  font-size: 10px;
+}
+
+.target-missing-technician {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #dc2626;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.target-missing-technician i {
+  font-size: 10px;
+}
+
+:host-context(.app-dark) .target-linked-additional,
+.dark .target-linked-additional {
+  color: #a8b0bd;
+}
+
+:host-context(.app-dark) .target-missing-technician,
+.dark .target-missing-technician {
+  color: #f87171;
+}
+
+:host ::ng-deep .target-card-list .activation-status-badge,
+:host ::ng-deep .target-card-list .activation-btn,
+:host ::ng-deep .target-card-list .offline-info-container,
+:host ::ng-deep .target-card-list .target-suspended-text {
+  display: none !important;
+}
+
+:host ::ng-deep .target-card-list .imei-container {
+  min-width: max-content;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: visible;
+}
+
+:host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr > td:nth-child(3) {
+  color: var(--globalColorTextMuted);
+  font-size: 13px !important;
+  font-weight: 600;
+  justify-content: flex-start;
+  overflow: visible;
+}
+
+:host ::ng-deep .target-card-list .target-card-imei,
+:host ::ng-deep .target-card-list .target-card-sim {
+  display: block;
+  width: 100%;
+  min-width: max-content;
+  font-size: 12px;
+  line-height: 1.15;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .target-card-list .target-card-expiration {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+:host ::ng-deep .target-card-list .expiration-expired-content {
+  gap: 2px;
+}
+
+:host ::ng-deep .target-card-list .expiration-label {
+  display: none;
+}
+
+:host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr > td:last-child {
+  justify-content: flex-end;
+  padding-right: 8px !important;
+}
+
+:host ::ng-deep .target-card-list .management__user-table-controls {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+:host ::ng-deep .target-card-list .target-controls-own {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+:host ::ng-deep .target-card-list .target-controls-own .button,
+:host ::ng-deep .target-card-list .target-controls-own .button--primary-flat-icon {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+}
+
+:host ::ng-deep .target-card-list .target-controls-own i,
+:host ::ng-deep .target-card-list .management__user-table-controls i {
+  font-size: 16px;
+}
+
+:host ::ng-deep .target-card-list .shared-target-label {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  :host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr {
+    grid-template-columns: 42px minmax(0, 1fr) 260px minmax(120px, auto);
+  }
+}
+
 .management__user-table-controls--maps {
   display: grid;
   grid-template-columns: 1fr;
@@ -685,11 +975,22 @@
 .management__content-maps {
   grid-area: content;
   position: relative;
+  min-height: 0;
+  max-height: 100%;
   background: var(--managementColorContentBackground);
   border-radius: 5px;
   overflow: hidden;
   border: 3px solid var(--globalColorInputBorderAccent);
 
+}
+
+.management__content-maps app-maps {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
 }
 
 @media (max-width: 760px) {
@@ -1060,6 +1361,62 @@
   font-weight: 500;
 }
 
+.target-weak-signal {
+  color: #84cc16;
+  font-weight: 500;
+}
+
+.dark .target-weak-signal {
+  color: #a3e635;
+  font-weight: 500;
+}
+
+.target-signal-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 18px;
+  height: 13px;
+  margin-left: 6px;
+  vertical-align: -1px;
+}
+
+.target-signal-bars span {
+  width: 3px;
+  border-radius: 2px 2px 0 0;
+  background: #22c55e;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.08);
+}
+
+.target-signal-bars span:nth-child(1) {
+  height: 4px;
+}
+
+.target-signal-bars span:nth-child(2) {
+  height: 7px;
+}
+
+.target-signal-bars span:nth-child(3) {
+  height: 10px;
+}
+
+.target-signal-bars span:nth-child(4) {
+  height: 13px;
+}
+
+.target-signal-bars--weak span {
+  background: rgba(132, 204, 22, 0.28);
+  box-shadow: none;
+}
+
+.target-signal-bars--weak span:nth-child(1) {
+  background: #84cc16;
+}
+
+.target-signal-bars--weak span:nth-child(2) {
+  background: rgba(132, 204, 22, 0.48);
+}
+
 .target-localizado {
   color: #14b8a6; /* Verde azulado brillante (teal-500) */
   font-weight: 500;
@@ -1105,6 +1462,18 @@
   color: #4ade80 !important;
   /* Verde más brillante para tema oscuro */
   text-shadow: 0 1px 2px rgba(74, 222, 128, 0.15) !important;
+}
+
+.target-showing-on-map.target-weak-signal {
+  font-weight: 600 !important;
+  color: #65a30d !important;
+  text-shadow: 0 1px 2px rgba(101, 163, 13, 0.12) !important;
+  transition: all 0.3s ease !important;
+}
+
+.dark .target-showing-on-map.target-weak-signal {
+  color: #bef264 !important;
+  text-shadow: 0 1px 2px rgba(190, 242, 100, 0.18) !important;
 }
 
 /* Target seleccionado Y localizado - mantiene color verde azulado intenso */
@@ -1248,6 +1617,13 @@
   opacity: 0.6;
   line-height: 1.1;
   font-style: italic;
+}
+
+.target-weak-time {
+  color: #84cc16 !important;
+  font-style: normal;
+  font-weight: 700;
+  opacity: 1;
 }
 
 .target-offline-date {
@@ -2423,26 +2799,6 @@
   color: var(--globalColorAccent);
 }
 
-/* Skeleton para vista de tabla (desktop) */
-.skeleton-targets-container {
-  width: 100%;
-}
-
-.skeleton-target-row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 80px;
-  gap: 16px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--globalColorBorderLight);
-  align-items: center;
-}
-
-.skeleton-target-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 /* Skeleton para vista móvil (cards) */
 .skeleton-targets-mobile-container {
   display: flex;
@@ -2774,4 +3130,174 @@
 @keyframes targetImgFadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+.create-account-method,
+.registration-link-result {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.create-account-method h2,
+.registration-link-result h3 {
+    margin: 0;
+    color: var(--globalColorTextDark);
+}
+
+.create-account-method h2 {
+    font-size: 22px;
+}
+
+.create-account-method p,
+.registration-link-result p,
+.registration-link-result small {
+    margin: 0;
+    color: var(--globalColorTextMuted);
+    line-height: 1.35;
+}
+
+.create-account-method__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.create-account-method__actions .button {
+    justify-content: center;
+    gap: 8px;
+}
+
+.registration-affiliation-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.registration-affiliation-option {
+    min-height: 82px;
+    border: 1px solid rgba(192, 56, 62, 0.22);
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--globalColorTextDark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.registration-affiliation-option i {
+    color: var(--managementColorTextUser, #c0383e);
+    font-size: 20px;
+}
+
+.registration-affiliation-option--active {
+    border-color: var(--managementColorTextUser, #c0383e);
+    color: var(--managementColorTextUser, #c0383e);
+    background: rgba(192, 56, 62, 0.08);
+    box-shadow: 0 10px 28px rgba(192, 56, 62, 0.16);
+}
+
+.registration-parent-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 2px;
+    color: var(--globalColorTextDark);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.registration-parent-field input {
+    width: 100%;
+    height: 42px;
+    border-radius: 9px;
+}
+
+.registration-parent-field ::ng-deep .registration-parent-autocomplete,
+.registration-parent-field ::ng-deep .p-autocomplete,
+.registration-parent-field ::ng-deep .p-autocomplete-input {
+    width: 100%;
+}
+
+.registration-parent-field ::ng-deep .registration-parent-autocomplete__input {
+    height: 42px;
+    border-radius: 9px;
+}
+
+.registration-parent-suggestion {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    line-height: 1.25;
+}
+
+.registration-parent-suggestion strong {
+    font-size: 13px;
+    color: var(--globalColorTextDark);
+}
+
+.registration-parent-suggestion small {
+    font-size: 12px;
+    color: var(--globalColorTextMuted);
+}
+
+.button--outline-red {
+    border: 1px solid var(--managementColorTextUser, #c0383e);
+    color: var(--managementColorTextUser, #c0383e);
+    background: transparent;
+}
+
+.button--outline-red:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.registration-link-result__icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: rgba(192, 56, 62, 0.12);
+    color: var(--managementColorTextUser, #c0383e);
+    font-size: 18px;
+}
+
+.registration-link-result input {
+    width: 100%;
+}
+
+:host-context(.app-dark) .create-account-method h2,
+:host-context(.app-dark) .registration-link-result h3 {
+    color: #f3f4f6;
+}
+
+:host-context(.app-dark) .create-account-method p,
+:host-context(.app-dark) .registration-link-result p,
+:host-context(.app-dark) .registration-link-result small {
+    color: #a7adb7;
+}
+
+:host-context(.app-dark) .registration-affiliation-option {
+    background: #1c1d20;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #d7dbe3;
+}
+
+:host-context(.app-dark) .registration-affiliation-option--active {
+    border-color: #ff6b72;
+    color: #ff858b;
+    background: rgba(255, 107, 114, 0.12);
+    box-shadow: none;
+}
+
+:host-context(.app-dark) .registration-parent-field {
+    color: #e5e7eb;
 }

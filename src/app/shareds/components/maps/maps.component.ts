@@ -1,11 +1,11 @@
-import { Component, OnInit, OnChanges, OnDestroy, SimpleChanges, Input } from '@angular/core';
+import { Component, OnInit, OnChanges, OnDestroy, SimpleChanges, Input, Output, EventEmitter } from '@angular/core';
 import { Router } from '@angular/router';
 import { ThemesService } from '../../services/themes.service';
 import { SystemService, SystemSettings } from '../../../core/services/system.service';
 import { TargetsService } from '../../../core/services/targets.service';
 import { TranslateService } from '@ngx-translate/core';
 
-import { MapUtils } from '../../helpers/map.helper';
+import { MapProvider, MapUtils } from '../../helpers/map.helper';
 import { MapThemeService } from '../../helpers/map-theme.helper';
 
 @Component({
@@ -15,12 +15,13 @@ import { MapThemeService } from '../../helpers/map-theme.helper';
   standalone: false
 })
 export class MapsComponent implements OnInit, OnChanges, OnDestroy {
-  @Input() provider: 'google' | 'mapbox' = 'mapbox';
+  @Input() provider: MapProvider = 'mapbox';
   @Input() theme: 'dark' | 'light' = 'dark';
   @Input() selectedTarget: any = null;
   @Input() targetsForMap: any[] = [];
   @Input() vehicleTypeGetter: ((modelId: string) => string) | null = null;
   @Input() preloadedStopTime: string | undefined = undefined;
+  @Output() additionalTargetSelected = new EventEmitter<any>();
 
   map: any;
   apiKey: string = '';
@@ -36,6 +37,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   isStopTimeLoading: boolean = false;
   multipleMarkers: any[] = [];
   private currentPopup: any = null;
+  private mapReady: boolean = false;
+  private pendingMapRender: boolean = false;
+  private osmMarkerImagesReady: boolean = false;
   showToolsModal: boolean = false;
   private cachedMarkerIconUrl: string | null = null;
   showShareLinkModal: boolean = false;
@@ -44,6 +48,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   showCopySuccess: boolean = false;
   showVehicleImageModal: boolean = false;
   discrepancyMessage: string | null = null;
+  showAdditionalOnlineModal: boolean = false;
+  onlineAdditionalTarget: any = null;
+  additionalOnlineModalMode: 'online' | 'localizedTag' | 'recentLocation' = 'online';
+  additionalTagLastLocationText: string = '';
+  private lastAdditionalOnlinePromptTargetId: string | null = null;
 
   constructor(
     private _theme: ThemesService,
@@ -52,6 +61,15 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     private translate: TranslateService,
     private router: Router
   ) { }
+
+  private isOnlineLikeStatus(status?: string | null): boolean {
+    const normalized = (status || '').toLowerCase();
+    return normalized === 'online' || normalized === 'señal débil' || normalized === 'senal debil';
+  }
+
+  isSelectedTargetOnlineLike(): boolean {
+    return this.isOnlineLikeStatus(this.selectedTarget?.traccarStatus);
+  }
 
   ngOnInit(): void {
     this.initializeNewProvider();
@@ -104,6 +122,12 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     // Manejar cambios en el target seleccionado
     if (changes['selectedTarget']) {
+      const previousTargetId = changes['selectedTarget'].previousValue?._id || changes['selectedTarget'].previousValue?.id;
+      const currentTargetId = changes['selectedTarget'].currentValue?._id || changes['selectedTarget'].currentValue?.id;
+      if (previousTargetId !== currentTargetId) {
+        this.closeAdditionalOnlineModal();
+        this.lastAdditionalOnlinePromptTargetId = null;
+      }
       this.updateTargetMarker();
       this.loadDistanceTraveled();
     }
@@ -164,6 +188,20 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   closeShareLinkModal(): void {
     this.showShareLinkModal = false;
     this.generatedLink = '';
+  }
+
+  closeAdditionalOnlineModal(): void {
+    this.showAdditionalOnlineModal = false;
+    this.onlineAdditionalTarget = null;
+    this.additionalOnlineModalMode = 'online';
+    this.additionalTagLastLocationText = '';
+  }
+
+  viewOnlineAdditionalTarget(): void {
+    if (!this.onlineAdditionalTarget) return;
+    const target = this.onlineAdditionalTarget;
+    this.closeAdditionalOnlineModal();
+    this.additionalTargetSelected.emit(target);
   }
 
   generateRealtimeLink(): void {
@@ -251,18 +289,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private getCurrentLatLng(): { lat: number; lng: number } | null {
-    const geo = this.selectedTarget?.traccarInfo?.geolocation;
-    const historical = this.selectedTarget?.historicalLocation;
-    const latitude = geo?.latitude ?? historical?.latitude;
-    const longitude = geo?.longitude ?? historical?.longitude;
-
-    const latNum = parseFloat(latitude !== undefined ? String(latitude) : '');
-    const lngNum = parseFloat(longitude !== undefined ? String(longitude) : '');
-
-    if (isNaN(latNum) || isNaN(lngNum)) {
-      return null;
-    }
-    return { lat: latNum, lng: lngNum };
+    const coords = this.getTargetCoordinates(this.selectedTarget);
+    return coords ? { lat: coords.lat, lng: coords.lng } : null;
   }
 
   getGoogleMapsUrl(): string | null {
@@ -306,6 +334,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       this.map = MapUtils.createMap(this.provider, mapElement, this.apiKey, this.theme, centerLat, centerLng, zoomLevel);
 
       if (this.map) {
+        this.mapReady = this.isMapReady();
+        this.registerMapReadyHandlers();
+        this.scheduleMapResize();
         // Agregar marcador inicial si hay target seleccionado
         this.updateTargetMarker();
       } else {
@@ -316,9 +347,68 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
+  private scheduleMapResize(): void {
+    const resize = () => {
+      try {
+        this.map?.resize?.();
+      } catch (_) {
+        // Some providers do not expose resize.
+      }
+    };
+
+    requestAnimationFrame(resize);
+    [0, 120, 350, 800].forEach((delay) => {
+      setTimeout(() => {
+        resize();
+      }, delay);
+    });
+
+    try {
+      this.map?.once?.('load', resize);
+      this.map?.once?.('idle', resize);
+    } catch (_) {
+      // Map event APIs vary by provider.
+    }
+  }
+
+  private registerMapReadyHandlers(): void {
+    if (!this.map || this.provider === 'google') {
+      this.mapReady = true;
+      return;
+    }
+
+    const onReady = () => {
+      this.mapReady = true;
+      this.scheduleMapResize();
+      if (this.pendingMapRender) {
+        this.pendingMapRender = false;
+        this.updateTargetMarker();
+      }
+    };
+
+    try {
+      this.map.once?.('load', onReady);
+      this.map.once?.('idle', onReady);
+    } catch (_) {
+      setTimeout(onReady, 200);
+    }
+  }
+
+  private isMapReady(): boolean {
+    if (!this.map || this.provider === 'google') {
+      return true;
+    }
+
+    try {
+      return !!this.map.loaded?.() || !!this.map.isStyleLoaded?.();
+    } catch (_) {
+      return false;
+    }
+  }
+
   private async calculateOfflineDuration(): Promise<void> {
     // Check if target is offline
-    this.isTargetOffline = this.selectedTarget?.traccarStatus !== 'online';
+    this.isTargetOffline = !this.isSelectedTargetOnlineLike();
     this.lastUpdateText = '';
 
     if (!this.isTargetOffline) {
@@ -439,11 +529,175 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
+  private async checkOnlineAdditionalGps(): Promise<void> {
+    const selectedId = this.selectedTarget?._id || this.selectedTarget?.id;
+    if (!selectedId) {
+      this.closeAdditionalOnlineModal();
+      this.lastAdditionalOnlinePromptTargetId = null;
+      return;
+    }
+
+    if (!this.isTargetOffline) {
+      this.closeAdditionalOnlineModal();
+      this.lastAdditionalOnlinePromptTargetId = null;
+      return;
+    }
+
+    if (this.lastAdditionalOnlinePromptTargetId === selectedId) {
+      return;
+    }
+
+    try {
+      const detailedTarget = Array.isArray(this.selectedTarget?.instalaciones_adicionales)
+        ? this.selectedTarget
+        : await this.targetsService.getTargetById(selectedId);
+
+      const additions = Array.isArray(detailedTarget?.instalaciones_adicionales)
+        ? detailedTarget.instalaciones_adicionales
+        : [];
+
+      const localizedTagAddition = additions.find((target: any) => {
+        const status = target?.traccarStatus || target?.traccarInfo?.status;
+        return this.isAdditionalMtag(target) && this.isLocalizedStatus(status);
+      });
+
+      const onlineAddition = additions.find((target: any) => {
+        const status = target?.traccarStatus || target?.traccarInfo?.status;
+        return this.isOnlineLikeStatus(status);
+      });
+
+      const recentLocationAddition = !localizedTagAddition && !onlineAddition
+        ? this.findAdditionalWithMoreRecentLocation(additions, detailedTarget)
+        : null;
+      const matchedAddition = localizedTagAddition || onlineAddition || recentLocationAddition;
+
+      if (!matchedAddition) {
+        this.closeAdditionalOnlineModal();
+        this.lastAdditionalOnlinePromptTargetId = null;
+        return;
+      }
+
+      this.additionalOnlineModalMode = localizedTagAddition
+        ? 'localizedTag'
+        : (recentLocationAddition ? 'recentLocation' : 'online');
+      this.additionalTagLastLocationText = localizedTagAddition || recentLocationAddition
+        ? this.getAdditionalTagLastLocationText(matchedAddition)
+        : '';
+      this.onlineAdditionalTarget = {
+        ...matchedAddition,
+        traccarStatus: matchedAddition.traccarStatus || matchedAddition.traccarInfo?.status,
+      };
+      this.showAdditionalOnlineModal = true;
+      this.lastAdditionalOnlinePromptTargetId = selectedId;
+    } catch (error) {
+      console.error('❌ Error verificando GPS adicionales en línea:', error);
+    }
+  }
+
+  private findAdditionalWithMoreRecentLocation(additions: any[], selectedTarget: any): any | null {
+    const selectedLocationTime = this.getLocationTimestamp(selectedTarget);
+    if (!selectedLocationTime) {
+      return null;
+    }
+
+    return additions
+      .filter((target: any) => {
+        const status = target?.traccarStatus || target?.traccarInfo?.status;
+        return !this.isOnlineLikeStatus(status) && !this.isLocalizedStatus(status);
+      })
+      .map((target: any) => ({
+        target,
+        timestamp: this.getLocationTimestamp(target),
+      }))
+      .filter((entry: { target: any; timestamp: number | null }) => !!entry.timestamp && entry.timestamp > selectedLocationTime)
+      .sort((a: { timestamp: number | null }, b: { timestamp: number | null }) => (b.timestamp || 0) - (a.timestamp || 0))[0]?.target || null;
+  }
+
+  private isAdditionalMtag(target: any): boolean {
+    const protocol = target?.protocol || target?.originalTarget?.protocol;
+    if (protocol && typeof protocol === 'object' && protocol.isAirtag !== undefined) {
+      return !!protocol.isAirtag;
+    }
+
+    const status = target?.traccarStatus || target?.traccarInfo?.status;
+    if (this.isLocalizedStatus(status)) {
+      return true;
+    }
+
+    const typeName = String(protocol?.name || target?.type?.name || target?.tag || target?.gps_model || '').toLowerCase();
+    return typeName.includes('mtag') || typeName.includes('tag') || typeName.includes('airtag');
+  }
+
+  private isLocalizedStatus(status?: string | null): boolean {
+    const normalized = (status || '').toLowerCase();
+    return normalized === 'localizado' || normalized === 'no localizado';
+  }
+
+  private getAdditionalTagLastLocationText(target: any): string {
+    const lastLocation = this.getLocationDateValue(target);
+
+    if (!lastLocation) {
+      return 'no disponible';
+    }
+
+    const date = new Date(lastLocation);
+    const diffMs = Date.now() - date.getTime();
+    if (Number.isNaN(date.getTime())) {
+      return 'no disponible';
+    }
+    if (diffMs < 0) {
+      return 'en una fecha futura';
+    }
+
+    const minutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(diffMs / 3600000);
+    const days = Math.floor(diffMs / 86400000);
+    const weeks = Math.floor(days / 7);
+    const months = Math.floor(days / 30);
+    const years = Math.floor(days / 365);
+
+    if (years > 0) return `hace ${years} año${years > 1 ? 's' : ''}`;
+    if (months > 0) return `hace ${months} mes${months > 1 ? 'es' : ''}`;
+    if (weeks > 0) return `hace ${weeks} semana${weeks > 1 ? 's' : ''}`;
+    if (days > 0) return `hace ${days} día${days > 1 ? 's' : ''}`;
+    if (hours > 0) return `hace ${hours} hora${hours > 1 ? 's' : ''}`;
+    if (minutes > 0) return `hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+    return 'hace menos de 1 minuto';
+  }
+
+  private getLocationTimestamp(target: any): number | null {
+    const value = this.getLocationDateValue(target);
+    if (!value) {
+      return null;
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date.getTime();
+  }
+
+  private getLocationDateValue(target: any): string | Date | null {
+    return (
+      target?.traccarInfo?.geolocation?.deviceTime ||
+      target?.traccarInfo?.geolocation?.fixTime ||
+      target?.historicalLocation?.deviceTime ||
+      target?.historicalLocation?.fixTime ||
+      target?.historicalLocation?.timestamp ||
+      target?.traccarInfo?.lastUpdate ||
+      null
+    );
+  }
+
   private async updateTargetMarker(): Promise<void> {
     if (!this.map) return;
+    if (!this.isMapReady()) {
+      this.pendingMapRender = true;
+      return;
+    }
+    this.mapReady = true;
 
     // Calcular tiempo fuera de línea si hay target seleccionado
     await this.calculateOfflineDuration();
+    await this.checkOnlineAdditionalGps();
 
     // Si no hay target seleccionado, remover marcador existente
     if (!this.selectedTarget) {
@@ -457,12 +711,10 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    // Check if we have real-time location or historical location
-    const hasRealTimeLocation = this.selectedTarget?.traccarInfo?.geolocation;
-    const hasHistoricalLocation = this.isTargetOffline && this.selectedTarget?.historicalLocation;
+    const coords = this.getTargetCoordinates(this.selectedTarget);
 
     // If no location data at all, remove marker
-    if (!hasRealTimeLocation && !hasHistoricalLocation) {
+    if (!coords) {
       if (this.currentMarker) {
         MapUtils.removeMarker(this.currentMarker, this.provider);
         this.currentMarker = null;
@@ -489,27 +741,21 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       this.clearMultipleMarkers();
     }
 
-    // Get coordinates from real-time or historical location
-    let lat: number, lng: number;
+    const { lat, lng } = coords;
 
-    if (hasRealTimeLocation) {
-      lat = parseFloat(this.selectedTarget.traccarInfo.geolocation.latitude);
-      lng = parseFloat(this.selectedTarget.traccarInfo.geolocation.longitude);
-    } else if (hasHistoricalLocation) {
-      lat = parseFloat(this.selectedTarget.historicalLocation.latitude);
-      lng = parseFloat(this.selectedTarget.historicalLocation.longitude);
+    if (this.provider === 'osm') {
+      this.map.easeTo?.({
+        center: [lng, lat],
+        zoom: 16,
+        duration: isNewTarget ? 500 : 250,
+      }) ?? (() => {
+        this.map.setCenter([lng, lat]);
+        this.map.setZoom(16);
+      })();
     } else {
-      console.warn('⚠️ No se pudieron obtener coordenadas para el target');
-      return;
+      // Solo recentrar si el marcador está fuera de la vista
+      MapUtils.recenterMapIfOutOfView(this.map, this.provider, lat, lng);
     }
-
-    if (isNaN(lat) || isNaN(lng)) {
-      console.warn('⚠️ Coordenadas inválidas para el target:', { lat, lng });
-      return;
-    }
-
-    // Solo recentrar si el marcador está fuera de la vista
-    MapUtils.recenterMapIfOutOfView(this.map, this.provider, lat, lng);
 
     // Si el marcador no existe o es un target nuevo, crearlo
     if (!this.currentMarker || isNewTarget) {
@@ -540,7 +786,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
   get statusClass(): string {
     const status = this.selectedTarget?.traccarStatus?.toLowerCase();
-    if (status === 'online') return 'online';
+    if (this.isOnlineLikeStatus(status)) return 'online';
     if (status === 'offline') return 'offline';
     if (status === 'localizado') return 'localizado';
     return 'unknown';
@@ -621,11 +867,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   private async createMarker(lat: number, lng: number): Promise<void> {
     const title = this.selectedTarget?.name || 'Target';
     const statusLower = (this.selectedTarget?.traccarStatus || '').toLowerCase();
-    const isOffline = statusLower !== 'online' && statusLower !== 'localizado';
+    const isOffline = !this.isOnlineLikeStatus(statusLower) && statusLower !== 'localizado';
     const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
-    const isOnline = statusText === 'online';
+    const isOnline = this.isOnlineLikeStatus(statusText);
     const course = this.selectedTarget?.traccarInfo?.geolocation?.course ?? 0;
-    const markerType = MapUtils.getMapMarkerType();
+    const markerType = this.provider === 'osm' ? 'default' : MapUtils.getMapMarkerType();
 
     if (this.provider === 'google') {
       let iconConfig: any;
@@ -681,7 +927,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         isOpen = false;
       });
     } else {
-      const mapboxgl = (window as any).mapboxgl;
+      const mapboxgl = MapUtils.getMapLibrary(this.provider);
 
       let markerElement: HTMLElement;
       if (markerType === 'vehicle') {
@@ -690,8 +936,24 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         const img = document.createElement('img');
         img.src = isOffline ? `${window.location.origin}/logo/favicon-gray.png` : `${window.location.origin}/logo/favicon.png`;
         img.style.cssText = `width: 32px; height: 32px; cursor: pointer;`;
-        markerElement = img;
+
+        if (this.provider === 'osm') {
+          const wrapper = document.createElement('div');
+          wrapper.style.cssText = 'width: 32px; height: 32px; cursor: pointer; position: absolute; top: 0; left: 0; overflow: visible;';
+          wrapper.appendChild(img);
+
+          const label = document.createElement('div');
+          label.className = 'gps-map-marker-label';
+          label.textContent = title;
+          wrapper.appendChild(label);
+          markerElement = wrapper;
+        } else {
+          markerElement = img;
+        }
       }
+      markerElement.classList.add('gps-map-marker');
+      markerElement.style.zIndex = '20';
+      markerElement.style.pointerEvents = 'auto';
 
       this.currentMarker = new mapboxgl.Marker({
         element: markerElement,
@@ -727,11 +989,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
     const title = this.selectedTarget?.name || 'Target';
     const statusLower = (this.selectedTarget?.traccarStatus || '').toLowerCase();
-    const isOffline = statusLower !== 'online' && statusLower !== 'localizado';
+    const isOffline = !this.isOnlineLikeStatus(statusLower) && statusLower !== 'localizado';
     const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
-    const isOnline = statusText === 'online';
+    const isOnline = this.isOnlineLikeStatus(statusText);
     const course = this.selectedTarget?.traccarInfo?.geolocation?.course ?? 0;
-    const markerType = MapUtils.getMapMarkerType();
+    const markerType = this.provider === 'osm' ? 'default' : MapUtils.getMapMarkerType();
 
     if (this.provider === 'google') {
       // Actualizar posición del marcador Google Maps
@@ -880,10 +1142,207 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       });
     }
     this.multipleMarkers = [];
+    if (this.provider === 'osm') {
+      this.setOsmMarkerFeatures([]);
+    }
+  }
+
+  private getTargetCoordinates(target: any): { lat: number; lng: number; geo: any } | null {
+    const source = target?.originalTarget || target || {};
+    const locationCandidates = [
+      target?.traccarInfo?.geolocation,
+      target?.traccarInfo?.lastLocation,
+      target?.traccarInfo?.last_location,
+      target?.historicalLocation,
+      target?.lastLocation,
+      target?.last_location,
+      source?.traccarInfo?.geolocation,
+      source?.traccarInfo?.lastLocation,
+      source?.traccarInfo?.last_location,
+      source?.historicalLocation,
+      source?.lastLocation,
+      source?.last_location,
+      source?.position,
+      source?.lastPosition,
+    ].filter(Boolean);
+
+    const geo = locationCandidates.find(location => {
+      const lat = location?.latitude ?? location?.lat ?? location?.Lat;
+      const lng = location?.longitude ?? location?.lng ?? location?.lon ?? location?.Long;
+      return lat !== undefined && lng !== undefined;
+    });
+
+    const lat = geo?.latitude ?? geo?.lat ?? geo?.Lat;
+    const lng = geo?.longitude ?? geo?.lng ?? geo?.lon ?? geo?.Long;
+    const latNum = parseFloat(lat !== undefined ? String(lat) : '');
+    const lngNum = parseFloat(lng !== undefined ? String(lng) : '');
+
+    if (isNaN(latNum) || isNaN(lngNum)) {
+      return null;
+    }
+
+    return { lat: latNum, lng: lngNum, geo };
+  }
+
+  private buildOsmMarkerFeature(target: any, lat: number, lng: number, selected: boolean = false): any {
+    const status = target?.traccarStatus || target?.traccarInfo?.status || 'Desconocido';
+    return {
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [lng, lat],
+      },
+      properties: {
+        id: target?._id || target?.id || '',
+        title: target?.name || 'Target',
+        status,
+        selected,
+      },
+    };
+  }
+
+  private setOsmMarkerFeatures(features: any[]): void {
+    if (this.provider !== 'osm' || !this.map || !this.isMapReady()) {
+      return;
+    }
+
+    const data = {
+      type: 'FeatureCollection',
+      features,
+    };
+
+    try {
+      const source = this.map.getSource?.('gps-osm-markers');
+      if (source?.setData) {
+        source.setData(data);
+      } else {
+        this.map.addSource('gps-osm-markers', {
+          type: 'geojson',
+          data,
+        });
+      }
+
+      this.ensureOsmMarkerImages()
+        .then(() => this.ensureOsmMarkerLayers())
+        .catch((error) => console.error('❌ Error cargando marcador personalizado OSM:', error));
+    } catch (error) {
+      console.error('❌ Error pintando marcadores OSM:', error);
+    }
+  }
+
+  private async ensureOsmMarkerImages(): Promise<void> {
+    if (this.osmMarkerImagesReady || !this.map) {
+      return;
+    }
+
+    const loadImage = (url: string): Promise<any> => new Promise((resolve, reject) => {
+      this.map.loadImage(url, (error: any, image: any) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve(image);
+      });
+    });
+
+    const [normalImage, grayImage] = await Promise.all([
+      loadImage('logo/favicon.png'),
+      loadImage('logo/favicon-gray.png'),
+    ]);
+
+    if (!this.map.hasImage?.('custom-marker')) {
+      this.map.addImage('custom-marker', normalImage);
+    }
+
+    if (!this.map.hasImage?.('custom-marker-offline')) {
+      this.map.addImage('custom-marker-offline', grayImage);
+    }
+
+    this.osmMarkerImagesReady = true;
+  }
+
+  private ensureOsmMarkerLayers(): void {
+    if (!this.map || !this.map.getSource?.('gps-osm-markers')) {
+      return;
+    }
+
+    if (!this.map.getLayer?.('gps-osm-marker-symbols')) {
+      this.map.addLayer({
+        id: 'gps-osm-marker-symbols',
+        type: 'symbol',
+        source: 'gps-osm-markers',
+        layout: {
+          'icon-image': [
+            'case',
+            ['==', ['get', 'status'], 'online'], 'custom-marker',
+            ['==', ['get', 'status'], 'Señal débil'], 'custom-marker',
+            ['==', ['get', 'status'], 'Localizado'], 'custom-marker',
+            'custom-marker-offline'
+          ],
+          'icon-size': ['case', ['==', ['get', 'selected'], true], 0.2, 0.15],
+          'icon-allow-overlap': true,
+          'icon-ignore-placement': true,
+        },
+        paint: {
+          'icon-opacity': [
+            'case',
+            ['==', ['get', 'status'], 'online'], 1,
+            ['==', ['get', 'status'], 'Señal débil'], 1,
+            ['==', ['get', 'status'], 'Localizado'], 1,
+            0.6
+          ],
+        },
+      });
+    }
+
+    if (!this.map.getLayer?.('gps-osm-marker-labels')) {
+      this.map.addLayer({
+        id: 'gps-osm-marker-labels',
+        type: 'symbol',
+        source: 'gps-osm-markers',
+        layout: {
+          'text-field': ['get', 'title'],
+          'text-size': 11,
+          'text-offset': [0, 1.55],
+          'text-anchor': 'top',
+          'text-allow-overlap': false,
+        },
+        paint: {
+          'text-color': '#111827',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 1.5,
+        },
+      });
+    }
+  }
+
+  private clearOsmMarkerLayers(): void {
+    if (!this.map || this.provider !== 'osm') {
+      return;
+    }
+
+    try {
+      if (this.map.getLayer?.('gps-osm-marker-labels')) {
+        this.map.removeLayer('gps-osm-marker-labels');
+      }
+      if (this.map.getLayer?.('gps-osm-marker-symbols')) {
+        this.map.removeLayer('gps-osm-marker-symbols');
+      }
+      if (this.map.getSource?.('gps-osm-markers')) {
+        this.map.removeSource('gps-osm-markers');
+      }
+    } catch (_) {
+      // The map may already be tearing down.
+    }
   }
 
   private renderMultipleTargetsMarkers(): void {
     if (!this.map) return;
+    if (!this.isMapReady()) {
+      this.pendingMapRender = true;
+      return;
+    }
+    this.mapReady = true;
 
     this.clearMultipleMarkers();
 
@@ -896,35 +1355,27 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     console.log(`🗺️ [MapsComponent] Rendering ${this.targetsForMap.length} targets`);
 
     this.targetsForMap.forEach((target) => {
-      const geo = target?.traccarInfo?.geolocation || target?.traccarInfo?.lastLocation;
-      const historical = target?.historicalLocation;
-      const lat = geo?.latitude ?? historical?.latitude;
-      const lng = geo?.longitude ?? historical?.longitude;
-      const latNum = parseFloat(lat !== undefined ? String(lat) : '');
-      const lngNum = parseFloat(lng !== undefined ? String(lng) : '');
+      const coordinates = this.getTargetCoordinates(target);
 
-      if (isNaN(latNum) || isNaN(lngNum)) {
+      if (!coordinates) {
         console.warn(`🗺️ [MapsComponent] ⚠️ ID: ${target._id || target.id} - ${target.name} has invalid coords. Data dump:`, {
           traccarInfo: target.traccarInfo,
           historicalLocation: target.historicalLocation,
-          geo: geo,
-          historical: historical,
-          latRaw: lat,
-          lngRaw: lng
+          originalTarget: target.originalTarget
         });
         return;
       }
 
       const statusLower = (target?.traccarStatus || '').toLowerCase();
-      const isOffline = statusLower !== 'online' && statusLower !== 'localizado';
-      const course = geo?.course ?? 0;
+      const isOffline = !this.isOnlineLikeStatus(statusLower) && statusLower !== 'localizado';
+      const course = coordinates.geo?.course ?? 0;
       const openByDefault = !isOffline && (this.targetsForMap?.length || 0) <= 100;
 
       const marker = MapUtils.addMarker(
         this.map,
         this.provider,
-        latNum,
-        lngNum,
+        coordinates.lat,
+        coordinates.lng,
         target?.name || 'Target',
         target?.traccarStatus || 'Desconocido',
         undefined,
@@ -946,7 +1397,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
       if (marker) {
         this.multipleMarkers.push(marker);
-        validMarkers.push({ lat: latNum, lng: lngNum });
+        validMarkers.push({ lat: coordinates.lat, lng: coordinates.lng });
       }
     });
 
@@ -981,10 +1432,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       this.currentPopup = null;
     }
     this.clearMultipleMarkers();
+    this.clearOsmMarkerLayers();
 
     if (this.map) {
       try {
-        if (this.provider === 'mapbox' && this.map.remove) {
+        if ((this.provider === 'mapbox' || this.provider === 'osm') && this.map.remove) {
           this.map.remove();
         }
       } catch (error) {
@@ -992,6 +1444,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       }
     }
 
+    this.mapReady = false;
+    this.pendingMapRender = false;
+    this.osmMarkerImagesReady = false;
     this.map = null;
 
     const mapElement = document.getElementById('map');

@@ -405,7 +405,17 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       if (!this.supportsOfflineDurationFilter(value)) {
         this._selectedOfflineDurationFilter = '';
       }
+
+      this.ensureSelectedProtocolIsAvailable();
     }
+  }
+
+  get filteredProtocolOptions(): any[] {
+    if (!this.shouldLimitProtocolFilterToTags()) {
+      return this.protocols;
+    }
+
+    return this.protocols.filter(protocol => this.isTagProtocol(protocol));
   }
 
   get selectedOfflineDurationFilter(): string {
@@ -1436,6 +1446,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     this.protocolsService.getAllProtocols().subscribe({
       next: (protocols: any[]) => {
         this.protocols = protocols;
+        this.ensureSelectedProtocolIsAvailable();
       },
       error: (error: any) => {
         console.error('Error loading protocols:', error);
@@ -1615,6 +1626,15 @@ export class MonitoringComponent implements OnInit, OnDestroy {
             case 'online':
               filteredDevices = filteredDevices.filter(device => this.isDeviceOnline(device));
               break;
+            case 'weak-signal':
+              filteredDevices = filteredDevices.filter(device => this.isDeviceWeakSignal(device));
+              break;
+            case 'localizado':
+              filteredDevices = filteredDevices.filter(device => this.isDeviceLocalizado(device));
+              break;
+            case 'no-localizado':
+              filteredDevices = filteredDevices.filter(device => this.isDeviceNoLocalizado(device));
+              break;
             case 'initial':
               filteredDevices = filteredDevices.filter(device => this.isDeviceInitialState(device));
               break;
@@ -1622,7 +1642,13 @@ export class MonitoringComponent implements OnInit, OnDestroy {
               filteredDevices = filteredDevices.filter(device => !this.isDeviceOnline(device));
               break;
             case 'offline':
-              filteredDevices = filteredDevices.filter(device => !this.isDeviceOnline(device) && !this.isDeviceInitialState(device));
+              filteredDevices = filteredDevices.filter(device =>
+                !this.isDeviceOnline(device) &&
+                !this.isDeviceWeakSignal(device) &&
+                !this.isDeviceLocalizado(device) &&
+                !this.isDeviceNoLocalizado(device) &&
+                !this.isDeviceInitialState(device)
+              );
               break;
           }
         }
@@ -1861,11 +1887,66 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   isDeviceOnline(device: any): boolean {
-    return device?.traccarInfo?.status === 'online';
+    if (device?.traccarInfo?.status === 'online') {
+      return true;
+    }
+
+    if (this.isDeviceTagProtocol(device)) {
+      return false;
+    }
+
+    const duration = this.getOfflineDurationInMinutes(device);
+    return duration !== null && duration <= 10;
+  }
+
+  isDeviceWeakSignal(device: any): boolean {
+    if (device?.traccarInfo?.status === 'Señal débil') {
+      return true;
+    }
+
+    if (device?.traccarInfo?.status === 'online') {
+      return false;
+    }
+
+    if (this.isDeviceTagProtocol(device)) {
+      return false;
+    }
+
+    const duration = this.getOfflineDurationInMinutes(device);
+    return duration !== null && duration > 10 && duration <= 60;
   }
 
   isDeviceLocalizado(device: any): boolean {
     return device?.traccarInfo?.status === 'Localizado';
+  }
+
+  isDeviceNoLocalizado(device: any): boolean {
+    return device?.traccarInfo?.status === 'No localizado';
+  }
+
+  private shouldLimitProtocolFilterToTags(): boolean {
+    return this._selectedConnectionFilter === 'localizado' || this._selectedConnectionFilter === 'no-localizado';
+  }
+
+  private isTagProtocol(protocol: any): boolean {
+    const protocolName = String(protocol?.name || '').toLowerCase();
+    return protocol?.isAirtag === true || protocolName.includes('tag') || protocolName.includes('airtag');
+  }
+
+  private isDeviceTagProtocol(device: any): boolean {
+    const protocol = this.protocols.find(item => item._id === device?.type);
+    return this.isTagProtocol(protocol);
+  }
+
+  private ensureSelectedProtocolIsAvailable(): void {
+    if (!this._selectedProtocolFilter || !this.shouldLimitProtocolFilterToTags()) {
+      return;
+    }
+
+    const selectedProtocol = this.protocols.find(protocol => protocol._id === this._selectedProtocolFilter);
+    if (selectedProtocol && !this.isTagProtocol(selectedProtocol)) {
+      this._selectedProtocolFilter = '';
+    }
   }
 
   isDeviceInitialState(device: any): boolean {
@@ -1878,10 +1959,14 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   supportsOfflineDurationFilter(connectionFilter: string): boolean {
-    return connectionFilter === 'offline' || connectionFilter === 'initial' || connectionFilter === 'initial-or-offline';
+    return connectionFilter === 'offline' || connectionFilter === 'initial' || connectionFilter === 'initial-or-offline' || connectionFilter === 'no-localizado';
   }
 
   getConnectionDurationFilterLabel(): string {
+    if (this.selectedConnectionFilter === 'no-localizado') {
+      return 'MONITORING.FILTERS_NO_LOCALIZADO_DURATION';
+    }
+
     if (this.selectedConnectionFilter === 'initial') {
       return 'MONITORING.FILTERS_INITIAL_DURATION';
     }
@@ -1894,6 +1979,10 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   getConnectionDisplay(device: any): string {
+    if (this.isDeviceWeakSignal(device)) {
+      return 'Señal débil';
+    }
+
     if (this.isDeviceOnline(device)) {
       return 'En línea';
     }
@@ -1904,6 +1993,10 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         return this.formatOfflineDuration(lastUpdate, true);
       }
       return 'Localizado';
+    }
+
+    if (this.isDeviceNoLocalizado(device)) {
+      return 'No localizado';
     }
 
 

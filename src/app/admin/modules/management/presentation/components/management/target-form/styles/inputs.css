@@ -178,4 +178,67 @@
 /* Asegura que el campo del color tenga posición relativa para el dropdown */
 .target-form__field {
     position: relative;
-} 
+}
+
+/* Target form input refresh */
+.target-form__field input,
+.target-form__field select,
+.target-form__field textarea,
+.activation-select {
+    border: 1px solid rgba(148, 163, 184, 0.34);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--managementColorTextUser);
+    box-sizing: border-box;
+    box-shadow: none;
+}
+
+.target-form__field input,
+.target-form__field select,
+.activation-select {
+    height: 40px;
+    padding: 0 0.75rem;
+}
+
+.target-form__field textarea {
+    min-height: 96px;
+    padding: 0.7rem 0.75rem;
+    line-height: 1.35;
+}
+
+.target-form__field input:focus,
+.target-form__field select:focus,
+.target-form__field textarea:focus,
+.activation-select:focus {
+    border-color: var(--globalColorAccent);
+    box-shadow: 0 0 0 3px rgba(189, 53, 53, 0.12);
+}
+
+.target-form__field input:disabled,
+.target-form__field select:disabled,
+.target-form__field textarea:disabled {
+    border-style: dashed;
+    background: rgba(241, 245, 249, 0.88);
+}
+
+.color-options {
+    height: 190px;
+    border: 1px solid rgba(148, 163, 184, 0.26);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+}
+
+.color-header {
+    background: rgba(248, 250, 252, 0.9);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.color-list {
+    max-height: 150px;
+}
+
+.color-option {
+    min-height: 34px;
+}

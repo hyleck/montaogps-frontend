@@ -949,6 +949,16 @@
   color: #14b8a6; /* Teal 500 */
 }
 
+.connection-status.weak-signal {
+  background-color: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+}
+
+.connection-status.no-localizado {
+  background-color: rgba(107, 114, 128, 0.12);
+  color: #6b7280;
+}
+
 .connection-status.offline {
   background-color: var(--monitoringDevicesStatusInactiveBackground);
   color: var(--monitoringDevicesStatusInactiveText);

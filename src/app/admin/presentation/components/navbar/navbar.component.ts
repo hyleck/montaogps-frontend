@@ -13,6 +13,7 @@ import { PlansService } from '../../../../core/services/plans.service';
 import { Plan } from '../../../../core/interfaces/plan.interface';
 import { UserService } from '../../../../core/services/user.service';
 import { User } from '../../../../core/interfaces/user.interface';
+import { SystemService } from '../../../../core/services/system.service';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter, firstValueFrom } from 'rxjs';
 import { AlertsService, AlertResponse, AlertStatus, CreateAlertDto } from '../../../../core/services/alerts.service';
 import * as XLSX from 'xlsx-js-style';
@@ -32,6 +33,7 @@ import { CreateTicketDto } from '../../../../core/interfaces/support.interface';
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   items: MenuItem[] = [];
+  selectedActionItems: MenuItem[] = [];
   userMenuItems: MenuItem[] = [];
   languageItems: MenuItem[] = [];
   loadingTheme: boolean = false;
@@ -104,6 +106,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   loadingTargetProcesses: boolean = false;
 
   // Modal de compartir targets
+  shareMethodDialogVisible: boolean = false;
   shareDialogVisible: boolean = false;
   newEmailInput: string = '';
   selectedEmails: string[] = [];
@@ -111,6 +114,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   emailInputError: string = '';
   loadingSharedEmails: boolean = false;
   autoSaving: boolean = false;
+  realtimeLinkDialogVisible: boolean = false;
+  realtimeExpirationTime: string = '24h';
+  realtimeGeneratedLink: string = '';
+  realtimeCopySuccess: boolean = false;
+  generatingRealtimeLink: boolean = false;
 
   // Modal de alertas
   alertsDialogVisible: boolean = false;
@@ -503,7 +511,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private messageService: MessageService,
     private alertsService: AlertsService,
     private firebaseNotificationsService: FirebaseNotificationsService,
-    private supportService: SupportService
+    private supportService: SupportService,
+    private systemService: SystemService
   ) {
     this.currentTheme = status.getState('theme') as string;
     this.currentUser = this.authService.getCurrentUser();
@@ -618,6 +627,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
       wasVisible
     });
 
+    if (wasVisible !== this.showCanceledButton) {
+      this.initializeMenus();
+    }
+
     // Si el botón se vuelve visible y hay un parentId, cargar targets cancelados automáticamente
     if (this.showCanceledButton && parentId) {
       // Solo cargar si:
@@ -649,30 +662,59 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   private initializeMenus() {
-    // Menú principal
+    // Menú principal de acciones generales
     this.items = [
       {
-        label: this.translate.instant('navbar.alerts'),
-        icon: 'pi pi-cog',
-        disabled: !this.hasSelectedTargets,
-        command: this.hasSelectedTargets ? () => this.openAlertsModal() : undefined
+        label: this.translate.instant('navbar.notifications'),
+        icon: 'pi pi-bell',
+        command: () => this.openNotificationsModal()
       },
       {
         label: this.translate.instant('navbar.canceled'),
         icon: 'pi pi-trash',
-        disabled: true
+        visible: this.showCanceledButton,
+        command: () => this.openCanceledTargetsDrawer()
+      },
+      {
+        label: this.translate.instant('navbar.support'),
+        icon: 'pi pi-question-circle',
+        command: () => this.openSupportModal()
+      }
+    ];
+
+    this.selectedActionItems = [
+      {
+        label: this.translate.instant('navbar.alerts'),
+        icon: 'pi pi-cog',
+        command: () => this.openAlertsModal()
       },
       {
         label: this.translate.instant('navbar.transfer'),
         icon: 'pi pi-reply',
-        disabled: !this.hasSelectedTargets, // Se activa si hay objetivos seleccionados
-        command: this.hasSelectedTargets ? () => this.transferSelectedTargets() : undefined
+        command: () => this.transferSelectedTargets()
+      },
+      {
+        label: 'Crear cuenta y transferir',
+        icon: 'pi pi-user-plus',
+        command: () => this.selectionService.requestSelectedTargetsBulkAction('create-transfer')
       },
       {
         label: this.translate.instant('navbar.share'),
         icon: 'pi pi-share-alt',
-        disabled: !this.hasSelectedTargets, // Se activa si hay objetivos seleccionados
-        command: this.hasSelectedTargets ? () => this.shareSelectedTargets() : undefined
+        command: () => this.shareSelectedTargets()
+      },
+      {
+        separator: true
+      },
+      {
+        label: 'Cancelar',
+        icon: 'pi pi-ban',
+        command: () => this.selectionService.requestSelectedTargetsBulkAction('cancel')
+      },
+      {
+        label: 'Suspender',
+        icon: 'pi pi-pause-circle',
+        command: () => this.selectionService.requestSelectedTargetsBulkAction('suspend')
       }
     ];
 
@@ -1786,28 +1828,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
    * Actualiza solo los elementos del menú que dependen del estado de selección
    */
   private updateMenuItems() {
-    if (this.items.length > 0) {
-      // Actualizar el botón de alertas (índice 0)
-      const alertsItem = this.items[0];
-      if (alertsItem) {
-        alertsItem.disabled = !this.hasSelectedTargets;
-        alertsItem.command = this.hasSelectedTargets ? () => this.openAlertsModal() : undefined;
-      }
-
-      // Actualizar el botón de transferir (índice 2)
-      const transferItem = this.items[2];
-      if (transferItem) {
-        transferItem.disabled = !this.hasSelectedTargets;
-        transferItem.command = this.hasSelectedTargets ? () => this.transferSelectedTargets() : undefined;
-      }
-
-      // Actualizar el botón de compartir (índice 3)
-      const shareItem = this.items[3];
-      if (shareItem) {
-        shareItem.disabled = !this.hasSelectedTargets;
-        shareItem.command = this.hasSelectedTargets ? () => this.shareSelectedTargets() : undefined;
-      }
-    }
+    this.selectedActionItems = this.selectedActionItems.map(item => ({
+      ...item,
+      disabled: !this.hasSelectedTargets
+    }));
   }
 
   /**
@@ -1836,12 +1860,29 @@ export class NavbarComponent implements OnInit, OnDestroy {
   /**
    * Maneja la acción de compartir objetivos seleccionados
    */
-  async shareSelectedTargets() {
+  shareSelectedTargets() {
     const selectedTargets = this.selectionService.selectedTargetsValue;
-    console.log('🔗 Compartiendo objetivos seleccionados:', selectedTargets);
+    if (!selectedTargets?.length) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Sin objetivos',
+        detail: 'Selecciona al menos un objetivo para compartir.'
+      });
+      return;
+    }
 
-    // Asignar targets a compartir
-    this.targetsToShare = selectedTargets;
+    this.targetsToShare = [...selectedTargets];
+    this.realtimeGeneratedLink = '';
+    this.realtimeCopySuccess = false;
+    this.shareMethodDialogVisible = true;
+  }
+
+  async openDeviceAccessShare() {
+    this.shareMethodDialogVisible = false;
+    const selectedTargets = this.targetsToShare.length ? this.targetsToShare : this.selectionService.selectedTargetsValue;
+    console.log('🔗 Compartiendo acceso a objetivos seleccionados:', selectedTargets);
+
+    this.targetsToShare = [...selectedTargets];
 
     // Resetear estado del modal
     this.newEmailInput = '';
@@ -1861,6 +1902,130 @@ export class NavbarComponent implements OnInit, OnDestroy {
         console.log('📧 Emails compartidos (múltiples targets - referencia):', this.selectedEmails);
       }
     }
+  }
+
+  openRealtimeShare() {
+    if (this.targetsToShare.length !== 1) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Selecciona un solo objetivo',
+        detail: 'El link en tiempo real se genera para un objetivo específico.'
+      });
+      return;
+    }
+
+    this.shareMethodDialogVisible = false;
+    this.realtimeLinkDialogVisible = true;
+    this.realtimeExpirationTime = '24h';
+    this.realtimeGeneratedLink = '';
+    this.realtimeCopySuccess = false;
+  }
+
+  async generateSelectedRealtimeLink() {
+    const target = this.targetsToShare[0];
+    const targetId = target?._id || (target as any)?.id;
+    if (!targetId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Sin objetivo',
+        detail: 'No se pudo identificar el objetivo seleccionado.'
+      });
+      return;
+    }
+
+    try {
+      this.generatingRealtimeLink = true;
+      const systems = await firstValueFrom(this.systemService.getAll());
+      const mapConfig = systems?.[0]?.map_api1 || systems?.[0]?.map_api2;
+      const expirationDate = this.getRealtimeExpirationDate(this.realtimeExpirationTime);
+      const shortLink = await this.targetsService.createRealtimeShortLink({
+        target_id: targetId,
+        expires_at: expirationDate.toISOString(),
+        map_key: mapConfig?.key || ''
+      });
+
+      if (!shortLink?.short_code) {
+        throw new Error('El backend no devolvió un código para el link en tiempo real');
+      }
+
+      this.realtimeGeneratedLink = `${window.location.origin}/realtimelink?c=${encodeURIComponent(shortLink.short_code)}`;
+      await this.copyRealtimeLinkToClipboard();
+    } catch (error) {
+      console.error('Error generando link en tiempo real:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo generar el link en tiempo real.'
+      });
+    } finally {
+      this.generatingRealtimeLink = false;
+    }
+  }
+
+  async copyRealtimeLinkToClipboard() {
+    if (!this.realtimeGeneratedLink) return;
+
+    try {
+      await navigator.clipboard.writeText(this.realtimeGeneratedLink);
+      this.realtimeCopySuccess = true;
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Link copiado',
+        detail: 'El link en tiempo real fue copiado al portapapeles.',
+        life: 2500
+      });
+      setTimeout(() => this.realtimeCopySuccess = false, 3000);
+    } catch (error) {
+      console.error('Error copiando link:', error);
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Link generado',
+        detail: 'No se pudo copiar automáticamente. Puedes copiarlo manualmente.'
+      });
+    }
+  }
+
+  closeRealtimeShare() {
+    this.realtimeLinkDialogVisible = false;
+    this.realtimeGeneratedLink = '';
+    this.realtimeCopySuccess = false;
+    this.generatingRealtimeLink = false;
+  }
+
+  getRealtimeExpirationText(timeValue: string): string {
+    const expirationTexts: Record<string, string> = {
+      '15m': '15 minutos',
+      '30m': '30 minutos',
+      '1h': '1 hora',
+      '2h': '2 horas',
+      '8h': '8 horas',
+      '15h': '15 horas',
+      '24h': '24 horas',
+      '2d': '2 días',
+      '3d': '3 días',
+      '1w': '1 semana',
+      '1M': '1 mes'
+    };
+    return expirationTexts[timeValue] || timeValue;
+  }
+
+  private getRealtimeExpirationDate(timeValue: string): Date {
+    const expirationDate = new Date();
+    const amount = parseInt(timeValue, 10);
+
+    if (timeValue.endsWith('m')) {
+      expirationDate.setMinutes(expirationDate.getMinutes() + amount);
+    } else if (timeValue.endsWith('h')) {
+      expirationDate.setHours(expirationDate.getHours() + amount);
+    } else if (timeValue.endsWith('d')) {
+      expirationDate.setDate(expirationDate.getDate() + amount);
+    } else if (timeValue.endsWith('w')) {
+      expirationDate.setDate(expirationDate.getDate() + (amount * 7));
+    } else if (timeValue.endsWith('M')) {
+      expirationDate.setMonth(expirationDate.getMonth() + amount);
+    }
+
+    return expirationDate;
   }
 
   /**

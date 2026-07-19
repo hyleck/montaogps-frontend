@@ -1,43 +1,275 @@
 /* Estilos específicos para el modo oscuro */
-:root.app-dark .target-form {
+:host-context(.app-dark) .target-form {
     background-color: var(--managementColorBackgroundUser);
 }
 
-:root.app-dark .target-form__field label {
+:host-context(.app-dark) .target-form__field label {
     color: var(--managementColorTextUser);
 }
 
-:root.app-dark .target-form__field input,
-:root.app-dark .target-form__field select,
-:root.app-dark .target-form__field textarea {
+:host-context(.app-dark) .target-form__field input,
+:host-context(.app-dark) .target-form__field select,
+:host-context(.app-dark) .target-form__field textarea {
     background-color: var(--managementColorInputSearch);
     color: var(--managementColorTextUser);
     border-color: var(--globalColorBorderDark);
 }
 
-:root.app-dark .target-form__field input:focus,
-:root.app-dark .target-form__field select:focus,
-:root.app-dark .target-form__field textarea:focus {
+:host-context(.app-dark) .target-form__field input:focus,
+:host-context(.app-dark) .target-form__field select:focus,
+:host-context(.app-dark) .target-form__field textarea:focus {
     border-color: var(--managementColorBorderInput);
     box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
 }
 
-:root.app-dark .process__form {
+:host-context(.app-dark) .process__form {
     background-color: var(--globalColorPrimaryDarkStart);
 }
 
-:root.app-dark .target-form__actions button,
-:root.app-dark .button--primary-flat {
+:host-context(.app-dark) .target-form__actions button,
+:host-context(.app-dark) .button--primary-flat {
     background-color: var(--primaryColor);
     color: var(--globalTextLight);
 }
 
-:root.app-dark .target-form__actions button:hover,
-:root.app-dark .button--primary-flat:hover {
+:host-context(.app-dark) .target-form__actions button:hover,
+:host-context(.app-dark) .button--primary-flat:hover {
     background-color: var(--primaryColorDarker);
 }
 
-:root.app-dark ::ng-deep .p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+:host-context(.app-dark) ::ng-deep .p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
     background-color: var(--globalColorPrimaryDarkStart);
     color: var(--globalTextLight);
-} 
+}
+
+/* Target form dark refresh */
+:host-context(.app-dark) .target-form .card {
+    background: #1c1c1f;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+}
+
+:host-context(.app-dark) .target-form__base,
+:host-context(.app-dark) .process,
+:host-context(.app-dark) .activation-section,
+:host-context(.app-dark) .target-form__cloud-shell {
+    background: #202023;
+}
+
+:host-context(.app-dark) .target-form__column,
+:host-context(.app-dark) .activation-content,
+:host-context(.app-dark) .activation-card {
+    background: #252528;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: none;
+}
+
+:host-context(.app-dark) .activation-card-header {
+    background: #2b2b2f;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .target-form__field input,
+:host-context(.app-dark) .target-form__field select,
+:host-context(.app-dark) .target-form__field textarea,
+:host-context(.app-dark) .activation-select {
+    background: #1d1d20;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .target-form__field input:disabled,
+:host-context(.app-dark) .target-form__field select:disabled,
+:host-context(.app-dark) .target-form__field textarea:disabled {
+    background: #222225;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .add-field-btn,
+:host-context(.app-dark) .view-history-btn,
+:host-context(.app-dark) .cancel-activation-btn,
+:host-context(.app-dark) .command-management-link,
+:host-context(.app-dark) .activation-inline-card {
+    background: #242427;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .color-options {
+    background: #1d1d20;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: none;
+}
+
+:host-context(.app-dark) .color-header {
+    background: #242427;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) ::ng-deep .target-form .p-tabview .p-tabview-nav {
+    background: #202023;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) ::ng-deep .target-form .p-tabview .p-tabview-nav li .p-tabview-nav-link {
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) ::ng-deep .target-form .p-tabview .p-tabview-nav li:not(.p-highlight) .p-tabview-nav-link:hover {
+    background: #29292d;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) ::ng-deep .target-form .p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+    background: #252528;
+    color: var(--globalTextLight);
+    border-color: rgba(255, 255, 255, 0.1);
+    border-bottom-color: #252528;
+}
+
+:host-context(.app-dark) .target-form__field label,
+:host-context(.app-dark) .activation-label,
+:host-context(.app-dark) .activation-card-header,
+:host-context(.app-dark) .step-title,
+:host-context(.app-dark) .status-value,
+:host-context(.app-dark) .process-list-header h3 {
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .required-label,
+:host-context(.app-dark) .status-label,
+:host-context(.app-dark) .step-description,
+:host-context(.app-dark) .log-time,
+:host-context(.app-dark) .field-help-text {
+    color: rgba(255, 255, 255, 0.62);
+}
+
+:host-context(.app-dark) .target-form__actions {
+    border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .status-row {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .process textarea,
+:host-context(.app-dark) .auto-resize-textarea {
+    background: #1d1d20;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .activation-logs {
+    background: #1a1a1d;
+}
+
+:host-context(.app-dark) .log-entry.log-info {
+    color: rgba(255, 255, 255, 0.68);
+    border-left-color: rgba(255, 255, 255, 0.14);
+}
+
+:host-context(.app-dark) .activation-content [style*="color: #94a3b8"],
+:host-context(.app-dark) .activation-card [style*="color: #94a3b8"] {
+    color: rgba(255, 255, 255, 0.58) !important;
+}
+
+:host-context(.app-dark) .activation-inline-header,
+:host-context(.app-dark) .activation-inline-last b {
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .activation-inline-last,
+:host-context(.app-dark) .activation-inline-last i {
+    color: rgba(255, 255, 255, 0.62);
+}
+
+:host-context(.app-dark) .operational-status-card {
+    background: linear-gradient(180deg, rgba(22, 101, 52, 0.14), rgba(36, 36, 39, 0.92));
+    border-color: rgba(34, 197, 94, 0.18);
+}
+
+:host-context(.app-dark) .operational-status-item {
+    background: rgba(20, 20, 23, 0.68);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .operational-status-label,
+:host-context(.app-dark) .operational-status-value--muted {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+:host-context(.app-dark) .operational-status-value {
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .operational-status-pill {
+    background: rgba(34, 197, 94, 0.14);
+}
+
+:host-context(.app-dark) .activation-details-btn {
+    background: #242427;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .activation-details-btn:hover {
+    background: #29292d;
+    border-color: var(--globalColorAccent);
+    color: var(--globalTextLight);
+}
+
+:host-context(.app-dark) .linked-gps-input i {
+    color: rgba(255, 255, 255, 0.58);
+}
+
+:host-context(.app-dark) .additional-installations-card {
+    background: rgba(34, 197, 94, 0.08);
+    border-color: rgba(34, 197, 94, 0.18);
+}
+
+:host-context(.app-dark) .additional-installation-item {
+    background: rgba(20, 20, 23, 0.68);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .additional-installation-item__main strong {
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .additional-installation-item__main span,
+:host-context(.app-dark) .additional-installation-item__sim {
+    color: rgba(255, 255, 255, 0.62);
+}
+
+:host-context(.app-dark) ::ng-deep .p-dialog.activation-details-dialog,
+:host-context(.app-dark) ::ng-deep .activation-details-dialog .p-dialog {
+    background: #202023;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) ::ng-deep .activation-details-dialog .p-dialog-header,
+:host-context(.app-dark) ::ng-deep .activation-details-dialog .p-dialog-content {
+    background: #202023;
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) ::ng-deep .activation-details-dialog .p-dialog-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .activation-section--modal {
+    background: #202023;
+}
+
+:host-context(.app-dark) .activation-run-summary {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.62);
+}
+
+:host-context(.app-dark) .activation-run-summary b {
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .activation-empty {
+    color: rgba(255, 255, 255, 0.62);
+}

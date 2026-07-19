@@ -1,4 +1,13 @@
+import * as maplibregl from 'maplibre-gl';
+
+export type MapProvider = 'google' | 'mapbox' | 'osm';
+
 export class MapUtils {
+  private static isOnlineLikeStatus(status?: string | null): boolean {
+    const normalized = (status || '').toLowerCase();
+    return normalized === 'online' || normalized === 'señal débil' || normalized === 'senal debil';
+  }
+
   /**
    * Read the user's map marker type preference from localStorage.
    * Returns 'vehicle' for car sprite or 'default' for the classic favicon marker.
@@ -20,15 +29,22 @@ export class MapUtils {
     return 'default';
   }
 
-  static getApiConfig(systems: any[], provider: 'google' | 'mapbox') {
+  static getApiConfig(systems: any[], provider: MapProvider) {
+    if (provider === 'osm') {
+      return { key: 'osm', url: 'osm' };
+    }
     if (!systems?.length) return null;
     const mapConfig = provider === 'google' ? systems[0].map_api1 : systems[0].map_api2;
     return mapConfig?.key && mapConfig?.url ? mapConfig : null;
   }
 
-  static loadMapScript(provider: 'google' | 'mapbox', key: string, url: string): Promise<void> {
+  static loadMapScript(provider: MapProvider, key: string, url: string): Promise<void> {
     return new Promise((resolve, reject) => {
       // console.log(`Loading ${provider} script...`);
+
+      if (provider === 'osm') {
+        return resolve();
+      }
 
       if (provider === 'google' && typeof google !== 'undefined' && google.maps) {
         // console.log('Google Maps already loaded');
@@ -86,7 +102,7 @@ export class MapUtils {
     return googleUrl.toString();
   }
 
-  static cleanupPreviousScripts(currentProvider: 'google' | 'mapbox'): void {
+  static cleanupPreviousScripts(currentProvider: MapProvider): void {
     // Cuando cambiamos a Google Maps, no necesitamos limpiar Mapbox porque puede coexistir
     // Cuando cambiamos a Mapbox, no necesitamos limpiar Google Maps porque puede coexistir
     // Solo reiniciamos las variables globales si es necesario
@@ -115,13 +131,26 @@ export class MapUtils {
     return { centerLat: defaultLat, centerLng: defaultLng, zoomLevel: defaultZoom };
   }
 
-  static createMap(provider: 'google' | 'mapbox', element: HTMLElement, key: string, theme: 'dark' | 'light', lat: number, lng: number, zoom: number): any {
+  static createMap(provider: MapProvider, element: HTMLElement, key: string, theme: 'dark' | 'light', lat: number, lng: number, zoom: number): any {
     if (provider === 'google') {
       return new google.maps.Map(element, {
         center: { lat, lng },
         zoom,
         styles: theme === 'dark' ? MapUtils.googleDarkTheme() : []
       });
+    }
+
+    if (provider === 'osm') {
+      const map = new maplibregl.Map({
+        container: element,
+        style: MapUtils.openStreetMapRasterStyle(),
+        center: [lng, lat],
+        zoom,
+        attributionControl: false
+      });
+      map.addControl(new maplibregl.NavigationControl(), 'top-right');
+      map.addControl(new maplibregl.FullscreenControl(), 'top-right');
+      return map;
     }
 
     const mapboxgl = (window as any).mapboxgl;
@@ -134,7 +163,38 @@ export class MapUtils {
     });
   }
 
-  static recenterMap(map: any, provider: 'google' | 'mapbox', lat: number, lng: number) {
+  static getMapLibrary(provider: MapProvider): any {
+    return provider === 'osm' ? maplibregl : (window as any).mapboxgl;
+  }
+
+  static openStreetMapRasterStyle(): any {
+    return {
+      version: 8,
+      sources: {
+        osm: {
+          type: 'raster',
+          tiles: [
+            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+          ],
+          tileSize: 256,
+          attribution: '© OpenStreetMap Contributors'
+        }
+      },
+      layers: [
+        {
+          id: 'osm-layer',
+          type: 'raster',
+          source: 'osm',
+          minzoom: 0,
+          maxzoom: 22
+        }
+      ]
+    };
+  }
+
+  static recenterMap(map: any, provider: MapProvider, lat: number, lng: number) {
     // console.log('🎯 MapUtils.recenterMap EJECUTADO:', {
     //   provider,
     //   lat: lat.toFixed(6),
@@ -155,7 +215,7 @@ export class MapUtils {
     // console.log('✅ MapUtils.recenterMap COMPLETADO');
   }
 
-  static recenterMapIfOutOfView(map: any, provider: 'google' | 'mapbox', lat: number, lng: number) {
+  static recenterMapIfOutOfView(map: any, provider: MapProvider, lat: number, lng: number) {
     if (!map) return;
 
     if (provider === 'google') {
@@ -185,7 +245,7 @@ export class MapUtils {
 
   static addMarker(
     map: any,
-    provider: 'google' | 'mapbox',
+    provider: MapProvider,
     lat: number,
     lng: number,
     title: string = '',
@@ -196,7 +256,8 @@ export class MapUtils {
   ): any {
 
     const normalizedInfo = info?.toLowerCase();
-    const isOffline = normalizedInfo !== 'online' && normalizedInfo !== 'localizado';
+    const isOnlineLike = MapUtils.isOnlineLikeStatus(normalizedInfo);
+    const isOffline = !isOnlineLike && normalizedInfo !== 'localizado';
 
     if (provider === 'google') {
       // Build fallback favicon URL based on window location and offline status
@@ -226,14 +287,14 @@ export class MapUtils {
         const infoWindow = new google.maps.InfoWindow({
           content: `
             <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
-              <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${normalizedInfo === 'online' ? '#16a34a' : (normalizedInfo === 'localizado' ? '#14b8a6' : '#111')};">${title || 'Target'}</div>
+              <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnlineLike ? '#16a34a' : (normalizedInfo === 'localizado' ? '#14b8a6' : '#111')};">${title || 'Target'}</div>
               <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
               <div>Estado: ${info || 'Desconocido'}</div>
             </div>
           `
         });
 
-        let isOpen = openByDefault && (normalizedInfo === 'online' || normalizedInfo === 'localizado');
+        let isOpen = openByDefault && (isOnlineLike || normalizedInfo === 'localizado');
 
         // Abrir por defecto si está online o localizado
         if (isOpen) {
@@ -276,9 +337,9 @@ export class MapUtils {
 
       return marker;
     } else {
-      const mapboxgl = (window as any).mapboxgl;
+      const mapboxgl = MapUtils.getMapLibrary(provider);
 
-      const markerType = MapUtils.getMapMarkerType();
+      const markerType = provider === 'osm' ? 'default' : MapUtils.getMapMarkerType();
       let markerElement: HTMLElement;
 
       if (markerType === 'vehicle') {
@@ -289,8 +350,24 @@ export class MapUtils {
         const img = document.createElement('img');
         img.src = `${window.location.origin}/logo/favicon.png`;
         img.style.cssText = `width: 32px; height: 32px; cursor: pointer; filter: ${isOffline ? 'grayscale(100%) brightness(0.75)' : 'none'};`;
-        markerElement = img;
+
+        if (provider === 'osm') {
+          const wrapper = document.createElement('div');
+          wrapper.style.cssText = 'width: 32px; height: 32px; cursor: pointer; position: absolute; top: 0; left: 0; overflow: visible;';
+          wrapper.appendChild(img);
+
+          const label = document.createElement('div');
+          label.className = 'gps-map-marker-label';
+          label.textContent = title || 'Target';
+          wrapper.appendChild(label);
+          markerElement = wrapper;
+        } else {
+          markerElement = img;
+        }
       }
+      markerElement.classList.add('gps-map-marker');
+      markerElement.style.zIndex = '20';
+      markerElement.style.pointerEvents = 'auto';
 
       const marker = new mapboxgl.Marker({ element: markerElement, anchor: 'center' })
         .setLngLat([lng, lat])
@@ -300,7 +377,7 @@ export class MapUtils {
         const popup = new mapboxgl.Popup({ offset: 25, closeButton: true })
           .setHTML(`
             <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
-              <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${normalizedInfo === 'online' ? '#16a34a' : (normalizedInfo === 'localizado' ? '#14b8a6' : '#111')};">${title || 'Target'}</div>
+              <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnlineLike ? '#16a34a' : (normalizedInfo === 'localizado' ? '#14b8a6' : '#111')};">${title || 'Target'}</div>
               <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
               <div>Estado: ${info || 'Desconocido'}</div>
             </div>
@@ -309,7 +386,7 @@ export class MapUtils {
         marker.setPopup(popup);
 
         // Abrir por defecto si está online o localizado y se permite
-        if (openByDefault && (normalizedInfo === 'online' || normalizedInfo === 'localizado')) {
+        if (openByDefault && (isOnlineLike || normalizedInfo === 'localizado')) {
           marker.togglePopup();
         }
 
@@ -322,7 +399,7 @@ export class MapUtils {
     }
   }
 
-  static removeMarker(marker: any, provider: 'google' | 'mapbox'): void {
+  static removeMarker(marker: any, provider: MapProvider): void {
     if (!marker) return;
 
 
@@ -333,7 +410,7 @@ export class MapUtils {
     }
   }
 
-  static removeAllMarkers(markers: any[], provider: 'google' | 'mapbox'): void {
+  static removeAllMarkers(markers: any[], provider: MapProvider): void {
 
     markers.forEach(marker => {
       MapUtils.removeMarker(marker, provider);
@@ -435,7 +512,9 @@ export class MapUtils {
       background-position: ${bgPosX} ${bgPosY};
       background-repeat: no-repeat;
       cursor: pointer;
-      position: relative;
+      position: absolute;
+      top: 0;
+      left: 0;
       filter: ${isOffline ? 'grayscale(100%) brightness(0.75) drop-shadow(0 2px 6px rgba(0,0,0,0.45))' : 'drop-shadow(0 2px 6px rgba(0,0,0,0.45))'};
       transition: background-position 0.3s ease;
     `;

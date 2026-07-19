@@ -75,4 +75,29 @@ button[type="submit"] .pi {
 .button--primary-flat:hover {
     background-color: var(--managementColorIconUser);
     transform: translateY(-1px);
-} 
+}
+
+.activation-details-btn {
+    min-height: 38px;
+    border: 1px solid rgba(148, 163, 184, 0.34);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.84);
+    color: var(--managementColorTextUser);
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.activation-details-btn:hover {
+    background: rgba(255, 255, 255, 0.96);
+    border-color: var(--globalColorAccent);
+    color: var(--managementColorTitleUser);
+    transform: translateY(-1px);
+}

@@ -102,6 +102,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     showColorOptions: boolean = true;
     isLoading: boolean = false;
     isValidatingSim: boolean = false;
+    isValidatingAdditionalGps: boolean = false;
+    linkedAdditionalGps: TargetDevice | null = null;
+    additionalGpsValidationState: 'idle' | 'valid' | 'invalid' = 'idle';
+    additionalGpsValidationMessage: string = '';
 
     // Flag para determinar si estamos editando un target existente
     get isEditMode(): boolean {
@@ -160,6 +164,18 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     hasLoadedSmsMessages: boolean = false;
     isSendingSms: boolean = false;
     isAutoSubmitting: boolean = false;
+    showSmsSection: boolean = false;
+    isScanningRegistration: boolean = false;
+    isFinalizingRegistration: boolean = false;
+    displayRegistrationDialog: boolean = false;
+    registrationScanImageUrl: string | null = null;
+    registrationScanResult: Record<string, any> | null = null;
+    registrationScanError: string | null = null;
+    registrationScanVoiceMessage: string | null = null;
+    registrationScanVoiceAudioUrl: string | null = null;
+    private registrationScanImageIsObjectUrl: boolean = false;
+    private registrationScanFile: File | null = null;
+    private registrationScanAudio: HTMLAudioElement | null = null;
 
     // Protocolos y comandos dinámicos
     loadedProtocols: Protocol[] = [];
@@ -224,6 +240,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     @ViewChild('smsCommands') smsCommands!: ElementRef;
     @ViewChild('smsChat') smsChat!: ElementRef;
     @ViewChild('chatMessages') chatMessages!: ElementRef;
+    @ViewChild('vehicleRegistrationFileInput') vehicleRegistrationFileInput?: ElementRef<HTMLInputElement>;
 
     // Propiedad para el tipo de afiliación del usuario actual
     currentUserAffiliationTypeId: string = '';
@@ -408,6 +425,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     activationCompleted: boolean = false;
     activationStep: number = 0;
     activationError: string = '';
+    displayActivationDetailsDialog: boolean = false;
     activationLogs: { message: string, type: 'info' | 'success' | 'error' | 'warn', time: Date }[] = [];
     activationSteps: { label: string, icon: string, description: string, status: 'pending' | 'running' | 'success' | 'error' }[] = [
         { label: 'Validar SIM', icon: 'pi-id-card', description: 'Verificar estado de la SIM card', status: 'pending' },
@@ -424,6 +442,27 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return lastStep?.status === 'error' ? 'Con errores' : 'Exitosa';
     }
 
+    private normalizeYesNoSelectValue(value: any): 'yes' | 'no' | '' {
+        if (value === null || value === undefined) return '';
+        if (value === true || value === 1) return 'yes';
+        if (value === false || value === 0) return 'no';
+
+        const normalized = String(value).trim().toLowerCase();
+        if (!normalized || normalized === 'null' || normalized === 'undefined') return '';
+        if (['yes', 'si', 'sí', 'true', '1', 'on'].includes(normalized)) return 'yes';
+        if (['no', 'false', '0', 'off'].includes(normalized)) return 'no';
+        return '';
+    }
+
+    openActivationDetails(): void {
+        this.displayActivationDetailsDialog = true;
+        setTimeout(() => {
+            if (this.activationLogsContainer?.nativeElement) {
+                this.activationLogsContainer.nativeElement.scrollTop = this.activationLogsContainer.nativeElement.scrollHeight;
+            }
+        });
+    }
+
     startActivation(): void {
         this.activationStarted = true;
         this.activationStep = 0;
@@ -431,6 +470,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.activationLogs = [];
         this.activationCompleted = false;
         this.activationSteps.forEach(s => s.status = 'pending');
+        this.openActivationDetails();
         // Immediately notify parent so the list shows a spinner
         this.activationEvent.emit({ targetId: this.target._id, type: 'started' });
         this.runActivation();
@@ -514,6 +554,296 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         } catch (error) {
             this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo reiniciar la activación' });
         }
+    }
+
+    openVehicleVerificationDialog(): void {
+        if (!this.isEditMode || !this.target?._id) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Guarde el objetivo',
+                detail: 'Debe guardar el vehículo antes de verificarlo.'
+            });
+            return;
+        }
+
+        this.resetVehicleRegistrationDialogState();
+        this.loadSavedVehicleVerification();
+        this.displayRegistrationDialog = true;
+    }
+
+    openVehicleVerificationPicker(): void {
+        if (!this.isEditMode || !this.target?._id) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Guarde el objetivo',
+                detail: 'Debe guardar el vehículo antes de verificarlo.'
+            });
+            return;
+        }
+
+        this.vehicleRegistrationFileInput?.nativeElement.click();
+    }
+
+    async onVehicleRegistrationSelected(event: Event): Promise<void> {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        input.value = '';
+
+        if (!file) return;
+        await this.scanVehicleRegistrationFile(file);
+    }
+
+    private async scanVehicleRegistrationFile(file: File): Promise<void> {
+        if (!this.target?._id) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se encontró el objetivo para verificar.'
+            });
+            return;
+        }
+
+        this.clearVehicleRegistrationAudio();
+        if (this.registrationScanImageUrl && this.registrationScanImageIsObjectUrl) {
+            URL.revokeObjectURL(this.registrationScanImageUrl);
+        }
+
+        this.registrationScanFile = file;
+        this.registrationScanImageUrl = URL.createObjectURL(file);
+        this.registrationScanImageIsObjectUrl = true;
+        this.registrationScanResult = null;
+        this.registrationScanError = null;
+        this.registrationScanVoiceMessage = null;
+        this.displayRegistrationDialog = true;
+        this.isScanningRegistration = true;
+
+        try {
+            const response = await this.targetsService.scanVehicleRegistration(this.target._id, file);
+            this.registrationScanResult = response?.data || {};
+
+            if (this.isRegistrationScanVerified()) {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Matrícula digitalizada',
+                    detail: 'Verifique que los datos estén correctos antes de finalizar.'
+                });
+                return;
+            }
+
+            const voiceMessage =
+                this.registrationScanResult?.['mensaje_usuario'] ||
+                'La imagen subida no parece ser una matrícula. Debe subir una foto clara de la matrícula o documento oficial del vehículo.';
+            this.registrationScanVoiceMessage = voiceMessage;
+
+            if (response?.voiceAudio?.base64) {
+                this.registrationScanVoiceAudioUrl = this.createRegistrationAudioUrl(response.voiceAudio);
+                this.playVehicleRegistrationAudio();
+            }
+        } catch (error: any) {
+            console.error('Error scanning vehicle registration:', error);
+            this.registrationScanError = error?.error?.message || error?.message || 'No se pudo escanear la matrícula';
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: this.registrationScanError || 'No se pudo escanear la matrícula'
+            });
+        } finally {
+            this.isScanningRegistration = false;
+        }
+    }
+
+    async finalizeVehicleVerification(): Promise<void> {
+        if (!this.target?._id || !this.registrationScanFile || !this.registrationScanResult) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Faltan datos',
+                detail: 'Debe subir y digitalizar una matrícula válida.'
+            });
+            return;
+        }
+
+        try {
+            this.isFinalizingRegistration = true;
+            const response = await this.targetsService.finalizeVehicleRegistration(
+                this.target._id,
+                this.registrationScanFile,
+                this.registrationScanResult
+            );
+            const updatedDevice = response?.device || response?.data;
+            const updatedDeviceAny = updatedDevice as any;
+            const matriculaImg = response?.matricula_img || updatedDeviceAny?.['matricula_img'];
+
+            if (updatedDevice) {
+                this.target = { ...this.target, ...(updatedDevice as any) };
+            }
+            this.target['verificado'] = true;
+            if (matriculaImg) {
+                this.target['matricula_img'] = matriculaImg;
+            }
+            await this.syncVehicleCatalogDisplayAfterVerification();
+
+            this.targetUpdatedWithoutClose.emit(this.target);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Vehículo verificado',
+                detail: 'Los datos de la matrícula fueron guardados correctamente.'
+            });
+            this.closeVehicleRegistrationDialog();
+        } catch (error: any) {
+            console.error('Error finalizing vehicle verification:', error);
+            this.registrationScanError = error?.error?.message || error?.message || 'No se pudo finalizar la verificación';
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: this.registrationScanError || 'No se pudo finalizar la verificación'
+            });
+        } finally {
+            this.isFinalizingRegistration = false;
+        }
+    }
+
+    closeVehicleRegistrationDialog(): void {
+        this.displayRegistrationDialog = false;
+        this.stopVehicleRegistrationAudio();
+    }
+
+    replayVehicleRegistrationAudio(): void {
+        this.playVehicleRegistrationAudio();
+    }
+
+    isRegistrationScanVerified(): boolean {
+        return this.registrationScanResult?.['es_matricula'] === true;
+    }
+
+    canFinalizeVehicleVerification(): boolean {
+        return Boolean(this.registrationScanFile && this.isRegistrationScanVerified());
+    }
+
+    hasVehicleVerification(): boolean {
+        return Boolean(this.target?.['verificado'] || this.target?.['matricula_img']);
+    }
+
+    private loadSavedVehicleVerification(): void {
+        const matriculaImg = this.target?.['matricula_img'];
+        if (!matriculaImg) return;
+
+        const savedImageUrl = typeof matriculaImg === 'string'
+            ? matriculaImg
+            : (matriculaImg.url || matriculaImg.location_cdn || matriculaImg.location || null);
+        const savedMetadata = typeof matriculaImg === 'object' && matriculaImg.metadata
+            ? matriculaImg.metadata
+            : null;
+
+        this.registrationScanFile = null;
+        this.registrationScanImageUrl = savedImageUrl;
+        this.registrationScanImageIsObjectUrl = false;
+        this.registrationScanResult = savedMetadata
+            ? { es_matricula: true, ...savedMetadata }
+            : { es_matricula: true };
+        this.registrationScanError = null;
+        this.registrationScanVoiceMessage = null;
+    }
+
+    private resetVehicleRegistrationDialogState(): void {
+        this.clearVehicleRegistrationAudio();
+        if (this.registrationScanImageUrl && this.registrationScanImageIsObjectUrl) {
+            URL.revokeObjectURL(this.registrationScanImageUrl);
+        }
+
+        this.registrationScanFile = null;
+        this.registrationScanImageUrl = null;
+        this.registrationScanImageIsObjectUrl = false;
+        this.registrationScanResult = null;
+        this.registrationScanError = null;
+        this.registrationScanVoiceMessage = null;
+        this.isScanningRegistration = false;
+        this.isFinalizingRegistration = false;
+    }
+
+    getRegistrationScanEntries(): { label: string; value: string }[] {
+        if (!this.registrationScanResult) return [];
+
+        const labels: Record<string, string> = {
+            descripcion_imagen: 'Lo que subiste',
+            placa: 'Placa',
+            chasis: 'Chasis',
+            marca: 'Marca',
+            modelo: 'Modelo',
+            ano: 'Año',
+            color: 'Color',
+            tipo: 'Tipo',
+            propietario: 'Propietario',
+            cedula_rnc: 'Cédula/RNC',
+            registro: 'Registro',
+            fecha_emision: 'Fecha emisión',
+            fecha_expiracion: 'Fecha expiración',
+            confidence: 'Confianza'
+        };
+        const entries: { label: string; value: string }[] = [];
+
+        Object.entries(this.registrationScanResult).forEach(([key, value]) => {
+            if (
+                key === 'otros_datos' ||
+                key === 'es_matricula' ||
+                key === 'mensaje_usuario' ||
+                value === null ||
+                value === undefined ||
+                value === ''
+            ) {
+                return;
+            }
+
+            entries.push({
+                label: labels[key] || key,
+                value: typeof value === 'number' && key === 'confidence'
+                    ? `${Math.round(value * 100)}%`
+                    : String(value)
+            });
+        });
+
+        const extraData = this.registrationScanResult['otros_datos'];
+        if (extraData && typeof extraData === 'object') {
+            Object.entries(extraData).forEach(([key, value]) => {
+                if (value === null || value === undefined || value === '') return;
+                entries.push({ label: key, value: String(value) });
+            });
+        }
+
+        return entries;
+    }
+
+    private playVehicleRegistrationAudio(): void {
+        if (!this.registrationScanVoiceAudioUrl) return;
+        this.stopVehicleRegistrationAudio();
+        this.registrationScanAudio = new Audio(this.registrationScanVoiceAudioUrl);
+        this.registrationScanAudio.play().catch(error => {
+            console.warn('No se pudo reproducir la voz de OpenAI automáticamente:', error);
+        });
+    }
+
+    private stopVehicleRegistrationAudio(): void {
+        if (!this.registrationScanAudio) return;
+        this.registrationScanAudio.pause();
+        this.registrationScanAudio.currentTime = 0;
+        this.registrationScanAudio = null;
+    }
+
+    private clearVehicleRegistrationAudio(): void {
+        this.stopVehicleRegistrationAudio();
+        if (this.registrationScanVoiceAudioUrl) {
+            URL.revokeObjectURL(this.registrationScanVoiceAudioUrl);
+            this.registrationScanVoiceAudioUrl = null;
+        }
+    }
+
+    private createRegistrationAudioUrl(voiceAudio: { mimeType: string; base64: string }): string {
+        const binary = atob(voiceAudio.base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index += 1) {
+            bytes[index] = binary.charCodeAt(index);
+        }
+        const blob = new Blob([bytes], { type: voiceAudio.mimeType || 'audio/mpeg' });
+        return URL.createObjectURL(blob);
     }
 
     private addLog(message: string, type: 'info' | 'success' | 'error' | 'warn' = 'info'): void {
@@ -725,6 +1055,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             target_color: '',
             target_year: '',
             installation_location: '',
+            gps_adicional: '',
             engine_shutdown: '',
             ignition_sensor: '',
             required_check: '',
@@ -753,8 +1084,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.brandsLoadedResolve = resolve;
         });
         this.loadInitialData();
-        this.target = this.getEmptyTarget();
-        this.activeTabIndex = 0;
+        if (!this.targetInput) {
+            this.target = this.getEmptyTarget();
+            this.activeTabIndex = 0;
+        }
 
         // Asegurar que mechanic_id esté inicializado como string vacío
         if (this.target.mechanic_id === undefined || this.target.mechanic_id === null) {
@@ -897,15 +1230,34 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     private async setupEditTarget(target: TargetDevice) {
+        // Si el target tiene originalTarget, usar esos datos en su lugar
+        let targetData = target;
+        if ((target as any)['originalTarget']) {
+            targetData = (target as any)['originalTarget'];
+        }
+
+        if (targetData?._id) {
+            this.target = {
+                ...this.getEmptyTarget(),
+                ...JSON.parse(JSON.stringify(targetData))
+            };
+            this.cdr.detectChanges();
+        }
 
         await this.brandsLoaded;
 
         // DEBUG: Ver qué datos llegan del backend para edición
 
-        // Si el target tiene originalTarget, usar esos datos en su lugar
-        let targetData = target;
-        if ((target as any)['originalTarget']) {
-            targetData = (target as any)['originalTarget'];
+        if (targetData?._id) {
+            try {
+                const targetDetails = await this.targetsService.getTargetById(targetData._id);
+                targetData = {
+                    ...targetData,
+                    ...(targetDetails as TargetDevice),
+                };
+            } catch (error) {
+                console.error('Error cargando detalle completo del objetivo:', error);
+            }
         }
 
         console.log('🔍 DEBUG setupEditTarget: Data received for edition:', targetData);
@@ -931,6 +1283,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.target.target_brand_id = this.target.target_brand_id || '';
         this.target.target_color = this.target.target_color || '';
         this.target.target_year = this.target.target_year || '';
+        this.target.gps_adicional = this.target.gps_adicional || '';
+        this.resetAdditionalGpsValidation();
 
         // Store original vehicle data to detect changes
         this.originalVehicleData = {
@@ -970,20 +1324,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.target.sim_company = '';
         }
 
-        // Asegurar que engine_shutdown tenga un valor válido, preservando el existente
-        if (this.target.engine_shutdown === null || this.target.engine_shutdown === undefined) {
-            this.target.engine_shutdown = '';
-        }
+        this.target.engine_shutdown = this.normalizeYesNoSelectValue(this.target.engine_shutdown);
         // console.log('🔍 DEBUG setupEditTarget: engine_shutdown cargado:', this.target.engine_shutdown);
 
         if (!this.target.installation_location || this.target.installation_location === '') {
             this.target.installation_location = '';
         }
 
-        // Asegurar que ignition_sensor tenga un valor válido, preservando el existente
-        if (this.target.ignition_sensor === null || this.target.ignition_sensor === undefined) {
-            this.target.ignition_sensor = '';
-        }
+        this.target.ignition_sensor = this.normalizeYesNoSelectValue(this.target.ignition_sensor);
 
         // Asegurar que mechanic_id tenga un valor válido, preservando el existente
         if (this.target.mechanic_id === null || this.target.mechanic_id === undefined) {
@@ -1240,6 +1588,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         if (this.target.sim_card_number) {
             this.checkSimUsage();
         }
+
+        if (this.target.gps_adicional) {
+            this.validateAdditionalGpsLink(false);
+        }
     }
 
     checkSimUsage(): void {
@@ -1290,6 +1642,83 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }).finally(() => {
             this.isValidatingSim = false;
         });
+    }
+
+    async validateAdditionalGpsLink(showToast: boolean = true): Promise<boolean> {
+        const linkedImei = (this.target.gps_adicional || '').trim();
+        this.target.gps_adicional = linkedImei;
+
+        if (!linkedImei) {
+            this.resetAdditionalGpsValidation();
+            return true;
+        }
+
+        if (this.normalizeImeiForComparison(linkedImei) === this.normalizeImeiForComparison(this.target.device_imei)) {
+            this.linkedAdditionalGps = null;
+            this.additionalGpsValidationState = 'invalid';
+            this.additionalGpsValidationMessage = 'No puede vincularse al mismo GPS.';
+            if (showToast) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Vinculación inválida',
+                    detail: this.additionalGpsValidationMessage
+                });
+            }
+            return false;
+        }
+
+        this.isValidatingAdditionalGps = true;
+        try {
+            const linkedTarget = await this.targetsService.getTargetByImei(linkedImei);
+            if (typeof linkedTarget.gps_adicional === 'string' && linkedTarget.gps_adicional.trim()) {
+                this.linkedAdditionalGps = null;
+                this.additionalGpsValidationState = 'invalid';
+                this.additionalGpsValidationMessage = 'Ese GPS ya está vinculado a otro GPS y no puede recibir instalaciones adicionales.';
+                if (showToast) {
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'GPS no disponible',
+                        detail: this.additionalGpsValidationMessage
+                    });
+                }
+                return false;
+            }
+            this.linkedAdditionalGps = linkedTarget as TargetDevice;
+            this.target.gps_adicional = linkedTarget.device_imei || linkedImei;
+            this.additionalGpsValidationState = 'valid';
+            this.additionalGpsValidationMessage = `Vinculado a ${linkedTarget.name || linkedTarget.device_imei}`;
+            return true;
+        } catch (error) {
+            this.linkedAdditionalGps = null;
+            this.additionalGpsValidationState = 'invalid';
+            this.additionalGpsValidationMessage = 'No existe un GPS con ese IMEI.';
+            if (showToast) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'GPS no encontrado',
+                    detail: this.additionalGpsValidationMessage
+                });
+            }
+            return false;
+        } finally {
+            this.isValidatingAdditionalGps = false;
+        }
+    }
+
+    getAdditionalInstallations(): TargetDevice[] {
+        const installations = this.target?.instalaciones_adicionales;
+        return Array.isArray(installations) ? installations : [];
+    }
+
+    private resetAdditionalGpsValidation(): void {
+        this.linkedAdditionalGps = null;
+        this.additionalGpsValidationState = 'idle';
+        this.additionalGpsValidationMessage = '';
+        this.isValidatingAdditionalGps = false;
+    }
+
+    private normalizeImeiForComparison(value?: string | null): string {
+        return String(value || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     }
 
     /**
@@ -1426,6 +1855,33 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
     }
 
+    private async syncVehicleCatalogDisplayAfterVerification(): Promise<void> {
+        if (this.target.target_brand_id) {
+            const selectedModelId = this.target.target_model_id;
+            try {
+                const models = await this.vehicleBrandsService.getAllModelsByBrand(this.target.target_brand_id);
+                this.availableModels = Array.isArray(models)
+                    ? models.map((model: any) => ({
+                        label: model.nombre,
+                        value: model._id
+                    })).sort((a: any, b: any) => a.label.localeCompare(b.label))
+                    : [];
+                if (selectedModelId) {
+                    this.target.target_model_id = selectedModelId;
+                }
+            } catch (error) {
+                console.error('Error cargando modelos luego de verificar matrícula:', error);
+            }
+        }
+
+        if (this.target.target_color) {
+            const colorObj = this.availableColors.find(c =>
+                c.value?.toLowerCase?.() === String(this.target.target_color).toLowerCase()
+            );
+            this.displayColorName = colorObj ? colorObj.label : String(this.target.target_color);
+        }
+    }
+
     async onSubmit() {
         // Validar privilegios antes de proceder
         if (this.target._id && !this.canUpdateDevices()) {
@@ -1458,6 +1914,15 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         // Validar los datos antes de enviar
         if (!this.validateForm()) {
+            return;
+        }
+
+        if (!(await this.validateAdditionalGpsLink(false))) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'GPS vinculado inválido',
+                detail: this.additionalGpsValidationMessage || 'Debe colocar un IMEI válido en Vinculado a.'
+            });
             return;
         }
 
@@ -1610,15 +2075,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // El backend espera estos campos tal como están
 
         // NO mapear engine_shutdown - el backend ya lo espera con ese nombre
-        // Asegurar que engine_shutdown se incluya explícitamente (incluso si está vacío)
-        if (targetData.engine_shutdown === undefined || targetData.engine_shutdown === null) {
-            targetData.engine_shutdown = '';
-        }
-
-        // Asegurar que ignition_sensor se incluya explícitamente (incluso si está vacío)
-        if (targetData.ignition_sensor === undefined || targetData.ignition_sensor === null) {
-            targetData.ignition_sensor = '';
-        }
+        targetData.engine_shutdown = this.normalizeYesNoSelectValue(targetData.engine_shutdown);
+        targetData.ignition_sensor = this.normalizeYesNoSelectValue(targetData.ignition_sensor);
+        targetData.gps_adicional = typeof targetData.gps_adicional === 'string'
+            ? targetData.gps_adicional.trim()
+            : '';
 
         // sim_company y sim_card_number ya tienen los nombres correctos, no necesitan mapeo
 
@@ -1690,6 +2151,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         // Eliminar propiedades que no deben enviarse al backend
         delete targetData.selectedPrice;
+        delete targetData.instalaciones_adicionales;
 
 
 
@@ -1751,7 +2213,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 return false;
             }
         } else if (this.activeTabIndex === 1) { // Tab de instalación
-            if (!this.target.device_imei || !this.target.sim_card_number) {
+            if (!this.target.device_imei || (this.requiresSimCard() && !this.target.sim_card_number)) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate('management.targetForm.validationError'),
@@ -2298,9 +2760,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             'global-m': 'altanwifi',
             'altan': 'altanwifi',
             'claro': 'altanwifi',
-            'nacionales': 'twilio',
-            'tecnomine': 'twilio',
-            'internacionales': 'twilio'
+            'nacionales': 'broadcaster',
+            'tecnomine': 'broadcaster',
+            'internacionales': 'broadcaster'
         };
         return companyMap[company] || null;
     }
@@ -2467,6 +2929,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     ngOnDestroy() {
         if (this.activationPollingInterval) {
             clearInterval(this.activationPollingInterval);
+        }
+        this.clearVehicleRegistrationAudio();
+        if (this.registrationScanImageUrl && this.registrationScanImageIsObjectUrl) {
+            URL.revokeObjectURL(this.registrationScanImageUrl);
+            this.registrationScanImageUrl = null;
+            this.registrationScanImageIsObjectUrl = false;
         }
         this.stopSmsPolling();
         this.destroy$.next();
@@ -2825,12 +3293,123 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     // Método para obtener el estado real del dispositivo desde traccarInfo
     isDeviceOnline(): boolean {
-        return this.target?.traccarInfo?.status === 'online';
+        return this.getNormalizedDeviceStatus() === 'online';
+    }
+
+    isDeviceOnlineLike(): boolean {
+        const status = this.getNormalizedDeviceStatus();
+        return status === 'online' || status === 'senal debil';
+    }
+
+    getGpsConnectionLabel(): string {
+        const status = this.getNormalizedDeviceStatus();
+        if (status === 'online') return 'En línea';
+        if (status === 'senal debil') return 'Señal débil';
+        if (status === 'offline') return 'Fuera de línea';
+        return this.target?.traccarInfo?.status || 'No disponible';
+    }
+
+    getGpsConnectionClass(): string {
+        const status = this.getNormalizedDeviceStatus();
+        if (status === 'online') return 'operational-status-value--ok';
+        if (status === 'senal debil') return 'operational-status-value--weak';
+        return 'operational-status-value--muted';
+    }
+
+    getGpsConnectionColor(): string {
+        const status = this.getNormalizedDeviceStatus();
+        if (status === 'online') return '#16a34a';
+        if (status === 'senal debil') return '#84cc16';
+        return 'var(--globalColorTextMuted)';
+    }
+
+    getGpsSpeedLabel(): string {
+        const traccarInfo = this.target?.traccarInfo as any;
+        const speed = traccarInfo?.geolocation?.speed ?? traccarInfo?.speed;
+        if (speed === undefined || speed === null || speed === '') return 'No disponible';
+
+        const numericSpeed = Number(speed);
+        if (Number.isNaN(numericSpeed)) return 'No disponible';
+
+        const speedInKmh = Math.max(0, Math.round(numericSpeed * 1.852));
+        return `${speedInKmh} km/h`;
+    }
+
+    getGpsLastUpdateLabel(): string {
+        const traccarInfo = this.target?.traccarInfo as any;
+        const lastUpdate = traccarInfo?.lastUpdate
+            || traccarInfo?.geolocation?.deviceTime
+            || traccarInfo?.geolocation?.fixTime;
+
+        if (!lastUpdate) return 'No disponible';
+
+        const date = new Date(lastUpdate);
+        if (Number.isNaN(date.getTime())) return 'No disponible';
+
+        return date.toLocaleString('es-DO', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    getSimStatusLabel(): string {
+        if (this.isValidatingSim) return 'Validando...';
+        if (!this.simUsage) return 'No disponible';
+
+        const status = String(this.simUsage.simStatus || '').toLowerCase();
+        if (status === 'active' || status === 'activated' || status === 'enabled') return 'Activa';
+        if (!status) return 'No disponible';
+        return 'Inactiva';
+    }
+
+    getSimServiceLabel(service: 'dataService' | 'smsService'): string {
+        if (this.isValidatingSim) return 'Validando...';
+        if (!this.simUsage) return 'No disponible';
+
+        const status = String(this.simUsage[service] || '').toLowerCase();
+        if (status === 'enabled' || status === 'active' || status === 'activated') return 'Activo';
+        if (!status) return 'No disponible';
+        return 'Inactivo';
+    }
+
+    getSimStatusClass(service: 'simStatus' | 'dataService' | 'smsService'): string {
+        if (this.isValidatingSim || !this.simUsage) return 'operational-status-value--muted';
+
+        const status = String(this.simUsage[service] || '').toLowerCase();
+        const isOk = status === 'active' || status === 'activated' || status === 'enabled';
+        return isOk ? 'operational-status-value--ok' : 'operational-status-value--muted';
+    }
+
+    getSimStatusColor(service: 'simStatus' | 'dataService' | 'smsService'): string {
+        if (this.isValidatingSim || !this.simUsage) return 'var(--globalColorTextMuted)';
+
+        const status = String(this.simUsage[service] || '').toLowerCase();
+        const isOk = status === 'active' || status === 'activated' || status === 'enabled';
+        return isOk ? '#16a34a' : 'var(--globalColorTextMuted)';
+    }
+
+    getOperationalApnLabel(): string {
+        return this.inventoryApn || this.getAutoApnValue() || 'No disponible';
+    }
+
+    private getNormalizedDeviceStatus(): string {
+        return String(this.target?.traccarInfo?.status || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
     }
 
     // Método para verificar si hay un tipo de SIM card seleccionado
     hasSimCardTypeSelected(): boolean {
         return !!(this.target?.sim_company && this.target.sim_company.trim() !== '');
+    }
+
+    requiresSimCard(): boolean {
+        return !this.selectedProtocol?.isAirtag;
     }
 
     // Método para obtener el nombre de visualización del tipo de SIM card

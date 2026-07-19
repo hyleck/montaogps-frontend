@@ -810,3 +810,208 @@
     border-color: #64748b !important;
     background: rgba(148, 163, 184, 0.05) !important;
 }
+
+/* Target form cloud refresh */
+:host {
+  display: block;
+}
+
+.cloud-bar {
+  padding: 0 0 0.85rem;
+  margin-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  color: var(--managementColorTextUser, var(--globalColorTextMuted));
+}
+
+.cloud-bar-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--managementColorTextUser, var(--globalColorTextMuted));
+}
+
+.cloud-bar-title i {
+  color: var(--globalColorAccent);
+}
+
+.cloud-header-drive {
+  gap: 0.75rem;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.cloud-search-group {
+  min-height: 42px;
+  padding: 0 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.cloud-search {
+  height: 40px;
+  padding: 0;
+  color: var(--managementColorTextUser, var(--globalColorTextLight));
+}
+
+.btn-nuevo {
+  min-height: 42px;
+  border-radius: 7px;
+  padding: 0 1rem;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.actions-menu {
+  top: calc(100% + 6px);
+  border-radius: 8px;
+  border-color: rgba(148, 163, 184, 0.24);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
+}
+
+.cloud-list-drive {
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 0;
+}
+
+.cloud-card-drive {
+  min-height: 150px;
+  padding: 0.85rem 0.75rem 0.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  transform: none;
+}
+
+.cloud-card-drive:hover {
+  border-color: var(--globalColorAccent);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
+}
+
+.cloud-card-icon {
+  width: 52px;
+  height: 52px;
+  margin-bottom: 0.55rem;
+}
+
+.cloud-card-icon i {
+  font-size: 2rem;
+  color: var(--globalColorAccent);
+}
+
+.cloud-img-preview-drive {
+  width: 52px;
+  height: 52px;
+  border-radius: 7px;
+}
+
+.cloud-card-title {
+  height: auto;
+  min-height: 24px;
+  line-height: 1.2;
+  font-size: 0.9rem;
+  color: var(--managementColorTextUser, var(--globalColorTextLight));
+}
+
+.cloud-card-title span {
+  width: 100%;
+}
+
+.cloud-card-meta {
+  margin-bottom: 0.45rem;
+  font-size: 0.78rem;
+}
+
+.cloud-card-actions {
+  gap: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.cloud-card-action {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 6px;
+  color: var(--globalColorAccent);
+}
+
+.cloud-card-action:hover {
+  background: rgba(189, 53, 53, 0.1);
+  color: var(--globalColorAccent);
+}
+
+.cloud-empty {
+  padding: 1.25rem;
+  border: 1px dashed rgba(148, 163, 184, 0.32);
+  border-radius: 8px;
+}
+
+:host-context(.app-dark) .cloud-bar {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .cloud-search-group,
+:host-context(.app-dark) .cloud-card-drive,
+:host-context(.app-dark) .upload-progress-container,
+:host-context(.app-dark) .actions-menu {
+  background: #252528;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+:host-context(.app-dark) .cloud-search {
+  color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .cloud-card-actions {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .cloud-card-title,
+:host-context(.app-dark) .cloud-bar-title {
+  color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .cloud-card-meta,
+:host-context(.app-dark) .search-icon,
+:host-context(.app-dark) .cloud-empty {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+:host-context(.app-dark) .actions-menu button,
+:host-context(.app-dark) .actions-menu .upload-btn {
+  color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .actions-menu button:hover,
+:host-context(.app-dark) .actions-menu .upload-btn:hover,
+:host-context(.app-dark) .cloud-card-action:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--globalColorAccent);
+}
+
+:host-context(.app-dark) .modal-content {
+  background: #252528;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .modal-content input,
+:host-context(.app-dark) .modal-content textarea {
+  background: #1d1d20;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--managementColorTextUser);
+}
+
+@media (max-width: 700px) {
+  .cloud-header-drive {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .btn-nuevo {
+    justify-content: center;
+    width: 100%;
+  }
+}

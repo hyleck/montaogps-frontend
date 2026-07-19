@@ -76,7 +76,10 @@
   },
   "MONITORING": {
     "SUMMARY_USERS": "Utilisateurs trouvés",
-    "SUMMARY_DEVICES": "Appareils trouvés"
+    "SUMMARY_DEVICES": "Appareils trouvés",
+    "FILTERS_WEAK_SIGNAL": "Signal faible",
+    "FILTERS_LOCALIZADO": "Localisé",
+    "FILTERS_NO_LOCALIZADO": "Non localisé"
   },
   "navbar": {
     "alerts": "Alertes",
@@ -1080,7 +1083,7 @@
       "dni": "Numéro d'identification",
       "birth": "Date de naissance",
       "address": "Adresse",
-      "phone": "Téléphone principal",
+      "phone": "Numéro WhatsApp",
       "phone2": "Téléphone secondaire",
       "settings": "Paramètres",
       "theme": "Thème",

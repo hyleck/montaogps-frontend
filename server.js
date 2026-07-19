@@ -21,13 +21,13 @@ app.use(express.static(staticDir, {
       return;
     }
 
-    if (hashedAssetRegex.test(resourcePath)) {
-      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    if (/\.(?:js|css|html|json|ico)$/i.test(resourcePath)) {
+      res.setHeader('Cache-Control', 'no-store');
       return;
     }
 
-    if (/\.(?:js|css|html|json|ico)$/i.test(resourcePath)) {
-      res.setHeader('Cache-Control', 'no-store');
+    if (hashedAssetRegex.test(resourcePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     }
   }
 }));

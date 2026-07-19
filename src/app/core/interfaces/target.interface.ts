@@ -19,6 +19,8 @@ export interface Target {
   contacts?: string[];
   year?: string | null;
   installation_location?: string | null;
+  gps_adicional?: string | null;
+  instalaciones_adicionales?: Target[];
   brand?: string | null;
   model?: string | null;
   color?: string;
@@ -65,6 +67,7 @@ export interface CreateTargetDto {
   contacts: string;
   target_year?: string | null;
   installation_location?: string | null;
+  gps_adicional?: string | null;
   target_brand_id?: string | null;
   target_model_id?: string | null;
   target_color?: string;
@@ -104,6 +107,7 @@ export interface UpdateTargetDto {
   contacts?: string;
   target_year?: string | null;
   installation_location?: string | null;
+  gps_adicional?: string | null;
   target_brand_id?: string | null;
   target_model_id?: string | null;
   target_color?: string;
@@ -166,6 +170,7 @@ export interface TargetDevice {
   target_color: string;
   target_year: string;
   installation_location: string;
+  gps_adicional?: string;
   engine_shutdown?: string;
   ignition_sensor?: string;
   required_check?: string;
@@ -214,6 +219,7 @@ export interface TargetDevice {
   };
   // Campos adicionales que pueden existir
   [key: string]: any;
+  instalaciones_adicionales?: TargetDevice[];
   connection_priority?: string;
   activation_status?: {
     completed: boolean;
@@ -259,7 +265,7 @@ export interface RouteHistoryResponse {
 export interface CreateProcessDto {
   type: number;
   registrationDate: string;
-  description: string;
+  description?: string;
   details?: string;
   target: object;
   user: object;
@@ -273,7 +279,7 @@ export interface ProcessResponse {
   _id: string;
   type: number;
   registrationDate: string;
-  description: string;
+  description?: string;
   details?: string;
   reference: string;
   target: {

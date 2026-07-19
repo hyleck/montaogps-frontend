@@ -170,3 +170,144 @@
     margin-right: 0 !important;
   }
 }
+
+/* Target form tab refresh */
+::ng-deep .target-form .p-tabview {
+  background: transparent;
+}
+
+::ng-deep .target-form .p-tabview .p-tabview-nav {
+  gap: 0.35rem;
+  padding: 0.55rem 0.75rem 0;
+  background: rgba(248, 250, 252, 0.76);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+  overflow-x: auto;
+}
+
+::ng-deep .target-form .p-tabview .p-tabview-nav li {
+  margin: 0;
+}
+
+::ng-deep .target-form .p-tabview .p-tabview-nav li .p-tabview-nav-link {
+  min-height: 42px;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: var(--managementColorTextUser);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+::ng-deep .target-form .p-tabview .p-tabview-nav li:not(.p-highlight) .p-tabview-nav-link:hover {
+  background: rgba(255, 255, 255, 0.66);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+::ng-deep .target-form .p-tabview .p-tabview-nav li.p-highlight .p-tabview-nav-link {
+  background: var(--managementColorBackgroundUser);
+  color: var(--managementColorTitleUser);
+  border-color: rgba(148, 163, 184, 0.24);
+  border-bottom-color: var(--managementColorBackgroundUser);
+  box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.7) inset;
+}
+
+::ng-deep .target-form .p-tabview-panels {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.tab-icon {
+  margin-right: 0.35rem;
+  font-size: 0.95rem;
+}
+
+.tab-text {
+  font-size: 0.9rem;
+  letter-spacing: 0;
+}
+
+:host ::ng-deep .p-dialog.activation-details-dialog,
+:host ::ng-deep .activation-details-dialog .p-dialog {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+:host ::ng-deep .activation-details-dialog .p-dialog-header {
+  padding: 1rem 1.15rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+:host ::ng-deep .activation-details-dialog .p-dialog-title {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.activation-section--modal {
+  padding: 1rem;
+  background: var(--managementColorBackgroundUser);
+}
+
+.activation-section--modal .activation-workflow {
+  align-items: start;
+}
+
+.activation-header-spinner {
+  margin-left: auto;
+}
+
+.activation-run-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  color: var(--globalColorTextMuted);
+  font-size: 0.78rem;
+}
+
+.activation-run-summary b {
+  color: var(--managementColorTextUser);
+}
+
+.activation-empty {
+  min-height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 1rem;
+  color: var(--globalColorTextMuted);
+  font-size: 0.82rem;
+}
+
+.activation-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.activation-detail-actions .activation-btn,
+.activation-detail-actions .cancel-activation-btn {
+  width: auto;
+  min-width: 150px;
+}
+
+@media (max-width: 768px) {
+  .activation-section--modal {
+    padding: 0.75rem;
+  }
+
+  .activation-detail-actions {
+    flex-direction: column;
+  }
+
+  .activation-detail-actions .activation-btn,
+  .activation-detail-actions .cancel-activation-btn {
+    width: 100%;
+  }
+}

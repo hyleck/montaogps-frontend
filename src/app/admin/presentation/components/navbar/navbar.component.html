@@ -3,14 +3,20 @@
     <div class="navbar">
 
         <div class="navbar__controls">
-            <div class="navbar__controls-base">
-                <button class="button button--flat-negative" [class.button--disabled]="!hasSelectedTargets"
-                    [disabled]="!hasSelectedTargets" (click)="hasSelectedTargets ? openAlertsModal() : null"
-                    [title]="hasSelectedTargets ? ('navbar.alertsTooltip' | translate) + ' (' + selectedTargetsCount + ')' : ('navbar.alertsDisabledTooltip' | translate)">
-                    <i class="pi pi-cog"></i>
-                    {{ 'navbar.alerts' | translate }}
-                    <span *ngIf="hasSelectedTargets" class="selection-badge">({{ selectedTargetsCount }})</span>
+            <div class="navbar__selection-actions" *ngIf="hasSelectedTargets">
+                <p-menu #selectedActionsMenu [model]="selectedActionItems" [popup]="true"
+                    styleClass="selected-actions-menu" />
+                <button class="button button--flat-negative navbar__selection-button"
+                    (click)="selectedActionsMenu.toggle($event)"
+                    [title]="'Acciones para ' + selectedTargetsCount + ' objetivos seleccionados'">
+                    <i class="pi pi-check-square"></i>
+                    Acciones
+                    <span class="selection-badge">({{ selectedTargetsCount }})</span>
+                    <i class="pi pi-chevron-down navbar__selection-chevron"></i>
                 </button>
+            </div>
+
+            <div class="navbar__controls-base">
                 <button class="button button--flat-negative" (click)="openNotificationsModal()"
                     title="{{ 'navbar.notifications' | translate }}">
                     <i class="pi pi-bell"></i>
@@ -22,20 +28,6 @@
                     {{ 'navbar.canceled' | translate }}
                     <span *ngIf="totalCanceledTargetsCount > 0" class="selection-badge">({{ totalCanceledTargetsCount
                         }})</span>
-                </button>
-                <button class="button button--flat-negative" [class.button--disabled]="!hasSelectedTargets"
-                    [disabled]="!hasSelectedTargets" (click)="hasSelectedTargets ? transferSelectedTargets() : null"
-                    [title]="hasSelectedTargets ? ('navbar.transferTooltip' | translate) + ' (' + selectedTargetsCount + ')' : ('navbar.transferDisabledTooltip' | translate)">
-                    <i class="pi pi-reply"></i>
-                    {{ 'navbar.transfer' | translate }}
-                    <span *ngIf="hasSelectedTargets" class="selection-badge">({{ selectedTargetsCount }})</span>
-                </button>
-                <button class="button button--flat-negative" [class.button--disabled]="!hasSelectedTargets"
-                    [disabled]="!hasSelectedTargets" (click)="hasSelectedTargets ? shareSelectedTargets() : null"
-                    [title]="hasSelectedTargets ? ('navbar.shareTooltip' | translate) + ' (' + selectedTargetsCount + ')' : ('navbar.shareDisabledTooltip' | translate)">
-                    <i class="pi pi-share-alt"></i>
-                    {{ 'navbar.share' | translate }}
-                    <span *ngIf="hasSelectedTargets" class="selection-badge">({{ selectedTargetsCount }})</span>
                 </button>
                 <button class="button button--flat-negative" (click)="openSupportModal()"
                     [title]="'navbar.support' | translate">
@@ -1138,6 +1130,127 @@
                     Transferir ({{ targetsToTransfer.length }})
                 </button>
             </div>
+        </div>
+    </ng-template>
+</p-dialog>
+}
+
+<!-- Modal para elegir tipo de compartir -->
+@defer (when shareMethodDialogVisible) {
+<p-dialog [(visible)]="shareMethodDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
+    [style]="{width: '460px', maxWidth: '92vw'}" [blockScroll]="true" appendTo="body"
+    styleClass="share-method-dialog">
+
+    <ng-template pTemplate="header">
+        <div class="share-method-header">
+            <i class="pi pi-share-alt"></i>
+            <span style="color: var(--globalColorTextLight);">Compartir</span>
+        </div>
+    </ng-template>
+
+    <div class="share-method-content">
+        <p class="share-method-title" style="color: var(--globalColorTextLight);">Selecciona qué deseas compartir</p>
+        <div class="share-method-options">
+            <button type="button" class="share-method-option" (click)="openRealtimeShare()">
+                <span class="share-method-icon"><i class="pi pi-clock"></i></span>
+                <span>
+                    <strong style="color: var(--globalColorTextLight);">Compartir link en tiempo real</strong>
+                    <small style="color: var(--globalColorTextMuted);">Genera un enlace temporal para ver la ubicación.</small>
+                </span>
+            </button>
+            <button type="button" class="share-method-option" (click)="openDeviceAccessShare()">
+                <span class="share-method-icon"><i class="pi pi-user-plus"></i></span>
+                <span>
+                    <strong style="color: var(--globalColorTextLight);">Compartir acceso al dispositivo</strong>
+                    <small style="color: var(--globalColorTextMuted);">Permite acceso por correo a los objetivos seleccionados.</small>
+                </span>
+            </button>
+        </div>
+    </div>
+</p-dialog>
+}
+
+<!-- Modal de link en tiempo real -->
+@defer (when realtimeLinkDialogVisible) {
+<p-dialog [(visible)]="realtimeLinkDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
+    [style]="{width: '500px', maxWidth: '92vw'}" [blockScroll]="true" appendTo="body"
+    styleClass="realtime-share-dialog" (onHide)="closeRealtimeShare()">
+
+    <ng-template pTemplate="header">
+        <div class="share-method-header">
+            <i class="pi pi-clock"></i>
+            <span style="color: var(--globalColorTextLight);">Link en tiempo real</span>
+        </div>
+    </ng-template>
+
+    <div class="realtime-share-content">
+        <div class="realtime-target-summary" *ngIf="targetsToShare[0] as target"
+            [ngStyle]="currentTheme === 'dark'
+                ? {'background': '#24262b', 'border-color': '#ff4d57'}
+                : {'background': '#f8fafc'}">
+            <strong [ngStyle]="{'color': currentTheme === 'dark' ? '#f8fafc' : '#1f2937'}">{{ target.name }}</strong>
+            <span [ngStyle]="{'color': currentTheme === 'dark' ? '#d1d5db' : '#6b7280'}">
+                IMEI: {{ target.device_imei || target.imei }}
+            </span>
+        </div>
+
+        <label class="realtime-field">
+            <span [ngStyle]="{'color': currentTheme === 'dark' ? '#f8fafc' : '#1f2937'}">Tiempo de expiración</span>
+            <select [(ngModel)]="realtimeExpirationTime" class="realtime-select"
+                [ngStyle]="currentTheme === 'dark'
+                    ? {'background': '#24262b', 'border-color': '#ff4d57', 'color': '#f8fafc'}
+                    : {'background': '#ffffff', 'color': '#1f2937'}">
+                <option value="15m">15 minutos</option>
+                <option value="30m">30 minutos</option>
+                <option value="1h">1 hora</option>
+                <option value="2h">2 horas</option>
+                <option value="8h">8 horas</option>
+                <option value="15h">15 horas</option>
+                <option value="24h">24 horas</option>
+                <option value="2d">2 días</option>
+                <option value="3d">3 días</option>
+                <option value="1w">1 semana</option>
+                <option value="1M">1 mes</option>
+            </select>
+        </label>
+
+        <div class="realtime-generated-link" *ngIf="realtimeGeneratedLink">
+            <span class="realtime-generated-label">Link generado</span>
+            <div class="realtime-link-box">
+                <span>{{ realtimeGeneratedLink }}</span>
+                <button type="button" (click)="copyRealtimeLinkToClipboard()" title="Copiar link">
+                    <i class="pi pi-copy"></i>
+                </button>
+            </div>
+            <small>
+                <i class="pi pi-info-circle"></i>
+                Expira en {{ getRealtimeExpirationText(realtimeExpirationTime) }}
+            </small>
+            <div class="realtime-copy-success" *ngIf="realtimeCopySuccess">
+                <i class="pi pi-check-circle"></i>
+                Link copiado correctamente
+            </div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="modal-footer-content">
+            <button type="button" class="button realtime-modal-button realtime-modal-button--secondary"
+                (click)="closeRealtimeShare()" [disabled]="generatingRealtimeLink"
+                [ngStyle]="currentTheme === 'dark'
+                    ? {'background': '#3a3a3a', 'color': '#f8fafc', 'border-color': '#4b5563'}
+                    : null">
+                Cerrar
+            </button>
+            <button type="button" class="button realtime-modal-button realtime-modal-button--primary"
+                (click)="generateSelectedRealtimeLink()" [disabled]="generatingRealtimeLink"
+                [ngStyle]="currentTheme === 'dark'
+                    ? {'background': '#ff4d57', 'color': '#ffffff', 'border-color': '#ff4d57'}
+                    : null">
+                <i class="pi" [ngClass]="generatingRealtimeLink ? 'pi-spin pi-spinner' : 'pi-link'"
+                    style="margin-right: 6px;"></i>
+                Generar link
+            </button>
         </div>
     </ng-template>
 </p-dialog>

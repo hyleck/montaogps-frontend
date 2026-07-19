@@ -13,6 +13,24 @@ export interface UsersResponse {
   totalCount: number;
 }
 
+export interface RegistrationLinkResponse {
+  token?: string;
+  short_code?: string;
+  expires_at: string;
+  target_count: number;
+}
+
+export interface PublicRegistrationInfo {
+  parent: {
+    id: string;
+    name: string;
+    last_name?: string;
+    email?: string;
+  };
+  target_count: number;
+  expires_at: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -68,6 +86,24 @@ export class UserService {
 
   create(createUserDto: CreateUserDto): Observable<User> {
     return this.http.post<User>(this.apiUrl, createUserDto);
+  }
+
+  createRegistrationLink(payload: { parent_id: string; target_ids?: string[]; access_level_id?: string; affiliation_type_id?: 'cliente' | 'subcliente' }): Observable<RegistrationLinkResponse> {
+    return this.http.post<RegistrationLinkResponse>(`${this.apiUrl}/registration-link`, payload);
+  }
+
+  getPublicRegistrationInfo(token: string): Observable<PublicRegistrationInfo> {
+    return this.http.get<PublicRegistrationInfo>(`${environment.apiUrl}/users-public/registration-link/${encodeURIComponent(token)}`);
+  }
+
+  scanPublicRegistrationIdentity(token: string, file: File): Observable<any> {
+    const formData = new FormData();
+    formData.append('cedula', file);
+    return this.http.post<any>(`${environment.apiUrl}/users-public/registration-link/${encodeURIComponent(token)}/scan-identity`, formData);
+  }
+
+  registerWithPublicLink(token: string, payload: any): Observable<any> {
+    return this.http.post<any>(`${environment.apiUrl}/users-public/registration-link/${encodeURIComponent(token)}/register`, payload);
   }
 
   update(id: string, updateUserDto: UpdateUserDto): Observable<User> {

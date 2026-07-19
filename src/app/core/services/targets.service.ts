@@ -21,6 +21,33 @@ export interface DeviceDistanceResponse {
   details?: any | null;
 }
 
+export interface VehicleRegistrationScanResponse {
+  ok: boolean;
+  deviceId?: string;
+  data: Record<string, any>;
+  voiceAudio?: { mimeType: string; base64: string };
+  rawText?: string;
+}
+
+export interface VehicleRegistrationFinalizeResponse {
+  ok: boolean;
+  deviceId?: string;
+  data: Record<string, any>;
+  matricula_img?: any;
+  device?: Target;
+}
+
+export interface RealtimeShortLinkResponse {
+  short_code: string;
+  expires_at: string;
+}
+
+export interface PublicRealtimeShortLinkInfo {
+  target_id: string;
+  expires_at: string;
+  gkey?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -45,9 +72,30 @@ export class TargetsService {
     return await lastValueFrom(observable);
   }
 
+  async getTargetByImei(imei: string): Promise<Target> {
+    const observable = this.http.get<Target>(`${this.apiUrl}/by-imei/${encodeURIComponent(imei)}`);
+    return await lastValueFrom(observable);
+  }
+
   async getPublicTargetById(id: string): Promise<Target> {
     const url = `${environment.apiUrl}/users-public/realtime/${id}`;
     const observable = this.http.get<Target>(url);
+    return await lastValueFrom(observable);
+  }
+
+  async createRealtimeShortLink(payload: {
+    target_id: string;
+    expires_at: string;
+    map_key?: string;
+  }): Promise<RealtimeShortLinkResponse> {
+    const observable = this.http.post<RealtimeShortLinkResponse>(`${this.apiUrl}/realtime-link`, payload);
+    return await lastValueFrom(observable);
+  }
+
+  async resolvePublicRealtimeShortLink(code: string): Promise<PublicRealtimeShortLinkInfo> {
+    const observable = this.http.get<PublicRealtimeShortLinkInfo>(
+      `${environment.apiUrl}/users-public/realtime-link/${encodeURIComponent(code)}`
+    );
     return await lastValueFrom(observable);
   }
 
@@ -63,6 +111,25 @@ export class TargetsService {
 
   async startActivation(id: string): Promise<any> {
     const observable = this.http.post<any>(`${this.apiUrl}/${id}/activate`, {});
+    return await lastValueFrom(observable);
+  }
+
+  async scanVehicleRegistration(id: string, file: File): Promise<VehicleRegistrationScanResponse> {
+    const formData = new FormData();
+    formData.append('matricula', file);
+    const observable = this.http.post<VehicleRegistrationScanResponse>(`${this.apiUrl}/${id}/scan-registration`, formData);
+    return await lastValueFrom(observable);
+  }
+
+  async finalizeVehicleRegistration(
+    id: string,
+    file: File,
+    metadata: Record<string, any>
+  ): Promise<VehicleRegistrationFinalizeResponse> {
+    const formData = new FormData();
+    formData.append('matricula', file);
+    formData.append('metadata', JSON.stringify(metadata));
+    const observable = this.http.post<VehicleRegistrationFinalizeResponse>(`${this.apiUrl}/${id}/finalize-registration`, formData);
     return await lastValueFrom(observable);
   }
 

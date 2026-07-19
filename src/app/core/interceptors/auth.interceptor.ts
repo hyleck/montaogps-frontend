@@ -6,7 +6,7 @@ export const authInterceptor: HttpInterceptorFn = (
 ) => {
   const token = localStorage.getItem('authtoken');
   const userStr = localStorage.getItem('user');
-  let headersToSet: any = {};
+  let headersToSet: any = { 'x-client-platform': 'desktop' };
   
   if (token) {
     headersToSet['Authorization'] = `Bearer ${token}`;
