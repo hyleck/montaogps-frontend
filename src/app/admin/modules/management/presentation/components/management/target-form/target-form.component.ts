@@ -240,10 +240,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     @ViewChild('smsCommands') smsCommands!: ElementRef;
     @ViewChild('smsChat') smsChat!: ElementRef;
     @ViewChild('chatMessages') chatMessages!: ElementRef;
+    @ViewChild('protocolCommandsChatMessages') protocolCommandsChatMessages?: ElementRef;
     @ViewChild('vehicleRegistrationFileInput') vehicleRegistrationFileInput?: ElementRef<HTMLInputElement>;
 
     // Propiedad para el tipo de afiliación del usuario actual
     currentUserAffiliationTypeId: string = '';
+    currentUserIsRoot: boolean = false;
 
     // Propiedad para controlar la visibilidad del modal de gestión de comandos
     displayCommandManagementModal: boolean = false;
@@ -256,6 +258,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     deviceCommands: any[] = [];
     isLoadingCommands: boolean = false;
     isCreatingCommand: boolean = false;
+    displayProtocolCommandsModal: boolean = false;
+    protocolCommandsError: string = '';
+    protocolCommandTypes: ProtocolCommand[] = [];
+    sendingProtocolCommandKey: string = '';
+    smsCommandQuota: { limit: number | null; used: number; remaining: number | null; unlimited: boolean } | null = null;
+    isLoadingSmsCommandQuota: boolean = false;
     newCommand: any = {
         name: '',
         description: '',
@@ -1102,6 +1110,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // Obtener el tipo de afiliación del usuario actual
         const currentUser = this.authService.getCurrentUser();
         this.currentUserAffiliationTypeId = currentUser?.affiliation_type_id || '';
+        this.currentUserIsRoot = currentUser?.root === true;
     }
 
     private async loadInitialData() {
@@ -2508,9 +2517,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             });
 
             this.scrollToBottom();
+            if (this.displayProtocolCommandsModal) {
+                this.scrollProtocolCommandsChatToBottom();
+            }
 
             // Enviar SMS real al backend (usando el mensaje procesado)
-            const response = await this.targetsService.sendSMS(this.target.sim_card_number, processedMessage, provider, this.target.sim_company);
+            const response = await this.targetsService.sendSMS(this.target.sim_card_number, processedMessage, provider, this.target.sim_company, this.target._id);
 
 
             // Validar que la respuesta no sea null/undefined
@@ -2537,6 +2549,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     detail: response.message || 'Mensaje enviado correctamente al dispositivo'
                 });
                 this.updateTempMessageStatus(processedMessage, { pending: false, delivered: false });
+                if (response.smsCommandQuota) {
+                    this.smsCommandQuota = response.smsCommandQuota;
+                }
             } else {
                 console.warn('⚠️ Respuesta de error del servidor:', response);
                 this.messageService.add({
@@ -3274,6 +3289,257 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.updateSmsCommands();
         // Limpiar comando seleccionado al cambiar modelo
         this.selectedSmsCommand = '';
+    }
+
+    async openProtocolCommandsModal(): Promise<void> {
+        if (this.currentUserAffiliationTypeId !== 'empleado') {
+            return;
+        }
+
+        this.displayProtocolCommandsModal = true;
+        this.protocolCommandsError = '';
+        this.protocolCommandTypes = [];
+        this.smsCommandQuota = null;
+
+        const selectedProtocol = this.resolveProtocolFromValue(this.target.type);
+        if (!selectedProtocol) {
+            this.protocolCommandsError = 'Selecciona un modelo GPS para ver sus comandos.';
+            return;
+        }
+
+        await this.loadSmsCommandQuota();
+
+        const commands = this.getVisibleProtocolCommands(selectedProtocol.commands);
+        this.protocolCommandTypes = await Promise.all(
+            commands.map(async command => ({
+                ...command,
+                value: await this.resolveProtocolCommandValue(command.value)
+            }))
+        );
+
+        if (this.target.sim_card_number && this.getProviderFromSimCompany()) {
+            await this.loadSmsMessages();
+            this.scrollProtocolCommandsChatToBottom();
+        }
+    }
+
+    closeProtocolCommandsModal(): void {
+        this.displayProtocolCommandsModal = false;
+        this.protocolCommandsError = '';
+        this.protocolCommandTypes = [];
+        this.smsCommandQuota = null;
+    }
+
+    async loadSmsCommandQuota(): Promise<void> {
+        if (this.currentUserIsRoot || !this.target?._id) {
+            this.smsCommandQuota = null;
+            return;
+        }
+
+        try {
+            this.isLoadingSmsCommandQuota = true;
+            this.smsCommandQuota = await this.targetsService.getSmsCommandQuota(this.target._id);
+        } catch (error) {
+            console.error('Error al cargar saldo de comandos SMS:', error);
+            this.smsCommandQuota = null;
+        } finally {
+            this.isLoadingSmsCommandQuota = false;
+        }
+    }
+
+    getSmsCommandQuotaLabel(): string {
+        if (this.isLoadingSmsCommandQuota) {
+            return 'Consultando saldo...';
+        }
+
+        if (!this.smsCommandQuota || this.smsCommandQuota.unlimited) {
+            return '';
+        }
+
+        return `Saldo: ${this.smsCommandQuota.remaining}/${this.smsCommandQuota.limit} mensajes`;
+    }
+
+    isSmsCommandQuotaExhausted(): boolean {
+        return !this.currentUserIsRoot
+            && !!this.smsCommandQuota
+            && !this.smsCommandQuota.unlimited
+            && (this.smsCommandQuota.remaining || 0) <= 0;
+    }
+
+    getSelectedGpsModelName(): string {
+        const selected = this.resolveProtocolFromValue(this.target.type);
+        if (selected?.name) return selected.name;
+
+        const targetType = this.normalizeProtocolValue(this.target.type);
+        return this.availableGpsModels.find(model => model.value === targetType)?.label || 'Sin modelo seleccionado';
+    }
+
+    getProtocolCommandIcon(command: ProtocolCommand): string {
+        return command?.icon || 'pi pi-bolt';
+    }
+
+    getProtocolCommandName(command: ProtocolCommand): string {
+        return command?.name || 'Comando';
+    }
+
+    getProtocolCommandValue(command: ProtocolCommand): string {
+        return command?.value || 'Sin comando configurado';
+    }
+
+    async copyProtocolCommand(command: ProtocolCommand): Promise<void> {
+        const commandValue = this.getProtocolCommandValue(command);
+
+        try {
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(commandValue);
+            } else {
+                this.copyTextFallback(commandValue);
+            }
+
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Comando copiado',
+                detail: commandValue,
+                life: 2200
+            });
+        } catch (error) {
+            console.error('Error al copiar comando:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'No se pudo copiar el comando'
+            });
+        }
+    }
+
+    async sendProtocolCommand(command: ProtocolCommand): Promise<void> {
+        const commandValue = this.getProtocolCommandValue(command);
+        const commandKey = this.getProtocolCommandKey(command);
+
+        if (this.isSendingSms) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Enviando SMS',
+                detail: 'Espera a que termine el envío actual.',
+                life: 1800
+            });
+            return;
+        }
+
+        if (!this.target.sim_card_number) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Número de SIM card requerido para enviar SMS'
+            });
+            return;
+        }
+
+        const provider = this.getProviderFromSimCompany();
+        if (!provider) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Proveedor de SMS no configurado'
+            });
+            return;
+        }
+
+        try {
+            this.sendingProtocolCommandKey = commandKey;
+            if (!this.hasLoadedSmsMessages) {
+                await this.loadSmsMessages();
+            }
+            await this.sendSmsMessage(commandValue, provider);
+            this.scrollProtocolCommandsChatToBottom();
+        } finally {
+            this.sendingProtocolCommandKey = '';
+        }
+    }
+
+    isProtocolCommandSending(command: ProtocolCommand): boolean {
+        return this.sendingProtocolCommandKey === this.getProtocolCommandKey(command);
+    }
+
+    private scrollProtocolCommandsChatToBottom(): void {
+        if (!this.protocolCommandsChatMessages) return;
+
+        setTimeout(() => {
+            const element = this.protocolCommandsChatMessages?.nativeElement;
+            if (element) {
+                element.scrollTop = element.scrollHeight;
+            }
+        }, 120);
+    }
+
+    private getProtocolCommandKey(command: ProtocolCommand): string {
+        return `${command?.name || ''}|${command?.value || ''}`;
+    }
+
+    private copyTextFallback(value: string): void {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+    }
+
+    private getVisibleProtocolCommands(commands?: ProtocolCommand[]): ProtocolCommand[] {
+        const protocolCommands = Array.isArray(commands) ? commands : [];
+        if (!this.isNationalSimCard()) return protocolCommands;
+
+        return protocolCommands.filter(command => this.normalizeText(command?.name) !== 'conectar');
+    }
+
+    private isNationalSimCard(): boolean {
+        const simCompany = this.normalizeText(this.target?.sim_company);
+        return simCompany === 'nacionales' || simCompany === 'nacional';
+    }
+
+    private normalizeText(value?: string | null): string {
+        return String(value || '')
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
+
+    private async resolveProtocolCommandValue(commandValue?: string): Promise<string> {
+        let resolvedValue = commandValue || '';
+        if (!resolvedValue) return 'Sin comando configurado';
+
+        if (/\{\{\s*company\s*\}\}/i.test(resolvedValue)) {
+            const companyValue = this.getCompanyValueFromSimType()
+                || this.getAutoApnValue()
+                || this.target.sim_company
+                || 'Sin APN';
+            resolvedValue = resolvedValue.replace(/\{\{\s*company\s*\}\}/gi, companyValue);
+        }
+
+        if (/\{\{\s*server\s*\}\}/i.test(resolvedValue)) {
+            const serverIp = await this.getServerIpFromPlan();
+            resolvedValue = resolvedValue.replace(/\{\{\s*server\s*\}\}/gi, serverIp || 'Sin servidor');
+        }
+
+        return resolvedValue;
+    }
+
+    private normalizeProtocolValue(value: any): string {
+        if (!value) return '';
+        if (typeof value === 'object') {
+            return value._id || value.id || value.value || value.name || '';
+        }
+        return String(value);
+    }
+
+    private resolveProtocolFromValue(value: any): Protocol | null {
+        const normalized = this.normalizeProtocolValue(value);
+        if (!normalized) return null;
+        return this.loadedProtocols.find(protocol => protocol._id === normalized || protocol.name === normalized) || null;
     }
 
     onSimCompanyChange(event: any): void {

@@ -29,6 +29,13 @@ export interface VehicleRegistrationScanResponse {
   rawText?: string;
 }
 
+export interface SmsCommandQuotaResponse {
+  limit: number | null;
+  used: number;
+  remaining: number | null;
+  unlimited: boolean;
+}
+
 export interface VehicleRegistrationFinalizeResponse {
   ok: boolean;
   deviceId?: string;
@@ -264,16 +271,23 @@ export class TargetsService {
 
 
 
-  async sendSMS(simCardId: string, message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2', sim_company?: string): Promise<any> {
+  async sendSMS(simCardId: string, message: string, provider: 'myorion' | 'twilio' | 'emnify' | 'myorion2', sim_company?: string, targetId?: string): Promise<any> {
     const url = `${environment.apiUrl}/sim-card`;
     const body = {
       id: simCardId,
       message: message,
       provider: provider,
-      sim_company: sim_company
+      sim_company: sim_company,
+      targetId: targetId
     };
 
     const observable = this.http.post<any>(url, body);
+    return await lastValueFrom(observable);
+  }
+
+  async getSmsCommandQuota(targetId: string): Promise<SmsCommandQuotaResponse> {
+    const url = `${environment.apiUrl}/sim-card/command-quota/${targetId}`;
+    const observable = this.http.get<SmsCommandQuotaResponse>(url);
     return await lastValueFrom(observable);
   }
 

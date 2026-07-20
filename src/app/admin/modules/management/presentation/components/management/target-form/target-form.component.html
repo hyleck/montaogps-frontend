@@ -251,7 +251,20 @@
                                         </div>
 
                                         <div class="target-form__field">
-                                            <label for="gps_model">{{ translate(translations.gpsModel) }}</label>
+                                            <div class="target-form__label-row">
+                                                <label for="gps_model">{{ translate(translations.gpsModel) }}</label>
+                                                <span *ngIf="currentUserAffiliationTypeId === 'empleado'"
+                                                    class="commands-inline-btn"
+                                                    role="button"
+                                                    tabindex="0"
+                                                    [class.commands-inline-btn--disabled]="!target.type"
+                                                    (click)="target.type && openProtocolCommandsModal()"
+                                                    (keydown.enter)="target.type && openProtocolCommandsModal()"
+                                                    (keydown.space)="target.type && openProtocolCommandsModal()">
+                                                    <i class="pi pi-send"></i>
+                                                    Comandos
+                                                </span>
+                                            </div>
                                             <select [(ngModel)]="target.type" name="type" id="gps_model"
                                                 (change)="onGpsModelChange()" [disabled]="isEditMode">
                                                 <option [ngValue]="''">{{
@@ -1785,6 +1798,137 @@
 
                 <ng-template pTemplate="footer">
                     <button type="button" class="cancel-btn" (click)="closeCommandHistoryModal()">
+                        <i class="pi pi-times"></i>
+                        Cerrar
+                    </button>
+                </ng-template>
+            </p-dialog>
+
+            <p-dialog [(visible)]="displayProtocolCommandsModal" [modal]="true" [draggable]="false" [resizable]="false"
+                [style]="{ width: '980px', maxWidth: '96vw' }" styleClass="server-commands-dialog"
+                (onHide)="closeProtocolCommandsModal()">
+                <ng-template pTemplate="header">
+                    <div class="server-commands-title">
+                        <i class="pi pi-send"></i>
+                        <div>
+                            <strong>Comandos</strong>
+                            <span>{{ getSelectedGpsModelName() }}</span>
+                        </div>
+                    </div>
+                </ng-template>
+
+                <div class="server-commands-content">
+                    <div class="server-commands-layout">
+                        <section class="server-commands-panel">
+                            <div class="server-commands-panel__header">
+                                <div>
+                                    <strong>Lista de comandos</strong>
+                                    <span>{{ protocolCommandTypes.length }} disponibles</span>
+                                </div>
+                                <span class="server-command-quota"
+                                    *ngIf="!currentUserIsRoot && (isLoadingSmsCommandQuota || smsCommandQuota)">
+                                    <i class="pi pi-wallet"></i>
+                                    {{ getSmsCommandQuotaLabel() }}
+                                </span>
+                            </div>
+
+                            <div class="server-commands-empty" *ngIf="protocolCommandsError">
+                                <i class="pi pi-exclamation-triangle"></i>
+                                <p>{{ protocolCommandsError }}</p>
+                            </div>
+
+                            <div class="server-commands-empty"
+                                *ngIf="!protocolCommandsError && protocolCommandTypes.length === 0">
+                                <i class="pi pi-info-circle"></i>
+                                <p>Este protocolo no tiene comandos configurados.</p>
+                            </div>
+
+                            <div class="server-commands-list"
+                                *ngIf="!protocolCommandsError && protocolCommandTypes.length > 0">
+                                <div class="server-command-card" *ngFor="let command of protocolCommandTypes">
+                                    <div class="server-command-card__icon">
+                                        <i [class]="getProtocolCommandIcon(command)"></i>
+                                    </div>
+                                    <div class="server-command-card__body">
+                                        <div class="server-command-card__header">
+                                            <strong>{{ getProtocolCommandName(command) }}</strong>
+                                            <div class="server-command-card__actions">
+                                                <button type="button"
+                                                    class="server-command-action server-command-action--copy"
+                                                    (click)="copyProtocolCommand(command)"
+                                                    title="Copiar comando">
+                                                    <i class="pi pi-copy"></i>
+                                                    Copiar
+                                                </button>
+                                                <button type="button"
+                                                    class="server-command-action server-command-action--send"
+                                                    (click)="sendProtocolCommand(command)"
+                                                    [disabled]="isProtocolCommandSending(command) || isSmsCommandQuotaExhausted()"
+                                                    title="Enviar comando">
+                                                    <i class="pi" [ngClass]="isProtocolCommandSending(command) ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+                                                    {{ isProtocolCommandSending(command) ? 'Enviando' : 'Enviar' }}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <button type="button" class="server-command-card__value"
+                                            (click)="copyProtocolCommand(command)"
+                                            title="Copiar comando">
+                                            {{ getProtocolCommandValue(command) }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="server-commands-panel server-commands-panel--chat">
+                            <div class="server-commands-panel__header">
+                                <div>
+                                    <strong>Historial SMS</strong>
+                                    <span>{{ target.sim_card_number || 'Sin SIM' }}</span>
+                                </div>
+                                <button type="button" class="server-command-refresh"
+                                    (click)="loadSmsMessages()"
+                                    [disabled]="isLoadingSmsMessages || !target.sim_card_number">
+                                    <i class="pi" [ngClass]="isLoadingSmsMessages ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+                                </button>
+                            </div>
+
+                            <div class="server-commands-chat chat-body" #protocolCommandsChatMessages>
+                                <div *ngIf="isLoadingSmsMessages && !hasLoadedSmsMessages" class="chat-loading">
+                                    <i class="pi pi-spinner chat-spinner"></i>
+                                    <span>Cargando mensajes...</span>
+                                </div>
+                                <div *ngIf="smsMessages.length === 0 && !isLoadingSmsMessages" class="chat-empty">
+                                    <i class="pi pi-comments"></i>
+                                    <span>No hay mensajes SMS disponibles</span>
+                                </div>
+
+                                <div *ngFor="let message of smsMessages" class="chat-row"
+                                    [ngClass]="{'out': message.type === 'sent', 'in': message.type === 'received'}">
+                                    <div class="chat-meta">
+                                        <span class="chat-author">{{ getMessageAuthor(message) }}</span>
+                                        <span class="chat-time">{{ message.timestamp | date:'short' }}</span>
+                                    </div>
+                                    <div class="chat-bubble">
+                                        <span class="chat-text">{{ getDisplayMessageContent(message) }}</span>
+                                        <div class="chat-footer">
+                                            <span class="chat-time-inline">{{ message.timestamp | date:'HH:mm' }}</span>
+                                            <span class="chat-delivery" *ngIf="message.type === 'sent'"
+                                                [ngClass]="{'delivered': message.delivered}">
+                                                <i *ngIf="message.pending" class="pi pi-spinner chat-spinner"></i>
+                                                <i *ngIf="!message.pending" class="pi pi-check"></i>
+                                                {{ getMessageDeliveryLabel(message) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <ng-template pTemplate="footer">
+                    <button type="button" class="cancel-btn" (click)="closeProtocolCommandsModal()">
                         <i class="pi pi-times"></i>
                         Cerrar
                     </button>

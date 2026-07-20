@@ -273,3 +273,95 @@
 :host-context(.app-dark) .activation-empty {
     color: rgba(255, 255, 255, 0.62);
 }
+
+:host-context(.app-dark) .commands-inline-btn {
+    background: transparent;
+    border-color: transparent;
+    color: #ff6b72;
+}
+
+:host-context(.app-dark) .commands-inline-btn:hover:not(.commands-inline-btn--disabled),
+:host-context(.app-dark) .commands-inline-btn:focus-visible:not(.commands-inline-btn--disabled) {
+    color: #ff9aa0;
+}
+
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog,
+:host-context(.app-dark) ::ng-deep .server-commands-dialog.p-dialog {
+    background: #1f1f22;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog-header,
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog-content,
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog-footer {
+    background: #1f1f22;
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog-header,
+:host-context(.app-dark) ::ng-deep .server-commands-dialog .p-dialog-footer {
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .server-commands-title,
+:host-context(.app-dark) .server-command-card__body strong,
+:host-context(.app-dark) .server-commands-panel__header strong {
+    color: var(--managementColorTextUser);
+}
+
+:host-context(.app-dark) .server-commands-title > i,
+:host-context(.app-dark) .server-command-card__icon {
+    background: rgba(248, 113, 113, 0.12);
+    color: #ff6b72;
+}
+
+:host-context(.app-dark) .server-commands-title span,
+:host-context(.app-dark) .server-commands-panel__header span,
+:host-context(.app-dark) .server-commands-loading,
+:host-context(.app-dark) .server-commands-empty,
+:host-context(.app-dark) .server-command-card__value {
+    color: rgba(255, 255, 255, 0.68);
+}
+
+:host-context(.app-dark) .server-command-quota {
+    background: rgba(248, 113, 113, 0.16);
+    border-color: rgba(248, 113, 113, 0.34);
+    color: #ff8a91 !important;
+}
+
+:host-context(.app-dark) .server-command-refresh {
+    background: rgba(248, 113, 113, 0.12);
+    color: #ff6b72;
+}
+
+:host-context(.app-dark) .server-command-card {
+    background: rgba(255, 255, 255, 0.035);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .server-command-card__value {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+:host-context(.app-dark) .server-command-card__value:hover,
+:host-context(.app-dark) .server-command-card__value:focus-visible {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(248, 113, 113, 0.36);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+:host-context(.app-dark) .server-command-action--copy {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.84);
+}
+
+:host-context(.app-dark) .server-command-action--send {
+    background: #ff6b72;
+    color: #1f1f22;
+}
+
+:host-context(.app-dark) .server-command-card__attrs small {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.72);
+}
