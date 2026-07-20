@@ -3331,7 +3331,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     async loadSmsCommandQuota(): Promise<void> {
-        if (this.currentUserIsRoot || !this.target?._id) {
+        if (!this.target?._id) {
             this.smsCommandQuota = null;
             return;
         }
@@ -3352,11 +3352,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             return 'Consultando saldo...';
         }
 
-        if (!this.smsCommandQuota || this.smsCommandQuota.unlimited) {
+        if (!this.smsCommandQuota || this.smsCommandQuota.remaining === null || this.smsCommandQuota.limit === null) {
             return '';
         }
 
-        return `Saldo: ${this.smsCommandQuota.remaining}/${this.smsCommandQuota.limit} mensajes`;
+        return `Saldo: ${this.smsCommandQuota.remaining}/${this.smsCommandQuota.limit}`;
     }
 
     isSmsCommandQuotaExhausted(): boolean {

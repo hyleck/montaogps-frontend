@@ -1826,7 +1826,7 @@
                                     <span>{{ protocolCommandTypes.length }} disponibles</span>
                                 </div>
                                 <span class="server-command-quota"
-                                    *ngIf="!currentUserIsRoot && (isLoadingSmsCommandQuota || smsCommandQuota)">
+                                    *ngIf="isLoadingSmsCommandQuota || smsCommandQuota">
                                     <i class="pi pi-wallet"></i>
                                     {{ getSmsCommandQuotaLabel() }}
                                 </span>
