@@ -2,6 +2,9 @@ import { Component, AfterViewInit, OnDestroy, ElementRef, ViewChild, OnInit } fr
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { SystemService } from '../../../../../../core/services/system.service';
 import { MonitoringService } from '../../../../../../core/services/monitoring.service';
+import { User } from '../../../../../../core/interfaces/user.interface';
+import { LocatedUser, UserLatestLocation, UserService } from '../../../../../../core/services/user.service';
+import { firstValueFrom } from 'rxjs';
 import * as maplibregl from 'maplibre-gl';
 
 @Component({
@@ -15,10 +18,16 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     map: maplibregl.Map | any;
     currentUser: any = null;
     isEmployee: boolean = false;
+    isRoot: boolean = false;
+    canSeeTechnicians: boolean = false;
     private mapLoaded = false;
     private pendingData: any[] | null = null;
     private pendingDataType: 'fullmap' | 'reports' | null = null;
     private currentFeatures: any[] = [];
+    private technicianFeatures: any[] = [];
+    private locatedUserFeatures: any[] = [];
+    private techniciansRequested = false;
+    private locatedUsersRequested = false;
     private readonly dominicanRepublicBounds: [[number, number], [number, number]] = [
         [-72.1, 17.45],
         [-68.2, 20.1],
@@ -30,6 +39,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     filterOffline = true;
     filterLocalizado = true;
     filterExpired = true;
+    filterTechnicians = false;
+    filterClients = false;
 
     private readonly americasBounds = {
         minLat: -60,
@@ -41,12 +52,15 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     constructor(
         private authService: AuthService,
         private systemService: SystemService,
-        private monitoringService: MonitoringService
+        private monitoringService: MonitoringService,
+        private userService: UserService
     ) {}
 
     ngOnInit() {
         this.currentUser = this.authService.getCurrentUser();
-        this.isEmployee = this.currentUser?.affiliation_type_id === 'empleado' || this.currentUser?.root === true;
+        this.isRoot = this.currentUser?.root === true;
+        this.canSeeTechnicians = this.currentUser?.affiliation_type_id === 'empleado';
+        this.isEmployee = this.canSeeTechnicians || this.isRoot;
     }
 
     ngAfterViewInit() {
@@ -102,6 +116,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             this.map.on('load', () => {
                 this.mapLoaded = true;
                 this.setupMaplibreClusters();
+                this.setupLocatedUserLayers();
+                this.setupTechnicianLayers();
                 
                 if (this.pendingData && this.pendingDataType === 'fullmap') {
                     this.plotFullmapMarkers(this.pendingData);
@@ -112,6 +128,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                     this.pendingData = null;
                     this.pendingDataType = null;
                 }
+
             });
 
             // Condicionar según tipo de usuario
@@ -210,8 +227,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                 'icon-image': [
                     'case',
                     ['==', ['get', 'isExpired'], true], 'pulsing-dot-expired',
-                    ['==', ['get', 'status'], 'Localizado'], 'pulsing-dot-localizado',
-                    ['==', ['get', 'status'], 'online'], 'pulsing-dot-online',
+                    ['==', ['get', 'statusGroup'], 'localizado'], 'pulsing-dot-localizado',
+                    ['==', ['get', 'statusGroup'], 'online'], 'pulsing-dot-online',
                     'pulsing-dot-offline'
                 ],
                 'icon-allow-overlap': true,
@@ -259,8 +276,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                 layout: {
                     'icon-image': [
                         'case',
-                        ['==', ['get', 'status'], 'online'], 'custom-marker',
-                        ['==', ['get', 'status'], 'Localizado'], 'custom-marker',
+                        ['==', ['get', 'statusGroup'], 'online'], 'custom-marker',
+                        ['==', ['get', 'statusGroup'], 'localizado'], 'custom-marker',
                         'custom-marker-offline'
                     ],
                     'icon-size': 0.15,
@@ -270,13 +287,285 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                 paint: {
                     'icon-opacity': [
                         'case',
-                        ['==', ['get', 'status'], 'online'], 1,
-                        ['==', ['get', 'status'], 'Localizado'], 1,
+                        ['==', ['get', 'statusGroup'], 'online'], 1,
+                        ['==', ['get', 'statusGroup'], 'localizado'], 1,
                         0.6 // Translucidez para offline
                     ]
                 }
             });
+            this.applyMapFilters();
+            this.bringPeopleLayersToFront();
         }).catch((err: any) => console.log('Sin imagen de fallback'));
+    }
+
+    private setupTechnicianLayers() {
+        if (!this.canSeeTechnicians || this.map.getSource('technicians')) return;
+
+        this.map.addSource('technicians', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
+        });
+
+        if (!this.map.hasImage('pulsing-dot-technician')) {
+            this.map.addImage('pulsing-dot-technician', this.createPulsingDot(168, 85, 247), { pixelRatio: 2 });
+        }
+
+        this.map.addLayer({
+            id: 'technician-pulse-layer',
+            type: 'symbol',
+            source: 'technicians',
+            layout: {
+                'icon-image': 'pulsing-dot-technician',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'icon-size': 0.8
+            }
+        });
+
+        this.map.addLayer({
+            id: 'technician-point-layer',
+            type: 'circle',
+            source: 'technicians',
+            paint: {
+                'circle-color': '#a855f7',
+                'circle-radius': 8,
+                'circle-stroke-width': 3,
+                'circle-stroke-color': '#ffffff'
+            }
+        });
+
+        this.map.addLayer({
+            id: 'technician-label-layer',
+            type: 'symbol',
+            source: 'technicians',
+            layout: {
+                'text-field': ['get', 'label'],
+                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                'text-size': 12,
+                'text-anchor': 'bottom',
+                'text-offset': [0, -1.4],
+                'text-allow-overlap': true,
+                'text-ignore-placement': true
+            },
+            paint: {
+                'text-color': '#ffffff',
+                'text-halo-color': '#7e22ce',
+                'text-halo-width': 2
+            }
+        });
+
+        this.bringPeopleLayersToFront();
+    }
+
+    private setupLocatedUserLayers() {
+        if (!this.isRoot || this.map.getSource('located-users')) return;
+
+        this.map.addSource('located-users', {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
+        });
+
+        if (!this.map.hasImage('pulsing-dot-located-user')) {
+            this.map.addImage('pulsing-dot-located-user', this.createPulsingDot(234, 179, 8), { pixelRatio: 2 });
+        }
+
+        this.map.addLayer({
+            id: 'located-user-pulse-layer',
+            type: 'symbol',
+            source: 'located-users',
+            layout: {
+                'icon-image': 'pulsing-dot-located-user',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true,
+                'icon-size': 0.7
+            }
+        });
+
+        this.map.addLayer({
+            id: 'located-user-point-layer',
+            type: 'circle',
+            source: 'located-users',
+            paint: {
+                'circle-color': '#eab308',
+                'circle-radius': 7,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#fff7ed'
+            }
+        });
+
+        this.map.addLayer({
+            id: 'located-user-label-layer',
+            type: 'symbol',
+            source: 'located-users',
+            layout: {
+                'text-field': ['get', 'label'],
+                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                'text-size': 11,
+                'text-anchor': 'top',
+                'text-offset': [0, 1.2],
+                'text-allow-overlap': true,
+                'text-ignore-placement': true
+            },
+            paint: {
+                'text-color': '#111827',
+                'text-halo-color': '#fef3c7',
+                'text-halo-width': 2
+            }
+        });
+
+        this.bringPeopleLayersToFront();
+    }
+
+    private bringPeopleLayersToFront(): void {
+        if (!this.map) return;
+
+        [
+            'located-user-pulse-layer',
+            'located-user-point-layer',
+            'located-user-label-layer',
+            'technician-pulse-layer',
+            'technician-point-layer',
+            'technician-label-layer',
+        ].forEach(layerId => {
+            try {
+                if (this.map.getLayer(layerId)) {
+                    this.map.moveLayer(layerId);
+                }
+            } catch (error) {
+                console.warn(`[Dashboard] No se pudo mover la capa ${layerId} al frente`, error);
+            }
+        });
+    }
+
+    private async loadTechniciansOnDashboardMap(): Promise<void> {
+        if (!this.canSeeTechnicians || !this.mapLoaded || this.techniciansRequested) return;
+        this.setupTechnicianLayers();
+        this.techniciansRequested = true;
+
+        try {
+            const technicians = await firstValueFrom(this.userService.getTechnicians());
+            const results = await Promise.all(
+                (technicians || []).map(async (technician: User) => {
+                    const technicianId = String((technician as any)._id || (technician as any).id || '').trim();
+                    if (!technicianId) return null;
+
+                    try {
+                        const location = await firstValueFrom(this.userService.getLatestLocation(technicianId));
+                        if (!this.isCoordinateInAmericas(location?.latitude, location?.longitude)) return null;
+
+                        return this.createTechnicianFeature(technician, location);
+                    } catch {
+                        return null;
+                    }
+                })
+            );
+
+            this.technicianFeatures = results.filter(Boolean) as any[];
+            this.updateTechnicianSource();
+            this.setPeopleLayersVisibility();
+        } catch (error) {
+            this.techniciansRequested = false;
+            console.error('[Dashboard] Error cargando ubicaciones de técnicos:', error);
+        }
+    }
+
+    private async loadLocatedUsersOnDashboardMap(): Promise<void> {
+        if (!this.isRoot || !this.mapLoaded || this.locatedUsersRequested) return;
+        this.setupLocatedUserLayers();
+        this.locatedUsersRequested = true;
+
+        try {
+            const users = await firstValueFrom(this.userService.getLocatedUsers());
+            this.locatedUserFeatures = (users || [])
+                .filter(user => this.isCoordinateInAmericas(user?.latitude, user?.longitude))
+                .map(user => this.createLocatedUserFeature(user));
+            this.updateLocatedUserSource();
+            this.setPeopleLayersVisibility();
+        } catch (error) {
+            this.locatedUsersRequested = false;
+            console.error('[Dashboard] Error cargando ubicaciones de usuarios:', error);
+        }
+    }
+
+    private createTechnicianFeature(technician: User, location: UserLatestLocation | null): any {
+        const name = this.getTechnicianName(technician);
+
+        return {
+            type: 'Feature',
+            geometry: {
+                type: 'Point',
+                coordinates: [Number(location?.longitude), Number(location?.latitude)]
+            },
+            properties: {
+                name,
+                label: `${name} · ${this.getRelativeLocationAge(location?.recordedAt)}`
+            }
+        };
+    }
+
+    private updateTechnicianSource(): void {
+        const source: any = this.map?.getSource('technicians');
+        if (!source) return;
+
+        source.setData({
+            type: 'FeatureCollection',
+            features: this.technicianFeatures
+        });
+    }
+
+    private createLocatedUserFeature(user: LocatedUser): any {
+        const name = this.getLocatedUserName(user);
+
+        return {
+            type: 'Feature',
+            geometry: {
+                type: 'Point',
+                coordinates: [Number(user.longitude), Number(user.latitude)]
+            },
+            properties: {
+                name,
+                label: `${name} · ${this.getRelativeLocationAge(user.recordedAt)}`
+            }
+        };
+    }
+
+    private updateLocatedUserSource(): void {
+        const source: any = this.map?.getSource('located-users');
+        if (!source) return;
+
+        source.setData({
+            type: 'FeatureCollection',
+            features: this.locatedUserFeatures
+        });
+    }
+
+    private getTechnicianName(technician: User): string {
+        return `${technician?.name || ''} ${technician?.last_name || ''}`.replace(/\s+/g, ' ').trim()
+            || technician?.email
+            || 'Técnico';
+    }
+
+    private getLocatedUserName(user: LocatedUser): string {
+        return `${user?.name || ''} ${user?.last_name || ''}`.replace(/\s+/g, ' ').trim()
+            || user?.email
+            || 'Usuario';
+    }
+
+    private getRelativeLocationAge(recordedAt?: string | Date): string {
+        if (!recordedAt) return 'sin fecha';
+        const date = new Date(recordedAt);
+        if (Number.isNaN(date.getTime())) return 'sin fecha';
+
+        const diffMs = Math.max(0, Date.now() - date.getTime());
+        const diffMinutes = Math.floor(diffMs / 60000);
+        if (diffMinutes < 1) return 'ahora';
+        if (diffMinutes < 60) return `hace ${diffMinutes} min`;
+
+        const diffHours = Math.floor(diffMinutes / 60);
+        if (diffHours < 24) return `hace ${diffHours} h`;
+
+        const diffDays = Math.floor(diffHours / 24);
+        return `hace ${diffDays} d`;
     }
 
     private loadUserDevicesOnMap(userId: string) {
@@ -336,13 +625,15 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                 dataPackage.devices.forEach(d => {
                     const geo = d?.traccarInfo?.geolocation;
                     if (this.isCoordinateInAmericas(geo?.latitude, geo?.longitude)) {
+                        const status = d.traccarInfo?.status || d.status || 'offline';
                         features.push({
                             type: 'Feature',
                             geometry: { type: 'Point', coordinates: [geo.longitude, geo.latitude] },
                             properties: {
                                 name: d.name || d.device_imei || 'Dispositivo',
-                                status: d.traccarInfo?.status || 'offline',
-                                isExpired: d.expiration_date ? new Date(d.expiration_date).setHours(0,0,0,0) < new Date().setHours(0,0,0,0) : false
+                                status,
+                                statusGroup: this.getDeviceStatusGroup(status),
+                                isExpired: this.isDeviceExpired(this.getDeviceExpirationDate(d), status, d.isExpired)
                             }
                         });
                     }
@@ -353,7 +644,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.updateGeoJSONSource(features);
     }
 
-    private plotFullmapMarkers(devices: Array<{nombre: string, latitud: number, longitud: number, status?: string, isExpired?: boolean}>) {
+    private plotFullmapMarkers(devices: Array<{nombre: string, latitud: number, longitud: number, status?: string, isExpired?: boolean, expiration_date?: string | Date, expirationDate?: string | Date, expiration?: string | Date, expires_at?: string | Date}>) {
         if (!this.mapLoaded) {
             this.pendingData = devices;
             this.pendingDataType = 'fullmap';
@@ -362,18 +653,22 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
         const features = (devices || [])
             .filter(d => this.isCoordinateInAmericas(d?.latitud, d?.longitud))
-            .map(d => ({
-            type: 'Feature',
-            geometry: {
-                type: 'Point',
-                coordinates: [d.longitud, d.latitud]
-            },
-            properties: {
-                name: d.nombre || 'Dispositivo',
-                status: d.status || 'offline',
-                isExpired: d.isExpired || false
-            }
-        }));
+            .map(d => {
+                const status = d.status || 'offline';
+                return {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [d.longitud, d.latitud]
+                    },
+                    properties: {
+                        name: d.nombre || 'Dispositivo',
+                        status,
+                        statusGroup: this.getDeviceStatusGroup(status),
+                        isExpired: this.isDeviceExpired(this.getDeviceExpirationDate(d), status, d.isExpired)
+                    }
+                };
+            });
 
         this.updateGeoJSONSource(features);
     }
@@ -397,43 +692,29 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             this.currentFeatures = features;
             this.adjustMapViewport(features);
 
-            // Animación de aparición consecutiva y aleatoria
-            const shuffledFeatures = features.slice().sort(() => Math.random() - 0.5);
-            let currentIndex = 0;
-            const batchSize = Math.max(1, Math.floor(features.length / 60)); // Aproximadamente 1 segundo en llenar el mapa
-
-            const animatePoints = () => {
-                if (currentIndex < shuffledFeatures.length) {
-                    currentIndex += batchSize;
-                    const chunk = shuffledFeatures.slice(0, currentIndex);
-                    
-                    source.setData({
-                        type: 'FeatureCollection',
-                        features: chunk
-                    });
-
-                    // Delegar al pintado del navegador
-                    requestAnimationFrame(animatePoints);
-                } else {
-                    // Fianza para evitar desincronía
-                    source.setData({
-                        type: 'FeatureCollection',
-                        features: features 
-                    });
-                }
-            };
-
-            // Iniciar animación
-            requestAnimationFrame(animatePoints);
+            source.setData({
+                type: 'FeatureCollection',
+                features
+            });
         }
         this.applyMapFilters();
     }
 
-    toggleFilter(type: 'online' | 'offline' | 'localizado' | 'expired') {
+    toggleFilter(type: 'online' | 'offline' | 'localizado' | 'expired' | 'technicians' | 'clients') {
         if (type === 'online') this.filterOnline = !this.filterOnline;
         if (type === 'offline') this.filterOffline = !this.filterOffline;
         if (type === 'localizado') this.filterLocalizado = !this.filterLocalizado;
         if (type === 'expired') this.filterExpired = !this.filterExpired;
+        if (type === 'technicians') this.filterTechnicians = !this.filterTechnicians;
+        if (type === 'clients') this.filterClients = !this.filterClients;
+
+        if (type === 'technicians' && this.filterTechnicians) {
+            this.loadTechniciansOnDashboardMap();
+        }
+
+        if (type === 'clients' && this.filterClients) {
+            this.loadLocatedUsersOnDashboardMap();
+        }
 
         this.applyMapFilters();
     }
@@ -441,6 +722,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private applyMapFilters() {
         if (!this.map || !this.map.getLayer('pulsing-layer')) return;
 
+        const hasVisibleDeviceFilters = this.filterExpired || this.filterLocalizado || this.filterOnline || this.filterOffline;
         const filter: any[] = ['any'];
 
         if (this.filterExpired) {
@@ -448,25 +730,69 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         
         if (this.filterLocalizado) {
-            filter.push(['all', ['==', ['get', 'isExpired'], false], ['==', ['get', 'status'], 'Localizado']]);
+            filter.push(['all', ['==', ['get', 'isExpired'], false], ['==', ['get', 'statusGroup'], 'localizado']]);
         }
         
         if (this.filterOnline) {
-            filter.push(['all', ['==', ['get', 'isExpired'], false], ['==', ['get', 'status'], 'online']]);
+            filter.push(['all', ['==', ['get', 'isExpired'], false], ['==', ['get', 'statusGroup'], 'online']]);
         }
         
         if (this.filterOffline) {
-            filter.push(['all', ['==', ['get', 'isExpired'], false], ['!=', ['get', 'status'], 'online'], ['!=', ['get', 'status'], 'Localizado']]);
+            filter.push(['all', ['==', ['get', 'isExpired'], false], ['==', ['get', 'statusGroup'], 'offline']]);
         }
 
-        const finalFilter = filter.length > 1 ? filter : ['==', 1, 0];
+        this.setDeviceLayersVisibility(hasVisibleDeviceFilters);
+        if (!hasVisibleDeviceFilters) {
+            this.setPeopleLayersVisibility();
+            this.adjustMapViewport([
+                ...(this.isRoot && this.filterClients ? this.locatedUserFeatures : []),
+                ...(this.canSeeTechnicians && this.filterTechnicians ? this.technicianFeatures : []),
+            ]);
+            return;
+        }
+
+        const finalFilter = filter.length > 1 ? filter : ['==', ['get', '__hidden__'], true];
 
         this.map.setFilter('pulsing-layer', finalFilter);
         if (this.map.getLayer('unclustered-point')) {
             this.map.setFilter('unclustered-point', finalFilter);
         }
 
-        this.adjustMapViewport(this.visibleFeatures(this.currentFeatures));
+        this.setPeopleLayersVisibility();
+        this.adjustMapViewport([
+            ...this.visibleFeatures(this.currentFeatures),
+            ...(this.isRoot && this.filterClients ? this.locatedUserFeatures : []),
+            ...(this.canSeeTechnicians && this.filterTechnicians ? this.technicianFeatures : []),
+        ]);
+    }
+
+    private setDeviceLayersVisibility(visible: boolean): void {
+        this.setLayerVisibility([
+            'pulsing-layer',
+            'unclustered-point',
+        ], visible);
+    }
+
+    private setPeopleLayersVisibility(): void {
+        this.setLayerVisibility([
+            'located-user-pulse-layer',
+            'located-user-point-layer',
+            'located-user-label-layer',
+        ], this.isRoot && this.filterClients);
+
+        this.setLayerVisibility([
+            'technician-pulse-layer',
+            'technician-point-layer',
+            'technician-label-layer',
+        ], this.canSeeTechnicians && this.filterTechnicians);
+    }
+
+    private setLayerVisibility(layerIds: string[], visible: boolean): void {
+        layerIds.forEach(layerId => {
+            if (this.map?.getLayer(layerId)) {
+                this.map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+            }
+        });
     }
 
     private adjustMapViewport(features: any[]) {
@@ -498,22 +824,59 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
     private visibleFeatures(features: any[]): any[] {
         return features.filter(feature => {
-            const status = feature.properties?.status;
+            const statusGroup = feature.properties?.statusGroup || this.getDeviceStatusGroup(feature.properties?.status);
             const isExpired = Boolean(feature.properties?.isExpired);
 
             if (isExpired) {
                 return this.filterExpired;
             }
 
-            if (status === 'Localizado') {
+            if (statusGroup === 'localizado') {
                 return this.filterLocalizado;
             }
 
-            if (status === 'online') {
+            if (statusGroup === 'online') {
                 return this.filterOnline;
             }
 
             return this.filterOffline;
         });
+    }
+
+    private getDeviceStatusGroup(status: any): 'online' | 'localizado' | 'offline' {
+        const value = String(status || '').trim().toLowerCase();
+        if (value === 'online' || value === 'en linea' || value === 'en línea' || value === 'senal debil' || value === 'señal debil' || value === 'señal débil') {
+            return 'online';
+        }
+        if (value === 'localizado' || value === 'localized' || value === 'located') {
+            return 'localizado';
+        }
+        return 'offline';
+    }
+
+    private isDeviceExpired(expirationDate?: any, status?: any, explicitExpired?: any): boolean {
+        if (explicitExpired === true || explicitExpired === 1 || String(explicitExpired).trim().toLowerCase() === 'true') {
+            return true;
+        }
+
+        const statusValue = String(status || '').trim().toLowerCase();
+        if (['expirado', 'expired', 'vencido'].includes(statusValue)) {
+            return true;
+        }
+
+        if (!expirationDate) return false;
+
+        const date = new Date(expirationDate);
+        if (Number.isNaN(date.getTime())) return false;
+
+        return date.setHours(0, 0, 0, 0) < new Date().setHours(0, 0, 0, 0);
+    }
+
+    private getDeviceExpirationDate(device: any): any {
+        return device?.expiration_date
+            || device?.expirationDate
+            || device?.expiration
+            || device?.expires_at
+            || device?.expiresAt;
     }
 }

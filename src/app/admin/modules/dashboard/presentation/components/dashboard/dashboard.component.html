@@ -28,6 +28,12 @@
                 <div class="filter-chip" [class.active]="filterExpired" (click)="toggleFilter('expired')">
                     <span class="dot bg-expired"></span> Expirado
                 </div>
+                <div class="filter-chip technician-chip" *ngIf="canSeeTechnicians" [class.active]="filterTechnicians" (click)="toggleFilter('technicians')">
+                    <span class="dot bg-technician"></span> Técnicos
+                </div>
+                <div class="filter-chip located-user-chip" *ngIf="isRoot" [class.active]="filterClients" (click)="toggleFilter('clients')">
+                    <span class="dot bg-located-user"></span> Clientes
+                </div>
             </div>
         </div>
     </div>

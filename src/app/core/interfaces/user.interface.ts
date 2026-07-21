@@ -54,6 +54,8 @@ export interface User {
   sector?: string;
   latitude?: number;
   longitude?: number;
+  locationUpdatedAt?: string | Date;
+  locationAccuracy?: number;
   photo?: string;
   settings?: UserSettings[];
   profile_type_id?: string;

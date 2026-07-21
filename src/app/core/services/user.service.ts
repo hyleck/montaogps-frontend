@@ -55,6 +55,19 @@ export interface UserLatestLocation {
   source?: string;
 }
 
+export interface LocatedUser {
+  id: string;
+  name: string;
+  last_name?: string;
+  email?: string;
+  affiliation_type_id?: string;
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  recordedAt?: string | Date;
+  source?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -110,6 +123,10 @@ export class UserService {
 
   getLatestLocation(id: string): Observable<UserLatestLocation | null> {
     return this.http.get<UserLatestLocation | null>(`${this.apiUrl}/${id}/location/latest`);
+  }
+
+  getLocatedUsers(): Observable<LocatedUser[]> {
+    return this.http.get<LocatedUser[]>(`${this.apiUrl}/locations/all`);
   }
 
   create(createUserDto: CreateUserDto): Observable<User> {

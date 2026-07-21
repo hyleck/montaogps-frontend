@@ -1,5 +1,5 @@
 // Angular imports
-import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subscription, Subject, forkJoin, from, lastValueFrom } from 'rxjs';
@@ -31,9 +31,11 @@ import { ChatwootApiService } from '@core/services/chatwoot-api.service';
 import { ProtocolsService } from '@core/services/protocols.service';
 import { InventoryService, Warehouse, InventoryItem } from '@core/services/inventory.service';
 import { SolicitudesService } from '@core/services/solicitudes.service';
+import { SystemService } from '@core/services/system.service';
+import { UserActivity, UserActivityService } from '@core/services/user-activity.service';
 import { Protocol } from '@core/interfaces/protocol.interface';
 import { SIM_CARD_TYPES } from '@core/constants/sim-card-types.constant';
-import type { MapProvider } from '@shared/helpers/map.helper';
+import { MapUtils, type MapProvider } from '@shared/helpers/map.helper';
 
 @Component({
   selector: 'app-management',
@@ -74,6 +76,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
   transferCreatedAccountTargets: any[] = [];
   transferCreatedAccountSuccessCount: number = 0;
   transferCreatedAccountErrorCount: number = 0;
+  userLocationDialogVisible: boolean = false;
+  userLocationDialogLoading: boolean = false;
+  userLocationDialogError: string = '';
+  userLocationActivityLoading: boolean = false;
+  userLocationActivities: UserActivity[] = [];
+  selectedLocationUser: User | null = null;
+  userLocationMapInstance: any = null;
+  userLocationMarker: any = null;
+  @ViewChild('userLocationMap') userLocationMap?: ElementRef<HTMLDivElement>;
   createAccountTransferMethodDialogVisible: boolean = false;
   registrationLinkAffiliationDialogVisible: boolean = false;
   registrationLinkDialogVisible: boolean = false;
@@ -485,7 +496,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private chatwootApi: ChatwootApiService,
     private protocolsService: ProtocolsService,
     private inventoryService: InventoryService,
-    private solicitudesService: SolicitudesService
+    private solicitudesService: SolicitudesService,
+    private systemService: SystemService,
+    private userActivityService: UserActivityService
   ) { }
 
   // ====================================
@@ -4952,5 +4965,288 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.scrollChatToBottom();
       }
     });
+  }
+
+  getUserLastLocationDate(user: User | any): Date | null {
+    const rawDate = user?.locationUpdatedAt
+      || user?.last_location_at
+      || user?.lastLocationAt
+      || user?.location?.recordedAt;
+
+    if (!rawDate) return null;
+
+    const date = new Date(rawDate);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  getUserActiveAgo(user: User | any): string {
+    const date = this.getUserLastLocationDate(user);
+    if (!date) return '';
+
+    const diffMs = Math.max(0, Date.now() - date.getTime());
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes < 1) return 'ahora';
+    if (diffMinutes < 60) return `hace ${diffMinutes} minuto${diffMinutes === 1 ? '' : 's'}`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `hace ${diffHours} hora${diffHours === 1 ? '' : 's'}`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 30) return `hace ${diffDays} día${diffDays === 1 ? '' : 's'}`;
+
+    const diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths < 12) return `hace ${diffMonths} mes${diffMonths === 1 ? '' : 'es'}`;
+
+    const diffYears = Math.floor(diffDays / 365);
+    return `hace ${diffYears} año${diffYears === 1 ? '' : 's'}`;
+  }
+
+  isUserLocationOlderThanFiveHours(user: User | any): boolean {
+    const date = this.getUserLastLocationDate(user);
+    if (!date) return false;
+
+    const fiveHoursMs = 5 * 60 * 60 * 1000;
+    return Date.now() - date.getTime() > fiveHoursMs;
+  }
+
+  openUserLocationDialog(user: User | any): void {
+    const position = this.getUserLocationPosition(user);
+    if (!position) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Sin ubicación',
+        detail: 'Este usuario no tiene una ubicación válida registrada.'
+      });
+      return;
+    }
+
+    this.selectedLocationUser = user;
+    this.userLocationDialogVisible = true;
+    this.userLocationDialogLoading = true;
+    this.userLocationDialogError = '';
+    this.userLocationActivities = [];
+
+    setTimeout(() => this.renderUserLocationMap(position), 0);
+    this.loadUserLocationActivity(user);
+  }
+
+  closeUserLocationDialog(): void {
+    this.userLocationDialogVisible = false;
+    this.userLocationDialogLoading = false;
+    this.userLocationDialogError = '';
+    this.userLocationActivityLoading = false;
+    this.userLocationActivities = [];
+    this.selectedLocationUser = null;
+    this.userLocationMarker?.setMap?.(null);
+    this.userLocationMarker = null;
+    this.userLocationMapInstance = null;
+  }
+
+  private getUserLocationPosition(user: User | any): { lat: number; lng: number } | null {
+    const lat = Number(user?.latitude ?? user?.location?.latitude);
+    const lng = Number(user?.longitude ?? user?.location?.longitude);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+
+    return { lat, lng };
+  }
+
+  private async renderUserLocationMap(position: { lat: number; lng: number }): Promise<void> {
+    try {
+      const systemConfigsResponse = await lastValueFrom(this.systemService.getAll());
+      const systemConfigs = systemConfigsResponse?.[0];
+      const mapKey = systemConfigs?.map_api1?.key;
+      const mapUrl = systemConfigs?.map_api1?.url;
+
+      if (!mapKey || !mapUrl) {
+        this.userLocationDialogError = 'No hay configuración de mapa disponible.';
+        return;
+      }
+
+      await MapUtils.loadMapScript('google', mapKey, mapUrl);
+
+      const mapElement = this.userLocationMap?.nativeElement;
+      if (!mapElement) {
+        this.userLocationDialogError = 'No se pudo preparar el mapa.';
+        return;
+      }
+
+      this.userLocationMapInstance = new google.maps.Map(mapElement, {
+        center: position,
+        zoom: 16,
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+      });
+
+      this.userLocationMarker = new google.maps.Marker({
+        position,
+        map: this.userLocationMapInstance,
+        title: this.selectedLocationUser
+          ? `${this.selectedLocationUser.name || ''} ${this.selectedLocationUser.last_name || ''}`.trim()
+          : 'Usuario',
+      });
+
+      this.userLocationDialogLoading = false;
+    } catch (error) {
+      console.error('Error mostrando ubicación del usuario:', error);
+      this.userLocationDialogError = 'No se pudo mostrar la ubicación.';
+      this.userLocationDialogLoading = false;
+    }
+  }
+
+  private async loadUserLocationActivity(user: User | any): Promise<void> {
+    const userId = String(user?._id || user?.id || '').trim();
+    if (!userId) return;
+
+    this.userLocationActivityLoading = true;
+    try {
+      const response = await lastValueFrom(this.userActivityService.getByUser(userId, 40));
+      this.userLocationActivities = response?.activities || [];
+    } catch (error) {
+      console.error('Error cargando historial del usuario:', error);
+      this.userLocationActivities = [];
+    } finally {
+      this.userLocationActivityLoading = false;
+    }
+  }
+
+  getActivityTitle(activity: UserActivity): string {
+    if (activity.type === 'screen') {
+      return this.formatActivityScreen(activity.screen || activity.route || '');
+    }
+
+    return this.formatActivityAction(activity.action || 'accion');
+  }
+
+  getActivitySubtitle(activity: UserActivity): string {
+    const metadata = activity.metadata || {};
+    const target = this.getActivityTargetDetail(activity);
+    if (target) return target;
+
+    const action = String(activity.action || '').toLowerCase();
+    if (action === 'view gps' || action === 'view gps by imei') {
+      return 'GPS consultado';
+    }
+
+    const route = String(activity.route || activity.screen || '').toLowerCase();
+    if (/^\/devices\/[a-f0-9]{24}$/i.test(route) || route.startsWith('/devices/by-imei/')) {
+      return 'GPS consultado';
+    }
+
+    return this.formatActivityRoute(activity.route || activity.screen || '');
+  }
+
+  getActivityAgo(activity: UserActivity): string {
+    const date = new Date(activity.occurred_at);
+    if (Number.isNaN(date.getTime())) return '';
+    return this.formatRelativeDate(date);
+  }
+
+  private formatActivityAction(action: string): string {
+    const rawValue = String(action || '').trim();
+    const value = rawValue.toLowerCase();
+    if (value === 'view gps') return 'Vio un GPS';
+    if (value === 'view gps by imei') return 'Vio un GPS por IMEI';
+    if (value.startsWith('create ')) return `Creó ${this.formatActivityResource(value.replace(/^create\s+/, ''))}`;
+    if (value.startsWith('update ')) return `Editó ${this.formatActivityResource(value.replace(/^update\s+/, ''))}`;
+    if (value.startsWith('delete ')) return `Eliminó ${this.formatActivityResource(value.replace(/^delete\s+/, ''))}`;
+    if (value === 'create') return 'Creó';
+    if (value === 'update' || value === 'edit') return 'Editó';
+    if (value === 'delete') return 'Eliminó';
+    if (value === 'view') return 'Vio';
+    if (value === 'search') return 'Buscó';
+    return rawValue || 'Registró una acción';
+  }
+
+  private formatActivityScreen(screen: string): string {
+    const value = String(screen || '').trim();
+    if (!value) return 'Entró a una pantalla';
+    return `Entró a ${this.formatActivityResource(value)}`;
+  }
+
+  private formatActivityRoute(route: string): string {
+    const value = String(route || '').trim();
+    if (!value || value === 'api') return '';
+    return this.formatActivityResource(value);
+  }
+
+  private formatActivityResource(resource: string): string {
+    const normalized = String(resource || '')
+      .trim()
+      .toLowerCase()
+      .replace(/^\/+/, '')
+      .replace(/\/:id$/, '')
+      .replace(/\/[a-f0-9]{24}$/i, '')
+      .replace(/\/by-imei\/.+$/i, '');
+
+    const resourceMap: Record<string, string> = {
+      devices: 'un GPS',
+      users: 'un usuario',
+      solicitudes: 'una solicitud',
+      commands: 'comandos',
+      simcards: 'una SIM',
+      monitoring: 'monitoreo',
+      dashboard: 'el dashboard',
+      management: 'management',
+    };
+
+    const firstSegment = normalized.split('/').filter(Boolean)[0] || normalized;
+    return resourceMap[firstSegment] || 'el sistema';
+  }
+
+  private getActivityTargetDetail(activity: UserActivity): string {
+    const metadata = activity.metadata || {};
+    const resource = String(metadata['resource'] || activity.route || activity.screen || '').toLowerCase();
+    const targetName = this.cleanActivityText(metadata['targetName'] || metadata['target'] || metadata['deviceName']);
+    const userName = this.cleanActivityText(metadata['userName']);
+    const email = this.cleanActivityText(metadata['email']);
+    const imei = this.cleanActivityText(metadata['imei']);
+    const targetId = this.cleanActivityText(metadata['targetId'] || this.extractIdFromActivityRoute(activity.route));
+
+    if (resource.includes('devices') || String(activity.action || '').toLowerCase().includes('gps')) {
+      const label = targetName || (targetId ? `GPS no identificado (${this.shortenActivityId(targetId)})` : '');
+      return [label, imei ? `IMEI: ${imei}` : ''].filter(Boolean).join(' · ');
+    }
+
+    if (resource.includes('users')) {
+      const label = userName || email || (targetId ? `Usuario no identificado (${this.shortenActivityId(targetId)})` : '');
+      return [label, email && email !== label ? email : ''].filter(Boolean).join(' · ');
+    }
+
+    if (targetName) return targetName;
+    if (targetId) return `${this.formatActivityResource(resource)} ${this.shortenActivityId(targetId)}`;
+    return '';
+  }
+
+  private extractIdFromActivityRoute(route?: string): string {
+    const value = String(route || '').trim();
+    const idMatch = value.match(/[a-f0-9]{24}/i);
+    if (idMatch) return idMatch[0];
+    const imeiMatch = value.match(/\/devices\/by-imei\/([^/]+)/i);
+    return imeiMatch?.[1] || '';
+  }
+
+  private shortenActivityId(value: string): string {
+    const text = String(value || '').trim();
+    return text.length > 12 ? `${text.slice(0, 8)}...` : text;
+  }
+
+  private cleanActivityText(value: any): string {
+    return String(value || '').trim();
+  }
+
+  private formatRelativeDate(date: Date): string {
+    const diffMs = Math.max(0, Date.now() - date.getTime());
+    const diffMinutes = Math.floor(diffMs / 60000);
+    if (diffMinutes < 1) return 'ahora';
+    if (diffMinutes < 60) return `hace ${diffMinutes} min`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `hace ${diffHours} h`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `hace ${diffDays} d`;
   }
 }

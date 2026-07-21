@@ -172,6 +172,13 @@
 
                                     </div>
                                     <div class="management__user-card-subtitle"><span>{{ user.email }}</span></div>
+                                    <button type="button" class="management__user-card-activity"
+                                        [class.is-stale]="isUserLocationOlderThanFiveHours(user)"
+                                        *ngIf="currentUserAffiliationTypeId === 'empleado' && getUserLastLocationDate(user)"
+                                        (click)="openUserLocationDialog(user)" title="Ver ubicación del usuario">
+                                        <i class="pi pi-map-marker"></i>
+                                        <span>Activo {{ getUserActiveAgo(user) }}</span>
+                                    </button>
                                     <div class="management__user-card-phone" *ngIf="user.phone">
                                         <span> {{ user.phone }}</span>
                                     </div>
@@ -712,6 +719,13 @@
 
                             </div>
                             <div class="management__user-card-subtitle"> <span>{{ user.email }}</span> </div>
+                            <button type="button" class="management__user-card-activity"
+                                [class.is-stale]="isUserLocationOlderThanFiveHours(user)"
+                                *ngIf="currentUserAffiliationTypeId === 'empleado' && getUserLastLocationDate(user)"
+                                (click)="openUserLocationDialog(user)" title="Ver ubicación del usuario">
+                                <i class="pi pi-map-marker"></i>
+                                <span>Activo {{ getUserActiveAgo(user) }}</span>
+                            </button>
                             <div class="management__user-card-footer">{{ user.phone }}</div>
                             <div class="management__user-card-controls">
                                 <button (click)="enterUser(user)" class="button button--primary-flat"
@@ -1748,6 +1762,66 @@
         <div *ngIf="chatUser" style="margin-top: 0.5rem; font-size: 0.8rem; color: rgba(255,255,255,0.4);">
             <i class="pi pi-phone" style="margin-right: 4px;"></i> {{ chatUser.phone || 'Sin teléfono' }}
         </div>
+    </div>
+</p-dialog>
+
+<p-dialog [(visible)]="userLocationDialogVisible" [modal]="true" [draggable]="false" [resizable]="false"
+    [style]="{width: 'min(1040px, 96vw)'}" styleClass="app-dark-dialog user-location-dialog"
+    (onHide)="closeUserLocationDialog()">
+    <ng-template pTemplate="header">
+        <div class="user-location-dialog__header">
+            <i class="pi pi-map-marker"></i>
+            <div>
+                <strong>{{ selectedLocationUser?.name }} {{ selectedLocationUser?.last_name }}</strong>
+                <span *ngIf="selectedLocationUser">Activo {{ getUserActiveAgo(selectedLocationUser) }}</span>
+            </div>
+        </div>
+    </ng-template>
+
+    <div class="user-location-dialog__content">
+        <div class="user-location-dialog__map-panel">
+            <div *ngIf="userLocationDialogLoading" class="user-location-dialog__state">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando ubicación...</span>
+            </div>
+
+            <div *ngIf="userLocationDialogError && !userLocationDialogLoading" class="user-location-dialog__state user-location-dialog__state--error">
+                <i class="pi pi-exclamation-triangle"></i>
+                <span>{{ userLocationDialogError }}</span>
+            </div>
+
+            <div #userLocationMap class="user-location-map" [class.user-location-map--hidden]="userLocationDialogLoading || userLocationDialogError"></div>
+        </div>
+
+        <aside class="user-location-dialog__history">
+            <div class="user-location-dialog__history-header">
+                <strong>Historial</strong>
+                <span>{{ userLocationActivities.length }} eventos</span>
+            </div>
+
+            <div *ngIf="userLocationActivityLoading" class="user-location-dialog__history-state">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando historial...</span>
+            </div>
+
+            <div *ngIf="!userLocationActivityLoading && !userLocationActivities.length" class="user-location-dialog__history-state">
+                <i class="pi pi-history"></i>
+                <span>No hay actividad registrada.</span>
+            </div>
+
+            <div class="user-location-dialog__activity-list" *ngIf="!userLocationActivityLoading && userLocationActivities.length">
+                <div class="user-location-dialog__activity" *ngFor="let activity of userLocationActivities">
+                    <span class="user-location-dialog__activity-platform" [class.is-mobile]="activity.platform === 'mobile'">
+                        {{ activity.platform === 'mobile' ? 'Mobile' : 'Desktop' }}
+                    </span>
+                    <div class="user-location-dialog__activity-body">
+                        <strong>{{ getActivityTitle(activity) }}</strong>
+                        <small *ngIf="getActivitySubtitle(activity)">{{ getActivitySubtitle(activity) }}</small>
+                        <em>{{ getActivityAgo(activity) }}</em>
+                    </div>
+                </div>
+            </div>
+        </aside>
     </div>
 </p-dialog>
 
