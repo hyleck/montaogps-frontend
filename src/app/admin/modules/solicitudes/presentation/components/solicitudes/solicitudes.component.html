@@ -301,10 +301,10 @@
 
 <!-- Create / Edit Dialog -->
 <p-dialog [(visible)]="dialogVisible" [style]="{width: '700px'}"
-    [header]="isEditMode ? 'Editar Solicitud' : 'Nueva Solicitud'" [modal]="true" styleClass="p-fluid app-dark-dialog"
+    [header]="isSelectedSolicitudFinalized() ? 'Solicitud finalizada' : (isEditMode ? 'Editar Solicitud' : 'Nueva Solicitud')" [modal]="true" styleClass="p-fluid app-dark-dialog"
     (onHide)="hideDialog()">
     <ng-template pTemplate="content">
-        <div *ngIf="selectedSolicitud" class="sol-form">
+        <div *ngIf="selectedSolicitud" class="sol-form" [class.sol-form--readonly]="isSelectedSolicitudFinalized()">
 
             <!-- Required Section -->
             <div class="sol-form-separator sol-form-separator--required">
@@ -517,7 +517,7 @@
         <button type="button" class="sol-btn sol-btn-cancel" (click)="hideDialog()">
             <i class="pi pi-times"></i> Cancelar
         </button>
-        <button type="button" class="sol-btn sol-btn-save" (click)="saveSolicitud()">
+        <button type="button" class="sol-btn sol-btn-save" (click)="saveSolicitud()" [disabled]="isSelectedSolicitudFinalized()">
             <i class="pi pi-check"></i> Guardar
         </button>
     </ng-template>
@@ -525,7 +525,7 @@
 
 <!-- New Modal: Instalación -->
 <p-dialog [(visible)]="installationModalVisible" [style]="{width: '600px', 'max-height': '90vh'}" header="{{ getEntityName() }} #{{editingInstallationIndex + 1}}" [modal]="true" class="sol-dialog" [draggable]="false" [resizable]="false">
-    <div class="sol-form-container" *ngIf="selectedSolicitud && selectedSolicitud.installations && selectedSolicitud.installations[editingInstallationIndex]">
+    <div class="sol-form-container" [class.sol-form-container--readonly]="isSelectedSolicitudFinalized()" *ngIf="selectedSolicitud && selectedSolicitud.installations && selectedSolicitud.installations[editingInstallationIndex]">
             <!-- Vehicle Data Group -->
             <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('vehicle')" [class.active]="showVehicleData" style="cursor: pointer; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 0.6rem;">
@@ -698,6 +698,20 @@
                             <option *ngFor="let simType of simCardTypes" [value]="simType.value">{{ simType.label }}</option>
                         </select>
                     </div>
+                </div>
+
+                <div class="sol-existing-gps-action" *ngIf="checkingExistingGpsTargetByInstallation[editingInstallationIndex] || hasExistingGpsTarget(editingInstallationIndex)">
+                    <span *ngIf="checkingExistingGpsTargetByInstallation[editingInstallationIndex]" class="sol-existing-gps-action__status">
+                        <i class="pi pi-spin pi-spinner"></i>
+                        Verificando objetivo...
+                    </span>
+                    <button *ngIf="hasExistingGpsTarget(editingInstallationIndex)"
+                        type="button"
+                        class="sol-btn sol-btn-secondary sol-existing-gps-action__button"
+                        (click)="goToGpsFromInstallation(editingInstallationIndex, $event)">
+                        <i class="pi pi-map-marker"></i>
+                        Ir al GPS
+                    </button>
                 </div>
 
                 <div class="sol-form-row" *ngIf="selectedSolicitud.type === 'cambio'">

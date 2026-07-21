@@ -130,7 +130,8 @@
                 <div *ngFor="let msg of messages" class="comm-message"
                     [class.comm-message--outgoing]="msg.from === 'me'"
                     [class.comm-message--incoming]="msg.from === 'incoming'"
-                    [class.comm-message--system]="msg.from === 'system'">
+                    [class.comm-message--system]="msg.from === 'system'"
+                    [class.comm-message--sticker-only]="isStickerOnlyMessage(msg)">
                     <!-- Reply button (visible on hover) -->
                     <button *ngIf="msg.from !== 'system'" class="comm-reply-btn" (click)="setReplyTo(msg)" title="Responder">
                         <i class="pi pi-reply"></i>
@@ -145,9 +146,21 @@
                         <!-- Attachments -->
                         <ng-container *ngIf="msg.attachments?.length">
                             <div *ngFor="let att of msg.attachments" class="comm-attachment">
-                                <div *ngIf="att.file_type === 'image'" class="comm-attachment__img-wrap" (click)="openMedia(att.data_url, 'image')">
-                                    <img [src]="att.data_url" alt="imagen" class="comm-attachment__img" />
+                                <div *ngIf="att.file_type === 'image'"
+                                    class="comm-attachment__img-wrap"
+                                    [class.comm-attachment__img-wrap--sticker]="isStickerAttachment(att)"
+                                    (click)="openMedia(att.data_url, 'image')">
+                                    <img [src]="att.data_url" alt="imagen"
+                                        class="comm-attachment__img"
+                                        [class.comm-attachment__img--sticker]="isStickerAttachment(att)" />
                                 </div>
+                                <button *ngIf="att.file_type === 'image' && msg.from === 'incoming'"
+                                    class="comm-sticker-save-btn"
+                                    [disabled]="savingStickerUrl === att.data_url"
+                                    title="Guardar como sticker"
+                                    (click)="saveImageAsSticker(att, msg)">
+                                    <i [class]="savingStickerUrl === att.data_url ? 'pi pi-spin pi-spinner' : 'pi pi-bookmark'"></i>
+                                </button>
                                 <div *ngIf="att.file_type === 'video'" class="comm-attachment__vid-wrap" (click)="openMedia(att.data_url, 'video')">
                                     <video [src]="att.data_url" class="comm-attachment__video"></video>
                                     <div class="comm-attachment__play"><i class="pi pi-play-circle"></i></div>
@@ -156,7 +169,7 @@
                                     class="comm-attachment__audio"></audio>
                                 <a *ngIf="att.file_type === 'file'" [href]="att.data_url" target="_blank"
                                     class="comm-attachment__file">
-                                    <i class="pi pi-file"></i> Descargar archivo
+                                    <i class="pi pi-file"></i> {{ att.file_name || 'Descargar archivo' }}
                                 </a>
                             </div>
                         </ng-container>
@@ -223,6 +236,52 @@
                 <button class="comm-reply-preview__close" (click)="cancelReply()">
                     <i class="pi pi-times"></i>
                 </button>
+            </div>
+
+            <div *ngIf="showStickerPicker" class="comm-sticker-picker">
+                <div class="comm-sticker-picker__header">
+                    <span><i class="pi pi-send"></i> Stickers</span>
+                    <div class="comm-sticker-picker__actions">
+                        <input #stickerUploadInput
+                            type="file"
+                            accept="image/*"
+                            class="comm-sticker-picker__file"
+                            (change)="onStickerUploadSelected($event)" />
+                        <button class="comm-sticker-picker__action"
+                            title="Crear sticker"
+                            [disabled]="uploadingSticker"
+                            (click)="stickerUploadInput.click()">
+                            <i [class]="uploadingSticker ? 'pi pi-spin pi-spinner' : 'pi pi-upload'"></i>
+                        </button>
+                        <button class="comm-sticker-picker__close" (click)="showStickerPicker = false">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div *ngIf="loadingStickers" class="comm-sticker-picker__empty">
+                    <i class="pi pi-spin pi-spinner"></i> Cargando stickers...
+                </div>
+                <div *ngIf="!loadingStickers && stickers.length === 0" class="comm-sticker-picker__empty">
+                    Guarda una imagen recibida o sube una imagen para crear un sticker.
+                </div>
+                <div *ngIf="!loadingStickers && stickers.length > 0" class="comm-sticker-grid">
+                    <button *ngFor="let sticker of stickers"
+                        class="comm-sticker-item"
+                        [disabled]="!!sendingStickerId || !!deletingStickerId"
+                        (click)="sendSticker(sticker)"
+                        [title]="sticker.name">
+                        <img [src]="sticker.url" [alt]="sticker.name" />
+                        <span class="comm-sticker-item__delete"
+                            [class.comm-sticker-item__delete--loading]="deletingStickerId === sticker.id"
+                            title="Borrar sticker"
+                            (click)="deleteSticker(sticker, $event)">
+                            <i [class]="deletingStickerId === sticker.id ? 'pi pi-spin pi-spinner' : 'pi pi-trash'"></i>
+                        </span>
+                        <span *ngIf="sendingStickerId === sticker.id" class="comm-sticker-item__loading">
+                            <i class="pi pi-spin pi-spinner"></i>
+                        </span>
+                    </button>
+                </div>
             </div>
 
             <!-- Input (Only shown if assigned AND inside 24h window) -->

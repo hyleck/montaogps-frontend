@@ -115,4 +115,27 @@ export class ChatwootApiService {
     sendWhatsAppText(payload: { phone: string; message: string; contact_name?: string; agent_id?: string }): Observable<any> {
         return this.http.post(`${this.apiUrl}/send-whatsapp-text`, payload);
     }
+
+    getStickers(): Observable<any> {
+        return this.http.get(`${this.apiUrl}/stickers`);
+    }
+
+    saveStickerFromImage(payload: { image_url: string; name?: string }): Observable<any> {
+        return this.http.post(`${this.apiUrl}/stickers/save-from-image`, payload);
+    }
+
+    uploadStickerImage(file: File, name?: string): Observable<any> {
+        const formData = new FormData();
+        formData.append('image', file, file.name);
+        if (name) formData.append('name', name);
+        return this.http.post(`${this.apiUrl}/stickers/upload`, formData);
+    }
+
+    sendSticker(payload: { phone: string; sticker_id: string; conversation_id?: number; agent_id?: string }): Observable<any> {
+        return this.http.post(`${this.apiUrl}/stickers/send`, payload);
+    }
+
+    deleteSticker(stickerId: string): Observable<any> {
+        return this.http.delete(`${this.apiUrl}/stickers/${stickerId}`);
+    }
 }

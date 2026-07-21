@@ -117,6 +117,15 @@ interface ChatAttachment {
   data_url: string;
   file_type: string;
   content_type: string;
+  file_name?: string;
+}
+
+interface WhatsAppSticker {
+  id: string;
+  name: string;
+  url: string;
+  mimetype: string;
+  file_size: number;
 }
 
 
@@ -188,6 +197,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   chatInput: string = '';
   sendingMessage: boolean = false;
   replyingTo: ChatMessage | null = null;
+  stickers: WhatsAppSticker[] = [];
+  loadingStickers: boolean = false;
+  showStickerPicker: boolean = false;
+  savingStickerUrl: string | null = null;
+  uploadingSticker: boolean = false;
+  sendingStickerId: string | null = null;
+  deletingStickerId: string | null = null;
   // Lightbox
   lightboxUrl: string | null = null;
   lightboxType: 'image' | 'video' = 'image';
@@ -294,6 +310,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.updateAttachmentMenu();
+    this.loadStickers();
 
     this.loadUserInbox();
     this.interaccionesService.getAll().subscribe({
@@ -1338,7 +1355,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private updateAttachmentMenu() {
     this.attachmentMenuItems = [
       { label: 'Fotos y Videos', icon: 'pi pi-image', command: () => this.mediaFileInput.nativeElement.click() },
-      { label: 'Documento', icon: 'pi pi-file', command: () => this.docFileInput.nativeElement.click() }
+      { label: 'Documento', icon: 'pi pi-file', command: () => this.docFileInput.nativeElement.click() },
+      { label: 'Stickers', icon: 'pi pi-send', command: () => this.toggleStickerPicker() }
     ];
 
     let hasSeparated = false;
@@ -1792,6 +1810,39 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private enrichWithAppUrls(msg: ChatMessage): ChatMessage {
       if (!msg.text) return msg;
 
+      const mediaMatch = msg.text.match(/^\[Archivo enviado por WhatsApp\]\s*\n(image|video|document)\s*\n([^\n]*)\n(https?:\/\/\S+)/i);
+      if (mediaMatch) {
+          const rawType = mediaMatch[1].toLowerCase();
+          const mediaType = rawType === 'document' ? 'file' : (rawType === 'video' ? 'video' : 'image');
+          msg.attachments = [
+              ...(msg.attachments || []),
+              {
+                  data_url: mediaMatch[3],
+                  file_type: mediaType,
+                  content_type: mediaType === 'video' ? 'video/mp4' : (mediaType === 'file' ? 'application/octet-stream' : 'image/jpeg'),
+                  file_name: mediaMatch[2] || 'Archivo enviado por WhatsApp'
+              }
+          ];
+          msg.text = '';
+          msg.parsedHtml = '';
+          return msg;
+      }
+
+      const stickerMatch = msg.text.match(/^\[Sticker enviado por WhatsApp\][\s\S]*?(https?:\/\/\S+\.webp(?:\?\S*)?)/i);
+      if (stickerMatch) {
+          msg.attachments = [
+              ...(msg.attachments || []),
+              {
+                  data_url: stickerMatch[1],
+                  file_type: 'image',
+                  content_type: 'image/webp'
+              }
+          ];
+          msg.text = '';
+          msg.parsedHtml = '';
+          return msg;
+      }
+
       // Realtime Link
       const rtMatch = msg.text.match(/(https?:\/\/[^\s<]+realtimelink\?[^\s<]+)/);
       if (rtMatch) {
@@ -1930,6 +1981,208 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.replyingTo = null;
   }
 
+  loadStickers(): void {
+    this.loadingStickers = true;
+    this.chatwootApi.getStickers().subscribe({
+      next: (res: any) => {
+        this.loadingStickers = false;
+        this.stickers = res?.success ? (res.stickers || []) : [];
+      },
+      error: () => {
+        this.loadingStickers = false;
+        this.stickers = [];
+      }
+    });
+  }
+
+  saveImageAsSticker(att: ChatAttachment, msg: ChatMessage): void {
+    if (!att?.data_url || this.savingStickerUrl) return;
+
+    this.savingStickerUrl = att.data_url;
+    const fallbackName = msg.id ? `sticker-chatwoot-${msg.id}` : 'sticker-chatwoot';
+    this.chatwootApi.saveStickerFromImage({
+      image_url: att.data_url,
+      name: fallbackName
+    }).subscribe({
+      next: (res: any) => {
+        this.savingStickerUrl = null;
+        if (res?.success && res.sticker) {
+          this.stickers = [res.sticker, ...this.stickers.filter(sticker => sticker.id !== res.sticker.id)];
+          this.showStickerPicker = true;
+          this.messageService.add({
+            severity: res.duplicated ? 'info' : 'success',
+            summary: res.duplicated ? 'Sticker ya guardado' : 'Sticker guardado',
+            detail: res.duplicated
+              ? 'Esta imagen ya estaba en tu lista de stickers'
+              : 'La imagen se guardó como sticker de WhatsApp'
+          });
+          return;
+        }
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo guardar',
+          detail: res?.error || 'Intenta con otra imagen'
+        });
+      },
+      error: () => {
+        this.savingStickerUrl = null;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo guardar',
+          detail: 'Error de conexión al guardar el sticker'
+        });
+      }
+    });
+  }
+
+  onStickerUploadSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file || this.uploadingSticker) return;
+
+    if (!file.type?.startsWith('image/')) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Archivo no válido',
+        detail: 'Solo puedes subir imágenes para crear stickers'
+      });
+      return;
+    }
+
+    this.uploadingSticker = true;
+    this.chatwootApi.uploadStickerImage(file, file.name).subscribe({
+      next: (res: any) => {
+        this.uploadingSticker = false;
+        if (res?.success && res.sticker) {
+          this.stickers = [res.sticker, ...this.stickers.filter(sticker => sticker.id !== res.sticker.id)];
+          this.showStickerPicker = true;
+          this.messageService.add({
+            severity: res.duplicated ? 'info' : 'success',
+            summary: res.duplicated ? 'Sticker ya guardado' : 'Sticker creado',
+            detail: res.duplicated
+              ? 'Esa imagen ya estaba guardada como sticker'
+              : 'La imagen se convirtió en sticker de WhatsApp'
+          });
+          return;
+        }
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo crear',
+          detail: res?.error || 'Intenta con otra imagen'
+        });
+      },
+      error: () => {
+        this.uploadingSticker = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo crear',
+          detail: 'Error de conexión al subir la imagen'
+        });
+      }
+    });
+  }
+
+  toggleStickerPicker(): void {
+    this.showStickerPicker = !this.showStickerPicker;
+    if (this.showStickerPicker && !this.stickers.length && !this.loadingStickers) {
+      this.loadStickers();
+    }
+  }
+
+  isStickerAttachment(att: ChatAttachment): boolean {
+    const contentType = String(att?.content_type || '').toLowerCase();
+    const dataUrl = String(att?.data_url || '').toLowerCase().split('?')[0];
+    return contentType === 'image/webp' || dataUrl.endsWith('.webp');
+  }
+
+  isStickerOnlyMessage(msg: ChatMessage): boolean {
+    const text = String(msg?.text || '').trim();
+    const attachments = msg?.attachments || [];
+    return !text && attachments.length > 0 && attachments.every(att => this.isStickerAttachment(att));
+  }
+
+  sendSticker(sticker: WhatsAppSticker): void {
+    if (!this.selectedConversation?.contact?.phone || !sticker?.id || this.sendingStickerId) return;
+
+    this.sendingStickerId = sticker.id;
+    this.chatwootApi.sendSticker({
+      phone: this.selectedConversation.contact.phone,
+      sticker_id: sticker.id,
+      conversation_id: this.selectedConversation.id,
+      agent_id: this.chatwootAgentId || undefined
+    }).subscribe({
+      next: (res: any) => {
+        this.sendingStickerId = null;
+        if (res?.success) {
+          const pendingMsg: ChatMessage = {
+            from: 'me',
+            text: '',
+            parsedHtml: '',
+            time: new Date(),
+            attachments: [{ data_url: sticker.url, file_type: 'image', content_type: 'image/webp' }]
+          };
+          this.messages.push(pendingMsg);
+          this.showStickerPicker = false;
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Sticker enviado',
+            detail: 'Se envió por WhatsApp y quedó registrado en Chatwoot'
+          });
+          this.loadMessages();
+          return;
+        }
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo enviar',
+          detail: res?.error || 'WhatsApp no aceptó el sticker'
+        });
+      },
+      error: () => {
+        this.sendingStickerId = null;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo enviar',
+          detail: 'Error de conexión al enviar el sticker'
+        });
+      }
+    });
+  }
+
+  deleteSticker(sticker: WhatsAppSticker, event: Event): void {
+    event.stopPropagation();
+    if (!sticker?.id || this.deletingStickerId) return;
+
+    this.deletingStickerId = sticker.id;
+    this.chatwootApi.deleteSticker(sticker.id).subscribe({
+      next: (res: any) => {
+        this.deletingStickerId = null;
+        if (res?.success) {
+          this.stickers = this.stickers.filter(item => item.id !== sticker.id);
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Sticker borrado',
+            detail: 'El sticker fue eliminado de la lista'
+          });
+          return;
+        }
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo borrar',
+          detail: res?.error || 'Intenta nuevamente'
+        });
+      },
+      error: () => {
+        this.deletingStickerId = null;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo borrar',
+          detail: 'Error de conexión al borrar el sticker'
+        });
+      }
+    });
+  }
+
   openMedia(url: string, type: 'image' | 'video'): void {
     this.lightboxUrl = url;
     this.lightboxType = type;
@@ -1967,7 +2220,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.sendingMessage = false;
         if (!res.success) {
-          this.messages.push({ from: 'system', text: '✗ Error al enviar archivo', time: new Date() });
+          const detail = res.error || 'Error al enviar archivo';
+          this.messages.push({ from: 'system', text: `✗ ${detail}`, time: new Date() });
+          this.messageService.add({ severity: 'error', summary: 'No se pudo enviar archivo', detail });
+        } else {
+          this.loadMessages();
         }
         this.scrollToBottom();
       },

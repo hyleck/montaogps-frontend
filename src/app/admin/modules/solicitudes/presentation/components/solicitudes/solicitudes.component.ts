@@ -1,4 +1,5 @@
 import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
 import { SolicitudesService, Solicitud } from '../../../../../../core/services/solicitudes.service';
@@ -161,6 +162,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     dialogVisible = false;
     installationModalVisible = false;
     editingInstallationIndex: number = 0;
+    existingGpsTargetByInstallation: Record<number, any> = {};
+    checkingExistingGpsTargetByInstallation: Record<number, boolean> = {};
     isEditMode = false;
     
     showVehicleData = false;
@@ -328,7 +331,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         private authService: AuthService,
         private messageService: MessageService,
         private confirmationService: ConfirmationService,
-        private systemService: SystemService
+        private systemService: SystemService,
+        private router: Router
     ) { }
 
     ngOnInit(): void {
@@ -636,6 +640,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         return ['chequeo', 'desinstalacion', 'cambio'].includes(this.selectedSolicitud?.type || '');
     }
 
+    isSelectedSolicitudFinalized(): boolean {
+        const status = this.selectedSolicitud?.status;
+        return status === 'completada' || status === 'cancelada';
+    }
+
     isInstallationFlow(type?: string): boolean {
         return ['instalacion', 'reinstalacion'].includes(type || '');
     }
@@ -707,6 +716,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             this.installationModalVisible = true;
             setTimeout(() => this.initLocationMap(), 200);
         }
+        this.lookupExistingGpsTarget(index, false);
     }
     
     toggleSection(section: string) {
@@ -976,12 +986,20 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     async onImeiBlur(index: number): Promise<void> {
+        await this.lookupExistingGpsTarget(index, true);
+    }
+
+    private async lookupExistingGpsTarget(index: number, showFoundToast = false): Promise<void> {
         if (!this.selectedSolicitud || !this.selectedSolicitud.installations || !this.selectedSolicitud.installations[index]) return;
-        
+
         const inst = this.selectedSolicitud.installations[index];
         const imei = inst.device_imei?.trim();
-        if (!imei) return;
+        if (!imei) {
+            delete this.existingGpsTargetByInstallation[index];
+            return;
+        }
 
+        this.checkingExistingGpsTargetByInstallation[index] = true;
         try {
             // Buscamos si existe con los permisos de targets
             const result = await this.targetsService.searchTargets(imei, this.solicitudAutocompleteUserId, 0, 10);
@@ -990,6 +1008,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 const exactMatch: any = result.devices.find((d: any) => d.device_imei === imei || d.name === imei) || result.devices[0];
                 
                 if (exactMatch) {
+                    this.existingGpsTargetByInstallation[index] = exactMatch;
                     inst.brand = exactMatch.target_brand_id || exactMatch.brand || inst.brand;
                     // Prepare model lookup if brand is found
                     if (inst.brand) {
@@ -1019,12 +1038,52 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                     inst.sim_company = exactMatch.sim_company || inst.sim_company;
                     
                     // Show message
-                    this.messageService.add({ severity: 'success', summary: 'Vehículo Encontrado', detail: 'Datos autocompletados desde el dispositivo.' });
+                    if (showFoundToast) {
+                        this.messageService.add({ severity: 'success', summary: 'Vehículo Encontrado', detail: 'Datos autocompletados desde el dispositivo.' });
+                    }
+                    return;
                 }
             }
+            delete this.existingGpsTargetByInstallation[index];
         } catch (error) {
             // Ignorar silenciosamente si no se encuentra o falla la red
+            delete this.existingGpsTargetByInstallation[index];
+        } finally {
+            this.checkingExistingGpsTargetByInstallation[index] = false;
         }
+    }
+
+    hasExistingGpsTarget(index: number): boolean {
+        return !!this.existingGpsTargetByInstallation[index];
+    }
+
+    getExistingGpsTarget(index: number): any | null {
+        return this.existingGpsTargetByInstallation[index] || null;
+    }
+
+    goToGpsFromInstallation(index: number, event?: MouseEvent): void {
+        const target = this.getExistingGpsTarget(index);
+        const inst = this.selectedSolicitud?.installations?.[index];
+        const imei = String(target?.device_imei || inst?.device_imei || '').trim();
+        const parentId = String(target?.parent_id || target?.user_id || this.selectedSolicitud?.user_id || '').trim();
+
+        if (!imei || !parentId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'No se puede abrir',
+                detail: 'No se encontró la cuenta donde está registrado ese GPS.'
+            });
+            return;
+        }
+
+        this.installationModalVisible = false;
+        this.dialogVisible = false;
+        const url = `/admin/management/t/${parentId}?search=${encodeURIComponent(imei)}`;
+        if (event?.ctrlKey || event?.metaKey) {
+            window.open(url, '_blank');
+            return;
+        }
+        this.router.navigate(['/admin/management', 't', parentId], { queryParams: { search: imei } });
     }
 
     async initRootLocationMap(): Promise<void> {
@@ -1372,6 +1431,14 @@ async initLocationMap(): Promise<void> {
 
     async saveSolicitud(): Promise<void> {
         if (!this.selectedSolicitud) return;
+        if (this.isSelectedSolicitudFinalized()) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Solicitud finalizada',
+                detail: 'Esta solicitud ya está cerrada y no puede modificarse.'
+            });
+            return;
+        }
 
         // Chequeos y desinstalaciones necesitan identificar el dispositivo.
         if (this.isDeviceRequiredForSolicitud()) {

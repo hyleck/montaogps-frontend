@@ -504,6 +504,69 @@
     opacity: 0.7;
 }
 
+.sol-form--readonly input,
+.sol-form--readonly select,
+.sol-form--readonly textarea,
+.sol-form--readonly .p-autocomplete,
+.sol-form--readonly .sol-map-link-button,
+.sol-form--readonly .sol-color-option,
+.sol-form--readonly #map-container-root,
+.sol-form-container--readonly input,
+.sol-form-container--readonly select,
+.sol-form-container--readonly textarea,
+.sol-form-container--readonly .p-autocomplete,
+.sol-form-container--readonly .sol-map-link-button,
+.sol-form-container--readonly .sol-color-option,
+.sol-form-container--readonly [id^="solLocationMap-"] {
+    pointer-events: none !important;
+    cursor: default !important;
+}
+
+.sol-form--readonly input,
+.sol-form--readonly select,
+.sol-form--readonly textarea,
+.sol-form-container--readonly input,
+.sol-form-container--readonly select,
+.sol-form-container--readonly textarea {
+    opacity: 0.72;
+    background: var(--managementFieldsBackground);
+}
+
+.sol-form--readonly .p-autocomplete,
+.sol-form-container--readonly .p-autocomplete,
+.sol-form--readonly .sol-map-link-field,
+.sol-form-container--readonly .sol-color-container {
+    opacity: 0.72;
+}
+
+.sol-existing-gps-action {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    padding-top: 0.15rem;
+}
+
+.sol-existing-gps-action__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--managementColorTextUser);
+    font-size: 0.82rem;
+    opacity: 0.72;
+}
+
+.sol-existing-gps-action__button {
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    background: rgba(99, 102, 241, 0.08);
+    color: #6366f1;
+}
+
+.sol-existing-gps-action__button:hover {
+    background: rgba(99, 102, 241, 0.16);
+    transform: translateY(-1px);
+}
+
 .sol-form-separator {
     display: flex;
     align-items: center;

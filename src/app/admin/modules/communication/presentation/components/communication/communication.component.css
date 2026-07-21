@@ -2031,6 +2031,22 @@
     padding: 0.3rem 0.75rem;
 }
 
+.comm-message--sticker-only .comm-message__bubble,
+.comm-message--outgoing.comm-message--sticker-only .comm-message__bubble,
+.comm-message--incoming.comm-message--sticker-only .comm-message__bubble {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    border-radius: 0;
+}
+
+.comm-message--sticker-only .comm-message__time {
+    margin-top: 0.15rem;
+    text-align: center;
+    color: rgba(148, 163, 184, 0.72);
+}
+
 .comm-message__text {
     font-size: 0.88rem;
     line-height: 1.5;
@@ -2143,6 +2159,21 @@
     display: block;
 }
 
+.comm-attachment__img-wrap--sticker {
+    background: transparent;
+    padding: 0;
+}
+
+.comm-attachment__img--sticker {
+    width: 150px;
+    height: 150px;
+    max-width: 150px;
+    max-height: 150px;
+    object-fit: contain;
+    border-radius: 0;
+    background: transparent;
+}
+
 .comm-attachment__video {
     max-width: 300px;
     max-height: 250px;
@@ -2181,6 +2212,198 @@
 
 .comm-attachment__img-wrap:hover img {
     filter: brightness(0.85);
+}
+
+.comm-attachment__img-wrap--sticker:hover img {
+    filter: none;
+    transform: scale(1.03);
+}
+
+.comm-sticker-save-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.45rem;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.1);
+    color: #34d399;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.comm-sticker-save-btn i {
+    font-size: 1rem;
+}
+
+.comm-sticker-save-btn:hover:not(:disabled) {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: rgba(34, 197, 94, 0.55);
+}
+
+.comm-sticker-save-btn:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.comm-sticker-picker {
+    border-top: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(15, 23, 42, 0.96);
+    padding: 0.75rem 0.9rem;
+}
+
+.comm-sticker-picker__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #e2e8f0;
+    font-weight: 800;
+    margin-bottom: 0.65rem;
+}
+
+.comm-sticker-picker__header span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.comm-sticker-picker__header i {
+    color: #34d399;
+}
+
+.comm-sticker-picker__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.comm-sticker-picker__file {
+    display: none;
+}
+
+.comm-sticker-picker__action {
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid rgba(52, 211, 153, 0.32);
+    border-radius: 50%;
+    background: rgba(52, 211, 153, 0.08);
+    color: #34d399;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.comm-sticker-picker__action:hover:not(:disabled) {
+    background: rgba(52, 211, 153, 0.18);
+    border-color: rgba(52, 211, 153, 0.62);
+    transform: translateY(-1px);
+}
+
+.comm-sticker-picker__action:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.comm-sticker-picker__close {
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+}
+
+.comm-sticker-picker__close:hover {
+    background: rgba(148, 163, 184, 0.12);
+    color: #fff;
+}
+
+.comm-sticker-picker__empty {
+    color: #94a3b8;
+    font-size: 0.88rem;
+    padding: 0.45rem 0;
+}
+
+.comm-sticker-grid {
+    display: flex;
+    gap: 0.65rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+}
+
+.comm-sticker-item {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    flex: 0 0 70px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.35rem;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.comm-sticker-item:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(34, 197, 94, 0.55);
+    background: rgba(34, 197, 94, 0.12);
+}
+
+.comm-sticker-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.comm-sticker-item__delete {
+    position: absolute;
+    top: -0.35rem;
+    right: -0.35rem;
+    width: 1.45rem;
+    height: 1.45rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(248, 113, 113, 0.5);
+    color: #f87171;
+    font-size: 0.72rem;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.comm-sticker-item:hover .comm-sticker-item__delete,
+.comm-sticker-item__delete--loading {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.comm-sticker-item__delete:hover {
+    background: rgba(127, 29, 29, 0.95);
+    color: #fecaca;
+}
+
+.comm-sticker-item__loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.72);
+    color: #34d399;
 }
 
 .comm-attachment__vid-wrap {
@@ -2605,6 +2828,7 @@
 :host-context(.app-light) .comm-message--outgoing .comm-message__text { color: #000000; }
 :host-context(.app-light) .comm-message--system .comm-message__bubble { background: rgba(0,0,0,0.05); border: none; color: #64748b; }
 :host-context(.app-light) .comm-message--outgoing .comm-msg-sig-icon { color: #dc2626; }
+:host-context(.app-light) .comm-message--sticker-only .comm-message__bubble { background: transparent; border: 0; box-shadow: none; }
 
 /* Reply Quote Bubble */
 :host-context(.app-light) .comm-reply-quote { background: rgba(0,0,0,0.04); border-left: 3px solid #64748b; }
