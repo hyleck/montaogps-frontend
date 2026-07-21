@@ -271,6 +271,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return user.profile_type_id === 'compartido';
   }
 
+  isUserVerified(user: User | null | undefined): boolean {
+    return user?.verificado === true || !!user?.cedula_img;
+  }
+
   /**
    * Determina el estado de expiración de un target basado en la fecha de expiración
    * @param expirationDate Fecha de expiración del target
@@ -2223,7 +2227,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
     const status = target?.traccarStatus || this.getDisplayTraccarStatus(target);
     if (this.isTargetOfflineForMovement(status)) {
-      return 'Fuera de línea';
+      return this.getTargetOfflineMovementLabel(target);
     }
 
     if (status === 'Señal débil') {
@@ -2295,6 +2299,26 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   private isTargetOfflineForMovement(status?: string | null): boolean {
     return status !== 'online' && status !== 'Señal débil' && status !== 'Localizado';
+  }
+
+  private getTargetOfflineMovementLabel(target: any): string {
+    const existingText = String(target?.offlineTimeText || '').trim();
+    if (existingText && existingText.toLowerCase().startsWith('fuera de línea hace')) {
+      return existingText;
+    }
+
+    const source = target?.originalTarget || target || {};
+    const lastUpdate = target?.traccarInfo?.lastUpdate
+      || source?.traccarInfo?.lastUpdate
+      || target?.lastUpdate
+      || source?.lastUpdate;
+
+    if (!lastUpdate) {
+      return 'Fuera de línea';
+    }
+
+    const offlineInfo = this.calculateOfflineTime(lastUpdate);
+    return offlineInfo.timeText || 'Fuera de línea';
   }
 
   private isTargetExpiredForMovement(target: any): boolean {

@@ -1,4 +1,64 @@
 
 <p-confirmDialog [style]="{width: '450px'}"></p-confirmDialog>
 
+<p-dialog [(visible)]="registrationNotificationVisible" [modal]="true" [draggable]="false" [resizable]="false"
+    [style]="{width: '440px', maxWidth: '94vw'}" styleClass="registration-completed-dialog">
+    <ng-template pTemplate="header">
+        <div class="registration-completed-title">
+            <i class="pi pi-check-circle"></i>
+            <div>
+                <strong>Cliente registrado</strong>
+                <span>Registro por link completado</span>
+            </div>
+        </div>
+    </ng-template>
+
+    <div class="registration-completed" *ngIf="registrationNotification as notification">
+        <p class="registration-completed__message">
+            El cliente <strong>{{ notification.clientName || 'Cliente' }}</strong> se ha registrado correctamente.
+        </p>
+
+        <div class="registration-completed__credentials">
+            <div>
+                <span>Usuario</span>
+                <strong>{{ notification.credentialsEmail || notification.clientEmail || 'No disponible' }}</strong>
+            </div>
+            <div>
+                <span>Contraseña</span>
+                <strong>{{ notification.credentialsPassword || 'No disponible' }}</strong>
+            </div>
+        </div>
+
+        <div class="registration-completed__details">
+            <div *ngIf="notification.clientPhone">
+                <span>WhatsApp</span>
+                <strong>{{ notification.clientPhone }}</strong>
+            </div>
+            <div *ngIf="notification.clientDni">
+                <span>Cédula</span>
+                <strong>{{ notification.clientDni }}</strong>
+            </div>
+            <div *ngIf="notification.parentName">
+                <span>Cuenta destino</span>
+                <strong>{{ notification.parentName }}</strong>
+            </div>
+            <div>
+                <span>GPS transferidos</span>
+                <strong>{{ notification.transferred || '0' }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button type="button" class="registration-completed__secondary"
+            (click)="registrationNotificationVisible = false">
+            Cerrar
+        </button>
+        <button type="button" class="registration-completed__primary" (click)="copyRegistrationCredentials()">
+            <i class="pi pi-copy"></i>
+            Copiar credenciales
+        </button>
+    </ng-template>
+</p-dialog>
+
 <router-outlet />

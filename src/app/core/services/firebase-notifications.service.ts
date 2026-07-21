@@ -24,6 +24,22 @@ export interface NotificationLog {
   updatedAt: string;
 }
 
+export interface PublicRegistrationNotification {
+  userId?: string;
+  parentId?: string;
+  parentName?: string;
+  clientName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  clientDni?: string;
+  credentialsEmail?: string;
+  credentialsPassword?: string;
+  affiliationType?: string;
+  whatsappStatus?: string;
+  transferred?: string;
+  failed?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -33,6 +49,7 @@ export class FirebaseNotificationsService {
   private initialized = false;
   private subscribedTopic: string | null = null;
   public chatTransferReceived$ = new Subject<{ conversationId?: string, summary?: string }>();
+  public publicRegistrationCompleted$ = new Subject<PublicRegistrationNotification>();
 
   constructor(
     private readonly http: HttpClient,
@@ -174,6 +191,24 @@ export class FirebaseNotificationsService {
             summary: payload.data?.['summary']
           });
         }
+      }
+
+      if (payload.data?.['type'] === 'public_registration_completed') {
+        this.publicRegistrationCompleted$.next({
+          userId: payload.data?.['userId'],
+          parentId: payload.data?.['parentId'],
+          parentName: payload.data?.['parentName'],
+          clientName: payload.data?.['clientName'],
+          clientEmail: payload.data?.['clientEmail'],
+          clientPhone: payload.data?.['clientPhone'],
+          clientDni: payload.data?.['clientDni'],
+          credentialsEmail: payload.data?.['credentialsEmail'],
+          credentialsPassword: payload.data?.['credentialsPassword'],
+          affiliationType: payload.data?.['affiliationType'],
+          whatsappStatus: payload.data?.['whatsappStatus'],
+          transferred: payload.data?.['transferred'],
+          failed: payload.data?.['failed'],
+        });
       }
 
     } catch (error) {

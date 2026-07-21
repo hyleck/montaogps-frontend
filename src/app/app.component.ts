@@ -5,7 +5,7 @@ import { ChatwootService } from './core/services/chatwoot.service';
 import { Router, NavigationEnd } from '@angular/router';
 import { filter, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
-import { FirebaseNotificationsService } from './core/services/firebase-notifications.service';
+import { FirebaseNotificationsService, PublicRegistrationNotification } from './core/services/firebase-notifications.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../environments/environment';
 import { ChatwootNotificationSoundService } from './core/services/chatwoot-notification-sound.service';
@@ -19,6 +19,8 @@ import { UserActivityService } from './core/services/user-activity.service';
 })
 export class AppComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
+  public registrationNotificationVisible = false;
+  public registrationNotification: PublicRegistrationNotification | null = null;
 
   constructor(
     public themes: ThemesService,
@@ -38,6 +40,12 @@ export class AppComponent implements OnInit, OnDestroy {
     this.monitorAuthentication();
     this.chatwootNotificationSound.start();
     this.userActivityService.start();
+    this.firebaseNotifications.publicRegistrationCompleted$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((notification) => {
+        this.registrationNotification = notification;
+        this.registrationNotificationVisible = true;
+      });
 
     // Monitorear cambios de ruta para reinicializar Chatwoot si es necesario
     this.router.events.pipe(
@@ -119,6 +127,18 @@ export class AppComponent implements OnInit, OnDestroy {
       // Usuario no está logueado, remover Chatwoot
       // this.chatwootService.removeChatwoot();
     }
+  }
+
+  copyRegistrationCredentials(): void {
+    if (!this.registrationNotification) return;
+
+    const text = [
+      `Cliente: ${this.registrationNotification.clientName || 'Cliente'}`,
+      `Usuario: ${this.registrationNotification.credentialsEmail || this.registrationNotification.clientEmail || ''}`,
+      `Contraseña: ${this.registrationNotification.credentialsPassword || ''}`,
+    ].join('\n');
+
+    navigator.clipboard?.writeText(text).catch(() => undefined);
   }
 
   /**
