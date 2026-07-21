@@ -31,6 +31,22 @@ export interface PublicRegistrationInfo {
   expires_at: string;
 }
 
+export interface IdentityScanResponse {
+  ok: boolean;
+  userId?: string;
+  data: Record<string, any>;
+  voiceAudio?: { mimeType: string; base64: string };
+  rawText?: string;
+}
+
+export interface IdentityFinalizeResponse {
+  ok: boolean;
+  userId?: string;
+  data: Record<string, any>;
+  cedula_img?: any;
+  user?: User;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -100,6 +116,19 @@ export class UserService {
     const formData = new FormData();
     formData.append('cedula', file);
     return this.http.post<any>(`${environment.apiUrl}/users-public/registration-link/${encodeURIComponent(token)}/scan-identity`, formData);
+  }
+
+  scanIdentity(userId: string, file: File): Observable<IdentityScanResponse> {
+    const formData = new FormData();
+    formData.append('cedula', file);
+    return this.http.post<IdentityScanResponse>(`${this.apiUrl}/${userId}/scan-identity`, formData);
+  }
+
+  finalizeIdentity(userId: string, file: File, metadata: Record<string, any>): Observable<IdentityFinalizeResponse> {
+    const formData = new FormData();
+    formData.append('cedula', file);
+    formData.append('metadata', JSON.stringify(metadata));
+    return this.http.post<IdentityFinalizeResponse>(`${this.apiUrl}/${userId}/finalize-identity`, formData);
   }
 
   registerWithPublicLink(token: string, payload: any): Observable<any> {

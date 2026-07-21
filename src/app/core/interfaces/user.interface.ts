@@ -67,6 +67,8 @@ export interface User {
   developer?: boolean;
   status?: boolean;
   tag?: string;
+  verificado?: boolean;
+  cedula_img?: any;
   idSessions?: Array<{ date: string; device: string }>;
   interaction_progress?: { listId: string; completed_objectives: string[] }[];
 }
@@ -106,6 +108,8 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
   root?: boolean;
   developer?: boolean;
   tag?: string;
+  verificado?: boolean;
+  cedula_img?: any;
 }
 
 export function convertToExtendedUser(user: User): ExtendedUser {

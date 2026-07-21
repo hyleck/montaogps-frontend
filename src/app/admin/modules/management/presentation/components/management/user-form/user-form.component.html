@@ -89,8 +89,17 @@
                                     <!-- Columna Derecha -->
                                     <div class="user-form__column">
                                         <div class="user-form__field">
-                                            <label for="dni">{{ translations.dni | translate }} <span
-                                                    class="required-label">(Requerido)</span></label>
+                                            <div class="user-form__label-row">
+                                                <label for="dni">{{ translations.dni | translate }} <span
+                                                        class="required-label">(Requerido)</span></label>
+                                                <button *ngIf="userInput" type="button"
+                                                    class="identity-verify-link"
+                                                    [class.identity-verify-link--verified]="isIdentityVerified"
+                                                    (click)="openIdentityVerificationModal()">
+                                                    <i class="pi" [ngClass]="isIdentityVerified ? 'pi-check-circle' : 'pi-id-card'"></i>
+                                                    {{ isIdentityVerified ? 'Verificado' : 'Verificar cuenta' }}
+                                                </button>
+                                            </div>
                                             <input [(ngModel)]="user.dni" name="dni" placeholder="Ej: 001-0000000-0"
                                                 type="text" id="dni" required>
                                         </div>
@@ -164,6 +173,87 @@
                         <p-dialog [(visible)]="showContactsModal" [modal]="true" [draggable]="false" [resizable]="false"
                             [style]="{ width: '500px' }" header="Contactos" (onHide)="closeContacts()">
                             <app-contacts [referenceId]="user._id || ''"></app-contacts>
+                        </p-dialog>
+
+                        <p-dialog [(visible)]="displayIdentityVerificationModal" [modal]="true" [draggable]="false"
+                            [resizable]="false" [style]="{ width: '620px', maxWidth: '94vw' }"
+                            styleClass="identity-verification-dialog" (onHide)="closeIdentityVerificationModal()">
+                            <ng-template pTemplate="header">
+                                <div class="identity-modal-title">
+                                    <i class="pi" [ngClass]="isIdentityVerified ? 'pi-check-circle' : 'pi-id-card'"></i>
+                                    <div>
+                                        <strong>{{ isIdentityVerified ? 'Cuenta verificada' : 'Verificar cuenta' }}</strong>
+                                        <span>{{ user.name || 'Usuario' }} {{ user.last_name || '' }}</span>
+                                    </div>
+                                </div>
+                            </ng-template>
+
+                            <div class="identity-verification">
+                                <input #identityFileInput type="file" accept="image/*" hidden
+                                    (change)="onIdentityFileSelected($event)">
+
+                                <div class="identity-upload" *ngIf="!isIdentityVerified">
+                                    <div>
+                                        <strong>Subir cédula</strong>
+                                        <span>Sube una foto clara de la cédula para digitalizar los datos y verificar la cuenta.</span>
+                                    </div>
+                                    <button type="button" class="identity-upload__button"
+                                        [disabled]="scanningIdentity || finalizingIdentity"
+                                        (click)="triggerIdentityFileInput()">
+                                        <i class="pi" [ngClass]="scanningIdentity ? 'pi-spin pi-spinner' : 'pi-upload'"></i>
+                                        {{ scanningIdentity ? 'Escaneando...' : 'Subir cédula' }}
+                                    </button>
+                                </div>
+
+                                <div class="identity-error" *ngIf="identityScanError">
+                                    <i class="pi pi-exclamation-triangle"></i>
+                                    <span>{{ identityScanError }}</span>
+                                </div>
+
+                                <div class="identity-result" *ngIf="identityPreviewUrl || identityScanResult">
+                                    <div class="identity-preview-card" *ngIf="identityPreviewUrl">
+                                        <img [src]="identityPreviewUrl" alt="Cédula del usuario">
+                                        <span *ngIf="isIdentityVerified"><i class="pi pi-check-circle"></i> Imagen verificada</span>
+                                    </div>
+
+                                    <div class="identity-data-card">
+                                        <div class="identity-data-card__header">
+                                            <strong>Datos digitalizados</strong>
+                                            <span *ngIf="identityScanResult?.['es_cedula'] === true">
+                                                <i class="pi pi-check-circle"></i>
+                                                Cédula detectada
+                                            </span>
+                                        </div>
+
+                                        <div class="identity-data-list" *ngIf="getIdentityDataEntries().length > 0; else noIdentityData">
+                                            <div class="identity-data-item" *ngFor="let item of getIdentityDataEntries()">
+                                                <span>{{ item.label }}</span>
+                                                <strong>{{ item.value }}</strong>
+                                            </div>
+                                        </div>
+
+                                        <ng-template #noIdentityData>
+                                            <div class="identity-empty">
+                                                <i class="pi pi-info-circle"></i>
+                                                <span>Aún no hay datos digitalizados.</span>
+                                            </div>
+                                        </ng-template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <ng-template pTemplate="footer">
+                                <button type="button" class="cancel-btn" (click)="closeIdentityVerificationModal()">
+                                    <i class="pi pi-times"></i>
+                                    Cerrar
+                                </button>
+                                <button *ngIf="!isIdentityVerified" type="button" class="save-button"
+                                    [disabled]="!identityFile || identityScanResult?.['es_cedula'] !== true || finalizingIdentity"
+                                    (click)="finalizeIdentityVerification()">
+                                    <i class="pi" [ngClass]="finalizingIdentity ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+                                    {{ finalizingIdentity ? 'Finalizando...' : 'Finalizar verificación' }}
+                                </button>
+                            </ng-template>
                         </p-dialog>
 
                         <p-dialog [(visible)]="displayPushModal" [modal]="true" [draggable]="false" [resizable]="false"

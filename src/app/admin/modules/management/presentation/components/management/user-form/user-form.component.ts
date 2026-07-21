@@ -206,10 +206,20 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     loadingCampaigns: boolean = false;
     addingToCampaign: boolean = false;
 
+    // Identity verification
+    displayIdentityVerificationModal: boolean = false;
+    identityFile: File | null = null;
+    identityPreviewUrl: string | null = null;
+    identityScanResult: Record<string, any> | null = null;
+    identityScanError: string = '';
+    scanningIdentity: boolean = false;
+    finalizingIdentity: boolean = false;
+
     // Subcliente parent email
     subclienteParentEmail: string = '';
 
     @ViewChild('municipalitySelect') municipalitySelectRef?: ElementRef<HTMLSelectElement>;
+    @ViewChild('identityFileInput') identityFileInput?: ElementRef<HTMLInputElement>;
 
     constructor(
         private userRolesService: UserRolesService,
@@ -489,6 +499,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.availableProvinces = [];
         this.availableMunicipalities = [];
         this.availableSectors = [];
+        this.resetIdentityVerificationState();
     }
 
     ngOnChanges(changes: SimpleChanges) {
@@ -613,6 +624,213 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
 
         this.activeTabIndex = 0;
+        this.resetIdentityVerificationState();
+    }
+
+    get isIdentityVerified(): boolean {
+        return this.user?.verificado === true || !!this.user?.cedula_img;
+    }
+
+    openIdentityVerificationModal(): void {
+        if (!this.userInput?._id) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Guarde el usuario',
+                detail: 'Debe guardar el usuario antes de verificar la cuenta.',
+                life: 2600
+            });
+            return;
+        }
+
+        this.resetIdentityVerificationState();
+        if (this.isIdentityVerified) {
+            this.identityScanResult = this.user.cedula_img?.metadata || null;
+            this.identityPreviewUrl = this.user.cedula_img?.url || null;
+        }
+        this.displayIdentityVerificationModal = true;
+    }
+
+    closeIdentityVerificationModal(): void {
+        this.displayIdentityVerificationModal = false;
+        this.resetIdentityVerificationState();
+    }
+
+    triggerIdentityFileInput(): void {
+        if (this.scanningIdentity || this.finalizingIdentity || this.isIdentityVerified) return;
+        this.identityFileInput?.nativeElement?.click();
+    }
+
+    onIdentityFileSelected(event: Event): void {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Archivo inválido',
+                detail: 'Debe subir una imagen de la cédula.'
+            });
+            input.value = '';
+            return;
+        }
+
+        this.identityFile = file;
+        this.identityScanResult = null;
+        this.identityScanError = '';
+        this.identityPreviewUrl = URL.createObjectURL(file);
+        input.value = '';
+        this.scanIdentityFile(file);
+    }
+
+    scanIdentityFile(file: File): void {
+        const userId = this.userInput?._id;
+        if (!userId) return;
+
+        this.scanningIdentity = true;
+        this.identityScanError = '';
+
+        this.userService.scanIdentity(userId, file)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (response) => {
+                    this.scanningIdentity = false;
+                    this.identityScanResult = response.data || null;
+
+                    if (response.data?.['es_cedula'] !== true) {
+                        this.identityScanError = response.data?.['mensaje_usuario']
+                            || 'La imagen subida no parece ser una cédula. Debe subir una foto clara de la cédula de identidad.';
+                        this.playIdentityVoice(response.voiceAudio);
+                        return;
+                    }
+
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Cédula digitalizada',
+                        detail: 'Verifique que los datos estén correctos y finalice la verificación.',
+                        life: 3000
+                    });
+                },
+                error: (error) => {
+                    this.scanningIdentity = false;
+                    this.identityScanError = error?.error?.message || error?.message || 'No se pudo escanear la cédula.';
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: this.identityScanError,
+                        life: 3500
+                    });
+                }
+            });
+    }
+
+    finalizeIdentityVerification(): void {
+        const userId = this.userInput?._id;
+        if (!userId || !this.identityFile || !this.identityScanResult) return;
+
+        if (this.identityScanResult['es_cedula'] !== true) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Cédula inválida',
+                detail: 'Debe subir una cédula válida antes de finalizar.'
+            });
+            return;
+        }
+
+        this.finalizingIdentity = true;
+        this.userService.finalizeIdentity(userId, this.identityFile, this.identityScanResult)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (response) => {
+                    this.finalizingIdentity = false;
+                    const updatedUser: any = response.user || {};
+                    this.user = {
+                        ...this.user,
+                        ...updatedUser,
+                        role: this.user.role,
+                        settings: this.user.settings,
+                        access_level_id: this.user.access_level_id,
+                        verificado: true,
+                        cedula_img: response.cedula_img || updatedUser.cedula_img
+                    };
+
+                    this.user.name = updatedUser.name || this.user.name;
+                    this.user.last_name = updatedUser.last_name || this.user.last_name;
+                    this.user.dni = updatedUser.dni || this.user.dni;
+                    this.user.birth = this.formatDateToInput(updatedUser.birth || this.user.birth);
+                    this.user.address = updatedUser.address || this.user.address;
+                    this.selectedProvince = updatedUser.province || this.selectedProvince;
+                    this.selectedMunicipality = updatedUser.municipality || this.selectedMunicipality;
+
+                    this.identityScanResult = response.data || this.identityScanResult;
+                    this.identityPreviewUrl = response.cedula_img?.url || this.identityPreviewUrl;
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Cuenta verificada',
+                        detail: 'La cuenta fue verificada correctamente.',
+                        life: 3000
+                    });
+                },
+                error: (error) => {
+                    this.finalizingIdentity = false;
+                    const detail = error?.error?.message || error?.message || 'No se pudo finalizar la verificación.';
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail,
+                        life: 4000
+                    });
+                }
+            });
+    }
+
+    getIdentityDataEntries(): Array<{ label: string; value: any }> {
+        if (!this.identityScanResult) return [];
+
+        const labels: Record<string, string> = {
+            nombres: 'Nombres',
+            apellidos: 'Apellidos',
+            cedula: 'Cédula',
+            fecha_nacimiento: 'Fecha de nacimiento',
+            lugar_nacimiento: 'Lugar de nacimiento',
+            nacionalidad: 'Nacionalidad',
+            sexo: 'Sexo',
+            estado_civil: 'Estado civil',
+            ocupacion: 'Ocupación',
+            direccion: 'Dirección',
+            municipio: 'Municipio',
+            provincia: 'Provincia',
+            fecha_emision: 'Fecha de emisión',
+            fecha_expiracion: 'Fecha de expiración',
+            confidence: 'Confianza'
+        };
+
+        return Object.entries(labels)
+            .map(([key, label]) => ({ label, value: this.identityScanResult?.[key] }))
+            .filter(item => item.value !== undefined && item.value !== null && item.value !== '');
+    }
+
+    private resetIdentityVerificationState(): void {
+        if (this.identityPreviewUrl && !this.identityPreviewUrl.startsWith('http')) {
+            URL.revokeObjectURL(this.identityPreviewUrl);
+        }
+        this.identityFile = null;
+        this.identityPreviewUrl = null;
+        this.identityScanResult = null;
+        this.identityScanError = '';
+        this.scanningIdentity = false;
+        this.finalizingIdentity = false;
+    }
+
+    private playIdentityVoice(voiceAudio?: { mimeType: string; base64: string }): void {
+        if (!voiceAudio?.base64) return;
+
+        try {
+            const audio = new Audio(`data:${voiceAudio.mimeType || 'audio/mpeg'};base64,${voiceAudio.base64}`);
+            audio.play().catch(() => undefined);
+        } catch (error) {
+            console.warn('No se pudo reproducir la voz de verificación:', error);
+        }
     }
 
     loadRoles() {
