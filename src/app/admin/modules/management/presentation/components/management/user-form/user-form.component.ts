@@ -190,6 +190,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     sendingWa: boolean = false;
     waFreeText: string = '';
     waConversationId: number | null = null;
+    waSelectedPhone: string = '';
     chatwootAgentId: string = '';
     waTemplateVars = {
         headerUser: '',
@@ -1525,10 +1526,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     // ─── WhatsApp Messaging ─────────────────────────────────
     openWhatsApp() {
-        if (!this.userInput || !this.userInput.phone) return;
+        if (!this.userInput || !this.getDefaultWhatsAppPhone()) return;
         this.waCheckingWindow = true;
+        this.waSelectedPhone = this.getDefaultWhatsAppPhone();
 
-        const phone = this.userInput.phone.replace(/[^0-9+]/g, '');
+        const phone = this.waSelectedPhone.replace(/[^0-9+]/g, '');
 
         // Single backend call that checks ALL conversations for this contact
         this.chatwootApi.check24hWindow(phone).subscribe({
@@ -1554,6 +1556,29 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         });
     }
 
+    getWhatsAppPhoneOptions(): { label: string; value: string }[] {
+        const options = [
+            { label: `WhatsApp principal: ${this.userInput?.phone || ''}`, value: this.userInput?.phone || '' },
+            { label: `WhatsApp secundario: ${this.userInput?.phone2 || ''}`, value: this.userInput?.phone2 || '' },
+        ].filter(option => !!String(option.value || '').trim());
+
+        return options.filter((option, index, list) => (
+            list.findIndex(item => this.normalizePhoneForCompare(item.value) === this.normalizePhoneForCompare(option.value)) === index
+        ));
+    }
+
+    private getDefaultWhatsAppPhone(): string {
+        return String(this.userInput?.phone || this.userInput?.phone2 || '').trim();
+    }
+
+    private getSelectedWhatsAppPhone(): string {
+        return String(this.waSelectedPhone || this.getDefaultWhatsAppPhone()).trim();
+    }
+
+    private normalizePhoneForCompare(phone: string): string {
+        return String(phone || '').replace(/\D/g, '');
+    }
+
     private openWaTemplateModal() {
         const toTitleCase = (str: string) => str.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase());
         const currentUser = this.authService.getCurrentUser();
@@ -1570,11 +1595,64 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     sendWaTemplate() {
-        if (!this.userInput?.phone) return;
+        const destinationPhone = this.getSelectedWhatsAppPhone();
+        if (!destinationPhone) return;
+        if (!String(this.waTemplateVars.body || '').trim()) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Mensaje requerido',
+                detail: 'Escribe el mensaje antes de enviar la plantilla.'
+            });
+            return;
+        }
         this.sendingWa = true;
 
+        const directMessage = this.buildWaDirectMessage();
+        const contactName = `${this.userInput?.name || ''} ${this.userInput?.last_name || ''}`.trim() || this.waTemplateVars.name;
+
+        this.chatwootApi.sendWhatsAppText({
+            phone: destinationPhone,
+            message: directMessage,
+            contact_name: contactName,
+            agent_id: this.chatwootAgentId || undefined
+        }).subscribe({
+            next: (res: any) => {
+                if (res.success) {
+                    this.sendingWa = false;
+                    this.showWaTemplateModal = false;
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Enviado',
+                        detail: `Mensaje WhatsApp enviado a ${destinationPhone}.`
+                    });
+                    return;
+                }
+
+                this.sendWaTemplateFallback(destinationPhone, res?.error);
+            },
+            error: (error) => {
+                this.sendWaTemplateFallback(
+                    destinationPhone,
+                    error?.error?.message || error?.error?.error || 'No se pudo enviar texto directo'
+                );
+            }
+        });
+    }
+
+    private buildWaDirectMessage(): string {
+        return [
+            `${this.waTemplateVars.headerUser || 'Asesor'}:`,
+            `B${this.waTemplateVars.bodySaludos || 'uenas'}, ${this.waTemplateVars.name}.`,
+            this.waTemplateVars.body,
+            '',
+            'Seguimos a tu orden por este número.',
+            'Montao GPS',
+        ].join('\n').trim();
+    }
+
+    private sendWaTemplateFallback(destinationPhone: string, directError?: string): void {
         this.chatwootApi.sendWhatsAppTemplateToUser({
-            phone: this.userInput.phone,
+            phone: destinationPhone,
             template_name: 'simple',
             variables: [
                 this.waTemplateVars.headerUser,
@@ -1588,20 +1666,33 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 this.sendingWa = false;
                 if (res.success) {
                     this.showWaTemplateModal = false;
-                    this.messageService.add({ severity: 'success', summary: 'Enviado', detail: 'Plantilla WhatsApp enviada.' });
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Enviado',
+                        detail: `Meta aceptó la plantilla para ${destinationPhone}.`
+                    });
                 } else {
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo enviar la plantilla.' });
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'Error',
+                        detail: res?.error || directError || 'No se pudo enviar la plantilla.'
+                    });
                 }
             },
-            error: () => {
+            error: (error) => {
                 this.sendingWa = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Error de red al enviar plantilla.' });
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: error?.error?.message || error?.error?.error || directError || 'Error de red al enviar plantilla.'
+                });
             }
         });
     }
 
     sendWaFreeText() {
-        if (!this.userInput?.phone || !this.waFreeText.trim()) return;
+        const destinationPhone = this.getSelectedWhatsAppPhone();
+        if (!destinationPhone || !this.waFreeText.trim()) return;
         this.sendingWa = true;
 
         const currentUser = this.authService.getCurrentUser();
@@ -1635,9 +1726,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         } else {
             // Fallback: send via Meta API
             this.chatwootApi.sendWhatsAppText({
-                phone: this.userInput.phone,
+                phone: destinationPhone,
                 message: this.waFreeText.trim(),
-                contact_name: `${this.userInput.name || ''} ${this.userInput.last_name || ''}`.trim(),
+                contact_name: `${this.userInput?.name || ''} ${this.userInput?.last_name || ''}`.trim(),
                 agent_id: this.chatwootAgentId || undefined
             }).subscribe({
                 next: (res: any) => {

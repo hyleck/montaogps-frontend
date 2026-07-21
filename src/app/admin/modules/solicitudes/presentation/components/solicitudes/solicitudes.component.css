@@ -26,6 +26,12 @@
     gap: 1rem;
 }
 
+.sol-header-action {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding-inline: 1rem;
+}
+
 .sol-header-icon {
     width: 48px;
     height: 48px;
@@ -1615,6 +1621,112 @@
     color: var(--managementColorTitleUser);
     font-size: 0.84rem;
     text-align: right;
+}
+
+.sol-technician-location-dialog .p-dialog-content {
+    padding-top: 1rem;
+}
+
+.sol-technician-location-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.sol-technician-map {
+    width: 100%;
+    height: 360px;
+    border-radius: 12px;
+    border: 1px solid var(--managementFieldsBorder);
+    overflow: hidden;
+    background: var(--managementFieldsBackground);
+}
+
+.sol-technicians-map-dialog .p-dialog-content {
+    padding-top: 1rem;
+}
+
+.sol-technicians-map-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.sol-technicians-map {
+    width: 100%;
+    height: 560px;
+    border-radius: 12px;
+    border: 1px solid var(--managementFieldsBorder);
+    overflow: hidden;
+    background: var(--managementFieldsBackground);
+}
+
+.sol-technicians-map-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 10px;
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.1);
+    border: 1px solid rgba(37, 99, 235, 0.22);
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.sol-tech-map-label {
+    position: absolute;
+    transform: translateX(-50%);
+    z-index: 2;
+    max-width: 220px;
+    padding: 0.35rem 0.55rem;
+    border-radius: 999px;
+    color: #111827;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(17, 24, 39, 0.12);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.1;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.sol-location-status,
+.sol-location-loading,
+.sol-location-error {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+
+.sol-location-status {
+    color: #16a34a;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.24);
+}
+
+.sol-location-status--stale {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.28);
+}
+
+.sol-location-loading {
+    color: var(--managementColorTextUser);
+    background: var(--managementFieldsBackground);
+    border: 1px solid var(--managementFieldsBorder);
+}
+
+.sol-location-error {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.24);
 }
 
 .sol-missing-client-dialog .p-dialog-content {

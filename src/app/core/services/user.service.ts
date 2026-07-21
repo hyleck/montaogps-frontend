@@ -47,6 +47,14 @@ export interface IdentityFinalizeResponse {
   user?: User;
 }
 
+export interface UserLatestLocation {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+  recordedAt?: string | Date;
+  source?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -98,6 +106,10 @@ export class UserService {
 
   getUserPath(id: string): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/${id}/path/`);
+  }
+
+  getLatestLocation(id: string): Observable<UserLatestLocation | null> {
+    return this.http.get<UserLatestLocation | null>(`${this.apiUrl}/${id}/location/latest`);
   }
 
   create(createUserDto: CreateUserDto): Observable<User> {

@@ -5,7 +5,7 @@ import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
 import { SolicitudesService, Solicitud } from '../../../../../../core/services/solicitudes.service';
 import { VehicleBrandsService } from '../../../../../../core/services/vehicle-brands.service';
 import { ColorsService } from '../../../../../../core/services/colors.service';
-import { UserService } from '../../../../../../core/services/user.service';
+import { UserLatestLocation, UserService } from '../../../../../../core/services/user.service';
 import { TargetsService } from '../../../../../../core/services/targets.service';
 import { ProtocolsService } from '../../../../../../core/services/protocols.service';
 import { PlansService } from '../../../../../../core/services/plans.service';
@@ -192,6 +192,18 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     technicianDialogVisible = false;
     selectedTechnicianSolicitud: Solicitud | null = null;
     verifyingAvailabilityId = '';
+    technicianLocationDialogVisible = false;
+    technicianLocationLoading = false;
+    technicianLocationError = '';
+    technicianLocation: UserLatestLocation | null = null;
+    technicianLocationMap: any = null;
+    technicianLocationMarker: any = null;
+    techniciansMapDialogVisible = false;
+    techniciansMapLoading = false;
+    techniciansMapError = '';
+    techniciansWithLocation: Array<{ technician: User; location: UserLatestLocation }> = [];
+    techniciansMap: any = null;
+    techniciansMapMarkers: any[] = [];
     missingClientDialogVisible = false;
     missingClientChecking = false;
     private skipMissingClientCheckOnce = false;
@@ -1598,16 +1610,16 @@ async initLocationMap(): Promise<void> {
         return map[status] || 'pi pi-circle';
     }
 
-    isTechnicianUnavailable(solicitud: Solicitud): boolean {
-        return solicitud.technician_response === 'rechazada' || solicitud.status === 'rechazada';
+    isTechnicianUnavailable(solicitud: Solicitud | null): boolean {
+        return solicitud?.technician_response === 'rechazada' || solicitud?.status === 'rechazada';
     }
 
-    isTechnicianAccepted(solicitud: Solicitud): boolean {
-        return solicitud.technician_response === 'aceptada';
+    isTechnicianAccepted(solicitud: Solicitud | null): boolean {
+        return solicitud?.technician_response === 'aceptada';
     }
 
-    isTechnicianVerifying(solicitud: Solicitud): boolean {
-        return solicitud.technician_response === 'verificando';
+    isTechnicianVerifying(solicitud: Solicitud | null): boolean {
+        return solicitud?.technician_response === 'verificando';
     }
 
     getTechnicianById(id?: string): User | null {
@@ -1625,6 +1637,264 @@ async initLocationMap(): Promise<void> {
         event?.stopPropagation();
         this.selectedTechnicianSolicitud = solicitud;
         this.technicianDialogVisible = true;
+    }
+
+    openTechnicianLocationDialog(): void {
+        const solicitud = this.selectedTechnicianSolicitud;
+        const technicianId = solicitud?.mechanic_id;
+        if (!technicianId) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Sin técnico',
+                detail: 'Esta solicitud no tiene un técnico asignado.'
+            });
+            return;
+        }
+
+        this.technicianLocationDialogVisible = true;
+        this.technicianLocationLoading = true;
+        this.technicianLocationError = '';
+        this.technicianLocation = null;
+
+        this.userService.getLatestLocation(technicianId).subscribe({
+            next: (location) => {
+                this.technicianLocation = location;
+                this.technicianLocationLoading = false;
+                if (!location?.latitude || !location?.longitude) {
+                    this.technicianLocationError = 'No hay ubicación registrada para este técnico.';
+                    return;
+                }
+                setTimeout(() => this.initTechnicianLocationMap(), 0);
+            },
+            error: () => {
+                this.technicianLocationLoading = false;
+                this.technicianLocationError = 'No se pudo cargar la ubicación del técnico.';
+            }
+        });
+    }
+
+    async initTechnicianLocationMap(): Promise<void> {
+        const location = this.technicianLocation;
+        if (!location?.latitude || !location?.longitude) return;
+
+        try {
+            const systemConfigsResponse = await this.systemService.getAll().toPromise();
+            const systemConfigs = systemConfigsResponse?.[0];
+            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
+            const MAP_API1_URL = systemConfigs?.map_api1?.url;
+            if (!MAP_API1_KEY || !MAP_API1_URL) {
+                this.technicianLocationError = 'No hay configuración de mapa disponible.';
+                return;
+            }
+
+            await MapUtils.loadMapScript('google', MAP_API1_KEY, MAP_API1_URL);
+            const mapElement = document.getElementById('technician-location-map');
+            if (!mapElement) return;
+
+            const position = { lat: Number(location.latitude), lng: Number(location.longitude) };
+            this.technicianLocationMap = new google.maps.Map(mapElement, {
+                center: position,
+                zoom: 16,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
+
+            this.technicianLocationMarker?.setMap?.(null);
+            this.technicianLocationMarker = new google.maps.Marker({
+                position,
+                map: this.technicianLocationMap,
+                title: this.getTechnicianDisplayName(this.selectedTechnicianSolicitud)
+            });
+        } catch (error) {
+            console.error('Error loading technician location map:', error);
+            this.technicianLocationError = 'No se pudo mostrar el mapa del técnico.';
+        }
+    }
+
+    getTechnicianLocationAgeLabel(): string {
+        const recordedAt = this.technicianLocation?.recordedAt;
+        if (!recordedAt) return 'Sin fecha de ubicación';
+
+        const date = new Date(recordedAt);
+        if (Number.isNaN(date.getTime())) return 'Sin fecha de ubicación';
+
+        const diffMs = Math.max(0, Date.now() - date.getTime());
+        const diffMinutes = Math.floor(diffMs / 60000);
+        if (diffMinutes < 1) return 'Ubicación actualizada hace menos de 1 minuto';
+        if (diffMinutes < 60) return `Última ubicación hace ${diffMinutes} minuto${diffMinutes === 1 ? '' : 's'}`;
+
+        const diffHours = Math.floor(diffMinutes / 60);
+        if (diffHours < 24) return `Última ubicación hace ${diffHours} hora${diffHours === 1 ? '' : 's'}`;
+
+        const diffDays = Math.floor(diffHours / 24);
+        return `Última ubicación hace ${diffDays} día${diffDays === 1 ? '' : 's'}`;
+    }
+
+    isTechnicianLocationStale(): boolean {
+        const recordedAt = this.technicianLocation?.recordedAt;
+        if (!recordedAt) return false;
+        const date = new Date(recordedAt);
+        if (Number.isNaN(date.getTime())) return false;
+        return Date.now() - date.getTime() > 5 * 60 * 1000;
+    }
+
+    async openTechniciansMapDialog(): Promise<void> {
+        this.techniciansMapDialogVisible = true;
+        this.techniciansMapLoading = true;
+        this.techniciansMapError = '';
+        this.techniciansWithLocation = [];
+
+        try {
+            let technicians = this.availableTechnicians;
+            if (!technicians.length) {
+                technicians = await firstValueFrom(this.userService.getTechnicians());
+                this.availableTechnicians = technicians;
+            }
+
+            const results = await Promise.all(
+                technicians.map(async (technician: User) => {
+                    const technicianId = String((technician as any)._id || (technician as any).id || '').trim();
+                    if (!technicianId) return null;
+                    try {
+                        const location = await firstValueFrom(this.userService.getLatestLocation(technicianId));
+                        if (!location?.latitude || !location?.longitude) return null;
+                        return { technician, location };
+                    } catch {
+                        return null;
+                    }
+                })
+            );
+
+            this.techniciansWithLocation = results.filter(Boolean) as Array<{ technician: User; location: UserLatestLocation }>;
+            this.techniciansMapLoading = false;
+
+            if (!this.techniciansWithLocation.length) {
+                this.techniciansMapError = 'No hay técnicos con ubicación registrada.';
+                return;
+            }
+
+            setTimeout(() => this.initTechniciansMap(), 0);
+        } catch (error) {
+            console.error('Error loading technicians map:', error);
+            this.techniciansMapLoading = false;
+            this.techniciansMapError = 'No se pudieron cargar las ubicaciones de los técnicos.';
+        }
+    }
+
+    async initTechniciansMap(): Promise<void> {
+        if (!this.techniciansWithLocation.length) return;
+
+        try {
+            const systemConfigsResponse = await this.systemService.getAll().toPromise();
+            const systemConfigs = systemConfigsResponse?.[0];
+            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
+            const MAP_API1_URL = systemConfigs?.map_api1?.url;
+            if (!MAP_API1_KEY || !MAP_API1_URL) {
+                this.techniciansMapError = 'No hay configuración de mapa disponible.';
+                return;
+            }
+
+            await MapUtils.loadMapScript('google', MAP_API1_KEY, MAP_API1_URL);
+            const mapElement = document.getElementById('technicians-map');
+            if (!mapElement) return;
+
+            const firstLocation = this.techniciansWithLocation[0].location;
+            this.techniciansMap = new google.maps.Map(mapElement, {
+                center: { lat: Number(firstLocation.latitude), lng: Number(firstLocation.longitude) },
+                zoom: 12,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
+
+            this.techniciansMapMarkers.forEach(marker => marker?.setMap?.(null));
+            this.techniciansMapMarkers = [];
+            const bounds = new google.maps.LatLngBounds();
+
+            this.techniciansWithLocation.forEach(({ technician, location }) => {
+                const position = { lat: Number(location.latitude), lng: Number(location.longitude) };
+                bounds.extend(position);
+
+                const marker = new google.maps.Marker({
+                    position,
+                    map: this.techniciansMap,
+                    title: this.getTechnicianName(technician),
+                });
+
+                this.techniciansMapMarkers.push(marker);
+                this.techniciansMapMarkers.push(this.createTechnicianLabelOverlay(position, this.getTechnicianMarkerLabel(technician, location)));
+            });
+
+            if (this.techniciansWithLocation.length === 1) {
+                this.techniciansMap.setCenter(bounds.getCenter());
+                this.techniciansMap.setZoom(15);
+                return;
+            }
+
+            this.techniciansMap.fitBounds(bounds, 64);
+        } catch (error) {
+            console.error('Error rendering technicians map:', error);
+            this.techniciansMapError = 'No se pudo mostrar el mapa de técnicos.';
+        }
+    }
+
+    getTechnicianName(technician: User): string {
+        return `${technician?.name || ''} ${technician?.last_name || ''}`.replace(/\s+/g, ' ').trim()
+            || technician?.email
+            || 'Técnico';
+    }
+
+    getTechnicianMarkerLabel(technician: User, location: UserLatestLocation): string {
+        return `${this.getTechnicianName(technician)} · ${this.getRelativeLocationAge(location?.recordedAt)}`;
+    }
+
+    private createTechnicianLabelOverlay(position: { lat: number; lng: number }, text: string): any {
+        const overlay = new google.maps.OverlayView();
+        let div: HTMLDivElement | null = null;
+
+        overlay.onAdd = () => {
+            div = document.createElement('div');
+            div.className = 'sol-tech-map-label';
+            div.textContent = text;
+            overlay.getPanes()?.overlayMouseTarget.appendChild(div);
+        };
+
+        overlay.draw = () => {
+            if (!div) return;
+            const projection = overlay.getProjection();
+            const point = projection.fromLatLngToDivPixel(new google.maps.LatLng(position.lat, position.lng));
+            if (!point) return;
+            div.style.left = `${point.x}px`;
+            div.style.top = `${point.y - 46}px`;
+        };
+
+        overlay.onRemove = () => {
+            div?.parentNode?.removeChild(div);
+            div = null;
+        };
+
+        overlay.setMap(this.techniciansMap);
+        return overlay;
+    }
+
+    private getRelativeLocationAge(recordedAt?: string | Date): string {
+        if (!recordedAt) return 'sin fecha';
+        const date = new Date(recordedAt);
+        if (Number.isNaN(date.getTime())) return 'sin fecha';
+
+        const diffMs = Math.max(0, Date.now() - date.getTime());
+        const diffMinutes = Math.floor(diffMs / 60000);
+        if (diffMinutes < 1) return 'ahora';
+        if (diffMinutes < 60) return `hace ${diffMinutes} min`;
+
+        const diffHours = Math.floor(diffMinutes / 60);
+        if (diffHours < 24) return `hace ${diffHours} h`;
+
+        const diffDays = Math.floor(diffHours / 24);
+        return `hace ${diffDays} d`;
     }
 
     verifyTechnicianAvailability(): void {

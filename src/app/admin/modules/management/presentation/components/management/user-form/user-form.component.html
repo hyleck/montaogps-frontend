@@ -45,7 +45,7 @@
                                             <input [(ngModel)]="user.phone" name="phone"
                                                 placeholder="Ej: (809) 555-0123" type="tel" id="phone" required>
                                         </div>
-                                        <div class="user-form__field" *ngIf="userInput && userInput.phone && isCurrentUserEmployee">
+                                        <div class="user-form__field" *ngIf="userInput && (userInput.phone || userInput.phone2) && isCurrentUserEmployee">
                                             <button
                                                 style="background:#25D366!important; color:white!important; text-align: left; width: 100%; border-radius: 8px; padding: 0.65rem 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; border: none; cursor: pointer; font-size: 0.9rem;"
                                                 type="button"
@@ -704,6 +704,14 @@
 
     <div style="padding: 0.5rem 0;">
         <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Enviar a</label>
+            <select [(ngModel)]="waSelectedPhone" [ngModelOptions]="{standalone: true}" [disabled]="sendingWa"
+                style="width: 100%; border-radius: 6px; padding: 0.65rem 0.75rem; background: var(--surface-card); color: var(--text-color); border: 1px solid var(--surface-border);">
+                <option *ngFor="let option of getWhatsAppPhoneOptions()" [value]="option.value">{{ option.label }}</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
             <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Nombre del destinatario <span style="color: #ef4444">*</span></label>
             <input pInputText [(ngModel)]="waTemplateVars.name" [ngModelOptions]="{standalone: true}" placeholder="Ej. Juan Pérez" style="width: 100%; border-radius: 6px;" [disabled]="sendingWa" />
         </div>
@@ -742,6 +750,13 @@
         <div style="padding: 0.75rem 1rem; background: rgba(16, 185, 129, 0.08); border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #10b981;">
             <i class="pi pi-check-circle"></i>
             Dentro de la ventana de 24 horas. Puedes escribir libremente.
+        </div>
+        <div style="margin-bottom: 1rem;">
+            <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Enviar a</label>
+            <select [(ngModel)]="waSelectedPhone" [ngModelOptions]="{standalone: true}" [disabled]="sendingWa"
+                style="width: 100%; border-radius: 6px; padding: 0.65rem 0.75rem; background: var(--surface-card); color: var(--text-color); border: 1px solid var(--surface-border);">
+                <option *ngFor="let option of getWhatsAppPhoneOptions()" [value]="option.value">{{ option.label }}</option>
+            </select>
         </div>
         <div style="margin-bottom: 1rem;">
             <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Mensaje <span style="color: #ef4444">*</span></label>

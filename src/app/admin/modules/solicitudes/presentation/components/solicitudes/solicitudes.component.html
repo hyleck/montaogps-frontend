@@ -14,6 +14,10 @@
                 <span class="sol-subtitle">Gestión de instalaciones, reinstalaciones, desinstalaciones, chequeos y cambios</span>
             </div>
         </div>
+        <button type="button" class="sol-btn sol-btn-save sol-header-action" (click)="openTechniciansMapDialog()">
+            <i class="pi pi-map-marker"></i>
+            Ver técnicos
+        </button>
     </div>
 
 
@@ -291,10 +295,75 @@
         <button type="button" class="sol-btn sol-btn-cancel" (click)="technicianDialogVisible = false">
             <i class="pi pi-times"></i> Cerrar
         </button>
-        <button type="button" class="sol-btn sol-btn-save" [disabled]="isAvailabilityLoading(selectedTechnicianSolicitud)"
+        <button *ngIf="!isTechnicianAccepted(selectedTechnicianSolicitud)" type="button" class="sol-btn sol-btn-save" [disabled]="isAvailabilityLoading(selectedTechnicianSolicitud)"
             (click)="verifyTechnicianAvailability()">
             <i class="pi" [ngClass]="isAvailabilityLoading(selectedTechnicianSolicitud) ? 'pi-spin pi-spinner' : 'pi-phone'"></i>
             Verificar disponibilidad
+        </button>
+        <button *ngIf="isTechnicianAccepted(selectedTechnicianSolicitud)" type="button" class="sol-btn sol-btn-save"
+            (click)="openTechnicianLocationDialog()">
+            <i class="pi pi-map-marker"></i>
+            Ubicación del técnico
+        </button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="techniciansMapDialogVisible" [style]="{width: '860px'}" header="Técnicos en mapa"
+    [modal]="true" styleClass="app-dark-dialog sol-technicians-map-dialog" [draggable]="false" [resizable]="false"
+    (onShow)="techniciansWithLocation.length && initTechniciansMap()">
+    <ng-template pTemplate="content">
+        <div class="sol-technicians-map-modal">
+            <div class="sol-location-loading" *ngIf="techniciansMapLoading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando técnicos con ubicación...</span>
+            </div>
+
+            <div class="sol-location-error" *ngIf="!techniciansMapLoading && techniciansMapError">
+                <i class="pi pi-exclamation-triangle"></i>
+                <span>{{ techniciansMapError }}</span>
+            </div>
+
+            <div class="sol-technicians-map-summary" *ngIf="!techniciansMapLoading && !techniciansMapError">
+                <i class="pi pi-users"></i>
+                <span>{{ techniciansWithLocation.length }} técnicos con ubicación registrada</span>
+            </div>
+
+            <div id="technicians-map" class="sol-technicians-map" *ngIf="!techniciansMapLoading && !techniciansMapError"></div>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="techniciansMapDialogVisible = false">
+            <i class="pi pi-times"></i> Cerrar
+        </button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="technicianLocationDialogVisible" [style]="{width: '620px'}" header="Ubicación del técnico"
+    [modal]="true" styleClass="app-dark-dialog sol-technician-location-dialog" [draggable]="false" [resizable]="false"
+    (onShow)="technicianLocation && initTechnicianLocationMap()">
+    <ng-template pTemplate="content">
+        <div class="sol-technician-location-modal">
+            <div class="sol-location-status" *ngIf="!technicianLocationLoading && technicianLocation" [class.sol-location-status--stale]="isTechnicianLocationStale()">
+                <i class="pi" [ngClass]="isTechnicianLocationStale() ? 'pi-clock' : 'pi-map-marker'"></i>
+                <span>{{ isTechnicianLocationStale() ? getTechnicianLocationAgeLabel() : 'Ubicación en tiempo real' }}</span>
+            </div>
+
+            <div class="sol-location-loading" *ngIf="technicianLocationLoading">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando ubicación del técnico...</span>
+            </div>
+
+            <div class="sol-location-error" *ngIf="!technicianLocationLoading && technicianLocationError">
+                <i class="pi pi-exclamation-triangle"></i>
+                <span>{{ technicianLocationError }}</span>
+            </div>
+
+            <div id="technician-location-map" class="sol-technician-map" *ngIf="!technicianLocationLoading && technicianLocation && !technicianLocationError"></div>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="technicianLocationDialogVisible = false">
+            <i class="pi pi-times"></i> Cerrar
         </button>
     </ng-template>
 </p-dialog>
