@@ -166,9 +166,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     showVehicleData = false;
     showLocationData = false;
     showDeviceData = false;
-        showRootLocationData = false;
+    showRootLocationData = false;
     rootLocationMap: any = null;
     rootLocationMarker: any = null;
+    rootGoogleMapsLink = '';
     showInstallData = false;
     showDetailsData = false;
     showDiagnosisData = false;
@@ -188,6 +189,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     technicianDialogVisible = false;
     selectedTechnicianSolicitud: Solicitud | null = null;
     verifyingAvailabilityId = '';
+    missingClientDialogVisible = false;
+    missingClientChecking = false;
+    private skipMissingClientCheckOnce = false;
 
     // Filters
     filterType = '';
@@ -1074,6 +1078,72 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
     }
 
+    applyRootGoogleMapsLink(): void {
+        if (!this.selectedSolicitud) return;
+
+        const coords = this.extractCoordinatesFromGoogleMapsLink(this.rootGoogleMapsLink);
+        if (!coords) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Link no válido',
+                detail: 'No se pudieron extraer coordenadas del link de Google Maps.'
+            });
+            return;
+        }
+
+        this.selectedSolicitud.latitude = coords.lat;
+        this.selectedSolicitud.longitude = coords.lng;
+        this.onRootLatitudeLongitudeChange();
+
+        if (this.rootLocationMap) {
+            this.rootLocationMap.panTo(coords);
+            this.rootLocationMap.setZoom(17);
+        }
+
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Ubicación aplicada',
+            detail: 'La ubicación exacta fue tomada desde el link de Google Maps.'
+        });
+    }
+
+    private extractCoordinatesFromGoogleMapsLink(value: string): { lat: number; lng: number } | null {
+        const raw = String(value || '').trim();
+        if (!raw) return null;
+
+        const patterns = [
+            /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+            /[?&](?:q|query|ll|center)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+            /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/,
+            /(?:^|[^\d.-])(-?\d{1,2}\.\d+),\s*(-?\d{1,3}\.\d+)(?:$|[^\d.-])/,
+        ];
+
+        for (const pattern of patterns) {
+            const match = raw.match(pattern);
+            if (!match) continue;
+
+            const lat = Number(match[1]);
+            const lng = Number(match[2]);
+            if (this.isValidCoordinatePair(lat, lng)) {
+                return {
+                    lat: Number(lat.toFixed(6)),
+                    lng: Number(lng.toFixed(6)),
+                };
+            }
+        }
+
+        return null;
+    }
+
+    private isValidCoordinatePair(lat: number, lng: number): boolean {
+        return Number.isFinite(lat)
+            && Number.isFinite(lng)
+            && lat >= -90
+            && lat <= 90
+            && lng >= -180
+            && lng <= 180;
+    }
+
     geocodeRootLocation(address: string, zoomLevel: number) {
         if (!this.rootLocationMap || typeof google === 'undefined') return;
 
@@ -1173,19 +1243,21 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     onRootLatitudeLongitudeChange(): void {
         if (!this.selectedSolicitud) return;
-        const lat = this.selectedSolicitud.latitude;
-        const lng = this.selectedSolicitud.longitude;
+        const lat = Number(this.selectedSolicitud.latitude);
+        const lng = Number(this.selectedSolicitud.longitude);
+        if (!this.isValidCoordinatePair(lat, lng)) return;
+
+        this.selectedSolicitud.latitude = Number(lat.toFixed(6));
+        this.selectedSolicitud.longitude = Number(lng.toFixed(6));
         if (this.selectedSolicitud.installations) {
             this.selectedSolicitud.installations.forEach(i => {
-                i.latitude = lat;
-                i.longitude = lng;
+                i.latitude = this.selectedSolicitud?.latitude;
+                i.longitude = this.selectedSolicitud?.longitude;
             });
         }
-        if (lat && lng) {
-            this.updateRootLocationMarker(lat, lng);
-            if (this.rootLocationMap) {
-                this.rootLocationMap.panTo({ lat, lng });
-            }
+        this.updateRootLocationMarker(lat, lng);
+        if (this.rootLocationMap) {
+            this.rootLocationMap.panTo({ lat, lng });
         }
     }
 async initLocationMap(): Promise<void> {
@@ -1298,7 +1370,7 @@ async initLocationMap(): Promise<void> {
         this.openInstallationModal(0, false);
     }
 
-    saveSolicitud(): void {
+    async saveSolicitud(): Promise<void> {
         if (!this.selectedSolicitud) return;
 
         // Chequeos y desinstalaciones necesitan identificar el dispositivo.
@@ -1318,6 +1390,12 @@ async initLocationMap(): Promise<void> {
             }
 
         }
+
+        if (!this.skipMissingClientCheckOnce && await this.shouldWarnMissingClientOnSave()) {
+            this.missingClientDialogVisible = true;
+            return;
+        }
+        this.skipMissingClientCheckOnce = false;
 
         if (this.isEditMode && this.selectedSolicitud._id) {
             this.solicitudesService.update(this.selectedSolicitud._id, this.selectedSolicitud).subscribe({
@@ -1342,6 +1420,57 @@ async initLocationMap(): Promise<void> {
                 }
             });
         }
+    }
+
+    async confirmMissingClientAndSave(): Promise<void> {
+        this.missingClientDialogVisible = false;
+        this.skipMissingClientCheckOnce = true;
+        await this.saveSolicitud();
+    }
+
+    private async shouldWarnMissingClientOnSave(): Promise<boolean> {
+        if (!this.selectedSolicitud || this.selectedSolicitud.type !== 'instalacion') return false;
+
+        const hasClientLookupData = !!String(this.selectedSolicitud.client_email || '').trim()
+            || !!String(this.selectedSolicitud.client_phone || '').trim();
+        if (!hasClientLookupData) return false;
+
+        this.missingClientChecking = true;
+        try {
+            const existingClient = await this.findSelectedSolicitudClient();
+            return !existingClient;
+        } finally {
+            this.missingClientChecking = false;
+        }
+    }
+
+    private async findSelectedSolicitudClient(): Promise<User | null> {
+        if (!this.selectedSolicitud) return null;
+
+        const email = String(this.selectedSolicitud.client_email || '').trim();
+        if (email) {
+            try {
+                return this.normalizeFoundClient(await firstValueFrom(this.userService.getByEmail(email)));
+            } catch (error) {
+                return null;
+            }
+        }
+
+        const phone = String(this.selectedSolicitud.client_phone || '').trim();
+        if (phone) {
+            try {
+                return this.normalizeFoundClient(await firstValueFrom(this.userService.getByPhone(phone)));
+            } catch (error) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    private normalizeFoundClient(user: any): User | null {
+        if (!user || typeof user !== 'object') return null;
+        return user._id || user.id || user.email || user.phone ? user : null;
     }
 
     deleteSolicitud(solicitud: Solicitud): void {

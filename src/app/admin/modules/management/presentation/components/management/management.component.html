@@ -1204,8 +1204,13 @@
         <div class="create-account-method">
             <h2>Metodo de creacion de la cuenta:</h2>
             <p>
-                Selecciona como quieres crear la cuenta donde se transferiran
-                {{ pendingCreateUserTransferTargets.length }} dispositivos.
+                <ng-container *ngIf="registrationLinkFlow === 'transfer'; else createOnlyAccountText">
+                    Selecciona como quieres crear la cuenta donde se transferiran
+                    {{ pendingCreateUserTransferTargets.length }} dispositivos.
+                </ng-container>
+                <ng-template #createOnlyAccountText>
+                    Selecciona si quieres crear el usuario manualmente o generar un link para que el cliente se registre.
+                </ng-template>
             </p>
 
             <div class="create-account-method__actions">
@@ -1297,8 +1302,13 @@
             <div>
                 <h3>Link listo para enviar</h3>
                 <p>
-                    El cliente podra registrarse sin iniciar sesion. Al terminar, la cuenta quedara debajo de esta
-                    cuenta y se transferiran {{ registrationLinkTargetCount }} dispositivos.
+                    <ng-container *ngIf="registrationLinkFlow === 'transfer'; else createOnlyRegistrationLinkText">
+                        El cliente podra registrarse sin iniciar sesion. Al terminar, la cuenta quedara debajo de esta
+                        cuenta y se transferiran {{ registrationLinkTargetCount }} dispositivos.
+                    </ng-container>
+                    <ng-template #createOnlyRegistrationLinkText>
+                        El cliente podra registrarse sin iniciar sesion. Al terminar, la cuenta quedara creada debajo de esta cuenta.
+                    </ng-template>
                 </p>
             </div>
             <input pInputText type="text" readonly [value]="registrationLinkUrl">

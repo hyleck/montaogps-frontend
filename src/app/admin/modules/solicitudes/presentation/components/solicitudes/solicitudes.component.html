@@ -407,14 +407,28 @@
                     </div>
                 </div>
 
+                <div class="sol-form-field">
+                    <label>Link de Google Maps</label>
+                    <div class="sol-map-link-field">
+                        <input type="text"
+                            [(ngModel)]="rootGoogleMapsLink"
+                            placeholder="Pega aquí el link de Google Maps"
+                            (keydown.enter)="$event.preventDefault(); applyRootGoogleMapsLink()" />
+                        <button type="button" class="sol-map-link-button" (click)="applyRootGoogleMapsLink()">
+                            <i class="pi pi-map-marker"></i>
+                            Aplicar
+                        </button>
+                    </div>
+                </div>
+
                 <div class="sol-form-row">
                     <div class="sol-form-field">
                         <label>Latitud</label>
-                        <input type="number" [(ngModel)]="selectedSolicitud.latitude" placeholder="Ej. 18.473" />
+                        <input type="number" [(ngModel)]="selectedSolicitud.latitude" placeholder="Ej. 18.473" (ngModelChange)="onRootLatitudeLongitudeChange()" />
                     </div>
                     <div class="sol-form-field">
                         <label>Longitud</label>
-                        <input type="number" [(ngModel)]="selectedSolicitud.longitude" placeholder="Ej. -69.932" />
+                        <input type="number" [(ngModel)]="selectedSolicitud.longitude" placeholder="Ej. -69.932" (ngModelChange)="onRootLatitudeLongitudeChange()" />
                     </div>
                 </div>
 
@@ -803,6 +817,36 @@
     <ng-template pTemplate="footer">
         <button type="button" class="sol-btn sol-btn-save" (click)="installationModalVisible = false" style="width: 100%; justify-content: center; margin-top: 10px;">
             <i class="pi pi-check"></i> Listo
+        </button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="missingClientDialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{width: '460px'}"
+    styleClass="app-dark-dialog sol-missing-client-dialog"
+    header="Cliente no registrado">
+    <div class="sol-missing-client">
+        <div class="sol-missing-client__icon">
+            <i class="pi pi-user-plus"></i>
+        </div>
+        <div class="sol-missing-client__content">
+            <h3>Este cliente no existe en el sistema</h3>
+            <p>
+                Puedes guardar la solicitud de instalación. Cuando la instalación se finalice,
+                se le enviará automáticamente al cliente un link de registro por WhatsApp y
+                los dispositivos instalados se transferirán automáticamente a su cuenta cuando complete el registro.
+            </p>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="missingClientDialogVisible = false">
+            Cancelar
+        </button>
+        <button type="button" class="sol-btn sol-btn-save" [disabled]="missingClientChecking" (click)="confirmMissingClientAndSave()">
+            Guardar de todos modos
         </button>
     </ng-template>
 </p-dialog>

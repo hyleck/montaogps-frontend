@@ -78,6 +78,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   registrationLinkAffiliationDialogVisible: boolean = false;
   registrationLinkDialogVisible: boolean = false;
   creatingRegistrationLink: boolean = false;
+  registrationLinkFlow: 'create' | 'transfer' = 'transfer';
   selectedRegistrationLinkAffiliation: 'cliente' | 'subcliente' = 'cliente';
   registrationLinkParentEmail: string = '';
   registrationLinkParentSuggestions: User[] = [];
@@ -1132,7 +1133,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
     this.pendingCreateUserTransferTargets = [];
     this.userToEdit = null;
-    this.uiService.showUserForm();
+    this.registrationLinkFlow = 'create';
+    this.createAccountTransferMethodDialogVisible = true;
   }
 
   openCreateUserAndTransferSelected() {
@@ -1148,6 +1150,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
 
     this.pendingCreateUserTransferTargets = [...this.targetsSelected];
+    this.registrationLinkFlow = 'transfer';
     this.createAccountTransferMethodDialogVisible = true;
   }
 
@@ -1158,7 +1161,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   openRegistrationLinkAffiliationDialog() {
-    if (this.creatingRegistrationLink || this.pendingCreateUserTransferTargets.length === 0) return;
+    if (this.creatingRegistrationLink) return;
+    if (this.registrationLinkFlow === 'transfer' && this.pendingCreateUserTransferTargets.length === 0) return;
     const currentUser: any = this.authService.getCurrentUser();
 
     if (!this.isLoggedEmployee()) {
@@ -1206,7 +1210,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   async createRegistrationLinkForSelectedTargets() {
-    if (this.creatingRegistrationLink || this.pendingCreateUserTransferTargets.length === 0) return;
+    if (this.creatingRegistrationLink) return;
+    if (this.registrationLinkFlow === 'transfer' && this.pendingCreateUserTransferTargets.length === 0) return;
 
     const isEmployee = this.isLoggedEmployee();
     const parentEmail = String(this.registrationLinkParentEmail || '').trim();
@@ -2235,7 +2240,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
 
     const speedData = this.vehicleDataService.getDeviceSpeedData(target);
-    return speedData.speedInKmh >= 1 ? `Moviendo · ${speedData.displayText}` : 'Estacionado';
+    return speedData.speedInKmh >= 1 ? `Moviendo · ${speedData.displayText}` : 'En línea';
   }
 
   public getTargetMovementClass(target: any): string {

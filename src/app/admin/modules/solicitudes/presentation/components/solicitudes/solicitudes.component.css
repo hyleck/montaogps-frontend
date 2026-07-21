@@ -662,6 +662,37 @@
     min-height: 60px;
 }
 
+.sol-map-link-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.6rem;
+    align-items: center;
+}
+
+.sol-map-link-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 38px;
+    padding: 0 0.95rem;
+    border: 1px solid rgba(99, 102, 241, 0.35);
+    border-radius: 8px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.sol-map-link-button:hover {
+    background: rgba(99, 102, 241, 0.16);
+    border-color: rgba(99, 102, 241, 0.55);
+    transform: translateY(-1px);
+}
+
 .sol-email-autocomplete,
 .sol-email-autocomplete .p-autocomplete,
 .sol-email-autocomplete .p-inputtext,
@@ -819,6 +850,10 @@
 
     .sol-form-row,
     .sol-form-row-3 {
+        grid-template-columns: 1fr;
+    }
+
+    .sol-map-link-field {
         grid-template-columns: 1fr;
     }
 
@@ -1517,4 +1552,40 @@
     color: var(--managementColorTitleUser);
     font-size: 0.84rem;
     text-align: right;
+}
+
+.sol-missing-client-dialog .p-dialog-content {
+    padding-top: 1rem;
+}
+
+.sol-missing-client {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 0.5rem 0 0.25rem;
+}
+
+.sol-missing-client__icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(245, 158, 11, 0.14);
+    color: #f59e0b;
+    font-size: 1.35rem;
+    flex: 0 0 auto;
+}
+
+.sol-missing-client__content h3 {
+    margin: 0 0 0.45rem;
+    color: var(--managementColorTitleUser);
+    font-size: 1.05rem;
+}
+
+.sol-missing-client__content p {
+    margin: 0;
+    color: var(--managementColorTextUser);
+    font-size: 0.9rem;
+    line-height: 1.45;
 }
