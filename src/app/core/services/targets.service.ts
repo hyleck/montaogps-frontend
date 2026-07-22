@@ -383,7 +383,7 @@ export class TargetsService {
   }
 
   async getProcessesByReference(reference: string): Promise<ProcessResponse[]> {
-    const url = `${environment.apiUrl}/process/by-reference/${reference}`;
+    const url = `${environment.apiUrl}/process/by-reference/${encodeURIComponent(reference)}`;
     const observable = this.http.get<ProcessResponse[]>(url);
     return await lastValueFrom(observable);
   }

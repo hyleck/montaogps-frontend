@@ -102,6 +102,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
     showColorOptions: boolean = true;
     isLoading: boolean = false;
+    isPreparingVehicleForm: boolean = false;
     isValidatingSim: boolean = false;
     isValidatingAdditionalGps: boolean = false;
     linkedAdditionalGps: TargetDevice | null = null;
@@ -1289,17 +1290,20 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     private async setupEditTarget(target: TargetDevice) {
+        try {
         // Si el target tiene originalTarget, usar esos datos en su lugar
         let targetData = target;
         if ((target as any)['originalTarget']) {
             targetData = (target as any)['originalTarget'];
         }
+        this.isPreparingVehicleForm = !!targetData?._id;
 
         if (targetData?._id) {
             this.target = {
                 ...this.getEmptyTarget(),
                 ...JSON.parse(JSON.stringify(targetData))
             };
+            this.primeLinkedVehicleMode();
             this.cdr.detectChanges();
         }
 
@@ -1344,6 +1348,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.target.target_year = this.target.target_year || '';
         this.target.gps_adicional = this.target.gps_adicional || '';
         this.resetAdditionalGpsValidation();
+        this.primeLinkedVehicleMode();
 
         // Store original vehicle data to detect changes
         this.originalVehicleData = {
@@ -1592,7 +1597,14 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
         });
 
-        await Promise.all([modelsPromise, plansPromise]);
+        await modelsPromise;
+
+        if (!this.isLinkedVehicleMode()) {
+            this.isPreparingVehicleForm = false;
+            this.cdr.detectChanges();
+        }
+
+        await plansPromise;
 
         // Verificar si se debe auto-enviar el formulario
         this.checkAndAutoSubmit();
@@ -1641,7 +1653,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.loadServerDataFromPlan();
 
         // Cargar lista de procesos del target actual
-        this.loadProcessesList();
+        this.loadProcessesList(false);
 
         // Check SIM usage
         if (this.target.sim_card_number) {
@@ -1650,6 +1662,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         if (this.target.gps_adicional) {
             this.validateAdditionalGpsLink(false);
+        }
+        } finally {
+            this.isPreparingVehicleForm = false;
+            this.cdr.detectChanges();
         }
     }
 
@@ -1744,6 +1760,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
             this.linkedAdditionalGps = linkedTarget as TargetDevice;
             this.target.gps_adicional = linkedTarget.device_imei || linkedImei;
+            this.applyLinkedVehicleData(linkedTarget as TargetDevice);
             this.additionalGpsValidationState = 'valid';
             this.additionalGpsValidationMessage = `Vinculado a ${linkedTarget.name || linkedTarget.device_imei}`;
             return true;
@@ -1762,6 +1779,101 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         } finally {
             this.isValidatingAdditionalGps = false;
         }
+    }
+
+    private applyLinkedVehicleData(linkedTarget: TargetDevice): void {
+        const gpsModelName = this.getSelectedGpsModelName();
+        const linkedName = linkedTarget.name || linkedTarget.device_imei || 'GPS vinculado';
+        this.target.name = this.buildLinkedVehicleName(gpsModelName, linkedName);
+        this.target.target_plate_number = linkedTarget.target_plate_number || '';
+        this.target.target_brand_id = linkedTarget.target_brand_id || '';
+        this.target.target_model_id = linkedTarget.target_model_id || '';
+        this.target.target_color = linkedTarget.target_color || '';
+        this.target.target_year = linkedTarget.target_year || '';
+        this.target.target_chassis_number = linkedTarget.target_chassis_number || '';
+        this.target['target_image'] = linkedTarget['target_image'] || '';
+        this.target['target_image_thumbnail'] = linkedTarget['target_image_thumbnail'] || '';
+        (this.target as any).verificado = linkedTarget['verificado'] === true;
+        (this.target as any).matricula_img = (linkedTarget as any).matricula_img || null;
+    }
+
+    private buildLinkedVehicleName(gpsModelName: string, linkedVehicleName: string): string {
+        const prefix = (gpsModelName || '').trim();
+        const baseName = (linkedVehicleName || '').trim() || 'GPS vinculado';
+        if (!prefix || baseName.toLowerCase().startsWith(prefix.toLowerCase())) {
+            return baseName;
+        }
+        return `${prefix} ${baseName}`;
+    }
+
+    private primeLinkedVehicleMode(): void {
+        const linkedImei = String(this.target?.gps_adicional || '').trim();
+        if (!linkedImei) {
+            return;
+        }
+
+        this.target.gps_adicional = linkedImei;
+        this.additionalGpsValidationState = 'valid';
+        this.additionalGpsValidationMessage = `Vinculado a ${linkedImei}`;
+    }
+
+    isLinkedVehicleMode(): boolean {
+        return !!this.target?.gps_adicional && this.additionalGpsValidationState !== 'invalid';
+    }
+
+    isLinkedVehicleInfoLoading(): boolean {
+        return this.isLinkedVehicleMode() && !this.linkedAdditionalGps;
+    }
+
+    isVehicleFormSkeletonVisible(): boolean {
+        return this.isPreparingVehicleForm && !this.isLinkedVehicleMode();
+    }
+
+    private getLinkedVehicleSource(): TargetDevice | any {
+        return this.linkedAdditionalGps || (this.isLinkedVehicleMode() ? this.target : null);
+    }
+
+    getLinkedVehicleValue(field: string): any {
+        const source = this.getLinkedVehicleSource();
+        return source ? source[field] : '';
+    }
+
+    getLinkedVehicleName(): string {
+        return this.getLinkedVehicleValue('name') || this.target?.name || 'Vehículo vinculado';
+    }
+
+    getLinkedVehicleImage(): string {
+        return this.getLinkedVehicleValue('target_image_thumbnail')
+            || this.getLinkedVehicleValue('target_image')
+            || '';
+    }
+
+    getLinkedVehicleBrandLabel(): string {
+        const brandId = this.getLinkedVehicleValue('target_brand_id');
+        return this.availableBrands.find(brand => brand.value === brandId)?.label
+            || this.getLinkedVehicleValue('brand')
+            || brandId
+            || 'No disponible';
+    }
+
+    getLinkedVehicleModelLabel(): string {
+        const modelId = this.getLinkedVehicleValue('target_model_id');
+        return this.availableModels.find(model => model.value === modelId)?.label
+            || this.getLinkedVehicleValue('model')
+            || modelId
+            || 'No disponible';
+    }
+
+    getLinkedVehicleColorHex(): string {
+        return this.getLinkedVehicleValue('target_color') || 'transparent';
+    }
+
+    getLinkedVehicleColorLabel(): string {
+        const colorValue = this.getLinkedVehicleValue('target_color');
+        return this.availableColors.find(color => color.value === colorValue)?.label
+            || this.getLinkedVehicleValue('color')
+            || colorValue
+            || 'No disponible';
     }
 
     getAdditionalInstallations(): TargetDevice[] {
@@ -1873,6 +1985,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     private resetForm() {
+        this.isPreparingVehicleForm = false;
         this.target = this.getEmptyTarget();
         this.activeTabIndex = 0;
         this.displayColorName = '';
@@ -5139,7 +5252,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.resetProcessForm();
 
             // Recargar la lista de procesos
-            this.loadProcessesList();
+            this.loadProcessesList(false);
 
             // Emitir evento de creación/actualización para que el padre recargue la lista de targets
             this.targetCreated.emit();
@@ -5523,14 +5636,17 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     // Método para cargar la lista de procesos del target actual
-    async loadProcessesList(): Promise<void> {
-        if (!this.target || !this.target._id) {
+    async loadProcessesList(showErrorToast: boolean = true): Promise<void> {
+        const targetId = this.getCurrentTargetId();
+        if (!targetId) {
+            this.processList = [];
             return;
         }
 
         try {
             this.isLoadingProcesses = true;
-            this.processList = await this.targetsService.getProcessesByReference(this.target._id);
+            const processes = await this.targetsService.getProcessesByReference(targetId);
+            this.processList = Array.isArray(processes) ? processes : [];
 
             // Ordenar procesos por fecha de registro (más recientes primero)
             this.processList.sort((a, b) =>
@@ -5545,21 +5661,29 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         } catch (error) {
             console.error('Error al cargar procesos:', error);
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'No se pudieron cargar los procesos del dispositivo'
-            });
+            this.processList = [];
+            if (showErrorToast) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'No se pudieron cargar los procesos del dispositivo'
+                });
+            }
         } finally {
             this.isLoadingProcesses = false;
         }
+    }
+
+    private getCurrentTargetId(): string {
+        const rawTarget = (this.target as any)?.originalTarget || this.target || {};
+        return String(rawTarget?._id || this.target?._id || '').trim();
     }
 
     // Abrir modal de historial de procesos
     openProcessesDialog(): void {
         this.displayProcessesDialog = true;
         // Cargar o refrescar al abrir
-        this.loadProcessesList();
+        this.loadProcessesList(true);
     }
 
     // Método para obtener el nombre del tipo de proceso

@@ -19,6 +19,8 @@
                                 <!-- Mensaje informativo eliminado -->
 
                                 <form class="target-form__form" (ngSubmit)="onSubmit()" ngNativeValidate>
+                                    <ng-container *ngIf="!isLinkedVehicleMode(); else linkedVehicleInfoCard">
+                                    <ng-container *ngIf="!isVehicleFormSkeletonVisible(); else vehicleFormSkeleton">
                                     <div class="target-form__grid">
 
                                         <!-- Columna Izquierda -->
@@ -181,6 +183,144 @@
 
                                         </div>
                                     </div>
+                                    </ng-container>
+                                    </ng-container>
+
+                                    <ng-template #vehicleFormSkeleton>
+                                        <div class="vehicle-form-skeleton" aria-label="Cargando datos del vehículo">
+                                            <div class="vehicle-form-skeleton__column">
+                                                <div class="vehicle-form-skeleton__field vehicle-form-skeleton__field--with-action">
+                                                    <span class="vehicle-form-skeleton__label"></span>
+                                                    <span class="vehicle-form-skeleton__action"></span>
+                                                    <span class="vehicle-form-skeleton__input"></span>
+                                                </div>
+                                                <div class="vehicle-form-skeleton__field">
+                                                    <span class="vehicle-form-skeleton__label"></span>
+                                                    <span class="vehicle-form-skeleton__input"></span>
+                                                </div>
+                                                <div class="vehicle-form-skeleton__field">
+                                                    <span class="vehicle-form-skeleton__label"></span>
+                                                    <span class="vehicle-form-skeleton__input"></span>
+                                                </div>
+                                                <div class="vehicle-form-skeleton__field">
+                                                    <span class="vehicle-form-skeleton__label"></span>
+                                                    <span class="vehicle-form-skeleton__input"></span>
+                                                </div>
+                                                <div class="vehicle-form-skeleton__field">
+                                                    <span class="vehicle-form-skeleton__label"></span>
+                                                    <span class="vehicle-form-skeleton__input"></span>
+                                                </div>
+                                                <div class="vehicle-form-skeleton__button"></div>
+                                            </div>
+                                            <div class="vehicle-form-skeleton__column">
+                                                <div class="vehicle-form-skeleton__field">
+                                                    <span class="vehicle-form-skeleton__label"></span>
+                                                    <span class="vehicle-form-skeleton__input"></span>
+                                                </div>
+                                                <div class="vehicle-form-skeleton__field">
+                                                    <span class="vehicle-form-skeleton__label"></span>
+                                                    <span class="vehicle-form-skeleton__input"></span>
+                                                </div>
+                                                <div class="vehicle-form-skeleton__field">
+                                                    <span class="vehicle-form-skeleton__label"></span>
+                                                    <span class="vehicle-form-skeleton__input"></span>
+                                                </div>
+                                                <div class="vehicle-form-skeleton__palette">
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                </div>
+                                                <div class="vehicle-form-skeleton__button"></div>
+                                            </div>
+                                        </div>
+                                    </ng-template>
+
+                                    <ng-template #linkedVehicleInfoCard>
+                                        <div *ngIf="isLinkedVehicleInfoLoading(); else linkedVehicleLoadedCard"
+                                            class="linked-vehicle-skeleton"
+                                            aria-label="Cargando vehículo vinculado">
+                                            <div class="linked-vehicle-skeleton__header">
+                                                <span></span>
+                                                <strong></strong>
+                                            </div>
+                                            <div class="linked-vehicle-skeleton__body">
+                                                <div class="linked-vehicle-skeleton__image"></div>
+                                                <div class="linked-vehicle-skeleton__details">
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                    <span></span>
+                                                </div>
+                                            </div>
+                                            <div class="linked-vehicle-skeleton__footer"></div>
+                                        </div>
+
+                                        <ng-template #linkedVehicleLoadedCard>
+                                        <div class="linked-vehicle-info-card">
+                                            <div class="linked-vehicle-info-card__header">
+                                                <div>
+                                                    <span>Vehículo vinculado</span>
+                                                    <strong>{{ getLinkedVehicleName() }}</strong>
+                                                </div>
+                                                <span class="linked-vehicle-info-card__badge"
+                                                    [class.linked-vehicle-info-card__badge--ok]="getLinkedVehicleValue('verificado') === true">
+                                                    <i class="pi" [ngClass]="getLinkedVehicleValue('verificado') === true ? 'pi-check-circle' : 'pi-link'"></i>
+                                                    {{ getSelectedGpsModelName() }}
+                                                </span>
+                                            </div>
+
+                                            <div class="linked-vehicle-info-card__body">
+                                                <div class="linked-vehicle-info-card__image">
+                                                    <img *ngIf="getLinkedVehicleImage()" [src]="getLinkedVehicleImage()" alt="Vehículo vinculado">
+                                                    <i *ngIf="!getLinkedVehicleImage()" class="pi pi-car"></i>
+                                                </div>
+
+                                                <div class="linked-vehicle-info-card__details">
+                                                    <div class="linked-vehicle-info-card__item">
+                                                        <span>IMEI</span>
+                                                        <strong>{{ getLinkedVehicleValue('device_imei') || target.gps_adicional || 'No disponible' }}</strong>
+                                                    </div>
+                                                    <div class="linked-vehicle-info-card__item">
+                                                        <span>Matrícula</span>
+                                                        <strong>{{ getLinkedVehicleValue('target_plate_number') || 'No disponible' }}</strong>
+                                                    </div>
+                                                    <div class="linked-vehicle-info-card__item">
+                                                        <span>Marca</span>
+                                                        <strong>{{ getLinkedVehicleBrandLabel() }}</strong>
+                                                    </div>
+                                                    <div class="linked-vehicle-info-card__item">
+                                                        <span>Modelo</span>
+                                                        <strong>{{ getLinkedVehicleModelLabel() }}</strong>
+                                                    </div>
+                                                    <div class="linked-vehicle-info-card__item">
+                                                        <span>Año / color</span>
+                                                        <strong class="linked-vehicle-info-card__color">
+                                                            <i [style.background-color]="getLinkedVehicleColorHex()"></i>
+                                                            {{ getLinkedVehicleValue('target_year') || 'No disponible' }} · {{ getLinkedVehicleColorLabel() }}
+                                                        </strong>
+                                                    </div>
+                                                    <div class="linked-vehicle-info-card__item" *ngIf="getLinkedVehicleValue('target_chassis_number')">
+                                                        <span>Chasis</span>
+                                                        <strong>{{ getLinkedVehicleValue('target_chassis_number') }}</strong>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="linked-vehicle-info-card__footer">
+                                                <span>
+                                                    Datos tomados del GPS principal vinculado.
+                                                </span>
+                                                <span class="linked-vehicle-info-card__verified"
+                                                    [class.linked-vehicle-info-card__verified--ok]="getLinkedVehicleValue('verificado') === true">
+                                                    <i class="pi" [ngClass]="getLinkedVehicleValue('verificado') === true ? 'pi-check-circle' : 'pi-exclamation-circle'"></i>
+                                                    {{ getLinkedVehicleValue('verificado') === true ? 'Verificado' : 'Sin verificar' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        </ng-template>
+                                    </ng-template>
 
                                     <div class="target-form__actions">
                                         <button type="submit" [disabled]="isLoading">

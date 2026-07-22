@@ -61,6 +61,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
   userToEdit: ExtendedUser | null = null;
   targets: Target[] = [];
   targetsList: any[] = [];
+  private targetsCardListCacheSource: any[] | null = null;
+  private targetsCardListCacheSignature = '';
+  private targetsCardListCache: any[] = [];
   generatingAITargets: Set<string> = new Set();
   activatingTargets: Set<string> = new Set();
   activatingTargetStatus: Map<string, any> = new Map();
@@ -354,11 +357,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private getDisplayTraccarStatus(target: any): string {
     const rawStatus = target?.traccarInfo?.status || target?.traccarStatus || 'offline';
 
-    if (rawStatus === 'online' || rawStatus === 'Localizado' || rawStatus === 'No localizado') {
-      return rawStatus;
+    if (this.isTargetAirtag(target)) {
+      const normalizedStatus = String(rawStatus).trim().toLowerCase();
+      return normalizedStatus === 'online' || normalizedStatus === 'localizado'
+        ? 'Localizado'
+        : 'No localizado';
     }
 
-    if (this.isTargetAirtag(target)) {
+    if (rawStatus === 'online' || rawStatus === 'Localizado' || rawStatus === 'No localizado') {
       return rawStatus;
     }
 
@@ -427,6 +433,88 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return this.applyConnectionFilterToView(this.mapTargetsToView(targets as Target[]));
   }
 
+  private buildLinkedTargetCardRows(targets: any[]): any[] {
+    if (!Array.isArray(targets) || targets.length === 0) {
+      return [];
+    }
+
+    const byImei = new Map<string, any>();
+    const linkedByImei = new Map<string, any>();
+    targets.forEach(target => {
+      const imei = this.getTargetImei(target);
+      if (imei) {
+        byImei.set(imei, target);
+      }
+
+      const linkedImei = this.getTargetLinkedGpsImei(target);
+      if (linkedImei) {
+        linkedByImei.set(linkedImei, target);
+      }
+    });
+
+    const consumed = new Set<string>();
+    const rows: any[] = [];
+
+    targets.forEach(target => {
+      const targetId = String(target?._id || '');
+      if (!targetId || consumed.has(targetId)) {
+        return;
+      }
+
+      const currentImei = this.getTargetImei(target);
+      const linkedImei = this.getTargetLinkedGpsImei(target);
+      const linkedTarget = linkedImei ? byImei.get(linkedImei) : linkedByImei.get(currentImei);
+      const linkedTargetId = String(linkedTarget?._id || '');
+
+      if (linkedTarget && linkedTargetId && linkedTargetId !== targetId && !consumed.has(linkedTargetId)) {
+        const primary = this.getTargetLinkedGpsImei(target) ? linkedTarget : target;
+        const secondary = primary === target ? linkedTarget : target;
+
+        rows.push({
+          ...primary,
+          _id: `linked-card-${primary._id}-${secondary._id}`,
+          isLinkedPairCard: true,
+          primaryTarget: primary,
+          secondaryTarget: secondary,
+          originalTarget: primary.originalTarget || primary,
+          isShared: primary.isShared && secondary.isShared,
+        });
+
+        consumed.add(targetId);
+        consumed.add(linkedTargetId);
+        return;
+      }
+
+      rows.push(target);
+      consumed.add(targetId);
+    });
+
+    return rows;
+  }
+
+  private getTargetImei(target: any): string {
+    const source = target?.originalTarget || target || {};
+    return String(target?.imei || target?.device_imei || source.device_imei || source.imei || '').trim();
+  }
+
+  private getTargetLinkedGpsImei(target: any): string {
+    const source = target?.originalTarget || target || {};
+    return String(target?.gps_adicional || source.gps_adicional || target?.additional_gps || source.additional_gps || '').trim();
+  }
+
+  private getTargetsCardListSignature(targets: any[]): string {
+    return targets.map(target => {
+      const source = target?.originalTarget || target || {};
+      return [
+        target?._id || '',
+        this.getTargetImei(target),
+        this.getTargetLinkedGpsImei(target),
+        target?.traccarStatus || '',
+        source.verificado === true || target?.verificado === true ? '1' : '0'
+      ].join(':');
+    }).join('|');
+  }
+
   // ====================================
   // PROPIEDADES PÚBLICAS - DELEGADAS A SERVICIOS
   // ====================================
@@ -440,6 +528,19 @@ export class ManagementComponent implements OnInit, OnDestroy {
   get showMaps(): boolean { return this.uiService.areMapsVisible(); }
   get isUserSearchActive(): boolean { return this.isSearchingUsers; }
   get isTargetSearchActive(): boolean { return this.isSearchingTargets; }
+  get targetsCardList(): any[] {
+    const source = this.targetsList || [];
+    const signature = this.getTargetsCardListSignature(source);
+
+    if (this.targetsCardListCacheSource === source && this.targetsCardListCacheSignature === signature) {
+      return this.targetsCardListCache;
+    }
+
+    this.targetsCardListCacheSource = source;
+    this.targetsCardListCacheSignature = signature;
+    this.targetsCardListCache = this.buildLinkedTargetCardRows(source);
+    return this.targetsCardListCache;
+  }
 
   // Mobile/responsive state
   isMobileView: boolean = false;
@@ -461,6 +562,71 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   isTargetSelectedFromUrl(targetId: string): boolean {
     return this.targetIdFromUrl === targetId;
+  }
+
+  isTargetPairSelected(row: any): boolean {
+    if (!row?.isLinkedPairCard) {
+      return !!this.selectedTargetForMap && this.selectedTargetForMap._id === row?._id;
+    }
+
+    return [row.primaryTarget, row.secondaryTarget].some((target: any) =>
+      !!target?._id && !!this.selectedTargetForMap && this.selectedTargetForMap._id === target._id
+    );
+  }
+
+  isTargetSelected(target: any): boolean {
+    const targetId = String(target?._id || '');
+    return !!targetId && this.targetsSelected.some((selected: any) => String(selected?._id || '') === targetId);
+  }
+
+  toggleTargetSelection(target: any, event?: Event): void {
+    event?.stopPropagation();
+    if (!target || target.isShared || !this.canUpdateDevices()) {
+      return;
+    }
+
+    const targetId = String(target._id || '');
+    if (!targetId) {
+      return;
+    }
+
+    if (this.isTargetSelected(target)) {
+      this.targetsSelected = this.targetsSelected.filter((selected: any) => String(selected?._id || '') !== targetId);
+    } else {
+      this.targetsSelected = [...this.targetsSelected, target];
+    }
+  }
+
+  isTargetPairSelectedForActions(row: any): boolean {
+    if (!row?.isLinkedPairCard) {
+      return this.isTargetSelected(row);
+    }
+
+    return this.isTargetSelected(row.primaryTarget) && this.isTargetSelected(row.secondaryTarget);
+  }
+
+  toggleTargetPairSelection(row: any, event?: Event): void {
+    event?.stopPropagation();
+    if (!row?.isLinkedPairCard || row.isShared || !this.canUpdateDevices()) {
+      return;
+    }
+
+    const pairTargets = [row.primaryTarget, row.secondaryTarget].filter(Boolean);
+    const pairIds = new Set(pairTargets.map((target: any) => String(target?._id || '')).filter(Boolean));
+    if (pairIds.size === 0) {
+      return;
+    }
+
+    if (this.isTargetPairSelectedForActions(row)) {
+      this.targetsSelected = this.targetsSelected.filter((selected: any) =>
+        !pairIds.has(String(selected?._id || ''))
+      );
+      return;
+    }
+
+    const selectedIds = new Set(this.targetsSelected.map((selected: any) => String(selected?._id || '')));
+    const missingTargets = pairTargets.filter((target: any) => !selectedIds.has(String(target?._id || '')));
+    this.targetsSelected = [...this.targetsSelected, ...missingTargets];
   }
 
   // ====================================
@@ -2316,6 +2482,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   public isTargetVerified(target: any): boolean {
     const source = target?.originalTarget || target || {};
     const device = source.device || target?.device || {};
+    const linkedPrimaryTarget = this.findLinkedPrimaryTarget(target);
     const explicitValues = [
       target?.verificado,
       target?.verified,
@@ -2335,6 +2502,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return true;
     }
 
+    if (linkedPrimaryTarget && this.isTargetVerified(linkedPrimaryTarget)) {
+      return true;
+    }
+
     if (explicitValues.some(value => this.isBooleanLikeFalse(value))) {
       return false;
     }
@@ -2342,6 +2513,24 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return this.hasVerificationMetadata(target?.matricula_img)
       || this.hasVerificationMetadata(source.matricula_img)
       || this.hasVerificationMetadata(device.matricula_img);
+  }
+
+  private findLinkedPrimaryTarget(target: any): any | null {
+    const source = target?.originalTarget || target || {};
+    const linkedImei = target?.gps_adicional ?? source.gps_adicional ?? target?.additional_gps ?? source.additional_gps;
+    if (typeof linkedImei !== 'string' || !linkedImei.trim()) {
+      return null;
+    }
+
+    const normalizedLinkedImei = linkedImei.trim();
+    const allTargets = [...(this.targets || []), ...(this.allTargets || [])];
+    return allTargets.find((candidate: any) => {
+      const candidateSource = candidate?.originalTarget || candidate || {};
+      const candidateImei = candidate?.device_imei || candidate?.imei || candidateSource.device_imei || candidateSource.imei;
+      const candidateId = candidate?._id || candidateSource._id;
+      const currentId = target?._id || source._id;
+      return candidateId !== currentId && String(candidateImei || '').trim() === normalizedLinkedImei;
+    }) || null;
   }
 
   public hasLinkedAdditionalGps(target: any): boolean {
@@ -2374,7 +2563,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return 'Expirado';
     }
 
-    const status = target?.traccarStatus || this.getDisplayTraccarStatus(target);
+    const status = this.getTargetUiTraccarStatus(target);
+    if (this.isTargetAirtag(target)) {
+      return status === 'Localizado' ? 'Localizado' : 'No localizado';
+    }
+
     if (this.isTargetOfflineForMovement(status)) {
       return this.getTargetOfflineMovementLabel(target);
     }
@@ -2388,7 +2581,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   public getTargetMovementClass(target: any): string {
-    const status = target?.traccarStatus || this.getDisplayTraccarStatus(target);
+    const status = this.getTargetUiTraccarStatus(target);
     const classes: string[] = [];
 
     if (this.isTargetSuspended(target)) {
@@ -2425,7 +2618,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return 'pi pi-calendar-times';
     }
 
-    const status = target?.traccarStatus || this.getDisplayTraccarStatus(target);
+    const status = this.getTargetUiTraccarStatus(target);
+    if (this.isTargetAirtag(target)) {
+      return status === 'Localizado' ? 'pi pi-map-marker' : 'pi pi-ban';
+    }
+
     if (this.isTargetOfflineForMovement(status)) {
       return 'pi pi-ban';
     }
@@ -2439,11 +2636,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private getTargetStatusColorClass(target: any): string {
-    const status = target?.traccarStatus || this.getDisplayTraccarStatus(target);
+    const status = this.getTargetUiTraccarStatus(target);
     if (status === 'online') return 'target-online';
     if (status === 'Señal débil') return 'target-weak-signal';
     if (status === 'Localizado') return 'target-localizado';
     return 'target-offline';
+  }
+
+  private getTargetUiTraccarStatus(target: any): string {
+    return this.isTargetAirtag(target)
+      ? this.getDisplayTraccarStatus(target)
+      : (target?.traccarStatus || this.getDisplayTraccarStatus(target));
   }
 
   private isTargetOfflineForMovement(status?: string | null): boolean {

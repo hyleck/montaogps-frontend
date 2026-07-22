@@ -817,7 +817,7 @@
                                     <small *ngIf="filterStatus === 'offline'">Solo fuera de línea</small>
                                 </div>
                             </div>
-                            <p-table [value]="targetsList" [(selection)]="targetsSelected" dataKey="_id"
+                            <p-table [value]="targetsCardList" dataKey="_id"
                                 [tableStyle]="{'width': '100%', 'min-width': '0'}">
                                 <ng-template pTemplate="header">
                                     <tr>
@@ -850,6 +850,7 @@
                                     </tr>
                                 </ng-template>
                                 <ng-template pTemplate="body" let-target>
+                                    <ng-container *ngIf="!target.isLinkedPairCard; else linkedPairTargetCard">
                                         <tr class="management__content-table-tr" [ngClass]="{
                                           'target-selected-for-map': selectedTargetForMap && selectedTargetForMap._id === target._id,
                                           'external-user-target': shouldShowParentUserButton(target),
@@ -860,7 +861,13 @@
                                         [style.--vib]="isTargetVehicleInfoIncomplete(target) ? '#ef4444' : '#22c55e'"
                                         [title]="(selectedTargetForMap && selectedTargetForMap._id === target._id) ? 'TARGET SELECCIONADO - ID: ' + target._id : ''">
                                         <td style="width: 4rem; text-align: center;" [ngClass]="{'shared-checkbox-cell': target.isShared}">
-                                            <p-tableCheckbox *ngIf="canUpdateDevices() && !target.isShared" [value]="target" />
+                                            <button *ngIf="canUpdateDevices() && !target.isShared" type="button"
+                                                class="target-card-select-box"
+                                                [class.target-card-select-box--checked]="isTargetSelected(target)"
+                                                (click)="toggleTargetSelection(target, $event)"
+                                                [attr.aria-label]="isTargetSelected(target) ? 'Quitar selección' : 'Seleccionar objetivo'">
+                                                <i *ngIf="isTargetSelected(target)" class="pi pi-check"></i>
+                                            </button>
                                             <div *ngIf="target.isShared" class="shared-checkbox-icon" title="Objetivo compartido">
                                                 <i class="pi pi-share-alt"></i>
                                             </div>
@@ -1056,6 +1063,144 @@
                                             </div>
                                         </td>
                                     </tr>
+                                    </ng-container>
+
+                                    <ng-template #linkedPairTargetCard>
+                                        <tr class="management__content-table-tr target-linked-pair-card"
+                                            [ngClass]="{
+                                                'target-selected-for-map': isTargetPairSelected(target),
+                                                'shared-target-row': target.isShared
+                                            }"
+                                            [style.background]="isTargetPairSelected(target) ? 'rgba(34, 197, 94, 0.1)' : ''"
+                                            [style.border]="isTargetPairSelected(target) ? '2px solid rgba(34, 197, 94, 0.5)' : ''"
+                                            [style.--vib]="isTargetVehicleInfoIncomplete(target.primaryTarget) || isTargetVehicleInfoIncomplete(target.secondaryTarget) ? '#ef4444' : '#22c55e'"
+                                            title="Objetivos vinculados">
+                                            <td class="target-linked-pair-card__select">
+                                                <div class="target-linked-pair-card__checks" *ngIf="canUpdateDevices() && !target.isShared">
+                                                    <button type="button"
+                                                        class="target-card-select-box"
+                                                        [class.target-card-select-box--checked]="isTargetPairSelectedForActions(target)"
+                                                        (click)="toggleTargetPairSelection(target, $event)"
+                                                        [attr.aria-label]="isTargetPairSelectedForActions(target) ? 'Quitar selección de ambos objetivos' : 'Seleccionar ambos objetivos'">
+                                                        <i *ngIf="isTargetPairSelectedForActions(target)" class="pi pi-check"></i>
+                                                    </button>
+                                                </div>
+                                                <i *ngIf="target.isShared" class="pi pi-share-alt shared-checkbox-icon"></i>
+                                            </td>
+                                            <td>
+                                                <div class="target-linked-pair-card__targets">
+                                                    <div class="target-linked-pair-card__target">
+                                                        <div class="target-linked-pair-card__image">
+                                                            <img *ngIf="getTargetImageUrl(target.primaryTarget)" [src]="getTargetImageUrl(target.primaryTarget)" [alt]="target.primaryTarget.name">
+                                                            <i *ngIf="!getTargetImageUrl(target.primaryTarget)" class="pi pi-car"></i>
+                                                        </div>
+                                                        <div class="target-linked-pair-card__main">
+                                                            <span (click)="handleTargetClick(target.primaryTarget, $event)"
+                                                                class="management__content-table-link"
+                                                                [ngClass]="{
+                                                                    'target-online': target.primaryTarget.traccarStatus === 'online',
+                                                                    'target-weak-signal': target.primaryTarget.traccarStatus === 'Señal débil',
+                                                                    'target-localizado': target.primaryTarget.traccarStatus === 'Localizado',
+                                                                    'target-offline': target.primaryTarget.traccarStatus !== 'online' && target.primaryTarget.traccarStatus !== 'Señal débil' && target.primaryTarget.traccarStatus !== 'Localizado',
+                                                                    'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target.primaryTarget._id
+                                                                }">
+                                                                <i class="pi pi-map-marker"></i>
+                                                                <span class="target-name">{{ target.primaryTarget.name }}</span>
+                                                                <span *ngIf="!isTargetSuspended(target.primaryTarget) && (target.primaryTarget.traccarStatus === 'online' || target.primaryTarget.traccarStatus === 'Señal débil') && getExpirationStatus(target.primaryTarget.expiration_date) !== 'expired'"
+                                                                    class="target-signal-bars"
+                                                                    [class.target-signal-bars--weak]="target.primaryTarget.traccarStatus === 'Señal débil'">
+                                                                    <span></span><span></span><span></span><span></span>
+                                                                </span>
+                                                            </span>
+                                                            <span class="target-subtext-line">
+                                                                <span class="target-movement-status" [ngClass]="getTargetMovementClass(target.primaryTarget)">
+                                                                    <i *ngIf="getTargetMovementIcon(target.primaryTarget) as movementIcon" [class]="movementIcon" aria-hidden="true"></i>
+                                                                    <span>{{ getTargetMovementLabel(target.primaryTarget) }}</span>
+                                                                </span>
+                                                                <span class="target-linked-additional">
+                                                                    <i class="pi pi-link" aria-hidden="true"></i>
+                                                                    <span>Principal</span>
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="target-linked-pair-card__target">
+                                                        <div class="target-linked-pair-card__image">
+                                                            <img *ngIf="getTargetImageUrl(target.secondaryTarget)" [src]="getTargetImageUrl(target.secondaryTarget)" [alt]="target.secondaryTarget.name">
+                                                            <i *ngIf="!getTargetImageUrl(target.secondaryTarget)" class="pi pi-car"></i>
+                                                        </div>
+                                                        <div class="target-linked-pair-card__main">
+                                                            <span (click)="handleTargetClick(target.secondaryTarget, $event)"
+                                                                class="management__content-table-link"
+                                                                [ngClass]="{
+                                                                    'target-online': target.secondaryTarget.traccarStatus === 'online',
+                                                                    'target-weak-signal': target.secondaryTarget.traccarStatus === 'Señal débil',
+                                                                    'target-localizado': target.secondaryTarget.traccarStatus === 'Localizado',
+                                                                    'target-offline': target.secondaryTarget.traccarStatus !== 'online' && target.secondaryTarget.traccarStatus !== 'Señal débil' && target.secondaryTarget.traccarStatus !== 'Localizado',
+                                                                    'target-showing-on-map': selectedTargetForMap && selectedTargetForMap._id === target.secondaryTarget._id
+                                                                }">
+                                                                <i class="pi pi-map-marker"></i>
+                                                                <span class="target-name">{{ target.secondaryTarget.name }}</span>
+                                                                <span *ngIf="!isTargetSuspended(target.secondaryTarget) && (target.secondaryTarget.traccarStatus === 'online' || target.secondaryTarget.traccarStatus === 'Señal débil') && getExpirationStatus(target.secondaryTarget.expiration_date) !== 'expired'"
+                                                                    class="target-signal-bars"
+                                                                    [class.target-signal-bars--weak]="target.secondaryTarget.traccarStatus === 'Señal débil'">
+                                                                    <span></span><span></span><span></span><span></span>
+                                                                </span>
+                                                            </span>
+                                                            <span class="target-subtext-line">
+                                                                <span class="target-movement-status" [ngClass]="getTargetMovementClass(target.secondaryTarget)">
+                                                                    <i *ngIf="getTargetMovementIcon(target.secondaryTarget) as movementIcon" [class]="movementIcon" aria-hidden="true"></i>
+                                                                    <span>{{ getTargetMovementLabel(target.secondaryTarget) }}</span>
+                                                                </span>
+                                                                <span class="target-linked-additional">
+                                                                    <i class="pi pi-link" aria-hidden="true"></i>
+                                                                    <span>Vinculado</span>
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="target-linked-pair-card__meta">
+                                                    <div class="imei-container">
+                                                        <span class="target-card-imei">IMEI: {{ target.primaryTarget.imei }}<i *ngIf="isTargetVerified(target.primaryTarget)" class="pi pi-check-circle target-verified-check" title="Objetivo verificado"></i></span>
+                                                        <span class="target-card-sim">SIM: {{ target.primaryTarget.sim || target.primaryTarget.sim_card_number || '—' }}</span>
+                                                        <span class="target-card-expiration" [ngClass]="{
+                                                            'expiration-normal': !isTargetSuspended(target.primaryTarget) && getExpirationStatus(target.primaryTarget.expiration_date) === 'normal',
+                                                            'expiration-warning': !isTargetSuspended(target.primaryTarget) && getExpirationStatus(target.primaryTarget.expiration_date) === 'warning',
+                                                            'expiration-expired': !isTargetSuspended(target.primaryTarget) && getExpirationStatus(target.primaryTarget.expiration_date) === 'expired'
+                                                        }">Exp: {{ target.primaryTarget.expiration_date ? (target.primaryTarget.expiration_date | date:'dd/MM/yyyy') : '-' }}</span>
+                                                    </div>
+                                                    <div class="imei-container">
+                                                        <span class="target-card-imei">IMEI: {{ target.secondaryTarget.imei }}<i *ngIf="isTargetVerified(target.secondaryTarget)" class="pi pi-check-circle target-verified-check" title="Objetivo verificado"></i></span>
+                                                        <span class="target-card-sim">SIM: {{ target.secondaryTarget.sim || target.secondaryTarget.sim_card_number || '—' }}</span>
+                                                        <span class="target-card-expiration" [ngClass]="{
+                                                            'expiration-normal': !isTargetSuspended(target.secondaryTarget) && getExpirationStatus(target.secondaryTarget.expiration_date) === 'normal',
+                                                            'expiration-warning': !isTargetSuspended(target.secondaryTarget) && getExpirationStatus(target.secondaryTarget.expiration_date) === 'warning',
+                                                            'expiration-expired': !isTargetSuspended(target.secondaryTarget) && getExpirationStatus(target.secondaryTarget.expiration_date) === 'expired'
+                                                        }">Exp: {{ target.secondaryTarget.expiration_date ? (target.secondaryTarget.expiration_date | date:'dd/MM/yyyy') : '-' }}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="target-linked-pair-card__actions">
+                                                    <button class="button button--primary-flat" (click)="showTargetForm(target.primaryTarget)" title="Editar principal" *ngIf="canUpdateDevices()">
+                                                        <i class="pi pi-pen-to-square"></i>
+                                                    </button>
+                                                    <button class="button button--primary-flat" (click)="showTargetForm(target.secondaryTarget)" title="Editar vinculado" *ngIf="canUpdateDevices()">
+                                                        <i class="pi pi-link"></i>
+                                                    </button>
+                                                    <button class="button button--primary-flat-icon" title="Agregar principal a acceso directo" (click)="addToShortcuts(target.primaryTarget, $event)">
+                                                        <i [class]="isTargetInShortcuts(target.primaryTarget) ? 'pi pi-bookmark-fill' : 'pi pi-bookmark'" [style.color]="isTargetInShortcuts(target.primaryTarget) ? 'gold' : ''"></i>
+                                                    </button>
+                                                    <button class="button button--primary-flat-icon" title="Agregar vinculado a acceso directo" (click)="addToShortcuts(target.secondaryTarget, $event)">
+                                                        <i [class]="isTargetInShortcuts(target.secondaryTarget) ? 'pi pi-bookmark-fill' : 'pi pi-bookmark'" [style.color]="isTargetInShortcuts(target.secondaryTarget) ? 'gold' : ''"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </ng-template>
                                 </ng-template>
                             </p-table>
 

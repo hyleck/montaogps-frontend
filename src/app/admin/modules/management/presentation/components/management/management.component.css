@@ -918,9 +918,174 @@
   white-space: nowrap;
 }
 
+:host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr.target-linked-pair-card {
+  height: 128px;
+  min-height: 128px;
+  max-height: 128px;
+  grid-template-columns: 42px minmax(0, 1fr) 360px minmax(160px, auto);
+}
+
+:host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr.target-linked-pair-card > td {
+  height: 128px;
+}
+
+.target-linked-pair-card__select,
+.target-linked-pair-card__checks,
+.target-linked-pair-card__targets,
+.target-linked-pair-card__meta,
+.target-linked-pair-card__actions {
+  min-width: 0;
+}
+
+.target-linked-pair-card__checks,
+.target-linked-pair-card__targets,
+.target-linked-pair-card__meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.target-linked-pair-card__checks {
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.target-linked-pair-card__targets {
+  position: relative;
+  width: 100%;
+  gap: 8px;
+}
+
+.target-linked-pair-card__targets::before {
+  position: absolute;
+  left: 20px;
+  top: 34px;
+  bottom: 34px;
+  width: 1px;
+  content: "";
+  border-radius: 999px;
+  background: rgba(20, 184, 166, 0.5);
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.target-linked-pair-card__target {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.target-linked-pair-card__image {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 7px;
+  background: rgba(148, 163, 184, 0.12);
+  overflow: hidden;
+  flex: 0 0 40px;
+}
+
+.target-linked-pair-card__image img {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+}
+
+.target-linked-pair-card__image i {
+  color: #6b7280;
+  font-size: 1.25rem;
+}
+
+.target-linked-pair-card__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.target-linked-pair-card__meta {
+  width: 100%;
+  gap: 8px;
+}
+
+.target-linked-pair-card__meta .imei-container {
+  padding: 0;
+}
+
+.target-linked-pair-card__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  width: 100%;
+}
+
+.target-linked-pair-card__actions .button,
+.target-linked-pair-card__actions .button--primary-flat-icon {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+}
+
+.target-linked-pair-card .target-verified-check {
+  margin-left: 5px;
+  color: #22c55e;
+  font-size: 12px;
+  vertical-align: -1px;
+}
+
+:host-context(.app-dark) .target-linked-pair-card__image,
+.dark .target-linked-pair-card__image {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:host-context(.app-dark) .target-linked-pair-card__targets::before,
+.dark .target-linked-pair-card__targets::before {
+  background: rgba(45, 212, 191, 0.48);
+  box-shadow: none;
+}
+
 :host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr > td:first-child {
   justify-content: center;
   padding: 0 8px !important;
+}
+
+.target-card-select-box {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.16);
+  color: #22c55e;
+  cursor: pointer;
+  box-shadow: 0 1px 5px rgba(15, 23, 42, 0.08);
+}
+
+.target-card-select-box--checked {
+  background: rgba(34, 197, 94, 0.18);
+}
+
+.target-card-select-box i {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+:host-context(.app-dark) .target-card-select-box,
+.dark .target-card-select-box {
+  background: rgba(255, 255, 255, 0.12);
+  color: #4ade80;
+}
+
+:host-context(.app-dark) .target-card-select-box--checked,
+.dark .target-card-select-box--checked {
+  background: rgba(34, 197, 94, 0.22);
 }
 
 :host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr > td:nth-child(2) {
@@ -1110,6 +1275,10 @@
 @media (max-width: 980px) {
   :host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr {
     grid-template-columns: 42px minmax(0, 1fr) 260px minmax(120px, auto);
+  }
+
+  :host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr.target-linked-pair-card {
+    grid-template-columns: 42px minmax(0, 1fr) 280px minmax(120px, auto);
   }
 }
 
