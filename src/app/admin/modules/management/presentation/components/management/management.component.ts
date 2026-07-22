@@ -5279,6 +5279,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
   getActivityDisplayTitle(activity: UserActivity & { groupCount?: number }): string {
     const title = this.getActivityTitle(activity);
     const count = activity.groupCount || 1;
+    if (count > 1 && this.isGpsViewActivity(activity)) {
+      return title;
+    }
     return count > 1 ? `${title} ${count} veces` : title;
   }
 
@@ -5311,7 +5314,40 @@ export class ManagementComponent implements OnInit, OnDestroy {
   getActivityAgo(activity: UserActivity): string {
     const date = new Date(activity.occurred_at);
     if (Number.isNaN(date.getTime())) return '';
+    if ((activity as any).groupCount > 1 && this.isGpsViewActivity(activity)) {
+      return `${this.formatActivitySeenDay(date)} · ${this.formatRelativeDate(date)}`;
+    }
     return this.formatRelativeDate(date);
+  }
+
+  private isGpsViewActivity(activity: UserActivity): boolean {
+    const action = String(activity.action || '').toLowerCase();
+    const route = String(activity.route || activity.screen || '').toLowerCase();
+    return action === 'view gps'
+      || action === 'view gps by imei'
+      || /^\/devices\/[a-f0-9]{24}/i.test(route)
+      || route.startsWith('/devices/by-imei/');
+  }
+
+  private formatActivitySeenDay(date: Date): string {
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (this.isSameCalendarDay(date, today)) return 'Lo vio hoy';
+    if (this.isSameCalendarDay(date, yesterday)) return 'Lo vio ayer';
+
+    return `Lo vio el ${date.toLocaleDateString('es-DO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })}`;
+  }
+
+  private isSameCalendarDay(a: Date, b: Date): boolean {
+    return a.getFullYear() === b.getFullYear()
+      && a.getMonth() === b.getMonth()
+      && a.getDate() === b.getDate();
   }
 
   private formatActivityAction(action: string): string {
