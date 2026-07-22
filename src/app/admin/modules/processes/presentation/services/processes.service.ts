@@ -61,12 +61,10 @@ export const PROCESS_TYPE_LABELS: { [key: number]: string } = {
   2: 'Mod. Fecha Instalación',
   3: 'Mod. Fecha Expiración',
   4: 'Renovación',
-  5: 'Cambio de Plan',
-  6: 'Cambio de Plan',
   7: 'Cambio de SIM',
   8: 'Mod. Técnico',
   9: 'Cambio de GPS',
-  10: 'Mod. Detalles Instalación',
+  10: 'Chequeo',
   11: 'Mod. Modelo GPS',
   12: 'Mod. IMEI / GPS ID',
   13: 'Cambio de SIM Card',
@@ -74,6 +72,8 @@ export const PROCESS_TYPE_LABELS: { [key: number]: string } = {
   15: 'Mod. Tipo SIM',
   16: 'Restauración',
   17: 'Activación Automática',
+  18: 'Reinstalación',
+  19: 'Desinstalación',
 };
 
 @Injectable({

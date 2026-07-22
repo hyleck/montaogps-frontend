@@ -219,7 +219,7 @@
       <div class="metrics-panel__header">
         <div>
           <h2>Técnicos</h2>
-          <span>Instalaciones vs chequeos</span>
+          <span>Instalaciones vs chequeos hechos a esos GPS</span>
         </div>
         <div class="metrics-panel__actions">
           <span [class]="getHealthClass(getTechnicianWorkHealthPercent())">
@@ -245,10 +245,10 @@
 
           <div class="technician-work-row__numbers">
             <span><i class="pi pi-wrench"></i>{{ technician.installations }} instalaciones</span>
-            <span><i class="pi pi-clipboard"></i>{{ technician.checks }} chequeos</span>
+            <span><i class="pi pi-clipboard"></i>{{ technician.checks }} chequeos a esos GPS</span>
           </div>
 
-          <div class="technician-work-bar" aria-label="Instalaciones vs chequeos">
+          <div class="technician-work-bar" aria-label="Instalaciones vs chequeos hechos a esos GPS">
             <span class="technician-work-bar__installations" [style.width.%]="technician.installationPercent"></span>
             <span class="technician-work-bar__checks" [style.width.%]="technician.checkPercent"></span>
           </div>

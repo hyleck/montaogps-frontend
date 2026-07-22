@@ -5518,7 +5518,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             13: 'SIM card',
             14: 'Número de SIM',
             15: 'Tipo de SIM',
-            16: 'Restauración'
+            16: 'Restauración',
+            17: 'Activación automática',
+            18: 'Reinstalación',
+            19: 'Desinstalación'
         };
         return typeNames[type] || `Proceso desconocido`;
     }
@@ -5591,7 +5594,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             12: 'pi pi-id-card',      // Modificar IMEI / GPS ID
             13: 'pi pi-credit-card',  // Cambio de SIM card
             14: 'pi pi-phone',        // Modificar número de SIM card
-            15: 'pi pi-sim-card'      // Modificar tipo de SIM card
+            15: 'pi pi-sim-card',     // Modificar tipo de SIM card
+            16: 'pi pi-undo',         // Restauración
+            17: 'pi pi-bolt',         // Activación automática
+            18: 'pi pi-refresh',      // Reinstalación
+            19: 'pi pi-times-circle'  // Desinstalación
         };
         return iconMap[type] || 'pi pi-circle';
     }
@@ -5613,7 +5620,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             12: 'status-imei-change', // Modificar IMEI / GPS ID
             13: 'status-sim-change', // Cambio de SIM card
             14: 'status-sim-number-change', // Modificar número de SIM card
-            15: 'status-sim-type-change' // Modificar tipo de SIM card
+            15: 'status-sim-type-change', // Modificar tipo de SIM card
+            16: 'status-restoration', // Restauración
+            17: 'status-automatic-activation', // Activación automática
+            18: 'status-reinstallation', // Reinstalación
+            19: 'status-uninstallation' // Desinstalación
         };
         return statusMap[type] || 'status-default';
     }
@@ -5635,7 +5646,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             12: 'ACTUALIZADO', // Modificar IMEI / GPS ID
             13: 'REEMPLAZADA', // Cambio de SIM card
             14: 'ACTUALIZADO', // Modificar número de SIM card
-            15: 'ACTUALIZADO' // Modificar tipo de SIM card
+            15: 'ACTUALIZADO', // Modificar tipo de SIM card
+            16: 'RESTAURADO',
+            17: 'ACTIVADO',
+            18: 'REINSTALADO',
+            19: 'DESINSTALADO'
         };
         return statusMap[type] || 'COMPLETADO';
     }

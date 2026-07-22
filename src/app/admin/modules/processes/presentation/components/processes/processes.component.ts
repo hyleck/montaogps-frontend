@@ -206,13 +206,16 @@ export class ProcessesComponent implements OnInit {
       7: 'F57F17',   // Cambio de SIM
       8: '5E35B1',   // Mod. Técnico
       9: 'C62828',   // Cambio de GPS
-      10: '00838F',  // Mod. Detalles Instalación
+      10: '00838F',  // Chequeo
       11: '4527A0',  // Mod. Modelo GPS
       12: 'AD1457',  // Mod. IMEI / GPS ID
       13: 'FF8F00',  // Cambio de SIM Card
       14: '00695C',  // Mod. Número SIM
       15: '37474F',  // Mod. Tipo SIM
       16: '1B5E20',  // Restauración
+      17: '2E7D32',  // Activación Automática
+      18: '1565C0',  // Reinstalación
+      19: 'B71C1C',  // Desinstalación
     };
 
     // Apply type colors to column B (Tipo)
@@ -255,13 +258,16 @@ export class ProcessesComponent implements OnInit {
       7: 'warning',   // Cambio de SIM
       8: 'info',      // Mod. Técnico
       9: 'danger',    // Cambio de GPS
-      10: 'info',     // Mod. Detalles Instalación
+      10: 'info',     // Chequeo
       11: 'info',     // Mod. Modelo GPS
       12: 'warning',  // Mod. IMEI / GPS ID
       13: 'warning',  // Cambio de SIM Card
       14: 'info',     // Mod. Número SIM
       15: 'info',     // Mod. Tipo SIM
       16: 'success',  // Restauración
+      17: 'success',  // Activación Automática
+      18: 'info',     // Reinstalación
+      19: 'danger',   // Desinstalación
     };
     return severities[type] || 'info';
   }
