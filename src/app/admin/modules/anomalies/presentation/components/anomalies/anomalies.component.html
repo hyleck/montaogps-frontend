@@ -1,0 +1,158 @@
+<div class="anomalies-page">
+  <section class="anomalies-hero">
+    <div>
+      <span>Análisis del sistema</span>
+      <h1>Anomalías</h1>
+      <p>Listado de GPS, usuarios y procesos que necesitan revisión por datos raros o comportamientos poco comunes.</p>
+    </div>
+    <button type="button" class="anomalies-refresh" (click)="loadAnomalies()" [disabled]="loading">
+      <i class="pi" [class.pi-refresh]="!loading" [class.pi-spin]="loading" [class.pi-spinner]="loading"></i>
+      Actualizar
+    </button>
+  </section>
+
+  <div class="anomalies-error" *ngIf="errorMessage">
+    <i class="pi pi-exclamation-triangle"></i>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <section class="anomalies-summary" *ngIf="!errorMessage">
+    <article class="anomalies-summary-card" *ngFor="let card of summaryCards" [class]="'anomalies-summary-card anomalies-summary-card--' + card.severity">
+      <i [class]="card.icon"></i>
+      <div>
+        <strong>{{ card.value }}</strong>
+        <span>{{ card.label }}</span>
+      </div>
+    </article>
+  </section>
+
+  <section class="anomalies-toolbar" *ngIf="!errorMessage">
+    <div>
+      <label>Categoría</label>
+      <select [(ngModel)]="selectedCategory">
+        <option *ngFor="let category of categories" [ngValue]="category.value">{{ category.label }}</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Severidad</label>
+      <select [(ngModel)]="selectedSeverity">
+        <option *ngFor="let severity of severities" [ngValue]="severity.value">{{ severity.label }}</option>
+      </select>
+    </div>
+
+    <span>{{ filteredAnomalies.length }} anomalías</span>
+  </section>
+
+  <div class="anomalies-loading" *ngIf="loading">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>Cargando anomalías...</span>
+  </div>
+
+  <main class="anomalies-list" *ngIf="!loading && !errorMessage">
+    <article class="anomaly-card" *ngFor="let anomaly of filteredAnomalies" [class]="'anomaly-card anomaly-card--' + anomaly.severity">
+      <div class="anomaly-card__icon">
+        <i [class]="getCategoryIcon(anomaly.category)"></i>
+      </div>
+
+      <div class="anomaly-card__content">
+        <div class="anomaly-card__header">
+          <div>
+            <h2>{{ anomaly.title }}</h2>
+            <p>{{ anomaly.description }}</p>
+          </div>
+          <div class="anomaly-card__badges">
+            <span [class]="'anomaly-severity anomaly-severity--' + anomaly.severity">
+              {{ getSeverityLabel(anomaly.severity) }}
+            </span>
+            <span class="anomaly-category">{{ getCategoryLabel(anomaly.category) }}</span>
+          </div>
+        </div>
+
+        <div class="anomaly-card__meta">
+          <span><i class="pi pi-database"></i>{{ anomaly.count }} registro{{ anomaly.count === 1 ? '' : 's' }}</span>
+          <span><i class="pi pi-clock"></i>{{ formatDate(anomaly.detectedAt) }}</span>
+          <button type="button" class="anomaly-details-button" (click)="openDetails(anomaly)">
+            <i class="pi pi-eye"></i>
+            Ver detalles
+          </button>
+        </div>
+
+        <div class="anomaly-records" *ngIf="anomaly.records?.length">
+          <div class="anomaly-record" *ngFor="let record of anomaly.records">
+            <strong>{{ getRecordTitle(record) }}</strong>
+            <span>{{ getRecordDetail(record) }}</span>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <div class="anomalies-empty" *ngIf="filteredAnomalies.length === 0">
+      <i class="pi pi-check-circle"></i>
+      <strong>No hay anomalías para este filtro.</strong>
+      <span>El sistema no encontró casos raros con los criterios seleccionados.</span>
+    </div>
+  </main>
+
+  <div class="anomaly-detail-overlay" *ngIf="selectedAnomaly" (click)="closeDetails()">
+    <section class="anomaly-detail-modal" (click)="$event.stopPropagation()">
+      <header class="anomaly-detail-modal__header">
+        <div>
+          <span [class]="'anomaly-severity anomaly-severity--' + selectedAnomaly.severity">
+            {{ getSeverityLabel(selectedAnomaly.severity) }}
+          </span>
+          <h2>{{ selectedAnomaly.title }}</h2>
+          <p>{{ selectedAnomaly.description }}</p>
+        </div>
+        <button type="button" class="anomaly-detail-modal__close" (click)="closeDetails()" aria-label="Cerrar">
+          <i class="pi pi-times"></i>
+        </button>
+      </header>
+
+      <div class="anomaly-detail-modal__body">
+        <section class="anomaly-detail-section">
+          <h3>Resumen</h3>
+          <div class="anomaly-detail-grid">
+            <div>
+              <span>Categoría</span>
+              <strong>{{ getCategoryLabel(selectedAnomaly.category) }}</strong>
+            </div>
+            <div>
+              <span>Registros afectados</span>
+              <strong>{{ selectedAnomaly.count }}</strong>
+            </div>
+            <div>
+              <span>Detectada</span>
+              <strong>{{ formatDate(selectedAnomaly.detectedAt) }}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="anomaly-detail-section" *ngIf="getMetadataEntries(selectedAnomaly).length">
+          <h3>Metadatos</h3>
+          <div class="anomaly-detail-grid anomaly-detail-grid--metadata">
+            <div *ngFor="let item of getMetadataEntries(selectedAnomaly)">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="anomaly-detail-section" *ngIf="selectedAnomaly.records?.length">
+          <h3>Registros</h3>
+          <div class="anomaly-detail-records">
+            <article class="anomaly-detail-record" *ngFor="let record of selectedAnomaly.records">
+              <h4>{{ getRecordTitle(record) }}</h4>
+              <div>
+                <span *ngFor="let item of getRecordEntries(record)">
+                  <em>{{ item.label }}</em>
+                  <strong>{{ item.value }}</strong>
+                </span>
+              </div>
+            </article>
+          </div>
+        </section>
+      </div>
+    </section>
+  </div>
+</div>

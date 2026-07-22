@@ -19,6 +19,13 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   @Input() theme: 'dark' | 'light' = 'dark';
   @Input() selectedTarget: any = null;
   @Input() targetsForMap: any[] = [];
+  @Input() parentUserLocation: {
+    userId: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    recordedAt?: string | Date;
+  } | null = null;
   @Input() vehicleTypeGetter: ((modelId: string) => string) | null = null;
   @Input() preloadedStopTime: string | undefined = undefined;
   @Output() additionalTargetSelected = new EventEmitter<any>();
@@ -36,7 +43,12 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   isStopTimeMoving: boolean = false;
   isStopTimeLoading: boolean = false;
   multipleMarkers: any[] = [];
+  parentUserMarker: any = null;
+  parentUserPopup: any = null;
+  parentUserDistanceLine: any = null;
+  parentUserDistanceLabel: any = null;
   private currentPopup: any = null;
+  private currentParentUserMarkerKey: string | null = null;
   private mapReady: boolean = false;
   private pendingMapRender: boolean = false;
   private osmMarkerImagesReady: boolean = false;
@@ -130,6 +142,10 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       }
       this.updateTargetMarker();
       this.loadDistanceTraveled();
+    }
+
+    if (changes['parentUserLocation']) {
+      this.updateParentUserMarker();
     }
 
     if (changes['targetsForMap'] && !this.selectedTarget) {
@@ -706,6 +722,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         this.currentMarker = null;
         this.currentTargetId = null;
       }
+      this.clearParentUserMarker();
       this.resetStopTimeInfo();
       this.renderMultipleTargetsMarkers();
       return;
@@ -721,6 +738,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
         this.currentTargetId = null;
       }
       this.resetStopTimeInfo();
+      this.updateParentUserMarker();
       return;
     }
 
@@ -755,6 +773,9 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     } else {
       // Solo recentrar si el marcador está fuera de la vista
       MapUtils.recenterMapIfOutOfView(this.map, this.provider, lat, lng);
+      if (isNewTarget) {
+        this.zoomToSelectedTarget(lat, lng);
+      }
     }
 
     // Si el marcador no existe o es un target nuevo, crearlo
@@ -767,6 +788,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       // Si el marcador existe y es el mismo target, solo actualizar
       this.updateExistingMarker(lat, lng);
     }
+
+    this.updateParentUserMarker();
   }
 
   // ----- UI helpers for detail panel -----
@@ -1147,6 +1170,442 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
+  private clearParentUserMarker(): void {
+    this.clearParentUserDistance();
+
+    if (this.parentUserPopup) {
+      try {
+        this.parentUserPopup.close ? this.parentUserPopup.close() : this.parentUserPopup.remove?.();
+      } catch (_) {
+        // ignore
+      }
+      this.parentUserPopup = null;
+    }
+
+    if (this.parentUserMarker) {
+      try {
+        this.parentUserMarker.remove ? this.parentUserMarker.remove() : MapUtils.removeMarker(this.parentUserMarker, this.provider);
+      } catch (_) {
+        // ignore
+      }
+      this.parentUserMarker = null;
+    }
+
+    this.currentParentUserMarkerKey = null;
+  }
+
+  private clearParentUserDistance(): void {
+    if (this.parentUserDistanceLabel) {
+      try {
+        this.parentUserDistanceLabel.remove ? this.parentUserDistanceLabel.remove() : this.parentUserDistanceLabel.setMap?.(null);
+      } catch (_) {
+        // ignore
+      }
+      this.parentUserDistanceLabel = null;
+    }
+
+    if (this.parentUserDistanceLine) {
+      try {
+        if (this.provider === 'google') {
+          this.parentUserDistanceLine.setMap?.(null);
+        } else {
+          if (this.map?.getLayer?.('gps-parent-user-distance-line')) {
+            this.map.removeLayer('gps-parent-user-distance-line');
+          }
+          if (this.map?.getSource?.('gps-parent-user-distance')) {
+            this.map.removeSource('gps-parent-user-distance');
+          }
+        }
+      } catch (_) {
+        // ignore
+      }
+      this.parentUserDistanceLine = null;
+    }
+  }
+
+  private updateParentUserMarker(): void {
+    if (!this.map || !this.isMapReady()) {
+      return;
+    }
+
+    if (!this.selectedTarget || !this.parentUserLocation) {
+      this.clearParentUserMarker();
+      return;
+    }
+
+    const lat = Number(this.parentUserLocation.latitude);
+    const lng = Number(this.parentUserLocation.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      this.clearParentUserMarker();
+      return;
+    }
+
+    const label = this.getParentUserMarkerLabel();
+    const markerKey = `${this.parentUserLocation.userId}:${lat.toFixed(6)}:${lng.toFixed(6)}:${label}`;
+    const isNewMarker = this.currentParentUserMarkerKey !== markerKey;
+
+    if (this.provider === 'google') {
+      this.upsertGoogleParentUserMarker(lat, lng, label);
+    } else {
+      this.upsertMapboxParentUserMarker(lat, lng, label);
+    }
+
+    this.updateParentUserDistanceLine(lat, lng);
+
+    if (isNewMarker) {
+      this.currentParentUserMarkerKey = markerKey;
+    }
+  }
+
+  private upsertGoogleParentUserMarker(lat: number, lng: number, label: string): void {
+    const title = label;
+    if (!this.parentUserMarker) {
+      this.parentUserMarker = new google.maps.Marker({
+        position: { lat, lng },
+        map: this.map,
+        title,
+        zIndex: 9999,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 9,
+          fillColor: '#facc15',
+          fillOpacity: 1,
+          strokeColor: '#111827',
+          strokeWeight: 2,
+        },
+        label: {
+          text: label,
+          className: 'gps-parent-user-google-label',
+        },
+      });
+    } else {
+      this.parentUserMarker.setPosition({ lat, lng });
+      this.parentUserMarker.setTitle(title);
+      this.parentUserMarker.setLabel({
+        text: label,
+        className: 'gps-parent-user-google-label',
+      });
+    }
+
+    if (!this.parentUserPopup) {
+      this.parentUserPopup = new google.maps.InfoWindow();
+      this.parentUserMarker.addListener('click', () => {
+        this.parentUserPopup.open(this.map, this.parentUserMarker);
+      });
+    }
+    this.parentUserPopup.setContent(this.getParentUserPopupHtml());
+  }
+
+  private upsertMapboxParentUserMarker(lat: number, lng: number, label: string): void {
+    const mapboxgl = MapUtils.getMapLibrary(this.provider);
+    if (!this.parentUserMarker) {
+      const markerElement = document.createElement('div');
+      markerElement.className = 'gps-parent-user-marker';
+      markerElement.innerHTML = `
+        <div class="gps-parent-user-marker__dot"><i class="pi pi-user"></i></div>
+        <div class="gps-parent-user-marker__label">${this.escapeHtml(label)}</div>
+      `;
+      markerElement.style.zIndex = '9999';
+      markerElement.style.pointerEvents = 'auto';
+
+      this.parentUserMarker = new mapboxgl.Marker({
+        element: markerElement,
+        anchor: 'bottom',
+      })
+        .setLngLat([lng, lat])
+        .addTo(this.map);
+
+      this.parentUserPopup = new mapboxgl.Popup({ offset: 18, closeButton: true }).setHTML(this.getParentUserPopupHtml());
+      this.parentUserMarker.setPopup(this.parentUserPopup);
+    } else {
+      this.parentUserMarker.setLngLat([lng, lat]);
+      const labelElement = this.parentUserMarker.getElement?.()?.querySelector?.('.gps-parent-user-marker__label');
+      if (labelElement) {
+        labelElement.textContent = label;
+      }
+      this.parentUserPopup?.setHTML?.(this.getParentUserPopupHtml());
+    }
+  }
+
+  private fitSelectedTargetAndParentUser(): void {
+    const targetCoords = this.getTargetCoordinates(this.selectedTarget);
+    if (!targetCoords || !this.parentUserLocation) {
+      return;
+    }
+
+    const parentLat = Number(this.parentUserLocation.latitude);
+    const parentLng = Number(this.parentUserLocation.longitude);
+    if (!Number.isFinite(parentLat) || !Number.isFinite(parentLng)) {
+      return;
+    }
+
+    try {
+      if (this.provider === 'google') {
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend({ lat: targetCoords.lat, lng: targetCoords.lng });
+        bounds.extend({ lat: parentLat, lng: parentLng });
+        this.map.fitBounds(bounds, 80);
+        return;
+      }
+
+      this.map.fitBounds?.(
+        [
+          [Math.min(targetCoords.lng, parentLng), Math.min(targetCoords.lat, parentLat)],
+          [Math.max(targetCoords.lng, parentLng), Math.max(targetCoords.lat, parentLat)],
+        ],
+        { padding: 90, maxZoom: 16, duration: 500 }
+      );
+    } catch (_) {
+      // Keep the target-centered map if the provider cannot fit both points.
+    }
+  }
+
+  private zoomToSelectedTarget(lat: number, lng: number): void {
+    try {
+      if (this.provider === 'google') {
+        this.map.setCenter({ lat, lng });
+        this.map.setZoom(16);
+        return;
+      }
+
+      this.map.flyTo?.({
+        center: [lng, lat],
+        zoom: 16,
+        duration: 500,
+        essential: true,
+      }) ?? (() => {
+        this.map.setCenter?.([lng, lat]);
+        this.map.setZoom?.(16);
+      })();
+    } catch (_) {
+      // Keep current map state if the provider cannot animate zoom.
+    }
+  }
+
+  private updateParentUserDistanceLine(parentLat: number, parentLng: number): void {
+    const targetCoords = this.getTargetCoordinates(this.selectedTarget);
+    if (!targetCoords) {
+      this.clearParentUserDistance();
+      return;
+    }
+
+    const distanceText = this.formatDistanceBetweenPoints(targetCoords.lat, targetCoords.lng, parentLat, parentLng);
+    const midPoint = {
+      lat: (targetCoords.lat + parentLat) / 2,
+      lng: (targetCoords.lng + parentLng) / 2,
+    };
+
+    if (this.provider === 'google') {
+      this.upsertGoogleDistanceLine(targetCoords.lat, targetCoords.lng, parentLat, parentLng, midPoint, distanceText);
+    } else {
+      this.upsertMapboxDistanceLine(targetCoords.lat, targetCoords.lng, parentLat, parentLng, midPoint, distanceText);
+    }
+  }
+
+  private upsertGoogleDistanceLine(
+    targetLat: number,
+    targetLng: number,
+    parentLat: number,
+    parentLng: number,
+    midPoint: { lat: number; lng: number },
+    distanceText: string
+  ): void {
+    const path = [
+      { lat: targetLat, lng: targetLng },
+      { lat: parentLat, lng: parentLng },
+    ];
+
+    if (!this.parentUserDistanceLine) {
+      this.parentUserDistanceLine = new google.maps.Polyline({
+        path,
+        geodesic: true,
+        strokeColor: '#facc15',
+        strokeOpacity: 0.95,
+        strokeWeight: 3,
+        zIndex: 9998,
+        icons: [{
+          icon: {
+            path: 'M 0,-1 0,1',
+            strokeOpacity: 1,
+            scale: 3,
+          },
+          offset: '0',
+          repeat: '14px',
+        }],
+        map: this.map,
+      });
+    } else {
+      this.parentUserDistanceLine.setPath(path);
+    }
+
+    if (!this.parentUserDistanceLabel) {
+      this.parentUserDistanceLabel = new google.maps.Marker({
+        position: midPoint,
+        map: this.map,
+        zIndex: 10000,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 0,
+        },
+        label: {
+          text: distanceText,
+          className: 'gps-parent-distance-google-label',
+        },
+      });
+    } else {
+      this.parentUserDistanceLabel.setPosition(midPoint);
+      this.parentUserDistanceLabel.setLabel({
+        text: distanceText,
+        className: 'gps-parent-distance-google-label',
+      });
+    }
+  }
+
+  private upsertMapboxDistanceLine(
+    targetLat: number,
+    targetLng: number,
+    parentLat: number,
+    parentLng: number,
+    midPoint: { lat: number; lng: number },
+    distanceText: string
+  ): void {
+    const data = {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [targetLng, targetLat],
+          [parentLng, parentLat],
+        ],
+      },
+    };
+
+    try {
+      const source = this.map.getSource?.('gps-parent-user-distance');
+      if (source?.setData) {
+        source.setData(data);
+      } else {
+        this.map.addSource('gps-parent-user-distance', {
+          type: 'geojson',
+          data,
+        });
+      }
+
+      if (!this.map.getLayer?.('gps-parent-user-distance-line')) {
+        this.map.addLayer({
+          id: 'gps-parent-user-distance-line',
+          type: 'line',
+          source: 'gps-parent-user-distance',
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+          },
+          paint: {
+            'line-color': '#facc15',
+            'line-width': 3,
+            'line-opacity': 0.95,
+            'line-dasharray': [1.2, 1.2],
+          },
+        });
+      }
+
+      this.parentUserDistanceLine = true;
+    } catch (error) {
+      console.warn('No se pudo dibujar la distancia entre usuario y GPS:', error);
+    }
+
+    const mapboxgl = MapUtils.getMapLibrary(this.provider);
+    if (!this.parentUserDistanceLabel) {
+      const labelElement = document.createElement('div');
+      labelElement.className = 'gps-parent-distance-label';
+      labelElement.textContent = distanceText;
+      labelElement.style.zIndex = '10000';
+      this.parentUserDistanceLabel = new mapboxgl.Marker({
+        element: labelElement,
+        anchor: 'center',
+      })
+        .setLngLat([midPoint.lng, midPoint.lat])
+        .addTo(this.map);
+    } else {
+      this.parentUserDistanceLabel.setLngLat([midPoint.lng, midPoint.lat]);
+      const element = this.parentUserDistanceLabel.getElement?.();
+      if (element) {
+        element.textContent = distanceText;
+      }
+    }
+  }
+
+  private formatDistanceBetweenPoints(lat1: number, lng1: number, lat2: number, lng2: number): string {
+    const distanceKm = this.calculateDistanceKm(lat1, lng1, lat2, lng2);
+    if (distanceKm < 1) {
+      return `${Math.round(distanceKm * 1000)} m`;
+    }
+    return `${distanceKm.toFixed(distanceKm < 10 ? 1 : 0)} km`;
+  }
+
+  private calculateDistanceKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const toRadians = (value: number) => value * Math.PI / 180;
+    const earthRadiusKm = 6371;
+    const dLat = toRadians(lat2 - lat1);
+    const dLng = toRadians(lng2 - lng1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return earthRadiusKm * c;
+  }
+
+  private getParentUserMarkerLabel(): string {
+    const name = this.parentUserLocation?.name || 'Usuario';
+    const relativeTime = this.getRelativeLocationAge(this.parentUserLocation?.recordedAt);
+    return relativeTime ? `${name} · ${relativeTime}` : name;
+  }
+
+  private getParentUserPopupHtml(): string {
+    const name = this.escapeHtml(this.parentUserLocation?.name || 'Usuario');
+    const relativeTime = this.escapeHtml(this.getRelativeLocationAge(this.parentUserLocation?.recordedAt) || 'sin fecha registrada');
+    return `
+      <div style="font-size: 12px; line-height: 1.3; color: #111; min-width: 160px; padding: 6px 8px;">
+        <div style="font-weight: 800; margin-bottom: 3px;">${name}</div>
+        <div>Última ubicación ${relativeTime}</div>
+      </div>
+    `;
+  }
+
+  private getRelativeLocationAge(value?: string | Date): string {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const diffMs = Date.now() - date.getTime();
+    if (diffMs < 0) return 'en una fecha futura';
+
+    const minutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(diffMs / 3600000);
+    const days = Math.floor(diffMs / 86400000);
+    const weeks = Math.floor(days / 7);
+    const months = Math.floor(days / 30);
+    const years = Math.floor(days / 365);
+
+    if (years > 0) return `hace ${years} año${years > 1 ? 's' : ''}`;
+    if (months > 0) return `hace ${months} mes${months > 1 ? 'es' : ''}`;
+    if (weeks > 0) return `hace ${weeks} semana${weeks > 1 ? 's' : ''}`;
+    if (days > 0) return `hace ${days} día${days > 1 ? 's' : ''}`;
+    if (hours > 0) return `hace ${hours} hora${hours > 1 ? 's' : ''}`;
+    if (minutes > 0) return `hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+    return 'hace menos de 1 minuto';
+  }
+
+  private escapeHtml(value: string): string {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   private getTargetCoordinates(target: any): { lat: number; lng: number; geo: any } | null {
     const source = target?.originalTarget || target || {};
     const locationCandidates = [
@@ -1431,6 +1890,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       }
       this.currentPopup = null;
     }
+    this.clearParentUserMarker();
     this.clearMultipleMarkers();
     this.clearOsmMarkerLayers();
 

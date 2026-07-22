@@ -14,7 +14,7 @@ import { User, BasicUser, ExtendedUser, convertToExtendedUser } from '@core/inte
 import { Target } from '@core/interfaces/target.interface';
 import { Tag } from '@core/interfaces/tag.interface';
 import { AuthService } from '@core/services/auth.service';
-import { UserService, UsersResponse } from '@core/services/user.service';
+import { UserLatestLocation, UserService, UsersResponse } from '@core/services/user.service';
 import { TargetsService, TargetsResponse } from '@core/services/targets.service';
 import { StatusService } from '@shared/services/status.service';
 import { ManagementService } from '@management/presentation/services/management.service';
@@ -100,9 +100,23 @@ export class ManagementComponent implements OnInit, OnDestroy {
   targetToEdit: any | null = null;
   @ViewChild('targetFormRef') targetFormRef: any;
   selectedTargetForMap: any | null = null;
+  selectedTargetOwnerLocation: {
+    userId: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    recordedAt?: string | Date;
+  } | null = null;
   selectedTargetStopTime: string | undefined = undefined;
   targetIdFromUrl: string | null = null;
   private readonly registrationLinkSearchRootId = '68a9ccf19bb280482272477f';
+  private targetOwnerLocationCache = new Map<string, {
+    userId: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+    recordedAt?: string | Date;
+  } | null>();
 
   // Dialogo de prioridad
   showPriorityDialog: boolean = false;
@@ -929,6 +943,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (this.uiService.areMapsVisible()) {
       this.removeTargetFromUrl();
       this.selectedTargetForMap = null;
+      this.selectedTargetOwnerLocation = null;
       this.targetIdFromUrl = null;
       this.enforceDefaultMapWhenNoTarget();
     } else {
@@ -1719,6 +1734,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.selectedTargetStopTime = undefined;
 
         this.selectedTargetForMap = target;
+        this.loadTargetOwnerLocation(target);
         this.startPolling();
 
         // Scroll automático hacia el target seleccionado
@@ -1755,6 +1771,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.stopPolling();
       this.selectedTargetStopTime = undefined;
       this.selectedTargetForMap = mappedTarget;
+      this.loadTargetOwnerLocation(mappedTarget);
       this.startPolling();
       this.scrollToSelectedTarget();
     }
@@ -1766,6 +1783,97 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.showMobileMapFullscreen = true;
       this.cdr.detectChanges();
     }
+  }
+
+  private async loadTargetOwnerLocation(target: any): Promise<void> {
+    if (!this.isLoggedEmployee()) {
+      this.selectedTargetOwnerLocation = null;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    const ownerId = this.getTargetOwnerId(target);
+    if (!ownerId) {
+      this.selectedTargetOwnerLocation = null;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (this.targetOwnerLocationCache.has(ownerId)) {
+      this.selectedTargetOwnerLocation = this.targetOwnerLocationCache.get(ownerId) || null;
+      this.cdr.detectChanges();
+      return;
+    }
+
+    try {
+      const ownerName = await this.getTargetOwnerName(ownerId, target);
+      const location = await lastValueFrom(this.userService.getLatestLocation(ownerId));
+      const normalized = this.normalizeOwnerLocation(ownerId, ownerName, location);
+      this.targetOwnerLocationCache.set(ownerId, normalized);
+      this.selectedTargetOwnerLocation = normalized;
+      this.cdr.detectChanges();
+    } catch (error) {
+      console.warn('No se pudo cargar la ubicación del usuario padre del objetivo:', error);
+      this.targetOwnerLocationCache.set(ownerId, null);
+      this.selectedTargetOwnerLocation = null;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private getTargetOwnerId(target: any): string {
+    const originalTarget = target?.originalTarget || target || {};
+    return String(
+      target?.parent_id ||
+      target?.parentId ||
+      target?.user_id ||
+      originalTarget?.parent_id ||
+      originalTarget?.parentId ||
+      originalTarget?.user_id ||
+      this.selectedUser?._id ||
+      ''
+    ).trim();
+  }
+
+  private async getTargetOwnerName(ownerId: string, target: any): Promise<string> {
+    if (this.selectedUser?._id === ownerId) {
+      return `${this.selectedUser.name || ''} ${this.selectedUser.last_name || ''}`.trim() || 'Usuario';
+    }
+
+    const originalTarget = target?.originalTarget || target || {};
+    const directName = target?.parentName || originalTarget?.parentName || target?.user_name || originalTarget?.user_name;
+    if (directName) {
+      return String(directName);
+    }
+
+    const listedUser = this.users.find(user => user._id === ownerId);
+    if (listedUser) {
+      return `${listedUser.name || ''} ${listedUser.last_name || ''}`.trim() || 'Usuario';
+    }
+
+    const owner = await lastValueFrom(this.userService.getById(ownerId));
+    return `${owner?.name || ''} ${owner?.last_name || ''}`.trim() || owner?.email || 'Usuario';
+  }
+
+  private normalizeOwnerLocation(
+    userId: string,
+    name: string,
+    location: UserLatestLocation | null
+  ): { userId: string; name: string; latitude: number; longitude: number; recordedAt?: string | Date } | null {
+    const fallbackUser = this.selectedUser?._id === userId ? this.selectedUser : null;
+    const latitude = Number(location?.latitude ?? fallbackUser?.latitude);
+    const longitude = Number(location?.longitude ?? fallbackUser?.longitude);
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      return null;
+    }
+
+    return {
+      userId,
+      name,
+      latitude,
+      longitude,
+      recordedAt: location?.recordedAt || fallbackUser?.locationUpdatedAt,
+    };
   }
 
   private addTargetToUrl(target: any) {
@@ -2854,6 +2962,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       // Si no hay target en la URL, limpiar la selección y detener polling
       this.targetIdFromUrl = null;
       this.selectedTargetForMap = null;
+      this.selectedTargetOwnerLocation = null;
       this.stopPolling();
       this.enforceDefaultMapWhenNoTarget();
     }
@@ -2879,6 +2988,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.selectedTargetStopTime = undefined;
 
       this.selectedTargetForMap = target;
+      this.loadTargetOwnerLocation(target);
 
       // Iniciar polling para el nuevo target seleccionado
       this.startPolling();
@@ -2926,6 +3036,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // ✅ REINICIAR tiempo de parada cuando se cambia de usuario
     this.selectedTargetStopTime = undefined;
     this.selectedTargetForMap = null;
+    this.selectedTargetOwnerLocation = null;
 
     // Limpiar input de búsqueda de usuarios al cambiar de usuario
     this.searchUsersTerm = '';

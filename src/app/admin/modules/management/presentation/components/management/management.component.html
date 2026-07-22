@@ -567,6 +567,7 @@
             </div>
             <app-maps *ngIf="mapsKey" [attr.data-key]="mapsKey" [provider]="providerType" [theme]="providerTheme"
                 [selectedTarget]="selectedTargetForMap" [targetsForMap]="allTargets"
+                [parentUserLocation]="selectedTargetOwnerLocation"
                 [vehicleTypeGetter]="getVehicleTypeByModelId.bind(this)" [preloadedStopTime]="selectedTargetStopTime"
                 (additionalTargetSelected)="showAdditionalTargetOnMap($event)">
             </app-maps>

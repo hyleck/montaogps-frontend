@@ -18,6 +18,11 @@ const routes: Routes = [
         loadChildren: () => import('../modules/metrics/presentation/metrics.module').then(m => m.MetricsModule)
       },
       {
+        path: 'anomalies',
+        canActivate: [RootGuard],
+        loadChildren: () => import('../modules/anomalies/presentation/anomalies.module').then(m => m.AnomaliesModule)
+      },
+      {
         path: 'reports',
         loadChildren: () => import('../modules/reports/presentation/reports.module').then(m => m.ReportsModule)
       },

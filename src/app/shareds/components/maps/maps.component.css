@@ -38,6 +38,86 @@
     overflow: hidden;
 }
 
+.gps-parent-user-marker {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transform: translateY(-4px);
+    z-index: 9999;
+}
+
+.gps-parent-user-marker__dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #facc15;
+    color: #111827;
+    border: 2px solid #111827;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.32);
+    font-size: 0.85rem;
+}
+
+.gps-parent-user-marker__label {
+    max-width: 220px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: rgba(17, 24, 39, 0.92);
+    color: #fff;
+    border: 1px solid rgba(250, 204, 21, 0.75);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gps-parent-distance-label {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.96);
+    color: #111827;
+    border: 1px solid rgba(17, 24, 39, 0.45);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+:host ::ng-deep .gps-parent-user-google-label {
+    margin-top: -42px;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: rgba(17, 24, 39, 0.92);
+    color: #fff !important;
+    border: 1px solid rgba(250, 204, 21, 0.75);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.28);
+    font-size: 11px !important;
+    font-weight: 800;
+    line-height: 1.15;
+    white-space: nowrap;
+}
+
+:host ::ng-deep .gps-parent-distance-google-label {
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.96);
+    color: #111827 !important;
+    border: 1px solid rgba(17, 24, 39, 0.45);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+    font-size: 11px !important;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+}
+
 .tools-button {
     position: absolute;
     left: 20px;
