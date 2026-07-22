@@ -62,6 +62,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     @Input() targetInput: TargetDevice | null = null;
     @Output() targetCreated = new EventEmitter<TargetDevice>();
     @Output() targetUpdatedWithoutClose = new EventEmitter<TargetDevice>();
+    @Output() vehicleVerified = new EventEmitter<TargetDevice>();
     @Output() activationEvent = new EventEmitter<{ targetId: string, type: 'started' | 'progress' | 'completed' | 'error', activation_status?: any }>();
 
     // Flag para mostrar/ocultar la edición personalizada de precio
@@ -173,6 +174,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     registrationScanError: string | null = null;
     registrationScanVoiceMessage: string | null = null;
     registrationScanVoiceAudioUrl: string | null = null;
+    isGeneratingRegistrationLink: boolean = false;
+    vehicleRegistrationVerificationLink: string = '';
     private registrationScanImageIsObjectUrl: boolean = false;
     private registrationScanFile: File | null = null;
     private registrationScanAudio: HTMLAudioElement | null = null;
@@ -633,8 +636,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 this.messageService.add({
                     severity: 'success',
                     summary: 'Matrícula digitalizada',
-                    detail: 'Verifique que los datos estén correctos antes de finalizar.'
+                    detail: 'El vehículo se verificará automáticamente.'
                 });
+                this.isScanningRegistration = false;
+                await this.finalizeVehicleVerification();
                 return;
             }
 
@@ -697,6 +702,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 detail: 'Los datos de la matrícula fueron guardados correctamente.'
             });
             this.closeVehicleRegistrationDialog();
+            this.vehicleVerified.emit(this.target);
         } catch (error: any) {
             console.error('Error finalizing vehicle verification:', error);
             this.registrationScanError = error?.error?.message || error?.message || 'No se pudo finalizar la verificación';
@@ -766,6 +772,50 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.registrationScanVoiceMessage = null;
         this.isScanningRegistration = false;
         this.isFinalizingRegistration = false;
+        this.isGeneratingRegistrationLink = false;
+        this.vehicleRegistrationVerificationLink = '';
+    }
+
+    async generateVehicleRegistrationVerificationLink(): Promise<void> {
+        if (!this.target?._id || this.isGeneratingRegistrationLink) return;
+
+        try {
+            this.isGeneratingRegistrationLink = true;
+            const response = await this.targetsService.createVehicleRegistrationVerificationLink(this.target._id);
+            this.vehicleRegistrationVerificationLink = `${window.location.origin}/verificar-vehiculo/${encodeURIComponent(response.short_code)}`;
+            await this.copyVehicleRegistrationVerificationLink(false);
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Link generado',
+                detail: 'El link de verificación fue copiado al portapapeles.'
+            });
+        } catch (error: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo generar',
+                detail: error?.error?.message || error?.message || 'Intenta nuevamente.'
+            });
+        } finally {
+            this.isGeneratingRegistrationLink = false;
+        }
+    }
+
+    async copyVehicleRegistrationVerificationLink(showToast: boolean = true): Promise<void> {
+        if (!this.vehicleRegistrationVerificationLink) return;
+
+        try {
+            await navigator.clipboard.writeText(this.vehicleRegistrationVerificationLink);
+        } catch {
+            this.copyTextFallback(this.vehicleRegistrationVerificationLink);
+        }
+
+        if (showToast) {
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Copiado',
+                detail: 'Link copiado al portapapeles.'
+            });
+        }
     }
 
     getRegistrationScanEntries(): { label: string; value: string }[] {

@@ -156,53 +156,167 @@
     min-height: 160px;
 }
 
-.identity-upload {
-    display: flex;
+.identity-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
     gap: 1rem;
     padding: 1rem;
     border: 1px solid rgba(197, 48, 54, 0.16);
-    border-radius: 8px;
-    background: rgba(197, 48, 54, 0.04);
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(197, 48, 54, 0.08), rgba(197, 48, 54, 0.02));
 }
 
-.identity-upload div {
+.identity-hero__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.identity-hero__badge {
+    color: var(--globalColorPrimaryInmutable);
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.identity-hero__copy strong {
+    color: var(--managementColorTextUser);
+    font-size: 1.05rem;
+    line-height: 1.2;
+}
+
+.identity-hero__copy p {
+    color: var(--managementColorTextUser);
+    font-size: 0.84rem;
+    line-height: 1.35;
+    margin: 0;
+    opacity: 0.72;
+}
+
+.identity-hero__actions {
+    display: grid;
+    gap: 0.55rem;
+    min-width: 210px;
+}
+
+.identity-action,
+.identity-link-card button {
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    font-family: inherit;
+    font-weight: 900;
+    min-height: 38px;
+    padding: 0.62rem 0.85rem;
+}
+
+.identity-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.identity-action--primary {
+    border: 0;
+    background: var(--globalColorPrimaryInmutable);
+    color: #fff;
+}
+
+.identity-action--secondary,
+.identity-link-card button {
+    border: 1px solid rgba(197, 48, 54, 0.24);
+    background: #fff;
+    color: var(--globalColorPrimaryInmutable);
+}
+
+.identity-link-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 9px;
+    background: rgba(34, 197, 94, 0.08);
+}
+
+.identity-link-card div {
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
     min-width: 0;
 }
 
-.identity-upload strong {
-    color: var(--managementColorTextUser);
+.identity-link-card span {
+    color: #15803d;
+    font-size: 0.74rem;
+    font-weight: 900;
+    text-transform: uppercase;
 }
 
-.identity-upload span {
+.identity-link-card strong {
     color: var(--managementColorTextUser);
-    font-size: 0.84rem;
-    line-height: 1.35;
-    opacity: 0.72;
+    font-size: 0.82rem;
+    overflow-wrap: anywhere;
 }
 
-.identity-upload__button {
-    border: 0;
-    border-radius: 7px;
-    background: var(--globalColorPrimaryInmutable);
-    color: #fff;
+::ng-deep .identity-verification-dialog .p-dialog-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    padding-top: 0.85rem;
+}
+
+.identity-footer-button {
+    border-radius: 999px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.45rem;
-    flex-shrink: 0;
     font-family: inherit;
-    font-weight: 800;
-    padding: 0.65rem 0.9rem;
+    font-size: 0.9rem;
+    font-weight: 900;
+    min-height: 40px;
+    padding: 0.62rem 1rem;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, border-color 0.18s ease;
 }
 
-.identity-upload__button:disabled {
+.identity-footer-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.identity-footer-button:disabled {
     cursor: not-allowed;
-    opacity: 0.6;
+    opacity: 0.58;
+}
+
+.identity-footer-button--ghost {
+    background: #ffffff;
+    border: 1px solid rgba(100, 116, 139, 0.28);
+    color: #475569;
+    box-shadow: none;
+}
+
+.identity-footer-button--ghost:hover {
+    background: #f8fafc;
+    border-color: rgba(100, 116, 139, 0.42);
+}
+
+.identity-footer-button--primary {
+    background: var(--globalColorPrimaryInmutable);
+    border: 1px solid var(--globalColorPrimaryInmutable);
+    color: #ffffff;
+    box-shadow: 0 10px 22px rgba(197, 48, 54, 0.22);
+}
+
+.identity-footer-button--primary:hover {
+    box-shadow: 0 13px 28px rgba(197, 48, 54, 0.28);
 }
 
 .identity-error {
@@ -356,9 +470,13 @@
 } 
 
 @media (max-width: 640px) {
-    .identity-upload {
-        align-items: stretch;
-        flex-direction: column;
+    .identity-hero,
+    .identity-link-card {
+        grid-template-columns: 1fr;
+    }
+
+    .identity-hero__actions {
+        min-width: 0;
     }
 
     .identity-result {

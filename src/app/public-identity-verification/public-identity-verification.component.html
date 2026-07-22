@@ -1,0 +1,87 @@
+<p-toast></p-toast>
+
+<main class="identity-page">
+  <section class="identity-card">
+    <header class="identity-brand">
+      <div class="identity-brand__mark">M</div>
+      <div>
+        <span>Montao GPS</span>
+        <h1>Verificación de cuenta</h1>
+      </div>
+    </header>
+
+    <div *ngIf="loading" class="identity-state">
+      <p-progressSpinner strokeWidth="4" styleClass="identity-spinner"></p-progressSpinner>
+      <span>Validando link...</span>
+    </div>
+
+    <div *ngIf="!loading && errorMessage" class="identity-message identity-message--error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <div *ngIf="!loading && !errorMessage && completed" class="identity-success">
+      <i class="pi pi-check-circle"></i>
+      <h2>Cuenta verificada</h2>
+      <p>Gracias. Tu identidad fue confirmada correctamente.</p>
+    </div>
+
+    <section *ngIf="!loading && !errorMessage && !completed" class="identity-flow">
+      <div class="identity-heading">
+        <i class="pi pi-id-card"></i>
+        <div>
+          <h2>{{ info?.user?.name || 'Cliente' }} {{ info?.user?.last_name || '' }}</h2>
+          <p>Sube una foto clara de tu cédula. Si los datos se leen correctamente, la cuenta se verifica automáticamente.</p>
+        </div>
+      </div>
+
+      <label class="identity-upload">
+        <input type="file" accept="image/*" (change)="onIdentityFileSelected($event)">
+        <i class="pi pi-cloud-upload"></i>
+        <strong>{{ identityFile ? identityFile.name : 'Subir foto de la cédula' }}</strong>
+        <span>Debe verse completa y legible.</span>
+      </label>
+
+      <div *ngIf="previewUrl || scanData" class="identity-result">
+        <img *ngIf="previewUrl" class="identity-preview" [src]="previewUrl" alt="Vista previa de la cédula">
+
+        <div class="identity-data">
+          <div class="identity-data__header">
+            <strong>Datos digitalizados</strong>
+            <span *ngIf="scanData?.['es_cedula'] === true"><i class="pi pi-check-circle"></i> Cédula detectada</span>
+          </div>
+
+          <div *ngIf="getDataEntries().length; else emptyData" class="identity-data__list">
+            <div *ngFor="let item of getDataEntries()" class="identity-data__item">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
+          </div>
+
+          <ng-template #emptyData>
+            <div class="identity-empty">
+              <i class="pi pi-info-circle"></i>
+              <span>Aún no hay datos digitalizados.</span>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+
+      <div *ngIf="scanning" class="identity-state">
+        <p-progressSpinner strokeWidth="4" styleClass="identity-spinner"></p-progressSpinner>
+        <span>Escaneando cédula con IA...</span>
+      </div>
+
+      <div *ngIf="finalizing" class="identity-state">
+        <p-progressSpinner strokeWidth="4" styleClass="identity-spinner"></p-progressSpinner>
+        <span>Verificando cuenta...</span>
+      </div>
+
+      <div *ngIf="scanError" class="identity-message identity-message--error">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>{{ scanError }}</span>
+      </div>
+
+    </section>
+  </section>
+</main>

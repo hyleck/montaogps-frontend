@@ -1,0 +1,97 @@
+<p-toast></p-toast>
+
+<main class="vehicle-page">
+  <section class="vehicle-card">
+    <header class="vehicle-brand">
+      <div class="vehicle-brand__mark">M</div>
+      <div>
+        <span>Montao GPS</span>
+        <h1>Verificación de vehículo</h1>
+      </div>
+    </header>
+
+    <div *ngIf="loading" class="vehicle-state">
+      <p-progressSpinner strokeWidth="4" styleClass="vehicle-spinner"></p-progressSpinner>
+      <span>Validando link...</span>
+    </div>
+
+    <div *ngIf="!loading && errorMessage" class="vehicle-message vehicle-message--error">
+      <i class="pi pi-exclamation-triangle"></i>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <div *ngIf="!loading && !errorMessage && completed" class="vehicle-success">
+      <i class="pi pi-check-circle"></i>
+      <h2>Vehículo verificado</h2>
+      <p>Gracias. Los datos de la matrícula fueron confirmados correctamente.</p>
+    </div>
+
+    <section *ngIf="!loading && !errorMessage && !completed" class="vehicle-flow">
+      <div class="vehicle-heading">
+        <i class="pi pi-car"></i>
+        <div>
+          <h2>{{ info?.device?.name || 'Vehículo' }}</h2>
+          <p *ngIf="info?.device?.imei">IMEI: {{ info?.device?.imei }}</p>
+          <p>Sube una foto clara de la matrícula. Si los datos se leen correctamente, el vehículo se verifica automáticamente.</p>
+        </div>
+      </div>
+
+      <label class="vehicle-upload">
+        <input type="file" accept="image/*" (change)="onRegistrationFileSelected($event)">
+        <i class="pi pi-cloud-upload"></i>
+        <strong>{{ registrationFile ? registrationFile.name : 'Subir foto de la matrícula' }}</strong>
+        <span>Debe verse completa y legible.</span>
+      </label>
+
+      <div *ngIf="previewUrl || scanData" class="vehicle-result">
+        <img *ngIf="previewUrl" class="vehicle-preview" [src]="previewUrl" alt="Vista previa de la matrícula">
+
+        <div class="vehicle-data">
+          <div class="vehicle-data__header">
+            <strong>Datos digitalizados</strong>
+            <span *ngIf="scanData?.['es_matricula'] === true"><i class="pi pi-check-circle"></i> Matrícula detectada</span>
+          </div>
+
+          <div *ngIf="getDataEntries().length; else emptyData" class="vehicle-data__list">
+            <div *ngFor="let item of getDataEntries()" class="vehicle-data__item">
+              <span>{{ item.label }}</span>
+              <strong>{{ item.value }}</strong>
+            </div>
+          </div>
+
+          <ng-template #emptyData>
+            <div class="vehicle-empty">
+              <i class="pi pi-info-circle"></i>
+              <span>Aún no hay datos digitalizados.</span>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+
+      <div *ngIf="scanning" class="vehicle-state">
+        <p-progressSpinner strokeWidth="4" styleClass="vehicle-spinner"></p-progressSpinner>
+        <span>Escaneando matrícula con IA...</span>
+      </div>
+
+      <div *ngIf="finalizing" class="vehicle-state">
+        <p-progressSpinner strokeWidth="4" styleClass="vehicle-spinner"></p-progressSpinner>
+        <span>Verificando vehículo...</span>
+      </div>
+
+      <div *ngIf="scanError" class="vehicle-message vehicle-message--error">
+        <i class="pi pi-exclamation-triangle"></i>
+        <span>{{ scanError }}</span>
+      </div>
+
+      <div *ngIf="voiceMessage" class="vehicle-message vehicle-message--warning">
+        <i class="pi pi-volume-up"></i>
+        <span>{{ voiceMessage }}</span>
+        <button type="button" [disabled]="!voiceAudioUrl" (click)="playVoice()">
+          <i class="pi pi-play"></i>
+          Reproducir
+        </button>
+      </div>
+
+    </section>
+  </section>
+</main>

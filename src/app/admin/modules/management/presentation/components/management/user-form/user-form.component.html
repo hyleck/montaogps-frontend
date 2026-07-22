@@ -192,16 +192,36 @@
                                 <input #identityFileInput type="file" accept="image/*" hidden
                                     (change)="onIdentityFileSelected($event)">
 
-                                <div class="identity-upload" *ngIf="!isIdentityVerified">
-                                    <div>
-                                        <strong>Subir cédula</strong>
-                                        <span>Sube una foto clara de la cédula para digitalizar los datos y verificar la cuenta.</span>
+                                <div class="identity-hero" *ngIf="!isIdentityVerified">
+                                    <div class="identity-hero__copy">
+                                        <span class="identity-hero__badge">Verificación segura</span>
+                                        <strong>Sube la cédula o envía un link al cliente</strong>
+                                        <p>Los datos se digitalizan con IA y luego se aplican a la cuenta cuando finalizas la verificación.</p>
                                     </div>
-                                    <button type="button" class="identity-upload__button"
-                                        [disabled]="scanningIdentity || finalizingIdentity"
-                                        (click)="triggerIdentityFileInput()">
-                                        <i class="pi" [ngClass]="scanningIdentity ? 'pi-spin pi-spinner' : 'pi-upload'"></i>
-                                        {{ scanningIdentity ? 'Escaneando...' : 'Subir cédula' }}
+                                    <div class="identity-hero__actions">
+                                        <button type="button" class="identity-action identity-action--primary"
+                                            [disabled]="scanningIdentity || finalizingIdentity"
+                                            (click)="triggerIdentityFileInput()">
+                                            <i class="pi" [ngClass]="scanningIdentity ? 'pi-spin pi-spinner' : 'pi-upload'"></i>
+                                            {{ scanningIdentity ? 'Escaneando...' : 'Subir cédula' }}
+                                        </button>
+                                        <button type="button" class="identity-action identity-action--secondary"
+                                            [disabled]="generatingIdentityLink || finalizingIdentity"
+                                            (click)="generateIdentityVerificationLink()">
+                                            <i class="pi" [ngClass]="generatingIdentityLink ? 'pi-spin pi-spinner' : 'pi-link'"></i>
+                                            {{ generatingIdentityLink ? 'Generando...' : 'Generar link de verificación' }}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="identity-link-card" *ngIf="identityVerificationLink">
+                                    <div>
+                                        <span>Link de verificación</span>
+                                        <strong>{{ identityVerificationLink }}</strong>
+                                    </div>
+                                    <button type="button" (click)="copyIdentityVerificationLink()">
+                                        <i class="pi pi-copy"></i>
+                                        Copiar
                                     </button>
                                 </div>
 
@@ -243,15 +263,15 @@
                             </div>
 
                             <ng-template pTemplate="footer">
-                                <button type="button" class="cancel-btn" (click)="closeIdentityVerificationModal()">
+                                <button type="button" class="identity-footer-button identity-footer-button--ghost"
+                                    (click)="closeIdentityVerificationModal()">
                                     <i class="pi pi-times"></i>
                                     Cerrar
                                 </button>
-                                <button *ngIf="!isIdentityVerified" type="button" class="save-button"
-                                    [disabled]="!identityFile || identityScanResult?.['es_cedula'] !== true || finalizingIdentity"
-                                    (click)="finalizeIdentityVerification()">
-                                    <i class="pi" [ngClass]="finalizingIdentity ? 'pi-spin pi-spinner' : 'pi-check'"></i>
-                                    {{ finalizingIdentity ? 'Finalizando...' : 'Finalizar verificación' }}
+                                <button *ngIf="!isIdentityVerified && finalizingIdentity" type="button"
+                                    class="identity-footer-button identity-footer-button--primary" disabled>
+                                    <i class="pi pi-spin pi-spinner"></i>
+                                    Verificando...
                                 </button>
                             </ng-template>
                         </p-dialog>

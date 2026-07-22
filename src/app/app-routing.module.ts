@@ -20,6 +20,14 @@ const routes: Routes = [
     loadChildren: () => import('./public-registration/public-registration.module').then(m => m.PublicRegistrationModule)
   },
   {
+    path: 'verificar-cuenta',
+    loadChildren: () => import('./public-identity-verification/public-identity-verification.module').then(m => m.PublicIdentityVerificationModule)
+  },
+  {
+    path: 'verificar-vehiculo',
+    loadChildren: () => import('./public-vehicle-verification/public-vehicle-verification.module').then(m => m.PublicVehicleVerificationModule)
+  },
+  {
     path: 'admin',
     redirectTo: '/admin/management',
     pathMatch: 'full'

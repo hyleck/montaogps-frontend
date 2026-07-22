@@ -1257,6 +1257,17 @@
                             </div>
                         </div>
 
+                        <div class="vehicle-verification__link-card" *ngIf="vehicleRegistrationVerificationLink">
+                            <div>
+                                <span>Link de verificación</span>
+                                <strong>{{ vehicleRegistrationVerificationLink }}</strong>
+                            </div>
+                            <button type="button" (click)="copyVehicleRegistrationVerificationLink()">
+                                <i class="pi pi-copy"></i>
+                                Copiar
+                            </button>
+                        </div>
+
                         <div class="vehicle-verification__preview" *ngIf="registrationScanImageUrl"
                             style="overflow: hidden; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.22); background: rgba(15, 23, 42, 0.04);">
                             <img [src]="registrationScanImageUrl" alt="Matrícula del vehículo"
@@ -1317,13 +1328,17 @@
 
                         <div class="vehicle-verification__actions"
                             style="display: flex; justify-content: flex-end; gap: 0.6rem;">
-                            <button type="button" class="activation-btn"
-                                *ngIf="canFinalizeVehicleVerification()"
-                                [disabled]="isScanningRegistration || isFinalizingRegistration"
-                                (click)="finalizeVehicleVerification()">
+                            <button type="button" class="cancel-activation-btn"
+                                [disabled]="isScanningRegistration || isFinalizingRegistration || isGeneratingRegistrationLink"
+                                (click)="generateVehicleRegistrationVerificationLink()">
                                 <i class="pi"
-                                    [ngClass]="isFinalizingRegistration ? 'pi-spin pi-spinner' : 'pi-check'"></i>
-                                Finalizar verificación
+                                    [ngClass]="isGeneratingRegistrationLink ? 'pi-spin pi-spinner' : 'pi-link'"></i>
+                                {{ isGeneratingRegistrationLink ? 'Generando...' : 'Generar link de verificación' }}
+                            </button>
+                            <button type="button" class="activation-btn"
+                                *ngIf="isFinalizingRegistration" disabled>
+                                <i class="pi pi-spin pi-spinner"></i>
+                                Verificando...
                             </button>
                             <button type="button" class="cancel-activation-btn"
                                 [disabled]="isScanningRegistration || isFinalizingRegistration"

@@ -20,6 +20,12 @@ export interface RegistrationLinkResponse {
   target_count: number;
 }
 
+export interface IdentityVerificationLinkResponse {
+  short_code: string;
+  expires_at: string;
+  user_id: string;
+}
+
 export interface PublicRegistrationInfo {
   parent: {
     id: string;
@@ -28,6 +34,17 @@ export interface PublicRegistrationInfo {
     email?: string;
   };
   target_count: number;
+  expires_at: string;
+}
+
+export interface PublicIdentityVerificationInfo {
+  user: {
+    id: string;
+    name: string;
+    last_name?: string;
+    email?: string;
+    verificado?: boolean;
+  };
   expires_at: string;
 }
 
@@ -149,6 +166,10 @@ export class UserService {
     return this.http.post<RegistrationLinkResponse>(`${this.apiUrl}/registration-link`, payload);
   }
 
+  createIdentityVerificationLink(userId: string): Observable<IdentityVerificationLinkResponse> {
+    return this.http.post<IdentityVerificationLinkResponse>(`${this.apiUrl}/${userId}/identity-verification-link`, {});
+  }
+
   getPublicRegistrationInfo(token: string): Observable<PublicRegistrationInfo> {
     return this.http.get<PublicRegistrationInfo>(`${environment.apiUrl}/users-public/registration-link/${encodeURIComponent(token)}`);
   }
@@ -174,6 +195,23 @@ export class UserService {
 
   registerWithPublicLink(token: string, payload: any): Observable<any> {
     return this.http.post<any>(`${environment.apiUrl}/users-public/registration-link/${encodeURIComponent(token)}/register`, payload);
+  }
+
+  getPublicIdentityVerificationInfo(token: string): Observable<PublicIdentityVerificationInfo> {
+    return this.http.get<PublicIdentityVerificationInfo>(`${environment.apiUrl}/users-public/identity-verification/${encodeURIComponent(token)}`);
+  }
+
+  scanPublicIdentityVerification(token: string, file: File): Observable<IdentityScanResponse> {
+    const formData = new FormData();
+    formData.append('cedula', file);
+    return this.http.post<IdentityScanResponse>(`${environment.apiUrl}/users-public/identity-verification/${encodeURIComponent(token)}/scan-identity`, formData);
+  }
+
+  finalizePublicIdentityVerification(token: string, file: File, metadata: Record<string, any>): Observable<IdentityFinalizeResponse> {
+    const formData = new FormData();
+    formData.append('cedula', file);
+    formData.append('metadata', JSON.stringify(metadata));
+    return this.http.post<IdentityFinalizeResponse>(`${environment.apiUrl}/users-public/identity-verification/${encodeURIComponent(token)}/finalize`, formData);
   }
 
   update(id: string, updateUserDto: UpdateUserDto): Observable<User> {

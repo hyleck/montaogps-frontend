@@ -60,6 +60,22 @@ export interface VehicleRegistrationFinalizeResponse {
   device?: Target;
 }
 
+export interface VehicleRegistrationVerificationLinkResponse {
+  short_code: string;
+  expires_at: string;
+  device_id: string;
+}
+
+export interface PublicVehicleVerificationInfo {
+  device: {
+    id: string;
+    name: string;
+    imei?: string;
+    verificado?: boolean;
+  };
+  expires_at: string;
+}
+
 export interface RealtimeShortLinkResponse {
   short_code: string;
   expires_at: string;
@@ -153,6 +169,43 @@ export class TargetsService {
     formData.append('matricula', file);
     formData.append('metadata', JSON.stringify(metadata));
     const observable = this.http.post<VehicleRegistrationFinalizeResponse>(`${this.apiUrl}/${id}/finalize-registration`, formData);
+    return await lastValueFrom(observable);
+  }
+
+  async createVehicleRegistrationVerificationLink(id: string): Promise<VehicleRegistrationVerificationLinkResponse> {
+    const observable = this.http.post<VehicleRegistrationVerificationLinkResponse>(`${this.apiUrl}/${id}/registration-verification-link`, {});
+    return await lastValueFrom(observable);
+  }
+
+  async getPublicVehicleVerificationInfo(token: string): Promise<PublicVehicleVerificationInfo> {
+    const observable = this.http.get<PublicVehicleVerificationInfo>(
+      `${environment.apiUrl}/users-public/vehicle-verification/${encodeURIComponent(token)}`
+    );
+    return await lastValueFrom(observable);
+  }
+
+  async scanPublicVehicleRegistration(token: string, file: File): Promise<VehicleRegistrationScanResponse> {
+    const formData = new FormData();
+    formData.append('matricula', file);
+    const observable = this.http.post<VehicleRegistrationScanResponse>(
+      `${environment.apiUrl}/users-public/vehicle-verification/${encodeURIComponent(token)}/scan-registration`,
+      formData
+    );
+    return await lastValueFrom(observable);
+  }
+
+  async finalizePublicVehicleRegistration(
+    token: string,
+    file: File,
+    metadata: Record<string, any>
+  ): Promise<VehicleRegistrationFinalizeResponse> {
+    const formData = new FormData();
+    formData.append('matricula', file);
+    formData.append('metadata', JSON.stringify(metadata));
+    const observable = this.http.post<VehicleRegistrationFinalizeResponse>(
+      `${environment.apiUrl}/users-public/vehicle-verification/${encodeURIComponent(token)}/finalize`,
+      formData
+    );
     return await lastValueFrom(observable);
   }
 

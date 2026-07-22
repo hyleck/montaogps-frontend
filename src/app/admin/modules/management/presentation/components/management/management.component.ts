@@ -1697,6 +1697,25 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
   }
 
+  onTargetVehicleVerified(target?: any) {
+    this.uiService.hideTargetForm();
+    this.targetToEdit = null;
+
+    if (this.selectedUser) {
+      this.loadTargetsForUser(this.selectedUser._id);
+    }
+
+    this.confirmationService.confirm({
+      header: 'Vehículo verificado',
+      message: 'Se ha verificado el vehículo correctamente.',
+      icon: 'pi pi-check-circle',
+      acceptLabel: 'Cerrar',
+      rejectVisible: false,
+      acceptButtonStyleClass: 'p-button-success',
+      accept: () => undefined,
+    });
+  }
+
   handleTargetClick(target: any, event: MouseEvent) {
     // Check if target is suspended before any other status.
     if (this.isTargetSuspended(target)) {

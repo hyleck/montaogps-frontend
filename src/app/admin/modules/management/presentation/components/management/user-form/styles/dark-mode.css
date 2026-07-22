@@ -34,9 +34,36 @@
     border-color: rgba(255, 255, 255, 0.08);
 }
 
-:host-context(.app-dark) .identity-upload {
+:host-context(.app-dark) .identity-hero {
     background: rgba(255, 255, 255, 0.035);
     border-color: rgba(255, 255, 255, 0.08);
+}
+
+:host-context(.app-dark) .identity-action--secondary,
+:host-context(.app-dark) .identity-link-card button {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 107, 114, 0.34);
+    color: #ff8b91;
+}
+
+:host-context(.app-dark) .identity-link-card {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.22);
+}
+
+:host-context(.app-dark) .identity-link-card span {
+    color: #4ade80;
+}
+
+:host-context(.app-dark) .identity-footer-button--ghost {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #d1d5db;
+}
+
+:host-context(.app-dark) .identity-footer-button--ghost:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.18);
 }
 
 :host-context(.app-dark) .identity-preview-card,

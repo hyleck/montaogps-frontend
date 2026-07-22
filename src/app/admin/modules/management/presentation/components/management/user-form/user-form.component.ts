@@ -215,6 +215,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     identityScanError: string = '';
     scanningIdentity: boolean = false;
     finalizingIdentity: boolean = false;
+    generatingIdentityLink: boolean = false;
+    identityVerificationLink: string = '';
 
     // Subcliente parent email
     subclienteParentEmail: string = '';
@@ -708,9 +710,10 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                     this.messageService.add({
                         severity: 'success',
                         summary: 'Cédula digitalizada',
-                        detail: 'Verifique que los datos estén correctos y finalice la verificación.',
+                        detail: 'La cuenta se verificará automáticamente.',
                         life: 3000
                     });
+                    this.finalizeIdentityVerification();
                 },
                 error: (error) => {
                     this.scanningIdentity = false;
@@ -821,6 +824,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.identityScanError = '';
         this.scanningIdentity = false;
         this.finalizingIdentity = false;
+        this.generatingIdentityLink = false;
+        this.identityVerificationLink = '';
     }
 
     private playIdentityVoice(voiceAudio?: { mimeType: string; base64: string }): void {
@@ -832,6 +837,69 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         } catch (error) {
             console.warn('No se pudo reproducir la voz de verificación:', error);
         }
+    }
+
+    generateIdentityVerificationLink(): void {
+        const userId = this.userInput?._id;
+        if (!userId || this.generatingIdentityLink) return;
+
+        this.generatingIdentityLink = true;
+        this.userService.createIdentityVerificationLink(userId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: async (response) => {
+                    this.generatingIdentityLink = false;
+                    const code = response.short_code;
+                    this.identityVerificationLink = `${window.location.origin}/verificar-cuenta/${encodeURIComponent(code)}`;
+                    await this.copyIdentityVerificationLink(false);
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Link generado',
+                        detail: 'El link de verificación fue copiado al portapapeles.',
+                        life: 3200
+                    });
+                },
+                error: (error) => {
+                    this.generatingIdentityLink = false;
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'No se pudo generar',
+                        detail: error?.error?.message || 'Intenta nuevamente.',
+                        life: 3500
+                    });
+                }
+            });
+    }
+
+    async copyIdentityVerificationLink(showToast: boolean = true): Promise<void> {
+        if (!this.identityVerificationLink) return;
+
+        try {
+            await navigator.clipboard.writeText(this.identityVerificationLink);
+        } catch {
+            this.copyTextFallback(this.identityVerificationLink);
+        }
+
+        if (showToast) {
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Copiado',
+                detail: 'Link copiado al portapapeles.',
+                life: 2200
+            });
+        }
+    }
+
+    private copyTextFallback(value: string): void {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
     }
 
     loadRoles() {

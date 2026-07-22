@@ -3981,6 +3981,53 @@ textarea[readonly]:focus {
     color: #dc2626;
 }
 
+.vehicle-verification__link-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 9px;
+    background: rgba(34, 197, 94, 0.08);
+}
+
+.vehicle-verification__link-card div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.vehicle-verification__link-card span {
+    color: #15803d;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.vehicle-verification__link-card strong {
+    color: var(--managementColorTextUser);
+    font-size: 0.8rem;
+    overflow-wrap: anywhere;
+}
+
+.vehicle-verification__link-card button {
+    border: 1px solid rgba(197, 48, 54, 0.24);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--globalColorPrimaryInmutable);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    font-family: inherit;
+    font-weight: 900;
+    min-height: 36px;
+    padding: 0.55rem 0.8rem;
+}
+
 @media (max-width: 768px) {
     .main {
         width: 100%;
@@ -4010,5 +4057,9 @@ textarea[readonly]:focus {
     .activation-btn {
         width: 100%;
         min-width: 0;
+    }
+
+    .vehicle-verification__link-card {
+        grid-template-columns: 1fr;
     }
 }
