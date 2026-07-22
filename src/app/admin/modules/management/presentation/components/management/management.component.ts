@@ -5279,7 +5279,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   getActivityDisplayTitle(activity: UserActivity & { groupCount?: number }): string {
     const title = this.getActivityTitle(activity);
     const count = activity.groupCount || 1;
-    if (count > 1 && this.isGpsViewActivity(activity)) {
+    if (count > 1 && this.isGpsViewDisplay(activity, title)) {
       return title;
     }
     return count > 1 ? `${title} ${count} veces` : title;
@@ -5327,6 +5327,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
       || action === 'view gps by imei'
       || /^\/devices\/[a-f0-9]{24}/i.test(route)
       || route.startsWith('/devices/by-imei/');
+  }
+
+  private isGpsViewDisplay(activity: UserActivity, title: string): boolean {
+    return this.isGpsViewActivity(activity) || String(title || '').trim().toLowerCase().startsWith('vio un gps');
   }
 
   private formatActivitySeenDay(date: Date): string {
