@@ -1514,7 +1514,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                             payment_period: originalPlan.selected_price.payment_period
                         };
                     }
-                    this.target.plan = originalPlan.id_plan as string;
+                    this.target.plan = this.extractIdValue(originalPlan.id_plan);
 
                     this.plansService.getPlanById(this.target.plan).subscribe({
                         next: (plan: Plan) => {
@@ -1780,6 +1780,20 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return String(value || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     }
 
+    private extractIdValue(value: any): string {
+        if (!value) return '';
+        if (typeof value === 'string') return value;
+        return value._id || value.id || value.value || value.$oid || '';
+    }
+
+    private getTargetPlanId(): string {
+        const plan = this.target?.plan as any;
+        if (!plan) return '';
+        if (typeof plan === 'string') return plan;
+        if (plan.id_plan) return this.extractIdValue(plan.id_plan);
+        return this.extractIdValue(plan);
+    }
+
     /**
      * Obtiene la IP del servidor asociado al plan del target
      * @returns Promise que resuelve con la IP del servidor o null si no se encuentra
@@ -1790,8 +1804,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             return null;
         }
 
-        const planId = typeof this.target.plan === 'string' ? this.target.plan :
-            (this.target.plan as any).id_plan || '';
+        const planId = this.getTargetPlanId();
 
         if (!planId) {
             return null;
@@ -1825,8 +1838,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             return;
         }
 
-        const planId = typeof this.target.plan === 'string' ? this.target.plan :
-            (this.target.plan as any).id_plan || '';
+        const planId = this.getTargetPlanId();
 
         if (!planId) {
             return;
