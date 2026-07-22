@@ -68,6 +68,14 @@ export interface LocatedUser {
   source?: string;
 }
 
+export interface ClientVerificationMetrics {
+  total: number;
+  verified: number;
+  pending: number;
+  verifiedPercent: number;
+  pendingPercent: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -127,6 +135,10 @@ export class UserService {
 
   getLocatedUsers(): Observable<LocatedUser[]> {
     return this.http.get<LocatedUser[]>(`${this.apiUrl}/locations/all`);
+  }
+
+  getClientVerificationMetrics(): Observable<ClientVerificationMetrics> {
+    return this.http.get<ClientVerificationMetrics>(`${this.apiUrl}/metrics/client-verification`);
   }
 
   create(createUserDto: CreateUserDto): Observable<User> {

@@ -33,6 +33,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     favoriteTitle: '',
     favoriteItems: [
       { label: '', path: '/admin/dashboard', icon: 'pi pi-objects-column', badge: 5 },
+      { label: '', path: '/admin/metrics', icon: 'pi pi-chart-bar', badge: 0 },
     ],
     principalTitle: '',
     principalItems: [
@@ -183,6 +184,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
     // Elementos favoritos
     this.sidaberOptions.favoriteItems[0].label = this.translate.instant('sidebar.dashboard');
+    this.sidaberOptions.favoriteItems[1].label = 'Métricas';
 
     // Elementos del menú principal
     this.setPrincipalLabel('/admin/management/', this.translate.instant('sidebar.management'));
@@ -344,6 +346,9 @@ export class SidebarComponent implements OnInit, OnDestroy {
       // El dashboard ahora está adaptado para mostrar contenido diferente a Clientes vs Empleados
       if (item.path === '/admin/dashboard') {
         return true; 
+      }
+      if (item.path === '/admin/metrics') {
+        return this.isRootUser;
       }
       return true;
     });

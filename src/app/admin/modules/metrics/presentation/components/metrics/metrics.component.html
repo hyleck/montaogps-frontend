@@ -1,0 +1,267 @@
+<div class="metrics-page">
+  <div class="metrics-state metrics-state--error" *ngIf="errorMessage">
+    <i class="pi pi-exclamation-triangle"></i>
+    <span>{{ errorMessage }}</span>
+  </div>
+
+  <section class="metrics-panel metrics-panel--connection metrics-panel--featured" *ngIf="!loading && !errorMessage">
+    <div class="metrics-panel__header">
+      <div>
+        <h2>Conexión de dispositivos</h2>
+        <span>Dispositivos activos en línea vs fuera de línea</span>
+      </div>
+      <div class="metrics-panel__actions">
+        <span [class]="getHealthClass(deviceConnection.onlinePercent)">
+          <i [class]="getHealthIcon(deviceConnection.onlinePercent)"></i>
+          {{ getHealthLabel(deviceConnection.onlinePercent) }}
+        </span>
+        <strong>{{ deviceConnection.total }} total</strong>
+      </div>
+    </div>
+
+    <div class="connection-chart" *ngIf="deviceConnection.total; else noConnectionMetrics">
+      <div class="connection-chart__summary">
+        <div class="connection-chart__item connection-chart__item--online">
+          <i class="pi pi-wifi"></i>
+          <div>
+            <strong>{{ deviceConnection.online }}</strong>
+            <span>En línea</span>
+          </div>
+        </div>
+        <div class="connection-chart__item connection-chart__item--offline">
+          <i class="pi pi-ban"></i>
+          <div>
+            <strong>{{ deviceConnection.offline }}</strong>
+            <span>Fuera de línea</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="connection-bar" aria-label="Dispositivos en línea vs fuera de línea">
+        <span class="connection-bar__online" [style.width.%]="deviceConnection.onlinePercent"></span>
+        <span class="connection-bar__offline" [style.width.%]="deviceConnection.offlinePercent"></span>
+      </div>
+
+      <div class="connection-chart__legend">
+        <span><i></i>{{ deviceConnection.onlinePercent }}% en línea</span>
+        <span><i></i>{{ deviceConnection.offlinePercent }}% fuera de línea</span>
+      </div>
+    </div>
+
+    <ng-template #noConnectionMetrics>
+      <div class="metrics-empty">
+        <i class="pi pi-wifi"></i>
+        <span>No hay dispositivos activos para medir.</span>
+      </div>
+    </ng-template>
+  </section>
+
+  <section class="metrics-kpis" *ngIf="!errorMessage">
+    <article class="metrics-kpi" *ngFor="let card of metricCards" [class]="'metrics-kpi metrics-kpi--' + card.tone">
+      <div class="metrics-kpi__icon">
+        <i [class]="card.icon"></i>
+      </div>
+      <div>
+        <span>{{ card.label }}</span>
+        <strong>{{ card.value }}</strong>
+        <small>{{ card.detail }}</small>
+      </div>
+    </article>
+  </section>
+
+  <div class="metrics-loading" *ngIf="loading">
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>Cargando métricas...</span>
+  </div>
+
+  <main class="metrics-grid" *ngIf="!loading && !errorMessage">
+    <section class="metrics-panel metrics-panel--verification">
+      <div class="metrics-panel__header">
+        <div>
+          <h2>Verificación</h2>
+          <span>Clientes y vehículos verificados vs pendientes</span>
+        </div>
+      </div>
+
+      <div class="verification-stack">
+        <div class="verification-card" *ngIf="clientVerification.total; else noClientVerification">
+          <div class="verification-card__title">
+            <span>
+              <i class="pi pi-user"></i>
+              <strong>Clientes</strong>
+            </span>
+            <em [class]="getHealthClass(clientVerification.verifiedPercent)">
+              <i [class]="getHealthIcon(clientVerification.verifiedPercent)"></i>
+              {{ getHealthLabel(clientVerification.verifiedPercent) }}
+            </em>
+          </div>
+
+          <div class="verification-card__summary">
+            <div class="verification-card__summary-item verification-card__summary-item--verified">
+              <strong><i class="pi pi-check-circle"></i>{{ clientVerification.verified }}</strong>
+              <span>Verificados</span>
+            </div>
+            <div class="verification-card__summary-item">
+              <strong>{{ clientVerification.pending }}</strong>
+              <span>Sin verificar</span>
+            </div>
+          </div>
+
+          <div class="verification-bar" aria-label="Clientes verificados vs sin verificar">
+            <span class="verification-bar__verified" [style.width.%]="clientVerification.verifiedPercent"></span>
+            <span class="verification-bar__pending" [style.width.%]="clientVerification.pendingPercent"></span>
+          </div>
+
+          <div class="verification-card__legend">
+            <span><i></i>{{ clientVerification.verifiedPercent }}% verificados</span>
+            <span><i></i>{{ clientVerification.pendingPercent }}% pendientes</span>
+          </div>
+        </div>
+
+        <ng-template #noClientVerification>
+          <div class="verification-card verification-card--empty">
+            <div class="metrics-empty">
+              <i class="pi pi-user"></i>
+              <span>No hay clientes para medir.</span>
+            </div>
+          </div>
+        </ng-template>
+
+        <div class="verification-card" *ngIf="vehicleVerification.total; else noVehicleVerification">
+          <div class="verification-card__title">
+            <span>
+              <i class="pi pi-car"></i>
+              <strong>Vehículos</strong>
+            </span>
+            <em [class]="getHealthClass(vehicleVerification.verifiedPercent)">
+              <i [class]="getHealthIcon(vehicleVerification.verifiedPercent)"></i>
+              {{ getHealthLabel(vehicleVerification.verifiedPercent) }}
+            </em>
+          </div>
+
+          <div class="verification-card__summary">
+            <div class="verification-card__summary-item verification-card__summary-item--verified">
+              <strong><i class="pi pi-check-circle"></i>{{ vehicleVerification.verified }}</strong>
+              <span>Verificados</span>
+            </div>
+            <div class="verification-card__summary-item">
+              <strong>{{ vehicleVerification.pending }}</strong>
+              <span>Sin verificar</span>
+            </div>
+          </div>
+
+          <div class="verification-bar" aria-label="Vehículos verificados vs sin verificar">
+            <span class="verification-bar__verified" [style.width.%]="vehicleVerification.verifiedPercent"></span>
+            <span class="verification-bar__pending" [style.width.%]="vehicleVerification.pendingPercent"></span>
+          </div>
+
+          <div class="verification-card__legend">
+            <span><i></i>{{ vehicleVerification.verifiedPercent }}% verificados</span>
+            <span><i></i>{{ vehicleVerification.pendingPercent }}% sin verificar</span>
+          </div>
+        </div>
+
+        <ng-template #noVehicleVerification>
+          <div class="verification-card verification-card--empty">
+            <div class="metrics-empty">
+              <i class="pi pi-car"></i>
+              <span>No hay vehículos para medir.</span>
+            </div>
+          </div>
+        </ng-template>
+
+        <div class="verification-card" *ngIf="vehicleDataCompleteness.total; else noVehicleDataCompleteness">
+          <div class="verification-card__title">
+            <span>
+              <i class="pi pi-list-check"></i>
+              <strong>Datos del vehículo</strong>
+            </span>
+            <em [class]="getHealthClass(vehicleDataCompleteness.completePercent)">
+              <i [class]="getHealthIcon(vehicleDataCompleteness.completePercent)"></i>
+              {{ getHealthLabel(vehicleDataCompleteness.completePercent) }}
+            </em>
+          </div>
+
+          <div class="verification-card__summary">
+            <div class="verification-card__summary-item verification-card__summary-item--verified">
+              <strong><i class="pi pi-check-circle"></i>{{ vehicleDataCompleteness.complete }}</strong>
+              <span>Establecidos</span>
+            </div>
+            <div class="verification-card__summary-item">
+              <strong>{{ vehicleDataCompleteness.incomplete }}</strong>
+              <span>Sin establecer</span>
+            </div>
+          </div>
+
+          <div class="verification-bar" aria-label="Vehículos con datos establecidos vs sin establecer">
+            <span class="verification-bar__verified" [style.width.%]="vehicleDataCompleteness.completePercent"></span>
+            <span class="verification-bar__pending" [style.width.%]="vehicleDataCompleteness.incompletePercent"></span>
+          </div>
+
+          <div class="verification-card__legend">
+            <span><i></i>{{ vehicleDataCompleteness.completePercent }}% establecidos</span>
+            <span><i></i>{{ vehicleDataCompleteness.incompletePercent }}% sin establecer</span>
+          </div>
+        </div>
+
+        <ng-template #noVehicleDataCompleteness>
+          <div class="verification-card verification-card--empty">
+            <div class="metrics-empty">
+              <i class="pi pi-list-check"></i>
+              <span>No hay datos de vehículos para medir.</span>
+            </div>
+          </div>
+        </ng-template>
+      </div>
+    </section>
+
+    <section class="metrics-panel metrics-panel--technicians">
+      <div class="metrics-panel__header">
+        <div>
+          <h2>Técnicos</h2>
+          <span>Instalaciones vs chequeos</span>
+        </div>
+        <div class="metrics-panel__actions">
+          <span [class]="getHealthClass(getTechnicianWorkHealthPercent())">
+            <i [class]="getHealthIcon(getTechnicianWorkHealthPercent())"></i>
+            {{ getHealthLabel(getTechnicianWorkHealthPercent()) }}
+          </span>
+          <strong>{{ technicianWork.totalInstallations + technicianWork.totalChecks }} total</strong>
+        </div>
+      </div>
+
+      <div class="technician-work-list" *ngIf="technicianWork.technicians.length; else noTechnicianWork">
+        <div class="technician-work-row" *ngFor="let technician of technicianWork.technicians">
+          <div class="technician-work-row__header">
+            <strong>{{ technician.technician }}</strong>
+            <div class="technician-work-row__meta">
+              <span [class]="getHealthClass(technician.installationPercent)">
+                <i [class]="getHealthIcon(technician.installationPercent)"></i>
+                {{ getHealthLabel(technician.installationPercent) }}
+              </span>
+              <span class="technician-work-row__total">{{ technician.total }} trabajos</span>
+            </div>
+          </div>
+
+          <div class="technician-work-row__numbers">
+            <span><i class="pi pi-wrench"></i>{{ technician.installations }} instalaciones</span>
+            <span><i class="pi pi-clipboard"></i>{{ technician.checks }} chequeos</span>
+          </div>
+
+          <div class="technician-work-bar" aria-label="Instalaciones vs chequeos">
+            <span class="technician-work-bar__installations" [style.width.%]="technician.installationPercent"></span>
+            <span class="technician-work-bar__checks" [style.width.%]="technician.checkPercent"></span>
+          </div>
+        </div>
+      </div>
+
+      <ng-template #noTechnicianWork>
+        <div class="metrics-empty">
+          <i class="pi pi-users"></i>
+          <span>No hay trabajos técnicos para medir.</span>
+        </div>
+      </ng-template>
+    </section>
+
+  </main>
+</div>

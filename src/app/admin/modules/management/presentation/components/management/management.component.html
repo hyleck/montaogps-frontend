@@ -1809,13 +1809,13 @@
                 <span>No hay actividad registrada.</span>
             </div>
 
-            <div class="user-location-dialog__activity-list" *ngIf="!userLocationActivityLoading && userLocationActivities.length">
-                <div class="user-location-dialog__activity" *ngFor="let activity of userLocationActivities">
+            <div class="user-location-dialog__activity-list" *ngIf="!userLocationActivityLoading && userLocationGroupedActivities.length">
+                <div class="user-location-dialog__activity" *ngFor="let activity of userLocationGroupedActivities">
                     <span class="user-location-dialog__activity-platform" [class.is-mobile]="activity.platform === 'mobile'">
                         {{ activity.platform === 'mobile' ? 'Mobile' : 'Desktop' }}
                     </span>
                     <div class="user-location-dialog__activity-body">
-                        <strong>{{ getActivityTitle(activity) }}</strong>
+                        <strong>{{ getActivityDisplayTitle(activity) }}</strong>
                         <small *ngIf="getActivitySubtitle(activity)">{{ getActivitySubtitle(activity) }}</small>
                         <em>{{ getActivityAgo(activity) }}</em>
                     </div>

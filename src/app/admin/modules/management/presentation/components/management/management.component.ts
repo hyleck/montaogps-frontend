@@ -81,6 +81,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   userLocationDialogError: string = '';
   userLocationActivityLoading: boolean = false;
   userLocationActivities: UserActivity[] = [];
+  userLocationGroupedActivities: Array<UserActivity & { groupCount?: number }> = [];
   selectedLocationUser: User | null = null;
   userLocationMapInstance: any = null;
   userLocationMarker: any = null;
@@ -5026,6 +5027,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.userLocationDialogLoading = true;
     this.userLocationDialogError = '';
     this.userLocationActivities = [];
+    this.userLocationGroupedActivities = [];
 
     setTimeout(() => this.renderUserLocationMap(position), 0);
     this.loadUserLocationActivity(user);
@@ -5037,6 +5039,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.userLocationDialogError = '';
     this.userLocationActivityLoading = false;
     this.userLocationActivities = [];
+    this.userLocationGroupedActivities = [];
     this.selectedLocationUser = null;
     this.userLocationMarker?.setMap?.(null);
     this.userLocationMarker = null;
@@ -5106,12 +5109,48 @@ export class ManagementComponent implements OnInit, OnDestroy {
     try {
       const response = await lastValueFrom(this.userActivityService.getByUser(userId, 40));
       this.userLocationActivities = response?.activities || [];
+      this.userLocationGroupedActivities = this.groupConsecutiveActivities(this.userLocationActivities);
     } catch (error) {
       console.error('Error cargando historial del usuario:', error);
       this.userLocationActivities = [];
+      this.userLocationGroupedActivities = [];
     } finally {
       this.userLocationActivityLoading = false;
     }
+  }
+
+  private groupConsecutiveActivities(activities: UserActivity[]): Array<UserActivity & { groupCount?: number }> {
+    const grouped: Array<UserActivity & { groupCount?: number }> = [];
+
+    for (const activity of activities || []) {
+      const last = grouped[grouped.length - 1];
+      const activityKey = this.getActivityGroupKey(activity);
+
+      if (last && this.getActivityGroupKey(last) === activityKey) {
+        last.groupCount = (last.groupCount || 1) + 1;
+        continue;
+      }
+
+      grouped.push({ ...activity, groupCount: 1 });
+    }
+
+    return grouped;
+  }
+
+  private getActivityGroupKey(activity: UserActivity): string {
+    return [
+      activity.platform || '',
+      this.getActivityTitle(activity),
+      this.getActivitySubtitle(activity),
+    ]
+      .map((value) => String(value || '').trim().toLowerCase())
+      .join('|');
+  }
+
+  getActivityDisplayTitle(activity: UserActivity & { groupCount?: number }): string {
+    const title = this.getActivityTitle(activity);
+    const count = activity.groupCount || 1;
+    return count > 1 ? `${title} ${count} veces` : title;
   }
 
   getActivityTitle(activity: UserActivity): string {

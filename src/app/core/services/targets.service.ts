@@ -36,6 +36,22 @@ export interface SmsCommandQuotaResponse {
   unlimited: boolean;
 }
 
+export interface VehicleVerificationMetrics {
+  total: number;
+  verified: number;
+  pending: number;
+  verifiedPercent: number;
+  pendingPercent: number;
+}
+
+export interface VehicleDataCompletenessMetrics {
+  total: number;
+  complete: number;
+  incomplete: number;
+  completePercent: number;
+  incompletePercent: number;
+}
+
 export interface VehicleRegistrationFinalizeResponse {
   ok: boolean;
   deviceId?: string;
@@ -185,6 +201,14 @@ export class TargetsService {
   async getExpiredConnectionPriorityTargets(): Promise<Target[]> {
     const observable = this.http.get<Target[]>(`${this.apiUrl}/check-connection-priority`);
     return await lastValueFrom(observable);
+  }
+
+  getVehicleVerificationMetrics(): Observable<VehicleVerificationMetrics> {
+    return this.http.get<VehicleVerificationMetrics>(`${this.apiUrl}/metrics/vehicle-verification`);
+  }
+
+  getVehicleDataCompletenessMetrics(): Observable<VehicleDataCompletenessMetrics> {
+    return this.http.get<VehicleDataCompletenessMetrics>(`${this.apiUrl}/metrics/vehicle-data-completeness`);
   }
 
   async getTargetsByUserId(userId: string, parentId?: string, offset: number = 0, limit: number = 30, status?: 'online' | 'offline' | 'all', tag?: string, simCompany?: string): Promise<TargetsResponse> {

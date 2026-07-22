@@ -26,6 +26,36 @@ export interface PaginatedProcessResponse {
   lastPage: number;
 }
 
+export interface CreatorStatsItem {
+  _id?: string;
+  creatorName?: string;
+  creatorEmail?: string;
+  totalProcesses: number;
+  processesByType?: Array<{ type: number; count: number }>;
+}
+
+export interface CreatorStatsResponse {
+  statsByCreator: CreatorStatsItem[];
+  generatedAt: string | Date;
+}
+
+export interface TechnicianWorkStatsItem {
+  technicianId: string | null;
+  technician: string;
+  installations: number;
+  checks: number;
+  total: number;
+  installationPercent: number;
+  checkPercent: number;
+}
+
+export interface TechnicianWorkStatsResponse {
+  totalInstallations: number;
+  totalChecks: number;
+  technicians: TechnicianWorkStatsItem[];
+  generatedAt: string | Date;
+}
+
 export const PROCESS_TYPE_LABELS: { [key: number]: string } = {
   1: 'Instalación',
   2: 'Mod. Fecha Instalación',
@@ -78,5 +108,13 @@ export class ProcessesService {
 
   getStats(): Observable<any> {
     return this.http.get(`${this.apiUrl}/stats`);
+  }
+
+  getStatsByCreator(): Observable<CreatorStatsResponse> {
+    return this.http.get<CreatorStatsResponse>(`${this.apiUrl}/stats/creator`);
+  }
+
+  getTechnicianWorkStats(): Observable<TechnicianWorkStatsResponse> {
+    return this.http.get<TechnicianWorkStatsResponse>(`${this.apiUrl}/stats/technician-work`);
   }
 }
