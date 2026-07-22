@@ -82,6 +82,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   userLocationActivityLoading: boolean = false;
   userLocationActivities: UserActivity[] = [];
   userLocationGroupedActivities: Array<UserActivity & { groupCount?: number }> = [];
+  private readonly targetMapViewRecordedAt = new Map<string, number>();
   selectedLocationUser: User | null = null;
   userLocationMapInstance: any = null;
   userLocationMarker: any = null;
@@ -1734,6 +1735,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         this.selectedTargetStopTime = undefined;
 
         this.selectedTargetForMap = target;
+        this.recordTargetMapView(target);
         this.loadTargetOwnerLocation(target);
         this.startPolling();
 
@@ -1771,6 +1773,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.stopPolling();
       this.selectedTargetStopTime = undefined;
       this.selectedTargetForMap = mappedTarget;
+      this.recordTargetMapView(mappedTarget);
       this.loadTargetOwnerLocation(mappedTarget);
       this.startPolling();
       this.scrollToSelectedTarget();
@@ -2988,6 +2991,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.selectedTargetStopTime = undefined;
 
       this.selectedTargetForMap = target;
+      this.recordTargetMapView(target);
       this.loadTargetOwnerLocation(target);
 
       // Iniciar polling para el nuevo target seleccionado
@@ -2998,6 +3002,20 @@ export class ManagementComponent implements OnInit, OnDestroy {
     } else {
       console.warn('⚠️ Target no encontrado en la lista:', targetId);
     }
+  }
+
+  private recordTargetMapView(target: any): void {
+    const targetId = String(target?._id || target?.id || '').trim();
+    if (!targetId) return;
+
+    const now = Date.now();
+    const lastRecordedAt = this.targetMapViewRecordedAt.get(targetId) || 0;
+    if (now - lastRecordedAt < 30000) return;
+
+    this.targetMapViewRecordedAt.set(targetId, now);
+    this.userActivityService.recordGpsMapView(target).subscribe({
+      error: () => undefined,
+    });
   }
 
   private loadUserFromParams(userId: string): void {
