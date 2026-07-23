@@ -439,17 +439,23 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
 
     const byImei = new Map<string, any>();
-    const linkedByImei = new Map<string, any>();
     targets.forEach(target => {
       const imei = this.getTargetImei(target);
       if (imei) {
         byImei.set(imei, target);
       }
+    });
 
+    const linkedGroups = new Map<string, any[]>();
+    targets.forEach(target => {
       const linkedImei = this.getTargetLinkedGpsImei(target);
-      if (linkedImei) {
-        linkedByImei.set(linkedImei, target);
+      if (!linkedImei || !byImei.has(linkedImei)) {
+        return;
       }
+
+      const group = linkedGroups.get(linkedImei) || [];
+      group.push(target);
+      linkedGroups.set(linkedImei, group);
     });
 
     const consumed = new Set<string>();
@@ -461,27 +467,33 @@ export class ManagementComponent implements OnInit, OnDestroy {
         return;
       }
 
-      const currentImei = this.getTargetImei(target);
       const linkedImei = this.getTargetLinkedGpsImei(target);
-      const linkedTarget = linkedImei ? byImei.get(linkedImei) : linkedByImei.get(currentImei);
-      const linkedTargetId = String(linkedTarget?._id || '');
+      if (linkedImei && byImei.has(linkedImei)) {
+        return;
+      }
 
-      if (linkedTarget && linkedTargetId && linkedTargetId !== targetId && !consumed.has(linkedTargetId)) {
-        const primary = this.getTargetLinkedGpsImei(target) ? linkedTarget : target;
-        const secondary = primary === target ? linkedTarget : target;
-
-        rows.push({
-          ...primary,
-          _id: `linked-card-${primary._id}-${secondary._id}`,
-          isLinkedPairCard: true,
-          primaryTarget: primary,
-          secondaryTarget: secondary,
-          originalTarget: primary.originalTarget || primary,
-          isShared: primary.isShared && secondary.isShared,
+      const currentImei = this.getTargetImei(target);
+      const linkedTargets = (linkedGroups.get(currentImei) || [])
+        .filter(linkedTarget => {
+          const linkedTargetId = String(linkedTarget?._id || '');
+          return linkedTargetId && linkedTargetId !== targetId && !consumed.has(linkedTargetId);
         });
 
-        consumed.add(targetId);
-        consumed.add(linkedTargetId);
+      if (linkedTargets.length > 0) {
+        const groupTargets = [target, ...linkedTargets];
+
+        rows.push({
+          ...target,
+          _id: `linked-card-${groupTargets.map(groupTarget => groupTarget._id).join('-')}`,
+          isLinkedPairCard: true,
+          primaryTarget: target,
+          secondaryTarget: groupTargets[1],
+          linkedTargets: groupTargets,
+          originalTarget: target.originalTarget || target,
+          isShared: groupTargets.every(groupTarget => groupTarget.isShared),
+        });
+
+        groupTargets.forEach(groupTarget => consumed.add(String(groupTarget?._id || '')));
         return;
       }
 
@@ -569,8 +581,28 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return !!this.selectedTargetForMap && this.selectedTargetForMap._id === row?._id;
     }
 
-    return [row.primaryTarget, row.secondaryTarget].some((target: any) =>
+    return this.getLinkedCardTargets(row).some((target: any) =>
       !!target?._id && !!this.selectedTargetForMap && this.selectedTargetForMap._id === target._id
+    );
+  }
+
+  getLinkedCardTargets(row: any): any[] {
+    if (!row?.isLinkedPairCard) {
+      return row ? [row] : [];
+    }
+
+    return Array.isArray(row.linkedTargets)
+      ? row.linkedTargets.filter(Boolean)
+      : [row.primaryTarget, row.secondaryTarget].filter(Boolean);
+  }
+
+  getLinkedGroupCardHeight(row: any): number {
+    return Math.max(2, this.getLinkedCardTargets(row).length) * 64;
+  }
+
+  hasLinkedGroupVehicleInfoIncomplete(row: any): boolean {
+    return this.getLinkedCardTargets(row).some((linkedTarget: any) =>
+      this.isTargetVehicleInfoIncomplete(linkedTarget)
     );
   }
 
@@ -602,7 +634,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return this.isTargetSelected(row);
     }
 
-    return this.isTargetSelected(row.primaryTarget) && this.isTargetSelected(row.secondaryTarget);
+    const groupTargets = this.getLinkedCardTargets(row);
+    return groupTargets.length > 0 && groupTargets.every((target: any) => this.isTargetSelected(target));
   }
 
   toggleTargetPairSelection(row: any, event?: Event): void {
@@ -611,7 +644,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const pairTargets = [row.primaryTarget, row.secondaryTarget].filter(Boolean);
+    const pairTargets = this.getLinkedCardTargets(row);
     const pairIds = new Set(pairTargets.map((target: any) => String(target?._id || '')).filter(Boolean));
     if (pairIds.size === 0) {
       return;
@@ -719,6 +752,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   canDeleteDevices(): boolean {
     return this.authService.hasPrivilege('devices', 'delete');
+  }
+
+  canCancelDevices(): boolean {
+    return this.canUpdateDevices();
   }
 
   // ====================================
@@ -2888,7 +2925,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.selectionService.selectedTargetsBulkAction$.subscribe(action => {
         if (!this.targetsSelected || this.targetsSelected.length === 0) return;
 
-        if ((action === 'cancel' || action === 'suspend') && (!this.canDeleteDevices() || this.currentUserAffiliationTypeId !== 'empleado')) {
+        if ((action === 'cancel' || action === 'suspend') && (!this.canCancelDevices() || this.currentUserAffiliationTypeId !== 'empleado')) {
           return;
         }
 
@@ -4451,10 +4488,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   confirmCancelTarget(target: any) {
     // Validar permisos antes de permitir cancelar targets
-    if (!this.canDeleteDevices()) {
+    if (!this.canCancelDevices()) {
       this.messageService.add({
         severity: 'error',
-        summary: this.translate.instant('management.devices.no_delete_permission'),
+        summary: this.translate.instant('management.devices.no_update_permission'),
         detail: this.translate.instant('management.devices.contact_admin')
       });
       return;
@@ -5065,6 +5102,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   confirmMassCancelShortcuts() {
+    if (!this.canCancelDevices() || this.currentUserAffiliationTypeId !== 'empleado') {
+      this.messageService.add({
+        severity: 'error',
+        summary: this.translate.instant('management.devices.no_update_permission'),
+        detail: this.translate.instant('management.devices.contact_admin')
+      });
+      return;
+    }
+
     if (!this.shortcuts || this.shortcuts.length === 0) {
       return;
     }

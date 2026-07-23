@@ -15,6 +15,7 @@ import { Plan } from 'src/app/core/interfaces/plan.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { UserService } from 'src/app/core/services/user.service';
+import { User } from 'src/app/core/interfaces/user.interface';
 import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -41,6 +42,11 @@ export class InventoryComponent implements OnInit {
   isEditPackageMode = false;
   isEditMode = false;
   isEditWarehouseMode = false;
+  selectedWarehouseAccessUsers: User[] = [];
+  warehouseUserSearchDialogVisible = false;
+  warehouseUserSearchTerm = '';
+  warehouseUserSearchResults: User[] = [];
+  isSearchingWarehouseUsers = false;
 
   loading = true;
   loadingWarehouses = false;
@@ -605,13 +611,21 @@ export class InventoryComponent implements OnInit {
   }
 
   openNewWarehouse(): void {
-    this.selectedWarehouse = { name: '', description: '', assigned_user: '' };
+    this.selectedWarehouse = { name: '', description: '', assigned_user: '', access_users: [] };
+    this.selectedWarehouseAccessUsers = [];
     this.isEditWarehouseMode = false;
     this.warehouseFormDialogVisible = true;
   }
 
   editWarehouse(warehouse: Warehouse): void {
     this.selectedWarehouse = { ...warehouse };
+    this.selectedWarehouseAccessUsers = this.getWarehouseAccessUsers(warehouse).map(email => ({
+      _id: email,
+      name: '',
+      last_name: '',
+      email,
+      access_level_id: null as any,
+    }));
     this.isEditWarehouseMode = true;
     this.warehouseFormDialogVisible = true;
   }
@@ -625,6 +639,9 @@ export class InventoryComponent implements OnInit {
       });
       return;
     }
+
+    this.selectedWarehouse.access_users = this.getSelectedWarehouseAccessEmails();
+    this.selectedWarehouse.assigned_user = this.selectedWarehouse.access_users[0] || '';
 
     const request = this.isEditWarehouseMode
       ? this.inventoryService.updateWarehouse(this.selectedWarehouse._id!, this.selectedWarehouse)
@@ -640,6 +657,7 @@ export class InventoryComponent implements OnInit {
         this.loadWarehouses();
         this.warehouseFormDialogVisible = false;
         this.selectedWarehouse = null;
+        this.selectedWarehouseAccessUsers = [];
       },
       error: () => {
         this.messageService.add({
@@ -680,7 +698,110 @@ export class InventoryComponent implements OnInit {
 
   cancelWarehouseEdit(): void {
     this.selectedWarehouse = null;
+    this.selectedWarehouseAccessUsers = [];
+    this.closeWarehouseUserSearchDialog();
     this.warehouseFormDialogVisible = false;
+  }
+
+  getWarehouseAccessUsers(warehouse: Warehouse | any): string[] {
+    const users = Array.isArray(warehouse?.access_users) ? warehouse.access_users : [];
+    return Array.from(
+      new Set(
+        [...users, warehouse?.assigned_user]
+          .map((value: string) => String(value || '').trim().toLowerCase())
+          .filter(Boolean)
+      )
+    );
+  }
+
+  getWarehouseAccessUsersLabel(warehouse: Warehouse): string {
+    const users = this.getWarehouseAccessUsers(warehouse);
+    return users.length ? users.join(', ') : '';
+  }
+
+  openWarehouseUserSearchDialog(): void {
+    this.warehouseUserSearchDialogVisible = true;
+    this.warehouseUserSearchTerm = '';
+    this.warehouseUserSearchResults = [];
+  }
+
+  closeWarehouseUserSearchDialog(): void {
+    this.warehouseUserSearchDialogVisible = false;
+    this.warehouseUserSearchTerm = '';
+    this.warehouseUserSearchResults = [];
+    this.isSearchingWarehouseUsers = false;
+  }
+
+  searchWarehouseAccessUsers(): void {
+    const query = this.warehouseUserSearchTerm.trim();
+    if (query.length < 2) {
+      this.warehouseUserSearchResults = [];
+      return;
+    }
+
+    this.isSearchingWarehouseUsers = true;
+    this.userService.search(query, undefined, 0, 15).subscribe({
+      next: (response) => {
+        this.warehouseUserSearchResults = response.users || [];
+        this.isSearchingWarehouseUsers = false;
+      },
+      error: () => {
+        this.isSearchingWarehouseUsers = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudo buscar usuarios'
+        });
+      }
+    });
+  }
+
+  addWarehouseAccessUser(user: User): void {
+    const email = this.normalizeWarehouseAccessEmail(user?.email);
+    if (!email) return;
+
+    if (this.isWarehouseAccessUserSelected(user)) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Usuario ya agregado',
+        detail: 'Ese usuario ya tiene acceso al almacén'
+      });
+      return;
+    }
+
+    this.selectedWarehouseAccessUsers = [...this.selectedWarehouseAccessUsers, user];
+    this.closeWarehouseUserSearchDialog();
+  }
+
+  removeWarehouseAccessUser(user: User): void {
+    const email = this.normalizeWarehouseAccessEmail(user?.email);
+    this.selectedWarehouseAccessUsers = this.selectedWarehouseAccessUsers.filter(
+      selected => this.normalizeWarehouseAccessEmail(selected.email) !== email
+    );
+  }
+
+  isWarehouseAccessUserSelected(user: User): boolean {
+    const email = this.normalizeWarehouseAccessEmail(user?.email);
+    return !!email && this.getSelectedWarehouseAccessEmails().includes(email);
+  }
+
+  getWarehouseUserDisplayName(user: User): string {
+    const fullName = [user?.name, user?.last_name].filter(Boolean).join(' ').trim();
+    return fullName || user?.email || 'Usuario';
+  }
+
+  private getSelectedWarehouseAccessEmails(): string[] {
+    return Array.from(
+      new Set(
+        this.selectedWarehouseAccessUsers
+          .map(user => this.normalizeWarehouseAccessEmail(user?.email))
+          .filter(Boolean)
+      )
+    );
+  }
+
+  private normalizeWarehouseAccessEmail(value: string | undefined | null): string {
+    return String(value || '').trim().toLowerCase();
   }
 
   // Device Management Methods

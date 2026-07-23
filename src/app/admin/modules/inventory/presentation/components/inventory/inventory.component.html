@@ -416,8 +416,8 @@
                   <p class="warehouse-desc" [title]="warehouse.description || 'Sin descripción'">
                     {{warehouse.description || 'Sin descripción'}}
                   </p>
-                  <p *ngIf="warehouse.assigned_user" class="warehouse-desc" style="font-size: 0.8rem; color: #14b8a6; margin-top: 4px;">
-                    <i class="pi pi-user" style="margin-right: 4px;"></i>{{warehouse.assigned_user}}
+                  <p *ngIf="getWarehouseAccessUsers(warehouse).length" class="warehouse-desc" style="font-size: 0.8rem; color: #14b8a6; margin-top: 4px;">
+                    <i class="pi pi-users" style="margin-right: 4px;"></i>{{getWarehouseAccessUsersLabel(warehouse)}}
                   </p>
                   <div class="warehouse-metrics">
                     <div class="metric-box">
@@ -471,8 +471,8 @@
                   <p class="warehouse-desc" [title]="warehouse.description || 'Sin descripción'">
                     {{warehouse.description || 'Sin descripción'}}
                   </p>
-                  <p *ngIf="warehouse.assigned_user" class="warehouse-desc" style="font-size: 0.8rem; color: #14b8a6; margin-top: 4px;">
-                    <i class="pi pi-user" style="margin-right: 4px;"></i>{{warehouse.assigned_user}}
+                  <p *ngIf="getWarehouseAccessUsers(warehouse).length" class="warehouse-desc" style="font-size: 0.8rem; color: #14b8a6; margin-top: 4px;">
+                    <i class="pi pi-users" style="margin-right: 4px;"></i>{{getWarehouseAccessUsersLabel(warehouse)}}
                   </p>
                   <div class="warehouse-metrics">
                     <div class="metric-box">
@@ -548,9 +548,37 @@
             placeholder="0"></p-inputNumber>
         </div>
         <div class="field mb-3">
-          <label for="wAssignedUser" class="font-bold">Usuario Asignado (correo)</label>
-          <input type="email" pInputText id="wAssignedUser" [(ngModel)]="selectedWarehouse.assigned_user"
-            class="w-full" style="width: 100%" placeholder="ejemplo@correo.com" />
+          <div class="warehouse-access-header">
+            <label class="font-bold">Usuarios con acceso</label>
+            <button type="button" class="warehouse-access-add-btn" (click)="openWarehouseUserSearchDialog()">
+              <i class="pi pi-plus"></i>
+              Agregar usuario
+            </button>
+          </div>
+
+          <div class="warehouse-access-list" *ngIf="selectedWarehouseAccessUsers.length; else noWarehouseAccessUsers">
+            <div class="warehouse-access-user" *ngFor="let user of selectedWarehouseAccessUsers">
+              <div class="warehouse-access-avatar">
+                {{ getWarehouseUserDisplayName(user).charAt(0) || 'U' }}
+              </div>
+              <div class="warehouse-access-info">
+                <strong>{{ getWarehouseUserDisplayName(user) }}</strong>
+                <span *ngIf="getWarehouseUserDisplayName(user) !== user.email">{{ user.email }}</span>
+                <small *ngIf="user.dni">Cédula: {{ user.dni }}</small>
+              </div>
+              <button type="button" class="warehouse-access-remove-btn" (click)="removeWarehouseAccessUser(user)"
+                title="Quitar acceso">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
+          </div>
+
+          <ng-template #noWarehouseAccessUsers>
+            <div class="warehouse-access-empty">
+              <i class="pi pi-users"></i>
+              <span>No hay usuarios con acceso todavía.</span>
+            </div>
+          </ng-template>
         </div>
       </div>
     </ng-template>
@@ -560,6 +588,51 @@
         (click)="cancelWarehouseEdit()"></button>
       <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-primary"
         (click)="saveWarehouse()"></button>
+    </ng-template>
+  </p-dialog>
+
+  <p-dialog [(visible)]="warehouseUserSearchDialogVisible" [style]="{width: '520px'}"
+    header="Agregar usuario al almacén" [modal]="true" [resizable]="false" [draggable]="false"
+    styleClass="app-dark-dialog warehouse-user-search-dialog" appendTo="body"
+    (onHide)="closeWarehouseUserSearchDialog()">
+    <ng-template pTemplate="content">
+      <div class="warehouse-user-search">
+        <div class="warehouse-user-search-box">
+          <i class="pi pi-search"></i>
+          <input type="text" pInputText [(ngModel)]="warehouseUserSearchTerm"
+            placeholder="Buscar por nombre, correo o cédula"
+            (keyup.enter)="searchWarehouseAccessUsers()" />
+          <button type="button" class="warehouse-user-search-btn" (click)="searchWarehouseAccessUsers()"
+            [disabled]="isSearchingWarehouseUsers || warehouseUserSearchTerm.trim().length < 2">
+            <i class="pi" [ngClass]="isSearchingWarehouseUsers ? 'pi-spin pi-spinner' : 'pi-search'"></i>
+          </button>
+        </div>
+
+        <div class="warehouse-user-results" *ngIf="warehouseUserSearchResults.length; else warehouseUserSearchEmpty">
+          <button type="button" class="warehouse-user-result" *ngFor="let user of warehouseUserSearchResults"
+            [disabled]="isWarehouseAccessUserSelected(user)" (click)="addWarehouseAccessUser(user)">
+            <span class="warehouse-access-avatar">
+              {{ getWarehouseUserDisplayName(user).charAt(0) || 'U' }}
+            </span>
+            <span class="warehouse-user-result-info">
+              <strong>{{ getWarehouseUserDisplayName(user) }}</strong>
+              <small>{{ user.email }}</small>
+              <small *ngIf="user.dni">Cédula: {{ user.dni }}</small>
+            </span>
+            <span class="warehouse-user-result-status">
+              <i class="pi" [ngClass]="isWarehouseAccessUserSelected(user) ? 'pi-check-circle' : 'pi-plus-circle'"></i>
+              {{ isWarehouseAccessUserSelected(user) ? 'Agregado' : 'Agregar' }}
+            </span>
+          </button>
+        </div>
+
+        <ng-template #warehouseUserSearchEmpty>
+          <div class="warehouse-user-search-empty">
+            <i class="pi pi-user-plus"></i>
+            <span>{{ warehouseUserSearchTerm.trim().length ? 'No hay resultados para esa búsqueda.' : 'Escribe al menos 2 caracteres para buscar.' }}</span>
+          </div>
+        </ng-template>
+      </div>
     </ng-template>
   </p-dialog>
 

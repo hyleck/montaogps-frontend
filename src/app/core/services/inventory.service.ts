@@ -40,6 +40,7 @@ export interface Warehouse {
   description?: string;
   min_quantity?: number;
   assigned_user?: string;
+  access_users?: string[];
   stock?: number;
   simcard_stock?: number;
 }

@@ -192,6 +192,202 @@ textarea.form-input {
   font-size: 0.85rem;
 }
 
+.warehouse-access-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.warehouse-access-header label {
+  margin: 0;
+}
+
+.warehouse-access-add-btn,
+.warehouse-user-search-btn {
+  border: 1px solid rgba(20, 184, 166, 0.35);
+  background: rgba(20, 184, 166, 0.12);
+  color: #14b8a6;
+  border-radius: 10px;
+  min-height: 36px;
+  padding: 0 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.warehouse-access-add-btn:hover,
+.warehouse-user-search-btn:hover:not(:disabled) {
+  background: rgba(20, 184, 166, 0.18);
+  border-color: rgba(20, 184, 166, 0.7);
+  transform: translateY(-1px);
+}
+
+.warehouse-user-search-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.warehouse-access-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.warehouse-access-user,
+.warehouse-user-result {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  border: 1px solid var(--managementFieldsBorder);
+  border-radius: 12px;
+  background: var(--managementColorCardBackground);
+  color: var(--managementColorTextUser);
+  padding: 0.65rem 0.75rem;
+}
+
+.warehouse-access-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(20, 184, 166, 0.16);
+  color: #14b8a6;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  text-transform: uppercase;
+  flex: 0 0 auto;
+}
+
+.warehouse-access-info,
+.warehouse-user-result-info {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.warehouse-access-info strong,
+.warehouse-user-result-info strong {
+  color: var(--managementColorTitleUser);
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.warehouse-access-info span,
+.warehouse-access-info small,
+.warehouse-user-result-info small {
+  color: var(--managementColorTextUser);
+  opacity: 0.72;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.warehouse-access-remove-btn {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.warehouse-access-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.warehouse-access-empty,
+.warehouse-user-search-empty {
+  border: 1px dashed var(--managementFieldsBorder);
+  border-radius: 12px;
+  min-height: 76px;
+  display: grid;
+  place-items: center;
+  gap: 0.35rem;
+  color: var(--managementColorTextUser);
+  opacity: 0.72;
+  text-align: center;
+  padding: 0.85rem;
+}
+
+.warehouse-access-empty i,
+.warehouse-user-search-empty i {
+  font-size: 1.35rem;
+  color: #14b8a6;
+}
+
+.warehouse-user-search {
+  display: grid;
+  gap: 1rem;
+}
+
+.warehouse-user-search-box {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--managementFieldsBorder);
+  border-radius: 12px;
+  background: var(--managementColorBackgroundUser);
+  padding: 0.55rem;
+}
+
+.warehouse-user-search-box > i {
+  color: #14b8a6;
+  justify-self: center;
+}
+
+.warehouse-user-search-box input {
+  width: 100%;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.warehouse-user-results {
+  display: grid;
+  gap: 0.65rem;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+.warehouse-user-result {
+  cursor: pointer;
+  text-align: left;
+}
+
+.warehouse-user-result:hover:not(:disabled) {
+  border-color: rgba(20, 184, 166, 0.65);
+  background: rgba(20, 184, 166, 0.08);
+}
+
+.warehouse-user-result:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.warehouse-user-result-status {
+  color: #14b8a6;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .form-actions {
   display: flex;
   gap: 0.75rem;

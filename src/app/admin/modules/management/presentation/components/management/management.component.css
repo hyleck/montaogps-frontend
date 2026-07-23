@@ -919,14 +919,15 @@
 }
 
 :host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr.target-linked-pair-card {
-  height: 128px;
+  height: auto;
   min-height: 128px;
-  max-height: 128px;
+  max-height: none;
   grid-template-columns: 42px minmax(0, 1fr) 360px minmax(160px, auto);
 }
 
 :host ::ng-deep .target-card-list .p-datatable-tbody > tr.management__content-table-tr.target-linked-pair-card > td {
-  height: 128px;
+  height: auto;
+  min-height: 128px;
 }
 
 .target-linked-pair-card__select,
@@ -1017,11 +1018,14 @@
 }
 
 .target-linked-pair-card__actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, 28px);
   align-items: center;
   justify-content: flex-end;
   gap: 4px;
   width: 100%;
+  max-width: 72px;
+  justify-self: end;
 }
 
 .target-linked-pair-card__actions .button,
