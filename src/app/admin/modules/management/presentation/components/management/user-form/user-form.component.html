@@ -314,88 +314,85 @@
                         </p-dialog>
 
                         <p-dialog [(visible)]="displayPersonalizedCallModal" [modal]="true" [draggable]="false"
-                            [resizable]="false" [style]="{ width: '520px', maxWidth: '94vw' }"
+                            [resizable]="false"
+                            [style]="{ width: personalizedCallHistory.length > 0 ? '980px' : '490px', maxWidth: '94vw' }"
                             header="Realizar llamada personalizada" styleClass="app-dark-dialog" appendTo="body">
-                            <div class="flex flex-column gap-3 mt-3 p-fluid">
-                                <div class="field" style="margin-top: 1.5rem;">
-                                    <label class="font-bold block"
-                                        style="color: var(--globalColorTextInput); font-weight: 600;">Nombre del cliente</label>
-                                    <input type="text" pInputText [(ngModel)]="personalizedCallClientName"
-                                        [ngModelOptions]="{standalone: true}"
-                                        placeholder="Nombre del cliente"
-                                        style="width: 100%; border-radius: 8px; margin-top: 0.5rem; padding: 0.75rem;" />
-                                </div>
-                                <div class="field" style="margin-top: 1rem;">
-                                    <label class="font-bold block"
-                                        style="color: var(--globalColorTextInput); font-weight: 600;">Motivo de la llamada</label>
-                                    <textarea pInputTextarea [(ngModel)]="personalizedCallReason"
-                                        [ngModelOptions]="{standalone: true}"
-                                        placeholder="Ej: Contactar al cliente para explicarle el estado de su cuenta..."
-                                        style="width: 100%; min-height: 150px; resize: vertical; border-radius: 8px; margin-top: 0.5rem; padding: 0.75rem; font-family: inherit;"></textarea>
-                                </div>
-                                <div style="font-size: 0.85rem; color: var(--globalColorTextInput); opacity: 0.75;">
-                                    Se llamará al número {{ user.phone || user.phone2 || 'no disponible' }}.
-                                </div>
+                            <div class="personalized-call-modal p-fluid"
+                                [class.personalized-call-modal--with-history]="personalizedCallHistory.length > 0">
+                                <section class="personalized-call-panel personalized-call-panel--form">
+                                    <div class="field">
+                                        <label class="personalized-call-label">Nombre del cliente</label>
+                                        <input type="text" pInputText [(ngModel)]="personalizedCallClientName"
+                                            [ngModelOptions]="{standalone: true}" placeholder="Nombre del cliente"
+                                            class="personalized-call-input" />
+                                    </div>
+                                    <div class="field">
+                                        <label class="personalized-call-label">Motivo de la llamada</label>
+                                        <textarea pInputTextarea [(ngModel)]="personalizedCallReason"
+                                            [ngModelOptions]="{standalone: true}"
+                                            placeholder="Ej: Contactar al cliente para explicarle el estado de su cuenta..."
+                                            class="personalized-call-textarea"></textarea>
+                                    </div>
+                                    <div class="personalized-call-phone">
+                                        <i class="pi pi-phone"></i>
+                                        <span>Se llamará al número {{ user.phone || user.phone2 || 'no disponible' }}.</span>
+                                    </div>
+                                    <div *ngIf="loadingPersonalizedCallHistory" class="personalized-call-loading">
+                                        Revisando historial...
+                                    </div>
+                                    <div *ngIf="!loadingPersonalizedCallHistory && personalizedCallHistory.length === 0"
+                                        class="personalized-call-empty">
+                                        Aún no hay llamadas personalizadas para este usuario.
+                                    </div>
+                                </section>
 
-                                <div style="margin-top: 1.25rem; border-top: 1px solid rgba(148, 163, 184, 0.28); padding-top: 1rem;">
-                                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem;">
+                                <aside *ngIf="personalizedCallHistory.length > 0"
+                                    class="personalized-call-panel personalized-call-panel--history">
+                                    <div class="personalized-call-history-header">
                                         <div>
-                                            <div style="color: var(--globalColorTextInput); font-weight: 800; font-size: 1rem;">Historial de llamadas</div>
-                                            <div style="color: var(--globalColorTextInput); opacity: 0.65; font-size: 0.8rem;">Audio y transcripción de llamadas realizadas a este usuario.</div>
+                                            <div class="personalized-call-history-title">Historial de llamadas</div>
+                                            <div class="personalized-call-history-subtitle">Audio y transcripción de llamadas realizadas.</div>
                                         </div>
                                         <button type="button" pButton icon="pi pi-refresh" class="p-button-text p-button-sm"
                                             [loading]="loadingPersonalizedCallHistory"
                                             (click)="loadPersonalizedCallHistory()"></button>
                                     </div>
 
-                                    <div *ngIf="loadingPersonalizedCallHistory"
-                                        style="padding: 1rem; border-radius: 10px; background: rgba(148, 163, 184, 0.12); color: var(--globalColorTextInput);">
-                                        Cargando historial...
-                                    </div>
-
-                                    <div *ngIf="!loadingPersonalizedCallHistory && personalizedCallHistory.length === 0"
-                                        style="padding: 1rem; border-radius: 10px; border: 1px dashed rgba(148, 163, 184, 0.45); color: var(--globalColorTextInput); opacity: 0.72;">
-                                        Aún no hay llamadas personalizadas para este usuario.
-                                    </div>
-
-                                    <div *ngIf="!loadingPersonalizedCallHistory && personalizedCallHistory.length > 0"
-                                        style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 360px; overflow: auto; padding-right: 0.25rem;">
-                                        <div *ngFor="let call of personalizedCallHistory"
-                                            style="border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 12px; padding: 0.9rem; background: rgba(148, 163, 184, 0.08);">
-                                            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem;">
+                                    <div
+                                        class="personalized-call-history-list">
+                                        <article *ngFor="let call of personalizedCallHistory" class="personalized-call-history-card">
+                                            <div class="personalized-call-history-card__top">
                                                 <div>
-                                                    <div style="color: var(--globalColorTextInput); font-weight: 800;">
+                                                    <div class="personalized-call-history-card__name">
                                                         {{ call.clientName || getUserFullName() || 'Cliente' }}
                                                     </div>
-                                                    <div style="color: var(--globalColorTextInput); opacity: 0.65; font-size: 0.78rem;">
+                                                    <div class="personalized-call-history-card__date">
                                                         {{ formatPersonalizedCallDate(call.calledAt || call.endedAt) }}
                                                         <span *ngIf="formatPersonalizedCallDuration(call.duration)">
                                                             · {{ formatPersonalizedCallDuration(call.duration) }}
                                                         </span>
                                                     </div>
                                                 </div>
-                                                <span style="border-radius: 999px; padding: 0.22rem 0.55rem; background: rgba(139, 92, 246, 0.14); color: #8b5cf6; font-size: 0.75rem; font-weight: 800; white-space: nowrap;">
+                                                <span class="personalized-call-status">
                                                     {{ getPersonalizedCallStatus(call) }}
                                                 </span>
                                             </div>
 
-                                            <div *ngIf="call.reason"
-                                                style="margin-top: 0.65rem; color: var(--globalColorTextInput); opacity: 0.82; font-size: 0.9rem; line-height: 1.35;">
+                                            <div *ngIf="call.reason" class="personalized-call-history-card__reason">
                                                 {{ call.reason }}
                                             </div>
 
                                             <audio *ngIf="hasPersonalizedCallAudio(call)" controls
                                                 [src]="getPersonalizedCallAudioUrl(call)"
-                                                style="width: 100%; margin-top: 0.75rem;"></audio>
+                                                class="personalized-call-audio"></audio>
 
-                                            <details *ngIf="call.transcript"
-                                                style="margin-top: 0.75rem; color: var(--globalColorTextInput);">
-                                                <summary style="cursor: pointer; font-weight: 800; color: #8b5cf6;">Ver transcripción</summary>
-                                                <pre style="white-space: pre-wrap; margin: 0.65rem 0 0; font-family: inherit; line-height: 1.45; color: var(--globalColorTextInput); opacity: 0.86;">{{ call.transcript }}</pre>
+                                            <details *ngIf="call.transcript" class="personalized-call-transcript">
+                                                <summary>Ver transcripción</summary>
+                                                <pre>{{ call.transcript }}</pre>
                                             </details>
-                                        </div>
+                                        </article>
                                     </div>
-                                </div>
+                                </aside>
                             </div>
                             <ng-template pTemplate="footer">
                                 <button pButton pRipple label="Cancelar" icon="pi pi-times"

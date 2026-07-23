@@ -5371,6 +5371,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
       || user?.locationUpdatedAt
       || user?.last_location_at
       || user?.lastLocationAt
+      || user?.latest_location?.recordedAt
+      || user?.last_location?.recordedAt
       || user?.location?.recordedAt;
 
     if (!rawDate) return null;
@@ -5446,8 +5448,24 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private getUserLocationPosition(user: User | any): { lat: number; lng: number } | null {
-    const lat = Number(user?.latitude ?? user?.location?.latitude);
-    const lng = Number(user?.longitude ?? user?.location?.longitude);
+    const realtime = user?.realtime_location || {};
+    const location = user?.location || user?.latest_location || user?.last_location || {};
+    const lat = Number(
+      realtime?.latitude
+      ?? realtime?.lat
+      ?? location?.latitude
+      ?? location?.lat
+      ?? user?.latitude
+    );
+    const lng = Number(
+      realtime?.longitude
+      ?? realtime?.lng
+      ?? realtime?.lon
+      ?? location?.longitude
+      ?? location?.lng
+      ?? location?.lon
+      ?? user?.longitude
+    );
 
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
     if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;

@@ -505,3 +505,187 @@
       padding: 0.5rem !important;
     }
 }
+
+.personalized-call-modal {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.personalized-call-modal--with-history {
+    grid-template-columns: minmax(0, 0.92fr) minmax(340px, 1.08fr);
+    align-items: stretch;
+}
+
+.personalized-call-panel {
+    min-width: 0;
+}
+
+.personalized-call-panel--form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.personalized-call-panel--history {
+    border-left: 1px solid rgba(148, 163, 184, 0.28);
+    padding-left: 1rem;
+}
+
+.personalized-call-label {
+    display: block;
+    color: var(--globalColorTextInput);
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.personalized-call-input {
+    width: 100%;
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.personalized-call-textarea {
+    width: 100%;
+    min-height: 170px;
+    resize: vertical;
+    border-radius: 8px;
+    padding: 0.75rem;
+    font-family: inherit;
+}
+
+.personalized-call-phone {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--globalColorTextInput);
+    font-size: 0.86rem;
+    opacity: 0.76;
+}
+
+.personalized-call-empty,
+.personalized-call-loading {
+    padding: 1rem;
+    border-radius: 10px;
+    color: var(--globalColorTextInput);
+}
+
+.personalized-call-empty {
+    border: 1px dashed rgba(148, 163, 184, 0.45);
+    opacity: 0.72;
+}
+
+.personalized-call-loading {
+    background: rgba(148, 163, 184, 0.12);
+}
+
+.personalized-call-history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.personalized-call-history-title {
+    color: var(--globalColorTextInput);
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.personalized-call-history-subtitle {
+    color: var(--globalColorTextInput);
+    font-size: 0.8rem;
+    opacity: 0.65;
+}
+
+.personalized-call-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 430px;
+    overflow: auto;
+    padding-right: 0.25rem;
+}
+
+.personalized-call-history-card {
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 12px;
+    padding: 0.9rem;
+    background: rgba(148, 163, 184, 0.08);
+}
+
+.personalized-call-history-card__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.personalized-call-history-card__name {
+    color: var(--globalColorTextInput);
+    font-weight: 800;
+}
+
+.personalized-call-history-card__date {
+    color: var(--globalColorTextInput);
+    font-size: 0.78rem;
+    opacity: 0.65;
+}
+
+.personalized-call-status {
+    border-radius: 999px;
+    padding: 0.22rem 0.55rem;
+    background: rgba(139, 92, 246, 0.14);
+    color: #8b5cf6;
+    font-size: 0.75rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.personalized-call-history-card__reason {
+    margin-top: 0.65rem;
+    color: var(--globalColorTextInput);
+    font-size: 0.9rem;
+    line-height: 1.35;
+    opacity: 0.82;
+}
+
+.personalized-call-audio {
+    width: 100%;
+    margin-top: 0.75rem;
+}
+
+.personalized-call-transcript {
+    margin-top: 0.75rem;
+    color: var(--globalColorTextInput);
+}
+
+.personalized-call-transcript summary {
+    cursor: pointer;
+    color: #8b5cf6;
+    font-weight: 800;
+}
+
+.personalized-call-transcript pre {
+    margin: 0.65rem 0 0;
+    color: var(--globalColorTextInput);
+    font-family: inherit;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    opacity: 0.86;
+}
+
+@media (max-width: 860px) {
+    .personalized-call-modal--with-history {
+        grid-template-columns: 1fr;
+    }
+
+    .personalized-call-panel--history {
+        border-left: 0;
+        border-top: 1px solid rgba(148, 163, 184, 0.28);
+        padding-left: 0;
+        padding-top: 1rem;
+    }
+}
