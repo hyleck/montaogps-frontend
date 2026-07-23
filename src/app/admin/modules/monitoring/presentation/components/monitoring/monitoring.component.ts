@@ -182,6 +182,16 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return `${kilometers.toFixed(2)} km`;
   }
 
+  getDeviceKilometers(device: any): number | string {
+    const rawDistance = device?.distanceReport?.distance;
+    const distance = typeof rawDistance === 'number' ? rawDistance : Number(rawDistance);
+    if (!Number.isFinite(distance)) {
+      return 'N/D';
+    }
+
+    return Number((distance / 1000).toFixed(2));
+  }
+
   formatDistanceRange(device: any): string {
     const report = device?.distanceReport;
     if (!report?.from || !report?.to) {
@@ -2456,13 +2466,17 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     ];
 
     let currentColCount = 10;
-    let mileageColKey: string | null = null;
+    let mileageKilometersColKey: string | null = null;
+    let mileageRangeColKey: string | null = null;
     let renewalColKey: string | null = null;
 
     if (includeMileage) {
       currentColCount++;
-      mileageColKey = `col${currentColCount}`;
-      cols.push({ key: mileageColKey, width: 24 });
+      mileageKilometersColKey = `col${currentColCount}`;
+      cols.push({ key: mileageKilometersColKey, width: 15 });
+      currentColCount++;
+      mileageRangeColKey = `col${currentColCount}`;
+      cols.push({ key: mileageRangeColKey, width: 24 });
     }
 
     if (includeRenewalDate) {
@@ -2545,7 +2559,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col2: `Usuario: ${userName}`,
         col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
       };
-      if (mileageColKey) titleRowData[mileageColKey] = '';
+      if (mileageKilometersColKey) titleRowData[mileageKilometersColKey] = '';
+      if (mileageRangeColKey) titleRowData[mileageRangeColKey] = '';
       if (renewalColKey) titleRowData[renewalColKey] = '';
 
       const titleRow = worksheet.addRow(titleRowData);
@@ -2573,7 +2588,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col2: `Jerarquía: ${userHierarchy}`,
         col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
       };
-      if (mileageColKey) hierarchyRowData[mileageColKey] = '';
+      if (mileageKilometersColKey) hierarchyRowData[mileageKilometersColKey] = '';
+      if (mileageRangeColKey) hierarchyRowData[mileageRangeColKey] = '';
       if (renewalColKey) hierarchyRowData[renewalColKey] = '';
       const hierarchyRow = worksheet.addRow(hierarchyRowData);
 
@@ -2591,7 +2607,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col2: `Total de dispositivos: ${userData.devices.length}`,
         col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
       };
-      if (mileageColKey) deviceCountRowData[mileageColKey] = '';
+      if (mileageKilometersColKey) deviceCountRowData[mileageKilometersColKey] = '';
+      if (mileageRangeColKey) deviceCountRowData[mileageRangeColKey] = '';
       if (renewalColKey) deviceCountRowData[renewalColKey] = '';
       const deviceCountRow = worksheet.addRow(deviceCountRowData);
 
@@ -2605,7 +2622,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
       // Add empty row for spacing
       const spacerRowData: any = { col1: '', col2: '', col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: '' };
-      if (mileageColKey) spacerRowData[mileageColKey] = '';
+      if (mileageKilometersColKey) spacerRowData[mileageKilometersColKey] = '';
+      if (mileageRangeColKey) spacerRowData[mileageRangeColKey] = '';
       if (renewalColKey) spacerRowData[renewalColKey] = '';
       worksheet.addRow(spacerRowData);
       currentRow++;
@@ -2623,7 +2641,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col9: 'Fecha Expiración',
         col10: 'Número SIM'
       };
-      if (mileageColKey) headerRowData[mileageColKey] = 'Distancia';
+      if (mileageKilometersColKey) headerRowData[mileageKilometersColKey] = 'Kilómetros';
+      if (mileageRangeColKey) headerRowData[mileageRangeColKey] = 'Rango de kilometraje';
       if (renewalColKey) headerRowData[renewalColKey] = 'Fecha Renovación';
 
       const headerRow = worksheet.addRow(headerRowData);
@@ -2667,8 +2686,12 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           col10: device.sim_card_number || '',
         };
 
-        if (mileageColKey) {
-          dataRowData[mileageColKey] = `${this.formatDeviceDistance(device)} ${this.formatDistanceRange(device) ? '(' + this.formatDistanceRange(device) + ')' : ''}`;
+        if (mileageKilometersColKey) {
+          dataRowData[mileageKilometersColKey] = this.getDeviceKilometers(device);
+        }
+
+        if (mileageRangeColKey) {
+          dataRowData[mileageRangeColKey] = this.formatDistanceRange(device) || '-';
         }
         
         if (renewalColKey) {

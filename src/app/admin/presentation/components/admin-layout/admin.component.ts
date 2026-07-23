@@ -3,6 +3,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
+import { ChatwootFloatingMessage, ChatwootNotificationSoundService } from '@core/services/chatwoot-notification-sound.service';
 
 @Component({
     selector: 'app-admin',
@@ -14,10 +15,14 @@ export class AdminComponent implements OnInit, OnDestroy {
     showChatTransferModal: boolean = false;
     transferConversationId: string | null = null;
     transferSummaryText: string | null = null;
+    floatingMessage: ChatwootFloatingMessage | null = null;
     private transferSub!: Subscription;
+    private floatingSub!: Subscription;
+    private floatingTimer: any = null;
 
     constructor(
         private firebaseNotifications: FirebaseNotificationsService,
+        private chatwootNotificationSound: ChatwootNotificationSoundService,
         private router: Router
     ) {}
 
@@ -32,11 +37,26 @@ export class AdminComponent implements OnInit, OnDestroy {
             }
             this.showChatTransferModal = true;
         });
+
+        this.floatingSub = this.chatwootNotificationSound.floatingMessage$.subscribe((message) => {
+            this.floatingMessage = message;
+            if (this.floatingTimer) clearTimeout(this.floatingTimer);
+            this.floatingTimer = setTimeout(() => {
+                this.floatingMessage = null;
+                this.floatingTimer = null;
+            }, 9000);
+        });
     }
 
     ngOnDestroy(): void {
         if (this.transferSub) {
             this.transferSub.unsubscribe();
+        }
+        if (this.floatingSub) {
+            this.floatingSub.unsubscribe();
+        }
+        if (this.floatingTimer) {
+            clearTimeout(this.floatingTimer);
         }
     }
 
@@ -47,5 +67,41 @@ export class AdminComponent implements OnInit, OnDestroy {
         } else {
             this.router.navigate(['/admin/communication', 'chat']);
         }
+    }
+
+    openFloatingConversation(): void {
+        if (!this.floatingMessage) return;
+        const source = this.floatingMessage.source || 'chatwoot';
+        const conversationId = this.floatingMessage.conversationId;
+        this.floatingMessage = null;
+        if (this.floatingTimer) {
+            clearTimeout(this.floatingTimer);
+            this.floatingTimer = null;
+        }
+        if (source === 'internal') {
+            this.router.navigate(['/admin/communication', 'grupo']);
+            return;
+        }
+        if (!conversationId) return;
+        this.router.navigate(['/admin/communication', 'chat', conversationId]);
+    }
+
+    closeFloatingMessage(event: Event): void {
+        event.stopPropagation();
+        this.floatingMessage = null;
+        if (this.floatingTimer) {
+            clearTimeout(this.floatingTimer);
+            this.floatingTimer = null;
+        }
+    }
+
+    getFloatingInitials(name?: string): string {
+        const safeName = (name || '').trim();
+        if (!safeName) return '??';
+        return safeName
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((part) => part.charAt(0).toUpperCase())
+            .join('');
     }
 }

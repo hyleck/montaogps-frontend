@@ -4,6 +4,9 @@
         <button class="comm-tabs__btn" [class.comm-tabs__btn--active]="activeTab === 'chat'" (click)="navigateToTab('chat')">
             <i class="pi pi-comments"></i> Chat
         </button>
+        <button class="comm-tabs__btn" [class.comm-tabs__btn--active]="activeTab === 'grupo'" (click)="navigateToTab('grupo')">
+            <i class="pi pi-users"></i> Grupo Montao GPS
+        </button>
     </div>
 
     <!-- No Inbox State -->
@@ -36,9 +39,23 @@
 
         <!-- Conversation List -->
         <div class="comm-sidebar__contacts">
-            <div *ngIf="loadingConversations" class="comm-loading">
-                <i class="pi pi-spin pi-spinner"></i>
-                <span>Cargando conversaciones...</span>
+            <div *ngIf="loadingConversations" class="comm-conversation-skeletons">
+                <div *ngFor="let item of [1,2,3,4,5,6,7,8]" class="comm-contact comm-contact--skeleton">
+                    <div class="comm-skeleton comm-skeleton--avatar"></div>
+                    <div class="comm-contact__info">
+                        <div class="comm-contact__top">
+                            <div class="comm-skeleton comm-skeleton--name"></div>
+                            <div class="comm-skeleton comm-skeleton--time"></div>
+                        </div>
+                        <div class="comm-contact__bottom">
+                            <div class="comm-contact__preview">
+                                <div class="comm-skeleton comm-skeleton--message"></div>
+                                <div class="comm-skeleton comm-skeleton--assignee"></div>
+                            </div>
+                            <div class="comm-skeleton comm-skeleton--badge"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div *ngIf="!loadingConversations && filteredConversations.length === 0" class="comm-empty">
@@ -47,6 +64,7 @@
             </div>
 
             <div *ngFor="let conv of filteredConversations" class="comm-contact"
+                [hidden]="loadingConversations"
                 [class.comm-contact--active]="selectedConversation?.id === conv.id"
                 [class.comm-contact--ester]="!conv.assignee_id"
                 (click)="selectConversation(conv)">
@@ -59,14 +77,14 @@
                         <div class="comm-contact__name">{{ conv.contact.name }}</div>
                         <div class="comm-contact__time">{{ getTimeAgo(conv.last_message_time) }}</div>
                     </div>
-                    <!-- Estado Estándar (Agente Asignado) -->
-                    <div class="comm-contact__bottom" *ngIf="conv.assignee_id">
-                        <div class="comm-contact__last-msg">{{ getCleanPreview(conv.last_message) }}</div>
-                        <div *ngIf="conv.unread_count > 0" class="comm-contact__badge">{{ conv.unread_count }}</div>
-                    </div>
-                    <!-- Estado Bot (Ester Assistant Activa) -->
-                    <div class="comm-contact__bottom" *ngIf="!conv.assignee_id">
-                        <div class="comm-contact__ester-badge"><i class="pi pi-bolt"></i> Gestionado por Ester Assistant</div>
+                    <div class="comm-contact__bottom">
+                        <div class="comm-contact__preview">
+                            <div class="comm-contact__last-msg">{{ getCleanPreview(conv.last_message) }}</div>
+                            <div class="comm-contact__assignee" [class.comm-contact__assignee--ester]="!conv.assignee_id">
+                                <i class="pi" [ngClass]="conv.assignee_id ? 'pi-user' : 'pi-bolt'"></i>
+                                Asignado a {{ getConversationAssigneeLabel(conv) }}
+                            </div>
+                        </div>
                         <div *ngIf="conv.unread_count > 0" class="comm-contact__badge">{{ conv.unread_count }}</div>
                     </div>
                 </div>
@@ -97,7 +115,26 @@
                     <span *ngIf="!gpsUser?.photo && !selectedConversation.contact.avatar">{{ getInitials(gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name) }}</span>
                 </div>
                 <div class="comm-chat__header-info">
-                    <div class="comm-chat__header-name">{{ gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name }}</div>
+                    <div class="comm-chat__header-name">
+                        <span>{{ gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name }}</span>
+                        <i *ngIf="gpsUser?.verificado === true" class="pi pi-check-circle comm-chat__verified" title="Usuario verificado"></i>
+                        <button
+                            *ngIf="gpsUser?._id"
+                            type="button"
+                            class="comm-chat__account-link"
+                            title="Ir a la cuenta"
+                            (click)="goToGpsUserAccount($event)">
+                            <i class="pi pi-external-link"></i>
+                            <span>Ir a cuenta</span>
+                        </button>
+                    </div>
+                    <div *ngIf="gpsUser" class="comm-chat__header-subtext">
+                        <i class="pi pi-map"></i>
+                        {{ getGpsUserDeviceCount() }} {{ getGpsUserDeviceCount() === 1 ? 'GPS' : 'GPS' }} con nosotros
+                        <button type="button" class="comm-chat__header-details" (click)="openGpsDetailsModal($event)">
+                            (más detalles)
+                        </button>
+                    </div>
                     <div class="comm-chat__header-phone">{{ selectedConversation.contact.phone }}</div>
                 </div>
                 <div class="comm-chat__header-actions">
@@ -289,6 +326,20 @@
                 <button class="comm-attach-btn" (click)="attachMenu.toggle($event)" [disabled]="sendingMessage">
                     <i class="pi pi-paperclip"></i>
                 </button>
+                <button class="comm-voice-btn"
+                    [class.comm-voice-btn--recording]="recordingVoice && recordingVoiceContext === 'chat'"
+                    (click)="toggleVoiceRecording('chat')"
+                    [disabled]="sendingMessage && !(recordingVoice && recordingVoiceContext === 'chat')"
+                    [title]="recordingVoice && recordingVoiceContext === 'chat' ? 'Detener y enviar nota de voz' : 'Grabar nota de voz'">
+                    <i class="pi" [ngClass]="recordingVoice && recordingVoiceContext === 'chat' ? 'pi-stop' : 'pi-microphone'"></i>
+                </button>
+                <div *ngIf="recordingVoice && recordingVoiceContext === 'chat'" class="comm-voice-recording">
+                    <span></span>
+                    {{ getVoiceRecordingTime() }}
+                    <button type="button" (click)="cancelVoiceRecording()" title="Cancelar nota de voz">
+                        <i class="pi pi-times"></i>
+                    </button>
+                </div>
                 <textarea #messageInput [(ngModel)]="chatInput" placeholder="Escribe un mensaje..."
                     rows="1"
                     (keydown.enter)="$event.preventDefault(); sendMessage()"
@@ -430,6 +481,201 @@
             </div>
         </div>
     </div>
+    </div>
+
+    <!-- ====== GRUPO MONTAO GPS TAB ====== -->
+    <div *ngIf="activeTab === 'grupo' && !noInbox" class="comm-internal">
+        <section class="comm-internal__panel">
+            <header class="comm-internal__header">
+                <div class="comm-internal__title">
+                    <span class="comm-internal__icon">
+                        <i class="pi pi-users"></i>
+                    </span>
+                    <div>
+                        <h2>Grupo Montao GPS</h2>
+                        <p>{{ internalChatMuted ? 'Silenciado para ti' : 'Chat interno para empleados' }}</p>
+                    </div>
+                </div>
+                <div class="comm-internal__header-actions">
+                    <button class="comm-internal__mute"
+                        [class.comm-internal__mute--active]="internalChatMuted"
+                        type="button"
+                        (click)="toggleInternalChatMuted()"
+                        [title]="internalChatMuted ? 'Activar notificaciones del grupo' : 'Silenciar grupo'">
+                        <i class="pi" [ngClass]="internalChatMuted ? 'pi-bell-slash' : 'pi-bell'"></i>
+                        <span>{{ internalChatMuted ? 'Silenciado' : 'Silenciar' }}</span>
+                    </button>
+                    <button class="comm-internal__refresh" type="button" (click)="loadInternalChat()" [disabled]="loadingInternalMessages">
+                        <i class="pi" [ngClass]="loadingInternalMessages ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="comm-internal__messages" #internalMessagesContainer>
+                <div *ngIf="loadingInternalMessages" class="comm-internal__state">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    <span>Cargando grupo...</span>
+                </div>
+
+                <div *ngIf="!loadingInternalMessages && internalChatError" class="comm-internal__state comm-internal__state--error">
+                    <i class="pi pi-lock"></i>
+                    <span>{{ internalChatError }}</span>
+                </div>
+
+                <div *ngIf="!loadingInternalMessages && !internalChatError && internalMessages.length === 0" class="comm-internal__state">
+                    <i class="pi pi-comment"></i>
+                    <span>Aún no hay mensajes en el grupo.</span>
+                </div>
+
+                <div *ngFor="let msg of internalMessages" class="comm-internal-message"
+                    [class.comm-internal-message--me]="isMyInternalMessage(msg)"
+                    [class.comm-internal-message--sticker-only]="isInternalStickerOnlyMessage(msg)">
+                    <div class="comm-internal-message__avatar">
+                        <img *ngIf="msg.author.photo" [src]="msg.author.photo" alt="avatar" />
+                        <span *ngIf="!msg.author.photo">{{ getInternalAuthorInitials(msg) }}</span>
+                    </div>
+                    <div class="comm-internal-message__bubble">
+                        <div class="comm-internal-message__meta">
+                            <strong>{{ isMyInternalMessage(msg) ? 'Tú' : getInternalAuthorName(msg) }}</strong>
+                            <span>{{ msg.createdAt | date:'HH:mm' }}</span>
+                        </div>
+                        <div class="comm-internal-message__text" *ngIf="msg.text">{{ msg.text }}</div>
+                        <div class="comm-internal-message__attachments" *ngIf="msg.attachments?.length">
+                            <div *ngFor="let att of msg.attachments" class="comm-attachment">
+                                <div *ngIf="isInternalImageAttachment(att)" class="comm-attachment__img-wrap"
+                                    [class.comm-attachment__img-wrap--sticker]="isInternalStickerAttachment(att)"
+                                    (click)="openMedia(att.url, 'image')">
+                                    <img [src]="att.url"
+                                        class="comm-attachment__img"
+                                        [class.comm-attachment__img--sticker]="isInternalStickerAttachment(att)"
+                                        [alt]="getInternalAttachmentName(att)" />
+                                </div>
+                                <button *ngIf="isInternalImageAttachment(att) && !isInternalStickerAttachment(att)"
+                                    type="button"
+                                    class="comm-sticker-save-btn"
+                                    title="Guardar como sticker"
+                                    [disabled]="savingStickerUrl === att.url"
+                                    (click)="saveInternalImageAsSticker(att, msg)">
+                                    <i [class]="savingStickerUrl === att.url ? 'pi pi-spin pi-spinner' : 'pi pi-bookmark'"></i>
+                                </button>
+                                <div *ngIf="isInternalVideoAttachment(att)" class="comm-attachment__vid-wrap" (click)="openMedia(att.url, 'video')">
+                                    <video [src]="att.url" class="comm-attachment__video"></video>
+                                    <div class="comm-attachment__play"><i class="pi pi-play-circle"></i></div>
+                                </div>
+                                <audio *ngIf="isInternalAudioAttachment(att)" [src]="att.url" controls
+                                    class="comm-attachment__audio"></audio>
+                                <a *ngIf="!isInternalImageAttachment(att) && !isInternalVideoAttachment(att) && !isInternalAudioAttachment(att)"
+                                    class="comm-attachment__file"
+                                    [href]="att.url"
+                                    target="_blank"
+                                    rel="noopener noreferrer">
+                                    <i class="pi pi-file"></i>
+                                    {{ getInternalAttachmentName(att) }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <input type="file" #internalMediaFileInput (change)="onInternalMediaSelected($event)"
+                accept="image/*,video/*"
+                style="display: none;" />
+
+            <div *ngIf="showInternalEmojiPicker" class="comm-internal-emoji-picker">
+                <button *ngFor="let emoji of internalEmojiOptions" type="button" (click)="addInternalEmoji(emoji)">
+                    {{ emoji }}
+                </button>
+            </div>
+
+            <div *ngIf="showStickerPicker" class="comm-sticker-picker comm-sticker-picker--internal">
+                <div class="comm-sticker-picker__header">
+                    <span><i class="pi pi-send"></i> Stickers</span>
+                    <div class="comm-sticker-picker__actions">
+                        <input #internalStickerUploadInput
+                            type="file"
+                            accept="image/*"
+                            class="comm-sticker-picker__file"
+                            (change)="onStickerUploadSelected($event)" />
+                        <button class="comm-sticker-picker__action"
+                            title="Crear sticker"
+                            [disabled]="uploadingSticker"
+                            (click)="internalStickerUploadInput.click()">
+                            <i [class]="uploadingSticker ? 'pi pi-spin pi-spinner' : 'pi pi-upload'"></i>
+                        </button>
+                        <button class="comm-sticker-picker__close" (click)="showStickerPicker = false">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                </div>
+                <div *ngIf="loadingStickers" class="comm-sticker-picker__empty">
+                    <i class="pi pi-spin pi-spinner"></i> Cargando stickers...
+                </div>
+                <div *ngIf="!loadingStickers && stickers.length === 0" class="comm-sticker-picker__empty">
+                    Guarda una imagen recibida o sube una imagen para crear un sticker.
+                </div>
+                <div *ngIf="!loadingStickers && stickers.length > 0" class="comm-sticker-grid">
+                    <button *ngFor="let sticker of stickers"
+                        class="comm-sticker-item"
+                        [disabled]="!!sendingStickerId || !!deletingStickerId"
+                        (click)="sendInternalSticker(sticker)"
+                        [title]="sticker.name">
+                        <img [src]="sticker.url" [alt]="sticker.name" />
+                        <span class="comm-sticker-item__delete"
+                            [class.comm-sticker-item__delete--loading]="deletingStickerId === sticker.id"
+                            title="Borrar sticker"
+                            (click)="deleteSticker(sticker, $event)">
+                            <i [class]="deletingStickerId === sticker.id ? 'pi pi-spin pi-spinner' : 'pi pi-trash'"></i>
+                        </span>
+                        <span *ngIf="sendingStickerId === sticker.id" class="comm-sticker-item__loading">
+                            <i class="pi pi-spin pi-spinner"></i>
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <form class="comm-internal__input" (ngSubmit)="sendInternalMessage()">
+                <button type="button" class="comm-internal__tool" title="Fotos y videos"
+                    [disabled]="uploadingInternalAttachment || sendingInternalMessage || !!internalChatError"
+                    (click)="internalMediaFileInput.click()">
+                    <i [class]="uploadingInternalAttachment ? 'pi pi-spin pi-spinner' : 'pi pi-image'"></i>
+                </button>
+                <button type="button" class="comm-internal__tool" title="Emoji"
+                    [disabled]="sendingInternalMessage || !!internalChatError"
+                    (click)="showInternalEmojiPicker = !showInternalEmojiPicker">
+                    <i class="pi pi-face-smile"></i>
+                </button>
+                <button type="button" class="comm-internal__tool" title="Stickers"
+                    [disabled]="sendingInternalMessage || !!internalChatError"
+                    (click)="toggleStickerPicker()">
+                    <i class="pi pi-send"></i>
+                </button>
+                <button type="button" class="comm-internal__tool comm-voice-btn"
+                    [class.comm-voice-btn--recording]="recordingVoice && recordingVoiceContext === 'grupo'"
+                    title="Nota de voz"
+                    [disabled]="(sendingInternalMessage || uploadingInternalAttachment || !!internalChatError) && !(recordingVoice && recordingVoiceContext === 'grupo')"
+                    (click)="toggleVoiceRecording('grupo')">
+                    <i class="pi" [ngClass]="recordingVoice && recordingVoiceContext === 'grupo' ? 'pi-stop' : 'pi-microphone'"></i>
+                </button>
+                <div *ngIf="recordingVoice && recordingVoiceContext === 'grupo'" class="comm-voice-recording comm-voice-recording--internal">
+                    <span></span>
+                    {{ getVoiceRecordingTime() }}
+                    <button type="button" (click)="cancelVoiceRecording()" title="Cancelar nota de voz">
+                        <i class="pi pi-times"></i>
+                    </button>
+                </div>
+                <textarea
+                    [(ngModel)]="internalChatInput"
+                    name="internalChatInput"
+                    rows="1"
+                    placeholder="Escribe en Grupo Montao GPS..."
+                    [disabled]="sendingInternalMessage || !!internalChatError"
+                    (keydown.enter)="$event.preventDefault(); sendInternalMessage()"></textarea>
+                <button type="submit" [disabled]="!internalChatInput.trim() || sendingInternalMessage || !!internalChatError">
+                    <i class="pi" [ngClass]="sendingInternalMessage ? 'pi-spin pi-spinner' : 'pi-send'"></i>
+                </button>
+            </form>
+        </section>
     </div>
 
     <!-- ====== FORO TAB ====== -->
@@ -822,6 +1068,71 @@
       <p style="margin: 0;">Este usuario no requiere ninguna lista de interacción u objetivos.</p>
     </div>
   </ng-template>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="showGpsDetailsModal"
+  [modal]="true"
+  [dismissableMask]="true"
+  [draggable]="false"
+  [resizable]="false"
+  styleClass="comm-gps-details-dialog"
+  [style]="{width: '720px', maxWidth: '94vw'}">
+  <ng-template pTemplate="header">
+    <div class="comm-gps-details__header">
+      <span class="comm-gps-details__icon">
+        <i class="pi pi-map"></i>
+      </span>
+      <div>
+        <h3>GPS con nosotros</h3>
+        <p>{{ gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')).trim() : 'Cliente' }}</p>
+      </div>
+    </div>
+  </ng-template>
+
+  <div class="comm-gps-details">
+    <div class="comm-gps-details__summary">
+      <span>{{ gpsDetailsTotal || getGpsUserDeviceCount() }} GPS registrados</span>
+      <span *ngIf="gpsDetailsTotal > gpsDetailsLimit">Mostrando {{ gpsDetailsOffset + 1 }} - {{ getGpsDetailsVisibleEnd() }}</span>
+    </div>
+
+    <div *ngIf="gpsDetailsLoading" class="comm-gps-details__loading">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Cargando GPS...</span>
+    </div>
+
+    <div *ngIf="!gpsDetailsLoading && gpsDetailsTargets.length > 0" class="comm-gps-details__list">
+      <div *ngFor="let target of gpsDetailsTargets" class="comm-gps-details__item">
+        <div class="comm-gps-details__target">
+          <span class="comm-gps-details__target-icon">
+            <i [class]="isGpsDetailsTag(target) ? 'pi pi-map-marker' : 'pi pi-car'"></i>
+          </span>
+          <div class="comm-gps-details__target-copy">
+            <strong>{{ getGpsDetailsTargetName(target) }}</strong>
+            <span>IMEI: {{ getGpsDetailsTargetImei(target) }}</span>
+            <small *ngIf="getGpsDetailsLastUpdateLabel(target)">{{ getGpsDetailsLastUpdateLabel(target) }}</small>
+          </div>
+        </div>
+        <span class="comm-gps-details__status" [ngClass]="'comm-gps-details__status--' + getGpsDetailsStatus(target).tone">
+          <i [class]="getGpsDetailsStatus(target).icon"></i>
+          {{ getGpsDetailsStatus(target).label }}
+        </span>
+      </div>
+    </div>
+
+    <div *ngIf="!gpsDetailsLoading && gpsDetailsTargets.length === 0" class="comm-gps-details__empty">
+      <i class="pi pi-ban"></i>
+      <span>No hay GPS vinculados a este usuario.</span>
+    </div>
+
+    <p-paginator
+      *ngIf="!gpsDetailsLoading && (gpsDetailsTotal > gpsDetailsLimit || gpsDetailsOffset > 0)"
+      [first]="gpsDetailsOffset"
+      [rows]="gpsDetailsLimit"
+      [totalRecords]="gpsDetailsTotal"
+      (onPageChange)="onGpsDetailsPageChange($event)">
+    </p-paginator>
+  </div>
 </p-dialog>
 
 <!-- ── Modal GPS Targets (Comunicación) ────────────────────────────────────── -->

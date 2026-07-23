@@ -15,6 +15,8 @@ import Aura from '@primeng/themes/aura';
 import { PrimengModule } from './shareds/libraries/primeng/primeng.module';
 import { CloudModule } from './shareds/components/cloud/cloud.module';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { RouteReuseStrategy } from '@angular/router';
+import { AppRouteReuseStrategy } from './core/services/app-route-reuse.strategy';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './i18n/', '.json');
@@ -48,7 +50,8 @@ export function HttpLoaderFactory(http: HttpClient) {
       }
     }),
     ConfirmationService,
-    MessageService
+    MessageService,
+    { provide: RouteReuseStrategy, useClass: AppRouteReuseStrategy }
   ],
   bootstrap: [AppComponent]
 })

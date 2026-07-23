@@ -18,6 +18,24 @@
     </div>
 </div>
 
+<div *ngIf="floatingMessage" class="chat-floating-card" (click)="openFloatingConversation()">
+    <button type="button" class="chat-floating-card__close" (click)="closeFloatingMessage($event)" aria-label="Cerrar aviso">
+        <i class="pi pi-times"></i>
+    </button>
+    <div class="chat-floating-card__avatar">
+        {{ getFloatingInitials(floatingMessage.contactName) }}
+    </div>
+    <div class="chat-floating-card__content">
+        <div class="chat-floating-card__eyebrow">
+            <i class="pi" [ngClass]="floatingMessage.source === 'internal' ? 'pi-users' : 'pi-comment'"></i>
+            {{ floatingMessage.source === 'internal' ? 'Grupo Montao GPS' : 'Nuevo mensaje' }}
+        </div>
+        <div class="chat-floating-card__name">{{ floatingMessage.contactName }}</div>
+        <div class="chat-floating-card__phone" *ngIf="floatingMessage.contactPhone">{{ floatingMessage.contactPhone }}</div>
+        <div class="chat-floating-card__message">{{ floatingMessage.message }}</div>
+    </div>
+</div>
+
 <p-dialog header="Transferencia Entrante" [(visible)]="showChatTransferModal" [modal]="true" [style]="{width: '30vw', minWidth: '400px'}" 
     [closable]="true" [draggable]="false" [resizable]="false">
     <div style="display: block; width: 100%; text-align: center; padding: 1rem 0;">

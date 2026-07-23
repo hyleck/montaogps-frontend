@@ -4,8 +4,8 @@ import { CommunicationComponent } from './components/communication/communication
 
 const routes: Routes = [
   { path: '', redirectTo: 'chat', pathMatch: 'full' },
-  { path: ':tab', component: CommunicationComponent },
-  { path: ':tab/:conversationId', component: CommunicationComponent },
+  { path: ':tab', component: CommunicationComponent, data: { reuseKey: 'communication' } },
+  { path: ':tab/:conversationId', component: CommunicationComponent, data: { reuseKey: 'communication' } },
 ];
 
 @NgModule({

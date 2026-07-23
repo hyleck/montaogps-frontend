@@ -2085,8 +2085,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
     location: UserLatestLocation | null
   ): { userId: string; name: string; latitude: number; longitude: number; recordedAt?: string | Date } | null {
     const fallbackUser = this.selectedUser?._id === userId ? this.selectedUser : null;
-    const latitude = Number(location?.latitude ?? fallbackUser?.latitude);
-    const longitude = Number(location?.longitude ?? fallbackUser?.longitude);
+    const realtime = (fallbackUser as any)?.realtime_location;
+    const latitude = Number(location?.latitude ?? realtime?.latitude ?? fallbackUser?.latitude);
+    const longitude = Number(location?.longitude ?? realtime?.longitude ?? fallbackUser?.longitude);
 
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       return null;
@@ -2097,7 +2098,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       name,
       latitude,
       longitude,
-      recordedAt: location?.recordedAt || fallbackUser?.locationUpdatedAt,
+      recordedAt: location?.recordedAt || realtime?.recordedAt || fallbackUser?.locationUpdatedAt,
     };
   }
 
@@ -5366,7 +5367,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   getUserLastLocationDate(user: User | any): Date | null {
-    const rawDate = user?.locationUpdatedAt
+    const rawDate = user?.realtime_location?.recordedAt
+      || user?.locationUpdatedAt
       || user?.last_location_at
       || user?.lastLocationAt
       || user?.location?.recordedAt;

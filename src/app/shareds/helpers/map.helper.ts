@@ -99,6 +99,16 @@ export class MapUtils {
   private static buildGoogleMapsUrl(url: string, key: string): string {
     const googleUrl = new URL(url, window.location.origin);
     googleUrl.searchParams.set('key', key);
+    const currentLibraries = googleUrl.searchParams.get('libraries') || '';
+    const libraries = new Set(
+      currentLibraries
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean)
+    );
+    libraries.add('drawing');
+    libraries.add('places');
+    googleUrl.searchParams.set('libraries', Array.from(libraries).join(','));
     return googleUrl.toString();
   }
 

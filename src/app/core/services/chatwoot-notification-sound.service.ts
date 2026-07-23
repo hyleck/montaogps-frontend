@@ -1,21 +1,42 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject, Subscription, interval, of } from 'rxjs';
+import { BehaviorSubject, Subject, Subscription, interval, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { ChatwootApiService } from './chatwoot-api.service';
+import { InternalChatMessage, InternalChatService } from './internal-chat.service';
 import { UserService } from './user.service';
 
 interface ChatwootConversationSummary {
   id: number;
   last_message?: string;
   last_message_time?: number | null;
+  last_message_type?: number;
   unread_count?: number;
   assignee_id?: number | null;
+  assignee_name?: string;
+  assignee_email?: string;
+  contact?: {
+    name?: string;
+    phone?: string;
+    email?: string;
+    avatar?: string;
+  };
 }
 
 interface ConversationNotificationState {
   fingerprint: string;
   unreadCount: number;
+  lastMessageFingerprint: string;
+}
+
+export interface ChatwootFloatingMessage {
+  source?: 'chatwoot' | 'internal';
+  conversationId: number;
+  contactName: string;
+  contactPhone: string;
+  message: string;
+  time: number | null;
+  assigneeName?: string;
 }
 
 @Injectable({
@@ -26,21 +47,35 @@ export class ChatwootNotificationSoundService implements OnDestroy {
   pendingCount$ = this.pendingCountSubject.asObservable();
   private esterPendingCountSubject = new BehaviorSubject<number>(0);
   esterPendingCount$ = this.esterPendingCountSubject.asObservable();
+  private internalPendingCountSubject = new BehaviorSubject<number>(0);
+  internalPendingCount$ = this.internalPendingCountSubject.asObservable();
+  private internalChatMutedSubject = new BehaviorSubject<boolean>(false);
+  internalChatMuted$ = this.internalChatMutedSubject.asObservable();
+  private floatingMessageSubject = new Subject<ChatwootFloatingMessage>();
+  floatingMessage$ = this.floatingMessageSubject.asObservable();
 
   private pollingSubscription?: Subscription;
+  private internalPollingSubscription?: Subscription;
   private authSubscription?: Subscription;
   private audio?: HTMLAudioElement;
+  private internalAudio?: HTMLAudioElement;
   private initialized = false;
+  private internalInitialized = false;
   private currentUserId = '';
   private loadingUserId = '';
   private inboxId = 0;
   private agentId = '';
   private conversationState = new Map<number, ConversationNotificationState>();
+  private lastInternalMessageId = '';
+  private internalPendingCount = 0;
+  private chatwootPendingCount = 0;
+  private internalChatMuted = false;
 
   constructor(
     private authService: AuthService,
     private userService: UserService,
     private chatwootApi: ChatwootApiService,
+    private internalChatService: InternalChatService,
   ) {}
 
   start(): void {
@@ -87,6 +122,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
     this.stopPolling();
     this.loadingUserId = userId;
     this.currentUserId = userId;
+    this.loadInternalChatMutePreference(userId);
 
     this.userService.getById(userId).pipe(
       catchError(() => of(null)),
@@ -94,11 +130,17 @@ export class ChatwootNotificationSoundService implements OnDestroy {
       if (this.loadingUserId !== userId) return;
 
       this.loadingUserId = '';
+      if (user?.affiliation_type_id !== 'empleado') {
+        this.stopPolling();
+        return;
+      }
+
       this.agentId = String(user?.idchatwoot || '').trim();
       this.inboxId = Number(user?.inbox || 0);
+      this.startInternalChatPolling();
 
       if (!this.agentId || !this.inboxId) {
-        this.stopPolling();
+        this.stopChatwootPolling();
         return;
       }
 
@@ -111,7 +153,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
     this.conversationState.clear();
 
     this.pollingSubscription = interval(5000).pipe(
-      switchMap(() => this.chatwootApi.getConversations(this.inboxId, 1, this.agentId).pipe(
+      switchMap(() => this.chatwootApi.getConversations(this.inboxId, 1, this.agentId, true).pipe(
         catchError(() => of(null)),
       )),
     ).subscribe((response: any) => {
@@ -119,7 +161,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
       this.processConversations(response.conversations || []);
     });
 
-    this.chatwootApi.getConversations(this.inboxId, 1, this.agentId).pipe(
+    this.chatwootApi.getConversations(this.inboxId, 1, this.agentId, true).pipe(
       catchError(() => of(null)),
     ).subscribe((response: any) => {
       if (!response?.success) return;
@@ -128,8 +170,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
   }
 
   private stopPolling(): void {
-    this.pollingSubscription?.unsubscribe();
-    this.pollingSubscription = undefined;
+    this.stopChatwootPolling();
     this.initialized = false;
     this.currentUserId = '';
     this.loadingUserId = '';
@@ -138,6 +179,18 @@ export class ChatwootNotificationSoundService implements OnDestroy {
     this.conversationState.clear();
     this.pendingCountSubject.next(0);
     this.esterPendingCountSubject.next(0);
+    this.stopInternalChatPolling();
+    this.internalPendingCount = 0;
+    this.chatwootPendingCount = 0;
+    this.lastInternalMessageId = '';
+    this.internalPendingCountSubject.next(0);
+  }
+
+  private stopChatwootPolling(): void {
+    this.pollingSubscription?.unsubscribe();
+    this.pollingSubscription = undefined;
+    this.chatwootPendingCount = 0;
+    this.pendingCountSubject.next(this.internalPendingCount);
   }
 
   private processConversations(conversations: ChatwootConversationSummary[]): void {
@@ -160,12 +213,28 @@ export class ChatwootNotificationSoundService implements OnDestroy {
         conversation.last_message_time || '',
         unreadCount,
       ].join('|');
+      const lastMessageFingerprint = [
+        conversation.last_message || '',
+        conversation.last_message_time || '',
+        conversation.last_message_type ?? '',
+      ].join('|');
 
-      nextState.set(id, { fingerprint, unreadCount });
+      nextState.set(id, { fingerprint, unreadCount, lastMessageFingerprint });
 
       if (!this.initialized) continue;
 
       const previousState = this.conversationState.get(id);
+      const hasNewLastMessage = previousState
+        ? previousState.lastMessageFingerprint !== lastMessageFingerprint
+        : Boolean(conversation.last_message || conversation.last_message_time);
+      const isIncoming = this.isIncomingMessage(conversation);
+
+      if (hasNewLastMessage && isIncoming) {
+        shouldPlay = true;
+        this.emitFloatingMessage(conversation);
+        continue;
+      }
+
       if (
         unreadCount > 0 &&
         previousState &&
@@ -173,15 +242,18 @@ export class ChatwootNotificationSoundService implements OnDestroy {
         unreadCount >= previousState.unreadCount
       ) {
         shouldPlay = true;
+        this.emitFloatingMessage(conversation);
       }
 
       if (unreadCount > 0 && !previousState) {
         shouldPlay = true;
+        this.emitFloatingMessage(conversation);
       }
     }
 
     this.conversationState = nextState;
-    this.pendingCountSubject.next(totalPending);
+    this.chatwootPendingCount = totalPending;
+    this.emitTotalPendingCount();
     this.esterPendingCountSubject.next(esterPending);
 
     if (!this.initialized) {
@@ -194,12 +266,119 @@ export class ChatwootNotificationSoundService implements OnDestroy {
     }
   }
 
-  private prepareAudio(): void {
-    if (this.audio) return;
+  private startInternalChatPolling(): void {
+    this.stopInternalChatPolling();
+    this.internalInitialized = false;
+    this.lastInternalMessageId = '';
 
-    this.audio = new Audio('/assets/notificacion.mp3');
-    this.audio.preload = 'auto';
-    this.audio.load();
+    this.internalChatService.getMessages({ limit: 1 }).pipe(
+      catchError(() => of(null)),
+    ).subscribe((response) => {
+      const latest = response?.messages?.[response.messages.length - 1];
+      this.lastInternalMessageId = latest?._id || '';
+      this.internalInitialized = true;
+    });
+
+    this.internalPollingSubscription = interval(5000).pipe(
+      switchMap(() => {
+        const options: { limit?: number; after?: string } = this.lastInternalMessageId
+          ? { limit: 50, after: this.lastInternalMessageId }
+          : { limit: 1 };
+        return this.internalChatService.getMessages(options).pipe(catchError(() => of(null)));
+      }),
+    ).subscribe((response) => {
+      const messages = response?.messages || [];
+      if (!messages.length) return;
+
+      this.lastInternalMessageId = messages[messages.length - 1]?._id || this.lastInternalMessageId;
+      if (!this.internalInitialized) {
+        this.internalInitialized = true;
+        return;
+      }
+
+      const incomingMessages = messages.filter((message) => !this.isMyInternalMessage(message));
+      if (!incomingMessages.length) return;
+
+      if (this.internalChatMuted) {
+        return;
+      }
+
+      this.internalPendingCount += incomingMessages.length;
+      this.internalPendingCountSubject.next(this.internalPendingCount);
+      this.emitTotalPendingCount();
+      this.emitInternalFloatingMessage(incomingMessages[incomingMessages.length - 1]);
+      this.playInternalNotificationSound();
+    });
+  }
+
+  private stopInternalChatPolling(): void {
+    this.internalPollingSubscription?.unsubscribe();
+    this.internalPollingSubscription = undefined;
+    this.internalInitialized = false;
+  }
+
+  markInternalChatRead(): void {
+    this.internalPendingCount = 0;
+    this.internalPendingCountSubject.next(0);
+    this.emitTotalPendingCount();
+  }
+
+  isInternalChatMuted(): boolean {
+    return this.internalChatMuted;
+  }
+
+  setInternalChatMuted(muted: boolean): void {
+    this.internalChatMuted = muted;
+    this.internalChatMutedSubject.next(muted);
+    this.saveInternalChatMutePreference(muted);
+
+    if (muted) {
+      this.markInternalChatRead();
+    }
+  }
+
+  toggleInternalChatMuted(): boolean {
+    const next = !this.internalChatMuted;
+    this.setInternalChatMuted(next);
+    return next;
+  }
+
+  private emitTotalPendingCount(): void {
+    this.pendingCountSubject.next(this.chatwootPendingCount + this.internalPendingCount);
+  }
+
+  private loadInternalChatMutePreference(userId: string): void {
+    const muted = localStorage.getItem(this.getInternalChatMuteStorageKey(userId)) === 'true';
+    this.internalChatMuted = muted;
+    this.internalChatMutedSubject.next(muted);
+    if (muted) {
+      this.internalPendingCount = 0;
+      this.internalPendingCountSubject.next(0);
+      this.emitTotalPendingCount();
+    }
+  }
+
+  private saveInternalChatMutePreference(muted: boolean): void {
+    if (!this.currentUserId) return;
+    localStorage.setItem(this.getInternalChatMuteStorageKey(this.currentUserId), String(muted));
+  }
+
+  private getInternalChatMuteStorageKey(userId: string): string {
+    return `montao_internal_chat_muted_${userId}`;
+  }
+
+  private prepareAudio(): void {
+    if (!this.audio) {
+      this.audio = new Audio('/assets/notificacion.mp3');
+      this.audio.preload = 'auto';
+      this.audio.load();
+    }
+
+    if (!this.internalAudio) {
+      this.internalAudio = new Audio('/assets/internal-chat-notification.mp3');
+      this.internalAudio.preload = 'auto';
+      this.internalAudio.load();
+    }
   }
 
   private playNotificationSound(): void {
@@ -208,5 +387,53 @@ export class ChatwootNotificationSoundService implements OnDestroy {
 
     this.audio.currentTime = 0;
     this.audio.play().catch(() => undefined);
+  }
+
+  private playInternalNotificationSound(): void {
+    this.prepareAudio();
+    if (!this.internalAudio) return;
+
+    this.internalAudio.currentTime = 0;
+    this.internalAudio.play().catch(() => undefined);
+  }
+
+  private emitFloatingMessage(conversation: ChatwootConversationSummary): void {
+    if (!this.isIncomingMessage(conversation)) return;
+
+    this.floatingMessageSubject.next({
+      source: 'chatwoot',
+      conversationId: Number(conversation.id),
+      contactName: conversation.contact?.name || conversation.contact?.phone || 'Contacto sin nombre',
+      contactPhone: conversation.contact?.phone || '',
+      message: conversation.last_message || 'Nuevo mensaje recibido',
+      time: conversation.last_message_time || null,
+      assigneeName: conversation.assignee_name || conversation.assignee_email || undefined,
+    });
+  }
+
+  private isIncomingMessage(conversation: ChatwootConversationSummary): boolean {
+    const lastMessageType = conversation.last_message_type;
+    return lastMessageType === undefined || lastMessageType === null || Number(lastMessageType) === 0;
+  }
+
+  private emitInternalFloatingMessage(message: InternalChatMessage): void {
+    this.floatingMessageSubject.next({
+      source: 'internal',
+      conversationId: 0,
+      contactName: this.getInternalAuthorName(message),
+      contactPhone: 'Grupo Montao GPS',
+      message: message.text || 'Nuevo mensaje en el grupo',
+      time: message.createdAt ? Math.floor(new Date(message.createdAt).getTime() / 1000) : null,
+    });
+  }
+
+  private isMyInternalMessage(message: InternalChatMessage): boolean {
+    return String(message?.author?._id || '') === String(this.currentUserId || '');
+  }
+
+  private getInternalAuthorName(message: InternalChatMessage): string {
+    const author = message?.author;
+    const fullName = `${author?.name || ''} ${author?.last_name || ''}`.trim();
+    return fullName || author?.email || 'Empleado';
   }
 }

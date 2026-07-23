@@ -56,6 +56,17 @@ export interface User {
   longitude?: number;
   locationUpdatedAt?: string | Date;
   locationAccuracy?: number;
+  realtime_location?: {
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    recordedAt?: string | Date;
+    source?: string;
+  };
+  static_location_url?: string;
+  static_location_address?: string;
+  static_latitude?: number;
+  static_longitude?: number;
   photo?: string;
   settings?: UserSettings[];
   profile_type_id?: string;
@@ -96,6 +107,17 @@ export interface ExtendedUser extends Omit<User, 'settings'> {
   sector?: string;
   latitude?: number;
   longitude?: number;
+  realtime_location?: {
+    latitude?: number;
+    longitude?: number;
+    accuracy?: number;
+    recordedAt?: string | Date;
+    source?: string;
+  };
+  static_location_url?: string;
+  static_location_address?: string;
+  static_latitude?: number;
+  static_longitude?: number;
   photo: string;
   phone: string;
   phone2: string;

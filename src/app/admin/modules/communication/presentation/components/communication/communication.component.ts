@@ -10,8 +10,11 @@ import { InteraccionesService, UserList } from '../../../../interacciones/presen
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
 import { SystemService } from '@core/services/system.service';
 import { InventoryService } from '@core/services/inventory.service';
+import { ChatwootNotificationSoundService } from '@core/services/chatwoot-notification-sound.service';
+import { InternalChatAttachment, InternalChatMessage, InternalChatService } from '@core/services/internal-chat.service';
 import { MessageService, MenuItem } from 'primeng/api';
 import { environment } from '../../../../../../../environments/environment';
+import { Subscription } from 'rxjs';
 
 interface ChatConversation {
   id: number;
@@ -30,6 +33,9 @@ interface ChatConversation {
   last_message_type?: number;
   labels?: string[];
   assignee_id?: number | null;
+  assignee_name?: string;
+  assignee_email?: string;
+  assignee_avatar?: string;
   contact_last_seen_at?: number | null;
 }
 
@@ -145,7 +151,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   selectedConversation: ChatConversation | null = null;
   noInbox: boolean = false;
   sidebarDisplayed = true;
-  activeTab: 'chat' | 'correo' | 'foro' = 'chat';
+  activeTab: 'chat' | 'correo' | 'foro' | 'grupo' = 'chat';
   autoResponse: boolean = false;
   showContactInfo: boolean = false;
   gpsUser: any = null;
@@ -204,6 +210,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   uploadingSticker: boolean = false;
   sendingStickerId: string | null = null;
   deletingStickerId: string | null = null;
+  recordingVoice: boolean = false;
+  recordingVoiceContext: 'chat' | 'grupo' | null = null;
+  recordingVoiceSeconds = 0;
+  private voiceRecorder: MediaRecorder | null = null;
+  private voiceStream: MediaStream | null = null;
+  private voiceChunks: Blob[] = [];
+  private voiceRecordingTimer?: ReturnType<typeof setInterval>;
+  private voiceRecordingShouldSend = false;
+  private voiceRecordingMimeType = '';
   // Lightbox
   lightboxUrl: string | null = null;
   lightboxType: 'image' | 'video' = 'image';
@@ -221,6 +236,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   showComposeModal: boolean = false;
   loadingMessages: boolean = false;
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
+  @ViewChild('internalMessagesContainer') internalMessagesContainer!: ElementRef;
+  @ViewChild('internalMediaFileInput') internalMediaFileInput!: ElementRef;
+  @ViewChild('internalStickerUploadInput') internalStickerUploadInput!: ElementRef;
   @ViewChild('mediaFileInput') mediaFileInput!: ElementRef;
   @ViewChild('docFileInput') docFileInput!: ElementRef;
   @ViewChild('messageInput') messageInput!: ElementRef;
@@ -247,6 +265,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // Polling
   private chatPollingInterval: any = null;
   private conversationsPollingInterval: any = null;
+  private internalChatPollingInterval: any = null;
   private readonly POLL_INTERVAL = 5000;
 
   // User inbox
@@ -276,6 +295,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     private interaccionesService: InteraccionesService,
     private targetsService: TargetsService,
     private inventoryService: InventoryService,
+    private internalChatService: InternalChatService,
+    private chatwootNotificationSound: ChatwootNotificationSoundService,
     private systemService: SystemService,
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer
@@ -295,6 +316,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   targetsLimit: number = 30;
   targetsTotal: number = 0;
 
+  showGpsDetailsModal: boolean = false;
+  gpsDetailsLoading: boolean = false;
+  gpsDetailsTargets: any[] = [];
+  gpsDetailsOffset: number = 0;
+  gpsDetailsLimit: number = 10;
+  gpsDetailsTotal: number = 0;
+
   showInventoryModal: boolean = false;
   inventorySearchTerm: string = '';
   inventoryItems: any[] = [];
@@ -308,9 +336,24 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   globalTargetsLimit: number = 30;
   globalTargetsTotal: number = 0;
 
+  internalMessages: InternalChatMessage[] = [];
+  internalChatInput: string = '';
+  loadingInternalMessages: boolean = false;
+  sendingInternalMessage: boolean = false;
+  internalChatError: string = '';
+  internalChatMuted: boolean = false;
+  uploadingInternalAttachment: boolean = false;
+  showInternalEmojiPicker: boolean = false;
+  readonly internalEmojiOptions: string[] = ['😀', '😂', '😊', '😍', '👍', '🙏', '👏', '🔥', '✅', '🚗', '📍', '⚠️', '🛠️', '📞', '❤️', '💪'];
+  private internalChatMutedSubscription?: Subscription;
+
   ngOnInit(): void {
     this.updateAttachmentMenu();
     this.loadStickers();
+    this.internalChatMuted = this.chatwootNotificationSound.isInternalChatMuted();
+    this.internalChatMutedSubscription = this.chatwootNotificationSound.internalChatMuted$.subscribe((muted) => {
+      this.internalChatMuted = muted;
+    });
 
     this.loadUserInbox();
     this.interaccionesService.getAll().subscribe({
@@ -318,8 +361,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
     this.route.params.subscribe(params => {
       const tab = params['tab'];
-      if (tab === 'chat') {
+      if (tab === 'chat' || tab === 'grupo') {
         this.activeTab = tab;
+        if (tab === 'grupo') {
+          this.loadInternalChat();
+        }
       } else if (tab === 'correo' || tab === 'foro') {
         this.navigateToTab('chat');
         return;
@@ -334,6 +380,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.stopChatPolling();
     this.stopConversationsPolling();
+    this.stopInternalChatPolling();
+    this.cancelVoiceRecording();
+    this.internalChatMutedSubscription?.unsubscribe();
   }
 
   // ============================
@@ -356,7 +405,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.currentUserEmail = user?.email || '';
         this.chatwootAgentId = user?.idchatwoot || '';
         this.currentUserName = user?.name || 'Agente';
-        this.currentUserDepartment = user?.department_id || '';
+        this.currentUserDepartment = this.normalizeAgentDepartment(user?.department_id);
         
         if (user?.inbox) {
           this.userInboxId = user.inbox;
@@ -387,7 +436,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
   }
 
-  navigateToTab(tab: 'chat' | 'correo' | 'foro'): void {
+  navigateToTab(tab: 'chat' | 'correo' | 'foro' | 'grupo'): void {
     if (tab === 'correo' || tab === 'foro') {
       this.activeTab = 'chat';
       this.router.navigate(['/admin/communication', 'chat']);
@@ -395,6 +444,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
 
     this.activeTab = tab;
+    if (tab === 'grupo') {
+      this.stopChatPolling();
+      this.loadInternalChat();
+    } else {
+      this.stopInternalChatPolling();
+    }
     this.router.navigate(['/admin/communication', tab]);
   }
 
@@ -1005,6 +1060,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         
         if (targetAgentId === 0) {
             this.selectedConversation!.assignee_id = null;
+            this.selectedConversation!.assignee_name = 'Ester Assistant';
+        } else {
+            const assignedAgent = this.transferAgents.find((a: any) => a.idchatwoot === targetAgentId);
+            this.selectedConversation!.assignee_id = targetAgentId;
+            this.selectedConversation!.assignee_name = assignedAgent?.name || assignedAgent?.email || `Agente ${targetAgentId}`;
         }
         
         // Buscar el agente en memoria para sacar su ID de Mongo y enviarle el Push (si es humano)
@@ -1212,32 +1272,18 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // ============================
 
   loadConversations(): void {
-    // Attempt to load from cache for instant initial rendering
-    const cacheKey = `chatwoot_convs_${this.userInboxId}_${this.chatwootAgentId}`;
-    if (!this.conversations.length && this.userInboxId) {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        try {
-          this.conversations = JSON.parse(cached);
-          this.filterConversations();
-
-          if (!this.pendingConversationId && this.activeTab === 'chat' && !this.selectedConversation) {
-            const lastId = localStorage.getItem(`last_opened_chat_${this.currentUserId}`);
-            if (lastId) {
-              const lastConv = this.conversations.find(c => c.id === Number(lastId));
-              if (lastConv) this.selectConversation(lastConv, true);
-            }
-          }
-        } catch (e) { }
-      }
+    const cacheKey = `chatwoot_convs_${this.userInboxId}_all`;
+    if (!this.conversations.length) {
+      this.filteredConversations = [];
+      this.selectedConversation = null;
     }
 
-    this.loadingConversations = this.conversations.length === 0;
-    this.chatwootApi.getConversations(this.userInboxId, 1, this.chatwootAgentId).subscribe({
+    this.loadingConversations = true;
+    this.chatwootApi.getConversations(this.userInboxId, 1, this.chatwootAgentId, true).subscribe({
       next: (res: any) => {
         this.loadingConversations = false;
         if (res.success) {
-          this.conversations = res.conversations || [];
+          this.conversations = this.sortConversations(res.conversations || []);
           if (this.userInboxId) {
             localStorage.setItem(cacheKey, JSON.stringify(this.conversations));
           }
@@ -1275,8 +1321,26 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.filteredConversations = this.conversations.filter(c =>
       c.contact.name.toLowerCase().includes(term) ||
       c.contact.phone.includes(term) ||
-      c.last_message.toLowerCase().includes(term)
+      c.last_message.toLowerCase().includes(term) ||
+      this.getConversationAssigneeLabel(c).toLowerCase().includes(term)
     );
+  }
+
+  getConversationAssigneeLabel(conv: ChatConversation): string {
+    if (!conv.assignee_id) return 'Ester Assistant';
+    return (conv.assignee_name || conv.assignee_email || `Agente ${conv.assignee_id}`).trim();
+  }
+
+  private sortConversations(conversations: ChatConversation[]): ChatConversation[] {
+    return [...conversations].sort((a, b) => {
+      const aAssigned = a.assignee_id ? 0 : 1;
+      const bAssigned = b.assignee_id ? 0 : 1;
+      if (aAssigned !== bAssigned) return aAssigned - bAssigned;
+
+      const aTime = Number(a.last_message_time || a.contact_last_seen_at || 0);
+      const bTime = Number(b.last_message_time || b.contact_last_seen_at || 0);
+      return bTime - aTime;
+    });
   }
 
   selectConversation(conv: ChatConversation, navigate: boolean = true): void {
@@ -1318,6 +1382,205 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.calculateUserChecklistsDetails(phone);
       }
     });
+  }
+
+  getGpsUserDeviceCount(): number {
+    const directCount = Number(this.gpsUser?.device_count);
+    if (Number.isFinite(directCount) && directCount >= 0) {
+      return directCount;
+    }
+
+    const paginatedTotal = Number(this.targetsTotal);
+    if (Number.isFinite(paginatedTotal) && paginatedTotal >= 0) {
+      return paginatedTotal;
+    }
+
+    return this.userTargets?.length || 0;
+  }
+
+  openGpsDetailsModal(event?: Event): void {
+    event?.stopPropagation();
+    if (!this.gpsUser?._id) return;
+
+    this.showGpsDetailsModal = true;
+    this.gpsDetailsOffset = 0;
+    this.loadGpsDetails();
+  }
+
+  goToGpsUserAccount(event?: Event): void {
+    event?.stopPropagation();
+    if (!this.gpsUser?._id) return;
+
+    this.router.navigate(['/admin/management', 'u', this.gpsUser._id]);
+  }
+
+  async loadGpsDetails(): Promise<void> {
+    if (!this.gpsUser?._id) return;
+
+    this.gpsDetailsLoading = true;
+    try {
+      const res = await this.targetsService.getTargetsWithPagination(
+        this.gpsUser._id,
+        this.gpsDetailsOffset,
+        this.gpsDetailsLimit
+      );
+      this.gpsDetailsTargets = res.devices || [];
+      this.gpsDetailsTotal = res.totalCount || this.gpsDetailsTargets.length;
+    } catch (error) {
+      console.error('[Communication] Error loading GPS details:', error);
+      this.gpsDetailsTargets = [];
+      this.gpsDetailsTotal = 0;
+      this.messageService.add({
+        severity: 'error',
+        summary: 'No se pudieron cargar los GPS',
+        detail: 'Intenta abrir los detalles nuevamente.'
+      });
+    } finally {
+      this.gpsDetailsLoading = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  onGpsDetailsPageChange(event: any): void {
+    this.gpsDetailsOffset = event.first;
+    this.gpsDetailsLimit = event.rows;
+    this.loadGpsDetails();
+  }
+
+  getGpsDetailsVisibleEnd(): number {
+    return Math.min(this.gpsDetailsOffset + this.gpsDetailsTargets.length, this.gpsDetailsTotal);
+  }
+
+  getGpsDetailsTargetName(target: any): string {
+    return target?.name || target?.device_name || target?.title || target?.plate || 'Vehículo sin nombre';
+  }
+
+  getGpsDetailsTargetImei(target: any): string {
+    return target?.device_imei || target?.imei || target?.imei_number || 'N/A';
+  }
+
+  isGpsDetailsTag(target: any): boolean {
+    const protocolObj = target?.protocol || target?.originalTarget?.protocol;
+    if (protocolObj && typeof protocolObj === 'object') {
+      if (protocolObj.isAirtag !== undefined) return !!protocolObj.isAirtag;
+      const protocolName = String(protocolObj.name || protocolObj.model || protocolObj.title || '').toLowerCase();
+      if (protocolName.includes('tag') || protocolName.includes('airtag') || protocolName.includes('mtag')) return true;
+    }
+
+    const fields = [
+      target?.protocol,
+      target?.protocol_name,
+      target?.type,
+      target?.device_type,
+      target?.model,
+      target?.gps_model,
+      target?.device_model,
+      target?.originalTarget?.type
+    ];
+
+    return fields.some((field: any) => {
+      if (!field) return false;
+      const text = typeof field === 'object'
+        ? String(field.name || field.model || field.title || '')
+        : String(field);
+      const normalized = text.toLowerCase();
+      return normalized.includes('tag') || normalized.includes('airtag') || normalized.includes('mtag');
+    });
+  }
+
+  getGpsDetailsStatus(target: any): { label: string; tone: string; icon: string } {
+    const rawStatus = String(
+      target?.traccarInfo?.status
+      || target?.traccarStatus
+      || target?.statusText
+      || target?.status
+      || ''
+    ).trim().toLowerCase();
+    const offlineMinutes = this.getGpsDetailsOfflineMinutes(target);
+
+    if (this.isGpsDetailsTag(target)) {
+      const isLocated = rawStatus === 'online'
+        || rawStatus === 'localizado'
+        || rawStatus === 'located'
+        || (offlineMinutes !== null && offlineMinutes <= (15 * 24 * 60));
+
+      return isLocated
+        ? { label: 'Localizado', tone: 'located', icon: 'pi pi-map-marker' }
+        : { label: 'No localizado', tone: 'not-located', icon: 'pi pi-ban' };
+    }
+
+    if (rawStatus.includes('señal') || rawStatus.includes('senal') || rawStatus.includes('weak')) {
+      return { label: 'Señal débil', tone: 'weak', icon: 'pi pi-wifi' };
+    }
+
+    if (rawStatus === 'online' || rawStatus === 'en línea' || rawStatus === 'en linea') {
+      return { label: 'En línea', tone: 'online', icon: 'pi pi-circle-fill' };
+    }
+
+    if (offlineMinutes !== null && offlineMinutes <= 10) {
+      return { label: 'En línea', tone: 'online', icon: 'pi pi-circle-fill' };
+    }
+
+    if (offlineMinutes !== null && offlineMinutes <= 60) {
+      return { label: 'Señal débil', tone: 'weak', icon: 'pi pi-wifi' };
+    }
+
+    return { label: 'Fuera de línea', tone: 'offline', icon: 'pi pi-ban' };
+  }
+
+  getGpsDetailsLastUpdateLabel(target: any): string {
+    const date = this.getGpsDetailsLastUpdateDate(target);
+    if (!date) return '';
+
+    return `Última actualización hace ${this.formatGpsDetailsTimeAgo(date)}`;
+  }
+
+  private getGpsDetailsOfflineMinutes(target: any): number | null {
+    const lastUpdate = this.getGpsDetailsLastUpdateDate(target);
+    if (!lastUpdate) return null;
+
+    const diffMs = Date.now() - lastUpdate.getTime();
+    if (diffMs < 0) return 0;
+
+    return Math.floor(diffMs / 60000);
+  }
+
+  private getGpsDetailsLastUpdateDate(target: any): Date | null {
+    const source = target?.originalTarget || target || {};
+    const rawDate = target?.traccarInfo?.lastUpdate
+      || source?.traccarInfo?.lastUpdate
+      || target?.lastUpdate
+      || source?.lastUpdate
+      || target?.last_connection
+      || target?.lastConnection
+      || target?.position?.serverTime
+      || target?.position?.deviceTime
+      || target?.updatedAt;
+
+    if (!rawDate) return null;
+
+    const date = new Date(rawDate);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  private formatGpsDetailsTimeAgo(date: Date): string {
+    const diffMs = Math.max(0, Date.now() - date.getTime());
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes < 1) return 'un momento';
+    if (diffMinutes < 60) return `${diffMinutes} minuto${diffMinutes === 1 ? '' : 's'}`;
+
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} hora${diffHours === 1 ? '' : 's'}`;
+
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 30) return `${diffDays} día${diffDays === 1 ? '' : 's'}`;
+
+    const diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths < 12) return `${diffMonths} mes${diffMonths === 1 ? '' : 'es'}`;
+
+    const diffYears = Math.floor(diffDays / 365);
+    return `${diffYears} año${diffYears === 1 ? '' : 's'}`;
   }
 
   async loadTargetsBox() {
@@ -1551,8 +1814,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
            const encodedData = btoa(JSON.stringify(linkData));
            const realtimeUrl = `${baseUrl}/realtimelink?data=${encodedData}`;
 
-           const deptStr = this.currentUserDepartment ? ` - ${this.currentUserDepartment}` : '';
-           const textToSend = `> ${this.currentUserName}${deptStr}\nhttps://tracker.montao.net/realtimelink?data=${encodedData}`;
+           const textToSend = `${this.getAgentSignature()}\nhttps://tracker.montao.net/realtimelink?data=${encodedData}`;
 
            const pendingMsg: ChatMessage = { from: 'me', text: textToSend, parsedHtml: this.parseMessageContent(textToSend), time: new Date() };
            this.enrichWithAppUrls(pendingMsg);
@@ -1589,8 +1851,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       if (!this.selectedConversation) return;
 
       this.showTargetsModal = false;
-      const deptStr = this.currentUserDepartment ? ` - ${this.currentUserDepartment}` : '';
-      const textToSend = `> ${this.currentUserName}${deptStr}\n${url}`;
+      const textToSend = `${this.getAgentSignature()}\n${url}`;
 
       const pendingMsg: ChatMessage = { from: 'me', text: textToSend, parsedHtml: this.parseMessageContent(textToSend), time: new Date() };
       this.enrichWithAppUrls(pendingMsg);
@@ -1747,10 +2008,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private startConversationsPolling(): void {
     this.stopConversationsPolling();
     this.conversationsPollingInterval = setInterval(() => {
-      this.chatwootApi.getConversations(this.userInboxId, 1, this.chatwootAgentId).subscribe({
+      this.chatwootApi.getConversations(this.userInboxId, 1, this.chatwootAgentId, true).subscribe({
         next: (res: any) => {
           if (res.success) {
-            const newConvs = res.conversations || [];
+            const newConvs = this.sortConversations(res.conversations || []);
             const newFingerprint = this.getConversationsFingerprint(newConvs);
             if (newFingerprint !== this.conversationsFingerprint) {
               this.conversations = newConvs;
@@ -1764,7 +2025,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private getConversationsFingerprint(convs: ChatConversation[]): string {
-    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.unread_count}`).join('|');
+    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.unread_count}:${c.assignee_id || ''}:${c.assignee_name || ''}`).join('|');
   }
 
   private stopConversationsPolling(): void {
@@ -1774,9 +2035,280 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
   }
 
+  private normalizeAgentDepartment(department?: string | null): string {
+    const normalized = String(department || '').trim();
+    if (!normalized || normalized.toLowerCase() === 'exampledepartmentid') {
+      return normalized ? 'Operaciones' : '';
+    }
+    return normalized;
+  }
+
+  private getAgentSignature(): string {
+    const department = this.normalizeAgentDepartment(this.currentUserDepartment);
+    const deptStr = department ? ` - ${department}` : '';
+    return `> ${this.currentUserName}${deptStr}`;
+  }
+
   // ============================
   // MESSAGES
   // ============================
+
+  loadInternalChat(): void {
+    this.chatwootNotificationSound.markInternalChatRead();
+    this.loadingInternalMessages = true;
+    this.internalChatError = '';
+    this.internalChatService.getMessages({ limit: 50 }).subscribe({
+      next: (res) => {
+        this.loadingInternalMessages = false;
+        this.internalMessages = res.messages || [];
+        this.scrollInternalChatToBottom();
+        this.startInternalChatPolling();
+      },
+      error: (error) => {
+        this.loadingInternalMessages = false;
+        this.internalChatError = error?.error?.message || 'No se pudo cargar el grupo Montao GPS.';
+        this.stopInternalChatPolling();
+      }
+    });
+  }
+
+  toggleInternalChatMuted(): void {
+    const muted = this.chatwootNotificationSound.toggleInternalChatMuted();
+    this.messageService.add({
+      severity: muted ? 'info' : 'success',
+      summary: muted ? 'Grupo silenciado' : 'Grupo activo',
+      detail: muted
+        ? 'No recibirás sonido, badge ni notificaciones flotantes de este chat.'
+        : 'Volverás a recibir notificaciones del chat grupal.'
+    });
+  }
+
+  sendInternalMessage(): void {
+    const text = this.internalChatInput.trim();
+    if (!text || this.sendingInternalMessage) return;
+
+    this.sendingInternalMessage = true;
+    this.internalChatInput = '';
+    this.internalChatService.sendMessage(text).subscribe({
+      next: (res) => {
+        this.sendingInternalMessage = false;
+        if (res.message && !this.internalMessages.some(message => message._id === res.message._id)) {
+          this.internalMessages = [...this.internalMessages, res.message];
+        }
+        this.scrollInternalChatToBottom();
+      },
+      error: (error) => {
+        this.sendingInternalMessage = false;
+        this.internalChatInput = text;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo enviar',
+          detail: error?.error?.message || 'Intenta nuevamente.'
+        });
+      }
+    });
+  }
+
+  sendInternalAttachment(file: File, forcedText?: string): void {
+    if (!file || this.uploadingInternalAttachment || !!this.internalChatError) return;
+
+    this.uploadingInternalAttachment = true;
+    this.internalChatService.uploadAttachment(file).subscribe({
+      next: (res) => {
+        const attachment = res?.attachment;
+        if (!attachment?.url) {
+          this.uploadingInternalAttachment = false;
+          this.messageService.add({ severity: 'error', summary: 'No se pudo subir', detail: 'El archivo no retornó una URL válida.' });
+          return;
+        }
+        const text = forcedText ?? this.internalChatInput.trim();
+        if (!forcedText) this.internalChatInput = '';
+        this.internalChatService.sendMessage(text, [attachment], attachment.fileType || 'file').subscribe({
+          next: (messageRes) => {
+            this.uploadingInternalAttachment = false;
+            if (messageRes.message && !this.internalMessages.some(message => message._id === messageRes.message._id)) {
+              this.internalMessages = [...this.internalMessages, messageRes.message];
+            }
+            this.scrollInternalChatToBottom();
+          },
+          error: (error) => {
+            this.uploadingInternalAttachment = false;
+            if (!forcedText) this.internalChatInput = text;
+            this.messageService.add({
+              severity: 'error',
+              summary: 'No se pudo enviar',
+              detail: error?.error?.message || 'El archivo subió, pero no se pudo enviar el mensaje.'
+            });
+          }
+        });
+      },
+      error: (error) => {
+        this.uploadingInternalAttachment = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo subir',
+          detail: error?.error?.message || 'Intenta con otro archivo.'
+        });
+      }
+    });
+  }
+
+  onInternalMediaSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.sendInternalAttachment(file);
+  }
+
+  addInternalEmoji(emoji: string): void {
+    this.internalChatInput = `${this.internalChatInput || ''}${emoji}`;
+    this.showInternalEmojiPicker = false;
+  }
+
+  sendInternalSticker(sticker: WhatsAppSticker): void {
+    if (!sticker?.url || this.sendingStickerId) return;
+
+    this.sendingStickerId = sticker.id;
+    const attachment: InternalChatAttachment = {
+      url: sticker.url,
+      name: sticker.name,
+      mimeType: 'image/webp',
+      fileType: 'sticker',
+      fileId: sticker.id,
+    };
+    this.internalChatService.sendMessage('', [attachment], 'sticker').subscribe({
+      next: (res) => {
+        this.sendingStickerId = null;
+        if (res.message && !this.internalMessages.some(message => message._id === res.message._id)) {
+          this.internalMessages = [...this.internalMessages, res.message];
+        }
+        this.showStickerPicker = false;
+        this.scrollInternalChatToBottom();
+      },
+      error: (error) => {
+        this.sendingStickerId = null;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo enviar',
+          detail: error?.error?.message || 'Error de conexión al enviar el sticker.'
+        });
+      }
+    });
+  }
+
+  saveInternalImageAsSticker(attachment: InternalChatAttachment, message: InternalChatMessage): void {
+    if (!attachment?.url || this.savingStickerUrl) return;
+
+    this.savingStickerUrl = attachment.url;
+    const fallbackName = message?._id ? `sticker-grupo-${message._id}` : 'sticker-grupo';
+    this.chatwootApi.saveStickerFromImage({
+      image_url: attachment.url,
+      name: fallbackName
+    }).subscribe({
+      next: (res: any) => {
+        this.savingStickerUrl = null;
+        if (res?.success && res.sticker) {
+          this.stickers = [res.sticker, ...this.stickers.filter(sticker => sticker.id !== res.sticker.id)];
+          this.showStickerPicker = true;
+          this.messageService.add({
+            severity: res.duplicated ? 'info' : 'success',
+            summary: res.duplicated ? 'Sticker ya guardado' : 'Sticker guardado',
+            detail: res.duplicated ? 'Esta imagen ya estaba en tu lista de stickers' : 'La imagen se guardó como sticker'
+          });
+          return;
+        }
+        this.messageService.add({ severity: 'error', summary: 'No se pudo guardar', detail: res?.error || 'Intenta con otra imagen' });
+      },
+      error: () => {
+        this.savingStickerUrl = null;
+        this.messageService.add({ severity: 'error', summary: 'No se pudo guardar', detail: 'Error de conexión al guardar el sticker' });
+      }
+    });
+  }
+
+  isMyInternalMessage(message: InternalChatMessage): boolean {
+    return String(message?.author?._id || '') === String(this.currentUserId || '');
+  }
+
+  getInternalAuthorName(message: InternalChatMessage): string {
+    const author = message?.author;
+    const fullName = `${author?.name || ''} ${author?.last_name || ''}`.trim();
+    return fullName || author?.email || 'Empleado';
+  }
+
+  getInternalAuthorInitials(message: InternalChatMessage): string {
+    return this.getInitials(this.getInternalAuthorName(message));
+  }
+
+  isInternalImageAttachment(attachment: InternalChatAttachment): boolean {
+    const mimeType = String(attachment?.mimeType || '').toLowerCase();
+    const url = String(attachment?.url || '').toLowerCase().split('?')[0];
+    return mimeType.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/.test(url);
+  }
+
+  isInternalVideoAttachment(attachment: InternalChatAttachment): boolean {
+    const mimeType = String(attachment?.mimeType || '').toLowerCase();
+    const url = String(attachment?.url || '').toLowerCase().split('?')[0];
+    return mimeType.startsWith('video/') || /\.(mp4|webm|mov|m4v)$/.test(url);
+  }
+
+  isInternalAudioAttachment(attachment: InternalChatAttachment): boolean {
+    const mimeType = String(attachment?.mimeType || '').toLowerCase();
+    const url = String(attachment?.url || '').toLowerCase().split('?')[0];
+    return attachment?.fileType === 'audio' || mimeType.startsWith('audio/') || /\.(mp3|m4a|aac|ogg|oga|wav|webm)$/.test(url);
+  }
+
+  isInternalStickerAttachment(attachment: InternalChatAttachment): boolean {
+    const mimeType = String(attachment?.mimeType || '').toLowerCase();
+    const url = String(attachment?.url || '').toLowerCase().split('?')[0];
+    return attachment?.fileType === 'sticker' || mimeType === 'image/webp' || url.endsWith('.webp');
+  }
+
+  isInternalStickerOnlyMessage(message: InternalChatMessage): boolean {
+    const text = String(message?.text || '').trim();
+    const attachments = message?.attachments || [];
+    return !text && attachments.length > 0 && attachments.every(attachment => this.isInternalStickerAttachment(attachment));
+  }
+
+  getInternalAttachmentName(attachment: InternalChatAttachment): string {
+    return attachment?.name || attachment?.url?.split('/').pop() || 'Archivo';
+  }
+
+  private startInternalChatPolling(): void {
+    this.stopInternalChatPolling();
+    this.internalChatPollingInterval = setInterval(() => {
+      if (this.activeTab !== 'grupo') return;
+      const lastId = this.internalMessages[this.internalMessages.length - 1]?._id;
+      this.internalChatService.getMessages({ limit: 50, after: lastId }).subscribe({
+        next: (res) => {
+          const newMessages = (res.messages || []).filter(
+            message => !this.internalMessages.some(existing => existing._id === message._id)
+          );
+          if (newMessages.length) {
+            this.internalMessages = [...this.internalMessages, ...newMessages];
+            this.scrollInternalChatToBottom();
+          }
+        },
+        error: () => {}
+      });
+    }, this.POLL_INTERVAL);
+  }
+
+  private stopInternalChatPolling(): void {
+    if (this.internalChatPollingInterval) {
+      clearInterval(this.internalChatPollingInterval);
+      this.internalChatPollingInterval = null;
+    }
+  }
+
+  private scrollInternalChatToBottom(): void {
+    setTimeout(() => {
+      if (this.internalMessagesContainer?.nativeElement) {
+        this.internalMessagesContainer.nativeElement.scrollTop = this.internalMessagesContainer.nativeElement.scrollHeight;
+      }
+    }, 80);
+  }
 
   private parseMessageContent(text: string): string {
     if (!text) return '';
@@ -1810,16 +2342,20 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private enrichWithAppUrls(msg: ChatMessage): ChatMessage {
       if (!msg.text) return msg;
 
-      const mediaMatch = msg.text.match(/^\[Archivo enviado por WhatsApp\]\s*\n(image|video|document)\s*\n([^\n]*)\n(https?:\/\/\S+)/i);
+      const mediaMatch = msg.text.match(/^\[Archivo enviado por WhatsApp\]\s*\n(image|video|audio|document)\s*\n([^\n]*)\n(https?:\/\/\S+)/i);
       if (mediaMatch) {
           const rawType = mediaMatch[1].toLowerCase();
-          const mediaType = rawType === 'document' ? 'file' : (rawType === 'video' ? 'video' : 'image');
+          const mediaType = rawType === 'document' ? 'file' : rawType;
           msg.attachments = [
               ...(msg.attachments || []),
               {
                   data_url: mediaMatch[3],
                   file_type: mediaType,
-                  content_type: mediaType === 'video' ? 'video/mp4' : (mediaType === 'file' ? 'application/octet-stream' : 'image/jpeg'),
+                  content_type: mediaType === 'video'
+                    ? 'video/mp4'
+                    : (mediaType === 'audio'
+                      ? 'audio/mpeg'
+                      : (mediaType === 'file' ? 'application/octet-stream' : 'image/jpeg')),
                   file_name: mediaMatch[2] || 'Archivo enviado por WhatsApp'
               }
           ];
@@ -1933,8 +2469,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.messages.push(newMsg);
     
     // Inject the internal agent name prefix for Chatwoot outbound delivery
-    const deptStr = this.currentUserDepartment ? ` - ${this.currentUserDepartment}` : '';
-    const finalApiText = `> ${this.currentUserName}${deptStr}\n${text}`;
+    const finalApiText = `${this.getAgentSignature()}\n${text}`;
 
     this.chatInput = '';
     this.replyingTo = null;
@@ -2103,6 +2638,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   sendSticker(sticker: WhatsAppSticker): void {
+    if (this.activeTab === 'grupo') {
+      this.sendInternalSticker(sticker);
+      return;
+    }
+
     if (!this.selectedConversation?.contact?.phone || !sticker?.id || this.sendingStickerId) return;
 
     this.sendingStickerId = sticker.id;
@@ -2213,8 +2753,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.messages.push({ from: 'me', text: `📎 ${file.name}`, time: new Date() });
     this.scrollToBottom();
 
-    const deptStr = this.currentUserDepartment ? ` - ${this.currentUserDepartment}` : '';
-    const attachmentMessage = `> ${this.currentUserName}${deptStr}\nTe ha enviado un archivo adjunto.`;
+    const attachmentMessage = `${this.getAgentSignature()}\nTe ha enviado un archivo adjunto.`;
 
     this.chatwootApi.sendAttachment(this.selectedConversation.id, file, attachmentMessage, this.chatwootAgentId).subscribe({
       next: (res) => {
@@ -2236,6 +2775,172 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
   }
 
+  async toggleVoiceRecording(context: 'chat' | 'grupo'): Promise<void> {
+    if (this.recordingVoice && this.recordingVoiceContext === context) {
+      this.stopVoiceRecording(true);
+      return;
+    }
+
+    if (this.recordingVoice) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Grabación activa',
+        detail: 'Detén o cancela la nota actual antes de iniciar otra.'
+      });
+      return;
+    }
+
+    await this.startVoiceRecording(context);
+  }
+
+  async startVoiceRecording(context: 'chat' | 'grupo'): Promise<void> {
+    if (context === 'chat' && (!this.selectedConversation || this.sendingMessage)) return;
+    if (context === 'grupo' && (this.sendingInternalMessage || this.uploadingInternalAttachment || !!this.internalChatError)) return;
+
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Micrófono no disponible',
+        detail: 'Este navegador no permite grabar notas de voz.'
+      });
+      return;
+    }
+
+    try {
+      const mimeType = this.getSupportedVoiceMimeType();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this.voiceStream = stream;
+      this.voiceChunks = [];
+      this.voiceRecordingShouldSend = false;
+      this.voiceRecordingMimeType = mimeType || 'audio/webm';
+      this.voiceRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+      this.recordingVoice = true;
+      this.recordingVoiceContext = context;
+      this.recordingVoiceSeconds = 0;
+
+      this.voiceRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          this.voiceChunks.push(event.data);
+        }
+      };
+
+      this.voiceRecorder.onstop = () => {
+        const chunks = [...this.voiceChunks];
+        const shouldSend = this.voiceRecordingShouldSend;
+        const stoppedContext = this.recordingVoiceContext;
+        const stoppedMime = this.voiceRecordingMimeType || 'audio/webm';
+        this.cleanupVoiceRecorder();
+
+        if (!shouldSend || !stoppedContext || chunks.length === 0) return;
+        const extension = stoppedMime.includes('ogg') ? 'ogg' : stoppedMime.includes('mp4') ? 'm4a' : 'webm';
+        const blob = new Blob(chunks, { type: stoppedMime });
+        const file = new File([blob], `nota-voz-${Date.now()}.${extension}`, { type: stoppedMime });
+        this.sendVoiceNoteFile(stoppedContext, file);
+      };
+
+      this.voiceRecorder.start();
+      this.voiceRecordingTimer = setInterval(() => this.recordingVoiceSeconds += 1, 1000);
+    } catch (error) {
+      this.cleanupVoiceRecorder();
+      this.messageService.add({
+        severity: 'error',
+        summary: 'No se pudo grabar',
+        detail: 'Revisa el permiso del micrófono e intenta nuevamente.'
+      });
+    }
+  }
+
+  stopVoiceRecording(send: boolean = true): void {
+    if (!this.voiceRecorder || !this.recordingVoice) return;
+    this.voiceRecordingShouldSend = send;
+    if (this.voiceRecorder.state !== 'inactive') {
+      this.voiceRecorder.stop();
+      return;
+    }
+    this.cleanupVoiceRecorder();
+  }
+
+  cancelVoiceRecording(): void {
+    this.stopVoiceRecording(false);
+  }
+
+  getVoiceRecordingTime(): string {
+    const minutes = Math.floor(this.recordingVoiceSeconds / 60);
+    const seconds = this.recordingVoiceSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  private sendVoiceNoteFile(context: 'chat' | 'grupo', file: File): void {
+    if (context === 'grupo') {
+      this.sendInternalAttachment(file, 'Nota de voz');
+      return;
+    }
+
+    if (!this.selectedConversation) return;
+    this.sendingMessage = true;
+    const localUrl = URL.createObjectURL(file);
+    this.messages.push({
+      from: 'me',
+      text: '',
+      time: new Date(),
+      attachments: [{
+        data_url: localUrl,
+        file_type: 'audio',
+        content_type: file.type,
+        file_name: file.name
+      }]
+    });
+    this.scrollToBottom();
+
+    const attachmentMessage = `${this.getAgentSignature()}\nTe ha enviado una nota de voz.`;
+    this.chatwootApi.sendAttachment(this.selectedConversation.id, file, attachmentMessage, this.chatwootAgentId).subscribe({
+      next: (res) => {
+        this.sendingMessage = false;
+        if (!res.success) {
+          const detail = res.error || 'Error al enviar nota de voz';
+          this.messages.push({ from: 'system', text: `✗ ${detail}`, time: new Date() });
+          this.messageService.add({ severity: 'error', summary: 'No se pudo enviar', detail });
+        } else {
+          this.loadMessages();
+        }
+        this.scrollToBottom();
+      },
+      error: () => {
+        this.sendingMessage = false;
+        this.messages.push({ from: 'system', text: '✗ Error de conexión', time: new Date() });
+        this.scrollToBottom();
+      }
+    });
+  }
+
+  private cleanupVoiceRecorder(): void {
+    if (this.voiceRecordingTimer) {
+      clearInterval(this.voiceRecordingTimer);
+      this.voiceRecordingTimer = undefined;
+    }
+    this.voiceStream?.getTracks().forEach(track => track.stop());
+    this.voiceStream = null;
+    this.voiceRecorder = null;
+    this.voiceChunks = [];
+    this.recordingVoice = false;
+    this.recordingVoiceContext = null;
+    this.recordingVoiceSeconds = 0;
+    this.voiceRecordingShouldSend = false;
+    this.voiceRecordingMimeType = '';
+  }
+
+  private getSupportedVoiceMimeType(): string {
+    const candidates = [
+      'audio/ogg;codecs=opus',
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4'
+    ];
+    return candidates.find(type => MediaRecorder.isTypeSupported(type)) || '';
+  }
+
   assignToMe(): void {
     if (!this.selectedConversation || !this.chatwootAgentId) return;
 
@@ -2245,6 +2950,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       next: (res) => {
         if (res.success) {
           this.selectedConversation!.assignee_id = agentIdNum;
+          this.selectedConversation!.assignee_name = this.currentUserName || 'Agente';
           this.messageService.add({severity:'success', summary:'Control Tomado', detail:'Te has asignado esta conversación. Ester Assistant está desactivado para este flujo.'});
         } else {
           this.messageService.add({severity:'error', summary:'Error', detail:'No se pudo asignar el chat.'});

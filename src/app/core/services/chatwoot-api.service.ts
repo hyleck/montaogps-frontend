@@ -48,13 +48,16 @@ export class ChatwootApiService {
         return this.http.get(`${this.apiUrl}/messages`, { params });
     }
 
-    getConversations(inboxId?: number, page: number = 1, agentId?: string): Observable<any> {
+    getConversations(inboxId?: number, page: number = 1, agentId?: string, includeAll: boolean = false): Observable<any> {
         const params: any = { page: page.toString() };
         if (inboxId) {
             params.inbox_id = inboxId.toString();
         }
         if (agentId) {
             params.agent_id = agentId;
+        }
+        if (includeAll) {
+            params.include_all = 'true';
         }
         return this.http.get(`${this.apiUrl}/conversations`, { params });
     }

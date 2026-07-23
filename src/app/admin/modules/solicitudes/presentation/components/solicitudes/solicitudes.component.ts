@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
-import { SolicitudesService, Solicitud } from '../../../../../../core/services/solicitudes.service';
+import { SolicitudesService, Solicitud, VapiCallDetails } from '../../../../../../core/services/solicitudes.service';
 import { VehicleBrandsService } from '../../../../../../core/services/vehicle-brands.service';
 import { ColorsService } from '../../../../../../core/services/colors.service';
 import { UserLatestLocation, UserService } from '../../../../../../core/services/user.service';
@@ -21,6 +21,20 @@ import { MapUtils } from '../../../../../../shareds/helpers/map.helper';
 interface SelectOption {
     label: string;
     value: string;
+}
+
+interface SolicitudStartedToast {
+    solicitud: Solicitud;
+    clientName: string;
+    technicianName: string;
+    typeLabel: string;
+    deviceLabel: string;
+}
+
+interface AvailabilityTranscriptMessage {
+    speaker: string;
+    text: string;
+    side: 'ester' | 'technician';
 }
 
 @Component({
@@ -189,9 +203,20 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     private realtimeRefreshTimer?: ReturnType<typeof setInterval>;
     private realtimeStateVersion = '';
     private realtimeStateInFlight = false;
+    private solicitudStatusSnapshot = new Map<string, string>();
+    private solicitudStartedToastTimer?: ReturnType<typeof setTimeout>;
+    solicitudStartedToast: SolicitudStartedToast | null = null;
     technicianDialogVisible = false;
     selectedTechnicianSolicitud: Solicitud | null = null;
     verifyingAvailabilityId = '';
+    availabilityCallLoadingId = '';
+    availabilityTranscriptDialogVisible = false;
+    availabilityTranscriptText = '';
+    availabilityTranscriptMessages: AvailabilityTranscriptMessage[] = [];
+    availabilityCallAudioDialogVisible = false;
+    availabilityCallRecordingUrl = '';
+    availabilityCallStatus = '';
+    availabilityCallDuration?: number;
     technicianLocationDialogVisible = false;
     technicianLocationLoading = false;
     technicianLocationError = '';
@@ -355,6 +380,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     ngOnDestroy(): void {
         this.stopRealtimeRefresh();
+        this.clearSolicitudStartedToastTimer();
     }
 
     async loadInitialData(): Promise<void> {
@@ -550,6 +576,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             limit: 20
         }).subscribe({
             next: (response: { data: Solicitud[]; total: number }) => {
+                this.detectSolicitudesStarted(response.data, silent);
                 this.solicitudes = response.data;
                 this.totalItems = response.total;
                 if (!silent) {
@@ -565,6 +592,73 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 }
             }
         });
+    }
+
+    private detectSolicitudesStarted(nextSolicitudes: Solicitud[], silent: boolean): void {
+        const previousSnapshot = this.solicitudStatusSnapshot;
+        const hasPreviousSnapshot = previousSnapshot.size > 0;
+        const nextSnapshot = new Map<string, string>();
+        let startedSolicitud: Solicitud | null = null;
+
+        for (const solicitud of nextSolicitudes) {
+            const id = solicitud._id || '';
+            if (!id) continue;
+
+            const nextStatus = solicitud.status || '';
+            const previousStatus = previousSnapshot.get(id);
+            nextSnapshot.set(id, nextStatus);
+
+            if (
+                silent &&
+                hasPreviousSnapshot &&
+                nextStatus === 'en_progreso' &&
+                (previousStatus === 'pendiente' || previousStatus === 'aceptada')
+            ) {
+                startedSolicitud = solicitud;
+            }
+        }
+
+        this.solicitudStatusSnapshot = nextSnapshot;
+
+        if (startedSolicitud) {
+            this.showSolicitudStartedToast(startedSolicitud);
+        }
+    }
+
+    private showSolicitudStartedToast(solicitud: Solicitud): void {
+        this.solicitudStartedToast = {
+            solicitud,
+            clientName: this.getClientDisplayName(solicitud) || 'Cliente sin nombre',
+            technicianName: this.getTechnicianDisplayName(solicitud),
+            typeLabel: this.typeLabels[solicitud.type] || solicitud.type || 'Solicitud',
+            deviceLabel: this.getSolicitudPrimaryDeviceLabel(solicitud),
+        };
+
+        this.clearSolicitudStartedToastTimer();
+        this.solicitudStartedToastTimer = setTimeout(() => {
+            this.solicitudStartedToast = null;
+            this.solicitudStartedToastTimer = undefined;
+        }, 9000);
+    }
+
+    closeSolicitudStartedToast(event?: Event): void {
+        event?.stopPropagation();
+        this.solicitudStartedToast = null;
+        this.clearSolicitudStartedToastTimer();
+    }
+
+    openSolicitudStartedToast(): void {
+        const solicitud = this.solicitudStartedToast?.solicitud;
+        if (!solicitud) return;
+
+        this.closeSolicitudStartedToast();
+        this.editSolicitud(solicitud);
+    }
+
+    private clearSolicitudStartedToastTimer(): void {
+        if (!this.solicitudStartedToastTimer) return;
+        clearTimeout(this.solicitudStartedToastTimer);
+        this.solicitudStartedToastTimer = undefined;
     }
 
     private startRealtimeRefresh(): void {
@@ -1402,10 +1496,9 @@ async initLocationMap(): Promise<void> {
         this.rootAvailableSectors = [];
         
         this.selectedSolicitud = { ...solicitud, installations: solicitud.installations ? solicitud.installations.map(i => ({ ...i })) : [] };
-        // Map ISO Strings into Date objects for PrimeNG DatePickers
-        if (this.selectedSolicitud.scheduled_date) {
-            this.selectedSolicitud.scheduled_date = new Date(this.selectedSolicitud.scheduled_date);
-        }
+        this.selectedSolicitud.scheduled_date = this.toDateTimeLocalValue(
+            this.selectedSolicitud.scheduled_date || this.selectedSolicitud.installations?.[0]?.scheduled_date
+        );
         
         const qty = this.selectedSolicitud.quantity || 1;
         while (this.selectedSolicitud.installations!.length < qty) {
@@ -1475,6 +1568,7 @@ async initLocationMap(): Promise<void> {
             return;
         }
         this.skipMissingClientCheckOnce = false;
+        this.syncSolicitudScheduledDate();
 
         if (this.isEditMode && this.selectedSolicitud._id) {
             this.solicitudesService.update(this.selectedSolicitud._id, this.selectedSolicitud).subscribe({
@@ -1505,6 +1599,40 @@ async initLocationMap(): Promise<void> {
         this.missingClientDialogVisible = false;
         this.skipMissingClientCheckOnce = true;
         await this.saveSolicitud();
+    }
+
+    private syncSolicitudScheduledDate(): void {
+        if (!this.selectedSolicitud) return;
+
+        const scheduledDate = this.toDateTimeLocalValue(this.selectedSolicitud.scheduled_date);
+        this.selectedSolicitud.scheduled_date = scheduledDate;
+
+        if (!this.selectedSolicitud.installations?.length || !scheduledDate) {
+            return;
+        }
+
+        this.selectedSolicitud.installations = this.selectedSolicitud.installations.map((installation, index) => ({
+            ...installation,
+            scheduled_date: index === 0 || !installation.scheduled_date ? scheduledDate : installation.scheduled_date
+        }));
+    }
+
+    private toDateTimeLocalValue(value: string | Date | undefined | null): string {
+        if (!value) return '';
+
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+            return value;
+        }
+
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:/.test(value)) {
+            return value.slice(0, 16);
+        }
+
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+
+        const pad = (part: number) => String(part).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
     }
 
     private async shouldWarnMissingClientOnSave(): Promise<boolean> {
@@ -1927,6 +2055,179 @@ async initLocationMap(): Promise<void> {
         });
     }
 
+    hasAvailabilityCall(solicitud: Solicitud | null): boolean {
+        return !!(solicitud?.technician_response_call_id || solicitud?.technician_response_transcript);
+    }
+
+    openAvailabilityTranscript(): void {
+        const solicitud = this.selectedTechnicianSolicitud;
+        if (!solicitud) return;
+
+        const localTranscript = solicitud.technician_response_transcript || (solicitud as any)._availabilityTranscript || '';
+        if (localTranscript) {
+            this.setAvailabilityTranscript(localTranscript);
+            this.availabilityTranscriptDialogVisible = true;
+            return;
+        }
+
+        this.loadAvailabilityCallDetails(solicitud, (details) => {
+            const transcript = details.transcript || '';
+            if (!transcript) {
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Transcripción no disponible',
+                    detail: 'La llamada aún no tiene transcripción disponible.'
+                });
+                return;
+            }
+            this.setAvailabilityTranscript(transcript);
+            this.availabilityTranscriptDialogVisible = true;
+        });
+    }
+
+    private setAvailabilityTranscript(transcript: string): void {
+        this.availabilityTranscriptText = transcript || '';
+        this.availabilityTranscriptMessages = this.parseAvailabilityTranscript(transcript || '');
+    }
+
+    private parseAvailabilityTranscript(transcript: string): AvailabilityTranscriptMessage[] {
+        const lines = String(transcript || '')
+            .replace(/\r/g, '\n')
+            .split('\n')
+            .map(line => line.trim())
+            .filter(Boolean);
+        const messages: AvailabilityTranscriptMessage[] = [];
+        let current: AvailabilityTranscriptMessage | null = null;
+
+        const pushCurrent = () => {
+            if (!current?.text?.trim()) return;
+            current.text = current.text.trim();
+            messages.push(current);
+            current = null;
+        };
+
+        for (const line of lines) {
+            const match = line.match(/^([A-Za-zÁÉÍÓÚÜÑáéíóúüñ _.-]{2,36})\s*:\s*(.+)$/);
+            if (match) {
+                pushCurrent();
+                const speaker = this.normalizeTranscriptSpeaker(match[1]);
+                current = {
+                    speaker: speaker.speaker,
+                    side: speaker.side,
+                    text: match[2],
+                };
+                continue;
+            }
+
+            if (!current) {
+                current = {
+                    speaker: 'Técnico',
+                    side: 'technician',
+                    text: line,
+                };
+            } else {
+                current.text = `${current.text}\n${line}`;
+            }
+        }
+
+        pushCurrent();
+        return messages;
+    }
+
+    private normalizeTranscriptSpeaker(rawSpeaker: string): { speaker: string; side: 'ester' | 'technician' } {
+        const speaker = String(rawSpeaker || '').trim();
+        const normalized = speaker.toLowerCase();
+        const isEster = [
+            'ia',
+            'ai',
+            'assistant',
+            'asistente',
+            'bot',
+            'ester',
+            'vapi',
+            'agent',
+            'agente',
+        ].some(token => normalized === token || normalized.includes(token));
+
+        return isEster
+            ? { speaker: 'Ester', side: 'ester' }
+            : { speaker: speaker || 'Técnico', side: 'technician' };
+    }
+
+    openAvailabilityRecording(): void {
+        const solicitud = this.selectedTechnicianSolicitud;
+        if (!solicitud?.technician_response_call_id) return;
+
+        const localRecording = (solicitud as any)._availabilityRecordingUrl || '';
+        if (localRecording) {
+            this.showAvailabilityRecording(localRecording, solicitud);
+            return;
+        }
+
+        this.loadAvailabilityCallDetails(solicitud, (details) => {
+            if (!details.recordingUrl) {
+                this.messageService.add({
+                    severity: 'info',
+                    summary: 'Audio no disponible',
+                    detail: details.status === 'ended'
+                        ? 'La grabación aún se está procesando. Intenta en unos minutos.'
+                        : 'La llamada aún no tiene audio disponible.'
+                });
+                return;
+            }
+            this.showAvailabilityRecording(details.recordingUrl, solicitud);
+        });
+    }
+
+    isAvailabilityCallLoading(solicitud: Solicitud | null): boolean {
+        return !!solicitud?.technician_response_call_id && this.availabilityCallLoadingId === solicitud.technician_response_call_id;
+    }
+
+    private loadAvailabilityCallDetails(solicitud: Solicitud, callback: (details: VapiCallDetails) => void): void {
+        const callId = solicitud.technician_response_call_id;
+        if (!callId || this.availabilityCallLoadingId) return;
+
+        this.availabilityCallLoadingId = callId;
+        this.solicitudesService.getAvailabilityCallDetails(callId).subscribe({
+            next: (details) => {
+                this.availabilityCallLoadingId = '';
+                if (!details?.success) {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'No se pudo cargar',
+                        detail: details?.error || 'No se pudieron obtener los detalles de la llamada.'
+                    });
+                    return;
+                }
+                (solicitud as any)._availabilityRecordingUrl = details.recordingUrl || '';
+                (solicitud as any)._availabilityTranscript = details.transcript || solicitud.technician_response_transcript || '';
+                (solicitud as any)._availabilityCallStatus = details.status || '';
+                (solicitud as any)._availabilityCallDuration = details.duration;
+                if (details.transcript && !solicitud.technician_response_transcript) {
+                    solicitud.technician_response_transcript = details.transcript;
+                }
+                callback(details);
+            },
+            error: (error) => {
+                this.availabilityCallLoadingId = '';
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'No se pudo cargar',
+                    detail: error?.error?.message || 'Error consultando la llamada.'
+                });
+            }
+        });
+    }
+
+    private showAvailabilityRecording(recordingUrl: string, solicitud: Solicitud): void {
+        this.availabilityCallRecordingUrl = solicitud.technician_response_call_id
+            ? this.solicitudesService.getAvailabilityCallAudioUrl(solicitud.technician_response_call_id)
+            : recordingUrl;
+        this.availabilityCallStatus = (solicitud as any)._availabilityCallStatus || '';
+        this.availabilityCallDuration = (solicitud as any)._availabilityCallDuration;
+        this.availabilityCallAudioDialogVisible = true;
+    }
+
     isAvailabilityLoading(solicitud: Solicitud | null): boolean {
         return !!solicitud?._id && (this.verifyingAvailabilityId === solicitud._id || this.isTechnicianVerifying(solicitud));
     }
@@ -1997,6 +2298,26 @@ async initLocationMap(): Promise<void> {
             return this.userNameCache[sol.user_id];
         }
         return '';
+    }
+
+    getSolicitudPrimaryDeviceLabel(solicitud: Solicitud | null): string {
+        const installation = solicitud?.installations?.[0];
+        if (!installation) return 'Sin dispositivo asignado';
+
+        const vehicleParts = [
+            installation.plate,
+            this.getBrandName(installation.brand) !== '—' ? this.getBrandName(installation.brand) : '',
+            this.getModelName(installation.brand, installation.model),
+            installation.year,
+        ].filter(Boolean);
+
+        const vehicleLabel = vehicleParts.join(' ').trim();
+        const imei = installation.device_imei || installation.new_device_imei || '';
+
+        if (vehicleLabel && imei) return `${vehicleLabel} · IMEI ${imei}`;
+        if (vehicleLabel) return vehicleLabel;
+        if (imei) return `IMEI ${imei}`;
+        return 'Sin dispositivo asignado';
     }
 
     private resolveUserNames(): void {

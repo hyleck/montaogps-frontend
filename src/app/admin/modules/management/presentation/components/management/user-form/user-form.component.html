@@ -560,16 +560,33 @@
                                                 'management.userForm.companyTypeDescription' | translate }}</small>
                                         </div>
 
-                                        <!-- Sección de Ubicación interactiva -->
                                         <div class="settings-item">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-map-marker"></i>
-                                                <label>Configurar Ubicación Geográfica</label>
+                                                <label>Ubicación geográfica estática</label>
                                             </div>
-                                            <button type="button" class="premium-map-btn" (click)="openLocationModal()">
-                                                <i class="pi pi-map"></i>
-                                                Abrir Mapa de Ubicación
-                                            </button>
+                                            <div class="static-location-summary">
+                                                <div class="static-location-summary__icon">
+                                                    <i class="pi pi-map-marker"></i>
+                                                </div>
+                                                <div class="static-location-summary__content">
+                                                    <strong>{{ user.static_location_address || 'Sin ubicación configurada' }}</strong>
+                                                    <span *ngIf="user.static_latitude && user.static_longitude">
+                                                        {{ user.static_latitude | number:'1.5-5' }},
+                                                        {{ user.static_longitude | number:'1.5-5' }}
+                                                    </span>
+                                                    <span *ngIf="!user.static_latitude || !user.static_longitude">
+                                                        Dirección fija donde vive o trabaja el cliente.
+                                                    </span>
+                                                </div>
+                                                <button type="button" class="static-location-summary__button" (click)="openLocationModal()">
+                                                    <i class="pi pi-map"></i>
+                                                    Configurar
+                                                </button>
+                                            </div>
+                                            <small class="settings-description">
+                                                Esta ubicación es fija y no reemplaza la ubicación realtime del usuario.
+                                            </small>
                                         </div>
 
                                         <div class="settings-item tech-item"
@@ -638,58 +655,93 @@
 </div>
 
 <p-dialog [(visible)]="showLocationModal" [modal]="true" [draggable]="false" [resizable]="false"
-    [style]="{ width: '750px', maxWidth: '95vw' }" header="Lugar de Instalación Geográfica" styleClass="app-dark-dialog" appendTo="body" (onShow)="initLocationMap()">
-    <div class="location-modal-content" style="padding-top: 0.5rem;">
-        <div class="form-row-multi" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
-            
-            <div class="settings-item" style="margin: 0; padding: 0; background: transparent; border: none;">
-                <div class="settings-item__header" style="margin-bottom: 0.5rem;">
-                    <i class="pi pi-map" style="color: var(--primary-color); font-size: 0.9rem;"></i>
-                    <label style="font-weight: 600;">Provincia <span style="color: #ef4444; font-weight: bold;">*</span></label>
-                </div>
-                <select [(ngModel)]="selectedProvince" (ngModelChange)="onProvinceChange()" class="settings-dropdown" style="width: 100%; border: 1px solid var(--surface-border); border-radius: 6px; padding: 0.6rem; background-color: var(--surface-card); color: var(--text-color); transition: all 0.2s;">
-                    <option value="">Seleccione provincia</option>
-                    <option *ngFor="let p of availableProvinces" [value]="p.value">{{ p.label }}</option>
-                </select>
-            </div>
-
-            <div class="settings-item" style="margin: 0; padding: 0; background: transparent; border: none;">
-                <div class="settings-item__header" style="margin-bottom: 0.5rem;">
-                    <i class="pi pi-compass" style="color: var(--primary-color); font-size: 0.9rem;"></i>
-                    <label style="font-weight: 600;">Municipio <span style="color: #ef4444; font-weight: bold;">*</span></label>
-                </div>
-                <select [(ngModel)]="selectedMunicipality" (ngModelChange)="onMunicipalityChange()" [disabled]="!selectedProvince" class="settings-dropdown" [style.opacity]="selectedProvince ? '1' : '0.6'" style="width: 100%; border: 1px solid var(--surface-border); border-radius: 6px; padding: 0.6rem; background-color: var(--surface-card); color: var(--text-color); transition: all 0.2s;">
-                    <option value="">Seleccione municipio</option>
-                    <option *ngFor="let m of availableMunicipalities" [value]="m.value">{{ m.label }}</option>
-                </select>
-            </div>
-
-            <div class="settings-item" style="margin: 0; padding: 0; background: transparent; border: none;">
-                <div class="settings-item__header" style="margin-bottom: 0.5rem;">
-                    <i class="pi pi-th-large" style="color: var(--primary-color); font-size: 0.9rem;"></i>
-                    <label style="font-weight: 600;">Sector <span style="color: #ef4444; font-weight: bold;">*</span></label>
-                </div>
-                <select [(ngModel)]="user.sector" (ngModelChange)="onSectorChange()" [disabled]="!selectedMunicipality" class="settings-dropdown" [style.opacity]="selectedMunicipality ? '1' : '0.6'" style="width: 100%; border: 1px solid var(--surface-border); border-radius: 6px; padding: 0.6rem; background-color: var(--surface-card); color: var(--text-color); transition: all 0.2s;">
-                    <option value="">Seleccione sector</option>
-                    <option *ngFor="let s of availableSectors" [value]="s.value">{{ s.label }}</option>
-                </select>
+    [style]="{ width: '900px', maxWidth: '96vw' }" header="Ubicación geográfica estática" styleClass="app-dark-dialog static-location-dialog" appendTo="body" (onShow)="initLocationMap()">
+    <div class="static-location-modal">
+        <div class="static-location-modal__intro">
+            <i class="pi pi-map-marker"></i>
+            <div>
+                <strong>Ubicación fija del cliente</strong>
+                <span>Guarda dónde vive o trabaja. Esta ubicación no reemplaza la ubicación realtime.</span>
             </div>
         </div>
 
-        <div class="settings-item__header" style="margin-bottom: 0.75rem;">
-            <i class="pi pi-map-marker" style="color: var(--primary-color);"></i>
-            <label style="font-weight: 600;">Explorador Geográfico Interactivo</label>
-            <span style="font-size: 0.75rem; color: var(--text-color-secondary); margin-left: auto; font-style: italic;">Haz clic en el mapa para ajustar la coordenada</span>
-        </div>
-        
-        <div class="map-container" style="border-radius: 12px; overflow: hidden; border: 2px solid var(--surface-border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); transition: border-color 0.3s ease;">
-            <div id="userLocationMap" style="width: 100%; height: 350px;"></div>
+        <div class="static-location-options">
+            <section class="static-location-option">
+                <div class="static-location-option__title">
+                    <i class="pi pi-home"></i>
+                    <span>Dirección escrita</span>
+                </div>
+                <div class="static-location-field">
+                    <input type="text"
+                        [(ngModel)]="staticLocationManualAddress"
+                        name="staticLocationManualAddress"
+                        placeholder="Ej. Av. 27 de Febrero, Santo Domingo"
+                        (keydown.enter)="$event.preventDefault(); applyStaticManualAddress()" />
+                    <button type="button" (click)="applyStaticManualAddress()">Buscar</button>
+                </div>
+            </section>
+
+            <section class="static-location-option">
+                <div class="static-location-option__title">
+                    <i class="pi pi-link"></i>
+                    <span>Link de Google Maps</span>
+                </div>
+                <div class="static-location-field">
+                    <input type="url"
+                        [(ngModel)]="staticLocationGoogleMapsLink"
+                        name="staticLocationGoogleMapsLink"
+                        placeholder="Pega aquí el link de Google Maps"
+                        (keydown.enter)="$event.preventDefault(); applyStaticGoogleMapsLink()" />
+                    <button type="button" (click)="applyStaticGoogleMapsLink()">Aplicar</button>
+                </div>
+            </section>
         </div>
 
-        <div class="location-footer" style="display: flex; justify-content: flex-end; margin-top: 1.5rem; border-top: 1px solid var(--surface-border); padding-top: 1.25rem;">
-            <button type="button" class="button button--primary" (click)="showLocationModal = false" style="padding: 0.6rem 1.5rem; font-weight: 600; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.5rem; background: var(--primary-color); color: var(--primary-color-text); border: none; cursor: pointer; transition: filter 0.2s ease;">
-                <i class="pi pi-check" style="font-weight: bold;"></i>
-                Guardar Coordenadas y Cerrar
+        <section class="static-location-option static-location-option--search">
+            <div class="static-location-option__title">
+                <i class="pi pi-search"></i>
+                <span>Buscar con Google Maps</span>
+            </div>
+            <input #staticLocationSearchInput
+                type="text"
+                class="static-location-search"
+                placeholder="Busca una ubicación, negocio, residencia o sector" />
+        </section>
+
+        <div class="static-location-map-header">
+            <div>
+                <i class="pi pi-map"></i>
+                <span>Seleccionar punto en el mapa</span>
+            </div>
+            <small>Haz clic en el mapa para ajustar la coordenada exacta.</small>
+        </div>
+
+        <div class="map-container static-location-map">
+            <div id="userLocationMap"></div>
+        </div>
+
+        <div class="static-location-current">
+            <div>
+                <span>Dirección</span>
+                <strong>{{ user.static_location_address || 'Sin dirección seleccionada' }}</strong>
+            </div>
+            <div>
+                <span>Coordenadas</span>
+                <strong *ngIf="user.static_latitude && user.static_longitude">
+                    {{ user.static_latitude | number:'1.6-6' }}, {{ user.static_longitude | number:'1.6-6' }}
+                </strong>
+                <strong *ngIf="!user.static_latitude || !user.static_longitude">Sin coordenadas</strong>
+            </div>
+        </div>
+
+        <div class="location-footer">
+            <button type="button" class="static-location-clear" (click)="clearStaticLocation()">
+                <i class="pi pi-trash"></i>
+                Limpiar
+            </button>
+            <button type="button" class="button button--primary static-location-save" (click)="showLocationModal = false">
+                <i class="pi pi-check"></i>
+                Guardar y cerrar
             </button>
         </div>
     </div>
@@ -715,6 +767,227 @@
     .premium-map-btn:hover {
         background-color: var(--primary-color-dark, #4f46e5);
         transform: translateY(-1px);
+    }
+    .static-location-summary {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        border: 1px solid var(--surface-border);
+        border-radius: 10px;
+        padding: 0.75rem;
+        background: color-mix(in srgb, var(--surface-card) 92%, var(--primary-color) 8%);
+        color: var(--text-color);
+    }
+    .static-location-summary__icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        color: var(--primary-color);
+        background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+        flex: 0 0 auto;
+    }
+    .static-location-summary__content {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        flex: 1;
+    }
+    .static-location-summary__content strong,
+    .static-location-summary__content span {
+        display: block;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .static-location-summary__content strong {
+        font-size: 0.92rem;
+        font-weight: 800;
+    }
+    .static-location-summary__content span {
+        color: var(--text-color-secondary);
+        font-size: 0.78rem;
+    }
+    .static-location-summary__button {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border: 1px solid color-mix(in srgb, var(--primary-color) 42%, transparent);
+        background: color-mix(in srgb, var(--primary-color) 16%, transparent);
+        color: var(--primary-color);
+        border-radius: 999px;
+        padding: 0.55rem 0.85rem;
+        font-weight: 800;
+        cursor: pointer;
+    }
+    .static-location-modal {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    .static-location-modal__intro {
+        display: flex;
+        gap: 0.8rem;
+        align-items: center;
+        padding: 0.95rem;
+        border-radius: 12px;
+        border: 1px solid color-mix(in srgb, var(--primary-color) 24%, transparent);
+        background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    }
+    .static-location-modal__intro > i {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: grid;
+        place-items: center;
+        color: var(--primary-color);
+        background: color-mix(in srgb, var(--primary-color) 18%, transparent);
+    }
+    .static-location-modal__intro div {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+    .static-location-modal__intro strong {
+        font-size: 1rem;
+    }
+    .static-location-modal__intro span,
+    .static-location-map-header small,
+    .static-location-current span {
+        color: var(--text-color-secondary);
+        font-size: 0.82rem;
+    }
+    .static-location-options {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.9rem;
+    }
+    .static-location-option {
+        border: 1px solid var(--surface-border);
+        border-radius: 12px;
+        padding: 0.9rem;
+        background: var(--surface-card);
+    }
+    .static-location-option__title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.65rem;
+        color: var(--text-color);
+        font-weight: 800;
+    }
+    .static-location-option__title i {
+        color: var(--primary-color);
+    }
+    .static-location-field {
+        display: flex;
+        gap: 0.55rem;
+    }
+    .static-location-field input,
+    .static-location-search {
+        width: 100%;
+        border: 1px solid var(--surface-border);
+        border-radius: 10px;
+        padding: 0.7rem 0.8rem;
+        background: var(--surface-ground, var(--surface-card));
+        color: var(--text-color);
+        outline: none;
+    }
+    .static-location-field button {
+        border: 0;
+        border-radius: 10px;
+        padding: 0 0.9rem;
+        background: var(--primary-color);
+        color: var(--primary-color-text, #fff);
+        font-weight: 800;
+        cursor: pointer;
+    }
+    .static-location-map-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        align-items: center;
+    }
+    .static-location-map-header div {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 800;
+    }
+    .static-location-map {
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--surface-border);
+    }
+    .static-location-map #userLocationMap {
+        width: 100%;
+        height: 360px;
+    }
+    .static-location-current {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 1rem;
+        border: 1px solid var(--surface-border);
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        background: color-mix(in srgb, var(--surface-card) 92%, #000 8%);
+    }
+    .static-location-current div {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+    .static-location-current strong {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .location-footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        border-top: 1px solid var(--surface-border);
+        padding-top: 1rem;
+    }
+    .static-location-clear,
+    .static-location-save {
+        border-radius: 10px;
+        padding: 0.7rem 1rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-weight: 800;
+        cursor: pointer;
+    }
+    .static-location-clear {
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.08);
+    }
+    @media (max-width: 760px) {
+        .static-location-summary,
+        .static-location-map-header,
+        .location-footer {
+            align-items: stretch;
+            flex-direction: column;
+        }
+        .static-location-options,
+        .static-location-current {
+            grid-template-columns: 1fr;
+        }
+        .static-location-field {
+            flex-direction: column;
+        }
+        .static-location-field button {
+            padding: 0.7rem 0.9rem;
+        }
     }
 </style>
 

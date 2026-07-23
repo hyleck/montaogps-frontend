@@ -2,6 +2,24 @@
     <p-breadcrumb [model]="items" [home]="home" />
 </div>
 
+<div *ngIf="solicitudStartedToast as toast" class="sol-started-toast" (click)="openSolicitudStartedToast()">
+    <button type="button" class="sol-started-toast__close" (click)="closeSolicitudStartedToast($event)" aria-label="Cerrar aviso">
+        <i class="pi pi-times"></i>
+    </button>
+    <div class="sol-started-toast__icon">
+        <i class="pi pi-play"></i>
+    </div>
+    <div class="sol-started-toast__content">
+        <div class="sol-started-toast__eyebrow">
+            <i class="pi pi-bolt"></i>
+            Solicitud iniciada
+        </div>
+        <div class="sol-started-toast__title">{{ toast.technicianName }} inició el trabajo</div>
+        <div class="sol-started-toast__client">{{ toast.clientName }} · {{ toast.typeLabel }}</div>
+        <div class="sol-started-toast__device">{{ toast.deviceLabel }}</div>
+    </div>
+</div>
+
 <div class="sol-container">
     <!-- Header -->
     <div class="sol-header">
@@ -295,6 +313,18 @@
         <button type="button" class="sol-btn sol-btn-cancel" (click)="technicianDialogVisible = false">
             <i class="pi pi-times"></i> Cerrar
         </button>
+        <button *ngIf="hasAvailabilityCall(selectedTechnicianSolicitud)" type="button" class="sol-btn sol-btn-secondary"
+            [disabled]="isAvailabilityCallLoading(selectedTechnicianSolicitud)"
+            (click)="openAvailabilityTranscript()">
+            <i class="pi" [ngClass]="isAvailabilityCallLoading(selectedTechnicianSolicitud) ? 'pi-spin pi-spinner' : 'pi-align-left'"></i>
+            Ver transcripción
+        </button>
+        <button *ngIf="selectedTechnicianSolicitud?.technician_response_call_id" type="button" class="sol-btn sol-btn-secondary"
+            [disabled]="isAvailabilityCallLoading(selectedTechnicianSolicitud)"
+            (click)="openAvailabilityRecording()">
+            <i class="pi" [ngClass]="isAvailabilityCallLoading(selectedTechnicianSolicitud) ? 'pi-spin pi-spinner' : 'pi-volume-up'"></i>
+            Escuchar llamada
+        </button>
         <button *ngIf="!isTechnicianAccepted(selectedTechnicianSolicitud)" type="button" class="sol-btn sol-btn-save" [disabled]="isAvailabilityLoading(selectedTechnicianSolicitud)"
             (click)="verifyTechnicianAvailability()">
             <i class="pi" [ngClass]="isAvailabilityLoading(selectedTechnicianSolicitud) ? 'pi-spin pi-spinner' : 'pi-phone'"></i>
@@ -304,6 +334,54 @@
             (click)="openTechnicianLocationDialog()">
             <i class="pi pi-map-marker"></i>
             Ubicación del técnico
+        </button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="availabilityTranscriptDialogVisible" [style]="{width: '640px'}" header="Transcripción de llamada"
+    [modal]="true" styleClass="app-dark-dialog sol-call-transcript-dialog" [draggable]="false" [resizable]="false">
+    <ng-template pTemplate="content">
+        <div class="sol-call-transcript">
+            <div *ngIf="availabilityTranscriptMessages.length; else noTranscript" class="sol-call-transcript__messages">
+                <div *ngFor="let message of availabilityTranscriptMessages"
+                    class="sol-call-transcript__message"
+                    [class.sol-call-transcript__message--ester]="message.side === 'ester'"
+                    [class.sol-call-transcript__message--technician]="message.side === 'technician'">
+                    <div class="sol-call-transcript__avatar">
+                        <i class="pi" [ngClass]="message.side === 'ester' ? 'pi-sparkles' : 'pi-user'"></i>
+                    </div>
+                    <div class="sol-call-transcript__bubble">
+                        <strong>{{ message.speaker }}</strong>
+                        <p>{{ message.text }}</p>
+                    </div>
+                </div>
+            </div>
+            <ng-template #noTranscript>
+                <div class="sol-call-transcript__empty">
+                    <i class="pi pi-align-left"></i>
+                    <span>No hay transcripción disponible.</span>
+                </div>
+            </ng-template>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="availabilityTranscriptDialogVisible = false">
+            <i class="pi pi-times"></i> Cerrar
+        </button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="availabilityCallAudioDialogVisible" [style]="{width: '460px'}" header="Audio de llamada"
+    [modal]="true" styleClass="app-dark-dialog sol-call-audio-dialog" [draggable]="false" [resizable]="false">
+    <ng-template pTemplate="content">
+        <div class="sol-call-audio">
+            <audio *ngIf="availabilityCallRecordingUrl" [src]="availabilityCallRecordingUrl" controls></audio>
+            <span *ngIf="availabilityCallDuration">Duración: {{ availabilityCallDuration }}s</span>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="availabilityCallAudioDialogVisible = false">
+            <i class="pi pi-times"></i> Cerrar
         </button>
     </ng-template>
 </p-dialog>

@@ -71,6 +71,15 @@ export interface SolicitudesRealtimeState {
     latestUpdatedAt: string | null;
 }
 
+export interface VapiCallDetails {
+    success: boolean;
+    recordingUrl?: string;
+    transcript?: string;
+    status?: string;
+    duration?: number;
+    error?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SolicitudesService {
     private readonly apiUrl = `${environment.apiUrl}/solicitudes`;
@@ -109,6 +118,14 @@ export class SolicitudesService {
 
     verifyAvailability(id: string): Observable<Solicitud> {
         return this.http.post<Solicitud>(`${this.apiUrl}/${id}/verify-availability`, {});
+    }
+
+    getAvailabilityCallDetails(callId: string): Observable<VapiCallDetails> {
+        return this.http.get<VapiCallDetails>(`${environment.apiUrl}/vapi/call-recording/${callId}`);
+    }
+
+    getAvailabilityCallAudioUrl(callId: string): string {
+        return `${environment.apiUrl}/vapi/call-recording/${encodeURIComponent(callId)}/audio`;
     }
 
     delete(id: string): Observable<void> {
