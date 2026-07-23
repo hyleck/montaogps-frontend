@@ -42,6 +42,7 @@ export class InventoryComponent implements OnInit {
   isEditPackageMode = false;
   isEditMode = false;
   isEditWarehouseMode = false;
+  warehouseSearchQuery = '';
   selectedWarehouseAccessUsers: User[] = [];
   warehouseUserSearchDialogVisible = false;
   warehouseUserSearchTerm = '';
@@ -515,12 +516,40 @@ export class InventoryComponent implements OnInit {
   }
 
   // Warehouse Methods
+  get filteredWarehouses(): Warehouse[] {
+    const query = this.normalizeWarehouseSearch(this.warehouseSearchQuery);
+    if (!query) return this.warehouses || [];
+
+    return (this.warehouses || []).filter((warehouse) => {
+      const accessUsersText = this.getWarehouseAccessUsers(warehouse).join(' ');
+
+      const searchable = this.normalizeWarehouseSearch([
+        warehouse.name,
+        warehouse.description,
+        warehouse.stock,
+        warehouse.simcard_stock,
+        warehouse.min_quantity,
+        accessUsersText,
+      ].join(' '));
+
+      return searchable.includes(query);
+    });
+  }
+
   get attentionWarehouses(): Warehouse[] {
-    return this.warehouses ? this.warehouses.filter(w => (w.stock || 0) < (w.min_quantity || 0)) : [];
+    return this.filteredWarehouses.filter(w => (w.stock || 0) < (w.min_quantity || 0));
   }
 
   get regularWarehouses(): Warehouse[] {
-    return this.warehouses ? this.warehouses.filter(w => (w.stock || 0) >= (w.min_quantity || 0)) : [];
+    return this.filteredWarehouses.filter(w => (w.stock || 0) >= (w.min_quantity || 0));
+  }
+
+  private normalizeWarehouseSearch(value: any): string {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
   }
 
   loadWarehouses(): void {

@@ -711,6 +711,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             client_phone: '',
             client_email: '',
             quantity: 1,
+            scheduled_date: this.getCurrentDateTimeLocalValue(),
             installations: [{}],
             type: 'instalacion',
             status: status
@@ -1498,7 +1499,7 @@ async initLocationMap(): Promise<void> {
         this.selectedSolicitud = { ...solicitud, installations: solicitud.installations ? solicitud.installations.map(i => ({ ...i })) : [] };
         this.selectedSolicitud.scheduled_date = this.toDateTimeLocalValue(
             this.selectedSolicitud.scheduled_date || this.selectedSolicitud.installations?.[0]?.scheduled_date
-        );
+        ) || this.getCurrentDateTimeLocalValue();
         
         const qty = this.selectedSolicitud.quantity || 1;
         while (this.selectedSolicitud.installations!.length < qty) {
@@ -1604,7 +1605,7 @@ async initLocationMap(): Promise<void> {
     private syncSolicitudScheduledDate(): void {
         if (!this.selectedSolicitud) return;
 
-        const scheduledDate = this.toDateTimeLocalValue(this.selectedSolicitud.scheduled_date);
+        const scheduledDate = this.toDateTimeLocalValue(this.selectedSolicitud.scheduled_date) || this.getCurrentDateTimeLocalValue();
         this.selectedSolicitud.scheduled_date = scheduledDate;
 
         if (!this.selectedSolicitud.installations?.length || !scheduledDate) {
@@ -1633,6 +1634,10 @@ async initLocationMap(): Promise<void> {
 
         const pad = (part: number) => String(part).padStart(2, '0');
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    private getCurrentDateTimeLocalValue(): string {
+        return this.toDateTimeLocalValue(new Date());
     }
 
     private async shouldWarnMissingClientOnSave(): Promise<boolean> {

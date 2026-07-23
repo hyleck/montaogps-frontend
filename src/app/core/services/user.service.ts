@@ -93,6 +93,21 @@ export interface ClientVerificationMetrics {
   pendingPercent: number;
 }
 
+export interface PersonalizedCallHistory {
+  _id?: string;
+  callId?: string;
+  phone?: string;
+  clientName?: string;
+  reason?: string;
+  status?: string;
+  calledAt?: string | Date;
+  recordingUrl?: string;
+  transcript?: string;
+  summary?: string;
+  duration?: number;
+  endedAt?: string | Date;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -156,6 +171,10 @@ export class UserService {
 
   getClientVerificationMetrics(): Observable<ClientVerificationMetrics> {
     return this.http.get<ClientVerificationMetrics>(`${this.apiUrl}/metrics/client-verification`);
+  }
+
+  getPersonalizedCalls(userId: string): Observable<PersonalizedCallHistory[]> {
+    return this.http.get<PersonalizedCallHistory[]>(`${this.apiUrl}/${userId}/personalized-calls`);
   }
 
   create(createUserDto: CreateUserDto): Observable<User> {

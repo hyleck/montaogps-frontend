@@ -6,7 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { UserRolesService } from '@core/services/user-roles.service';
 import { MessageService } from 'primeng/api';
-import { UserService } from '@core/services/user.service';
+import { PersonalizedCallHistory, UserService } from '@core/services/user.service';
 import { AuthService } from '@core/services/auth.service';
 import { PrivilegeService } from './services/privilege.service';
 import { Subject, takeUntil } from 'rxjs';
@@ -17,6 +17,7 @@ import { SystemService } from '@core/services/system.service';
 import { MapUtils } from 'src/app/shareds/helpers/map.helper';
 import { ChatwootApiService } from '@core/services/chatwoot-api.service';
 import { InteraccionesService, UserList } from '../../../../../interacciones/presentation/services/interacciones.service';
+import { VapiService } from '@core/services/vapi.service';
 
 declare var google: any;
 
@@ -183,6 +184,14 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     pushBody: string = '';
     isSendingPush: boolean = false;
 
+    // Personalized calls
+    displayPersonalizedCallModal: boolean = false;
+    personalizedCallClientName: string = '';
+    personalizedCallReason: string = '';
+    sendingPersonalizedCall: boolean = false;
+    personalizedCallHistory: PersonalizedCallHistory[] = [];
+    loadingPersonalizedCallHistory: boolean = false;
+
     // Agregamos una nueva propiedad para controlar si estamos inicializando el formulario de edición
     private isInitializingEditForm: boolean = false;
 
@@ -241,7 +250,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         private cloudService: CloudService,
         private firebaseNotificationsService: FirebaseNotificationsService,
         private chatwootApi: ChatwootApiService,
-        private interaccionesService: InteraccionesService
+        private interaccionesService: InteraccionesService,
+        private vapiService: VapiService
     ) { }
 
     onPhotoSelected(event: any) {
@@ -290,6 +300,137 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 });
             }
         });
+    }
+
+    openPersonalizedCallModal(): void {
+        this.personalizedCallClientName = this.getUserFullName();
+        this.personalizedCallReason = '';
+        this.loadPersonalizedCallHistory();
+        this.displayPersonalizedCallModal = true;
+    }
+
+    sendPersonalizedCall(): void {
+        const phone = String(this.user.phone || this.user.phone2 || '').trim();
+        const name = String(this.personalizedCallClientName || '').trim();
+        const reason = String(this.personalizedCallReason || '').trim();
+
+        if (!phone) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Teléfono requerido',
+                detail: 'Este usuario no tiene un número de WhatsApp o teléfono registrado.'
+            });
+            return;
+        }
+
+        if (!name || !reason) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Datos incompletos',
+                detail: 'Debe indicar el nombre del cliente y el motivo de la llamada.'
+            });
+            return;
+        }
+
+        this.sendingPersonalizedCall = true;
+        this.vapiService.sendPersonalizedCall({
+            phone,
+            name,
+            query: reason,
+            userId: this.user._id,
+            purpose: 'personalized_user_call'
+        }).subscribe({
+            next: (response) => {
+                this.sendingPersonalizedCall = false;
+                if (response?.success) {
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Llamada iniciada',
+                        detail: 'La llamada personalizada fue enviada correctamente.'
+                    });
+                    this.personalizedCallReason = '';
+                    this.loadPersonalizedCallHistory();
+                    return;
+                }
+
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'No se pudo llamar',
+                    detail: response?.error || 'No se pudo iniciar la llamada personalizada.'
+                });
+            },
+            error: (error) => {
+                this.sendingPersonalizedCall = false;
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'No se pudo llamar',
+                    detail: error?.error?.message || error?.error?.error || 'No se pudo iniciar la llamada personalizada.'
+                });
+            }
+        });
+    }
+
+    loadPersonalizedCallHistory(): void {
+        const userId = this.user?._id || this.userInput?._id;
+        if (!userId) {
+            this.personalizedCallHistory = [];
+            return;
+        }
+
+        this.loadingPersonalizedCallHistory = true;
+        this.userService.getPersonalizedCalls(userId).pipe(takeUntil(this.destroy$)).subscribe({
+            next: (calls) => {
+                this.personalizedCallHistory = Array.isArray(calls) ? calls : [];
+                this.loadingPersonalizedCallHistory = false;
+            },
+            error: () => {
+                this.loadingPersonalizedCallHistory = false;
+                this.personalizedCallHistory = [];
+            }
+        });
+    }
+
+    getPersonalizedCallAudioUrl(call: PersonalizedCallHistory): string {
+        if (call.recordingUrl) return call.recordingUrl;
+        if (call.callId) return this.vapiService.getCallRecordingAudioUrl(call.callId);
+        return '';
+    }
+
+    hasPersonalizedCallAudio(call: PersonalizedCallHistory): boolean {
+        return !!call.recordingUrl || (!!call.callId && this.getPersonalizedCallStatus(call) === 'Finalizada');
+    }
+
+    formatPersonalizedCallDate(value: any): string {
+        if (!value) return 'Fecha no disponible';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return 'Fecha no disponible';
+        return date.toLocaleString('es-DO', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+    }
+
+    formatPersonalizedCallDuration(seconds?: number): string {
+        if (!seconds || seconds <= 0) return '';
+        const minutes = Math.floor(seconds / 60);
+        const remainder = Math.round(seconds % 60);
+        if (!minutes) return `${remainder}s`;
+        return `${minutes}m ${remainder}s`;
+    }
+
+    getPersonalizedCallStatus(call: PersonalizedCallHistory): string {
+        const status = String(call.status || '').toLowerCase();
+        if (call.transcript || call.recordingUrl || call.endedAt) return 'Finalizada';
+        if (status.includes('ended') || status.includes('complete')) return 'Finalizada';
+        if (status.includes('failed') || status.includes('error')) return 'Fallida';
+        return 'En proceso';
+    }
+
+    getUserFullName(): string {
+        return `${this.user.name || ''} ${this.user.last_name || ''}`.trim();
     }
 
     openCampaignModal() {
@@ -511,6 +652,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.user.static_location_address = '';
         this.user.static_latitude = undefined;
         this.user.static_longitude = undefined;
+        this.personalizedCallHistory = [];
+        this.loadingPersonalizedCallHistory = false;
         this.resetIdentityVerificationState();
     }
 
@@ -540,6 +683,10 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         console.log(user, 'holaaaaa4')
         // Rellenar el formulario con los datos del usuario a editar
         this.user = JSON.parse(JSON.stringify(user));
+        this.personalizedCallHistory = Array.isArray((user as any).personalized_calls)
+            ? (user as any).personalized_calls
+            : [];
+        this.loadPersonalizedCallHistory();
         this.user.birth = this.formatDateToInput(user.birth);
         this.selectedTheme = this.user.settings?.theme || 'light';
         this.selectedLanguage = this.user.settings?.language || 'es';

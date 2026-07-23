@@ -854,11 +854,95 @@ textarea.form-input {
 /* ============================================
    WAREHOUSE CARDS
    ============================================ */
+.warehouse-modal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.warehouse-modal-search {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+  max-width: 520px;
+}
+
+.warehouse-modal-search > i {
+  position: absolute;
+  left: 0.95rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--managementColorTextUser);
+  opacity: 0.55;
+  z-index: 1;
+}
+
+.warehouse-modal-search input {
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+  padding: 0 2.65rem 0 2.65rem;
+  border: 1px solid var(--managementFieldsBorder);
+  background: var(--managementColorBackgroundUser);
+  color: var(--managementColorTitleUser);
+  font-weight: 700;
+}
+
+.warehouse-modal-search input::placeholder {
+  color: var(--managementColorTextUser);
+  opacity: 0.55;
+}
+
+.warehouse-search-clear {
+  position: absolute;
+  right: 0.45rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--managementColorTextUser);
+  cursor: pointer;
+}
+
+.warehouse-search-clear:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.warehouse-search-summary {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0.85rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(20, 184, 166, 0.12);
+  color: #14b8a6;
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
 .warehouse-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.25rem;
   padding: 0.5rem 0;
+}
+
+@media (max-width: 640px) {
+  .warehouse-modal-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .warehouse-modal-search {
+    max-width: none;
+    min-width: 0;
+  }
 }
 
 .warehouse-card {

@@ -1459,6 +1459,31 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return target?.device_imei || target?.imei || target?.imei_number || 'N/A';
   }
 
+  getGpsDetailsExpirationLabel(target: any): string {
+    const source = target?.originalTarget || target || {};
+    const rawDate = target?.expiration_date
+      || source?.expiration_date
+      || target?.expirationDate
+      || source?.expirationDate
+      || target?.expires_at
+      || source?.expires_at
+      || target?.expiration
+      || source?.expiration;
+
+    if (!rawDate) return 'Expira: -';
+
+    const date = new Date(rawDate);
+    if (Number.isNaN(date.getTime())) return 'Expira: -';
+
+    const formatted = date.toLocaleDateString('es-DO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+
+    return `Expira: ${formatted}`;
+  }
+
   isGpsDetailsTag(target: any): boolean {
     const protocolObj = target?.protocol || target?.originalTarget?.protocol;
     if (protocolObj && typeof protocolObj === 'object') {

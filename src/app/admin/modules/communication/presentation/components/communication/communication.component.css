@@ -3828,6 +3828,10 @@
     font-weight: 700;
 }
 
+.comm-gps-details__target-copy .comm-gps-details__expiration {
+    color: rgba(34, 197, 94, 0.86);
+}
+
 .comm-gps-details__status {
     display: inline-flex;
     align-items: center;

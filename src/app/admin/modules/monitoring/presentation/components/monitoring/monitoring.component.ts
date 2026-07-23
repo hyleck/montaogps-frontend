@@ -2446,6 +2446,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
     const includeMileage = this.monitoringType === 'mileage';
     const includeRenewalDate = this.selectedExpirationFilter === 'expired' && this.includeRenewed;
+    const includeSimCardColumn = !this.isCurrentUserClient();
 
     // Create a new workbook
     const workbook = new ExcelJS.Workbook();
@@ -2461,11 +2462,15 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       { key: 'col6', width: 12 }, // Estado
       { key: 'col7', width: 15 }, // Conexión
       { key: 'col8', width: 15 }, // Fecha Instalación
-      { key: 'col9', width: 15 }, // Fecha Expiración
-      { key: 'col10', width: 15 } // Número SIM
+      { key: 'col9', width: 15 } // Fecha Expiración
     ];
 
-    let currentColCount = 10;
+    let currentColCount = 9;
+    if (includeSimCardColumn) {
+      currentColCount++;
+      cols.push({ key: `col${currentColCount}`, width: 15 }); // Número SIM
+    }
+
     let mileageKilometersColKey: string | null = null;
     let mileageRangeColKey: string | null = null;
     let renewalColKey: string | null = null;
@@ -2557,8 +2562,9 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       const titleRowData: any = {
         col1: '',
         col2: `Usuario: ${userName}`,
-        col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
+        col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: ''
       };
+      if (includeSimCardColumn) titleRowData.col10 = '';
       if (mileageKilometersColKey) titleRowData[mileageKilometersColKey] = '';
       if (mileageRangeColKey) titleRowData[mileageRangeColKey] = '';
       if (renewalColKey) titleRowData[renewalColKey] = '';
@@ -2586,8 +2592,9 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       const hierarchyRowData: any = {
         col1: '',
         col2: `Jerarquía: ${userHierarchy}`,
-        col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
+        col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: ''
       };
+      if (includeSimCardColumn) hierarchyRowData.col10 = '';
       if (mileageKilometersColKey) hierarchyRowData[mileageKilometersColKey] = '';
       if (mileageRangeColKey) hierarchyRowData[mileageRangeColKey] = '';
       if (renewalColKey) hierarchyRowData[renewalColKey] = '';
@@ -2605,8 +2612,9 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       const deviceCountRowData: any = {
         col1: '',
         col2: `Total de dispositivos: ${userData.devices.length}`,
-        col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: ''
+        col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: ''
       };
+      if (includeSimCardColumn) deviceCountRowData.col10 = '';
       if (mileageKilometersColKey) deviceCountRowData[mileageKilometersColKey] = '';
       if (mileageRangeColKey) deviceCountRowData[mileageRangeColKey] = '';
       if (renewalColKey) deviceCountRowData[renewalColKey] = '';
@@ -2621,7 +2629,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       currentRow++;
 
       // Add empty row for spacing
-      const spacerRowData: any = { col1: '', col2: '', col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '', col10: '' };
+      const spacerRowData: any = { col1: '', col2: '', col3: '', col4: '', col5: '', col6: '', col7: '', col8: '', col9: '' };
+      if (includeSimCardColumn) spacerRowData.col10 = '';
       if (mileageKilometersColKey) spacerRowData[mileageKilometersColKey] = '';
       if (mileageRangeColKey) spacerRowData[mileageRangeColKey] = '';
       if (renewalColKey) spacerRowData[renewalColKey] = '';
@@ -2638,9 +2647,9 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         col6: 'Estado',
         col7: 'Conexión',
         col8: 'Fecha Instalación',
-        col9: 'Fecha Expiración',
-        col10: 'Número SIM'
+        col9: 'Fecha Expiración'
       };
+      if (includeSimCardColumn) headerRowData.col10 = 'Número SIM';
       if (mileageKilometersColKey) headerRowData[mileageKilometersColKey] = 'Kilómetros';
       if (mileageRangeColKey) headerRowData[mileageRangeColKey] = 'Rango de kilometraje';
       if (renewalColKey) headerRowData[renewalColKey] = 'Fecha Renovación';
@@ -2683,8 +2692,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           col7: this.getConnectionDisplay(device),
           col8: this.formatActivationDate(device.activation_date) || '',
           col9: this.formatExpirationDate(device.expiration_date) || '',
-          col10: device.sim_card_number || '',
         };
+        if (includeSimCardColumn) dataRowData.col10 = device.sim_card_number || '';
 
         if (mileageKilometersColKey) {
           dataRowData[mileageKilometersColKey] = this.getDeviceKilometers(device);
@@ -2865,6 +2874,17 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     } catch (error) {
       console.error('Error exporting to Excel:', error);
     }
+  }
+
+  private isCurrentUserClient(): boolean {
+    const currentUser = this.authService.getCurrentUser() as any;
+    const affiliationType = String(
+      currentUser?.affiliation_type_id ||
+      currentUser?.affiliation_type ||
+      ''
+    ).trim().toLowerCase();
+
+    return affiliationType === 'cliente';
   }
 
 }

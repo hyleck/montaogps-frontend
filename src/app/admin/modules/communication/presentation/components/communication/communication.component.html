@@ -1110,6 +1110,7 @@
           <div class="comm-gps-details__target-copy">
             <strong>{{ getGpsDetailsTargetName(target) }}</strong>
             <span>IMEI: {{ getGpsDetailsTargetImei(target) }}</span>
+            <small class="comm-gps-details__expiration">{{ getGpsDetailsExpirationLabel(target) }}</small>
             <small *ngIf="getGpsDetailsLastUpdateLabel(target)">{{ getGpsDetailsLastUpdateLabel(target) }}</small>
           </div>
         </div>
