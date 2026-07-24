@@ -2059,7 +2059,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             phone: destinationPhone,
             message: directMessage,
             contact_name: contactName,
-            agent_id: this.chatwootAgentId || undefined
+            agent_id: this.chatwootAgentId || undefined,
+            conversation_id: this.waConversationId || undefined,
         }).subscribe({
             next: (res: any) => {
                 if (res.success) {
@@ -2105,7 +2106,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 this.waTemplateVars.name,
                 this.waTemplateVars.body
             ],
-            agent_id: this.chatwootAgentId || undefined
+            agent_id: this.chatwootAgentId || undefined,
+            conversation_id: this.waConversationId || undefined,
         }).subscribe({
             next: (res: any) => {
                 this.sendingWa = false;
@@ -2174,7 +2176,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 phone: destinationPhone,
                 message: this.waFreeText.trim(),
                 contact_name: `${this.userInput?.name || ''} ${this.userInput?.last_name || ''}`.trim(),
-                agent_id: this.chatwootAgentId || undefined
+                agent_id: this.chatwootAgentId || undefined,
+                conversation_id: this.waConversationId || undefined,
             }).subscribe({
                 next: (res: any) => {
                     this.sendingWa = false;

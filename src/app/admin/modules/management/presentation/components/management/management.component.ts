@@ -35,6 +35,10 @@ import { SystemService } from '@core/services/system.service';
 import { UserActivity, UserActivityService } from '@core/services/user-activity.service';
 import { Protocol } from '@core/interfaces/protocol.interface';
 import { SIM_CARD_TYPES } from '@core/constants/sim-card-types.constant';
+import {
+  DEVICE_CANCELLATION_REASONS,
+  getDeviceCancellationReasonLabel,
+} from '@core/constants/device-cancellation-reasons.constant';
 import { MapUtils, type MapProvider } from '@shared/helpers/map.helper';
 
 @Component({
@@ -163,18 +167,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     reason: '',
     description: ''
   };
-  cancelReasons = [
-    { label: 'Vehículo vendido', value: 'vehicle_sold' },
-    { label: 'Descontento con el servicio', value: 'service_dissatisfaction' },
-    { label: 'Cliente saldó el préstamo', value: 'loan_paid_off' },
-    { label: 'Renovación muy cara', value: 'renewal_too_expensive' },
-    { label: 'Vehículo robado', value: 'vehicle_stolen' },
-    { label: 'Vehículo en el taller', value: 'vehicle_in_shop' },
-    { label: 'Cambio de Dispositivo', value: 'device_change' },
-    { label: 'Cambio de Vehículo', value: 'vehicle_change' },
-    { label: 'Dispositivo dañado', value: 'device_damaged' },
-    { label: 'Sin razón específica', value: 'no_specific_reason' }
-  ];
+  cancelReasons = DEVICE_CANCELLATION_REASONS;
 
   // Suspend dialog state
   suspendDialogVisible = false;
@@ -4666,20 +4659,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const target = customTarget || this.targetToCancel;
     if (!target) return;
 
-    const reasonLabels: { [key: string]: string } = {
-      'vehicle_sold': 'Vehículo vendido',
-      'service_dissatisfaction': 'Descontento con el servicio',
-      'loan_paid_off': 'Cliente saldó el préstamo',
-      'renewal_too_expensive': 'Renovación muy cara',
-      'vehicle_stolen': 'Vehículo robado',
-      'vehicle_in_shop': 'Vehículo en el taller',
-      'device_change': 'Cambio de Dispositivo',
-      'vehicle_change': 'Cambio de Vehículo',
-      'device_damaged': 'Dispositivo dañado',
-      'no_specific_reason': 'Sin razón específica'
-    };
-
-    const reasonLabel = reasonLabels[this.cancelForm.reason] || this.cancelForm.reason;
+    const reasonLabel = getDeviceCancellationReasonLabel(this.cancelForm.reason);
 
     const processData = {
       type: 8, // Tipo 8 para cancelación

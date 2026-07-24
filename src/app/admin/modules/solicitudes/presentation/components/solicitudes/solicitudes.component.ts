@@ -15,6 +15,10 @@ import { User } from '../../../../../../core/interfaces/user.interface';
 import { Protocol } from '../../../../../../core/interfaces/protocol.interface';
 import { Plan } from '../../../../../../core/interfaces/plan.interface';
 import { SIM_CARD_TYPES } from '../../../../../../core/constants/sim-card-types.constant';
+import {
+    DEVICE_CANCELLATION_REASONS,
+    getDeviceCancellationReasonLabel,
+} from '../../../../../../core/constants/device-cancellation-reasons.constant';
 import { INSTALLATION_LOCATIONS } from '../../../../management/presentation/components/management/target-form/constants/target-form-data.constants';
 import { SystemService } from '../../../../../../core/services/system.service';
 import { MapUtils } from '../../../../../../shareds/helpers/map.helper';
@@ -51,16 +55,24 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     solicitudes: Solicitud[] = [];
     
-    get pendientes() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'pendiente' || s.status === 'aceptada' || s.status === 'rechazada')); }
-    get enProgreso() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'en_progreso')); }
-    get porConfirmar() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'por_confirmar')); }
-    get completadas() { return this.sortSolicitudesForDisplay(this.solicitudes.filter(s => s.status === 'completada' || s.status === 'cancelada')); }
+    get pendientes() { return this.sortSolicitudesForDisplay(this.filteredSolicitudes.filter(s => s.status === 'pendiente' || s.status === 'aceptada' || s.status === 'rechazada')); }
+    get enProgreso() { return this.sortSolicitudesForDisplay(this.filteredSolicitudes.filter(s => s.status === 'en_progreso')); }
+    get porConfirmar() { return this.sortSolicitudesForDisplay(this.filteredSolicitudes.filter(s => s.status === 'por_confirmar')); }
+    get completadas() { return this.sortSolicitudesForDisplay(this.filteredSolicitudes.filter(s => s.status === 'completada' || s.status === 'cancelada')); }
     
     // Drag and Drop
     draggedSolicitud: Solicitud | null = null;
     dragSuppressClick = false;
 
     onDragStart(event: DragEvent, sol: Solicitud): void {
+        if (this.isSolicitudClosed(sol)) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.draggedSolicitud = null;
+            this.showClosedSolicitudLockedFeedback();
+            return;
+        }
+
         this.draggedSolicitud = sol;
         if (event.dataTransfer) {
             event.dataTransfer.effectAllowed = 'move';
@@ -125,6 +137,20 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         const sol = this.draggedSolicitud;
         const oldStatus = sol.status;
         this.draggedSolicitud = null;
+
+        if (this.isSolicitudClosed(sol)) {
+            this.showClosedSolicitudLockedFeedback();
+            return;
+        }
+        if (sol.type === 'desinstalacion' && !this.hasValidDeinstallationReason(sol)) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Razón requerida',
+                detail: 'Abra la solicitud y seleccione una razón de desinstalación antes de cambiar su estado.'
+            });
+            return;
+        }
+
         this.dragSuppressClick = true;
         setTimeout(() => this.dragSuppressClick = false, 200);
 
@@ -147,33 +173,47 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         // If same column and no valid drop target, skip
         if (oldStatus === newStatus && dropIndex === -1) return;
 
-        // Update status
-        sol.status = newStatus;
+        const applyDrop = () => {
+            // Only mutate the card after any required confirmation has been accepted.
+            sol.status = newStatus;
 
-        // Insert at position
-        if (dropIndex >= 0 && dropIndex <= columnItems.length) {
-            columnItems.splice(dropIndex, 0, sol);
-        } else {
-            columnItems.push(sol);
-        }
+            if (dropIndex >= 0 && dropIndex <= columnItems.length) {
+                columnItems.splice(dropIndex, 0, sol);
+            } else {
+                columnItems.push(sol);
+            }
 
-        // Re-index all items in the column
-        columnItems.forEach((item, idx) => {
-            item.order = idx;
-            this.solicitudesService.update(item._id!, { order: idx, status: item.status }).subscribe();
-        });
-
-        if (oldStatus !== newStatus) {
-            this.messageService.add({
-                severity: 'success',
-                summary: 'Movido',
-                detail: `Solicitud movida a ${this.statusLabels[newStatus] || newStatus}`
+            columnItems.forEach((item, idx) => {
+                item.order = idx;
+                this.solicitudesService.update(item._id!, { order: idx, status: item.status }).subscribe();
             });
+
+            if (oldStatus !== newStatus) {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Movido',
+                    detail: `Solicitud movida a ${this.statusLabels[newStatus] || newStatus}`
+                });
+            }
+        };
+
+        if (newStatus === 'completada' && oldStatus !== 'completada') {
+            this.confirmSolicitudCompletion(sol, applyDrop);
+            return;
         }
+
+        applyDrop();
     }
 
     selectedSolicitud: Solicitud | null = null;
+    private selectedSolicitudOriginalStatus = '';
     dialogVisible = false;
+    closedInfoDialogVisible = false;
+    closedSolicitud: Solicitud | null = null;
+    closedSolicitudLocation = '';
+    completionConfirmDialogVisible = false;
+    completionSolicitud: Solicitud | null = null;
+    private pendingCompletionAction: (() => void) | null = null;
     installationModalVisible = false;
     editingInstallationIndex: number = 0;
     existingGpsTargetByInstallation: Record<number, any> = {};
@@ -232,11 +272,17 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     missingClientDialogVisible = false;
     missingClientChecking = false;
     private skipMissingClientCheckOnce = false;
+    deinstallationReasonError = false;
 
     // Filters
     filterType = '';
     filterStatus = '';
     searchQuery = '';
+    topFilterTechnician = '';
+    topFilterClient = '';
+    topFilterType = '';
+    topFilterDateFrom = '';
+    topFilterDateTo = '';
     clientEmailSuggestions: User[] = [];
     inventoryDeviceSuggestions: any[] = [];
 
@@ -289,6 +335,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         { label: 'Chequeo', value: 'chequeo' },
         { label: 'Cambio de GPS', value: 'cambio' }
     ];
+    readonly deinstallationReasons = DEVICE_CANCELLATION_REASONS;
 
     getEntityName(plural: boolean = false): string {
         const t = this.selectedSolicitud?.type || 'instalacion';
@@ -722,6 +769,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this._displayColorName = '';
         this.filteredColors = [...this.availableColors];
         this.isEditMode = false;
+        this.selectedSolicitudOriginalStatus = '';
+        this.deinstallationReasonError = false;
         
         this.showRootLocationData = false;
         this.showRootDetailsData = false;
@@ -736,6 +785,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     onTypeChange(): void {
         if (!this.selectedSolicitud) return;
+        if (this.selectedSolicitud.type !== 'desinstalacion') {
+            this.selectedSolicitud.deinstallation_reason = undefined;
+        }
+        this.deinstallationReasonError = false;
         this.onQuantityChange();
 
         if (this.isDeviceRequiredForSolicitud()) {
@@ -743,13 +796,42 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
     }
 
+    onDeinstallationReasonChange(): void {
+        this.deinstallationReasonError = false;
+    }
+
+    getDeinstallationReasonLabel(value?: string): string {
+        return getDeviceCancellationReasonLabel(value);
+    }
+
+    get completionDeinstallationReasonLabel(): string {
+        if (this.completionSolicitud?.type !== 'desinstalacion') return '';
+        return this.getDeinstallationReasonLabel(this.completionSolicitud.deinstallation_reason);
+    }
+
+    private hasValidDeinstallationReason(solicitud: Solicitud): boolean {
+        const selectedReason = String(solicitud.deinstallation_reason || '').trim();
+        return this.deinstallationReasons.some(reason => reason.value === selectedReason);
+    }
+
     isDeviceRequiredForSolicitud(): boolean {
         return ['chequeo', 'desinstalacion', 'cambio'].includes(this.selectedSolicitud?.type || '');
     }
 
     isSelectedSolicitudFinalized(): boolean {
-        const status = this.selectedSolicitud?.status;
-        return status === 'completada' || status === 'cancelada';
+        if (this.selectedSolicitudOriginalStatus === 'completada' || this.selectedSolicitudOriginalStatus === 'cancelada') {
+            return true;
+        }
+
+        const selectedId = this.selectedSolicitud?._id;
+        const currentSolicitud = selectedId
+            ? this.solicitudes.find(solicitud => solicitud._id === selectedId)
+            : null;
+        return this.isSolicitudClosed(currentSolicitud);
+    }
+
+    isSolicitudClosed(solicitud: Solicitud | null | undefined): boolean {
+        return solicitud?.status === 'completada' || solicitud?.status === 'cancelada';
     }
 
     isInstallationFlow(type?: string): boolean {
@@ -1493,13 +1575,26 @@ async initLocationMap(): Promise<void> {
     async editSolicitud(solicitud: Solicitud): Promise<void> {
         if (this.initialDataPromise) await this.initialDataPromise;
 
+        if (solicitud.status === 'completada' || solicitud.status === 'cancelada') {
+            this.closedSolicitud = {
+                ...solicitud,
+                installations: solicitud.installations?.map(installation => ({ ...installation })) || [],
+            };
+            this.closedSolicitudLocation = this.getClosedLocationFallback(this.closedSolicitud);
+            this.closedInfoDialogVisible = true;
+            void this.resolveClosedSolicitudLocation(this.closedSolicitud);
+            return;
+        }
+
         this.rootAvailableMunicipalities = [];
         this.rootAvailableSectors = [];
         
         this.selectedSolicitud = { ...solicitud, installations: solicitud.installations ? solicitud.installations.map(i => ({ ...i })) : [] };
+        this.selectedSolicitudOriginalStatus = solicitud.status;
+        this.deinstallationReasonError = false;
         this.selectedSolicitud.scheduled_date = this.toDateTimeLocalValue(
             this.selectedSolicitud.scheduled_date || this.selectedSolicitud.installations?.[0]?.scheduled_date
-        ) || this.getCurrentDateTimeLocalValue();
+        );
         
         const qty = this.selectedSolicitud.quantity || 1;
         while (this.selectedSolicitud.installations!.length < qty) {
@@ -1535,6 +1630,69 @@ async initLocationMap(): Promise<void> {
         this.openInstallationModal(0, false);
     }
 
+    closeClosedSolicitudInfo(): void {
+        this.closedInfoDialogVisible = false;
+        this.closedSolicitud = null;
+        this.closedSolicitudLocation = '';
+    }
+
+    getClosedSolicitudAddress(solicitud: Solicitud): string {
+        return solicitud.installations?.find(installation => installation.installation_location)?.installation_location || '';
+    }
+
+    getClosedSolicitudCoordinates(solicitud: Solicitud): string {
+        const installation = solicitud.installations?.find(item => item.latitude != null && item.longitude != null);
+        const latitude = solicitud.latitude ?? installation?.latitude;
+        const longitude = solicitud.longitude ?? installation?.longitude;
+        return latitude != null && longitude != null ? `${latitude}, ${longitude}` : '';
+    }
+
+    getClosedSolicitudMapsUrl(solicitud: Solicitud): string {
+        const coordinates = this.getClosedSolicitudCoordinates(solicitud);
+        return coordinates
+            ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordinates)}`
+            : '';
+    }
+
+    private getClosedLocationFallback(solicitud: Solicitud): string {
+        const installation = solicitud.installations?.[0];
+        const parts = [
+            solicitud.sector || installation?.sector,
+            solicitud.municipality || installation?.municipality,
+            solicitud.province || installation?.province,
+        ].filter(Boolean);
+        return parts.join(', ');
+    }
+
+    private async resolveClosedSolicitudLocation(solicitud: Solicitud): Promise<void> {
+        const installation = solicitud.installations?.[0];
+        const provinceCode = String(solicitud.province || installation?.province || '');
+        const municipalityCode = String(solicitud.municipality || installation?.municipality || '');
+        const sectorCode = String(solicitud.sector || installation?.sector || '');
+        if (!provinceCode && !municipalityCode && !sectorCode) return;
+
+        try {
+            const province = this.availableProvinces.find(option => String(option.value) === provinceCode)?.label || provinceCode;
+            let municipality = municipalityCode;
+            let sector = sectorCode;
+
+            if (provinceCode && municipalityCode) {
+                const municipalities = await this.vehicleBrandsService.getMunicipalities(provinceCode);
+                municipality = municipalities.find((item: any) => String(item.code) === municipalityCode)?.name || municipalityCode;
+            }
+            if (provinceCode && municipalityCode && sectorCode) {
+                const sectors = await this.vehicleBrandsService.getSectors(municipalityCode, provinceCode);
+                sector = sectors.find((item: any) => String(item.code) === sectorCode)?.name || sectorCode;
+            }
+
+            if (this.closedSolicitud?._id === solicitud._id) {
+                this.closedSolicitudLocation = [sector, municipality, province].filter(Boolean).join(', ');
+            }
+        } catch {
+            // Keep the stored codes as a safe fallback when catalogs are unavailable.
+        }
+    }
+
     async saveSolicitud(): Promise<void> {
         if (!this.selectedSolicitud) return;
         if (this.isSelectedSolicitudFinalized()) {
@@ -1545,6 +1703,20 @@ async initLocationMap(): Promise<void> {
             });
             return;
         }
+
+        if (
+            this.selectedSolicitud.type === 'desinstalacion'
+            && !this.hasValidDeinstallationReason(this.selectedSolicitud)
+        ) {
+            this.deinstallationReasonError = true;
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Razón requerida',
+                detail: 'Debe seleccionar una razón de desinstalación antes de guardar.'
+            });
+            return;
+        }
+        this.deinstallationReasonError = false;
 
         // Chequeos y desinstalaciones necesitan identificar el dispositivo.
         if (this.isDeviceRequiredForSolicitud()) {
@@ -1570,6 +1742,17 @@ async initLocationMap(): Promise<void> {
         }
         this.skipMissingClientCheckOnce = false;
         this.syncSolicitudScheduledDate();
+
+        if (this.selectedSolicitud.status === 'completada' && this.selectedSolicitudOriginalStatus !== 'completada') {
+            this.confirmSolicitudCompletion(this.selectedSolicitud, () => this.persistSolicitud());
+            return;
+        }
+
+        this.persistSolicitud();
+    }
+
+    private persistSolicitud(): void {
+        if (!this.selectedSolicitud) return;
 
         if (this.isEditMode && this.selectedSolicitud._id) {
             this.solicitudesService.update(this.selectedSolicitud._id, this.selectedSolicitud).subscribe({
@@ -1605,7 +1788,7 @@ async initLocationMap(): Promise<void> {
     private syncSolicitudScheduledDate(): void {
         if (!this.selectedSolicitud) return;
 
-        const scheduledDate = this.toDateTimeLocalValue(this.selectedSolicitud.scheduled_date) || this.getCurrentDateTimeLocalValue();
+        const scheduledDate = this.toDateTimeLocalValue(this.selectedSolicitud.scheduled_date);
         this.selectedSolicitud.scheduled_date = scheduledDate;
 
         if (!this.selectedSolicitud.installations?.length || !scheduledDate) {
@@ -1706,6 +1889,11 @@ async initLocationMap(): Promise<void> {
     }
 
     cancelSolicitud(solicitud: Solicitud): void {
+        if (this.isSolicitudClosed(solicitud)) {
+            this.showClosedSolicitudLockedFeedback();
+            return;
+        }
+
         this.confirmationService.confirm({
             message: '¿Estás seguro de cancelar esta solicitud?',
             header: 'Confirmar cancelación',
@@ -1725,9 +1913,54 @@ async initLocationMap(): Promise<void> {
         });
     }
 
+    private showClosedSolicitudLockedFeedback(): void {
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Solicitud cerrada',
+            detail: 'Una solicitud completada o cancelada no se puede mover ni reabrir.'
+        });
+    }
+
+    private confirmSolicitudCompletion(solicitud: Solicitud, accept: () => void): void {
+        if (solicitud.type === 'desinstalacion' && !this.hasValidDeinstallationReason(solicitud)) {
+            this.deinstallationReasonError = true;
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Razón requerida',
+                detail: 'Seleccione una razón de desinstalación antes de completar y cancelar los dispositivos.'
+            });
+            return;
+        }
+
+        this.completionSolicitud = solicitud;
+        this.pendingCompletionAction = accept;
+        this.completionConfirmDialogVisible = true;
+    }
+
+    cancelSolicitudCompletion(): void {
+        this.completionConfirmDialogVisible = false;
+        this.completionSolicitud = null;
+        this.pendingCompletionAction = null;
+    }
+
+    approveSolicitudCompletion(): void {
+        const action = this.pendingCompletionAction;
+        if (!action) {
+            this.cancelSolicitudCompletion();
+            return;
+        }
+
+        this.pendingCompletionAction = null;
+        this.completionSolicitud = null;
+        this.completionConfirmDialogVisible = false;
+        action();
+    }
+
     hideDialog(): void {
         this.dialogVisible = false;
         this.selectedSolicitud = null;
+        this.selectedSolicitudOriginalStatus = '';
+        this.deinstallationReasonError = false;
     }
 
     getStatusIcon(status: string): string {
@@ -2255,6 +2488,136 @@ async initLocationMap(): Promise<void> {
         });
     }
 
+    get filteredSolicitudes(): Solicitud[] {
+        const hasInvalidDateRange = this.hasInvalidTopFilterDateRange;
+        return this.solicitudes.filter(solicitud => {
+            if (this.topFilterTechnician === '__unassigned__' && solicitud.mechanic_id) {
+                return false;
+            }
+            if (
+                this.topFilterTechnician
+                && this.topFilterTechnician !== '__unassigned__'
+                && solicitud.mechanic_id !== this.topFilterTechnician
+            ) {
+                return false;
+            }
+            if (this.topFilterClient && this.getClientFilterKey(solicitud) !== this.topFilterClient) {
+                return false;
+            }
+            if (this.topFilterType && solicitud.type !== this.topFilterType) {
+                return false;
+            }
+
+            if (!hasInvalidDateRange && (this.topFilterDateFrom || this.topFilterDateTo)) {
+                const scheduledDate = this.getScheduledDateFilterKey(solicitud);
+                if (!scheduledDate) return false;
+                if (this.topFilterDateFrom && scheduledDate < this.topFilterDateFrom) return false;
+                if (this.topFilterDateTo && scheduledDate > this.topFilterDateTo) return false;
+            }
+            return true;
+        });
+    }
+
+    get topFilterTechnicianOptions(): SelectOption[] {
+        const options = this.availableTechnicians
+            .map(technician => ({
+                value: String(technician._id || technician.id || ''),
+                label: `${technician.name || ''} ${technician.last_name || ''}`.trim()
+                    || technician.email
+                    || 'Técnico asignado',
+            }))
+            .filter(option => option.value)
+            .sort((a, b) => a.label.localeCompare(b.label));
+
+        if (this.solicitudes.some(solicitud => !solicitud.mechanic_id)) {
+            options.unshift({ value: '__unassigned__', label: 'Sin técnico asignado' });
+        }
+        return options;
+    }
+
+    get topFilterClientOptions(): SelectOption[] {
+        const clients = new Map<string, string>();
+        for (const solicitud of this.solicitudes) {
+            const value = this.getClientFilterKey(solicitud);
+            const label = this.getClientDisplayName(solicitud)
+                || solicitud.client_email
+                || solicitud.client_phone
+                || 'Sin cliente identificado';
+            if (!clients.has(value) || clients.get(value) === 'Sin cliente identificado') {
+                clients.set(value, label);
+            }
+        }
+        return [...clients.entries()]
+            .map(([value, label]) => ({ value, label }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    get hasInvalidTopFilterDateRange(): boolean {
+        return !!this.topFilterDateFrom
+            && !!this.topFilterDateTo
+            && this.topFilterDateFrom > this.topFilterDateTo;
+    }
+
+    get activeTopFilterCount(): number {
+        return [
+            this.topFilterTechnician,
+            this.topFilterClient,
+            this.topFilterType,
+            this.topFilterDateFrom,
+            this.topFilterDateTo,
+        ].filter(Boolean).length;
+    }
+
+    clearTopFilters(): void {
+        this.topFilterTechnician = '';
+        this.topFilterClient = '';
+        this.topFilterType = '';
+        this.topFilterDateFrom = '';
+        this.topFilterDateTo = '';
+    }
+
+    private getClientFilterKey(solicitud: Solicitud): string {
+        if (solicitud.user_id) return `user:${solicitud.user_id}`;
+        const email = String(solicitud.client_email || '').trim().toLowerCase();
+        if (email) return `email:${email}`;
+        const phone = String(solicitud.client_phone || '').replace(/\D/g, '');
+        if (phone) return `phone:${phone}`;
+        const name = this.normalizeFilterText(this.getClientDisplayName(solicitud));
+        return name ? `name:${name}` : '__unidentified__';
+    }
+
+    private getScheduledDateFilterKey(solicitud: Solicitud): string {
+        const value = solicitud.scheduled_date || solicitud.installations?.[0]?.scheduled_date;
+        if (!value) return '';
+
+        if (value instanceof Date) {
+            return this.toLocalDateKey(value);
+        }
+
+        const raw = String(value).trim();
+        const datePrefix = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+        const hasExplicitTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(raw);
+        if (datePrefix && !hasExplicitTimezone) {
+            return datePrefix[1];
+        }
+
+        const date = new Date(raw);
+        return Number.isNaN(date.getTime()) ? '' : this.toLocalDateKey(date);
+    }
+
+    private toLocalDateKey(date: Date): string {
+        const pad = (value: number) => String(value).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    }
+
+    private normalizeFilterText(value?: string): string {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toLowerCase();
+    }
+
     onSearch(): void {
         this.realtimeStateVersion = '';
         this.loadSolicitudes();
@@ -2271,7 +2634,7 @@ async initLocationMap(): Promise<void> {
     }
 
     countByStatus(status: string): number {
-        return this.solicitudes.filter(s => s.status === status).length;
+        return this.filteredSolicitudes.filter(s => s.status === status).length;
     }
 
     getBrandName(brandId?: string): string {
@@ -2346,6 +2709,11 @@ async initLocationMap(): Promise<void> {
     // ====================================
 
     openInstallDialog(solicitud: Solicitud): void {
+        if (this.isSolicitudClosed(solicitud)) {
+            this.showClosedSolicitudLockedFeedback();
+            return;
+        }
+
         this.solicitudToInstall = solicitud;
 
         // Resolve brand and model names to pre-fill the target name
@@ -2462,6 +2830,20 @@ async initLocationMap(): Promise<void> {
             return;
         }
 
+        const sol = this.solicitudToInstall;
+        if (!sol) return;
+
+        if (sol.status !== 'completada') {
+            this.confirmSolicitudCompletion(sol, () => {
+                void this.performDeviceInstallation();
+            });
+            return;
+        }
+
+        await this.performDeviceInstallation();
+    }
+
+    private async performDeviceInstallation(): Promise<void> {
         this.installing = true;
         const sol = this.solicitudToInstall!;
         const currentUser = this.authService.getCurrentUser();

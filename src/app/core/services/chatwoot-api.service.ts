@@ -105,7 +105,7 @@ export class ChatwootApiService {
         return this.http.post(`${this.apiUrl}/conversation-assign`, { conversation_id: conversationId, agent_id: agentId });
     }
 
-    sendWhatsAppTemplateToUser(payload: { phone: string; template_name: string; variables: string[]; agent_id?: string }): Observable<any> {
+    sendWhatsAppTemplateToUser(payload: { phone: string; template_name: string; variables: string[]; agent_id?: string; conversation_id?: number }): Observable<any> {
         return this.http.post(`${this.apiUrl}/send-whatsapp`, payload);
     }
 
@@ -115,7 +115,7 @@ export class ChatwootApiService {
         });
     }
 
-    sendWhatsAppText(payload: { phone: string; message: string; contact_name?: string; agent_id?: string }): Observable<any> {
+    sendWhatsAppText(payload: { phone: string; message: string; contact_name?: string; agent_id?: string; conversation_id?: number }): Observable<any> {
         return this.http.post(`${this.apiUrl}/send-whatsapp-text`, payload);
     }
 

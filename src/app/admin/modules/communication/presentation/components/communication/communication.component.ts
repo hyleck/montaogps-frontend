@@ -3064,7 +3064,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           this.whatsappTemplateVars.name,
           this.whatsappTemplateVars.body
         ],
-        agent_id: this.chatwootAgentId ? this.chatwootAgentId.toString() : undefined
+        agent_id: this.chatwootAgentId ? this.chatwootAgentId.toString() : undefined,
+        conversation_id: this.selectedConversation.id,
     }).subscribe({
       next: (res) => {
         this.sendingTemplate = false;

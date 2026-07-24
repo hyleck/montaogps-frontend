@@ -84,6 +84,8 @@ export interface CreateTargetDto {
   installation_details?: string;
   status: boolean;
   canceled: boolean;
+  cancelReason?: string;
+  cancelDescription?: string;
   delete: boolean;
   index: string;
   plan?: string | null;
@@ -181,6 +183,8 @@ export interface TargetDevice {
   last_change_date: string;
   status: boolean | 'active' | 'inactive';
   canceled: boolean;
+  cancelReason?: string;
+  cancelDescription?: string;
   deleted: boolean;
   shared?: string;
   index: string;

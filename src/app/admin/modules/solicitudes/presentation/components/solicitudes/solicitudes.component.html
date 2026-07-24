@@ -38,6 +38,78 @@
         </button>
     </div>
 
+    <section class="sol-top-filters" aria-label="Filtros de solicitudes">
+        <div class="sol-top-filters__heading">
+            <div>
+                <span class="sol-top-filters__eyebrow">
+                    <i class="pi pi-filter" aria-hidden="true"></i>
+                    Filtros
+                    <b *ngIf="activeTopFilterCount">{{ activeTopFilterCount }}</b>
+                </span>
+                <small>{{ filteredSolicitudes.length }} de {{ solicitudes.length }} solicitudes visibles</small>
+            </div>
+            <button
+                type="button"
+                class="sol-top-filters__clear"
+                [disabled]="activeTopFilterCount === 0"
+                (click)="clearTopFilters()">
+                <i class="pi pi-filter-slash" aria-hidden="true"></i>
+                Limpiar
+            </button>
+        </div>
+
+        <div class="sol-top-filters__grid">
+            <label class="sol-top-filter-field">
+                <span>Técnico</span>
+                <select [(ngModel)]="topFilterTechnician">
+                    <option value="">Todos los técnicos</option>
+                    <option *ngFor="let technician of topFilterTechnicianOptions" [value]="technician.value">
+                        {{ technician.label }}
+                    </option>
+                </select>
+            </label>
+
+            <label class="sol-top-filter-field">
+                <span>Cliente</span>
+                <select [(ngModel)]="topFilterClient">
+                    <option value="">Todos los clientes</option>
+                    <option *ngFor="let client of topFilterClientOptions" [value]="client.value">
+                        {{ client.label }}
+                    </option>
+                </select>
+            </label>
+
+            <label class="sol-top-filter-field">
+                <span>Tipo</span>
+                <select [(ngModel)]="topFilterType">
+                    <option value="">Todos los tipos</option>
+                    <option *ngFor="let type of typeOptions.slice(1)" [value]="type.value">
+                        {{ type.label }}
+                    </option>
+                </select>
+            </label>
+
+            <div class="sol-top-filter-dates">
+                <span class="sol-top-filter-dates__label">Fecha programada</span>
+                <div class="sol-top-filter-dates__inputs">
+                    <label>
+                        <span>Desde</span>
+                        <input type="date" [(ngModel)]="topFilterDateFrom" [max]="topFilterDateTo || null" />
+                    </label>
+                    <label>
+                        <span>Hasta</span>
+                        <input type="date" [(ngModel)]="topFilterDateTo" [min]="topFilterDateFrom || null" />
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <small class="sol-top-filters__date-error" *ngIf="hasInvalidTopFilterDateRange" role="alert">
+            <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+            “Desde” no puede ser posterior a “Hasta”. Corrige el rango; mientras tanto no se aplicará el filtro de fecha.
+        </small>
+    </section>
+
 
     <!-- Loading -->
     <div *ngIf="loading" class="sol-loading">
@@ -224,49 +296,51 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('completada')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of completadas" (click)="!dragSuppressClick && editSolicitud(sol)"
-                draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
-                <div class="sol-kanban-card-top">
+            <div class="sol-kanban-card sol-kanban-card--closed-summary sol-kanban-card--locked" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of completadas" (click)="!dragSuppressClick && editSolicitud(sol)"
+                draggable="false">
+                <div class="sol-closed-head">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
-                </div>
-                <div class="sol-kanban-content">
-                    <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
-                    <div class="sol-card-tags">
-                        <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
-                        <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
-                            <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
+                    <div class="sol-closed-head__state">
+                        <span class="sol-closed-lock" pTooltip="Solicitud cerrada: no se puede mover ni reabrir" tooltipPosition="top">
+                            <i class="pi pi-lock"></i>
                         </span>
-                        <span class="sol-technician-verifying" *ngIf="isTechnicianVerifying(sol)"><i class="pi pi-spin pi-spinner"></i> Verificando</span>
-                        <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
-                    </div>
-                    <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
-                        <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
-                            <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
-                            <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
-                            <i *ngIf="!inst.completed && !inst.cancelled" class="pi pi-circle"></i>
-                            <span style="font-size: 0.8rem;">
-                                {{ inst.plate || 'Vehículo #' + (i+1) }} <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
-                            </span>
-                        </div>
+                        <span class="sol-closed-status" [attr.data-status]="sol.status">
+                            <i [class]="getStatusIcon(sol.status)"></i>
+                            {{ statusLabels[sol.status] || sol.status }}
+                        </span>
                     </div>
                 </div>
-                <div class="sol-tech-row" *ngIf="sol.mechanic_id" (click)="$event.stopPropagation()">
-                    <button type="button" class="sol-tech-button"
+
+                <div class="sol-closed-process">
+                    <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
+                    <span *ngIf="sol.installations && sol.installations.length > 1" class="sol-closed-count">
+                        {{ sol.installations.length }} procesos
+                    </span>
+                </div>
+
+                <div class="sol-closed-device" *ngIf="sol.installations && sol.installations.length > 0">
+                    <i class="pi pi-car"></i>
+                    <span>{{ getSolicitudPrimaryDeviceLabel(sol) }}</span>
+                    <small *ngIf="sol.installations.length > 1">+{{ sol.installations.length - 1 }}</small>
+                </div>
+
+                <div class="sol-closed-footer" (click)="$event.stopPropagation()">
+                    <button *ngIf="sol.mechanic_id" type="button" class="sol-closed-technician"
                         [class.is-loading]="isAvailabilityLoading(sol)" (click)="openTechnicianAvailabilityDialog(sol, $event)">
                         <i class="pi" [ngClass]="isAvailabilityLoading(sol) ? 'pi-spin pi-spinner' : 'pi-user'"></i>
                         <span>{{ getTechnicianDisplayName(sol) }}</span>
                     </button>
-                </div>
-                <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
-                    <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
-                    <div class="sol-kanban-actions">
-                        <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
-                            class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
-                            pTooltip="Cancelar" tooltipPosition="top"></button>
-                        <button pButton pRipple icon="pi pi-trash"
-                            class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
-                            pTooltip="Eliminar" tooltipPosition="top"></button>
-                    </div>
+                    <span *ngIf="!sol.mechanic_id" class="sol-closed-technician sol-closed-technician--empty">
+                        <i class="pi pi-user"></i>
+                        Sin técnico
+                    </span>
+                    <span class="sol-closed-date">
+                        <i class="pi pi-calendar"></i>
+                        {{ (sol.completed_date || sol.updatedAt || sol.createdAt) | date: 'dd/MM/yy' }}
+                    </span>
+                    <button pButton pRipple icon="pi pi-trash"
+                        class="sol-closed-delete p-button-rounded p-button-text p-button-danger"
+                        (click)="deleteSolicitud(sol)" pTooltip="Eliminar" tooltipPosition="top"></button>
                 </div>
             </div>
         </div>
@@ -446,6 +520,276 @@
     </ng-template>
 </p-dialog>
 
+<!-- Read-only details for completed/cancelled solicitudes -->
+<p-dialog [(visible)]="closedInfoDialogVisible"
+    [style]="{width: '900px'}"
+    [breakpoints]="{'960px': '94vw'}"
+    header="Detalle de solicitud cerrada"
+    [modal]="true"
+    styleClass="app-dark-dialog sol-closed-info-dialog"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="closeClosedSolicitudInfo()">
+    <ng-template pTemplate="content">
+        <div class="sol-closed-info" *ngIf="closedSolicitud as sol">
+            <header class="sol-closed-info__hero">
+                <div class="sol-closed-info__hero-icon">
+                    <i class="pi" [ngClass]="sol.status === 'cancelada' ? 'pi-times' : 'pi-check'"></i>
+                </div>
+                <div class="sol-closed-info__hero-copy">
+                    <span class="sol-closed-info__eyebrow">{{ typeLabels[sol.type] || sol.type }}</span>
+                    <h2>{{ getClientDisplayName(sol) || 'Cliente sin nombre' }}</h2>
+                    <p>{{ sol.description || 'Solicitud cerrada sin descripción general.' }}</p>
+                </div>
+                <span class="sol-closed-info__status" [attr.data-status]="sol.status">
+                    <i [class]="getStatusIcon(sol.status)"></i>
+                    {{ statusLabels[sol.status] || sol.status }}
+                </span>
+            </header>
+
+            <div class="sol-closed-info__grid">
+                <section class="sol-info-card">
+                    <div class="sol-info-card__title">
+                        <i class="pi pi-user"></i>
+                        <h3>Cliente y contacto</h3>
+                    </div>
+                    <dl class="sol-info-list">
+                        <div>
+                            <dt>Nombre</dt>
+                            <dd>{{ getClientDisplayName(sol) || 'No registrado' }}</dd>
+                        </div>
+                        <div *ngIf="sol.client_phone">
+                            <dt>Teléfono</dt>
+                            <dd>{{ sol.client_phone }}</dd>
+                        </div>
+                        <div *ngIf="sol.client_email">
+                            <dt>Email</dt>
+                            <dd>{{ sol.client_email }}</dd>
+                        </div>
+                        <div *ngIf="sol.contacts">
+                            <dt>Contacto adicional</dt>
+                            <dd>{{ sol.contacts }}</dd>
+                        </div>
+                        <div *ngIf="sol.referido">
+                            <dt>Referido por</dt>
+                            <dd>{{ sol.referido }}</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="sol-info-card">
+                    <div class="sol-info-card__title">
+                        <i class="pi pi-clipboard"></i>
+                        <h3>Proceso y fechas</h3>
+                    </div>
+                    <dl class="sol-info-list sol-info-list--two-columns">
+                        <div>
+                            <dt>Proceso</dt>
+                            <dd>{{ typeLabels[sol.type] || sol.type }}</dd>
+                        </div>
+                        <div>
+                            <dt>Estado</dt>
+                            <dd>{{ statusLabels[sol.status] || sol.status }}</dd>
+                        </div>
+                        <div *ngIf="sol.type === 'desinstalacion'">
+                            <dt>Razón de desinstalación</dt>
+                            <dd>{{ getDeinstallationReasonLabel(sol.deinstallation_reason) || 'No registrada' }}</dd>
+                        </div>
+                        <div>
+                            <dt>Cantidad</dt>
+                            <dd>{{ sol.quantity || sol.installations?.length || 1 }}</dd>
+                        </div>
+                        <div *ngIf="sol.createdAt">
+                            <dt>Creada</dt>
+                            <dd>{{ sol.createdAt | date: 'dd/MM/yyyy, h:mm a' }}</dd>
+                        </div>
+                        <div *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date">
+                            <dt>Programada</dt>
+                            <dd>{{ (sol.scheduled_date || sol.installations?.[0]?.scheduled_date) | date: 'dd/MM/yyyy, h:mm a' }}</dd>
+                        </div>
+                        <div *ngIf="sol.completed_date">
+                            <dt>Finalizada</dt>
+                            <dd>{{ sol.completed_date | date: 'dd/MM/yyyy, h:mm a' }}</dd>
+                        </div>
+                        <div *ngIf="sol.updatedAt">
+                            <dt>Última actualización</dt>
+                            <dd>{{ sol.updatedAt | date: 'dd/MM/yyyy, h:mm a' }}</dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <section class="sol-info-card">
+                    <div class="sol-info-card__title">
+                        <i class="pi pi-id-card"></i>
+                        <h3>Técnico</h3>
+                    </div>
+                    <dl class="sol-info-list">
+                        <div>
+                            <dt>Asignado</dt>
+                            <dd>{{ sol.mechanic_id ? getTechnicianDisplayName(sol) : 'Sin técnico asignado' }}</dd>
+                        </div>
+                        <ng-container *ngIf="getTechnicianById(sol.mechanic_id) as technician">
+                            <div *ngIf="technician.phone || technician.phone2">
+                                <dt>Teléfono</dt>
+                                <dd>{{ technician.phone || technician.phone2 }}</dd>
+                            </div>
+                            <div *ngIf="technician.email">
+                                <dt>Email</dt>
+                                <dd>{{ technician.email }}</dd>
+                            </div>
+                        </ng-container>
+                    </dl>
+                </section>
+
+                <section class="sol-info-card">
+                    <div class="sol-info-card__title">
+                        <i class="pi pi-map-marker"></i>
+                        <h3>Ubicación</h3>
+                    </div>
+                    <dl class="sol-info-list">
+                        <div>
+                            <dt>Zona</dt>
+                            <dd>{{ closedSolicitudLocation || 'Sin ubicación registrada' }}</dd>
+                        </div>
+                        <div *ngIf="getClosedSolicitudAddress(sol)">
+                            <dt>Lugar de instalación</dt>
+                            <dd>{{ getClosedSolicitudAddress(sol) }}</dd>
+                        </div>
+                        <div *ngIf="getClosedSolicitudCoordinates(sol)">
+                            <dt>Coordenadas</dt>
+                            <dd>
+                                <a class="sol-info-link" [href]="getClosedSolicitudMapsUrl(sol)" target="_blank" rel="noopener">
+                                    <i class="pi pi-external-link"></i>
+                                    {{ getClosedSolicitudCoordinates(sol) }}
+                                </a>
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
+            </div>
+
+            <section class="sol-closed-info__vehicles">
+                <div class="sol-closed-info__section-title">
+                    <div>
+                        <i class="pi pi-car"></i>
+                        <h3>Vehículos y dispositivos</h3>
+                    </div>
+                    <span>{{ sol.installations?.length || 0 }}</span>
+                </div>
+
+                <div class="sol-info-empty" *ngIf="!sol.installations?.length">
+                    <i class="pi pi-car"></i>
+                    No hay vehículos o dispositivos registrados.
+                </div>
+
+                <article class="sol-vehicle-card" *ngFor="let installation of sol.installations; let index = index">
+                    <header class="sol-vehicle-card__header">
+                        <div>
+                            <span>Vehículo {{ index + 1 }}</span>
+                            <strong>{{ installation.plate || getSolicitudPrimaryDeviceLabel(sol) }}</strong>
+                        </div>
+                        <span class="sol-vehicle-card__state"
+                            [class.is-cancelled]="installation.cancelled"
+                            [class.is-completed]="installation.completed && !installation.cancelled">
+                            <i class="pi" [ngClass]="installation.cancelled ? 'pi-times-circle' : (installation.completed ? 'pi-check-circle' : 'pi-circle')"></i>
+                            {{ installation.cancelled ? 'Cancelado' : (installation.completed ? 'Realizado' : 'Sin finalizar') }}
+                        </span>
+                    </header>
+
+                    <div class="sol-vehicle-card__details">
+                        <div *ngIf="installation.brand || installation.model">
+                            <span>Marca / modelo</span>
+                            <strong>{{ getBrandName(installation.brand) }} {{ getModelName(installation.brand, installation.model) }}</strong>
+                        </div>
+                        <div *ngIf="installation.year">
+                            <span>Año</span>
+                            <strong>{{ installation.year }}</strong>
+                        </div>
+                        <div *ngIf="installation.color">
+                            <span>Color</span>
+                            <strong>{{ getColorName(installation.color) }}</strong>
+                        </div>
+                        <div *ngIf="installation.plate">
+                            <span>Placa</span>
+                            <strong>{{ installation.plate }}</strong>
+                        </div>
+                        <div *ngIf="installation.chassis">
+                            <span>Chasis</span>
+                            <strong>{{ installation.chassis }}</strong>
+                        </div>
+                        <div *ngIf="installation.device_imei">
+                            <span>IMEI</span>
+                            <strong>{{ installation.device_imei }}</strong>
+                        </div>
+                        <div *ngIf="installation.new_device_imei">
+                            <span>Nuevo IMEI</span>
+                            <strong>{{ installation.new_device_imei }}</strong>
+                        </div>
+                        <div *ngIf="installation.sim_card_number">
+                            <span>SIM</span>
+                            <strong>{{ installation.sim_card_number }}</strong>
+                        </div>
+                        <div *ngIf="installation.new_sim_card_number">
+                            <span>Nueva SIM</span>
+                            <strong>{{ installation.new_sim_card_number }}</strong>
+                        </div>
+                        <div *ngIf="installation.sim_company">
+                            <span>Compañía SIM</span>
+                            <strong>{{ installation.sim_company }}</strong>
+                        </div>
+                        <div *ngIf="installation.engine_shutdown">
+                            <span>Apagado de motor</span>
+                            <strong>{{ installation.engine_shutdown }}</strong>
+                        </div>
+                        <div *ngIf="installation.ignition_sensor">
+                            <span>Sensor de ignición</span>
+                            <strong>{{ installation.ignition_sensor }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="sol-vehicle-card__notes"
+                        *ngIf="installation.diagnosis || installation.installation_details || installation.notes">
+                        <div *ngIf="installation.diagnosis">
+                            <span>Diagnóstico</span>
+                            <p>{{ installation.diagnosis }}</p>
+                        </div>
+                        <div *ngIf="installation.installation_details">
+                            <span>Detalles del trabajo</span>
+                            <p>{{ installation.installation_details }}</p>
+                        </div>
+                        <div *ngIf="installation.notes">
+                            <span>Notas</span>
+                            <p>{{ installation.notes }}</p>
+                        </div>
+                    </div>
+
+                    <div class="sol-vehicle-card__evidence" *ngIf="installation.images?.length || installation.audio">
+                        <span class="sol-evidence-label"><i class="pi pi-paperclip"></i> Evidencias</span>
+                        <a *ngFor="let image of installation.images; let evidenceIndex = index"
+                            [href]="image" target="_blank" rel="noopener" class="sol-evidence-chip">
+                            <i class="pi pi-image"></i>
+                            Foto {{ evidenceIndex + 1 }}
+                        </a>
+                        <a *ngIf="installation.audio" [href]="installation.audio" target="_blank" rel="noopener"
+                            class="sol-evidence-chip">
+                            <i class="pi pi-volume-up"></i>
+                            Audio
+                        </a>
+                    </div>
+                </article>
+            </section>
+
+            <section class="sol-info-card sol-info-card--full" *ngIf="sol.notes">
+                <div class="sol-info-card__title">
+                    <i class="pi pi-file-edit"></i>
+                    <h3>Notas generales</h3>
+                </div>
+                <p class="sol-info-note">{{ sol.notes }}</p>
+            </section>
+        </div>
+    </ng-template>
+</p-dialog>
+
 <!-- Create / Edit Dialog -->
 <p-dialog [(visible)]="dialogVisible" [style]="{width: '700px'}"
     [header]="isSelectedSolicitudFinalized() ? 'Solicitud finalizada' : (isEditMode ? 'Editar Solicitud' : 'Nueva Solicitud')" [modal]="true" styleClass="p-fluid app-dark-dialog"
@@ -476,6 +820,25 @@
                     <select [(ngModel)]="selectedSolicitud.status">
                         <option *ngFor="let opt of statusOptions.slice(1)" [value]="opt.value">{{ opt.label }}</option>
                     </select>
+                </div>
+            </div>
+
+            <div class="sol-form-row" *ngIf="selectedSolicitud.type === 'desinstalacion'">
+                <div class="sol-form-field">
+                    <label>Razón de desinstalación *</label>
+                    <select
+                        [(ngModel)]="selectedSolicitud.deinstallation_reason"
+                        (ngModelChange)="onDeinstallationReasonChange()"
+                        [class.sol-field-invalid]="deinstallationReasonError"
+                        required>
+                        <option [ngValue]="undefined" disabled>Seleccionar razón de desinstalación</option>
+                        <option *ngFor="let reason of deinstallationReasons" [value]="reason.value">
+                            {{ reason.label }}
+                        </option>
+                    </select>
+                    <small class="sol-field-error" *ngIf="deinstallationReasonError">
+                        Debe seleccionar una razón de desinstalación antes de guardar.
+                    </small>
                 </div>
             </div>
 
@@ -532,6 +895,7 @@
                     <div class="sol-form-field">
                         <label>Provincia</label>
                         <select [(ngModel)]="selectedSolicitud.province" (change)="onRootProvinceChange()">
+                            <option *ngIf="selectedSolicitud.province == null" [ngValue]="selectedSolicitud.province" disabled>Seleccionar provincia</option>
                             <option value="">Seleccionar provincia</option>
                             <option *ngFor="let p of availableProvinces" [value]="p.value">{{ p.label }}</option>
                         </select>
@@ -540,6 +904,7 @@
                         <label>Municipio</label>
                         <select [(ngModel)]="selectedSolicitud.municipality" (change)="onRootMunicipalityChange()"
                             [disabled]="rootAvailableMunicipalities.length === 0">
+                            <option *ngIf="selectedSolicitud.municipality == null" [ngValue]="selectedSolicitud.municipality" disabled>Seleccionar municipio</option>
                             <option value="">Seleccionar municipio</option>
                             <option *ngFor="let m of rootAvailableMunicipalities" [value]="m.value">{{ m.label }}</option>
                         </select>
@@ -548,6 +913,7 @@
                         <label>Sector</label>
                         <select [(ngModel)]="selectedSolicitud.sector" (change)="onRootSectorChange()"
                             [disabled]="rootAvailableSectors.length === 0">
+                            <option *ngIf="selectedSolicitud.sector == null" [ngValue]="selectedSolicitud.sector" disabled>Seleccionar sector</option>
                             <option value="">Seleccionar sector</option>
                             <option *ngFor="let sec of rootAvailableSectors" [value]="sec.value">{{ sec.label }}</option>
                         </select>
@@ -600,6 +966,7 @@
                     <div class="sol-form-field">
                         <label>Técnico Asignado</label>
                         <select [(ngModel)]="selectedSolicitud.mechanic_id">
+                            <option *ngIf="selectedSolicitud.mechanic_id == null" [ngValue]="selectedSolicitud.mechanic_id" disabled>Seleccionar técnico</option>
                             <option value="">Sin asignar</option>
                             <option *ngFor="let tech of availableTechnicians" [value]="tech._id || tech.id">{{ tech.name }} {{ tech.last_name || '' }}</option>
                         </select>
@@ -607,6 +974,7 @@
                     <div class="sol-form-field">
                         <label>Permisos para Confirmar</label>
                         <select [(ngModel)]="selectedSolicitud.confirmation_permission">
+                            <option *ngIf="!selectedSolicitud.confirmation_permission" [ngValue]="selectedSolicitud.confirmation_permission" disabled>Seleccionar permiso</option>
                             <option value="no">No puede confirmar {{ getEntityName().toLowerCase() }}</option>
                             <option value="si">Puede confirmar {{ getEntityName().toLowerCase() }}</option>
                         </select>
@@ -1009,6 +1377,88 @@
         <button type="button" class="sol-btn sol-btn-save" [disabled]="missingClientChecking" (click)="confirmMissingClientAndSave()">
             Guardar de todos modos
         </button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="completionConfirmDialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="true"
+    [closeOnEscape]="true"
+    [style]="{width: '520px'}"
+    [breakpoints]="{'640px': '94vw'}"
+    styleClass="app-dark-dialog sol-completion-confirm-dialog"
+    (onHide)="cancelSolicitudCompletion()">
+    <ng-template pTemplate="header">
+        <div class="sol-completion-confirm__header">
+            <span class="sol-completion-confirm__header-icon" aria-hidden="true">
+                <i class="pi pi-lock"></i>
+            </span>
+            <div>
+                <span class="sol-completion-confirm__eyebrow">Acción permanente</span>
+                <h2>Completar solicitud</h2>
+            </div>
+        </div>
+    </ng-template>
+
+    <div class="sol-completion-confirm" role="document">
+        <div class="sol-completion-confirm__hero">
+            <span class="sol-completion-confirm__warning-icon" aria-hidden="true">
+                <i class="pi pi-exclamation-triangle"></i>
+            </span>
+            <div>
+                <h3>¿Confirmas el cierre definitivo?</h3>
+                <p>
+                    <ng-container *ngIf="completionSolicitud?.client_name; else genericCompletionCopy">
+                        La solicitud de <strong>{{ completionSolicitud?.client_name }}</strong> se marcará como completada.
+                    </ng-container>
+                    <ng-template #genericCompletionCopy>Esta solicitud se marcará como completada.</ng-template>
+                </p>
+            </div>
+        </div>
+
+        <div
+            *ngIf="completionSolicitud?.type === 'desinstalacion' && completionDeinstallationReasonLabel"
+            class="sol-completion-confirm__device-impact"
+            role="note">
+            <i class="pi pi-ban" aria-hidden="true"></i>
+            <div>
+                <strong>Los dispositivos pasarán a cancelados</strong>
+                <span>
+                    Los dispositivos de las desinstalaciones realizadas se marcarán como cancelados con la razón
+                    <b>{{ completionDeinstallationReasonLabel }}</b>.
+                </span>
+            </div>
+        </div>
+
+        <div class="sol-completion-confirm__notice" role="alert">
+            <i class="pi pi-lock" aria-hidden="true"></i>
+            <div>
+                <strong>No se puede revertir</strong>
+                <span>Una vez completada, la solicitud quedará cerrada y no podrá volver a otro estado.</span>
+            </div>
+        </div>
+
+        <p class="sol-completion-confirm__instruction">
+            Verifica los datos, el dispositivo y los detalles del proceso antes de continuar.
+        </p>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="sol-completion-confirm__actions">
+            <button type="button" class="sol-btn sol-btn-cancel"
+                [autofocus]="true"
+                (click)="cancelSolicitudCompletion()">
+                <i class="pi pi-times" aria-hidden="true"></i>
+                Cancelar
+            </button>
+            <button type="button" class="sol-btn sol-completion-confirm__approve"
+                (click)="approveSolicitudCompletion()">
+                <i class="pi pi-lock" aria-hidden="true"></i>
+                Sí, completar definitivamente
+            </button>
+        </div>
     </ng-template>
 </p-dialog>
 

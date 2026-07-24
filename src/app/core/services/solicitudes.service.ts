@@ -50,6 +50,10 @@ export interface Solicitud {
     client_phone?: string;
     client_email?: string;
     description?: string;
+    notes?: string;
+    deinstallation_reason?: string;
+    contacts?: string;
+    referido?: string;
     province?: string;
     municipality?: string;
     sector?: string;
