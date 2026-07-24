@@ -160,7 +160,11 @@
                     <span>Cargando mensajes...</span>
                 </div>
 
-                <div *ngIf="!loadingMessages && messages.length === 0" class="comm-chat__no-messages">
+                <div *ngIf="!loadingMessages && messagesLoadError" class="comm-chat__no-messages">
+                    <span>{{ messagesLoadError }}</span>
+                </div>
+
+                <div *ngIf="!loadingMessages && !messagesLoadError && messages.length === 0" class="comm-chat__no-messages">
                     <span>Escribe un mensaje para enviarlo por WhatsApp</span>
                 </div>
 

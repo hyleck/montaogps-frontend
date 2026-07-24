@@ -155,7 +155,7 @@
                                             <button type="button" class="button button--primary-flat"
                                                 style="border: 2px solid #8b5cf6; color: #8b5cf6; padding: 0.75rem; width: 100%; border-radius: 8px; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
                                                 (click)="openPersonalizedCallModal()">
-                                                <i class="pi pi-phone"></i> Realizar llamada personalizada
+                                                <i class="pi pi-phone"></i> Llamadas personalizadas
                                             </button>
                                             <button type="button" class="button button--primary-flat"
                                                 style="border: 2px solid var(--globalColorPrimaryInmutable); padding: 0.75rem; width: 100%; border-radius: 8px; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
@@ -315,7 +315,7 @@
 
                         <p-dialog [(visible)]="displayPersonalizedCallModal" [modal]="true" [draggable]="false"
                             [resizable]="false"
-                            [style]="{ width: personalizedCallHistory.length > 0 ? '980px' : '490px', maxWidth: '94vw' }"
+                            [style]="{ width: personalizedCallHistory.length > 0 ? '1080px' : '490px', maxWidth: '94vw' }"
                             header="Realizar llamada personalizada" styleClass="app-dark-dialog" appendTo="body">
                             <div class="personalized-call-modal p-fluid"
                                 [class.personalized-call-modal--with-history]="personalizedCallHistory.length > 0">
@@ -388,7 +388,17 @@
 
                                             <details *ngIf="call.transcript" class="personalized-call-transcript">
                                                 <summary>Ver transcripción</summary>
-                                                <pre>{{ call.transcript }}</pre>
+                                                <div class="personalized-call-chat">
+                                                    <div *ngFor="let message of getPersonalizedCallTranscriptMessages(call.transcript)"
+                                                        class="personalized-call-chat__row"
+                                                        [class.personalized-call-chat__row--client]="message.speaker === 'client'">
+                                                        <div class="personalized-call-chat__bubble"
+                                                            [class.personalized-call-chat__bubble--client]="message.speaker === 'client'">
+                                                            <span class="personalized-call-chat__speaker">{{ message.label }}</span>
+                                                            <p>{{ message.text }}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </details>
                                         </article>
                                     </div>
@@ -552,7 +562,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="settings-item">
+                                        <div class="settings-item settings-item--static-location">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-palette"></i>
                                                 <label for="theme">{{ translations.theme | translate }}</label>
@@ -869,7 +879,8 @@
     }
     .static-location-summary {
         width: 100%;
-        display: flex;
+        display: grid;
+        grid-template-columns: 38px minmax(0, 1fr) auto;
         align-items: center;
         gap: 0.7rem;
         border: 1px solid var(--surface-border);
@@ -877,6 +888,11 @@
         padding: 0.75rem;
         background: color-mix(in srgb, var(--surface-card) 92%, var(--primary-color) 8%);
         color: var(--text-color);
+        box-sizing: border-box;
+        min-width: 0;
+    }
+    .settings-item--static-location {
+        grid-column: 1 / -1;
     }
     .static-location-summary__icon {
         width: 38px;
@@ -912,10 +928,11 @@
         font-size: 0.78rem;
     }
     .static-location-summary__button {
-        flex: 0 0 auto;
         display: inline-flex;
         align-items: center;
         gap: 0.35rem;
+        justify-content: center;
+        max-width: 100%;
         border: 1px solid color-mix(in srgb, var(--primary-color) 42%, transparent);
         background: color-mix(in srgb, var(--primary-color) 16%, transparent);
         color: var(--primary-color);
@@ -923,6 +940,7 @@
         padding: 0.55rem 0.85rem;
         font-weight: 800;
         cursor: pointer;
+        white-space: nowrap;
     }
     .static-location-modal {
         display: flex;
@@ -1071,7 +1089,13 @@
         background: rgba(239, 68, 68, 0.08);
     }
     @media (max-width: 760px) {
-        .static-location-summary,
+        .static-location-summary {
+            grid-template-columns: 38px minmax(0, 1fr);
+        }
+        .static-location-summary__button {
+            grid-column: 1 / -1;
+            width: 100%;
+        }
         .static-location-map-header,
         .location-footer {
             align-items: stretch;

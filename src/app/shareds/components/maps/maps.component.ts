@@ -49,6 +49,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   parentUserDistanceLabel: any = null;
   private currentPopup: any = null;
   private currentParentUserMarkerKey: string | null = null;
+  private isOwnerNearSelectedTarget: boolean = false;
   private mapReady: boolean = false;
   private pendingMapRender: boolean = false;
   private osmMarkerImagesReady: boolean = false;
@@ -925,13 +926,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
       // Popup para marcador seleccionado (Google)
       const infoWindow = new google.maps.InfoWindow({
-        content: `
-          <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
-            <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${title}</div>
-            <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
-            <div>Estado: ${statusText || 'desconocido'}</div>
-          </div>
-        `,
+        content: this.getSelectedTargetPopupHtml(title, statusText, isOnline),
       });
       this.currentPopup = infoWindow;
       let isOpen = isOnline;
@@ -987,13 +982,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
       // Popup para marcador seleccionado (Mapbox)
       const popup = new mapboxgl.Popup({ offset: 25, closeButton: true }).setHTML(
-        `
-          <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
-            <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${title}</div>
-            <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
-            <div>Estado: ${statusText || 'desconocido'}</div>
-          </div>
-        `,
+        this.getSelectedTargetPopupHtml(title, statusText, isOnline),
       );
       this.currentPopup = popup;
       this.currentMarker.setPopup(popup);
@@ -1045,13 +1034,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
       // Actualizar popup si existe
       if (this.currentPopup && this.currentPopup.setContent) {
-        this.currentPopup.setContent(`
-          <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
-            <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${title}</div>
-            <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
-            <div>Estado: ${statusText || 'desconocido'}</div>
-          </div>
-        `);
+        this.currentPopup.setContent(this.getSelectedTargetPopupHtml(title, statusText, isOnline));
       }
     } else {
       // Actualizar posición del marcador Mapbox
@@ -1062,13 +1045,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       }
 
       if (this.currentPopup && this.currentPopup.setHTML) {
-        this.currentPopup.setHTML(`
-          <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
-            <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${title}</div>
-            <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
-            <div>Estado: ${statusText || 'desconocido'}</div>
-          </div>
-        `);
+        this.currentPopup.setHTML(this.getSelectedTargetPopupHtml(title, statusText, isOnline));
       }
     }
 
@@ -1171,6 +1148,12 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   private clearParentUserMarker(): void {
+    this.isOwnerNearSelectedTarget = false;
+    this.clearParentUserMarkerOnly();
+    this.updateSelectedTargetPopupContent();
+  }
+
+  private clearParentUserMarkerOnly(): void {
     this.clearParentUserDistance();
 
     if (this.parentUserPopup) {
@@ -1240,6 +1223,22 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
+    const targetCoords = this.getTargetCoordinates(this.selectedTarget);
+    if (!targetCoords) {
+      this.clearParentUserMarker();
+      return;
+    }
+
+    const distanceKm = this.calculateDistanceKm(targetCoords.lat, targetCoords.lng, lat, lng);
+    if (distanceKm < 0.065) {
+      this.isOwnerNearSelectedTarget = true;
+      this.clearParentUserMarkerOnly();
+      this.updateSelectedTargetPopupContent();
+      this.openSelectedTargetPopup();
+      return;
+    }
+
+    this.isOwnerNearSelectedTarget = false;
     const label = this.getParentUserMarkerLabel();
     const markerKey = `${this.parentUserLocation.userId}:${lat.toFixed(6)}:${lng.toFixed(6)}:${label}`;
     const isNewMarker = this.currentParentUserMarkerKey !== markerKey;
@@ -1255,6 +1254,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     if (isNewMarker) {
       this.currentParentUserMarkerKey = markerKey;
     }
+    this.updateSelectedTargetPopupContent();
   }
 
   private upsertGoogleParentUserMarker(lat: number, lng: number, label: string): void {
@@ -1560,6 +1560,93 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     const name = this.parentUserLocation?.name || 'Usuario';
     const relativeTime = this.getRelativeLocationAge(this.parentUserLocation?.recordedAt);
     return relativeTime ? `${name} · ${relativeTime}` : name;
+  }
+
+  private getOwnerNearTargetText(): string {
+    const name = this.getFirstName(this.parentUserLocation?.name || 'Usuario');
+    const relativeTime = this.getRelativeLocationAge(this.parentUserLocation?.recordedAt);
+    const minutesAgo = this.getLocationAgeMinutes(this.parentUserLocation?.recordedAt);
+
+    if (minutesAgo !== null && minutesAgo < 1) {
+      return `${name} esta junto al vehiculo`;
+    }
+
+    if (minutesAgo !== null && minutesAgo < 3) {
+      return relativeTime
+        ? `${name} estuvo junto al vehiculo ${relativeTime}`
+        : `${name} estuvo junto al vehiculo`;
+    }
+
+    return relativeTime
+      ? `${name} estuvo en esta ubicacion ${relativeTime}`
+      : `${name} estuvo en esta ubicacion`;
+  }
+
+  private getFirstName(name: string): string {
+    const firstName = String(name || '').trim().split(/\s+/)[0];
+    return firstName || 'Usuario';
+  }
+
+  private getLocationAgeMinutes(value?: string | Date): number | null {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return Math.max(0, (Date.now() - date.getTime()) / 60000);
+  }
+
+  private updateSelectedTargetPopupContent(): void {
+    if (!this.currentPopup || !this.selectedTarget) {
+      return;
+    }
+
+    const title = this.selectedTarget?.name || 'Target';
+    const statusText = (this.selectedTarget?.traccarStatus || 'desconocido').toLowerCase();
+    const isOnline = this.isOnlineLikeStatus(statusText);
+    const html = this.getSelectedTargetPopupHtml(title, statusText, isOnline);
+
+    if (this.currentPopup.setContent) {
+      this.currentPopup.setContent(html);
+      return;
+    }
+
+    this.currentPopup.setHTML?.(html);
+  }
+
+  private openSelectedTargetPopup(): void {
+    if (!this.currentPopup || !this.currentMarker) {
+      return;
+    }
+
+    try {
+      if (this.currentPopup.open && this.provider === 'google') {
+        this.currentPopup.open(this.map, this.currentMarker);
+        return;
+      }
+
+      if (this.currentPopup.isOpen?.()) {
+        return;
+      }
+
+      this.currentMarker.togglePopup?.();
+    } catch (_) {
+      // ignore
+    }
+  }
+
+  private getSelectedTargetPopupHtml(title: string, statusText: string, isOnline: boolean): string {
+    const nearOwnerText = this.isOwnerNearSelectedTarget ? this.escapeHtml(this.getOwnerNearTargetText()) : '';
+    const nearOwnerBlock = nearOwnerText
+      ? `<div style="margin-top: 5px; padding: 5px 7px; border-radius: 8px; background: rgba(34, 197, 94, 0.12); color: #15803d; font-weight: 700;">${nearOwnerText}</div>`
+      : '';
+
+    return `
+      <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 180px; padding: 6px 8px;">
+        <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${this.escapeHtml(title)}</div>
+        <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
+        <div>Estado: ${this.escapeHtml(statusText || 'desconocido')}</div>
+        ${nearOwnerBlock}
+      </div>
+    `;
   }
 
   private getParentUserPopupHtml(): string {

@@ -14,7 +14,7 @@ import { ChatwootNotificationSoundService } from '@core/services/chatwoot-notifi
 import { InternalChatAttachment, InternalChatMessage, InternalChatService } from '@core/services/internal-chat.service';
 import { MessageService, MenuItem } from 'primeng/api';
 import { environment } from '../../../../../../../environments/environment';
-import { Subscription } from 'rxjs';
+import { finalize, Subscription, timeout } from 'rxjs';
 
 interface ChatConversation {
   id: number;
@@ -235,6 +235,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // New Compose Modal
   showComposeModal: boolean = false;
   loadingMessages: boolean = false;
+  messagesLoadError: string = '';
+  private activeMessagesRequestId = 0;
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
   @ViewChild('internalMessagesContainer') internalMessagesContainer!: ElementRef;
   @ViewChild('internalMediaFileInput') internalMediaFileInput!: ElementRef;
@@ -2230,9 +2232,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.chatwootApi.saveStickerFromImage({
       image_url: attachment.url,
       name: fallbackName
-    }).subscribe({
+    }).pipe(
+      timeout(45000),
+      finalize(() => this.savingStickerUrl = null)
+    ).subscribe({
       next: (res: any) => {
-        this.savingStickerUrl = null;
         if (res?.success && res.sticker) {
           this.stickers = [res.sticker, ...this.stickers.filter(sticker => sticker.id !== res.sticker.id)];
           this.showStickerPicker = true;
@@ -2246,7 +2250,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.messageService.add({ severity: 'error', summary: 'No se pudo guardar', detail: res?.error || 'Intenta con otra imagen' });
       },
       error: () => {
-        this.savingStickerUrl = null;
         this.messageService.add({ severity: 'error', summary: 'No se pudo guardar', detail: 'Error de conexión al guardar el sticker' });
       }
     });
@@ -2438,9 +2441,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   loadMessages(): void {
     if (!this.selectedConversation) return;
 
+    const conversationId = this.selectedConversation.id;
+    const requestId = ++this.activeMessagesRequestId;
     this.loadingMessages = true;
-    this.chatwootApi.getConversationMessages(this.selectedConversation.id).subscribe({
+    this.messagesLoadError = '';
+    this.chatwootApi.getConversationMessages(conversationId).pipe(timeout(20000)).subscribe({
       next: (res: any) => {
+        if (requestId !== this.activeMessagesRequestId || this.selectedConversation?.id !== conversationId) return;
         this.loadingMessages = false;
         if (res.success && res.messages?.length) {
           // Build a quick lookup for reply references
@@ -2474,7 +2481,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.scrollToBottom();
         this.startChatPolling();
       },
-      error: () => {
+      error: (error) => {
+        if (requestId !== this.activeMessagesRequestId || this.selectedConversation?.id !== conversationId) return;
+        console.error('[Communication] Error loading conversation messages:', error);
+        this.messagesLoadError = 'No se pudieron cargar los mensajes. Intenta actualizar.';
         this.loadingMessages = false;
         this.startChatPolling();
       }
@@ -2563,9 +2573,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.chatwootApi.saveStickerFromImage({
       image_url: att.data_url,
       name: fallbackName
-    }).subscribe({
+    }).pipe(
+      timeout(45000),
+      finalize(() => this.savingStickerUrl = null)
+    ).subscribe({
       next: (res: any) => {
-        this.savingStickerUrl = null;
         if (res?.success && res.sticker) {
           this.stickers = [res.sticker, ...this.stickers.filter(sticker => sticker.id !== res.sticker.id)];
           this.showStickerPicker = true;
@@ -2585,7 +2597,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         });
       },
       error: () => {
-        this.savingStickerUrl = null;
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo guardar',
@@ -2611,9 +2622,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
 
     this.uploadingSticker = true;
-    this.chatwootApi.uploadStickerImage(file, file.name).subscribe({
+    this.chatwootApi.uploadStickerImage(file, file.name).pipe(
+      timeout(45000),
+      finalize(() => this.uploadingSticker = false)
+    ).subscribe({
       next: (res: any) => {
-        this.uploadingSticker = false;
         if (res?.success && res.sticker) {
           this.stickers = [res.sticker, ...this.stickers.filter(sticker => sticker.id !== res.sticker.id)];
           this.showStickerPicker = true;
@@ -2633,7 +2646,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         });
       },
       error: () => {
-        this.uploadingSticker = false;
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo crear',
@@ -3078,9 +3090,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.stopChatPolling();
     this.chatPollingInterval = setInterval(() => {
       if (!this.selectedConversation) return;
+      const conversationId = this.selectedConversation.id;
 
-      this.chatwootApi.getConversationMessages(this.selectedConversation.id).subscribe({
+      this.chatwootApi.getConversationMessages(conversationId).pipe(timeout(20000)).subscribe({
         next: (res: any) => {
+          if (this.selectedConversation?.id !== conversationId) return;
           if (res.success && res.messages?.length) {
             const newestId = res.messages[res.messages.length - 1].id;
             if (newestId !== this.lastApiMessageId) {
@@ -3100,6 +3114,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
               this.scrollToBottom();
             }
           }
+        },
+        error: (error) => {
+          console.warn('[Communication] Error polling conversation messages:', error);
         }
       });
     }, this.POLL_INTERVAL);

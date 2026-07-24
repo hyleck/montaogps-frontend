@@ -421,6 +421,39 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         return `${minutes}m ${remainder}s`;
     }
 
+    getPersonalizedCallTranscriptMessages(transcript?: string): Array<{ speaker: 'agent' | 'client'; label: string; text: string }> {
+        if (!transcript) return [];
+
+        const messages: Array<{ speaker: 'agent' | 'client'; label: string; text: string }> = [];
+        const lines = transcript
+            .split(/\r?\n/)
+            .map(line => line.trim())
+            .filter(Boolean);
+
+        for (const line of lines) {
+            const match = line.match(/^(AI|IA|Ester|Assistant|Agent|Agente|User|Usuario|Cliente)\s*:\s*(.+)$/i);
+            if (!match) {
+                const last = messages[messages.length - 1];
+                if (last) {
+                    last.text = `${last.text} ${line}`.trim();
+                } else {
+                    messages.push({ speaker: 'agent', label: 'Ester', text: line });
+                }
+                continue;
+            }
+
+            const rawSpeaker = match[1].toLowerCase();
+            const isClient = ['user', 'usuario', 'cliente'].includes(rawSpeaker);
+            messages.push({
+                speaker: isClient ? 'client' : 'agent',
+                label: isClient ? 'Cliente' : 'Ester',
+                text: match[2].trim()
+            });
+        }
+
+        return messages;
+    }
+
     getPersonalizedCallStatus(call: PersonalizedCallHistory): string {
         const status = String(call.status || '').toLowerCase();
         if (call.transcript || call.recordingUrl || call.endedAt) return 'Finalizada';
