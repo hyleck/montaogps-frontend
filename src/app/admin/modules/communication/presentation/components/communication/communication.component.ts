@@ -278,6 +278,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private whatsappAgentId: string = '';
   private currentUserName: string = '';
   private currentUserDepartment: string = '';
+  private playableAudioUrls = new Map<string, string>();
+  private playableAudioLoading = new Set<string>();
+  private playableAudioErrors = new Set<string>();
+  private playableAudioSubscriptions = new Map<string, Subscription>();
 
   constructor(
     private whatsappApi: WhatsAppApiService,
@@ -385,6 +389,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.stopActiveEmployeesPolling();
     this.cancelVoiceRecording();
     this.internalChatMutedSubscription?.unsubscribe();
+    this.resetPlayableAudio();
   }
 
   // ============================
@@ -1325,6 +1330,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   selectConversation(conv: ChatConversation, navigate: boolean = true): void {
     conv.unread_count = 0; // Clear indicator instantly mimicking visual read receipts
+    this.resetPlayableAudio();
     this.selectedConversation = conv;
     if (this.currentUserId) {
       localStorage.setItem(`last_opened_chat_${this.currentUserId}`, conv.id.toString());
@@ -2508,6 +2514,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             }
             return mapped;
           });
+          this.preparePlayableAudio(this.messages);
           this.lastApiMessageId = res.messages[res.messages.length - 1].id;
         } else {
           this.lastApiMessageId = null;
@@ -2703,7 +2710,102 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   getPlayableAudioUrl(att: ChatAttachment): string {
-    return this.whatsappApi.getPlayableAudioUrl(att?.data_url || '');
+    return this.playableAudioUrls.get(
+      String(att?.data_url || '').trim()
+    ) || '';
+  }
+
+  isPlayableAudioLoading(att: ChatAttachment): boolean {
+    return this.playableAudioLoading.has(
+      String(att?.data_url || '').trim()
+    );
+  }
+
+  hasPlayableAudioError(att: ChatAttachment): boolean {
+    return this.playableAudioErrors.has(
+      String(att?.data_url || '').trim()
+    );
+  }
+
+  retryPlayableAudio(att: ChatAttachment): void {
+    const sourceUrl = String(att?.data_url || '').trim();
+    if (!sourceUrl) return;
+    this.playableAudioErrors.delete(sourceUrl);
+    this.loadPlayableAudio(sourceUrl);
+  }
+
+  private preparePlayableAudio(messages: ChatMessage[]): void {
+    const sourceUrls = new Set(
+      messages.flatMap(message =>
+        (message.attachments || [])
+          .filter(attachment => attachment.file_type === 'audio')
+          .map(attachment => String(attachment.data_url || '').trim())
+          .filter(Boolean)
+      )
+    );
+
+    for (const sourceUrl of sourceUrls) {
+      this.loadPlayableAudio(sourceUrl);
+    }
+  }
+
+  private loadPlayableAudio(sourceUrl: string): void {
+    if (
+      !sourceUrl ||
+      this.playableAudioUrls.has(sourceUrl) ||
+      this.playableAudioLoading.has(sourceUrl)
+    ) {
+      return;
+    }
+
+    this.playableAudioLoading.add(sourceUrl);
+    this.playableAudioErrors.delete(sourceUrl);
+    const request = this.whatsappApi.getPlayableAudio(sourceUrl).pipe(
+      timeout(30000),
+      finalize(() => {
+        this.playableAudioLoading.delete(sourceUrl);
+        this.playableAudioSubscriptions.delete(sourceUrl);
+        this.cdr.markForCheck();
+      })
+    ).subscribe({
+      next: (audioBlob: Blob) => {
+        if (!audioBlob?.size) {
+          this.playableAudioErrors.add(sourceUrl);
+          return;
+        }
+
+        const previousObjectUrl = this.playableAudioUrls.get(sourceUrl);
+        if (previousObjectUrl) {
+          URL.revokeObjectURL(previousObjectUrl);
+        }
+        this.playableAudioUrls.set(
+          sourceUrl,
+          URL.createObjectURL(audioBlob)
+        );
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        console.warn(
+          '[Communication] No se pudo cargar una nota de voz:',
+          error?.status || error?.name || 'unknown'
+        );
+        this.playableAudioErrors.add(sourceUrl);
+      }
+    });
+    this.playableAudioSubscriptions.set(sourceUrl, request);
+  }
+
+  private resetPlayableAudio(): void {
+    for (const subscription of this.playableAudioSubscriptions.values()) {
+      subscription.unsubscribe();
+    }
+    for (const objectUrl of this.playableAudioUrls.values()) {
+      URL.revokeObjectURL(objectUrl);
+    }
+    this.playableAudioSubscriptions.clear();
+    this.playableAudioUrls.clear();
+    this.playableAudioLoading.clear();
+    this.playableAudioErrors.clear();
   }
 
   isStickerOnlyMessage(msg: ChatMessage): boolean {
@@ -3166,6 +3268,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
                 };
                 return this.enrichWithAppUrls(mapped);
               });
+              this.preparePlayableAudio(this.messages);
               this.lastApiMessageId = newestId;
               this.scrollToBottom();
             }
@@ -3224,6 +3327,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   goBack(): void {
     this.stopChatPolling();
+    this.resetPlayableAudio();
     this.selectedConversation = null;
     this.messages = [];
   }

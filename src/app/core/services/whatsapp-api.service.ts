@@ -68,13 +68,12 @@ export class WhatsAppApiService {
         });
     }
 
-    getPlayableAudioUrl(mediaUrl: string): string {
+    getPlayableAudio(mediaUrl: string): Observable<Blob> {
         const normalizedUrl = String(mediaUrl || '').trim();
-        if (!normalizedUrl) return '';
-        if (!normalizedUrl.startsWith('https://tm.dorhu.com/')) {
-            return normalizedUrl;
-        }
-        return `${this.apiUrl}/media/audio?url=${encodeURIComponent(normalizedUrl)}`;
+        return this.http.get(`${this.apiUrl}/media/audio`, {
+            params: { url: normalizedUrl },
+            responseType: 'blob'
+        });
     }
 
     sendAttachment(conversationId: number, file: File, message?: string, agentId?: string): Observable<any> {

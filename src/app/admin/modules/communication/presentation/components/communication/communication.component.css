@@ -2911,6 +2911,29 @@
     display: block;
 }
 
+.comm-attachment__audio-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 36px;
+    padding: 0.45rem 0.7rem;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(148, 163, 184, 0.12);
+    color: var(--text-color-secondary, #64748b);
+    font: inherit;
+    font-size: 0.8rem;
+}
+
+.comm-attachment__audio-status--error {
+    cursor: pointer;
+    color: var(--red-500, #ef4444);
+}
+
+.comm-attachment__audio-status--error:hover {
+    background: rgba(239, 68, 68, 0.12);
+}
+
 .comm-attachment__file {
     display: inline-flex;
     align-items: center;

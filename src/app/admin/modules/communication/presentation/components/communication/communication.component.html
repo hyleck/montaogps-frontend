@@ -206,8 +206,21 @@
                                     <video [src]="att.data_url" class="comm-attachment__video"></video>
                                     <div class="comm-attachment__play"><i class="pi pi-play-circle"></i></div>
                                 </div>
-                                <audio *ngIf="att.file_type === 'audio'" [src]="getPlayableAudioUrl(att)" controls
-                                    class="comm-attachment__audio"></audio>
+                                <ng-container *ngIf="att.file_type === 'audio'">
+                                    <audio *ngIf="getPlayableAudioUrl(att) as audioUrl" [src]="audioUrl" controls
+                                        preload="metadata" class="comm-attachment__audio"></audio>
+                                    <button *ngIf="!getPlayableAudioUrl(att) && hasPlayableAudioError(att)"
+                                        type="button" class="comm-attachment__audio-status comm-attachment__audio-status--error"
+                                        (click)="retryPlayableAudio(att)">
+                                        <i class="pi pi-refresh"></i>
+                                        Reintentar nota de voz
+                                    </button>
+                                    <span *ngIf="!getPlayableAudioUrl(att) && isPlayableAudioLoading(att)"
+                                        class="comm-attachment__audio-status">
+                                        <i class="pi pi-spin pi-spinner"></i>
+                                        Cargando nota de voz…
+                                    </span>
+                                </ng-container>
                                 <a *ngIf="att.file_type === 'file'" [href]="att.data_url" target="_blank"
                                     class="comm-attachment__file">
                                     <i class="pi pi-file"></i> {{ att.file_name || 'Descargar archivo' }}
