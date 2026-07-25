@@ -10,6 +10,8 @@ import { InteraccionesService, UserList } from '../../../../interacciones/presen
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
 import { SystemService } from '@core/services/system.service';
 import { InventoryService } from '@core/services/inventory.service';
+import { ProtocolsService } from '@core/services/protocols.service';
+import { Protocol } from '@core/interfaces/protocol.interface';
 import { CommunicationNotificationService } from '@core/services/communication-notification.service';
 import { InternalChatAttachment, InternalChatMessage, InternalChatService } from '@core/services/internal-chat.service';
 import { MessageService, MenuItem } from 'primeng/api';
@@ -46,7 +48,13 @@ interface ChatMessage {
   parsedHtml?: string;
   time: Date;
   attachments?: ChatAttachment[];
-  replyTo?: { id: number; text: string; from: string };
+  replyTo?: {
+    id: number;
+    text: string;
+    from: string;
+    type?: string;
+    attachments?: ChatAttachment[];
+  };
   safeRealtimeUrl?: SafeResourceUrl;
   googleMapsUrl?: string;
   wazeUrl?: string;
@@ -248,7 +256,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   transferAgents: any[] = [];
   selectedTransferAgentId: string | null = null;
   isTransferring: boolean = false;
-  transferSummary: string = '';
+  loadingTransferAgents: boolean = false;
 
   // WhatsApp Template Modal
   showTemplateModal: boolean = false;
@@ -294,6 +302,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     private interaccionesService: InteraccionesService,
     private targetsService: TargetsService,
     private inventoryService: InventoryService,
+    private protocolsService: ProtocolsService,
     private internalChatService: InternalChatService,
     private communicationNotifications: CommunicationNotificationService,
     private systemService: SystemService,
@@ -321,6 +330,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   gpsDetailsOffset: number = 0;
   gpsDetailsLimit: number = 10;
   gpsDetailsTotal: number = 0;
+  gpsDetailsProtocols: Protocol[] = [];
+  private gpsDetailsProtocolsLoading: boolean = false;
 
   showInventoryModal: boolean = false;
   inventorySearchTerm: string = '';
@@ -352,6 +363,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.updateAttachmentMenu();
     this.loadStickers();
+    this.loadGpsDetailsProtocols();
     this.internalChatMuted = this.communicationNotifications.isInternalChatMuted();
     this.internalChatMutedSubscription = this.communicationNotifications.internalChatMuted$.subscribe((muted) => {
       this.internalChatMuted = muted;
@@ -995,59 +1007,98 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.showTransferModal = true;
     this.selectedTransferAgentId = null;
     this.isTransferring = false;
-    this.transferSummary = '';
     
     // Si ya cargamos los agentes, no lo hacemos de nuevo
     if (this.transferAgents.length === 0) {
+      this.loadingTransferAgents = true;
       this.userService.getEmployees().subscribe({
         next: (employees: any[]) => {
-          const agents = employees.filter((employee: any) => {
-            const employeeId = String(employee?._id || employee?.id || '');
-            return !!employeeId && employeeId !== this.currentUserId;
-          });
-          
-          // Inyectamos a Ester Assistant estáticamente con ID 0 para representar desasignación
-          agents.unshift({
-             name: 'Ester',
-             last_name: 'Assistant (IA)',
-             email: 'system@n8n.bot',
-             _id: '__ester__'
-          });
-
-          this.transferAgents = agents;
+          this.transferAgents = employees
+            .filter((employee: any) => {
+              const employeeId = this.getTransferAgentId(employee);
+              return this.isConversationTransferAgent(employee)
+                && !!employeeId
+                && employeeId !== this.currentUserId;
+            })
+            .sort((first: any, second: any) =>
+              this.getActiveEmployeeName(first).localeCompare(
+                this.getActiveEmployeeName(second),
+                'es',
+                { sensitivity: 'base' },
+              ),
+            );
+          this.loadingTransferAgents = false;
         },
-        error: (err: any) => console.error('Error cargando empleados para transferencia', err)
+        error: (err: any) => {
+          this.loadingTransferAgents = false;
+          console.error('Error cargando empleados para transferencia', err);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'No se pudieron cargar los empleados',
+            detail: 'Intenta abrir la transferencia nuevamente.',
+          });
+        },
       });
+    } else {
+      this.transferAgents = this.transferAgents.filter((employee: any) =>
+        this.isConversationTransferAgent(employee)
+        && this.getTransferAgentId(employee) !== this.currentUserId
+      );
+      this.loadingTransferAgents = false;
     }
   }
 
+  getTransferAgentId(agent: any): string {
+    return String(agent?._id || agent?.id || '');
+  }
+
+  private isConversationTransferAgent(agent: any): boolean {
+    const affiliationType = String(
+      agent?.affiliation_type_id
+      || agent?.affiliation_type
+      || agent?.settings?.affiliation_type
+      || ''
+    ).trim().toLowerCase();
+
+    return affiliationType === 'empleado';
+  }
+
+  selectTransferAgent(agent: any): void {
+    if (this.isTransferring) return;
+
+    const agentId = this.getTransferAgentId(agent);
+    if (!agentId) return;
+
+    this.selectedTransferAgentId = agentId;
+    this.confirmTransfer();
+  }
+
+  getSelectedTransferAgentName(): string {
+    const selectedAgent = this.transferAgents.find(
+      (agent: any) => this.getTransferAgentId(agent) === this.selectedTransferAgentId,
+    );
+    return selectedAgent ? this.getActiveEmployeeName(selectedAgent) : 'el empleado';
+  }
+
   confirmTransfer(): void {
-    const isEster = this.selectedTransferAgentId === '__ester__';
-    if (!this.selectedConversation || (!this.selectedTransferAgentId && !isEster)) return;
+    if (!this.selectedConversation || !this.selectedTransferAgentId) return;
     
     this.isTransferring = true;
     const conversationId = this.selectedConversation.id;
-    const targetAgentId = isEster ? '' : String(this.selectedTransferAgentId);
+    const targetAgentId = String(this.selectedTransferAgentId);
 
     const processSuccess = () => {
         this.showTransferModal = false;
         this.isTransferring = false;
-        
-        if (isEster) {
-            this.selectedConversation!.assignee_id = null;
-            this.selectedConversation!.assignee_name = 'Ester Assistant';
-        } else {
-            const assignedAgent = this.transferAgents.find(
-              (agent: any) => String(agent?._id || agent?.id || '') === targetAgentId,
-            );
-            this.selectedConversation!.assignee_id = targetAgentId;
-            this.selectedConversation!.assignee_name = assignedAgent?.name || assignedAgent?.email || `Agente ${targetAgentId}`;
-        }
-        
-        // Buscar el agente en memoria para sacar su ID de Mongo y enviarle el Push (si es humano)
         const assignedAgent = this.transferAgents.find(
-          (agent: any) => String(agent?._id || agent?.id || '') === targetAgentId,
+          (agent: any) => this.getTransferAgentId(agent) === targetAgentId,
         );
+        this.selectedConversation!.assignee_id = targetAgentId;
+        this.selectedConversation!.assignee_name = assignedAgent
+          ? this.getActiveEmployeeName(assignedAgent)
+          : `Agente ${targetAgentId}`;
+
+        // Buscar el agente en memoria para sacar su ID de Mongo y enviarle el Push
         const contactName = this.selectedConversation?.contact.name || 'un cliente';
         
         if (assignedAgent && (assignedAgent.id || assignedAgent._id)) {
@@ -1056,7 +1107,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             topic: topic,
             title: 'Nueva Conversación Transferida',
             body: `Se te ha transferido el chat de ${contactName}.`,
-            data: { tab: 'chat', conversationId: conversationId.toString(), summary: this.transferSummary.trim() }
+            data: { tab: 'chat', conversationId: conversationId.toString() },
           }).subscribe({
             error: (err) => console.error('Error enviando push de transferencia', err)
           });
@@ -1068,31 +1119,34 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.messages = []; // Clear current feed array
         this.messageService.add({
           severity: 'success',
-          summary: isEster ? 'Chat cedido a IA' : 'Transferencia completa',
-          detail: isEster
-            ? 'Control devuelto a Ester Assistant correctamente.'
-            : 'La conversación ha sido transferida exitosamente.',
+          summary: 'Transferencia completa',
+          detail: `La conversación fue transferida a ${
+            assignedAgent ? this.getActiveEmployeeName(assignedAgent) : 'otro empleado'
+          }.`,
         });
         this.loadConversations(); // Recargar lista para reflejar salida
     };
 
     this.whatsappApi.assignAgentToConversation(conversationId, targetAgentId).subscribe({
       next: (res) => {
-        if (res.success || isEster) {
+        if (res.success) {
            processSuccess();
         } else {
            this.isTransferring = false;
-           this.messages.push({ from: 'system', text: '✗ Error interno al transferir', time: new Date() });
+           this.messageService.add({
+             severity: 'error',
+             summary: 'No se pudo transferir',
+             detail: 'La conversación no cambió de empleado. Inténtalo nuevamente.',
+           });
         }
       },
       error: () => {
-        if (isEster) {
-           processSuccess();
-        } else {
-           this.isTransferring = false;
-           this.showTransferModal = false;
-           this.messages.push({ from: 'system', text: '✗ Error de conexión al transferir', time: new Date() });
-        }
+        this.isTransferring = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error de conexión',
+          detail: 'No se pudo transferir la conversación. Inténtalo nuevamente.',
+        });
       }
     });
   }
@@ -1471,12 +1525,52 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return `Expira: ${formatted}`;
   }
 
+  private loadGpsDetailsProtocols(): void {
+    if (this.gpsDetailsProtocolsLoading || this.gpsDetailsProtocols.length > 0) return;
+
+    this.gpsDetailsProtocolsLoading = true;
+    this.protocolsService.getAllProtocols()
+      .pipe(finalize(() => {
+        this.gpsDetailsProtocolsLoading = false;
+      }))
+      .subscribe({
+        next: (protocols) => {
+          this.gpsDetailsProtocols = Array.isArray(protocols) ? protocols : [];
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.warn('[Communication] No se pudo cargar el catálogo de protocolos:', error);
+        }
+      });
+  }
+
   isGpsDetailsTag(target: any): boolean {
-    const protocolObj = target?.protocol || target?.originalTarget?.protocol;
+    const rawStatus = String(
+      target?.traccarInfo?.status
+      || target?.traccarStatus
+      || target?.statusText
+      || ''
+    ).trim().toLowerCase();
+    if (['localizado', 'no localizado', 'located', 'not located'].includes(rawStatus)) {
+      return true;
+    }
+
+    const rawType = target?.type || target?.originalTarget?.type;
+    const protocolObj = target?.protocol
+      || target?.originalTarget?.protocol
+      || (rawType && typeof rawType === 'object' ? rawType : null);
     if (protocolObj && typeof protocolObj === 'object') {
       if (protocolObj.isAirtag !== undefined) return !!protocolObj.isAirtag;
       const protocolName = String(protocolObj.name || protocolObj.model || protocolObj.title || '').toLowerCase();
       if (protocolName.includes('tag') || protocolName.includes('airtag') || protocolName.includes('mtag')) return true;
+    }
+
+    const protocolId = typeof rawType === 'object'
+      ? String(rawType?._id || rawType?.id || '')
+      : String(rawType || '');
+    if (protocolId) {
+      const matchedProtocol = this.gpsDetailsProtocols.find((protocol) => String(protocol?._id) === protocolId);
+      if (matchedProtocol) return matchedProtocol.isAirtag === true;
     }
 
     const fields = [
@@ -1511,10 +1605,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const offlineMinutes = this.getGpsDetailsOfflineMinutes(target);
 
     if (this.isGpsDetailsTag(target)) {
-      const isLocated = rawStatus === 'online'
+      const isExplicitlyNotLocated = rawStatus === 'no localizado' || rawStatus === 'not located';
+      const isLocated = !isExplicitlyNotLocated && (
+        rawStatus === 'online'
         || rawStatus === 'localizado'
         || rawStatus === 'located'
-        || (offlineMinutes !== null && offlineMinutes <= (15 * 24 * 60));
+        || (offlineMinutes !== null && offlineMinutes <= (15 * 24 * 60))
+      );
 
       return isLocated
         ? { label: 'Localizado', tone: 'located', icon: 'pi pi-map-marker' }
@@ -1538,6 +1635,21 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
 
     return { label: 'Fuera de línea', tone: 'offline', icon: 'pi pi-ban' };
+  }
+
+  getCommunicationTargetListStatus(target: any): { label: string; tone: string; icon: string } {
+    const status = this.getGpsDetailsStatus(target);
+    if (this.isGpsDetailsTag(target)) return status;
+
+    if (status.label === 'En línea') {
+      return { ...status, label: 'Conectado' };
+    }
+
+    if (status.label === 'Fuera de línea') {
+      return { ...status, label: 'Desconectado' };
+    }
+
+    return status;
   }
 
   getGpsDetailsLastUpdateLabel(target: any): string {
@@ -2518,7 +2630,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
               attachments: msg.attachments || [],
             };
             this.enrichWithAppUrls(mapped);
-            if (msg.in_reply_to && msgMap.has(msg.in_reply_to)) {
+            if (msg.reply_to?.id) {
+              mapped.replyTo = {
+                id: msg.reply_to.id,
+                text: this.getApiReplyPreviewText(msg.reply_to),
+                from: msg.reply_to.from === 'incoming' ? 'incoming' : 'me',
+                type: msg.reply_to.type,
+                attachments: msg.reply_to.attachments || [],
+              };
+            } else if (msg.in_reply_to && msgMap.has(msg.in_reply_to)) {
               const ref = msgMap.get(msg.in_reply_to)!;
               mapped.replyTo = { id: msg.in_reply_to, text: ref.text, from: ref.from };
             }
@@ -2549,8 +2669,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const replyMsg = this.replyingTo;
     const newMsg: ChatMessage = { from: 'me', text, parsedHtml: this.parseMessageContent(text), time: new Date() };
     this.enrichWithAppUrls(newMsg);
-    if (replyMsg) {
-      newMsg.replyTo = { id: replyMsg.id!, text: replyMsg.text || '📎 Adjunto', from: replyMsg.from };
+    if (replyMsg?.id) {
+      newMsg.replyTo = {
+        id: replyMsg.id,
+        text: this.getReplyPreviewText(replyMsg),
+        from: replyMsg.from,
+        attachments: replyMsg.attachments,
+      };
     }
     this.messages.push(newMsg);
     
@@ -2595,11 +2720,37 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   setReplyTo(msg: ChatMessage): void {
+    if (!msg.id) return;
     this.replyingTo = msg;
+    this.showStickerPicker = false;
+    this.refocusInput();
   }
 
   cancelReply(): void {
     this.replyingTo = null;
+  }
+
+  getReplyPreviewText(msg: ChatMessage | ChatMessage['replyTo'] | null | undefined): string {
+    const text = String(msg?.text || '').trim();
+    if (text && !this.isTechnicalStickerLabel(text)) return text;
+    const attachment = msg?.attachments?.[0];
+    if (!attachment) return 'Mensaje';
+    if (this.isStickerAttachment(attachment)) return 'Sticker';
+    if (attachment.file_type === 'image') return 'Imagen';
+    if (attachment.file_type === 'video') return 'Video';
+    if (attachment.file_type === 'audio') return 'Nota de voz';
+    return attachment.file_name || 'Documento';
+  }
+
+  private getApiReplyPreviewText(reply: any): string {
+    const text = String(reply?.content || '').trim();
+    return this.getReplyPreviewText({
+      id: Number(reply?.id || 0),
+      from: reply?.from === 'incoming' ? 'incoming' : 'me',
+      text,
+      time: new Date(),
+      attachments: reply?.attachments || [],
+    });
   }
 
   loadStickers(): void {
@@ -2730,6 +2881,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     ) || '';
   }
 
+  getPlayableVideoUrl(mediaUrl: string): string {
+    return this.whatsappApi.getPlayableVideoUrl(mediaUrl);
+  }
+
   isPlayableAudioLoading(att: ChatAttachment): boolean {
     return this.playableAudioLoading.has(
       String(att?.data_url || '').trim()
@@ -2813,12 +2968,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
     if (!this.selectedConversation?.contact?.phone || !sticker?.id || this.sendingStickerId) return;
 
+    const replyMsg = this.replyingTo;
+    this.replyingTo = null;
     this.sendingStickerId = sticker.id;
     this.whatsappApi.sendSticker({
       phone: this.selectedConversation.contact.phone,
       sticker_id: sticker.id,
       conversation_id: this.selectedConversation.id,
-      agent_id: this.whatsappAgentId || undefined
+      agent_id: this.whatsappAgentId || undefined,
+      in_reply_to: replyMsg?.id,
     }).subscribe({
       next: (res: any) => {
         this.sendingStickerId = null;
@@ -2828,7 +2986,17 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             text: '',
             parsedHtml: '',
             time: new Date(),
-            attachments: [{ data_url: sticker.url, file_type: 'image', content_type: 'image/webp' }]
+            attachments: [{ data_url: sticker.url, file_type: 'image', content_type: 'image/webp' }],
+            ...(replyMsg?.id
+              ? {
+                  replyTo: {
+                    id: replyMsg.id,
+                    text: this.getReplyPreviewText(replyMsg),
+                    from: replyMsg.from,
+                    attachments: replyMsg.attachments,
+                  },
+                }
+              : {}),
           };
           this.messages.push(pendingMsg);
           this.showStickerPicker = false;
@@ -2915,15 +3083,37 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (!input.files?.length || !this.selectedConversation) return;
 
     const file = input.files[0];
+    const replyMsg = this.replyingTo;
+    this.replyingTo = null;
     input.value = ''; // Reset so same file can be selected again
 
     this.sendingMessage = true;
-    this.messages.push({ from: 'me', text: `📎 ${file.name}`, time: new Date() });
+    this.messages.push({
+      from: 'me',
+      text: `📎 ${file.name}`,
+      time: new Date(),
+      ...(replyMsg?.id
+        ? {
+            replyTo: {
+              id: replyMsg.id,
+              text: this.getReplyPreviewText(replyMsg),
+              from: replyMsg.from,
+              attachments: replyMsg.attachments,
+            },
+          }
+        : {}),
+    });
     this.scrollToBottom();
 
     const attachmentMessage = `${this.getAgentSignature()}\nTe ha enviado un archivo adjunto.`;
 
-    this.whatsappApi.sendAttachment(this.selectedConversation.id, file, attachmentMessage, this.whatsappAgentId).subscribe({
+    this.whatsappApi.sendAttachment(
+      this.selectedConversation.id,
+      file,
+      attachmentMessage,
+      this.whatsappAgentId,
+      replyMsg?.id,
+    ).subscribe({
       next: (res) => {
         this.sendingMessage = false;
         if (!res.success) {
@@ -3047,6 +3237,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
 
     if (!this.selectedConversation) return;
+    const replyMsg = this.replyingTo;
+    this.replyingTo = null;
     this.sendingMessage = true;
     const localUrl = URL.createObjectURL(file);
     this.messages.push({
@@ -3058,12 +3250,28 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         file_type: 'audio',
         content_type: file.type,
         file_name: file.name
-      }]
+      }],
+      ...(replyMsg?.id
+        ? {
+            replyTo: {
+              id: replyMsg.id,
+              text: this.getReplyPreviewText(replyMsg),
+              from: replyMsg.from,
+              attachments: replyMsg.attachments,
+            },
+          }
+        : {}),
     });
     this.scrollToBottom();
 
     const attachmentMessage = `${this.getAgentSignature()}\nTe ha enviado una nota de voz.`;
-    this.whatsappApi.sendAttachment(this.selectedConversation.id, file, attachmentMessage, this.whatsappAgentId).subscribe({
+    this.whatsappApi.sendAttachment(
+      this.selectedConversation.id,
+      file,
+      attachmentMessage,
+      this.whatsappAgentId,
+      replyMsg?.id,
+    ).subscribe({
       next: (res) => {
         this.sendingMessage = false;
         if (!res.success) {

@@ -75,7 +75,14 @@ export class WhatsAppApiService {
             : '';
     }
 
-    sendAttachment(conversationId: number, file: File, message?: string, agentId?: string): Observable<any> {
+    getPlayableVideoUrl(mediaUrl: string): string {
+        const normalizedUrl = String(mediaUrl || '').trim();
+        return normalizedUrl
+            ? `${this.apiUrl}/media/video?url=${encodeURIComponent(normalizedUrl)}`
+            : '';
+    }
+
+    sendAttachment(conversationId: number, file: File, message?: string, agentId?: string, inReplyTo?: number): Observable<any> {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('conversation_id', conversationId.toString());
@@ -84,6 +91,9 @@ export class WhatsAppApiService {
         }
         if (agentId) {
             formData.append('agent_id', agentId);
+        }
+        if (inReplyTo) {
+            formData.append('in_reply_to', inReplyTo.toString());
         }
         return this.http.post(`${this.apiUrl}/send-attachment`, formData);
     }
@@ -135,7 +145,7 @@ export class WhatsAppApiService {
         return this.http.post(`${this.apiUrl}/stickers/upload`, formData);
     }
 
-    sendSticker(payload: { phone: string; sticker_id: string; conversation_id?: number; agent_id?: string }): Observable<any> {
+    sendSticker(payload: { phone: string; sticker_id: string; conversation_id?: number; agent_id?: string; in_reply_to?: number }): Observable<any> {
         return this.http.post(`${this.apiUrl}/stickers/send`, payload);
     }
 

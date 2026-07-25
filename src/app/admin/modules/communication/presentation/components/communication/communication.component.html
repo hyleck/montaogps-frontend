@@ -173,8 +173,8 @@
                     [class.comm-message--incoming]="msg.from === 'incoming'"
                     [class.comm-message--system]="msg.from === 'system'"
                     [class.comm-message--sticker-only]="isStickerOnlyMessage(msg)">
-                    <!-- Reply button (visible on hover) -->
-                    <button *ngIf="msg.from !== 'system'" class="comm-reply-btn" (click)="setReplyTo(msg)" title="Responder">
+                    <button *ngIf="msg.id && msg.from !== 'system'" class="comm-reply-btn"
+                        (click)="setReplyTo(msg)" title="Responder" aria-label="Responder este mensaje">
                         <i class="pi pi-reply"></i>
                     </button>
                     <div class="comm-message__bubble">
@@ -182,7 +182,7 @@
                         <div *ngIf="msg.replyTo" class="comm-reply-quote"
                             [class.comm-reply-quote--me]="msg.replyTo.from === 'me'">
                             <span class="comm-reply-quote__label">{{ msg.replyTo.from === 'me' ? 'Tú' : selectedConversation!.contact.name }}</span>
-                            <span class="comm-reply-quote__text">{{ msg.replyTo.text | slice:0:80 }}{{ msg.replyTo.text.length > 80 ? '...' : '' }}</span>
+                            <span class="comm-reply-quote__text">{{ getReplyPreviewText(msg.replyTo) | slice:0:80 }}{{ getReplyPreviewText(msg.replyTo).length > 80 ? '...' : '' }}</span>
                         </div>
                         <!-- Attachments -->
                         <ng-container *ngIf="msg.attachments?.length">
@@ -202,8 +202,8 @@
                                     (click)="saveImageAsSticker(att, msg)">
                                     <i [class]="savingStickerUrl === att.data_url ? 'pi pi-spin pi-spinner' : 'pi pi-bookmark'"></i>
                                 </button>
-                                <div *ngIf="att.file_type === 'video'" class="comm-attachment__vid-wrap" (click)="openMedia(att.data_url, 'video')">
-                                    <video [src]="att.data_url" class="comm-attachment__video"></video>
+                                <div *ngIf="att.file_type === 'video'" class="comm-attachment__vid-wrap" (click)="openMedia(getPlayableVideoUrl(att.data_url), 'video')">
+                                    <video [src]="getPlayableVideoUrl(att.data_url)" class="comm-attachment__video"></video>
                                     <div class="comm-attachment__play"><i class="pi pi-play-circle"></i></div>
                                 </div>
                                 <ng-container *ngIf="att.file_type === 'audio'">
@@ -285,7 +285,7 @@
                     <i class="pi pi-reply"></i>
                     <div class="comm-reply-preview__text">
                         <span class="comm-reply-preview__label">Respondiendo a {{ replyingTo.from === 'me' ? 'ti' : selectedConversation!.contact.name }}</span>
-                        <span class="comm-reply-preview__msg">{{ replyingTo.text | slice:0:60 }}{{ (replyingTo.text?.length || 0) > 60 ? '...' : '' }}</span>
+                        <span class="comm-reply-preview__msg">{{ getReplyPreviewText(replyingTo) | slice:0:60 }}{{ getReplyPreviewText(replyingTo).length > 60 ? '...' : '' }}</span>
                     </div>
                 </div>
                 <button class="comm-reply-preview__close" (click)="cancelReply()">
@@ -585,8 +585,8 @@
                                     (click)="saveInternalImageAsSticker(att, msg)">
                                     <i [class]="savingStickerUrl === att.url ? 'pi pi-spin pi-spinner' : 'pi pi-bookmark'"></i>
                                 </button>
-                                <div *ngIf="isInternalVideoAttachment(att)" class="comm-attachment__vid-wrap" (click)="openMedia(att.url, 'video')">
-                                    <video [src]="att.url" class="comm-attachment__video"></video>
+                                <div *ngIf="isInternalVideoAttachment(att)" class="comm-attachment__vid-wrap" (click)="openMedia(getPlayableVideoUrl(att.url), 'video')">
+                                    <video [src]="getPlayableVideoUrl(att.url)" class="comm-attachment__video"></video>
                                     <div class="comm-attachment__play"><i class="pi pi-play-circle"></i></div>
                                 </div>
                                 <audio *ngIf="isInternalAudioAttachment(att)" [src]="att.url" controls
@@ -996,50 +996,63 @@
 </div>
 
 <!-- Transfer Modal -->
-<p-dialog [(visible)]="showTransferModal" header="Transferir Conversación" [modal]="true" [style]="{width: '35vw', minWidth: '400px'}"
+<p-dialog [(visible)]="showTransferModal" header="Transferir conversación" [modal]="true"
+    [style]="{ width: '92vw', maxWidth: '680px' }" styleClass="comm-transfer-dialog"
+    [closable]="!isTransferring" [closeOnEscape]="!isTransferring"
     [draggable]="false" [resizable]="false">
-    <div *ngIf="isTransferring" class="flex flex-column align-items-center justify-content-center p-4">
-        <i class="pi pi-spin pi-spinner" style="font-size: 2rem; color: var(--primary-color)"></i>
-        <p class="mt-3">Transfiriendo chat...</p>
+    <div *ngIf="isTransferring" class="comm-transfer-state" aria-live="polite">
+        <span class="comm-transfer-state__spinner">
+            <i class="pi pi-spin pi-spinner"></i>
+        </span>
+        <strong>Transfiriendo conversación</strong>
+        <p>Asignando el chat a {{ getSelectedTransferAgentName() }}…</p>
     </div>
     
-    <div *ngIf="!isTransferring">
-        <div class="mb-4 text-secondary text-sm" style="line-height: 1.5; margin-bottom: 1.5rem;">
-            Selecciona el agente al cual deseas enviar esta conversación. Puedes agregar un resumen si lo necesitas.
+    <div *ngIf="!isTransferring" class="comm-transfer">
+        <div class="comm-transfer__intro">
+            <span class="comm-transfer__intro-icon">
+                <i class="pi pi-users"></i>
+            </span>
+            <div>
+                <strong>¿Quién continuará la conversación?</strong>
+                <p>Selecciona un empleado. La transferencia se realizará con un solo clic.</p>
+            </div>
         </div>
-        
-        <div style="display: block; width: 100%; margin-bottom: 1.5rem;">
-            <label class="comm-transfer-label">Resumen para el agente <span class="comm-transfer-label__optional">Opcional</span></label>
-            <textarea class="comm-transfer-textarea" [(ngModel)]="transferSummary" rows="4" placeholder="Escribe aquí el contexto de la transferencia..."></textarea>
+
+        <div *ngIf="loadingTransferAgents" class="comm-transfer__loading" aria-live="polite">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Cargando empleados…</span>
         </div>
-        
-        <div style="display: block; width: 100%; margin-bottom: 1.5rem;">
-            <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Empleado destino <span style="color: #ef4444">*</span></label>
-            <p-dropdown [options]="transferAgents" [(ngModel)]="selectedTransferAgentId" [style]="{'width':'100%', 'display': 'flex'}"
-                placeholder="Seleccionar Empleado destino" [filter]="true" filterBy="name,last_name"
-                [showClear]="true" optionLabel="name" optionValue="_id" appendTo="body">
-                <ng-template let-selectedOption pTemplate="selectedItem">
-                    <div class="flex align-items-center gap-2" *ngIf="selectedOption">
-                        <i class="pi pi-user text-primary"></i>
-                        <span>{{selectedOption.name}} {{selectedOption.last_name}}</span>
-                    </div>
-                </ng-template>
-                <ng-template let-agent pTemplate="item">
-                    <div class="flex align-items-center gap-2">
-                        <i class="pi pi-user text-secondary"></i>
-                        <div>
-                            <div class="font-bold">{{agent.name}} {{agent.last_name}}</div>
-                            <div class="text-xs text-secondary">{{agent.email}}</div>
-                        </div>
-                    </div>
-                </ng-template>
-            </p-dropdown>
+
+        <div *ngIf="!loadingTransferAgents && transferAgents.length"
+            class="comm-transfer__agents" role="list" aria-label="Empleados disponibles">
+            <button *ngFor="let agent of transferAgents" type="button"
+                class="comm-transfer-agent" role="listitem"
+                (click)="selectTransferAgent(agent)">
+                <span class="comm-transfer-agent__avatar">
+                    <img *ngIf="agent.photo" [src]="agent.photo" [alt]="getActiveEmployeeName(agent)" />
+                    <span *ngIf="!agent.photo">{{ getActiveEmployeeInitials(agent) }}</span>
+                </span>
+                <span class="comm-transfer-agent__identity">
+                    <strong>{{ getActiveEmployeeName(agent) }}</strong>
+                    <small>{{ agent.email || 'Empleado Montao GPS' }}</small>
+                </span>
+                <span class="comm-transfer-agent__action" aria-hidden="true">
+                    <i class="pi pi-arrow-right"></i>
+                </span>
+            </button>
         </div>
-        
-        <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
-            <p-button label="Cancelar" icon="pi pi-times" styleClass="p-button-text p-button-secondary" (onClick)="showTransferModal = false"></p-button>
-            <p-button label="Confirmar Transferencia" icon="pi pi-check" styleClass="p-button-primary" (onClick)="confirmTransfer()" [disabled]="!selectedTransferAgentId"></p-button>
+
+        <div *ngIf="!loadingTransferAgents && !transferAgents.length" class="comm-transfer__empty">
+            <i class="pi pi-user-minus"></i>
+            <strong>No hay otros empleados disponibles</strong>
+            <span>Cuando exista otro empleado podrás transferirle esta conversación.</span>
         </div>
+
+        <button type="button" class="comm-transfer__cancel" (click)="showTransferModal = false">
+            <i class="pi pi-times"></i>
+            Cancelar
+        </button>
     </div>
 </p-dialog>
 
@@ -1222,7 +1235,7 @@
       <div *ngFor="let target of userTargets" class="p-card" style="padding: 1rem; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
         <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0;">
           <div style="width: 40px; height: 40px; min-width: 40px; border-radius: 8px; background: rgba(99, 102, 241, 0.1); color: #6366f1; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-            <i class="pi pi-car"></i>
+            <i [class]="isGpsDetailsTag(target) ? 'pi pi-map-marker' : 'pi pi-car'"></i>
           </div>
           <div style="flex: 1; min-width: 0;">
             <div style="font-weight: 600; font-size: 1.05rem; color: var(--text-color);">
@@ -1230,11 +1243,9 @@
             </div>
             <div style="margin-top: 4px; margin-bottom: 6px;">
                  <span style="font-size: 0.75rem; font-weight: normal; padding: 2px 6px; border-radius: 4px; display: inline-block; white-space: nowrap;"
-                       [ngStyle]="{
-                         'background': target.traccarInfo?.status === 'online' ? 'rgba(34, 197, 94, 0.1)' : (target.traccarInfo?.status === 'Localizado' ? 'rgba(6, 182, 212, 0.1)' : 'rgba(239, 68, 68, 0.1)'),
-                         'color': target.traccarInfo?.status === 'online' ? '#22c55e' : (target.traccarInfo?.status === 'Localizado' ? '#06b6d4' : '#ef4444')
-                       }">
-                   {{ target.traccarInfo?.status === 'online' ? 'Conectado' : (target.traccarInfo?.status === 'Localizado' ? 'Localizado' : 'Desconectado') }}
+                       class="comm-target-list-status"
+                       [ngClass]="'comm-target-list-status--' + getCommunicationTargetListStatus(target).tone">
+                   {{ getCommunicationTargetListStatus(target).label }}
                  </span>
             </div>
             <div style="font-size: 0.85rem; color: #6c757d; display: flex; flex-wrap: wrap; gap: 0.75rem;">
@@ -1348,7 +1359,7 @@
       <div *ngFor="let target of globalTargetsItems" class="p-card" style="padding: 1rem; background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
         <div style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0;">
           <div style="width: 40px; height: 40px; min-width: 40px; border-radius: 8px; background: rgba(99, 102, 241, 0.1); color: #6366f1; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-            <i class="pi pi-globe"></i>
+            <i [class]="isGpsDetailsTag(target) ? 'pi pi-map-marker' : 'pi pi-globe'"></i>
           </div>
           <div style="flex: 1; min-width: 0;">
             <div style="font-weight: 600; font-size: 1.05rem; color: var(--text-color);">
@@ -1356,11 +1367,9 @@
             </div>
             <div style="margin-top: 4px; margin-bottom: 6px;">
                  <span style="font-size: 0.75rem; font-weight: normal; padding: 2px 6px; border-radius: 4px; display: inline-block; white-space: nowrap;"
-                       [ngStyle]="{
-                         'background': target.traccarInfo?.status === 'online' ? 'rgba(34, 197, 94, 0.1)' : (target.traccarInfo?.status === 'Localizado' ? 'rgba(6, 182, 212, 0.1)' : 'rgba(239, 68, 68, 0.1)'),
-                         'color': target.traccarInfo?.status === 'online' ? '#22c55e' : (target.traccarInfo?.status === 'Localizado' ? '#06b6d4' : '#ef4444')
-                       }">
-                   {{ target.traccarInfo?.status === 'online' ? 'Conectado' : (target.traccarInfo?.status === 'Localizado' ? 'Localizado' : 'Desconectado') }}
+                       class="comm-target-list-status"
+                       [ngClass]="'comm-target-list-status--' + getCommunicationTargetListStatus(target).tone">
+                   {{ getCommunicationTargetListStatus(target).label }}
                  </span>
             </div>
             <div style="font-size: 0.85rem; color: #6c757d; display: flex; flex-wrap: wrap; gap: 0.75rem;">

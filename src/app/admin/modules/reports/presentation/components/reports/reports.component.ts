@@ -110,6 +110,14 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     } | null = null;
     private routeReportCacheSyncTimer: any = null;
     private lastRouteReportCacheSyncSignature: string = '';
+    private routeDistanceRefreshTimer: ReturnType<typeof setInterval> | null = null;
+    private routeDistanceRefreshInFlight: boolean = false;
+    private routeDistanceRefreshContext: {
+      deviceId: string;
+      fromDate: string;
+      toDate: string;
+    } | null = null;
+    private readonly routeDistanceRefreshIntervalMs = 15000;
     
     // Obtener opciones rápidas según el estado del target
     get availableQuickDateRanges() {
@@ -345,6 +353,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       if (this.routeReportCacheSyncTimer) {
         clearTimeout(this.routeReportCacheSyncTimer);
       }
+      this.stopRouteDistanceRefresh();
       this.destroyStopPreviewMaps();
     }
 
@@ -543,30 +552,14 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     /**
-     * Convierte una fecha del input datetime-local a UTC explícitamente
-     * Trata la hora local como si fuera UTC (sin conversión de zona horaria)
+     * Convierte el valor local de datetime-local a su instante UTC real.
+     * Ejemplo en Santo Domingo: 2026-07-25T00:00 -> 2026-07-25T04:00:00.000Z.
      */
     private convertLocalDateTimeToUTC(dateTimeLocalString: string): string {
       if (!dateTimeLocalString) return '';
-      
-      // Parsear el string datetime-local
-      const [datePart, timePart] = dateTimeLocalString.split('T');
-      const [year, month, day] = datePart.split('-').map(Number);
-      const [hours, minutes] = timePart.split(':').map(Number);
-      
-      // Crear fecha UTC directamente con los valores locales
-      // Esto trata la hora ingresada como UTC sin conversión de zona horaria
-      const utcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0, 0));
-      
-      console.log(`🔄 Conversión datetime-local → UTC:`, {
-        input: dateTimeLocalString,
-        parsedValues: { year, month, day, hours, minutes },
-        utcOutput: utcDate.toISOString(),
-        localDate: new Date(dateTimeLocalString).toISOString(),
-        isExplicitUTC: true
-      });
-      
-      return utcDate.toISOString();
+
+      const localDate = new Date(dateTimeLocalString);
+      return Number.isNaN(localDate.getTime()) ? '' : localDate.toISOString();
     }
 
     private initializeDateRange(): void {
@@ -637,6 +630,10 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     onReportTypeChange(): void {
+      if (this.reportFilter.reportType !== 'route_history') {
+        this.stopRouteDistanceRefresh();
+      }
+
       // Verificar si se está intentando seleccionar Historial de Recorrido sin target en URL
       if (this.reportFilter.reportType === 'route_history' && !this.targetIdFromUrl) {
         this.messageService.add({
@@ -722,6 +719,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       this.generatingReport = true;
+      this.stopRouteDistanceRefresh();
       this.routeDistanceMeters = null;
       this.mapInfoPanelData = null;
       this.hasGeneratedRouteReport = false;
@@ -1603,11 +1601,77 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
         this.routeDistanceMeters = typeof distanceResponse.distance === 'number'
           ? distanceResponse.distance
           : null;
+        this.startRouteDistanceRefresh(deviceId, fromDate, toDate);
       } catch (error) {
         console.warn('No se pudo cargar la distancia recorrida del reporte:', error);
         this.routeDistanceMeters = null;
       } finally {
         this.loadingRouteDistance = false;
+      }
+    }
+
+    private startRouteDistanceRefresh(deviceId: string, fromDate: string, toDate: string): void {
+      this.stopRouteDistanceRefresh();
+
+      const fromTimestamp = new Date(fromDate).getTime();
+      const toTimestamp = new Date(toDate).getTime();
+      const now = Date.now();
+      const isLiveRange =
+        Number.isFinite(fromTimestamp) &&
+        Number.isFinite(toTimestamp) &&
+        fromTimestamp <= now &&
+        now <= toTimestamp;
+
+      if (!isLiveRange) {
+        return;
+      }
+
+      this.routeDistanceRefreshContext = { deviceId, fromDate, toDate };
+      this.routeDistanceRefreshTimer = setInterval(() => {
+        void this.refreshLiveRouteDistance();
+      }, this.routeDistanceRefreshIntervalMs);
+    }
+
+    private stopRouteDistanceRefresh(): void {
+      if (this.routeDistanceRefreshTimer) {
+        clearInterval(this.routeDistanceRefreshTimer);
+        this.routeDistanceRefreshTimer = null;
+      }
+      this.routeDistanceRefreshContext = null;
+      this.routeDistanceRefreshInFlight = false;
+    }
+
+    private async refreshLiveRouteDistance(): Promise<void> {
+      const context = this.routeDistanceRefreshContext;
+      if (!context || this.routeDistanceRefreshInFlight) {
+        return;
+      }
+
+      if (Date.now() > new Date(context.toDate).getTime()) {
+        this.stopRouteDistanceRefresh();
+        return;
+      }
+
+      this.routeDistanceRefreshInFlight = true;
+      try {
+        const response = await this.targetsService.getDeviceDistance(
+          context.deviceId,
+          context.fromDate,
+          context.toDate
+        );
+
+        if (
+          this.routeDistanceRefreshContext === context &&
+          typeof response?.distance === 'number'
+        ) {
+          this.routeDistanceMeters = response.distance;
+          this.refreshRouteSummaryInfoPanel();
+          this.cdr.detectChanges();
+        }
+      } catch (error) {
+        console.warn('No se pudo actualizar la distancia en vivo del reporte:', error);
+      } finally {
+        this.routeDistanceRefreshInFlight = false;
       }
     }
 
@@ -1988,6 +2052,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
     }
 
     clearFilters(): void {
+      this.stopRouteDistanceRefresh();
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
       yesterday.setHours(0, 0, 0, 0); // Inicio a las 00:00
       
