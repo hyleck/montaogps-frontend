@@ -40,6 +40,10 @@ import {
   getDeviceCancellationReasonLabel,
 } from '@core/constants/device-cancellation-reasons.constant';
 import { MapUtils, type MapProvider } from '@shared/helpers/map.helper';
+import {
+  isEmployeeLocationSubjectValue,
+  sanitizeManagementLocationSubject,
+} from './location-subject-privacy';
 
 @Component({
   selector: 'app-management',
@@ -63,6 +67,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
   selectedUser: User | undefined;
   users: User[] = [];
   userToEdit: ExtendedUser | null = null;
+  transferUserBranchDialogVisible: boolean = false;
+  userBranchToTransfer: User | null = null;
+  transferUserBranchEmail: string = '';
+  transferUserBranchFoundParent: User | null = null;
+  transferUserBranchError: string = '';
+  searchingTransferUserBranchParent: boolean = false;
+  transferringUserBranch: boolean = false;
   targets: Target[] = [];
   targetsList: any[] = [];
   private targetsCardListCacheSource: any[] | null = null;
@@ -1541,6 +1552,64 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.uiService.showUserForm();
   }
 
+  openTransferUserBranch(user: User): void {
+    if (!this.canUpdateUsers()) return;
+    this.userBranchToTransfer = user;
+    this.transferUserBranchEmail = '';
+    this.transferUserBranchFoundParent = null;
+    this.transferUserBranchError = '';
+    this.transferUserBranchDialogVisible = true;
+  }
+
+  async verifyTransferUserBranchParent(): Promise<void> {
+    const email = this.transferUserBranchEmail.trim().toLowerCase();
+    this.transferUserBranchFoundParent = null;
+    this.transferUserBranchError = '';
+    if (!email) {
+      this.transferUserBranchError = 'El correo es requerido.';
+      return;
+    }
+    try {
+      this.searchingTransferUserBranchParent = true;
+      const user = await lastValueFrom(this.userService.getByEmail(email));
+      if (!user) {
+        this.transferUserBranchError = 'No se encontró una cuenta con ese correo.';
+        return;
+      }
+      this.transferUserBranchFoundParent = user;
+    } catch (error: any) {
+      this.transferUserBranchError = error?.status === 404
+        ? 'No se encontró una cuenta con ese correo.'
+        : 'No se pudo verificar la cuenta destino.';
+    } finally {
+      this.searchingTransferUserBranchParent = false;
+    }
+  }
+
+  async transferUserBranch(): Promise<void> {
+    const source = this.userBranchToTransfer;
+    const parent = this.transferUserBranchFoundParent;
+    if (!source || !parent) {
+      this.messageService.add({ severity: 'warn', summary: 'Cuenta requerida', detail: 'Indica el correo de la nueva cuenta padre.' });
+      return;
+    }
+    this.transferringUserBranch = true;
+    try {
+      const result = await lastValueFrom(this.userService.transferBranch(source._id, parent._id));
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Rama transferida',
+        detail: `${result.usersUpdated} usuario(s) y ${result.devicesUpdated} GPS fueron actualizados.`,
+      });
+      this.transferUserBranchDialogVisible = false;
+      if (this.selectedUser) this.loadUsersForUser(this.selectedUser._id);
+    } catch (error: any) {
+      this.messageService.add({ severity: 'error', summary: 'No se pudo transferir la rama', detail: error?.error?.message || error?.message || 'Verifica la cuenta destino.' });
+    } finally {
+      this.transferringUserBranch = false;
+    }
+  }
+
   onHideUserForm() {
     this.uiService.hideUserForm();
     this.userToEdit = null;
@@ -2024,6 +2093,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
 
     try {
+      const owner = await this.resolveTargetOwnerUser(ownerId);
+      if (!this.isEmployeeLocationSubject(owner)) {
+        this.targetOwnerLocationCache.set(ownerId, null);
+        this.selectedTargetOwnerLocation = null;
+        this.cdr.detectChanges();
+        return;
+      }
+
       const ownerName = await this.getTargetOwnerName(ownerId, target);
       const location = await lastValueFrom(this.userService.getLatestLocation(ownerId));
       const normalized = this.normalizeOwnerLocation(ownerId, ownerName, location);
@@ -2036,6 +2113,19 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.selectedTargetOwnerLocation = null;
       this.cdr.detectChanges();
     }
+  }
+
+  private async resolveTargetOwnerUser(ownerId: string): Promise<User | null> {
+    if (this.selectedUser?._id === ownerId) {
+      return this.selectedUser;
+    }
+
+    const listedUser = this.users.find(user => user._id === ownerId);
+    if (listedUser) {
+      return listedUser;
+    }
+
+    return await lastValueFrom(this.userService.getById(ownerId));
   }
 
   private getTargetOwnerId(target: any): string {
@@ -2977,7 +3067,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       ).subscribe({
         next: (response) => {
           // Siempre recibimos un objeto con users y totalCount
-          this.users = response.users;
+          this.users = this.sanitizeManagementUsers(response.users);
           this.totalUsersCount = response.totalCount;
           this.hasMoreUsers = this.users.length < this.totalUsersCount;
         },
@@ -3294,7 +3384,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private handleUserLoaded(user: User): void {
-    this.selectedUser = user;
+    this.closeUserLocationDialog();
+    this.targetOwnerLocationCache.clear();
+    this.selectedUser = this.sanitizeManagementUserLocation(user);
     // Limpiar datos anteriores y resetear bandera de carga completada
     this.targetsList = [];
     this.targets = [];
@@ -3600,7 +3692,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
           });
 
           // Agregar usuarios a la lista existente
-          this.users = [...this.users, ...allUsers];
+          this.users = [
+            ...this.users,
+            ...this.sanitizeManagementUsers(allUsers),
+          ];
           this.totalUsersCount = usersResponse.totalCount;
 
           // Verificar si hay más usuarios disponibles
@@ -3624,7 +3719,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
         if (usersResponse) {
           // Agregar usuarios a la lista existente
-          this.users = [...this.users, ...usersResponse.users];
+          this.users = [
+            ...this.users,
+            ...this.sanitizeManagementUsers(usersResponse.users),
+          ];
           this.totalUsersCount = usersResponse.totalCount;
 
           // Verificar si hay más usuarios disponibles
@@ -3877,7 +3975,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
       }
 
       if (response) {
-        this.users = [...this.users, ...response.users];
+        this.users = [
+          ...this.users,
+          ...this.sanitizeManagementUsers(response.users),
+        ];
         this.totalUsersCount = response.totalCount;
         this.hasMoreUsers = this.users.length < this.totalUsersCount;
         this.currentUsersOffset += this.usersPageSize;
@@ -5347,6 +5448,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   getUserLastLocationDate(user: User | any): Date | null {
+    if (!this.canViewSubjectLocation(user)) return null;
+
     const rawDate = user?.realtime_location?.recordedAt
       || user?.locationUpdatedAt
       || user?.last_location_at
@@ -5393,6 +5496,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   openUserLocationDialog(user: User | any): void {
+    if (!this.canViewSubjectLocation(user)) {
+      this.closeUserLocationDialog();
+      return;
+    }
+
     const position = this.getUserLocationPosition(user);
     if (!position) {
       this.messageService.add({
@@ -5428,6 +5536,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private getUserLocationPosition(user: User | any): { lat: number; lng: number } | null {
+    if (!this.canViewSubjectLocation(user)) return null;
+
     const realtime = user?.realtime_location || {};
     const location = user?.location || user?.latest_location || user?.last_location || {};
     const lat = Number(
@@ -5499,6 +5609,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private async loadUserLocationActivity(user: User | any): Promise<void> {
+    if (!this.canViewSubjectLocation(user)) {
+      this.userLocationActivities = [];
+      this.userLocationGroupedActivities = [];
+      return;
+    }
+
     const userId = String(user?._id || user?.id || '').trim();
     if (!userId) return;
 
@@ -5514,6 +5630,22 @@ export class ManagementComponent implements OnInit, OnDestroy {
     } finally {
       this.userLocationActivityLoading = false;
     }
+  }
+
+  isEmployeeLocationSubject(user: User | any): boolean {
+    return isEmployeeLocationSubjectValue(user);
+  }
+
+  canViewSubjectLocation(user: User | any): boolean {
+    return this.isLoggedEmployee() && this.isEmployeeLocationSubject(user);
+  }
+
+  private sanitizeManagementUsers(users: User[] | null | undefined): User[] {
+    return (users || []).map(user => this.sanitizeManagementUserLocation(user));
+  }
+
+  private sanitizeManagementUserLocation<T extends User | any>(user: T): T {
+    return sanitizeManagementLocationSubject(user);
   }
 
   private groupConsecutiveActivities(activities: UserActivity[]): Array<UserActivity & { groupCount?: number }> {

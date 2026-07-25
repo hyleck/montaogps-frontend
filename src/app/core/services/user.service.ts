@@ -237,6 +237,13 @@ export class UserService {
     return this.http.patch<User>(`${this.apiUrl}/${id}`, updateUserDto);
   }
 
+  transferBranch(id: string, targetParentId: string): Observable<{ rootUser: User; usersUpdated: number; devicesUpdated: number }> {
+    return this.http.patch<{ rootUser: User; usersUpdated: number; devicesUpdated: number }>(
+      `${this.apiUrl}/${id}/transfer-branch`,
+      { targetParentId },
+    );
+  }
+
   updatePassword(id: string, updatePasswordDto: UpdatePasswordDto): Observable<any> {
     return this.http.patch<any>(`${this.apiUrl}/${id}`, updatePasswordDto);
   }
@@ -263,6 +270,12 @@ export class UserService {
 
   getEmployees(): Observable<User[]> {
     return this.http.get<User[]>(`${this.apiUrl}/employees`);
+  }
+
+  getActiveUsers(minutes: number = 15): Observable<User[]> {
+    return this.http.get<User[]>(`${this.apiUrl}/active`, {
+      params: { minutes: String(minutes) }
+    });
   }
 
   toggleInteractionProgress(userId: string, listId: string, objectiveId: string, completed: boolean): Observable<any> {

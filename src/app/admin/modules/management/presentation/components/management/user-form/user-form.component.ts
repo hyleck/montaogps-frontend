@@ -18,6 +18,7 @@ import { MapUtils } from 'src/app/shareds/helpers/map.helper';
 import { ChatwootApiService } from '@core/services/chatwoot-api.service';
 import { InteraccionesService, UserList } from '../../../../../interacciones/presentation/services/interacciones.service';
 import { VapiService } from '@core/services/vapi.service';
+import { isEmployeeLocationSubjectValue } from '../location-subject-privacy';
 
 declare var google: any;
 
@@ -732,6 +733,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.selectedAffiliationType = user.affiliation_type_id || 'cliente';
         this.selectedProfileType = user.profile_type_id || 'personal';
         this.selectedCompanyType = user.company_type_id || '';
+        if (!this.isEmployeeLocationSubject()) {
+            this.clearUserLocationState();
+        }
 
         // Pre-fill parent email for subcliente
         if (this.selectedAffiliationType === 'subcliente' && (user as any).parent_id) {
@@ -1288,6 +1292,13 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         delete (userToSubmit as any).longitude;
         delete (userToSubmit as any).locationAccuracy;
         delete (userToSubmit as any).locationUpdatedAt;
+        delete (userToSubmit as any).realtime_location;
+        if (!this.isEmployeeLocationSubject()) {
+            delete (userToSubmit as any).static_location_url;
+            delete (userToSubmit as any).static_location_address;
+            delete (userToSubmit as any).static_latitude;
+            delete (userToSubmit as any).static_longitude;
+        }
         console.log('User to submit:', userToSubmit);
 
         const normalizedUserPayload = this.normalizeUserPayload(userToSubmit);
@@ -1437,6 +1448,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
         // Cuando cambia la afiliación, si es técnico mostrar sección y resetear selects
         if (key === 'affiliation_type' && typeof value === 'string') {
+            if (!this.isEmployeeLocationSubject()) {
+                this.clearUserLocationState();
+            }
             const isTech = value === 'tecnico_empleado' || value === 'tecnico_independiente';
             if (!isTech) {
                 this.selectedProvince = '';
@@ -1682,6 +1696,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     openLocationModal() {
+        if (!this.isEmployeeLocationSubject()) {
+            this.clearUserLocationState();
+            return;
+        }
+
         this.showLocationModal = true;
         this.staticLocationManualAddress = this.user.static_location_address || '';
         this.staticLocationGoogleMapsLink = this.user.static_location_url || '';
@@ -1740,6 +1759,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     async initLocationMap() {
+        if (!this.isEmployeeLocationSubject()) {
+            this.clearUserLocationState();
+            return;
+        }
+
         const mapElement = document.getElementById('userLocationMap');
         if (!mapElement) return;
 
@@ -1778,6 +1802,30 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
         this.userLocationMap.addListener('click', (event: any) => this.onMapClick(event));
         this.setupStaticLocationAutocomplete();
+    }
+
+    isEmployeeLocationSubject(): boolean {
+        return isEmployeeLocationSubjectValue({
+            affiliation_type_id: this.selectedAffiliationType,
+        });
+    }
+
+    private clearUserLocationState(): void {
+        this.showLocationModal = false;
+        this.staticLocationManualAddress = '';
+        this.staticLocationGoogleMapsLink = '';
+        this.userLocationMarker?.setMap?.(null);
+        this.userLocationMarker = null;
+        this.userLocationMap = null;
+        this.user.static_location_url = '';
+        this.user.static_location_address = '';
+        this.user.static_latitude = undefined;
+        this.user.static_longitude = undefined;
+        delete (this.user as any).latitude;
+        delete (this.user as any).longitude;
+        delete (this.user as any).locationAccuracy;
+        delete (this.user as any).locationUpdatedAt;
+        delete (this.user as any).realtime_location;
     }
 
     private async ensureGooglePlacesLibrary(): Promise<void> {

@@ -411,9 +411,9 @@
   top: 8px;
   right: 8px;
   z-index: 2;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
   background: rgba(34, 197, 94, 0.12);
   color: #16a34a;
   display: inline-flex;
@@ -421,6 +421,121 @@
   justify-content: center;
   border: 1px solid rgba(34, 197, 94, 0.28);
   box-shadow: 0 4px 10px rgba(22, 163, 74, 0.12);
+}
+
+.management__user-card-transfer {
+  position: absolute;
+  z-index: 2;
+  top: 8px;
+  left: 8px;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--globalColorAccent) 60%, transparent);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--globalColorAccent) 14%, var(--managementColorCardBackground));
+  color: var(--globalColorAccent);
+  cursor: pointer;
+  opacity: 0.42;
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.management__user-card-transfer:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--globalColorAccent) 26%, var(--managementColorCardBackground));
+}
+
+.management__user-card-transfer i {
+  font-size: 0.9rem;
+}
+
+.management__transfer-user-search {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.management__transfer-user-search input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.management__transfer-user-search > button {
+  flex: 0 0 48px;
+  width: 48px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 10px 10px 0;
+}
+
+.management__transfer-user-found {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 15px 17px;
+  border: 1px solid rgba(52, 211, 153, 0.42);
+  border-radius: 13px;
+  background: linear-gradient(100deg, rgba(16, 185, 129, 0.16), rgba(16, 185, 129, 0.045));
+}
+
+.management__transfer-user-found-icon {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: #d8fff0;
+  background: #179b70;
+  box-shadow: 0 8px 18px rgba(16, 185, 129, 0.2);
+}
+
+.management__transfer-user-found-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.management__transfer-user-found-content > span {
+  color: #64e8bb;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.management__transfer-user-found-content strong {
+  overflow: hidden;
+  color: #172437 !important;
+  font-size: 1.05rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html.app-dark .management__transfer-user-found-content strong {
+  color: #f7fbff !important;
+}
+
+.management__transfer-user-found-content small {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--globalColorTextMuted, #a4a4a4);
+  font-size: 0.88rem;
+}
+
+.management__transfer-user-found-content small i {
+  color: #64e8bb;
+  font-size: 0.78rem;
 }
 
 .management__user-card-verified i {

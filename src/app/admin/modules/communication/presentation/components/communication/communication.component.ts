@@ -268,7 +268,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private chatPollingInterval: any = null;
   private conversationsPollingInterval: any = null;
   private internalChatPollingInterval: any = null;
+  private activeEmployeesPollingInterval: any = null;
   private readonly POLL_INTERVAL = 5000;
+  private readonly ACTIVE_EMPLOYEES_POLL_INTERVAL = 30000;
 
   // User inbox
   private userInboxId: number | undefined;
@@ -344,6 +346,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   sendingInternalMessage: boolean = false;
   internalChatError: string = '';
   internalChatMuted: boolean = false;
+  activeEmployeesCount: number | null = null;
+  activeEmployees: any[] = [];
+  showActiveEmployeesDialog: boolean = false;
   uploadingInternalAttachment: boolean = false;
   showInternalEmojiPicker: boolean = false;
   readonly internalEmojiOptions: string[] = ['😀', '😂', '😊', '😍', '👍', '🙏', '👏', '🔥', '✅', '🚗', '📍', '⚠️', '🛠️', '📞', '❤️', '💪'];
@@ -367,6 +372,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.activeTab = tab;
         if (tab === 'grupo') {
           this.loadInternalChat();
+        } else {
+          this.stopActiveEmployeesPolling();
         }
       } else if (tab === 'correo' || tab === 'foro') {
         this.navigateToTab('chat');
@@ -383,6 +390,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.stopChatPolling();
     this.stopConversationsPolling();
     this.stopInternalChatPolling();
+    this.stopActiveEmployeesPolling();
     this.cancelVoiceRecording();
     this.internalChatMutedSubscription?.unsubscribe();
   }
@@ -451,6 +459,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       this.loadInternalChat();
     } else {
       this.stopInternalChatPolling();
+      this.stopActiveEmployeesPolling();
     }
     this.router.navigate(['/admin/communication', tab]);
   }
@@ -2090,11 +2099,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.internalMessages = res.messages || [];
         this.scrollInternalChatToBottom();
         this.startInternalChatPolling();
+        this.startActiveEmployeesPolling();
       },
       error: (error) => {
         this.loadingInternalMessages = false;
         this.internalChatError = error?.error?.message || 'No se pudo cargar el grupo Montao GPS.';
         this.stopInternalChatPolling();
+        this.stopActiveEmployeesPolling();
       }
     });
   }
@@ -2321,6 +2332,60 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         error: () => {}
       });
     }, this.POLL_INTERVAL);
+  }
+
+  private startActiveEmployeesPolling(): void {
+    this.stopActiveEmployeesPolling();
+    this.loadActiveEmployeesCount();
+    this.activeEmployeesPollingInterval = setInterval(() => {
+      if (this.activeTab === 'grupo') {
+        this.loadActiveEmployeesCount();
+      }
+    }, this.ACTIVE_EMPLOYEES_POLL_INTERVAL);
+  }
+
+  private stopActiveEmployeesPolling(): void {
+    if (this.activeEmployeesPollingInterval) {
+      clearInterval(this.activeEmployeesPollingInterval);
+      this.activeEmployeesPollingInterval = null;
+    }
+  }
+
+  private loadActiveEmployeesCount(): void {
+    this.userService.getActiveUsers(15).subscribe({
+      next: (users) => {
+        this.activeEmployees = (users || []).filter((user: any) =>
+          ['empleado', 'tecnico_empleado'].includes(String(user?.affiliation_type_id || '').toLowerCase()) &&
+          String(user?._id || user?.id || '') !== this.currentUserId
+        ).sort((first: any, second: any) => this.getActiveEmployeeName(first).localeCompare(this.getActiveEmployeeName(second)));
+        this.activeEmployeesCount = this.activeEmployees.length;
+      },
+      error: () => {
+        this.activeEmployeesCount = null;
+        this.activeEmployees = [];
+      }
+    });
+  }
+
+  openActiveEmployeesDialog(): void {
+    if (this.activeEmployeesCount === null) return;
+    this.showActiveEmployeesDialog = true;
+  }
+
+  getActiveEmployeeName(employee: any): string {
+    return [employee?.name, employee?.last_name]
+      .filter(Boolean)
+      .join(' ')
+      .trim() || employee?.email || 'Empleado';
+  }
+
+  getActiveEmployeeInitials(employee: any): string {
+    return this.getActiveEmployeeName(employee)
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join('');
   }
 
   private stopInternalChatPolling(): void {

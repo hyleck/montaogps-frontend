@@ -497,9 +497,18 @@
                     </span>
                     <div>
                         <h2>Grupo Montao GPS</h2>
-                        <p>{{ internalChatMuted ? 'Silenciado para ti' : 'Chat interno para empleados' }}</p>
+                        <p>
+                            {{ internalChatMuted ? 'Silenciado para ti' : 'Chat interno para empleados' }}
+                            <button class="comm-internal__presence" type="button" *ngIf="activeEmployeesCount !== null"
+                                (click)="openActiveEmployeesDialog()"
+                                [attr.aria-label]="'Ver ' + activeEmployeesCount + ' empleados activos'">
+                                <i class="pi pi-circle-fill"></i>
+                                {{ activeEmployeesCount }} {{ activeEmployeesCount === 1 ? 'empleado usando el sistema' : 'empleados usando el sistema' }}
+                            </button>
+                        </p>
                     </div>
                 </div>
+
                 <div class="comm-internal__header-actions">
                     <button class="comm-internal__mute"
                         [class.comm-internal__mute--active]="internalChatMuted"
@@ -681,6 +690,29 @@
             </form>
         </section>
     </div>
+
+    <p-dialog [(visible)]="showActiveEmployeesDialog" header="Empleados activos" [modal]="true"
+        [draggable]="false" [resizable]="false" [style]="{ width: '92vw', maxWidth: '440px' }">
+        <div class="comm-active-employees-dialog">
+            <p class="comm-active-employees-dialog__intro">
+                {{ activeEmployees.length }} {{ activeEmployees.length === 1 ? 'empleado está usando el sistema' : 'empleados están usando el sistema' }}.
+            </p>
+            <div *ngIf="activeEmployees.length; else noActiveEmployees" class="comm-active-employees-dialog__list">
+                <div *ngFor="let employee of activeEmployees" class="comm-active-employees-dialog__item">
+                    <img *ngIf="employee.photo" [src]="employee.photo" [alt]="getActiveEmployeeName(employee)" />
+                    <span *ngIf="!employee.photo" class="comm-active-employees-dialog__avatar">{{ getActiveEmployeeInitials(employee) }}</span>
+                    <div>
+                        <strong>{{ getActiveEmployeeName(employee) }}</strong>
+                        <span>{{ employee.department_id || 'Empleado' }}</span>
+                    </div>
+                    <i class="pi pi-circle-fill" title="Activo"></i>
+                </div>
+            </div>
+            <ng-template #noActiveEmployees>
+                <div class="comm-active-employees-dialog__empty">No hay empleados activos en este momento.</div>
+            </ng-template>
+        </div>
+    </p-dialog>
 
     <!-- ====== FORO TAB ====== -->
     <div *ngIf="activeTab === 'foro'" class="comm-foro-row h-full">

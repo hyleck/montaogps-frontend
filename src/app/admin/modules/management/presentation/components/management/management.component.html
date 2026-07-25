@@ -163,6 +163,10 @@
                                 <div *ngFor="let user of users"
                                     class="management__user-card management__user-card--maps"
                                     [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
+                                    <button (click)="openTransferUserBranch(user)" class="management__user-card-transfer"
+                                        title="Transferir usuario y su rama" *ngIf="canUpdateUsers() && currentUserAffiliationTypeId === 'empleado' && !isSharedUser(user)">
+                                        <i class="pi pi-arrows-h"></i>
+                                    </button>
                                     <span *ngIf="isUserVerified(user)" class="management__user-card-verified"
                                         title="Usuario verificado">
                                         <i class="pi pi-check"></i>
@@ -174,7 +178,7 @@
                                     <div class="management__user-card-subtitle"><span>{{ user.email }}</span></div>
                                     <button type="button" class="management__user-card-activity"
                                         [class.is-stale]="isUserLocationOlderThanFiveHours(user)"
-                                        *ngIf="currentUserAffiliationTypeId === 'empleado' && getUserLastLocationDate(user)"
+                                        *ngIf="canViewSubjectLocation(user) && getUserLastLocationDate(user)"
                                         (click)="openUserLocationDialog(user)" title="Ver ubicación del usuario">
                                         <i class="pi pi-map-marker"></i>
                                         <span>Activo {{ getUserActiveAgo(user) }}</span>
@@ -706,6 +710,10 @@
                         </div>
                         <div *ngFor="let user of users" class="management__user-card"
                             [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
+                            <button (click)="openTransferUserBranch(user)" class="management__user-card-transfer"
+                                title="Transferir usuario y su rama" *ngIf="canUpdateUsers() && currentUserAffiliationTypeId === 'empleado' && !isSharedUser(user)">
+                                <i class="pi pi-arrows-h"></i>
+                            </button>
                             <span *ngIf="isUserVerified(user)" class="management__user-card-verified"
                                 title="Usuario verificado">
                                 <i class="pi pi-check"></i>
@@ -722,7 +730,7 @@
                             <div class="management__user-card-subtitle"> <span>{{ user.email }}</span> </div>
                             <button type="button" class="management__user-card-activity"
                                 [class.is-stale]="isUserLocationOlderThanFiveHours(user)"
-                                *ngIf="currentUserAffiliationTypeId === 'empleado' && getUserLastLocationDate(user)"
+                                *ngIf="canViewSubjectLocation(user) && getUserLastLocationDate(user)"
                                 (click)="openUserLocationDialog(user)" title="Ver ubicación del usuario">
                                 <i class="pi pi-map-marker"></i>
                                 <span>Activo {{ getUserActiveAgo(user) }}</span>
@@ -1868,14 +1876,52 @@
     </div>
 </p-dialog>
 
-<p-dialog [(visible)]="userLocationDialogVisible" [modal]="true" [draggable]="false" [resizable]="false"
+<p-dialog [(visible)]="transferUserBranchDialogVisible" [modal]="true" [draggable]="false" [resizable]="false"
+    [style]="{width: 'min(520px, 94vw)'}" styleClass="app-dark-dialog">
+    <ng-template pTemplate="header">
+        <span><i class="pi pi-arrows-h"></i> Transferir usuario</span>
+    </ng-template>
+    <div *ngIf="userBranchToTransfer">
+        <p>Transferirás a <strong>{{ userBranchToTransfer.name }} {{ userBranchToTransfer.last_name }}</strong> a otra cuenta.</p>
+        <label for="transfer-user-branch-email">Correo de la cuenta destino</label>
+        <div class="p-inputgroup management__transfer-user-search" style="margin-top: 8px;">
+            <input id="transfer-user-branch-email" pInputText type="email"
+                [(ngModel)]="transferUserBranchEmail"
+                (ngModelChange)="transferUserBranchFoundParent = null; transferUserBranchError = ''"
+                (keydown.enter)="$event.preventDefault(); verifyTransferUserBranchParent()"
+                placeholder="correo@ejemplo.com" [disabled]="transferringUserBranch || searchingTransferUserBranchParent" />
+            <button type="button" pButton icon="pi pi-search" title="Verificar cuenta"
+                (click)="verifyTransferUserBranchParent()"
+                [disabled]="!transferUserBranchEmail || transferringUserBranch || searchingTransferUserBranchParent"
+                [loading]="searchingTransferUserBranchParent"></button>
+        </div>
+        <small class="p-error" *ngIf="transferUserBranchError">{{ transferUserBranchError }}</small>
+        <div *ngIf="transferUserBranchFoundParent" class="management__transfer-user-found">
+            <div class="management__transfer-user-found-icon"><i class="pi pi-check"></i></div>
+            <div class="management__transfer-user-found-content">
+                <span>Cuenta encontrada</span>
+                <strong>{{ transferUserBranchFoundParent.name }} {{ transferUserBranchFoundParent.last_name || '' }}</strong>
+                <small><i class="pi pi-envelope"></i>{{ transferUserBranchFoundParent.email }}</small>
+            </div>
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button pButton type="button" label="Cancelar" class="p-button-text" (click)="transferUserBranchDialogVisible = false" [disabled]="transferringUserBranch"></button>
+        <button pButton type="button" label="Transferir usuario" icon="pi pi-check" class="p-button-warning"
+            (click)="transferUserBranch()" [loading]="transferringUserBranch"
+            [disabled]="!transferUserBranchFoundParent"></button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog *ngIf="selectedLocationUser && canViewSubjectLocation(selectedLocationUser)"
+    [(visible)]="userLocationDialogVisible" [modal]="true" [draggable]="false" [resizable]="false"
     [style]="{width: 'min(1040px, 96vw)'}" styleClass="app-dark-dialog user-location-dialog"
     (onHide)="closeUserLocationDialog()">
     <ng-template pTemplate="header">
         <div class="user-location-dialog__header">
             <i class="pi pi-map-marker"></i>
             <div>
-                <strong>{{ selectedLocationUser?.name }} {{ selectedLocationUser?.last_name }}</strong>
+                <strong>{{ selectedLocationUser.name }} {{ selectedLocationUser.last_name }}</strong>
                 <span *ngIf="selectedLocationUser">Activo {{ getUserActiveAgo(selectedLocationUser) }}</span>
             </div>
         </div>

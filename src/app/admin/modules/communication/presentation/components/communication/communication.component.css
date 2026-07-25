@@ -136,6 +136,99 @@
     font-weight: 600;
 }
 
+.comm-internal__presence {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.34rem;
+    margin-left: 0.55rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #34d399;
+    font: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.comm-internal__presence:hover,
+.comm-internal__presence:focus-visible {
+    color: #6ee7b7;
+    text-decoration: underline;
+    outline: none;
+}
+
+.comm-internal__presence .pi {
+    font-size: 0.5rem;
+}
+
+.comm-active-employees-dialog__intro {
+    margin: 0 0 0.9rem;
+    color: var(--text-color-secondary, rgba(255, 255, 255, 0.62));
+}
+
+.comm-active-employees-dialog__list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.comm-active-employees-dialog__item {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.7rem;
+    border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.1));
+    border-radius: 10px;
+    background: var(--surface-hover, rgba(255, 255, 255, 0.04));
+}
+
+.comm-active-employees-dialog__item img,
+.comm-active-employees-dialog__avatar {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.comm-active-employees-dialog__avatar {
+    display: grid;
+    place-items: center;
+    background: rgba(52, 211, 153, 0.16);
+    color: #6ee7b7;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.comm-active-employees-dialog__item div {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.comm-active-employees-dialog__item strong {
+    overflow: hidden;
+    color: var(--text-color, rgba(255, 255, 255, 0.92));
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.comm-active-employees-dialog__item span:not(.comm-active-employees-dialog__avatar) {
+    color: var(--text-color-secondary, rgba(255, 255, 255, 0.58));
+    font-size: 0.78rem;
+}
+
+.comm-active-employees-dialog__item > .pi {
+    margin-left: auto;
+    color: #34d399;
+    font-size: 0.55rem;
+}
+
+.comm-active-employees-dialog__empty {
+    padding: 1.25rem 0;
+    color: var(--text-color-secondary, rgba(255, 255, 255, 0.58));
+    text-align: center;
+}
+
 .comm-internal__header-actions {
     display: inline-flex;
     align-items: center;
