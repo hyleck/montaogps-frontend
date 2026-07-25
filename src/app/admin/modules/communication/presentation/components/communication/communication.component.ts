@@ -1317,13 +1317,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   private sortConversations(conversations: ChatConversation[]): ChatConversation[] {
     return [...conversations].sort((a, b) => {
-      const aAssigned = a.assignee_id ? 0 : 1;
-      const bAssigned = b.assignee_id ? 0 : 1;
-      if (aAssigned !== bAssigned) return aAssigned - bAssigned;
-
       const aTime = Number(a.last_message_time || a.contact_last_seen_at || 0);
       const bTime = Number(b.last_message_time || b.contact_last_seen_at || 0);
-      return bTime - aTime;
+      const activityDifference = bTime - aTime;
+
+      if (activityDifference !== 0) {
+        return activityDifference;
+      }
+
+      return Number(b.id || 0) - Number(a.id || 0);
     });
   }
 
@@ -2396,6 +2398,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   getCleanPreview(text: string | undefined): string {
     if (!text) return 'Sin mensajes';
+    if (this.isTechnicalStickerLabel(text)) return 'Sticker';
+
     let clean = text;
     const match = text.match(/^>\s*([^\n]+)(?:\n([\s\S]*))?$/);
     if (match) {
@@ -2408,6 +2412,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   private enrichWithAppUrls(msg: ChatMessage): ChatMessage {
       if (!msg.text) return msg;
+
+      const hasStickerAttachment = (msg.attachments || []).some(att => this.isStickerAttachment(att));
+      if (hasStickerAttachment && this.isTechnicalStickerLabel(msg.text)) {
+          msg.text = '';
+          msg.parsedHtml = '';
+          return msg;
+      }
 
       const mediaMatch = msg.text.match(/^\[Archivo enviado por WhatsApp\]\s*\n(image|video|audio|document)\s*\n([^\n]*)\n(https?:\/\/\S+)/i);
       if (mediaMatch) {
@@ -2708,6 +2719,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return contentType === 'image/webp' || dataUrl.endsWith('.webp');
   }
 
+  private isTechnicalStickerLabel(text: string | undefined): boolean {
+    const normalized = String(text || '').trim();
+    return /^\[Sticker(?::[^\]]*)?\]$/i.test(normalized);
+  }
+
   getPlayableAudioUrl(att: ChatAttachment): string {
     return this.playableAudioUrls.get(
       String(att?.data_url || '').trim()
@@ -2783,7 +2799,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   isStickerOnlyMessage(msg: ChatMessage): boolean {
     const text = String(msg?.text || '').trim();
     const attachments = msg?.attachments || [];
-    return !text && attachments.length > 0 && attachments.every(att => this.isStickerAttachment(att));
+    const hasVisibleText = Boolean(text) && !this.isTechnicalStickerLabel(text);
+    return !hasVisibleText
+      && attachments.length > 0
+      && attachments.every(att => this.isStickerAttachment(att));
   }
 
   sendSticker(sticker: WhatsAppSticker): void {

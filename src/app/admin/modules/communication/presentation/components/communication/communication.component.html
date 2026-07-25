@@ -198,7 +198,7 @@
                                 <button *ngIf="att.file_type === 'image' && msg.from === 'incoming'"
                                     class="comm-sticker-save-btn"
                                     [disabled]="savingStickerUrl === att.data_url"
-                                    title="Guardar como sticker"
+                                    [title]="isStickerAttachment(att) ? 'Guardar sticker' : 'Guardar como sticker'"
                                     (click)="saveImageAsSticker(att, msg)">
                                     <i [class]="savingStickerUrl === att.data_url ? 'pi pi-spin pi-spinner' : 'pi pi-bookmark'"></i>
                                 </button>
