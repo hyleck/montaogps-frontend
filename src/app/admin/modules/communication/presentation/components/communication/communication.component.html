@@ -1031,28 +1031,39 @@
 
 <!-- WhatsApp Template Modal -->
 <p-dialog header="Contactar por WhatsApp" [(visible)]="showTemplateModal" [modal]="true" [style]="{width: '35vw', minWidth: '400px'}" 
-    [closable]="true" [draggable]="false" [resizable]="false">
+    [closable]="true" [draggable]="false" [resizable]="false" (onShow)="initializeWhatsAppTemplateEditors()">
     
     <div *ngIf="selectedConversation" style="padding: 0.5rem 0;">
-        <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Nombre del destinatario <span style="color: #ef4444">*</span></label>
-            <input pInputText [(ngModel)]="whatsappTemplateVars.name" placeholder="Ej. Juan Pérez" style="width: 100%; border-radius: 6px;" [disabled]="sendingTemplate" />
-        </div>
-
-        <div style="margin-bottom: 1.5rem;">
-            <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Cuerpo del mensaje <span style="color: #ef4444">*</span></label>
-            <textarea pInputTextarea [(ngModel)]="whatsappTemplateVars.body" rows="3" style="width: 100%; resize: none; border-radius: 6px;" placeholder="Escribe el cuerpo del mensaje aquí..." [disabled]="sendingTemplate"></textarea>
-        </div>
-
         <!-- WhatsApp Layout Preview (Mirrored from Interacciones) -->
         <div style="padding: 1.2rem; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; margin-bottom: 1.5rem;">
             <h5 style="margin-top: 0; margin-bottom: 0.5rem; color: #10b981; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">
                 <i class="pi pi-whatsapp"></i> Previsualización
             </h5>
+            <p class="wa-template-preview-hint">Edita el destinatario y el mensaje directamente aquí.</p>
             <div style="font-size: 0.95rem; line-height: 1.6; color: var(--text-color); background: var(--surface-card); padding: 1rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                 <strong style="font-size: 1.05rem; display: block; margin-bottom: 0.75rem;">{{ whatsappTemplateVars.headerUser || 'Cliente' }}:</strong>
-                B{{ whatsappTemplateVars.bodySaludos || 'uenas' }}, <strong>{{ whatsappTemplateVars.name || '[Nombre]' }}</strong>.<br>
-                <span style="white-space: pre-wrap; display: block; margin-top: 0.25rem;">{{ whatsappTemplateVars.body || '[Cuerpo del mensaje]' }}</span><br>
+                <div class="wa-template-preview-greeting">
+                    <span>B{{ whatsappTemplateVars.bodySaludos || 'uenas' }},&nbsp;</span>
+                    <strong
+                        #whatsappTemplateNameEditor
+                        class="wa-template-preview-editable wa-template-preview-name"
+                        role="textbox"
+                        aria-label="Nombre del destinatario"
+                        data-placeholder="Nombre del destinatario"
+                        [attr.contenteditable]="sendingTemplate ? 'false' : 'true'"
+                        (input)="updateWhatsAppTemplatePreview('name', $event)"
+                    ></strong><span>.</span>
+                </div>
+                <div
+                    #whatsappTemplateBodyEditor
+                    class="wa-template-preview-editable wa-template-preview-body"
+                    role="textbox"
+                    aria-label="Cuerpo del mensaje"
+                    aria-multiline="true"
+                    data-placeholder="Escribe el cuerpo del mensaje aquí..."
+                    [attr.contenteditable]="sendingTemplate ? 'false' : 'true'"
+                    (input)="updateWhatsAppTemplatePreview('body', $event)"
+                ></div>
                 <span style="display: block; margin-top: 0.5rem;">Seguimos a tu orden por este número.</span>
                 <span style="opacity: 0.5; font-size: 0.8rem; display: block; margin-top: 0.75rem;">Montao GPS</span>
             </div>

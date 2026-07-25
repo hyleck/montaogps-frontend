@@ -15,9 +15,6 @@ export const authInterceptor: HttpInterceptorFn = (
   if (userStr) {
     try {
       const user = JSON.parse(userStr);
-      if (user.chatwoot_access_token) {
-        headersToSet['x-chatwoot-token'] = user.chatwoot_access_token;
-      }
     } catch (e) {}
   }
 

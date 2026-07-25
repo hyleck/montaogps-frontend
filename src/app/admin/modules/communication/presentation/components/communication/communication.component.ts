@@ -244,6 +244,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   @ViewChild('mediaFileInput') mediaFileInput!: ElementRef;
   @ViewChild('docFileInput') docFileInput!: ElementRef;
   @ViewChild('messageInput') messageInput!: ElementRef;
+  @ViewChild('whatsappTemplateNameEditor') whatsappTemplateNameEditor?: ElementRef<HTMLElement>;
+  @ViewChild('whatsappTemplateBodyEditor') whatsappTemplateBodyEditor?: ElementRef<HTMLElement>;
 
   attachmentMenuItems: MenuItem[] = [];
 
@@ -417,13 +419,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.currentUserName = user?.name || 'Agente';
         this.currentUserDepartment = this.normalizeAgentDepartment(user?.department_id);
         
-        if (user?.inbox) {
-          this.userInboxId = user.inbox;
-          this.noInbox = false;
-          this.loadConversations();
-        } else {
-          this.noInbox = false;
-        }
+        // WhatsApp now uses the single local inbox backed by Meta + MongoDB.
+        // It no longer depends on a Chatwoot inbox configured on the employee.
+        this.userInboxId = 5;
+        this.noInbox = false;
+        this.loadConversations();
         this.hasEmailInbox = true;
         if (this.activeTab === 'correo') {
           this.initializeMailbox();
@@ -1283,7 +1283,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // ============================
 
   loadConversations(): void {
-    const cacheKey = `chatwoot_convs_${this.userInboxId}_all`;
+    const cacheKey = `whatsapp_convs_${this.userInboxId}_all`;
     if (!this.conversations.length) {
       this.filteredConversations = [];
       this.selectedConversation = null;
@@ -2773,7 +2773,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           this.messageService.add({
             severity: 'success',
             summary: 'Sticker enviado',
-            detail: 'Se envió por WhatsApp y quedó registrado en Chatwoot'
+            detail: 'Se envió por WhatsApp y quedó registrado en el historial'
           });
           this.loadMessages();
           return;
@@ -3115,6 +3115,25 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     else this.whatsappTemplateVars.bodySaludos = 'uenas noches';
 
     this.showTemplateModal = true;
+  }
+
+  updateWhatsAppTemplatePreview(field: 'name' | 'body', event: Event): void {
+    const editable = event.currentTarget as HTMLElement | null;
+    if (!editable) return;
+    const value = String(editable.innerText || editable.textContent || '')
+      .replace(/\u00a0/g, ' ');
+    this.whatsappTemplateVars[field] = field === 'name'
+      ? value.replace(/\s+/g, ' ')
+      : value;
+  }
+
+  initializeWhatsAppTemplateEditors(): void {
+    if (this.whatsappTemplateNameEditor?.nativeElement) {
+      this.whatsappTemplateNameEditor.nativeElement.textContent = this.whatsappTemplateVars.name;
+    }
+    if (this.whatsappTemplateBodyEditor?.nativeElement) {
+      this.whatsappTemplateBodyEditor.nativeElement.textContent = this.whatsappTemplateVars.body;
+    }
   }
 
   sendTemplateMessage(): void {

@@ -8,7 +8,7 @@ import { environment } from 'src/environments/environment';
 })
 export class ChatwootApiService {
 
-    private readonly apiUrl = `${environment.apiUrl}/chatwoot`;
+    private readonly apiUrl = `${environment.apiUrl}/whatsapp`;
 
     constructor(private http: HttpClient) { }
 
@@ -71,6 +71,9 @@ export class ChatwootApiService {
     getPlayableAudioUrl(mediaUrl: string): string {
         const normalizedUrl = String(mediaUrl || '').trim();
         if (!normalizedUrl) return '';
+        if (!normalizedUrl.startsWith('https://tm.dorhu.com/')) {
+            return normalizedUrl;
+        }
         return `${this.apiUrl}/media/audio?url=${encodeURIComponent(normalizedUrl)}`;
     }
 

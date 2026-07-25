@@ -1,9 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ThemesService } from './shareds/services/themes.service';
 import { AuthService } from './core/services/auth.service';
-import { ChatwootService } from './core/services/chatwoot.service';
-import { Router, NavigationEnd } from '@angular/router';
-import { filter, takeUntil } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { FirebaseNotificationsService, PublicRegistrationNotification } from './core/services/firebase-notifications.service';
 import { HttpClient } from '@angular/common/http';
@@ -25,7 +24,6 @@ export class AppComponent implements OnInit, OnDestroy {
   constructor(
     public themes: ThemesService,
     private authService: AuthService,
-    private chatwootService: ChatwootService,
     private router: Router,
     private firebaseNotifications: FirebaseNotificationsService,
     private http: HttpClient,
@@ -47,21 +45,12 @@ export class AppComponent implements OnInit, OnDestroy {
         this.registrationNotificationVisible = true;
       });
 
-    // Monitorear cambios de ruta para reinicializar Chatwoot si es necesario
-    this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd),
-      takeUntil(this.destroy$)
-    ).subscribe(() => {
-      this.handleRouteChange();
-    });
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
 
-    // Limpiar Chatwoot al destruir el componente
-    this.chatwootService.removeChatwoot();
     this.chatwootNotificationSound.stop();
   }
 
@@ -141,15 +130,4 @@ export class AppComponent implements OnInit, OnDestroy {
     navigator.clipboard?.writeText(text).catch(() => undefined);
   }
 
-  /**
-   * Maneja cambios de ruta
-   */
-  private handleRouteChange(): void {
-    // Si el usuario está autenticado y Chatwoot no está activo, reinicializarlo
-    if (this.authService.isAuthenticated() && !this.chatwootService.isActive()) {
-      setTimeout(() => {
-        this.chatwootService.reinitialize();
-      }, 1000); // Pequeño delay para asegurar que la ruta esté completamente cargada
-    }
-  }
 }
