@@ -68,12 +68,11 @@ export class WhatsAppApiService {
         });
     }
 
-    getPlayableAudio(mediaUrl: string): Observable<Blob> {
+    getPlayableAudioUrl(mediaUrl: string): string {
         const normalizedUrl = String(mediaUrl || '').trim();
-        return this.http.get(`${this.apiUrl}/media/audio`, {
-            params: { url: normalizedUrl },
-            responseType: 'blob'
-        });
+        return normalizedUrl
+            ? `${this.apiUrl}/media/audio?url=${encodeURIComponent(normalizedUrl)}`
+            : '';
     }
 
     sendAttachment(conversationId: number, file: File, message?: string, agentId?: string): Observable<any> {

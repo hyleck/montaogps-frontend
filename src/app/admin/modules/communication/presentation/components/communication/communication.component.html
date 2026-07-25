@@ -208,7 +208,8 @@
                                 </div>
                                 <ng-container *ngIf="att.file_type === 'audio'">
                                     <audio *ngIf="getPlayableAudioUrl(att) as audioUrl" [src]="audioUrl" controls
-                                        preload="metadata" class="comm-attachment__audio"></audio>
+                                        preload="metadata" class="comm-attachment__audio"
+                                        (error)="onPlayableAudioError(att)"></audio>
                                     <button *ngIf="!getPlayableAudioUrl(att) && hasPlayableAudioError(att)"
                                         type="button" class="comm-attachment__audio-status comm-attachment__audio-status--error"
                                         (click)="retryPlayableAudio(att)">

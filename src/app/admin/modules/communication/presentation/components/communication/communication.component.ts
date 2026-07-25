@@ -281,7 +281,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private playableAudioUrls = new Map<string, string>();
   private playableAudioLoading = new Set<string>();
   private playableAudioErrors = new Set<string>();
-  private playableAudioSubscriptions = new Map<string, Subscription>();
 
   constructor(
     private whatsappApi: WhatsAppApiService,
@@ -2734,6 +2733,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.loadPlayableAudio(sourceUrl);
   }
 
+  onPlayableAudioError(att: ChatAttachment): void {
+    const sourceUrl = String(att?.data_url || '').trim();
+    if (!sourceUrl) return;
+    this.playableAudioUrls.delete(sourceUrl);
+    this.playableAudioErrors.add(sourceUrl);
+    this.cdr.markForCheck();
+  }
+
   private preparePlayableAudio(messages: ChatMessage[]): void {
     const sourceUrls = new Set(
       messages.flatMap(message =>
@@ -2752,57 +2759,22 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private loadPlayableAudio(sourceUrl: string): void {
     if (
       !sourceUrl ||
-      this.playableAudioUrls.has(sourceUrl) ||
-      this.playableAudioLoading.has(sourceUrl)
+      this.playableAudioUrls.has(sourceUrl)
     ) {
       return;
     }
 
-    this.playableAudioLoading.add(sourceUrl);
     this.playableAudioErrors.delete(sourceUrl);
-    const request = this.whatsappApi.getPlayableAudio(sourceUrl).pipe(
-      timeout(30000),
-      finalize(() => {
-        this.playableAudioLoading.delete(sourceUrl);
-        this.playableAudioSubscriptions.delete(sourceUrl);
-        this.cdr.markForCheck();
-      })
-    ).subscribe({
-      next: (audioBlob: Blob) => {
-        if (!audioBlob?.size) {
-          this.playableAudioErrors.add(sourceUrl);
-          return;
-        }
-
-        const previousObjectUrl = this.playableAudioUrls.get(sourceUrl);
-        if (previousObjectUrl) {
-          URL.revokeObjectURL(previousObjectUrl);
-        }
-        this.playableAudioUrls.set(
-          sourceUrl,
-          URL.createObjectURL(audioBlob)
-        );
-        this.cdr.markForCheck();
-      },
-      error: (error) => {
-        console.warn(
-          '[Communication] No se pudo cargar una nota de voz:',
-          error?.status || error?.name || 'unknown'
-        );
-        this.playableAudioErrors.add(sourceUrl);
-      }
-    });
-    this.playableAudioSubscriptions.set(sourceUrl, request);
+    const playableUrl = this.whatsappApi.getPlayableAudioUrl(sourceUrl);
+    if (!playableUrl) {
+      this.playableAudioErrors.add(sourceUrl);
+      return;
+    }
+    this.playableAudioUrls.set(sourceUrl, playableUrl);
+    this.cdr.markForCheck();
   }
 
   private resetPlayableAudio(): void {
-    for (const subscription of this.playableAudioSubscriptions.values()) {
-      subscription.unsubscribe();
-    }
-    for (const objectUrl of this.playableAudioUrls.values()) {
-      URL.revokeObjectURL(objectUrl);
-    }
-    this.playableAudioSubscriptions.clear();
     this.playableAudioUrls.clear();
     this.playableAudioLoading.clear();
     this.playableAudioErrors.clear();
