@@ -67,6 +67,7 @@ app.use((req, res, next) => {
     "font-src 'self' https://fonts.gstatic.com; " +
     "img-src 'self' data: https: blob:; " +
     "connect-src 'self' https: wss: blob:; " +
+    "media-src 'self' blob: https://tracker-back.dorhu.com; " +
     "frame-src 'self' https:; " +
     "worker-src 'self' blob:;"
   );
