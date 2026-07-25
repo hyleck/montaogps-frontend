@@ -21,31 +21,20 @@
 </div>
 
 <div class="sol-container">
-    <!-- Header -->
-    <div class="sol-header">
-        <div class="sol-header-left">
-            <div class="sol-header-icon">
-                <i class="pi pi-clipboard"></i>
-            </div>
-            <div>
-                <h1 class="sol-title">Solicitudes</h1>
-                <span class="sol-subtitle">Gestión de instalaciones, reinstalaciones, desinstalaciones, chequeos y cambios</span>
-            </div>
-        </div>
-        <button type="button" class="sol-btn sol-btn-save sol-header-action" (click)="openTechniciansMapDialog()">
-            <i class="pi pi-map-marker"></i>
-            Ver técnicos
-        </button>
-    </div>
-
-    <section class="sol-top-filters" aria-label="Filtros de solicitudes">
+    <section class="sol-top-filters" [class.sol-top-filters--expanded]="filtersExpanded" aria-label="Filtros de solicitudes">
         <div class="sol-top-filters__heading">
             <div>
-                <span class="sol-top-filters__eyebrow">
+                <button
+                    type="button"
+                    class="sol-top-filters__toggle"
+                    (click)="filtersExpanded = !filtersExpanded"
+                    [attr.aria-expanded]="filtersExpanded"
+                    aria-controls="solicitudes-top-filters">
                     <i class="pi pi-filter" aria-hidden="true"></i>
                     Filtros
                     <b *ngIf="activeTopFilterCount">{{ activeTopFilterCount }}</b>
-                </span>
+                    <i class="pi" [ngClass]="filtersExpanded ? 'pi-chevron-up' : 'pi-chevron-down'" aria-hidden="true"></i>
+                </button>
                 <small>{{ filteredSolicitudes.length }} de {{ solicitudes.length }} solicitudes visibles</small>
             </div>
             <button
@@ -58,7 +47,7 @@
             </button>
         </div>
 
-        <div class="sol-top-filters__grid">
+        <div id="solicitudes-top-filters" class="sol-top-filters__grid" *ngIf="filtersExpanded">
             <label class="sol-top-filter-field">
                 <span>Técnico</span>
                 <select [(ngModel)]="topFilterTechnician">
@@ -104,7 +93,7 @@
             </div>
         </div>
 
-        <small class="sol-top-filters__date-error" *ngIf="hasInvalidTopFilterDateRange" role="alert">
+        <small class="sol-top-filters__date-error" *ngIf="filtersExpanded && hasInvalidTopFilterDateRange" role="alert">
             <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
             “Desde” no puede ser posterior a “Hasta”. Corrige el rango; mientras tanto no se aplicará el filtro de fecha.
         </small>
@@ -338,9 +327,6 @@
                         <i class="pi pi-calendar"></i>
                         {{ (sol.completed_date || sol.updatedAt || sol.createdAt) | date: 'dd/MM/yy' }}
                     </span>
-                    <button pButton pRipple icon="pi pi-trash"
-                        class="sol-closed-delete p-button-rounded p-button-text p-button-danger"
-                        (click)="deleteSolicitud(sol)" pTooltip="Eliminar" tooltipPosition="top"></button>
                 </div>
             </div>
         </div>

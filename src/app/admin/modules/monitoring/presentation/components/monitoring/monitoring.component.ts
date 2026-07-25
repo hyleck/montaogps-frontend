@@ -2439,6 +2439,15 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return userData.route && userData.route.length > 0 ? userData.route[0].id : index;
   }
 
+  hasNoAssistance(userData: { route?: Array<{ no_assistance?: boolean }> }): boolean {
+    if (!this.isCurrentUserEmployee()) {
+      return false;
+    }
+
+    const route = userData?.route;
+    return Array.isArray(route) && route.length > 0 && route[route.length - 1]?.no_assistance === true;
+  }
+
   async exportToExcel(): Promise<void> {
     if (!this.monitoringResult?.data) {
       return;
@@ -2549,6 +2558,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
     // Process each user
     this.filteredMonitoringData.forEach((userData, userIndex) => {
+      const hasNoAssistance = this.hasNoAssistance(userData);
       // Add user route as title
       const userHierarchy = userData.route && userData.route.length > 0
         ? userData.route.map(item => item.fullName).join(' > ')
@@ -2583,6 +2593,10 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         size: 14
       };
       titleRow.getCell(2).alignment = { horizontal: 'left', vertical: 'middle' };
+
+      if (hasNoAssistance) {
+        titleRow.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4B5563' } };
+      }
 
       // Merge cells for title
       worksheet.mergeCells(`B${currentRow}:${excelLastColumnLetter}${currentRow}`);
@@ -2678,6 +2692,14 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           };
         }
       });
+
+      if (hasNoAssistance) {
+        headerRow.eachCell((cell, colNumber) => {
+          if (colNumber > 1 && colNumber <= lastColIndex) {
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6B7280' } };
+          }
+        });
+      }
       currentRow++;
 
       // Add device data rows
@@ -2826,6 +2848,19 @@ export class MonitoringComponent implements OnInit, OnDestroy {
           }
         }
 
+        if (hasNoAssistance) {
+          dataRow.eachCell((cell, colNumber) => {
+            if (colNumber > 1 && colNumber <= lastColIndex) {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: deviceIndex % 2 === 0 ? 'FFF3F4F6' : 'FFE5E7EB' }
+              };
+              cell.font = { color: { argb: 'FF374151' }, size: 10, bold: colNumber === 6 || colNumber === 7 || colNumber === 9 };
+            }
+          });
+        }
+
         currentRow++;
       });
 
@@ -2885,6 +2920,13 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     ).trim().toLowerCase();
 
     return affiliationType === 'cliente';
+  }
+
+  private isCurrentUserEmployee(): boolean {
+    const currentUser = this.authService.getCurrentUser() as any;
+    return String(
+      currentUser?.affiliation_type_id || currentUser?.affiliation_type || ''
+    ).trim().toLowerCase() === 'empleado';
   }
 
 }

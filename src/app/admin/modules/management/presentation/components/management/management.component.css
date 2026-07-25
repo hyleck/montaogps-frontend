@@ -406,6 +406,15 @@
   grid-template-rows: 60px auto auto auto auto auto;
 }
 
+/* Las cuentas que renunciaron a la asistencia se distinguen sin cambiar sus datos ni acciones. */
+.management__user-card--no-assistance {
+  filter: grayscale(1);
+}
+
+.management__card-user--no-assistance {
+  filter: grayscale(1);
+}
+
 .management__user-card-verified {
   position: absolute;
   top: 8px;
@@ -1573,6 +1582,10 @@ html.app-dark .management__transfer-user-found-content strong {
     "user_control_icon user_control_title"
     "user_control_icon user_control_subtitle"
     "user_control_controls user_control_controls";
+}
+
+.management__user-control-header--no-assistance {
+  filter: grayscale(1);
 }
 
 .management__user-control-icon {

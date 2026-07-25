@@ -2733,6 +2733,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return contentType === 'image/webp' || dataUrl.endsWith('.webp');
   }
 
+  getPlayableAudioUrl(att: ChatAttachment): string {
+    return this.chatwootApi.getPlayableAudioUrl(att?.data_url || '');
+  }
+
   isStickerOnlyMessage(msg: ChatMessage): boolean {
     const text = String(msg?.text || '').trim();
     const attachments = msg?.attachments || [];

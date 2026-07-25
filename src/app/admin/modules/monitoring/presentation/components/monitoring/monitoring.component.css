@@ -716,6 +716,11 @@
   padding: 20px;
 }
 
+/* Una cuenta sin asistencia y todos sus GPS se muestran en escala de grises. */
+.monitoring-block--no-assistance {
+  filter: grayscale(1);
+}
+
 .devices-content ::ng-deep .p-datatable .p-datatable-tbody>tr>td {
   padding: 0.3rem 0.2rem;
   border-bottom: 1px solid var(--monitoringDevicesSectionBorder);

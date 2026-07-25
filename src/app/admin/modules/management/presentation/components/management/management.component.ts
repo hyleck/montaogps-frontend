@@ -306,6 +306,22 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return user.profile_type_id === 'compartido';
   }
 
+  hasRenouncedAssistance(user: User | null | undefined): boolean {
+    if (user?.no_assistance === true) {
+      return true;
+    }
+
+    const acceptance = user?.noDocumentsAcceptance;
+    return user?.noDocuments === true && (
+      acceptance?.document_type === 'identity' ||
+      /verificaci[oó]n de identidad/i.test(acceptance?.title || '')
+    );
+  }
+
+  shouldShowNoAssistanceState(user: User | null | undefined): boolean {
+    return this.currentUserAffiliationTypeId === 'empleado' && this.hasRenouncedAssistance(user);
+  }
+
   isUserVerified(user: User | null | undefined): boolean {
     return user?.verificado === true || !!user?.cedula_img;
   }
@@ -1067,8 +1083,28 @@ export class ManagementComponent implements OnInit, OnDestroy {
     return this.breadcrumbService.canNavigateBack(managementState);
   }
 
-  enterUser(user: User) {
-    this.managementService.setOp('u', user._id);
+  async enterUser(user: User): Promise<void> {
+    const currentOp = this.managementService.getOp() || 'u';
+
+    try {
+      const [usersResponse, targetsResponse] = await Promise.all([
+        lastValueFrom(this.userService.getAllWithPagination(user._id, 0, 1)),
+        this.targetsService.getTargetsWithPagination(user._id, 0, 1),
+      ]);
+
+      // Prioridad: usuarios hijos, luego dispositivos. Sin contenido se conserva la vista actual.
+      const nextOp = usersResponse.totalCount > 0
+        ? 'u'
+        : targetsResponse.totalCount > 0
+          ? 't'
+          : currentOp;
+
+      this.managementService.setOp(nextOp, user._id);
+    } catch (error) {
+      console.error('No se pudo determinar el contenido inicial del usuario:', error);
+      // Ante un fallo de consulta, mantenemos el comportamiento seguro anterior.
+      this.managementService.setOp(currentOp, user._id);
+    }
   }
 
   setOp(op: string) {

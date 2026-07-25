@@ -82,6 +82,12 @@ export interface User {
   tag?: string;
   verificado?: boolean;
   cedula_img?: any;
+  noDocuments?: boolean;
+  no_assistance?: boolean;
+  noDocumentsAcceptance?: {
+    document_type?: string;
+    title?: string;
+  };
   idSessions?: Array<{ date: string; device: string }>;
   interaction_progress?: { listId: string; completed_objectives: string[] }[];
 }

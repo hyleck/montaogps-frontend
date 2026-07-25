@@ -95,6 +95,10 @@ app-solicitudes > .management__route {
         var(--managementColorCardBackground);
 }
 
+.sol-top-filters:not(.sol-top-filters--expanded) {
+    padding-block: 0.55rem;
+}
+
 .sol-top-filters__heading {
     display: flex;
     align-items: center;
@@ -109,20 +113,36 @@ app-solicitudes > .management__route {
     min-width: 0;
 }
 
-.sol-top-filters__eyebrow {
+.sol-top-filters__toggle {
     display: inline-flex;
     align-items: center;
     gap: 0.42rem;
+    min-height: 32px;
+    padding: 0.38rem 0.62rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 8px;
+    background: transparent;
     color: var(--managementColorTitleUser);
     font-size: 0.78rem;
     font-weight: 850;
+    cursor: pointer;
 }
 
-.sol-top-filters__eyebrow i {
+.sol-top-filters__toggle i:first-child {
     color: #6366f1;
 }
 
-.sol-top-filters__eyebrow b {
+.sol-top-filters__toggle:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+    color: #6366f1;
+}
+
+.sol-top-filters__toggle:focus-visible {
+    outline: 3px solid rgba(99, 102, 241, 0.2);
+    outline-offset: 2px;
+}
+
+.sol-top-filters__toggle b {
     display: inline-grid;
     place-items: center;
     min-width: 20px;

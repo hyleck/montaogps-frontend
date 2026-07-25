@@ -74,7 +74,8 @@
                     (click)="showMapsToggle()" class="pi pi-window-maximize"></i></div>
             <div class="management__user-control-back-button" *ngIf="canNavigateBack()"> <i (click)="goToParent()"
                     class="pi pi-arrow-left"></i></div>
-            <div class="management__user-control-header">
+            <div class="management__user-control-header"
+                [class.management__user-control-header--no-assistance]="shouldShowNoAssistanceState(selectedUser)">
                 <div class="management__user-control-icon">
                     <img *ngIf="selectedUser?.photo" [src]="selectedUser?.photo" [alt]="selectedUser?.name"
                         class="user-control-photo">
@@ -162,7 +163,7 @@
                                 </div>
                                 <div *ngFor="let user of users"
                                     class="management__user-card management__user-card--maps"
-                                    [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
+                                    [ngClass]="{'management__user-card--shared': isSharedUser(user), 'management__user-card--no-assistance': shouldShowNoAssistanceState(user)}">
                                     <button (click)="openTransferUserBranch(user)" class="management__user-card-transfer"
                                         title="Transferir usuario y su rama" *ngIf="canUpdateUsers() && currentUserAffiliationTypeId === 'empleado' && !isSharedUser(user)">
                                         <i class="pi pi-arrows-h"></i>
@@ -600,7 +601,8 @@
 
         <div class="management__user">
 
-            <div class="management__card-user">
+            <div class="management__card-user"
+                [class.management__card-user--no-assistance]="shouldShowNoAssistanceState(selectedUser)">
                 <div class="management__card-user-img">
                     <img *ngIf="selectedUser?.photo" [src]="selectedUser?.photo" [alt]="selectedUser?.name"
                         class="card-user-photo">
@@ -709,7 +711,7 @@
                             </div>
                         </div>
                         <div *ngFor="let user of users" class="management__user-card"
-                            [ngClass]="{'management__user-card--shared': isSharedUser(user)}">
+                            [ngClass]="{'management__user-card--shared': isSharedUser(user), 'management__user-card--no-assistance': shouldShowNoAssistanceState(user)}">
                             <button (click)="openTransferUserBranch(user)" class="management__user-card-transfer"
                                 title="Transferir usuario y su rama" *ngIf="canUpdateUsers() && currentUserAffiliationTypeId === 'empleado' && !isSharedUser(user)">
                                 <i class="pi pi-arrows-h"></i>

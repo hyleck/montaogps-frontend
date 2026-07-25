@@ -206,7 +206,7 @@
                                     <video [src]="att.data_url" class="comm-attachment__video"></video>
                                     <div class="comm-attachment__play"><i class="pi pi-play-circle"></i></div>
                                 </div>
-                                <audio *ngIf="att.file_type === 'audio'" [src]="att.data_url" controls
+                                <audio *ngIf="att.file_type === 'audio'" [src]="getPlayableAudioUrl(att)" controls
                                     class="comm-attachment__audio"></audio>
                                 <a *ngIf="att.file_type === 'file'" [href]="att.data_url" target="_blank"
                                     class="comm-attachment__file">

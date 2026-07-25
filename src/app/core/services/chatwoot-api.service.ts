@@ -68,6 +68,12 @@ export class ChatwootApiService {
         });
     }
 
+    getPlayableAudioUrl(mediaUrl: string): string {
+        const normalizedUrl = String(mediaUrl || '').trim();
+        if (!normalizedUrl) return '';
+        return `${this.apiUrl}/media/audio?url=${encodeURIComponent(normalizedUrl)}`;
+    }
+
     sendAttachment(conversationId: number, file: File, message?: string, agentId?: string): Observable<any> {
         const formData = new FormData();
         formData.append('file', file);

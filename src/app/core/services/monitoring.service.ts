@@ -8,6 +8,7 @@ export interface MonitoringRouteEntry {
   fullName: string;
   affiliation_type_id?: string;
   profile_type_id?: string;
+  no_assistance?: boolean;
 }
 
 export interface MonitorUserResponse {

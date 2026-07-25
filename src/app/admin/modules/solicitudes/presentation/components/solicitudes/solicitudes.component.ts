@@ -283,6 +283,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     topFilterType = '';
     topFilterDateFrom = '';
     topFilterDateTo = '';
+    filtersExpanded = false;
     clientEmailSuggestions: User[] = [];
     inventoryDeviceSuggestions: any[] = [];
 
@@ -420,6 +421,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     ) { }
 
     ngOnInit(): void {
+        this.initializeTopDateFilters();
         this.loadSolicitudes(false);
         this.startRealtimeRefresh();
         this.initialDataPromise = this.loadInitialData();
@@ -2574,6 +2576,15 @@ async initLocationMap(): Promise<void> {
         this.topFilterType = '';
         this.topFilterDateFrom = '';
         this.topFilterDateTo = '';
+    }
+
+    private initializeTopDateFilters(): void {
+        const today = new Date();
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+
+        this.topFilterDateFrom = this.toLocalDateKey(sevenDaysAgo);
+        this.topFilterDateTo = this.toLocalDateKey(today);
     }
 
     private getClientFilterKey(solicitud: Solicitud): string {
