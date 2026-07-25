@@ -7,7 +7,7 @@ import { Subject } from 'rxjs';
 import { FirebaseNotificationsService, PublicRegistrationNotification } from './core/services/firebase-notifications.service';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../environments/environment';
-import { ChatwootNotificationSoundService } from './core/services/chatwoot-notification-sound.service';
+import { CommunicationNotificationService } from './core/services/communication-notification.service';
 import { UserActivityService } from './core/services/user-activity.service';
 
 @Component({
@@ -27,7 +27,7 @@ export class AppComponent implements OnInit, OnDestroy {
     private router: Router,
     private firebaseNotifications: FirebaseNotificationsService,
     private http: HttpClient,
-    private chatwootNotificationSound: ChatwootNotificationSoundService,
+    private communicationNotifications: CommunicationNotificationService,
     private userActivityService: UserActivityService,
   ) {
     // this.themes.setTheme('light');
@@ -36,7 +36,7 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit() {
     // Monitorear cambios en la autenticación
     this.monitorAuthentication();
-    this.chatwootNotificationSound.start();
+    this.communicationNotifications.start();
     this.userActivityService.start();
     this.firebaseNotifications.publicRegistrationCompleted$
       .pipe(takeUntil(this.destroy$))
@@ -51,11 +51,11 @@ export class AppComponent implements OnInit, OnDestroy {
     this.destroy$.next();
     this.destroy$.complete();
 
-    this.chatwootNotificationSound.stop();
+    this.communicationNotifications.stop();
   }
 
   /**
-   * Monitorea el estado de autenticación y gestiona Chatwoot
+   * Monitorea el estado de autenticación y las notificaciones de comunicación.
    */
   private monitorAuthentication(): void {
     // Verificar estado inicial
@@ -109,12 +109,8 @@ export class AppComponent implements OnInit, OnDestroy {
     const isAuthenticated = this.authService.isAuthenticated();
 
     if (isAuthenticated) {
-      // Usuario está logueado, inicializar Chatwoot
-      // this.chatwootService.initializeChatwoot();
       await this.firebaseNotifications.subscribeLoggedUserToTopic();
     } else {
-      // Usuario no está logueado, remover Chatwoot
-      // this.chatwootService.removeChatwoot();
     }
   }
 

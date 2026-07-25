@@ -6,8 +6,4 @@ export interface UpdateUserDto {
   isActive?: boolean;
   tag?: string;
   department_id?: string;
-  idchatwoot?: string;
-  chatwoot_access_token?: string;
-  inbox?: number | null;
-  inbox2?: number | null;
 }

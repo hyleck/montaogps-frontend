@@ -9,7 +9,7 @@ import { InventoryService } from '../../../../core/services/inventory.service';
 import { BasicUser } from '../../../../core/interfaces/user.interface';
 import { ChangeDetectorRef } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { ChatwootNotificationSoundService } from '../../../../core/services/chatwoot-notification-sound.service';
+import { CommunicationNotificationService } from '../../../../core/services/communication-notification.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -26,8 +26,8 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private isEmployeeUser: boolean = false;
   private isCompanyUser: boolean = false;
   private hasInbox: boolean = false;
-  private chatwootBadgeSubscription?: Subscription;
-  private chatwootAttentionSubscription?: Subscription;
+  private communicationBadgeSubscription?: Subscription;
+  private communicationAttentionSubscription?: Subscription;
 
   sidaberOptions = {
     favoriteTitle: '',
@@ -67,7 +67,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     private langService: LangService,
     private userService: UserService,
     private inventoryService: InventoryService,
-    private chatwootNotificationSound: ChatwootNotificationSoundService,
+    private communicationNotifications: CommunicationNotificationService,
     private cdr: ChangeDetectorRef
   ) {
     this.sidebarDisplayed = status.getState('sidebar') as boolean;
@@ -100,19 +100,19 @@ export class SidebarComponent implements OnInit, OnDestroy {
     // Carga inicial del usuario
     this.updateCurrentUser();
 
-    this.chatwootBadgeSubscription = this.chatwootNotificationSound.pendingCount$.subscribe((count) => {
+    this.communicationBadgeSubscription = this.communicationNotifications.pendingCount$.subscribe((count) => {
       this.updatePrincipalBadge('/admin/communication', count);
       this.cdr.detectChanges();
     });
-    this.chatwootAttentionSubscription = this.chatwootNotificationSound.esterPendingCount$.subscribe((count) => {
+    this.communicationAttentionSubscription = this.communicationNotifications.esterPendingCount$.subscribe((count) => {
       this.updatePrincipalAttention('/admin/communication', count > 0);
       this.cdr.detectChanges();
     });
   }
 
   ngOnDestroy(): void {
-    this.chatwootBadgeSubscription?.unsubscribe();
-    this.chatwootAttentionSubscription?.unsubscribe();
+    this.communicationBadgeSubscription?.unsubscribe();
+    this.communicationAttentionSubscription?.unsubscribe();
   }
 
   updateCurrentUser() {

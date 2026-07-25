@@ -27,7 +27,7 @@ import { VehicleDataService } from '@management/presentation/services/vehicle-da
 import { ManagementUIService } from '@management/presentation/services/management-ui.service';
 import { SelectionService } from '@core/services/selection.service';
 import { TagsService } from '@core/services/tags.service';
-import { ChatwootApiService } from '@core/services/chatwoot-api.service';
+import { WhatsAppApiService } from '@core/services/whatsapp-api.service';
 import { ProtocolsService } from '@core/services/protocols.service';
 import { InventoryService, Warehouse, InventoryItem } from '@core/services/inventory.service';
 import { SolicitudesService } from '@core/services/solicitudes.service';
@@ -728,7 +728,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private uiService: ManagementUIService,
     private cdr: ChangeDetectorRef,
     private selectionService: SelectionService,
-    private chatwootApi: ChatwootApiService,
+    private whatsappApi: WhatsAppApiService,
     private protocolsService: ProtocolsService,
     private inventoryService: InventoryService,
     private solicitudesService: SolicitudesService,
@@ -5348,7 +5348,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   // ====================================
-  // CHATWOOT CHAT
+  // COMUNICACIÓN POR WHATSAPP
   // ====================================
   chatDialogVisible: boolean = false;
   chatUser: any = null;
@@ -5385,7 +5385,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.chatPollingInterval = setInterval(() => {
       if (!this.chatUser?.phone || !this.chatDialogVisible) return;
 
-      this.chatwootApi.getMessages(this.chatUser.phone, this.userInboxId).subscribe({
+      this.whatsappApi.getMessages(this.chatUser.phone, this.userInboxId).subscribe({
         next: (res) => {
           console.log('📨 Polling chat messages:', res);
           if (res.success && res.messages) {
@@ -5425,7 +5425,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     if (!phone) return;
 
     this.loadingChat = true;
-    this.chatwootApi.getMessages(phone, this.userInboxId).subscribe({
+    this.whatsappApi.getMessages(phone, this.userInboxId).subscribe({
       next: (res) => {
         this.loadingChat = false;
         if (res.success && res.messages?.length) {
@@ -5465,7 +5465,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     const contactName = `${this.chatUser.name || ''} ${this.chatUser.last_name || ''}`.trim();
     const phone = this.chatUser.phone || '';
 
-    this.chatwootApi.sendMessage(phone, messageText, contactName, this.userInboxId).subscribe({
+    this.whatsappApi.sendMessage(phone, messageText, contactName, this.userInboxId).subscribe({
       next: (res) => {
         this.sendingChat = false;
         if (res.success) {

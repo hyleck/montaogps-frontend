@@ -111,7 +111,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   ) {}
 
   systemContacts: any[] = [];
-  chatwootAgentId: string = '';
+  whatsappAgentId: string = '';
   assignToEster: boolean = false;
 
   // ── Manual Interactions ───────────────────────────────────────
@@ -129,10 +129,6 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     { label: 'Otra (Interacción Indirecta)', value: 'Otra (Interacción Indirecta)', icon: 'pi pi-ellipsis-h' }
   ];
 
-  // ── Email Inboxes ───────────────────────────────────────────
-  emailInboxes: { id: number, name: string, email: string }[] = [];
-  selectedEmailInbox: number | null = null;
-
   // ── WhatsApp Quotas ─────────────────────────────────────────
   whatsappQuota = { limit: 1000, count: 0, available: 1000 };
 
@@ -141,7 +137,6 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.loadAgentId();
     this.loadLists();
     this.loadSystemContacts();
-    this.loadEmailInboxes();
 
     // Debounce el preview para no llamar en cada cambio de filtro
     this.previewTrigger$
@@ -183,25 +178,12 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadEmailInboxes() {
-    this.interaccionesService.getEmailInboxes().pipe(takeUntil(this.destroy$)).subscribe({
-      next: (inboxes) => {
-        this.emailInboxes = inboxes || [];
-        if (this.emailInboxes.length > 0) {
-          // Set the first one as default
-          this.selectedEmailInbox = this.emailInboxes[0].id;
-        }
-      },
-      error: (e) => console.log('Error loading email inboxes', e)
-    });
-  }
-
   loadAgentId() {
     const currentUser = this.authService.getCurrentUser();
     if (currentUser?.id) {
       this.userService.getById(currentUser.id).pipe(takeUntil(this.destroy$)).subscribe({
         next: (user: any) => {
-          this.chatwootAgentId = user?.idchatwoot || '';
+          this.whatsappAgentId = String(user?._id || user?.id || currentUser.id);
         }
       });
     }
@@ -223,22 +205,6 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       return `https://wa.me/${cleanNumber}`;
     }
     return value;
-  }
-
-  getDefaultEmailMarkdown(bodyText: string): string {
-    let header = `### **Montao GPS**\n\n${bodyText}\n\n`;
-    let footer = `---\n**Canales de Contacto:**\n`;
-    if (this.systemContacts && this.systemContacts.length > 0) {
-      for (const contact of this.systemContacts) {
-        const type = contact.type || 'Contacto';
-        const value = contact.value || '';
-        const link = this.getContactLink(contact);
-        footer += `- [${type}: ${value}](${link})\n`;
-      }
-    } else {
-      footer += `- No hay contactos configurados\n`;
-    }
-    return `${header}${footer}`;
   }
 
   // ── Cargar listas ─────────────────────────────────────────────────────
@@ -554,7 +520,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   targetUserPhone: string | null = null;
   targetUserIsExternal: boolean = false;
   targetUserAutocontact: boolean | null = null;
-  interactionChannel: 'push' | 'email' | 'whatsapp' | 'vapi' = 'push';
+  interactionChannel: 'push' | 'whatsapp' | 'vapi' = 'push';
 
   // WhatsApp Variables Mad-Libs style
   whatsappTemplateVars = { headerUser: '', bodySaludos: '', name: '', body: '' };
@@ -680,7 +646,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     return listProgress.completed_objectives.includes(objectiveId);
   }
 
-  openPersonalPushModal(user: any, channel: 'push' | 'email' | 'whatsapp' | 'vapi' = 'push') {
+  openPersonalPushModal(user: any, channel: 'push' | 'whatsapp' | 'vapi' = 'push') {
     this.targetUserId = user._id;
     this.targetUserName = this.getUserFullName(user);
     this.targetUserEmail = user.email || null;
@@ -755,7 +721,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
 
         for (const user of users) {
           // Si el usuario tiene explícitamente autocontact en false, no se envían campañas automatizadas de estos tipos
-          if (user.autocontact === false && ['whatsapp', 'vapi', 'email'].includes(this.interactionChannel)) {
+          if (user.autocontact === false && ['whatsapp', 'vapi'].includes(this.interactionChannel)) {
             console.warn(`[CAMPAIGN] Omitiendo a "${user.name || user._id}" porque autocontact = false`);
             continue;
           }
@@ -775,7 +741,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
                   this.whatsappTemplateVars.name === '[Nombre del usuario]' ? this.toTitleCase(this.getUserFullName(user)) : this.whatsappTemplateVars.name, 
                   this.whatsappTemplateVars.body
                 ],
-                agent_id: this.assignToEster ? '0' : (this.chatwootAgentId ? this.chatwootAgentId : undefined)
+                agent_id: this.assignToEster ? '0' : (this.whatsappAgentId ? this.whatsappAgentId : undefined)
               }).toPromise();
               console.log(`[WA-CAMPAIGN] Respuesta para "${phone}":`, JSON.stringify(res));
               if (res && res.success === false) {
@@ -825,23 +791,6 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
             } catch (err) {
               this.pushErrorCount++;
             }
-          } else if (this.interactionChannel === 'email') {
-            const email = user.email;
-            if (!email) { this.pushErrorCount++; continue; }
-            try {
-              await this.interaccionesService.sendEmailToUser({
-                email: email,
-                subject: this.pushTitle,
-                message: this.getDefaultEmailMarkdown(this.pushBody),
-                contact_name: this.getUserFullName(user),
-                agent_id: this.chatwootAgentId ? this.chatwootAgentId : undefined,
-                inbox_id: this.selectedEmailInbox || undefined
-              }).toPromise();
-              this.pushSentCount++;
-              successIds.push(user._id.toString());
-            } catch {
-              this.pushErrorCount++;
-            }
           } else {
             if (user.is_external) {
               console.warn('Skipping Push Notification for External Contact', user.name);
@@ -878,10 +827,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
         let prefix = '';
         let finalTitle = this.pushTitle;
         let finalBody = this.pushBody;
-        if (this.interactionChannel === 'email') {
-          prefix = '';
-          finalTitle = 'Mensaje enviado por correo';
-        } else if (this.interactionChannel === 'whatsapp') {
+        if (this.interactionChannel === 'whatsapp') {
           finalTitle = `Mensaje enviado por WhatsApp`;
           finalBody = `B${this.whatsappTemplateVars.bodySaludos}, ${this.whatsappTemplateVars.name === '[Nombre del usuario]' ? 'Usuario' : this.whatsappTemplateVars.name}.\n${this.whatsappTemplateVars.body}\n\nSeguimos a tu orden por este número.\nMontao GPS`;
         }
@@ -914,7 +860,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   }
 
   async sendPersonalPush(force = false) {
-    if (!force && this.targetUserAutocontact === false && ['whatsapp', 'vapi', 'email'].includes(this.interactionChannel)) {
+    if (!force && this.targetUserAutocontact === false && ['whatsapp', 'vapi'].includes(this.interactionChannel)) {
       this.showAutocontactWarning = true;
       return;
     }
@@ -937,7 +883,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           this.whatsappTemplateVars.name,
           this.whatsappTemplateVars.body
         ],
-        agent_id: this.assignToEster ? '0' : (this.chatwootAgentId ? this.chatwootAgentId : undefined)
+        agent_id: this.assignToEster ? '0' : (this.whatsappAgentId ? this.whatsappAgentId : undefined)
       }).toPromise();
       if (res && res.success === false) {
          console.error('Meta API Error:', res.error);
@@ -958,17 +904,6 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
          if (res && res.success === false) throw new Error(res.error);
          isSuccess = true;
          (this as any)._lastVapiCallId = res?.data?.id || null;
-      } else if (this.interactionChannel === 'email') {
-         if (!this.targetUserEmail) throw new Error('El usuario no tiene correo electrónico configurado');
-         await this.interaccionesService.sendEmailToUser({
-           email: this.targetUserEmail,
-           subject: this.pushTitle,
-           message: this.getDefaultEmailMarkdown(this.pushBody),
-           contact_name: this.targetUserName || undefined,
-           agent_id: this.chatwootAgentId ? this.chatwootAgentId : undefined,
-           inbox_id: this.selectedEmailInbox || undefined
-         }).toPromise();
-         isSuccess = true;
       } else {
          await this.firebaseNotifications
            .sendTestNotification({ topic: this.targetUserId!, title: this.pushTitle, body: this.pushBody })
@@ -984,10 +919,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           let finalTitle = this.pushTitle;
           let finalBody = this.pushBody;
           let callId: string | undefined;
-          if (this.interactionChannel === 'email') {
-            prefix = '';
-            finalTitle = 'Mensaje enviado por correo';
-          } else if (this.interactionChannel === 'whatsapp') {
+          if (this.interactionChannel === 'whatsapp') {
             finalTitle = `Mensaje enviado por WhatsApp`;
             finalBody = `B${this.whatsappTemplateVars.bodySaludos}, ${this.whatsappTemplateVars.name}.\n${this.whatsappTemplateVars.body}\n\nSeguimos a tu orden por este número.\nMontao GPS`;
           } else if (this.interactionChannel === 'vapi') {

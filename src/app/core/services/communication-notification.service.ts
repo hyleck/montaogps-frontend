@@ -2,17 +2,17 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subject, Subscription, interval, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { ChatwootApiService } from './chatwoot-api.service';
+import { WhatsAppApiService } from './whatsapp-api.service';
 import { InternalChatMessage, InternalChatService } from './internal-chat.service';
 import { UserService } from './user.service';
 
-interface ChatwootConversationSummary {
+interface WhatsAppConversationSummary {
   id: number;
   last_message?: string;
   last_message_time?: number | null;
   last_message_type?: number;
   unread_count?: number;
-  assignee_id?: number | null;
+  assignee_id?: string | null;
   assignee_name?: string;
   assignee_email?: string;
   contact?: {
@@ -29,8 +29,8 @@ interface ConversationNotificationState {
   lastMessageFingerprint: string;
 }
 
-export interface ChatwootFloatingMessage {
-  source?: 'chatwoot' | 'internal';
+export interface CommunicationFloatingMessage {
+  source?: 'whatsapp' | 'internal';
   conversationId: number;
   contactName: string;
   contactPhone: string;
@@ -42,7 +42,7 @@ export interface ChatwootFloatingMessage {
 @Injectable({
   providedIn: 'root'
 })
-export class ChatwootNotificationSoundService implements OnDestroy {
+export class CommunicationNotificationService implements OnDestroy {
   private pendingCountSubject = new BehaviorSubject<number>(0);
   pendingCount$ = this.pendingCountSubject.asObservable();
   private esterPendingCountSubject = new BehaviorSubject<number>(0);
@@ -51,7 +51,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
   internalPendingCount$ = this.internalPendingCountSubject.asObservable();
   private internalChatMutedSubject = new BehaviorSubject<boolean>(false);
   internalChatMuted$ = this.internalChatMutedSubject.asObservable();
-  private floatingMessageSubject = new Subject<ChatwootFloatingMessage>();
+  private floatingMessageSubject = new Subject<CommunicationFloatingMessage>();
   floatingMessage$ = this.floatingMessageSubject.asObservable();
 
   private pollingSubscription?: Subscription;
@@ -68,13 +68,13 @@ export class ChatwootNotificationSoundService implements OnDestroy {
   private conversationState = new Map<number, ConversationNotificationState>();
   private lastInternalMessageId = '';
   private internalPendingCount = 0;
-  private chatwootPendingCount = 0;
+  private whatsappPendingCount = 0;
   private internalChatMuted = false;
 
   constructor(
     private authService: AuthService,
     private userService: UserService,
-    private chatwootApi: ChatwootApiService,
+    private whatsappApi: WhatsAppApiService,
     private internalChatService: InternalChatService,
   ) {}
 
@@ -135,12 +135,12 @@ export class ChatwootNotificationSoundService implements OnDestroy {
         return;
       }
 
-      this.agentId = String(user?.idchatwoot || '').trim();
-      this.inboxId = Number(user?.inbox || 0);
+      this.agentId = String(user?._id || user?.id || userId).trim();
+      this.inboxId = 5;
       this.startInternalChatPolling();
 
       if (!this.agentId || !this.inboxId) {
-        this.stopChatwootPolling();
+        this.stopWhatsAppPolling();
         return;
       }
 
@@ -153,7 +153,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
     this.conversationState.clear();
 
     this.pollingSubscription = interval(5000).pipe(
-      switchMap(() => this.chatwootApi.getConversations(this.inboxId, 1, this.agentId, true).pipe(
+      switchMap(() => this.whatsappApi.getConversations(this.inboxId, 1, this.agentId, true).pipe(
         catchError(() => of(null)),
       )),
     ).subscribe((response: any) => {
@@ -161,7 +161,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
       this.processConversations(response.conversations || []);
     });
 
-    this.chatwootApi.getConversations(this.inboxId, 1, this.agentId, true).pipe(
+    this.whatsappApi.getConversations(this.inboxId, 1, this.agentId, true).pipe(
       catchError(() => of(null)),
     ).subscribe((response: any) => {
       if (!response?.success) return;
@@ -170,7 +170,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
   }
 
   private stopPolling(): void {
-    this.stopChatwootPolling();
+    this.stopWhatsAppPolling();
     this.initialized = false;
     this.currentUserId = '';
     this.loadingUserId = '';
@@ -181,19 +181,19 @@ export class ChatwootNotificationSoundService implements OnDestroy {
     this.esterPendingCountSubject.next(0);
     this.stopInternalChatPolling();
     this.internalPendingCount = 0;
-    this.chatwootPendingCount = 0;
+    this.whatsappPendingCount = 0;
     this.lastInternalMessageId = '';
     this.internalPendingCountSubject.next(0);
   }
 
-  private stopChatwootPolling(): void {
+  private stopWhatsAppPolling(): void {
     this.pollingSubscription?.unsubscribe();
     this.pollingSubscription = undefined;
-    this.chatwootPendingCount = 0;
+    this.whatsappPendingCount = 0;
     this.pendingCountSubject.next(this.internalPendingCount);
   }
 
-  private processConversations(conversations: ChatwootConversationSummary[]): void {
+  private processConversations(conversations: WhatsAppConversationSummary[]): void {
     const nextState = new Map<number, ConversationNotificationState>();
     let shouldPlay = false;
     let totalPending = 0;
@@ -252,7 +252,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
     }
 
     this.conversationState = nextState;
-    this.chatwootPendingCount = totalPending;
+    this.whatsappPendingCount = totalPending;
     this.emitTotalPendingCount();
     this.esterPendingCountSubject.next(esterPending);
 
@@ -344,7 +344,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
   }
 
   private emitTotalPendingCount(): void {
-    this.pendingCountSubject.next(this.chatwootPendingCount + this.internalPendingCount);
+    this.pendingCountSubject.next(this.whatsappPendingCount + this.internalPendingCount);
   }
 
   private loadInternalChatMutePreference(userId: string): void {
@@ -397,11 +397,11 @@ export class ChatwootNotificationSoundService implements OnDestroy {
     this.internalAudio.play().catch(() => undefined);
   }
 
-  private emitFloatingMessage(conversation: ChatwootConversationSummary): void {
+  private emitFloatingMessage(conversation: WhatsAppConversationSummary): void {
     if (!this.isIncomingMessage(conversation)) return;
 
     this.floatingMessageSubject.next({
-      source: 'chatwoot',
+      source: 'whatsapp',
       conversationId: Number(conversation.id),
       contactName: conversation.contact?.name || conversation.contact?.phone || 'Contacto sin nombre',
       contactPhone: conversation.contact?.phone || '',
@@ -411,7 +411,7 @@ export class ChatwootNotificationSoundService implements OnDestroy {
     });
   }
 
-  private isIncomingMessage(conversation: ChatwootConversationSummary): boolean {
+  private isIncomingMessage(conversation: WhatsAppConversationSummary): boolean {
     const lastMessageType = conversation.last_message_type;
     return lastMessageType === undefined || lastMessageType === null || Number(lastMessageType) === 0;
   }

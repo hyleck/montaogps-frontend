@@ -320,11 +320,6 @@
           </div>
         </div>
         <div class="detail-actions">
-          <button pButton label="Enviar Email" icon="pi pi-envelope"
-            class="p-button-outlined p-button-sm p-button-info"
-            (click)="interactionChannel='email'; openPushModal()"
-            pTooltip="Enviar correo masivo a esta campaña">
-          </button>
           <button pButton label="Enviar WhatsApp" icon="pi pi-whatsapp"
             class="p-button-outlined p-button-sm p-button-success"
             (click)="interactionChannel='whatsapp'; openPushModal()"
@@ -453,7 +448,6 @@
               <td>
                 <span class="p-column-title">Acciones</span>
                 <div style="display: flex; gap: 0.4rem; justify-content: center;">
-                  <button pButton icon="pi pi-envelope" class="p-button-text p-button-sm p-button-rounded p-button-info" style="background: rgba(59,130,246,0.1);" (click)="openPersonalPushModal(user, 'email')" pTooltip="Enviar correo particular"></button>
                   <button pButton icon="pi pi-whatsapp" class="p-button-text p-button-sm p-button-rounded p-button-success" style="background: rgba(34,197,94,0.1);" (click)="openPersonalPushModal(user, 'whatsapp')" pTooltip="Enviar WhatsApp particular"></button>
                   <button *ngIf="!user.is_external" pButton icon="pi pi-send" class="p-button-text p-button-sm p-button-rounded p-button-warning" style="background: rgba(245,158,11,0.1);" (click)="openPersonalPushModal(user, 'push')" pTooltip="Enviar push particular"></button>
                   <button pButton icon="pi pi-phone" class="p-button-text p-button-sm p-button-rounded" style="background: rgba(168,85,247,0.1); color: #a855f7" (click)="openPersonalPushModal(user, 'vapi')" pTooltip="Llamar con IA"></button>
@@ -493,48 +487,18 @@
   [modal]="true"
   [closable]="!sendingPush"
   (onHide)="closePushModal()"
-  [header]="interactionChannel === 'email' ? 'Enviar Correo Electrónico' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp' : interactionChannel === 'vapi' ? 'Realizar Llamada IA' : 'Enviar Notificación Push'"
+  [header]="interactionChannel === 'whatsapp' ? 'Enviar WhatsApp' : interactionChannel === 'vapi' ? 'Realizar Llamada IA' : 'Enviar Notificación Push'"
   styleClass="push-dialog"
   [style]="{width: '480px'}">
 
   <div class="push-form">
     <div class="push-meta">
-      <i *ngIf="interactionChannel === 'email'" class="pi pi-envelope push-meta__icon"></i>
       <i *ngIf="interactionChannel === 'whatsapp'" class="pi pi-whatsapp push-meta__icon text-green-500"></i>
       <i *ngIf="interactionChannel === 'push'" class="pi pi-bell push-meta__icon"></i>
       <div>
         <strong class="push-meta__list">{{ targetUserName ? targetUserName : selectedList?.name }}</strong>
         <span class="push-meta__count">{{ targetUserName ? '1 destinatario individual' : listUsersTotal + ' destinatario(s)' }}</span>
       </div>
-    </div>
-
-    <!-- Sender Email Selection -->
-    <div *ngIf="interactionChannel === 'email'" class="flex flex-column gap-2" style="margin-top: 1rem;">
-      <label for="emailInbox" style="font-weight: 500; font-size: 0.9rem;">Bandeja de Salida (Remitente)</label>
-      <p-dropdown 
-        [options]="emailInboxes" 
-        [(ngModel)]="selectedEmailInbox" 
-        optionLabel="email" 
-        optionValue="id"
-        [filter]="false"
-        placeholder="Seleccionar el correo de origen"
-        styleClass="w-full">
-        <ng-template let-inbox pTemplate="item">
-          <div class="flex align-items-center gap-2">
-            <i class="pi pi-envelope" style="color: #6366f1;"></i>
-            <div>
-              <div style="font-weight: 600;">{{ inbox.email }}</div>
-              <div style="font-size: 0.8rem; color: var(--text-color-secondary);">{{ inbox.name }}</div>
-            </div>
-          </div>
-        </ng-template>
-        <ng-template let-inbox pTemplate="selectedItem">
-          <div *ngIf="inbox" class="flex align-items-center gap-2">
-            <i class="pi pi-envelope"></i>
-            <div>{{ inbox.email }} <span style="font-size: 0.8rem; color: var(--text-color-secondary);">({{ inbox.name }})</span></div>
-          </div>
-        </ng-template>
-      </p-dropdown>
     </div>
 
     <div *ngIf="interactionChannel === 'whatsapp'" style="margin-top:1rem;">
@@ -598,11 +562,11 @@
       </div>
     </ng-container>
 
-    <ng-container *ngIf="interactionChannel === 'push' || interactionChannel === 'email'">
+    <ng-container *ngIf="interactionChannel === 'push'">
       <div class="form-group form-group--full" style="margin-top:1rem">
         <label>Título *</label>
         <input pInputText [(ngModel)]="pushTitle"
-          [placeholder]="interactionChannel === 'email' ? 'Asunto del correo' : 'Ej. Actualización importante'"
+          placeholder="Ej. Actualización importante"
           [disabled]="sendingPush"
           class="w-full" />
       </div>
@@ -610,14 +574,11 @@
       <div class="form-group form-group--full" style="margin-top:.75rem">
         <textarea pInputTextarea
           [(ngModel)]="pushBody"
-          [placeholder]="interactionChannel === 'email' ? 'Escribe aquí usando formato Markdown (ej. **negrita**, - listas)...' : 'Escribe el mensaje de la notificación...'"
+          placeholder="Escribe el mensaje de la notificación..."
           rows="8"
           [disabled]="sendingPush"
           class="w-full">
         </textarea>
-        <small *ngIf="interactionChannel === 'email'" style="color: #64748b; margin-top: 0.25rem; display: block;">
-          Chatwoot transformará automáticamente tu código Markdown en un formato visual para el correo final.
-        </small>
       </div>
     </ng-container>
 
@@ -636,10 +597,10 @@
       (click)="closePushModal()">
     </button>
     <button pButton
-      [label]="targetUserName ? (interactionChannel === 'email' ? 'Enviar email a usuario' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a usuario' : interactionChannel === 'vapi' ? 'Llamar usuario con IA' : 'Enviar push a usuario') : (interactionChannel === 'email' ? 'Enviar email a todos' : interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a todos' : interactionChannel === 'vapi' ? 'Llamar a todos con IA' : 'Enviar push a todos')"
-      [icon]="interactionChannel === 'email' ? 'pi pi-envelope' : interactionChannel === 'whatsapp' ? 'pi pi-whatsapp' : interactionChannel === 'vapi' ? 'pi pi-phone' : 'pi pi-send'"
+      [label]="targetUserName ? (interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a usuario' : interactionChannel === 'vapi' ? 'Llamar usuario con IA' : 'Enviar push a usuario') : (interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a todos' : interactionChannel === 'vapi' ? 'Llamar a todos con IA' : 'Enviar push a todos')"
+      [icon]="interactionChannel === 'whatsapp' ? 'pi pi-whatsapp' : interactionChannel === 'vapi' ? 'pi pi-phone' : 'pi pi-send'"
       [loading]="sendingPush"
-      [disabled]="(interactionChannel === 'whatsapp' && ((!targetUserName && listUsersTotal > whatsappQuota.available) || (targetUserName && whatsappQuota.available === 0) || !whatsappTemplateVars.name.trim() || !whatsappTemplateVars.body.trim())) || (interactionChannel === 'vapi' && !vapiQuery.trim()) || ((interactionChannel === 'push' || interactionChannel === 'email') && (!pushTitle.trim() || !pushBody.trim()))"
+      [disabled]="(interactionChannel === 'whatsapp' && ((!targetUserName && listUsersTotal > whatsappQuota.available) || (targetUserName && whatsappQuota.available === 0) || !whatsappTemplateVars.name.trim() || !whatsappTemplateVars.body.trim())) || (interactionChannel === 'vapi' && !vapiQuery.trim()) || (interactionChannel === 'push' && (!pushTitle.trim() || !pushBody.trim()))"
       (click)="sendPushToList()">
     </button>
   </ng-template>

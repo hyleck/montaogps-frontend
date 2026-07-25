@@ -229,6 +229,29 @@
     text-align: center;
 }
 
+:host-context(.app-light) .comm-active-employees-dialog__intro,
+:host-context(.app-light) .comm-active-employees-dialog__empty {
+    color: #64748b;
+}
+
+:host-context(.app-light) .comm-active-employees-dialog__item {
+    border-color: #e2e8f0;
+    background: #f8fafc;
+}
+
+:host-context(.app-light) .comm-active-employees-dialog__item strong {
+    color: #1e293b;
+}
+
+:host-context(.app-light) .comm-active-employees-dialog__item span:not(.comm-active-employees-dialog__avatar) {
+    color: #64748b;
+}
+
+:host-context(.app-light) .comm-active-employees-dialog__avatar {
+    background: #d1fae5;
+    color: #047857;
+}
+
 .comm-internal__header-actions {
     display: inline-flex;
     align-items: center;

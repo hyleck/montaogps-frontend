@@ -1003,7 +1003,7 @@
             <label style="display: block; font-weight: bold; margin-bottom: 0.5rem;">Empleado destino <span style="color: #ef4444">*</span></label>
             <p-dropdown [options]="transferAgents" [(ngModel)]="selectedTransferAgentId" [style]="{'width':'100%', 'display': 'flex'}"
                 placeholder="Seleccionar Empleado destino" [filter]="true" filterBy="name,last_name"
-                [showClear]="true" optionLabel="name" optionValue="idchatwoot" appendTo="body">
+                [showClear]="true" optionLabel="name" optionValue="_id" appendTo="body">
                 <ng-template let-selectedOption pTemplate="selectedItem">
                     <div class="flex align-items-center gap-2" *ngIf="selectedOption">
                         <i class="pi pi-user text-primary"></i>
@@ -1024,7 +1024,7 @@
         
         <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
             <p-button label="Cancelar" icon="pi pi-times" styleClass="p-button-text p-button-secondary" (onClick)="showTransferModal = false"></p-button>
-            <p-button label="Confirmar Transferencia" icon="pi pi-check" styleClass="p-button-primary" (onClick)="confirmTransfer()" [disabled]="selectedTransferAgentId !== 0 && !selectedTransferAgentId"></p-button>
+            <p-button label="Confirmar Transferencia" icon="pi pi-check" styleClass="p-button-primary" (onClick)="confirmTransfer()" [disabled]="!selectedTransferAgentId"></p-button>
         </div>
     </div>
 </p-dialog>

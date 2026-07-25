@@ -76,23 +76,6 @@
                                 <label for="phone">Número de Flota</label>
                                 <input [(ngModel)]="user.phone" name="phone" type="tel" id="phone" required>
                             </div>
-                            <ng-container *ngIf="showInboxFields">
-                            <div class="form-group">
-                                <label for="inbox">Bandeja de Entrada</label>
-                                <input [(ngModel)]="user.inbox" name="inbox" type="number" id="inbox"
-                                    placeholder="Ej: 12345">
-                            </div>
-                            <div class="form-group">
-                                <label for="inbox2">Bandeja de Entrada #2</label>
-                                <input [(ngModel)]="user.inbox2" name="inbox2" type="number" id="inbox2"
-                                    placeholder="Ej: 12345">
-                            </div>
-                            <div class="form-group">
-                                <label for="inbox3">Bandeja de Entrada #3</label>
-                                <input [(ngModel)]="user.inbox3" name="inbox3" type="number" id="inbox3"
-                                    placeholder="Ej: 12345">
-                            </div>
-                            </ng-container>
                             <div class="form-group">
                                 <label for="phone2">{{ 'profile.personal_info.phone2' | translate }}</label>
                                 <input [(ngModel)]="user.phone2" name="phone2" type="tel" id="phone2">

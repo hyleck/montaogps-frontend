@@ -3,7 +3,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
-import { ChatwootFloatingMessage, ChatwootNotificationSoundService } from '@core/services/chatwoot-notification-sound.service';
+import { CommunicationFloatingMessage, CommunicationNotificationService } from '@core/services/communication-notification.service';
 
 @Component({
     selector: 'app-admin',
@@ -15,14 +15,14 @@ export class AdminComponent implements OnInit, OnDestroy {
     showChatTransferModal: boolean = false;
     transferConversationId: string | null = null;
     transferSummaryText: string | null = null;
-    floatingMessage: ChatwootFloatingMessage | null = null;
+    floatingMessage: CommunicationFloatingMessage | null = null;
     private transferSub!: Subscription;
     private floatingSub!: Subscription;
     private floatingTimer: any = null;
 
     constructor(
         private firebaseNotifications: FirebaseNotificationsService,
-        private chatwootNotificationSound: ChatwootNotificationSoundService,
+        private communicationNotifications: CommunicationNotificationService,
         private router: Router
     ) {}
 
@@ -38,7 +38,7 @@ export class AdminComponent implements OnInit, OnDestroy {
             this.showChatTransferModal = true;
         });
 
-        this.floatingSub = this.chatwootNotificationSound.floatingMessage$.subscribe((message) => {
+        this.floatingSub = this.communicationNotifications.floatingMessage$.subscribe((message) => {
             this.floatingMessage = message;
             if (this.floatingTimer) clearTimeout(this.floatingTimer);
             this.floatingTimer = setTimeout(() => {
@@ -71,7 +71,7 @@ export class AdminComponent implements OnInit, OnDestroy {
 
     openFloatingConversation(): void {
         if (!this.floatingMessage) return;
-        const source = this.floatingMessage.source || 'chatwoot';
+        const source = this.floatingMessage.source || 'whatsapp';
         const conversationId = this.floatingMessage.conversationId;
         this.floatingMessage = null;
         if (this.floatingTimer) {

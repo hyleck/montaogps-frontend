@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ViewChild, ElementRef, ChangeDetectorRef 
 import { DomSanitizer, SafeHtml, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
-import { ChatwootApiService } from '@core/services/chatwoot-api.service';
+import { WhatsAppApiService } from '@core/services/whatsapp-api.service';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
 import { TargetsService } from '@core/services/targets.service';
@@ -10,7 +10,7 @@ import { InteraccionesService, UserList } from '../../../../interacciones/presen
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
 import { SystemService } from '@core/services/system.service';
 import { InventoryService } from '@core/services/inventory.service';
-import { ChatwootNotificationSoundService } from '@core/services/chatwoot-notification-sound.service';
+import { CommunicationNotificationService } from '@core/services/communication-notification.service';
 import { InternalChatAttachment, InternalChatMessage, InternalChatService } from '@core/services/internal-chat.service';
 import { MessageService, MenuItem } from 'primeng/api';
 import { environment } from '../../../../../../../environments/environment';
@@ -32,7 +32,7 @@ interface ChatConversation {
   inbox_id?: number;
   last_message_type?: number;
   labels?: string[];
-  assignee_id?: number | null;
+  assignee_id?: string | null;
   assignee_name?: string;
   assignee_email?: string;
   assignee_avatar?: string;
@@ -50,11 +50,6 @@ interface ChatMessage {
   safeRealtimeUrl?: SafeResourceUrl;
   googleMapsUrl?: string;
   wazeUrl?: string;
-}
-
-interface EmailInbox {
-  id: number;
-  email: string;
 }
 
 interface MailAddress {
@@ -165,7 +160,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   emailMessages: ChatMessage[] = [];
   loadingEmailMessages: boolean = false;
   hasEmailInbox: boolean = false;
-  emailInboxes: EmailInbox[] = [];
   selectedInboxFilter: number = 0; // 0 = all
   selectedTypeFilter: 'received' | 'sent' | 'spam' = 'received';
   composeFromInboxId: number = 0;
@@ -252,7 +246,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // Transfer Modal
   showTransferModal: boolean = false;
   transferAgents: any[] = [];
-  selectedTransferAgentId: number | null = null;
+  selectedTransferAgentId: string | null = null;
   isTransferring: boolean = false;
   transferSummary: string = '';
 
@@ -276,21 +270,17 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   // User inbox
   private userInboxId: number | undefined;
-  private userInbox2Id: number | undefined;
-  private userInbox3Id: number | undefined;
-  private emailInboxIds: number[] = [];
   private currentUserId: string = '';
   currentUserEmail: string = '';
-  inboxEmail: string = '';
   private lastApiMessageId: number | null = null;
   private conversationsFingerprint: string = '';
   private pendingConversationId: number | null = null;
-  private chatwootAgentId: string = '';
+  private whatsappAgentId: string = '';
   private currentUserName: string = '';
   private currentUserDepartment: string = '';
 
   constructor(
-    private chatwootApi: ChatwootApiService,
+    private whatsappApi: WhatsAppApiService,
     private authService: AuthService,
     private userService: UserService,
     private route: ActivatedRoute,
@@ -302,7 +292,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     private targetsService: TargetsService,
     private inventoryService: InventoryService,
     private internalChatService: InternalChatService,
-    private chatwootNotificationSound: ChatwootNotificationSoundService,
+    private communicationNotifications: CommunicationNotificationService,
     private systemService: SystemService,
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer
@@ -359,8 +349,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.updateAttachmentMenu();
     this.loadStickers();
-    this.internalChatMuted = this.chatwootNotificationSound.isInternalChatMuted();
-    this.internalChatMutedSubscription = this.chatwootNotificationSound.internalChatMuted$.subscribe((muted) => {
+    this.internalChatMuted = this.communicationNotifications.isInternalChatMuted();
+    this.internalChatMutedSubscription = this.communicationNotifications.internalChatMuted$.subscribe((muted) => {
       this.internalChatMuted = muted;
     });
 
@@ -415,12 +405,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       next: (user: any) => {
         this.autoResponse = user?.auto_response || false;
         this.currentUserEmail = user?.email || '';
-        this.chatwootAgentId = user?.idchatwoot || '';
+        this.whatsappAgentId = String(user?._id || user?.id || currentUser.id);
         this.currentUserName = user?.name || 'Agente';
         this.currentUserDepartment = this.normalizeAgentDepartment(user?.department_id);
         
-        // WhatsApp now uses the single local inbox backed by Meta + MongoDB.
-        // It no longer depends on a Chatwoot inbox configured on the employee.
+        // WhatsApp usa una bandeja local única respaldada por Meta y MongoDB.
         this.userInboxId = 5;
         this.noInbox = false;
         this.loadConversations();
@@ -462,37 +451,6 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       this.stopActiveEmployeesPolling();
     }
     this.router.navigate(['/admin/communication', tab]);
-  }
-
-  private loadInboxEmail(): void {
-    if (!this.userInbox2Id) return;
-    this.chatwootApi.getInboxDetails(this.userInbox2Id).subscribe({
-      next: (res: any) => {
-        if (res.success && res.inbox?.email) {
-          this.inboxEmail = res.inbox.email;
-        }
-      }
-    });
-  }
-
-  private loadAllInboxEmails(): void {
-    this.emailInboxes = [];
-    for (const inboxId of this.emailInboxIds) {
-      this.chatwootApi.getInboxDetails(inboxId).subscribe({
-        next: (res: any) => {
-          if (res.success && res.inbox) {
-            this.emailInboxes.push({
-              id: inboxId,
-              email: res.inbox.email || `Bandeja ${inboxId}`
-            });
-            // Default compose inbox to first one
-            if (!this.composeFromInboxId && this.emailInboxes.length === 1) {
-              this.composeFromInboxId = inboxId;
-            }
-          }
-        }
-      });
-    }
   }
 
   // ============================
@@ -1039,15 +997,17 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (this.transferAgents.length === 0) {
       this.userService.getEmployees().subscribe({
         next: (employees: any[]) => {
-          // Filtrar los empleados que tengan un ID de Chatwoot y no sean el propio usuario actual
-          const agents = employees.filter((e: any) => e.idchatwoot && e.id !== this.currentUserId);
+          const agents = employees.filter((employee: any) => {
+            const employeeId = String(employee?._id || employee?.id || '');
+            return !!employeeId && employeeId !== this.currentUserId;
+          });
           
           // Inyectamos a Ester Assistant estáticamente con ID 0 para representar desasignación
           agents.unshift({
              name: 'Ester',
              last_name: 'Assistant (IA)',
              email: 'system@n8n.bot',
-             idchatwoot: 0
+             _id: '__ester__'
           });
 
           this.transferAgents = agents;
@@ -1058,28 +1018,32 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   confirmTransfer(): void {
-    const isEster = this.selectedTransferAgentId === 0;
+    const isEster = this.selectedTransferAgentId === '__ester__';
     if (!this.selectedConversation || (!this.selectedTransferAgentId && !isEster)) return;
     
     this.isTransferring = true;
     const conversationId = this.selectedConversation.id;
-    const targetAgentId = this.selectedTransferAgentId as number;
+    const targetAgentId = isEster ? '' : String(this.selectedTransferAgentId);
 
     const processSuccess = () => {
         this.showTransferModal = false;
         this.isTransferring = false;
         
-        if (targetAgentId === 0) {
+        if (isEster) {
             this.selectedConversation!.assignee_id = null;
             this.selectedConversation!.assignee_name = 'Ester Assistant';
         } else {
-            const assignedAgent = this.transferAgents.find((a: any) => a.idchatwoot === targetAgentId);
+            const assignedAgent = this.transferAgents.find(
+              (agent: any) => String(agent?._id || agent?.id || '') === targetAgentId,
+            );
             this.selectedConversation!.assignee_id = targetAgentId;
             this.selectedConversation!.assignee_name = assignedAgent?.name || assignedAgent?.email || `Agente ${targetAgentId}`;
         }
         
         // Buscar el agente en memoria para sacar su ID de Mongo y enviarle el Push (si es humano)
-        const assignedAgent = this.transferAgents.find((a: any) => a.idchatwoot === targetAgentId);
+        const assignedAgent = this.transferAgents.find(
+          (agent: any) => String(agent?._id || agent?.id || '') === targetAgentId,
+        );
         const contactName = this.selectedConversation?.contact.name || 'un cliente';
         
         if (assignedAgent && (assignedAgent.id || assignedAgent._id)) {
@@ -1098,13 +1062,19 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         // Y cerramos la interfaz de inmediato para bloquear acceso a continuar escribiendo
         this.selectedConversation = null;
         this.messages = []; // Clear current feed array
-        this.messageService.add({ severity: 'success', summary: targetAgentId === 0 ? 'Chat Cedido a IA' : 'Transferencia Completa', detail: targetAgentId === 0 ? 'Control devuelto a Ester Assistant correctamente.' : 'La conversación ha sido transferida exitosamente.' });
+        this.messageService.add({
+          severity: 'success',
+          summary: isEster ? 'Chat cedido a IA' : 'Transferencia completa',
+          detail: isEster
+            ? 'Control devuelto a Ester Assistant correctamente.'
+            : 'La conversación ha sido transferida exitosamente.',
+        });
         this.loadConversations(); // Recargar lista para reflejar salida
     };
 
-    this.chatwootApi.assignAgentToConversation(conversationId, targetAgentId).subscribe({
+    this.whatsappApi.assignAgentToConversation(conversationId, targetAgentId).subscribe({
       next: (res) => {
-        if (res.success || targetAgentId === 0) {
+        if (res.success || isEster) {
            processSuccess();
         } else {
            this.isTransferring = false;
@@ -1112,7 +1082,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         }
       },
       error: () => {
-        if (targetAgentId === 0) {
+        if (isEster) {
            processSuccess();
         } else {
            this.isTransferring = false;
@@ -1136,14 +1106,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       let fails = 0;
 
       activeConvs.forEach(conv => {
-        this.chatwootApi.assignAgentToConversation(conv.id, 0).subscribe({
+        this.whatsappApi.assignAgentToConversation(conv.id, '').subscribe({
           next: () => {
              completed++;
              this.checkTransferAllProgress(completed + fails, activeConvs.length, fails);
           },
           error: () => {
-             // For agent 0, the API might return 404 or fail in some strict chatwoot setups if not handled, but we assume success if response
-             completed++; // Treat as completed due to chatwoot null unassingment quirk
+             completed++;
              this.checkTransferAllProgress(completed + fails, activeConvs.length, fails);
           }
         });
@@ -1290,7 +1259,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
 
     this.loadingConversations = true;
-    this.chatwootApi.getConversations(this.userInboxId, 1, this.chatwootAgentId, true).subscribe({
+    this.whatsappApi.getConversations(this.userInboxId, 1, this.whatsappAgentId, true).subscribe({
       next: (res: any) => {
         this.loadingConversations = false;
         if (res.success) {
@@ -1857,12 +1826,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
            this.messages.push(pendingMsg);
            this.scrollToBottom();
 
-           this.chatwootApi.sendConversationMessage(
+           this.whatsappApi.sendConversationMessage(
              this.selectedConversation!.id,
              textToSend,
              undefined,
              undefined,
-             this.chatwootAgentId
+             this.whatsappAgentId
            ).subscribe({
              next: (res) => {
                if (!res.success) {
@@ -1894,12 +1863,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       this.messages.push(pendingMsg);
       this.scrollToBottom();
 
-      this.chatwootApi.sendConversationMessage(
+      this.whatsappApi.sendConversationMessage(
          this.selectedConversation!.id,
          textToSend,
          undefined,
          undefined,
-         this.chatwootAgentId
+         this.whatsappAgentId
       ).subscribe({
          next: (res) => {
              if (!res.success) {
@@ -2044,7 +2013,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private startConversationsPolling(): void {
     this.stopConversationsPolling();
     this.conversationsPollingInterval = setInterval(() => {
-      this.chatwootApi.getConversations(this.userInboxId, 1, this.chatwootAgentId, true).subscribe({
+      this.whatsappApi.getConversations(this.userInboxId, 1, this.whatsappAgentId, true).subscribe({
         next: (res: any) => {
           if (res.success) {
             const newConvs = this.sortConversations(res.conversations || []);
@@ -2090,7 +2059,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // ============================
 
   loadInternalChat(): void {
-    this.chatwootNotificationSound.markInternalChatRead();
+    this.communicationNotifications.markInternalChatRead();
     this.loadingInternalMessages = true;
     this.internalChatError = '';
     this.internalChatService.getMessages({ limit: 50 }).subscribe({
@@ -2111,7 +2080,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   toggleInternalChatMuted(): void {
-    const muted = this.chatwootNotificationSound.toggleInternalChatMuted();
+    const muted = this.communicationNotifications.toggleInternalChatMuted();
     this.messageService.add({
       severity: muted ? 'info' : 'success',
       summary: muted ? 'Grupo silenciado' : 'Grupo activo',
@@ -2240,7 +2209,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
     this.savingStickerUrl = attachment.url;
     const fallbackName = message?._id ? `sticker-grupo-${message._id}` : 'sticker-grupo';
-    this.chatwootApi.saveStickerFromImage({
+    this.whatsappApi.saveStickerFromImage({
       image_url: attachment.url,
       name: fallbackName
     }).pipe(
@@ -2510,7 +2479,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const requestId = ++this.activeMessagesRequestId;
     this.loadingMessages = true;
     this.messagesLoadError = '';
-    this.chatwootApi.getConversationMessages(conversationId).pipe(timeout(20000)).subscribe({
+    this.whatsappApi.getConversationMessages(conversationId).pipe(timeout(20000)).subscribe({
       next: (res: any) => {
         if (requestId !== this.activeMessagesRequestId || this.selectedConversation?.id !== conversationId) return;
         this.loadingMessages = false;
@@ -2568,7 +2537,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
     this.messages.push(newMsg);
     
-    // Inject the internal agent name prefix for Chatwoot outbound delivery
+    // Incluye el nombre del agente en el mensaje saliente.
     const finalApiText = `${this.getAgentSignature()}\n${text}`;
 
     this.chatInput = '';
@@ -2576,12 +2545,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.sendingMessage = true;
     this.scrollToBottom();
 
-    this.chatwootApi.sendConversationMessage(
+    this.whatsappApi.sendConversationMessage(
       this.selectedConversation.id,
       finalApiText,
       replyMsg?.id,
       undefined,
-      this.chatwootAgentId
+      this.whatsappAgentId
     ).subscribe({
       next: (res) => {
         this.sendingMessage = false;
@@ -2618,7 +2587,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   loadStickers(): void {
     this.loadingStickers = true;
-    this.chatwootApi.getStickers().subscribe({
+    this.whatsappApi.getStickers().subscribe({
       next: (res: any) => {
         this.loadingStickers = false;
         this.stickers = res?.success ? (res.stickers || []) : [];
@@ -2634,8 +2603,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (!att?.data_url || this.savingStickerUrl) return;
 
     this.savingStickerUrl = att.data_url;
-    const fallbackName = msg.id ? `sticker-chatwoot-${msg.id}` : 'sticker-chatwoot';
-    this.chatwootApi.saveStickerFromImage({
+    const fallbackName = msg.id ? `sticker-whatsapp-${msg.id}` : 'sticker-whatsapp';
+    this.whatsappApi.saveStickerFromImage({
       image_url: att.data_url,
       name: fallbackName
     }).pipe(
@@ -2687,7 +2656,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
 
     this.uploadingSticker = true;
-    this.chatwootApi.uploadStickerImage(file, file.name).pipe(
+    this.whatsappApi.uploadStickerImage(file, file.name).pipe(
       timeout(45000),
       finalize(() => this.uploadingSticker = false)
     ).subscribe({
@@ -2734,7 +2703,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   getPlayableAudioUrl(att: ChatAttachment): string {
-    return this.chatwootApi.getPlayableAudioUrl(att?.data_url || '');
+    return this.whatsappApi.getPlayableAudioUrl(att?.data_url || '');
   }
 
   isStickerOnlyMessage(msg: ChatMessage): boolean {
@@ -2752,11 +2721,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (!this.selectedConversation?.contact?.phone || !sticker?.id || this.sendingStickerId) return;
 
     this.sendingStickerId = sticker.id;
-    this.chatwootApi.sendSticker({
+    this.whatsappApi.sendSticker({
       phone: this.selectedConversation.contact.phone,
       sticker_id: sticker.id,
       conversation_id: this.selectedConversation.id,
-      agent_id: this.chatwootAgentId || undefined
+      agent_id: this.whatsappAgentId || undefined
     }).subscribe({
       next: (res: any) => {
         this.sendingStickerId = null;
@@ -2800,7 +2769,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (!sticker?.id || this.deletingStickerId) return;
 
     this.deletingStickerId = sticker.id;
-    this.chatwootApi.deleteSticker(sticker.id).subscribe({
+    this.whatsappApi.deleteSticker(sticker.id).subscribe({
       next: (res: any) => {
         this.deletingStickerId = null;
         if (res?.success) {
@@ -2861,7 +2830,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
     const attachmentMessage = `${this.getAgentSignature()}\nTe ha enviado un archivo adjunto.`;
 
-    this.chatwootApi.sendAttachment(this.selectedConversation.id, file, attachmentMessage, this.chatwootAgentId).subscribe({
+    this.whatsappApi.sendAttachment(this.selectedConversation.id, file, attachmentMessage, this.whatsappAgentId).subscribe({
       next: (res) => {
         this.sendingMessage = false;
         if (!res.success) {
@@ -3001,7 +2970,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.scrollToBottom();
 
     const attachmentMessage = `${this.getAgentSignature()}\nTe ha enviado una nota de voz.`;
-    this.chatwootApi.sendAttachment(this.selectedConversation.id, file, attachmentMessage, this.chatwootAgentId).subscribe({
+    this.whatsappApi.sendAttachment(this.selectedConversation.id, file, attachmentMessage, this.whatsappAgentId).subscribe({
       next: (res) => {
         this.sendingMessage = false;
         if (!res.success) {
@@ -3048,14 +3017,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   assignToMe(): void {
-    if (!this.selectedConversation || !this.chatwootAgentId) return;
+    if (!this.selectedConversation || !this.whatsappAgentId) return;
 
-    const agentIdNum = Number(this.chatwootAgentId);
-
-    this.chatwootApi.assignAgentToConversation(this.selectedConversation.id, agentIdNum).subscribe({
+    this.whatsappApi.assignAgentToConversation(this.selectedConversation.id, this.whatsappAgentId).subscribe({
       next: (res) => {
         if (res.success) {
-          this.selectedConversation!.assignee_id = agentIdNum;
+          this.selectedConversation!.assignee_id = this.whatsappAgentId;
           this.selectedConversation!.assignee_name = this.currentUserName || 'Agente';
           this.messageService.add({severity:'success', summary:'Control Tomado', detail:'Te has asignado esta conversación. Ester Assistant está desactivado para este flujo.'});
         } else {
@@ -3076,7 +3043,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const incomingMessages = this.messages.filter(m => m.from === 'incoming');
     
     // Si no encontramos ningún mensaje del usuario en el lote descargado,
-    // usamos la fecha de fallback del sistema Chatwoot.
+    // usamos la fecha de respaldo del historial local.
     if (incomingMessages.length === 0) {
       const timeRef = conv.contact_last_seen_at || conv.last_message_time;
       if (!timeRef) return true; // Failsafe cerrado total
@@ -3104,8 +3071,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.whatsappTemplateVars.headerUser = this.currentUserName || 'Asesor';
     
     const gpsName = this.gpsUser ? `${this.gpsUser.name} ${this.gpsUser.last_name || ''}`.trim() : null;
-    const chatwootName = this.selectedConversation.contact.name !== 'Sin nombre' ? this.selectedConversation.contact.name : '';
-    this.whatsappTemplateVars.name = gpsName || chatwootName;
+    const whatsappName = this.selectedConversation.contact.name !== 'Sin nombre' ? this.selectedConversation.contact.name : '';
+    this.whatsappTemplateVars.name = gpsName || whatsappName;
     
     this.whatsappTemplateVars.body = '';
     
@@ -3143,7 +3110,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
     this.sendingTemplate = true;
     
-    this.chatwootApi.sendWhatsAppTemplateToUser({
+    this.whatsappApi.sendWhatsAppTemplateToUser({
         phone: this.selectedConversation.contact.phone,
         template_name: 'simple',
         variables: [
@@ -3152,7 +3119,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           this.whatsappTemplateVars.name,
           this.whatsappTemplateVars.body
         ],
-        agent_id: this.chatwootAgentId ? this.chatwootAgentId.toString() : undefined,
+        agent_id: this.whatsappAgentId ? this.whatsappAgentId.toString() : undefined,
         conversation_id: this.selectedConversation.id,
     }).subscribe({
       next: (res) => {
@@ -3181,7 +3148,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       if (!this.selectedConversation) return;
       const conversationId = this.selectedConversation.id;
 
-      this.chatwootApi.getConversationMessages(conversationId).pipe(timeout(20000)).subscribe({
+      this.whatsappApi.getConversationMessages(conversationId).pipe(timeout(20000)).subscribe({
         next: (res: any) => {
           if (this.selectedConversation?.id !== conversationId) return;
           if (res.success && res.messages?.length) {

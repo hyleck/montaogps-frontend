@@ -15,7 +15,7 @@ import { CloudService } from '@core/services/cloud.service';
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
 import { SystemService } from '@core/services/system.service';
 import { MapUtils } from 'src/app/shareds/helpers/map.helper';
-import { ChatwootApiService } from '@core/services/chatwoot-api.service';
+import { WhatsAppApiService } from '@core/services/whatsapp-api.service';
 import { InteraccionesService, UserList } from '../../../../../interacciones/presentation/services/interacciones.service';
 import { VapiService } from '@core/services/vapi.service';
 import { isEmployeeLocationSubjectValue } from '../location-subject-privacy';
@@ -203,7 +203,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     waFreeText: string = '';
     waConversationId: number | null = null;
     waSelectedPhone: string = '';
-    chatwootAgentId: string = '';
+    whatsappAgentId: string = '';
     waTemplateVars = {
         headerUser: '',
         bodySaludos: '',
@@ -250,7 +250,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         private cdr: ChangeDetectorRef,
         private cloudService: CloudService,
         private firebaseNotificationsService: FirebaseNotificationsService,
-        private chatwootApi: ChatwootApiService,
+        private whatsappApi: WhatsAppApiService,
         private interaccionesService: InteraccionesService,
         private vapiService: VapiService
     ) { }
@@ -644,12 +644,14 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.user.password = '';
         this.activeTabIndex = 0;
 
-        // Load current user's Chatwoot agent ID for conversation assignment
+        // Usa el ID real del empleado para asignar la conversación.
         const currentUser = this.authService.getCurrentUser();
         if (currentUser?.id) {
             this.userService.getById(currentUser.id).subscribe({
-                next: (u: any) => { this.chatwootAgentId = u?.idchatwoot || ''; },
-                error: () => { this.chatwootAgentId = ''; }
+                next: (user: any) => {
+                    this.whatsappAgentId = String(user?._id || user?.id || currentUser.id);
+                },
+                error: () => { this.whatsappAgentId = ''; }
             });
         }
 
@@ -2026,7 +2028,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         const phone = this.waSelectedPhone.replace(/[^0-9+]/g, '');
 
         // Single backend call that checks ALL conversations for this contact
-        this.chatwootApi.check24hWindow(phone).subscribe({
+        this.whatsappApi.check24hWindow(phone).subscribe({
             next: (res: any) => {
                 this.waCheckingWindow = false;
                 
@@ -2103,11 +2105,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         const directMessage = this.buildWaDirectMessage();
         const contactName = `${this.userInput?.name || ''} ${this.userInput?.last_name || ''}`.trim() || this.waTemplateVars.name;
 
-        this.chatwootApi.sendWhatsAppText({
+        this.whatsappApi.sendWhatsAppText({
             phone: destinationPhone,
             message: directMessage,
             contact_name: contactName,
-            agent_id: this.chatwootAgentId || undefined,
+            agent_id: this.whatsappAgentId || undefined,
             conversation_id: this.waConversationId || undefined,
         }).subscribe({
             next: (res: any) => {
@@ -2145,7 +2147,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     private sendWaTemplateFallback(destinationPhone: string, directError?: string): void {
-        this.chatwootApi.sendWhatsAppTemplateToUser({
+        this.whatsappApi.sendWhatsAppTemplateToUser({
             phone: destinationPhone,
             template_name: 'simple',
             variables: [
@@ -2154,7 +2156,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 this.waTemplateVars.name,
                 this.waTemplateVars.body
             ],
-            agent_id: this.chatwootAgentId || undefined,
+            agent_id: this.whatsappAgentId || undefined,
             conversation_id: this.waConversationId || undefined,
         }).subscribe({
             next: (res: any) => {
@@ -2196,12 +2198,12 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
         if (this.waConversationId) {
             // Send via existing conversation (same approach as communication module)
-            this.chatwootApi.sendConversationMessage(
+            this.whatsappApi.sendConversationMessage(
                 this.waConversationId,
                 finalMessage,
                 undefined,
                 undefined,
-                this.chatwootAgentId || undefined
+                this.whatsappAgentId || undefined
             ).subscribe({
                 next: (res: any) => {
                     this.sendingWa = false;
@@ -2220,11 +2222,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             });
         } else {
             // Fallback: send via Meta API
-            this.chatwootApi.sendWhatsAppText({
+            this.whatsappApi.sendWhatsAppText({
                 phone: destinationPhone,
                 message: this.waFreeText.trim(),
                 contact_name: `${this.userInput?.name || ''} ${this.userInput?.last_name || ''}`.trim(),
-                agent_id: this.chatwootAgentId || undefined,
+                agent_id: this.whatsappAgentId || undefined,
                 conversation_id: this.waConversationId || undefined,
             }).subscribe({
                 next: (res: any) => {

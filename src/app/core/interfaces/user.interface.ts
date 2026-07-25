@@ -72,10 +72,6 @@ export interface User {
   profile_type_id?: string;
   affiliation_type_id?: string;
   department_id?: string;
-  idchatwoot?: string;
-  chatwoot_access_token?: string;
-  inbox?: number;
-  inbox2?: number;
   root?: boolean;
   developer?: boolean;
   status?: boolean;

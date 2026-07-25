@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, HostListener } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -61,24 +61,6 @@ export class ProfileComponent implements OnInit {
     userPhotoUrl: string | SafeUrl | null = null;
     newPassword: string = '';
     confirmPassword: string = '';
-    showInboxFields: boolean = false;
-    private fKeyCount: number = 0;
-    private fKeyTimer: any = null;
-
-    @HostListener('document:keydown', ['$event'])
-    onKeyDown(event: KeyboardEvent) {
-        if (event.key === 'f' || event.key === 'F') {
-            this.fKeyCount++;
-            clearTimeout(this.fKeyTimer);
-            this.fKeyTimer = setTimeout(() => this.fKeyCount = 0, 2000);
-            if (this.fKeyCount >= 7) {
-                this.showInboxFields = !this.showInboxFields;
-                this.fKeyCount = 0;
-            }
-        } else {
-            this.fKeyCount = 0;
-        }
-    }
     selectedTheme: string;
     themes = [
         { label: 'Claro', value: 'light' },
@@ -366,9 +348,6 @@ export class ProfileComponent implements OnInit {
             address: userData.address || '',
             photo: userData.photo || '',
             auto_response: userData.auto_response || false,
-            inbox: userData.inbox || 0,
-            inbox2: userData.inbox2 || 0,
-            inbox3: userData.inbox3 || 0,
             settings: userSettings
         };
     }
@@ -396,9 +375,6 @@ export class ProfileComponent implements OnInit {
             dni: this.user.dni,
             address: this.user.address,
             auto_response: this.user.auto_response,
-            inbox: this.user.inbox,
-            inbox2: this.user.inbox2,
-            inbox3: this.user.inbox3,
             settings: [{
                 theme: this.user.settings.theme,
                 language: this.user.settings.language,

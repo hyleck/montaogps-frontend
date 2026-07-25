@@ -6,7 +6,7 @@ import { environment } from 'src/environments/environment';
 @Injectable({
     providedIn: 'root'
 })
-export class ChatwootApiService {
+export class WhatsAppApiService {
 
     private readonly apiUrl = `${environment.apiUrl}/whatsapp`;
 
@@ -104,13 +104,7 @@ export class ChatwootApiService {
         return this.http.post(`${this.apiUrl}/conversation-send`, body);
     }
 
-    getInboxDetails(inboxId: number): Observable<any> {
-        return this.http.get(`${this.apiUrl}/inbox-details`, {
-            params: { inbox_id: inboxId.toString() }
-        });
-    }
-
-    assignAgentToConversation(conversationId: number, agentId: number): Observable<any> {
+    assignAgentToConversation(conversationId: number, agentId: string): Observable<any> {
         return this.http.post(`${this.apiUrl}/conversation-assign`, { conversation_id: conversationId, agent_id: agentId });
     }
 

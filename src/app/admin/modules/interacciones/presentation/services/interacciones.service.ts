@@ -112,20 +112,8 @@ export class InteraccionesService {
     return this.http.get<UserListUsersResponse>(`${this.api}/preview`, { params });
   }
 
-  // ── Chatwoot Correo ──────────────────────────────────────────────────
-
-  getEmailInboxes(): Observable<{ id: number; name: string; email: string }[]> {
-    return this.http.get<{ id: number; name: string; email: string }[]>(`${environment.apiUrl}/chatwoot/email-inboxes`);
-  }
-
-  sendEmailToUser(payload: { email: string; subject: string; message: string; contact_name?: string; is_html?: boolean; agent_id?: string; inbox_id?: number }): Observable<any> {
-    return this.http.post<any>(`${environment.apiUrl}/chatwoot/send-email`, payload);
-  }
-
-  // ── Chatwoot WhatsApp ────────────────────────────────────────────────
-  
   sendWhatsAppToUser(payload: { phone: string; template_name: string; variables: string[]; agent_id?: string }): Observable<any> {
-    return this.http.post<any>(`${environment.apiUrl}/chatwoot/send-whatsapp`, payload);
+    return this.http.post<any>(`${environment.apiUrl}/whatsapp/send-whatsapp`, payload);
   }
 
   // ── VAPI AI Voice ────────────────────────────────────────────────

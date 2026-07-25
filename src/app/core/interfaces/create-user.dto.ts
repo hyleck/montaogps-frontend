@@ -3,5 +3,4 @@ export interface CreateUserDto {
   name: string;
   last_name: string;
   password: string;
-  idchatwoot?: string;
-} 
+}
