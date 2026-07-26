@@ -45,6 +45,7 @@ interface ChatMessage {
   id?: number;
   from: 'me' | 'incoming' | 'system';
   text?: string;
+  transcription?: string;
   parsedHtml?: string;
   time: Date;
   attachments?: ChatAttachment[];
@@ -2680,6 +2681,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
               id: msg.id,
               from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
               text: msg.content,
+              transcription: msg.transcription,
               parsedHtml: this.parseMessageContent(msg.content),
               time: new Date(msg.created_at * 1000),
               attachments: msg.attachments || [],
@@ -2795,6 +2797,29 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (attachment.file_type === 'video') return 'Video';
     if (attachment.file_type === 'audio') return 'Nota de voz';
     return attachment.file_name || 'Documento';
+  }
+
+  hasAudioAttachment(msg: ChatMessage | null | undefined): boolean {
+    return Boolean(msg?.attachments?.some(
+      attachment => String(attachment?.file_type || '').toLowerCase() === 'audio'
+    ));
+  }
+
+  getAudioTranscript(msg: ChatMessage | null | undefined): string {
+    if (!this.hasAudioAttachment(msg)) return '';
+
+    let transcript = String(msg?.transcription || msg?.text || '')
+      .replace(/\s*\[audio\s*:[^\]]+\]\s*/gi, '\n')
+      .trim();
+
+    if (!transcript) return '';
+
+    const signatureMatch = transcript.match(/^>\s*[^\n]+(?:\r?\n([\s\S]*))?$/);
+    if (signatureMatch) {
+      transcript = String(signatureMatch[1] || '').trim();
+    }
+
+    return transcript;
   }
 
   private getApiReplyPreviewText(reply: any): string {
@@ -3516,6 +3541,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
                   id: msg.id,
                   from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
                   text: msg.content,
+                  transcription: msg.transcription,
                   parsedHtml: this.parseMessageContent(msg.content),
                   time: new Date(msg.created_at * 1000),
                   attachments: msg.attachments || [],

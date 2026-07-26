@@ -9,6 +9,11 @@ export interface EsterKnowledgeEntry {
   category: string;
   content: string;
   active: boolean;
+  media_type?: 'image' | 'video' | null;
+  media_url?: string | null;
+  media_name?: string | null;
+  media_mime_type?: string | null;
+  media_size?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -18,6 +23,19 @@ export interface EsterKnowledgePayload {
   category?: string;
   content: string;
   active?: boolean;
+  media_type?: 'image' | 'video' | null;
+  media_url?: string | null;
+  media_name?: string | null;
+  media_mime_type?: string | null;
+  media_size?: number | null;
+}
+
+export interface EsterKnowledgeMediaUpload {
+  media_type: 'image' | 'video';
+  media_url: string;
+  media_name: string;
+  media_mime_type: string;
+  media_size: number;
 }
 
 export type EsterWorkflowStatus =
@@ -92,6 +110,17 @@ export class EsterService {
 
   deleteKnowledge(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  uploadKnowledgeMedia(
+    file: File,
+  ): Observable<EsterKnowledgeMediaUpload> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<EsterKnowledgeMediaUpload>(
+      `${this.apiUrl}/media`,
+      formData,
+    );
   }
 
   getWorkflowRuns(): Observable<EsterWorkflowRun[]> {

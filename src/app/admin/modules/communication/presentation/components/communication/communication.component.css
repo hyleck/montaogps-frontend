@@ -2922,6 +2922,39 @@
     display: block;
 }
 
+.comm-audio-transcription {
+    margin-top: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    border-left: 3px solid rgba(125, 211, 252, 0.72);
+    border-radius: 0 9px 9px 0;
+    background: rgba(125, 211, 252, 0.08);
+}
+
+.comm-audio-transcription__label {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.3rem;
+    color: #7dd3fc;
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.comm-audio-transcription__label i {
+    font-size: 0.7rem;
+}
+
+.comm-audio-transcription__text {
+    color: rgba(226, 232, 240, 0.84);
+    font-size: 0.82rem;
+    font-style: italic;
+    line-height: 1.55;
+    white-space: pre-wrap;
+}
+
 .comm-attachment__audio-status {
     display: inline-flex;
     align-items: center;
@@ -3711,6 +3744,12 @@
 :host-context(.app-light) .comm-message--system .comm-message__bubble { background: rgba(0,0,0,0.05); border: none; color: #64748b; }
 :host-context(.app-light) .comm-message--outgoing .comm-msg-sig-icon { color: #dc2626; }
 :host-context(.app-light) .comm-message--sticker-only .comm-message__bubble { background: transparent; border: 0; box-shadow: none; }
+:host-context(.app-light) .comm-audio-transcription {
+    background: rgba(2, 132, 199, 0.07);
+    border-left-color: #0284c7;
+}
+:host-context(.app-light) .comm-audio-transcription__label { color: #0369a1; }
+:host-context(.app-light) .comm-audio-transcription__text { color: #334155; }
 
 /* Reply Quote Bubble */
 :host-context(.app-light) .comm-reply-quote { background: rgba(0,0,0,0.04); border-left: 3px solid #64748b; }

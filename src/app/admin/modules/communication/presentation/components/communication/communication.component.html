@@ -228,7 +228,15 @@
                                 </a>
                             </div>
                         </ng-container>
-                        <div *ngIf="msg.text" class="comm-message__text" [innerHTML]="msg.parsedHtml || msg.text"></div>
+                        <div *ngIf="msg.text && !hasAudioAttachment(msg)" class="comm-message__text"
+                            [innerHTML]="msg.parsedHtml || msg.text"></div>
+                        <div *ngIf="getAudioTranscript(msg) as transcript" class="comm-audio-transcription">
+                            <div class="comm-audio-transcription__label">
+                                <i class="pi pi-align-left"></i>
+                                <span>Transcripción</span>
+                            </div>
+                            <div class="comm-audio-transcription__text">{{ transcript }}</div>
+                        </div>
                         <div *ngIf="msg.safeRealtimeUrl" class="comm-message__realtime-trigger" (click)="openRealtimeModal(msg.safeRealtimeUrl)">
                             <div class="comm-message__rt-icon comm-card-icon--rt">
                                 <i class="pi pi-map"></i>

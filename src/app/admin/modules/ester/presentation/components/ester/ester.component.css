@@ -357,6 +357,33 @@
   overflow-wrap: anywhere;
 }
 
+.knowledge-card__media {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--globalColorBorderDark, rgba(128, 128, 128, 0.22));
+  border-radius: 12px;
+  background: rgba(128, 128, 128, 0.06);
+}
+
+.knowledge-card__media img,
+.knowledge-card__media video {
+  width: 100%;
+  height: 150px;
+  display: block;
+  object-fit: cover;
+  background: #111318;
+}
+
+.knowledge-card__media > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 10px;
+  color: #7c3aed;
+  font-size: 0.74rem;
+  font-weight: 750;
+}
+
 .knowledge-card__footer {
   gap: 10px;
   margin-top: 17px;
@@ -767,6 +794,129 @@
 .ester-editor label > small {
   align-self: flex-end;
   color: var(--globalColorTextLight, #9ca3af);
+}
+
+.ester-editor__media {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid var(--globalColorBorderDark, rgba(128, 128, 128, 0.24));
+  border-radius: 13px;
+  background: rgba(128, 128, 128, 0.035);
+}
+
+.ester-editor__media-heading,
+.ester-editor__media-preview {
+  display: flex;
+  align-items: center;
+}
+
+.ester-editor__media-heading {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ester-editor__media-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ester-editor__media-heading small,
+.ester-editor__media-help,
+.ester-editor__media-preview small {
+  color: var(--globalColorTextLight, #9ca3af);
+}
+
+.ester-editor__media-button {
+  min-height: 38px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 13px;
+  border: 1px solid rgba(124, 58, 237, 0.45);
+  border-radius: 10px;
+  color: #8b5cf6;
+  background: rgba(124, 58, 237, 0.08);
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.ester-editor__media-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ester-editor__media-preview {
+  position: relative;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 46px 10px 10px;
+  border-radius: 11px;
+  background: rgba(124, 58, 237, 0.08);
+}
+
+.ester-editor__media-preview > img,
+.ester-editor__media-preview > video {
+  width: 94px;
+  height: 68px;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border-radius: 9px;
+  background: #111318;
+}
+
+.ester-editor__media-preview > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ester-editor__media-preview strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ester-editor__media-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #7c3aed;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ester-editor__remove-media {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 9px;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  cursor: pointer;
+}
+
+.ester-editor__media-help {
+  margin: 0;
+  font-size: 0.72rem;
 }
 
 .ester-editor__toggle {

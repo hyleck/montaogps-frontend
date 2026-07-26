@@ -130,6 +130,24 @@
 
         <h3>{{ entry.title }}</h3>
         <p class="knowledge-card__content">{{ entry.content }}</p>
+        <div *ngIf="entry.media_url && entry.media_type" class="knowledge-card__media">
+          <img
+            *ngIf="entry.media_type === 'image'"
+            [src]="entry.media_url"
+            [alt]="entry.media_name || entry.title"
+            loading="lazy"
+          />
+          <video
+            *ngIf="entry.media_type === 'video'"
+            [src]="entry.media_url"
+            controls
+            preload="metadata"
+          ></video>
+          <span>
+            <i class="pi" [class.pi-image]="entry.media_type === 'image'" [class.pi-video]="entry.media_type === 'video'"></i>
+            {{ entry.media_type === 'image' ? 'Imagen disponible para Ester' : 'Video disponible para Ester' }}
+          </span>
+        </div>
 
         <footer class="knowledge-card__footer">
           <span class="knowledge-card__date" *ngIf="entry.updatedAt">
@@ -424,6 +442,7 @@
   [resizable]="false"
   [closable]="!saving"
   [style]="{ width: 'min(680px, 94vw)' }"
+  [contentStyle]="{ 'max-height': '78vh', overflow: 'auto' }"
   styleClass="ester-editor-dialog"
   (onHide)="closeEditor()"
 >
@@ -451,14 +470,20 @@
     </label>
 
     <label>
-      <span>Categoría</span>
+      <span>Etiqueta</span>
       <input
         pInputText
         name="category"
         [(ngModel)]="form.category"
+        list="ester-category-options"
         maxlength="80"
-        placeholder="General"
+        placeholder="Escribe o selecciona una etiqueta"
+        autocomplete="off"
       />
+      <datalist id="ester-category-options">
+        <option *ngFor="let category of categorySuggestions" [value]="category"></option>
+      </datalist>
+      <small>Las etiquetas existentes se autocompletan mientras escribes.</small>
     </label>
 
     <label>
@@ -474,6 +499,59 @@
       ></textarea>
       <small>{{ form.content.length | number }} / 12,000 caracteres</small>
     </label>
+
+    <section class="ester-editor__media">
+      <div class="ester-editor__media-heading">
+        <div>
+          <strong>Imagen o video</strong>
+          <small>Opcional. Ester podrá enviarlo cuando ayude a responder.</small>
+        </div>
+        <label class="ester-editor__media-button">
+          <input
+            type="file"
+            accept="image/jpeg,image/png,video/mp4"
+            (change)="onMediaSelected($event)"
+          />
+          <i class="pi pi-upload"></i>
+          {{ mediaPreviewUrl ? 'Cambiar archivo' : 'Seleccionar archivo' }}
+        </label>
+      </div>
+
+      <div *ngIf="mediaPreviewUrl && form.mediaType" class="ester-editor__media-preview">
+        <img
+          *ngIf="form.mediaType === 'image'"
+          [src]="mediaPreviewUrl"
+          [alt]="form.mediaName || form.title"
+        />
+        <video
+          *ngIf="form.mediaType === 'video'"
+          [src]="mediaPreviewUrl"
+          controls
+          preload="metadata"
+        ></video>
+        <div>
+          <span class="ester-editor__media-kind">
+            <i class="pi" [class.pi-image]="form.mediaType === 'image'" [class.pi-video]="form.mediaType === 'video'"></i>
+            {{ form.mediaType === 'image' ? 'Imagen' : 'Video' }}
+          </span>
+          <strong>{{ form.mediaName }}</strong>
+          <small *ngIf="form.mediaSize">{{ form.mediaSize / 1048576 | number:'1.1-1' }} MB</small>
+        </div>
+        <button
+          type="button"
+          class="ester-editor__remove-media"
+          aria-label="Quitar archivo multimedia"
+          title="Quitar archivo"
+          (click)="removeMedia()"
+        >
+          <i class="pi pi-trash"></i>
+        </button>
+      </div>
+
+      <p class="ester-editor__media-help">
+        JPG/PNG hasta 5 MB o MP4 hasta 16 MB.
+      </p>
+    </section>
 
     <label class="ester-editor__toggle">
       <input type="checkbox" name="active" [(ngModel)]="form.active" />

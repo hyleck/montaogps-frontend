@@ -1,8 +1,16 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MessageService } from 'primeng/api';
-import { Subscription, catchError, of, switchMap, timer } from 'rxjs';
+import {
+  Observable,
+  Subscription,
+  catchError,
+  of,
+  switchMap,
+  timer,
+} from 'rxjs';
 import {
   EsterKnowledgeEntry,
+  EsterKnowledgeMediaUpload,
   EsterKnowledgePayload,
   EsterService,
   EsterSkill,
@@ -16,6 +24,11 @@ interface EsterKnowledgeForm {
   category: string;
   content: string;
   active: boolean;
+  mediaType: 'image' | 'video' | null;
+  mediaUrl: string | null;
+  mediaName: string | null;
+  mediaMimeType: string | null;
+  mediaSize: number | null;
 }
 
 @Component({
@@ -50,6 +63,8 @@ export class EsterComponent implements OnInit, OnDestroy {
   >();
 
   form: EsterKnowledgeForm = this.emptyForm();
+  pendingMediaFile?: File;
+  mediaPreviewUrl = '';
 
   constructor(
     private readonly esterService: EsterService,
@@ -62,6 +77,7 @@ export class EsterComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.resetMediaSelection();
     this.workflowSubscription?.unsubscribe();
     this.workflowAnimationTimers.forEach(animationTimer =>
       clearInterval(animationTimer),
@@ -79,11 +95,26 @@ export class EsterComponent implements OnInit, OnDestroy {
     ).size;
   }
 
+  get categorySuggestions(): string[] {
+    const suggestions = new Map<string, string>();
+    ['General', ...this.entries.map(entry => entry.category)]
+      .map(value => String(value || '').trim())
+      .filter(Boolean)
+      .forEach(value => {
+        const key = value.toLocaleLowerCase('es-DO');
+        if (!suggestions.has(key)) suggestions.set(key, value);
+      });
+    return [...suggestions.values()].sort((a, b) =>
+      a.localeCompare(b, 'es-DO'),
+    );
+  }
+
   get filteredEntries(): EsterKnowledgeEntry[] {
     const term = this.searchTerm.trim().toLowerCase();
     if (!term) return this.entries;
     return this.entries.filter(entry =>
       [entry.title, entry.category, entry.content]
+        .concat(entry.media_name || '')
         .some(value => String(value || '').toLowerCase().includes(term)),
     );
   }
@@ -289,19 +320,27 @@ export class EsterComponent implements OnInit, OnDestroy {
   }
 
   openCreate(): void {
+    this.resetMediaSelection();
     this.editingId = '';
     this.form = this.emptyForm();
     this.editorVisible = true;
   }
 
   openEdit(entry: EsterKnowledgeEntry): void {
+    this.resetMediaSelection();
     this.editingId = entry._id;
     this.form = {
       title: entry.title,
       category: entry.category || 'General',
       content: entry.content,
       active: entry.active,
+      mediaType: entry.media_type || null,
+      mediaUrl: entry.media_url || null,
+      mediaName: entry.media_name || null,
+      mediaMimeType: entry.media_mime_type || null,
+      mediaSize: entry.media_size ?? null,
     };
+    this.mediaPreviewUrl = entry.media_url || '';
     this.editorVisible = true;
   }
 
@@ -309,7 +348,61 @@ export class EsterComponent implements OnInit, OnDestroy {
     if (this.saving) return;
     this.editorVisible = false;
     this.editingId = '';
+    this.resetMediaSelection();
     this.form = this.emptyForm();
+  }
+
+  onMediaSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    const mediaType: 'image' | 'video' | null =
+      ['image/jpeg', 'image/png'].includes(file.type)
+        ? 'image'
+        : file.type === 'video/mp4'
+          ? 'video'
+          : null;
+    if (!mediaType) {
+      this.notify(
+        'warn',
+        'Usa una imagen JPG/PNG o un video MP4.',
+      );
+      return;
+    }
+
+    const maximumBytes =
+      mediaType === 'image'
+        ? 5 * 1024 * 1024
+        : 16 * 1024 * 1024;
+    if (file.size > maximumBytes) {
+      this.notify(
+        'warn',
+        mediaType === 'image'
+          ? 'La imagen debe pesar 5 MB o menos.'
+          : 'El video debe pesar 16 MB o menos.',
+      );
+      return;
+    }
+
+    this.revokeLocalMediaPreview();
+    this.pendingMediaFile = file;
+    this.mediaPreviewUrl = URL.createObjectURL(file);
+    this.form.mediaType = mediaType;
+    this.form.mediaUrl = null;
+    this.form.mediaName = file.name;
+    this.form.mediaMimeType = file.type;
+    this.form.mediaSize = file.size;
+  }
+
+  removeMedia(): void {
+    this.resetMediaSelection();
+    this.form.mediaType = null;
+    this.form.mediaUrl = null;
+    this.form.mediaName = null;
+    this.form.mediaMimeType = null;
+    this.form.mediaSize = null;
   }
 
   save(): void {
@@ -318,6 +411,11 @@ export class EsterComponent implements OnInit, OnDestroy {
       category: this.form.category.trim() || 'General',
       content: this.form.content.trim(),
       active: this.form.active,
+      media_type: this.form.mediaType,
+      media_url: this.form.mediaUrl,
+      media_name: this.form.mediaName,
+      media_mime_type: this.form.mediaMimeType,
+      media_size: this.form.mediaSize,
     };
     if (!payload.title || !payload.content) {
       this.notify('warn', 'Completa el título y el contenido.');
@@ -326,9 +424,30 @@ export class EsterComponent implements OnInit, OnDestroy {
 
     this.saving = true;
     const wasEditing = Boolean(this.editingId);
-    const request = this.editingId
-      ? this.esterService.updateKnowledge(this.editingId, payload)
-      : this.esterService.createKnowledge(payload);
+    const mediaRequest: Observable<EsterKnowledgeMediaUpload | null> =
+      this.pendingMediaFile
+      ? this.esterService.uploadKnowledgeMedia(this.pendingMediaFile)
+      : of(null);
+    const request: Observable<EsterKnowledgeEntry> = mediaRequest.pipe(
+      switchMap(uploaded => {
+        const finalPayload: EsterKnowledgePayload = uploaded
+          ? {
+              ...payload,
+              media_type: uploaded.media_type,
+              media_url: uploaded.media_url,
+              media_name: uploaded.media_name,
+              media_mime_type: uploaded.media_mime_type,
+              media_size: uploaded.media_size,
+            }
+          : payload;
+        return this.editingId
+          ? this.esterService.updateKnowledge(
+              this.editingId,
+              finalPayload,
+            )
+          : this.esterService.createKnowledge(finalPayload);
+      }),
+    );
 
     request.subscribe({
       next: saved => {
@@ -522,7 +641,24 @@ export class EsterComponent implements OnInit, OnDestroy {
       category: 'General',
       content: '',
       active: true,
+      mediaType: null,
+      mediaUrl: null,
+      mediaName: null,
+      mediaMimeType: null,
+      mediaSize: null,
     };
+  }
+
+  private resetMediaSelection(): void {
+    this.revokeLocalMediaPreview();
+    this.pendingMediaFile = undefined;
+    this.mediaPreviewUrl = '';
+  }
+
+  private revokeLocalMediaPreview(): void {
+    if (this.mediaPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(this.mediaPreviewUrl);
+    }
   }
 
   private notify(
