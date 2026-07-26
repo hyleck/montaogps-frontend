@@ -8,12 +8,8 @@
       </div>
       <div>
         <span class="ester__eyebrow">ESTER ASSISTANT</span>
-        <h1>{{ activeView === 'knowledge' ? 'Base de conocimiento' : 'Flujo de trabajo' }}</h1>
-        <p>
-          {{ activeView === 'knowledge'
-            ? 'Administra la información que Ester utiliza al responder a los clientes.'
-            : 'Supervisa en vivo cómo Ester procesa y responde cada conversación.' }}
-        </p>
+        <h1>{{ activeViewTitle }}</h1>
+        <p>{{ activeViewDescription }}</p>
       </div>
     </div>
 
@@ -31,6 +27,15 @@
     >
       <i class="pi pi-book"></i>
       Base de conocimiento
+    </button>
+    <button
+      type="button"
+      [class.ester__view--active]="activeView === 'skills'"
+      (click)="setActiveView('skills')"
+    >
+      <i class="pi pi-bolt"></i>
+      Habilidades
+      <span class="ester__view-count">{{ activeSkillsCount }}</span>
     </button>
     <button
       type="button"
@@ -167,6 +172,137 @@
   </section>
   </ng-container>
 
+  <section *ngIf="activeView === 'skills'" class="skills">
+    <header class="skills__header">
+      <div>
+        <h2>Habilidades incorporadas</h2>
+        <p>
+          Estas capacidades se definen exclusivamente en el código. Aquí sólo puedes activarlas o desactivarlas.
+        </p>
+      </div>
+      <span class="skills__summary">
+        {{ activeSkillsCount }} de {{ skills.length }} activas
+      </span>
+    </header>
+
+    <div *ngIf="skillsLoading" class="ester__state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Cargando habilidades de Ester...</span>
+    </div>
+
+    <div *ngIf="!skillsLoading && !skills.length" class="ester__state ester__state--empty">
+      <span class="ester__empty-icon"><i class="pi pi-bolt"></i></span>
+      <h3>No hay habilidades registradas</h3>
+      <p>Agrega una nueva habilidad en el registro de código de Ester.</p>
+    </div>
+
+    <div *ngIf="!skillsLoading && skills.length" class="skills__groups">
+      <section class="skill-group">
+        <header class="skill-group__header">
+          <span class="skill-group__icon">
+            <i class="pi pi-globe"></i>
+          </span>
+          <div>
+            <div class="skill-group__title">
+              <h3>Habilidades para todos</h3>
+              <span>{{ allAudienceActiveCount }} de {{ allAudienceSkills.length }} activas</span>
+            </div>
+            <p>
+              Ester puede usarlas aunque el número de WhatsApp todavía no pertenezca a una cuenta.
+            </p>
+          </div>
+        </header>
+
+        <div class="skills__grid">
+          <ng-container
+            *ngFor="let skill of allAudienceSkills; trackBy: trackSkill"
+            [ngTemplateOutlet]="skillCard"
+            [ngTemplateOutletContext]="{ $implicit: skill }"
+          ></ng-container>
+        </div>
+      </section>
+
+      <section class="skill-group skill-group--registered">
+        <header class="skill-group__header">
+          <span class="skill-group__icon">
+            <i class="pi pi-user"></i>
+          </span>
+          <div>
+            <div class="skill-group__title">
+              <h3>Habilidades para usuarios registrados</h3>
+              <span>{{ registeredUserActiveCount }} de {{ registeredUserSkills.length }} activas</span>
+            </div>
+            <p>
+              Sólo están disponibles si el teléfono pertenece a un usuario y operan exclusivamente sobre esa cuenta.
+            </p>
+          </div>
+        </header>
+
+        <div class="skills__grid">
+          <ng-container
+            *ngFor="let skill of registeredUserSkills; trackBy: trackSkill"
+            [ngTemplateOutlet]="skillCard"
+            [ngTemplateOutletContext]="{ $implicit: skill }"
+          ></ng-container>
+        </div>
+      </section>
+    </div>
+
+    <ng-template #skillCard let-skill>
+      <article
+        class="skill-card"
+        [class.skill-card--inactive]="!skill.active"
+      >
+        <div class="skill-card__top">
+          <span class="skill-card__icon">
+            <i class="pi" [ngClass]="skill.icon"></i>
+          </span>
+          <div class="skill-card__badges">
+            <span class="skill-card__code">
+              <i class="pi pi-code"></i>
+              Código
+            </span>
+            <span
+              class="skill-card__status"
+              [class.skill-card__status--inactive]="!skill.active"
+            >
+              <i
+                class="pi"
+                [class.pi-check-circle]="skill.active"
+                [class.pi-pause-circle]="!skill.active"
+              ></i>
+              {{ skill.active ? 'Activa' : 'Desactivada' }}
+            </span>
+          </div>
+        </div>
+
+        <span class="skill-card__category">{{ skill.category }}</span>
+        <h3>{{ skill.name }}</h3>
+        <p>{{ skill.description }}</p>
+
+        <footer class="skill-card__footer">
+          <span>v{{ skill.version }}</span>
+          <button
+            type="button"
+            class="skill-toggle"
+            role="switch"
+            [attr.aria-checked]="skill.active"
+            [attr.aria-label]="(skill.active ? 'Desactivar ' : 'Activar ') + skill.name"
+            [class.skill-toggle--active]="skill.active"
+            [disabled]="isUpdatingSkill(skill.id)"
+            (click)="toggleSkill(skill)"
+          >
+            <span></span>
+            <i
+              *ngIf="isUpdatingSkill(skill.id)"
+              class="pi pi-spin pi-spinner"
+            ></i>
+          </button>
+        </footer>
+      </article>
+    </ng-template>
+  </section>
+
   <section *ngIf="activeView === 'workflow'" class="workflow">
     <header class="workflow__header">
       <div>
@@ -240,24 +376,32 @@
           <span>{{ run.trigger }} · {{ run.started_at | date:'dd/MM/yyyy, h:mm:ss a' }}</span>
         </div>
 
-        <div class="workflow__graph">
-          <ng-container *ngFor="let node of run.nodes; let last = last">
-            <article class="workflow-node" [attr.data-status]="node.status">
-              <div class="workflow-node__port workflow-node__port--input"></div>
-              <div class="workflow-node__icon">
-                <i class="pi" [ngClass]="getWorkflowStatusIcon(node.status)"></i>
-              </div>
-              <div class="workflow-node__content">
-                <span>{{ getWorkflowStatusLabel(node.status) }}</span>
-                <strong>{{ node.label }}</strong>
-                <small>{{ node.detail || 'Esperando el paso anterior' }}</small>
-              </div>
-              <div class="workflow-node__port workflow-node__port--output"></div>
+        <div class="workflow__timeline">
+          <ng-container *ngFor="let node of run.nodes; let index = index; let last = last; trackBy: trackWorkflowNode">
+            <article
+              class="workflow-step"
+              [class.workflow-step--visible]="isWorkflowNodeVisible(run, index)"
+              [attr.data-status]="getAnimatedNodeStatus(run, node, index)"
+            >
+              <span class="workflow-step__label">{{ node.label }}</span>
+              <span class="workflow-step__circle" aria-hidden="true">
+                <i
+                  class="pi"
+                  [ngClass]="getWorkflowStatusIcon(getAnimatedNodeStatus(run, node, index))"
+                ></i>
+              </span>
+              <small>
+                {{ getWorkflowStatusLabel(getAnimatedNodeStatus(run, node, index)) }}
+              </small>
             </article>
-            <div *ngIf="!last" class="workflow-connector" [class.workflow-connector--active]="node.status === 'success'">
+            <span
+              *ngIf="!last"
+              class="workflow-line"
+              [attr.data-status]="getWorkflowConnectorStatus(run, node, index)"
+              aria-hidden="true"
+            >
               <span></span>
-              <i class="pi pi-chevron-right"></i>
-            </div>
+            </span>
           </ng-container>
         </div>
 

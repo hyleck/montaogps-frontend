@@ -50,6 +50,20 @@ export interface EsterWorkflowRun {
   updatedAt?: string;
 }
 
+export interface EsterSkill {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  version: string;
+  defaultActive: boolean;
+  audience: 'all' | 'registered_user';
+  active: boolean;
+  codeManaged: true;
+  updatedAt?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class EsterService {
   private readonly apiUrl = `${environment.apiUrl}/ester/knowledge`;
@@ -83,6 +97,22 @@ export class EsterService {
   getWorkflowRuns(): Observable<EsterWorkflowRun[]> {
     return this.http.get<EsterWorkflowRun[]>(
       `${environment.apiUrl}/ester/workflow/runs`,
+    );
+  }
+
+  getSkills(): Observable<EsterSkill[]> {
+    return this.http.get<EsterSkill[]>(
+      `${environment.apiUrl}/ester/skills`,
+    );
+  }
+
+  updateSkillState(
+    skillId: string,
+    active: boolean,
+  ): Observable<EsterSkill> {
+    return this.http.patch<EsterSkill>(
+      `${environment.apiUrl}/ester/skills/${skillId}`,
+      { active },
     );
   }
 }

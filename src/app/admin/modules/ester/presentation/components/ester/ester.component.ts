@@ -5,6 +5,8 @@ import {
   EsterKnowledgeEntry,
   EsterKnowledgePayload,
   EsterService,
+  EsterSkill,
+  EsterWorkflowNode,
   EsterWorkflowRun,
   EsterWorkflowStatus,
 } from '@core/services/ester.service';
@@ -30,13 +32,22 @@ export class EsterComponent implements OnInit, OnDestroy {
   deletingId = '';
   editingId = '';
   searchTerm = '';
-  activeView: 'knowledge' | 'workflow' = 'knowledge';
+  activeView: 'knowledge' | 'skills' | 'workflow' = 'knowledge';
+  skills: EsterSkill[] = [];
+  skillsLoading = true;
+  private readonly updatingSkillIds = new Set<string>();
   workflowRuns: EsterWorkflowRun[] = [];
   selectedWorkflowRunId = '';
   workflowLoading = false;
   workflowError = false;
   workflowUpdatedAt?: Date;
   private workflowSubscription?: Subscription;
+  private workflowBaselineEstablished = false;
+  private readonly workflowRevealCount = new Map<string, number>();
+  private readonly workflowAnimationTimers = new Map<
+    string,
+    ReturnType<typeof setInterval>
+  >();
 
   form: EsterKnowledgeForm = this.emptyForm();
 
@@ -47,10 +58,15 @@ export class EsterComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadEntries();
+    this.loadSkills();
   }
 
   ngOnDestroy(): void {
     this.workflowSubscription?.unsubscribe();
+    this.workflowAnimationTimers.forEach(animationTimer =>
+      clearInterval(animationTimer),
+    );
+    this.workflowAnimationTimers.clear();
   }
 
   get activeCount(): number {
@@ -78,15 +94,99 @@ export class EsterComponent implements OnInit, OnDestroy {
     ) || this.workflowRuns[0];
   }
 
-  setActiveView(view: 'knowledge' | 'workflow'): void {
+  setActiveView(view: 'knowledge' | 'skills' | 'workflow'): void {
     this.activeView = view;
     if (view === 'workflow' && !this.workflowSubscription) {
       this.startWorkflowPolling();
     }
   }
 
+  get activeViewTitle(): string {
+    const titles = {
+      knowledge: 'Base de conocimiento',
+      skills: 'Habilidades',
+      workflow: 'Flujo de trabajo',
+    };
+    return titles[this.activeView];
+  }
+
+  get activeViewDescription(): string {
+    const descriptions = {
+      knowledge:
+        'Administra la información que Ester utiliza al responder a los clientes.',
+      skills:
+        'Controla las capacidades incorporadas en el código de Ester.',
+      workflow:
+        'Supervisa en vivo cómo Ester procesa y responde cada conversación.',
+    };
+    return descriptions[this.activeView];
+  }
+
+  get activeSkillsCount(): number {
+    return this.skills.filter(skill => skill.active).length;
+  }
+
+  get allAudienceSkills(): EsterSkill[] {
+    return this.skills.filter(skill => skill.audience === 'all');
+  }
+
+  get registeredUserSkills(): EsterSkill[] {
+    return this.skills.filter(skill => skill.audience !== 'all');
+  }
+
+  get allAudienceActiveCount(): number {
+    return this.allAudienceSkills.filter(skill => skill.active).length;
+  }
+
+  get registeredUserActiveCount(): number {
+    return this.registeredUserSkills.filter(skill => skill.active).length;
+  }
+
   selectWorkflowRun(run: EsterWorkflowRun): void {
     this.selectedWorkflowRunId = run._id;
+    if (!this.workflowRevealCount.has(run._id)) {
+      this.revealWorkflowImmediately(run);
+    }
+  }
+
+  getAnimatedNodeStatus(
+    run: EsterWorkflowRun,
+    node: EsterWorkflowNode,
+    index: number,
+  ): EsterWorkflowStatus {
+    const revealCount = this.workflowRevealCount.get(run._id)
+      ?? run.nodes.length;
+
+    if (index < revealCount) {
+      return node.status;
+    }
+
+    if (index === revealCount && revealCount < run.nodes.length) {
+      return 'running';
+    }
+
+    return 'pending';
+  }
+
+  getWorkflowConnectorStatus(
+    run: EsterWorkflowRun,
+    node: EsterWorkflowNode,
+    index: number,
+  ): EsterWorkflowStatus {
+    const revealCount = this.workflowRevealCount.get(run._id)
+      ?? run.nodes.length;
+
+    if (index >= revealCount) {
+      return 'pending';
+    }
+
+    return node.status;
+  }
+
+  isWorkflowNodeVisible(run: EsterWorkflowRun, index: number): boolean {
+    const revealCount = this.workflowRevealCount.get(run._id)
+      ?? run.nodes.length;
+    return index <= revealCount;
   }
 
   getWorkflowStatusLabel(status: EsterWorkflowStatus | string): string {
@@ -136,6 +236,56 @@ export class EsterComponent implements OnInit, OnDestroy {
         );
       },
     });
+  }
+
+  loadSkills(): void {
+    this.skillsLoading = true;
+    this.esterService.getSkills().subscribe({
+      next: skills => {
+        this.skills = skills || [];
+        this.skillsLoading = false;
+      },
+      error: () => {
+        this.skillsLoading = false;
+        this.notify(
+          'error',
+          'No se pudieron cargar las habilidades de Ester.',
+        );
+      },
+    });
+  }
+
+  toggleSkill(skill: EsterSkill): void {
+    if (this.updatingSkillIds.has(skill.id)) return;
+
+    this.updatingSkillIds.add(skill.id);
+    this.esterService
+      .updateSkillState(skill.id, !skill.active)
+      .subscribe({
+        next: updated => {
+          this.skills = this.skills.map(current =>
+            current.id === updated.id ? updated : current,
+          );
+          this.updatingSkillIds.delete(skill.id);
+          this.notify(
+            'success',
+            updated.active
+              ? `${updated.name} fue activada.`
+              : `${updated.name} fue desactivada.`,
+          );
+        },
+        error: () => {
+          this.updatingSkillIds.delete(skill.id);
+          this.notify(
+            'error',
+            'No se pudo cambiar el estado de la habilidad.',
+          );
+        },
+      });
+  }
+
+  isUpdatingSkill(skillId: string): boolean {
+    return this.updatingSkillIds.has(skillId);
   }
 
   openCreate(): void {
@@ -254,6 +404,14 @@ export class EsterComponent implements OnInit, OnDestroy {
     return run._id;
   }
 
+  trackWorkflowNode(_: number, node: EsterWorkflowNode): string {
+    return node.id;
+  }
+
+  trackSkill(_: number, skill: EsterSkill): string {
+    return skill.id;
+  }
+
   private startWorkflowPolling(): void {
     this.workflowLoading = true;
     this.workflowSubscription = timer(0, 2000)
@@ -272,8 +430,43 @@ export class EsterComponent implements OnInit, OnDestroy {
           this.workflowLoading = false;
           return;
         }
+
+        const previousRunIds = new Set(
+          this.workflowRuns.map(run => run._id),
+        );
+        const currentRunIds = new Set(runs.map(run => run._id));
+        const newRuns = this.workflowBaselineEstablished
+          ? runs.filter(run => !previousRunIds.has(run._id))
+          : [];
+
+        this.workflowAnimationTimers.forEach((animationTimer, runId) => {
+          if (!currentRunIds.has(runId)) {
+            clearInterval(animationTimer);
+            this.workflowAnimationTimers.delete(runId);
+            this.workflowRevealCount.delete(runId);
+          }
+        });
+
         this.workflowRuns = runs;
-        if (
+
+        if (!this.workflowBaselineEstablished) {
+          runs.forEach(run => this.revealWorkflowImmediately(run));
+          this.workflowBaselineEstablished = true;
+        } else {
+          runs.forEach(run => {
+            if (
+              !newRuns.some(newRun => newRun._id === run._id)
+              && !this.workflowRevealCount.has(run._id)
+            ) {
+              this.revealWorkflowImmediately(run);
+            }
+          });
+          newRuns.forEach(run => this.startWorkflowAnimation(run));
+        }
+
+        if (newRuns.length) {
+          this.selectedWorkflowRunId = newRuns[0]._id;
+        } else if (
           runs.length
           && !runs.some(run => run._id === this.selectedWorkflowRunId)
         ) {
@@ -283,6 +476,44 @@ export class EsterComponent implements OnInit, OnDestroy {
         this.workflowError = false;
         this.workflowUpdatedAt = new Date();
       });
+  }
+
+  private startWorkflowAnimation(run: EsterWorkflowRun): void {
+    const existingTimer = this.workflowAnimationTimers.get(run._id);
+    if (existingTimer) {
+      clearInterval(existingTimer);
+    }
+
+    this.workflowRevealCount.set(run._id, 0);
+
+    if (!run.nodes.length) {
+      return;
+    }
+
+    const animationTimer = setInterval(() => {
+      const currentRevealCount = this.workflowRevealCount.get(run._id) ?? 0;
+      const nextRevealCount = Math.min(
+        currentRevealCount + 1,
+        run.nodes.length,
+      );
+      this.workflowRevealCount.set(run._id, nextRevealCount);
+
+      if (nextRevealCount >= run.nodes.length) {
+        clearInterval(animationTimer);
+        this.workflowAnimationTimers.delete(run._id);
+      }
+    }, 420);
+
+    this.workflowAnimationTimers.set(run._id, animationTimer);
+  }
+
+  private revealWorkflowImmediately(run: EsterWorkflowRun): void {
+    const existingTimer = this.workflowAnimationTimers.get(run._id);
+    if (existingTimer) {
+      clearInterval(existingTimer);
+      this.workflowAnimationTimers.delete(run._id);
+    }
+    this.workflowRevealCount.set(run._id, run.nodes.length);
   }
 
   private emptyForm(): EsterKnowledgeForm {
