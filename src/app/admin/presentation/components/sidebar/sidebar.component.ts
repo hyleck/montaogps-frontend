@@ -45,6 +45,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       { label: '', path: '/admin/monitoring', icon: 'pi pi-eye', badge: 0 },
       { label: '', path: '/admin/server-costs', icon: 'pi pi-wallet', badge: 0 },
       { label: '', path: '/admin/communication', icon: 'pi pi-comments', badge: 0 },
+      { label: 'Ester', path: '/admin/ester', icon: 'pi pi-sparkles', badge: 0 },
       { label: '', path: '/admin/processes', icon: 'pi pi-list', badge: 0 },
       { label: '', path: '/admin/interacciones', icon: 'pi pi-share-alt', badge: 0 },
       { label: '', path: '/admin/simcard-verification', icon: 'pi pi-mobile', badge: 0 },
@@ -196,6 +197,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.setPrincipalLabel('/admin/monitoring', this.translate.instant('sidebar.monitoring'));
     this.setPrincipalLabel('/admin/server-costs', this.translate.instant('sidebar.serverCosts'));
     this.setPrincipalLabel('/admin/communication', 'Comunicación');
+    this.setPrincipalLabel('/admin/ester', 'Ester');
     this.setPrincipalLabel('/admin/processes', 'Procesos');
     this.setPrincipalLabel('/admin/interacciones', 'Campañas');
     this.setPrincipalLabel('/admin/simcard-verification', 'Verificación SIMs');
@@ -309,6 +311,9 @@ export class SidebarComponent implements OnInit, OnDestroy {
         return this.isRootUser;
       }
       if (item.path === '/admin/server-costs') {
+        return this.isRootUser;
+      }
+      if (item.path === '/admin/ester') {
         return this.isRootUser;
       }
       // Si es inventory, mostrar solo si es empleado o root

@@ -67,6 +67,11 @@ const routes: Routes = [
         loadChildren: () => import('../modules/communication/presentation/communication.module').then(m => m.CommunicationModule)
       },
       {
+        path: 'ester',
+        canActivate: [RootGuard],
+        loadChildren: () => import('../modules/ester/presentation/ester.module').then(m => m.EsterModule)
+      },
+      {
         path: 'processes',
         loadChildren: () => import('../modules/processes/presentation/processes.module').then(m => m.ProcessesModule)
       },

@@ -1,0 +1,352 @@
+<p-toast></p-toast>
+
+<main class="ester">
+  <header class="ester__header">
+    <div class="ester__identity">
+      <div class="ester__avatar" aria-hidden="true">
+        <i class="pi pi-sparkles"></i>
+      </div>
+      <div>
+        <span class="ester__eyebrow">ESTER ASSISTANT</span>
+        <h1>{{ activeView === 'knowledge' ? 'Base de conocimiento' : 'Flujo de trabajo' }}</h1>
+        <p>
+          {{ activeView === 'knowledge'
+            ? 'Administra la información que Ester utiliza al responder a los clientes.'
+            : 'Supervisa en vivo cómo Ester procesa y responde cada conversación.' }}
+        </p>
+      </div>
+    </div>
+
+    <button *ngIf="activeView === 'knowledge'" type="button" class="ester__primary-button" (click)="openCreate()">
+      <i class="pi pi-plus"></i>
+      Agregar conocimiento
+    </button>
+  </header>
+
+  <nav class="ester__views" aria-label="Secciones de Ester">
+    <button
+      type="button"
+      [class.ester__view--active]="activeView === 'knowledge'"
+      (click)="setActiveView('knowledge')"
+    >
+      <i class="pi pi-book"></i>
+      Base de conocimiento
+    </button>
+    <button
+      type="button"
+      [class.ester__view--active]="activeView === 'workflow'"
+      (click)="setActiveView('workflow')"
+    >
+      <i class="pi pi-sitemap"></i>
+      Flujo en vivo
+      <span *ngIf="workflowRuns[0]?.status === 'running'" class="ester__live-dot"></span>
+    </button>
+  </nav>
+
+  <ng-container *ngIf="activeView === 'knowledge'">
+  <section class="ester__stats" aria-label="Resumen de la base de conocimiento">
+    <article class="ester__stat">
+      <span class="ester__stat-icon ester__stat-icon--total">
+        <i class="pi pi-book"></i>
+      </span>
+      <div>
+        <strong>{{ entries.length }}</strong>
+        <span>Entradas totales</span>
+      </div>
+    </article>
+    <article class="ester__stat">
+      <span class="ester__stat-icon ester__stat-icon--active">
+        <i class="pi pi-check-circle"></i>
+      </span>
+      <div>
+        <strong>{{ activeCount }}</strong>
+        <span>Activas para responder</span>
+      </div>
+    </article>
+    <article class="ester__stat">
+      <span class="ester__stat-icon ester__stat-icon--category">
+        <i class="pi pi-tags"></i>
+      </span>
+      <div>
+        <strong>{{ categoriesCount }}</strong>
+        <span>Categorías</span>
+      </div>
+    </article>
+  </section>
+
+  <section class="ester__library">
+    <div class="ester__library-header">
+      <div>
+        <h2>Biblioteca</h2>
+        <p>Solo las entradas activas forman parte del contexto de Ester.</p>
+      </div>
+      <label class="ester__search">
+        <i class="pi pi-search"></i>
+        <input
+          type="search"
+          [(ngModel)]="searchTerm"
+          placeholder="Buscar por título, categoría o contenido"
+          aria-label="Buscar conocimiento"
+        />
+      </label>
+    </div>
+
+    <div *ngIf="loading" class="ester__state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Cargando conocimiento...</span>
+    </div>
+
+    <div *ngIf="!loading && !filteredEntries.length" class="ester__state ester__state--empty">
+      <span class="ester__empty-icon"><i class="pi pi-book"></i></span>
+      <h3>{{ searchTerm ? 'No encontramos coincidencias' : 'Ester aún no tiene conocimiento agregado' }}</h3>
+      <p>{{ searchTerm ? 'Prueba con otra búsqueda.' : 'Agrega la primera entrada para comenzar a entrenar su contexto.' }}</p>
+      <button *ngIf="!searchTerm" type="button" class="ester__secondary-button" (click)="openCreate()">
+        <i class="pi pi-plus"></i>
+        Crear primera entrada
+      </button>
+    </div>
+
+    <div *ngIf="!loading && filteredEntries.length" class="ester__grid">
+      <article
+        *ngFor="let entry of filteredEntries; trackBy: trackById"
+        class="knowledge-card"
+        [class.knowledge-card--inactive]="!entry.active"
+      >
+        <div class="knowledge-card__top">
+          <span class="knowledge-card__category">
+            <i class="pi pi-tag"></i>
+            {{ entry.category || 'General' }}
+          </span>
+          <span class="knowledge-card__status" [class.knowledge-card__status--inactive]="!entry.active">
+            <i class="pi" [class.pi-check-circle]="entry.active" [class.pi-pause-circle]="!entry.active"></i>
+            {{ entry.active ? 'Activa' : 'Pausada' }}
+          </span>
+        </div>
+
+        <h3>{{ entry.title }}</h3>
+        <p class="knowledge-card__content">{{ entry.content }}</p>
+
+        <footer class="knowledge-card__footer">
+          <span class="knowledge-card__date" *ngIf="entry.updatedAt">
+            Actualizada {{ entry.updatedAt | date:'dd/MM/yyyy, h:mm a' }}
+          </span>
+          <span class="knowledge-card__date" *ngIf="!entry.updatedAt">Base de Ester</span>
+          <div class="knowledge-card__actions">
+            <button
+              type="button"
+              class="knowledge-card__icon-button"
+              [attr.aria-label]="entry.active ? 'Pausar conocimiento' : 'Activar conocimiento'"
+              [title]="entry.active ? 'Pausar' : 'Activar'"
+              (click)="toggleActive(entry)"
+            >
+              <i class="pi" [class.pi-pause]="entry.active" [class.pi-play]="!entry.active"></i>
+            </button>
+            <button
+              type="button"
+              class="knowledge-card__icon-button"
+              aria-label="Editar conocimiento"
+              title="Editar"
+              (click)="openEdit(entry)"
+            >
+              <i class="pi pi-pencil"></i>
+            </button>
+            <button
+              type="button"
+              class="knowledge-card__icon-button knowledge-card__icon-button--danger"
+              aria-label="Eliminar conocimiento"
+              title="Eliminar"
+              [disabled]="deletingId === entry._id"
+              (click)="remove(entry)"
+            >
+              <i class="pi" [class.pi-trash]="deletingId !== entry._id" [class.pi-spin]="deletingId === entry._id" [class.pi-spinner]="deletingId === entry._id"></i>
+            </button>
+          </div>
+        </footer>
+      </article>
+    </div>
+  </section>
+  </ng-container>
+
+  <section *ngIf="activeView === 'workflow'" class="workflow">
+    <header class="workflow__header">
+      <div>
+        <div class="workflow__title-line">
+          <h2>Flujo de trabajo de Ester</h2>
+          <span class="workflow__live">
+            <i></i>
+            EN VIVO
+          </span>
+        </div>
+        <p>Observa cómo Ester procesa cada conversación, paso por paso.</p>
+      </div>
+      <span class="workflow__updated" *ngIf="workflowUpdatedAt">
+        <i class="pi pi-sync"></i>
+        Actualizado {{ workflowUpdatedAt | date:'h:mm:ss a' }}
+      </span>
+    </header>
+
+    <div *ngIf="workflowError" class="workflow__error">
+      <i class="pi pi-exclamation-triangle"></i>
+      No se pudo actualizar el flujo. Se reintentará automáticamente.
+    </div>
+
+    <div *ngIf="workflowLoading && !workflowRuns.length" class="ester__state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Conectando con el flujo de Ester...</span>
+    </div>
+
+    <div *ngIf="!workflowLoading && !workflowRuns.length && !workflowError" class="ester__state ester__state--empty">
+      <span class="ester__empty-icon"><i class="pi pi-sitemap"></i></span>
+      <h3>Aún no hay ejecuciones</h3>
+      <p>Cuando Ester reciba un mensaje asignado a ella, el flujo aparecerá aquí en tiempo real.</p>
+    </div>
+
+    <div *ngIf="workflowRuns.length" class="workflow__workspace">
+      <aside class="workflow__runs" aria-label="Ejecuciones recientes">
+        <div class="workflow__runs-heading">
+          <span>Ejecuciones recientes</span>
+          <small>{{ workflowRuns.length }}</small>
+        </div>
+        <button
+          *ngFor="let run of workflowRuns; trackBy: trackWorkflowRun"
+          type="button"
+          class="workflow-run"
+          [class.workflow-run--selected]="selectedWorkflowRun?._id === run._id"
+          (click)="selectWorkflowRun(run)"
+        >
+          <span class="workflow-run__status" [attr.data-status]="run.status">
+            <i class="pi" [ngClass]="getWorkflowStatusIcon(run.status)"></i>
+          </span>
+          <span class="workflow-run__body">
+            <strong>{{ run.contact_name || 'Cliente' }}</strong>
+            <small>Conversación #{{ run.conversation_id }}</small>
+          </span>
+          <span class="workflow-run__meta">
+            <small>{{ run.started_at | date:'h:mm:ss a' }}</small>
+            <b>{{ getWorkflowDuration(run) }}</b>
+          </span>
+        </button>
+      </aside>
+
+      <div class="workflow__canvas" *ngIf="selectedWorkflowRun as run">
+        <div class="workflow__canvas-toolbar">
+          <div>
+            <span class="workflow__run-state" [attr.data-status]="run.status">
+              <i class="pi" [ngClass]="getWorkflowStatusIcon(run.status)"></i>
+              {{ getWorkflowStatusLabel(run.status) }}
+            </span>
+            <strong>{{ run.contact_name || 'Cliente' }}</strong>
+          </div>
+          <span>{{ run.trigger }} · {{ run.started_at | date:'dd/MM/yyyy, h:mm:ss a' }}</span>
+        </div>
+
+        <div class="workflow__graph">
+          <ng-container *ngFor="let node of run.nodes; let last = last">
+            <article class="workflow-node" [attr.data-status]="node.status">
+              <div class="workflow-node__port workflow-node__port--input"></div>
+              <div class="workflow-node__icon">
+                <i class="pi" [ngClass]="getWorkflowStatusIcon(node.status)"></i>
+              </div>
+              <div class="workflow-node__content">
+                <span>{{ getWorkflowStatusLabel(node.status) }}</span>
+                <strong>{{ node.label }}</strong>
+                <small>{{ node.detail || 'Esperando el paso anterior' }}</small>
+              </div>
+              <div class="workflow-node__port workflow-node__port--output"></div>
+            </article>
+            <div *ngIf="!last" class="workflow-connector" [class.workflow-connector--active]="node.status === 'success'">
+              <span></span>
+              <i class="pi pi-chevron-right"></i>
+            </div>
+          </ng-container>
+        </div>
+
+        <footer class="workflow__canvas-footer">
+          <span><i class="pi pi-shield"></i> Sin contenido privado del mensaje</span>
+          <span *ngIf="run.error" class="workflow__run-error">
+            <i class="pi pi-times-circle"></i>
+            {{ run.error }}
+          </span>
+        </footer>
+      </div>
+    </div>
+  </section>
+</main>
+
+<p-dialog
+  [(visible)]="editorVisible"
+  [modal]="true"
+  [draggable]="false"
+  [resizable]="false"
+  [closable]="!saving"
+  [style]="{ width: 'min(680px, 94vw)' }"
+  styleClass="ester-editor-dialog"
+  (onHide)="closeEditor()"
+>
+  <ng-template pTemplate="header">
+    <div class="ester-editor__title">
+      <span class="ester-editor__icon"><i class="pi pi-sparkles"></i></span>
+      <div>
+        <strong>{{ editingId ? 'Editar conocimiento' : 'Agregar conocimiento' }}</strong>
+        <small>Esta información estará disponible para Ester Assistant.</small>
+      </div>
+    </div>
+  </ng-template>
+
+  <form class="ester-editor" (ngSubmit)="save()">
+    <label>
+      <span>Título <b>*</b></span>
+      <input
+        pInputText
+        name="title"
+        [(ngModel)]="form.title"
+        maxlength="160"
+        placeholder="Ej.: Horarios de asistencia"
+        required
+      />
+    </label>
+
+    <label>
+      <span>Categoría</span>
+      <input
+        pInputText
+        name="category"
+        [(ngModel)]="form.category"
+        maxlength="80"
+        placeholder="General"
+      />
+    </label>
+
+    <label>
+      <span>Contenido <b>*</b></span>
+      <textarea
+        pTextarea
+        name="content"
+        [(ngModel)]="form.content"
+        maxlength="12000"
+        rows="10"
+        placeholder="Escribe la información exacta que Ester debe conocer..."
+        required
+      ></textarea>
+      <small>{{ form.content.length | number }} / 12,000 caracteres</small>
+    </label>
+
+    <label class="ester-editor__toggle">
+      <input type="checkbox" name="active" [(ngModel)]="form.active" />
+      <span>
+        <strong>Usar en las respuestas</strong>
+        <small>Si está pausada, Ester no recibirá esta información.</small>
+      </span>
+    </label>
+
+    <div class="ester-editor__actions">
+      <button type="button" class="ester__secondary-button" [disabled]="saving" (click)="closeEditor()">
+        Cancelar
+      </button>
+      <button type="submit" class="ester__primary-button" [disabled]="saving">
+        <i class="pi" [class.pi-save]="!saving" [class.pi-spin]="saving" [class.pi-spinner]="saving"></i>
+        {{ saving ? 'Guardando...' : 'Guardar conocimiento' }}
+      </button>
+    </div>
+  </form>
+</p-dialog>
