@@ -257,6 +257,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   selectedTransferAgentId: string | null = null;
   isTransferring: boolean = false;
   loadingTransferAgents: boolean = false;
+  private readonly esterTransferAgentId = '__ester_assistant__';
 
   // WhatsApp Template Modal
   showTemplateModal: boolean = false;
@@ -1073,7 +1074,18 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.confirmTransfer();
   }
 
+  selectEsterForTransfer(): void {
+    if (this.isTransferring || !this.selectedConversation?.assignee_id) return;
+
+    this.selectedTransferAgentId = this.esterTransferAgentId;
+    this.confirmTransfer();
+  }
+
   getSelectedTransferAgentName(): string {
+    if (this.selectedTransferAgentId === this.esterTransferAgentId) {
+      return 'Ester Assistant';
+    }
+
     const selectedAgent = this.transferAgents.find(
       (agent: any) => this.getTransferAgentId(agent) === this.selectedTransferAgentId,
     );
@@ -1085,18 +1097,27 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     
     this.isTransferring = true;
     const conversationId = this.selectedConversation.id;
-    const targetAgentId = String(this.selectedTransferAgentId);
+    const transferToEster = this.selectedTransferAgentId === this.esterTransferAgentId;
+    const targetAgentId = transferToEster
+      ? ''
+      : String(this.selectedTransferAgentId);
 
     const processSuccess = () => {
         this.showTransferModal = false;
         this.isTransferring = false;
-        const assignedAgent = this.transferAgents.find(
-          (agent: any) => this.getTransferAgentId(agent) === targetAgentId,
-        );
-        this.selectedConversation!.assignee_id = targetAgentId;
-        this.selectedConversation!.assignee_name = assignedAgent
-          ? this.getActiveEmployeeName(assignedAgent)
-          : `Agente ${targetAgentId}`;
+        const assignedAgent = transferToEster
+          ? null
+          : this.transferAgents.find(
+              (agent: any) => this.getTransferAgentId(agent) === targetAgentId,
+            );
+        this.selectedConversation!.assignee_id = transferToEster
+          ? null
+          : targetAgentId;
+        this.selectedConversation!.assignee_name = transferToEster
+          ? 'Ester Assistant'
+          : assignedAgent
+            ? this.getActiveEmployeeName(assignedAgent)
+            : `Agente ${targetAgentId}`;
 
         // Buscar el agente en memoria para sacar su ID de Mongo y enviarle el Push
         const contactName = this.selectedConversation?.contact.name || 'un cliente';
@@ -1120,9 +1141,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.messageService.add({
           severity: 'success',
           summary: 'Transferencia completa',
-          detail: `La conversación fue transferida a ${
-            assignedAgent ? this.getActiveEmployeeName(assignedAgent) : 'otro empleado'
-          }.`,
+          detail: transferToEster
+            ? 'La conversación ahora será gestionada por Ester Assistant.'
+            : `La conversación fue transferida a ${
+                assignedAgent ? this.getActiveEmployeeName(assignedAgent) : 'otro empleado'
+              }.`,
         });
         this.loadConversations(); // Recargar lista para reflejar salida
     };
@@ -1498,6 +1521,38 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   getGpsDetailsTargetImei(target: any): string {
     return target?.device_imei || target?.imei || target?.imei_number || 'N/A';
+  }
+
+  isGpsDetailsTargetVerified(target: any): boolean {
+    const source = target?.originalTarget || target || {};
+    const device = source?.device || target?.device || {};
+    const values = [
+      target?.verificado,
+      target?.verified,
+      target?.is_verified,
+      target?.vehicle_verified,
+      source?.verificado,
+      source?.verified,
+      source?.is_verified,
+      source?.vehicle_verified,
+      device?.verificado,
+      device?.verified,
+      device?.is_verified,
+      device?.vehicle_verified
+    ];
+
+    return values.some(value => {
+      if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        return normalized === 'true'
+          || normalized === '1'
+          || normalized === 'yes'
+          || normalized === 'si'
+          || normalized === 'sí';
+      }
+
+      return value === true || value === 1;
+    });
   }
 
   getGpsDetailsExpirationLabel(target: any): string {

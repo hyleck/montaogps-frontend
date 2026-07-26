@@ -1015,7 +1015,7 @@
             </span>
             <div>
                 <strong>¿Quién continuará la conversación?</strong>
-                <p>Selecciona un empleado. La transferencia se realizará con un solo clic.</p>
+                <p>Selecciona a Ester o un empleado. La transferencia se realizará con un solo clic.</p>
             </div>
         </div>
 
@@ -1024,8 +1024,23 @@
             <span>Cargando empleados…</span>
         </div>
 
-        <div *ngIf="!loadingTransferAgents && transferAgents.length"
-            class="comm-transfer__agents" role="list" aria-label="Empleados disponibles">
+        <div *ngIf="!loadingTransferAgents"
+            class="comm-transfer__agents" role="list" aria-label="Agentes disponibles">
+            <button *ngIf="selectedConversation?.assignee_id" type="button"
+                class="comm-transfer-agent comm-transfer-agent--ester" role="listitem"
+                (click)="selectEsterForTransfer()">
+                <span class="comm-transfer-agent__avatar comm-transfer-agent__avatar--ester">
+                    <i class="pi pi-bolt"></i>
+                </span>
+                <span class="comm-transfer-agent__identity">
+                    <strong>Ester Assistant</strong>
+                    <small>Asistente de inteligencia artificial</small>
+                </span>
+                <span class="comm-transfer-agent__action" aria-hidden="true">
+                    <i class="pi pi-arrow-right"></i>
+                </span>
+            </button>
+
             <button *ngFor="let agent of transferAgents" type="button"
                 class="comm-transfer-agent" role="listitem"
                 (click)="selectTransferAgent(agent)">
@@ -1043,7 +1058,8 @@
             </button>
         </div>
 
-        <div *ngIf="!loadingTransferAgents && !transferAgents.length" class="comm-transfer__empty">
+        <div *ngIf="!loadingTransferAgents && !transferAgents.length && !selectedConversation?.assignee_id"
+            class="comm-transfer__empty">
             <i class="pi pi-user-minus"></i>
             <strong>No hay otros empleados disponibles</strong>
             <span>Cuando exista otro empleado podrás transferirle esta conversación.</span>
@@ -1183,7 +1199,15 @@
           </span>
           <div class="comm-gps-details__target-copy">
             <strong>{{ getGpsDetailsTargetName(target) }}</strong>
-            <span>IMEI: {{ getGpsDetailsTargetImei(target) }}</span>
+            <span class="comm-gps-details__imei">
+              IMEI: {{ getGpsDetailsTargetImei(target) }}
+              <i
+                *ngIf="isGpsDetailsTargetVerified(target)"
+                class="pi pi-check-circle comm-gps-details__verified"
+                title="Objetivo verificado"
+                aria-label="Objetivo verificado">
+              </i>
+            </span>
             <small class="comm-gps-details__expiration">{{ getGpsDetailsExpirationLabel(target) }}</small>
             <small *ngIf="getGpsDetailsLastUpdateLabel(target)">{{ getGpsDetailsLastUpdateLabel(target) }}</small>
           </div>

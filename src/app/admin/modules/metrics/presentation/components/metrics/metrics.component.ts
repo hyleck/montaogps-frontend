@@ -27,6 +27,22 @@ interface DeviceConnectionMetrics {
   offlinePercent: number;
 }
 
+interface MetricsSnapshot {
+  metricCards: MetricCard[];
+  clientVerification: ClientVerificationMetrics;
+  vehicleVerification: VehicleVerificationMetrics;
+  vehicleDataCompleteness: VehicleDataCompletenessMetrics;
+  deviceConnection: DeviceConnectionMetrics;
+  technicianWork: TechnicianWorkStatsResponse;
+}
+
+interface MetricsCacheEntry {
+  version: number;
+  cachedAt: number;
+  snapshot: MetricsSnapshot;
+}
+
+type MetricsCacheState = 'fresh' | 'stale' | 'miss';
 type HealthLevel = 'critical' | 'warning' | 'stable' | 'good' | 'excellent';
 
 @Component({
@@ -36,6 +52,10 @@ type HealthLevel = 'critical' | 'warning' | 'stable' | 'good' | 'excellent';
   styleUrls: ['./metrics.component.css']
 })
 export class MetricsComponent implements OnInit {
+  private readonly metricsCacheVersion = 1;
+  private readonly metricsCacheFreshMs = 5 * 60 * 1000;
+  private readonly metricsCacheMaxAgeMs = 30 * 60 * 1000;
+
   loading = false;
   errorMessage = '';
 
@@ -82,8 +102,16 @@ export class MetricsComponent implements OnInit {
     this.loadMetrics();
   }
 
-  loadMetrics(): void {
-    this.loading = true;
+  loadMetrics(forceRefresh = false): void {
+    const cacheState = forceRefresh ? 'miss' : this.restoreMetricsCache();
+    if (cacheState === 'fresh') {
+      this.loading = false;
+      this.errorMessage = '';
+      return;
+    }
+
+    const preserveVisibleMetrics = cacheState === 'stale';
+    this.loading = !preserveVisibleMetrics;
     this.errorMessage = '';
 
     forkJoin({
@@ -112,8 +140,13 @@ export class MetricsComponent implements OnInit {
           this.deviceConnection = deviceConnection || this.emptyDeviceConnection();
           this.technicianWork = technicianWork || this.emptyTechnicianWork();
           this.metricCards = this.buildMetricCards(processes);
+          this.saveMetricsCache();
         },
         error: () => {
+          if (preserveVisibleMetrics) {
+            return;
+          }
+
           this.errorMessage = 'No se pudieron cargar las métricas de procesos.';
           this.metricCards = [];
           this.clientVerification = this.emptyClientVerification();
@@ -123,6 +156,92 @@ export class MetricsComponent implements OnInit {
           this.technicianWork = this.emptyTechnicianWork();
         }
       });
+  }
+
+  private restoreMetricsCache(): MetricsCacheState {
+    const cacheKey = this.getMetricsCacheKey();
+    if (!cacheKey) return 'miss';
+
+    try {
+      const rawCache = sessionStorage.getItem(cacheKey);
+      if (!rawCache) return 'miss';
+
+      const cache = JSON.parse(rawCache) as MetricsCacheEntry;
+      const age = Date.now() - Number(cache?.cachedAt || 0);
+      if (
+        cache?.version !== this.metricsCacheVersion
+        || !cache?.snapshot
+        || !Number.isFinite(age)
+        || age < 0
+        || age > this.metricsCacheMaxAgeMs
+      ) {
+        sessionStorage.removeItem(cacheKey);
+        return 'miss';
+      }
+
+      this.applyMetricsSnapshot(cache.snapshot);
+      return age <= this.metricsCacheFreshMs ? 'fresh' : 'stale';
+    } catch (error) {
+      try {
+        sessionStorage.removeItem(cacheKey);
+      } catch {
+        // El almacenamiento puede estar deshabilitado por el navegador.
+      }
+      console.warn('[Metrics] No se pudo restaurar la caché local:', error);
+      return 'miss';
+    }
+  }
+
+  private saveMetricsCache(): void {
+    const cacheKey = this.getMetricsCacheKey();
+    if (!cacheKey) return;
+
+    const cacheEntry: MetricsCacheEntry = {
+      version: this.metricsCacheVersion,
+      cachedAt: Date.now(),
+      snapshot: this.createMetricsSnapshot(),
+    };
+
+    try {
+      sessionStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
+    } catch (error) {
+      console.warn('[Metrics] No se pudo guardar la caché local:', error);
+    }
+  }
+
+  private createMetricsSnapshot(): MetricsSnapshot {
+    return {
+      metricCards: this.metricCards,
+      clientVerification: this.clientVerification,
+      vehicleVerification: this.vehicleVerification,
+      vehicleDataCompleteness: this.vehicleDataCompleteness,
+      deviceConnection: this.deviceConnection,
+      technicianWork: this.technicianWork,
+    };
+  }
+
+  private applyMetricsSnapshot(snapshot: MetricsSnapshot): void {
+    this.metricCards = Array.isArray(snapshot.metricCards) ? snapshot.metricCards : [];
+    this.clientVerification = snapshot.clientVerification || this.emptyClientVerification();
+    this.vehicleVerification = snapshot.vehicleVerification || this.emptyVehicleVerification();
+    this.vehicleDataCompleteness = snapshot.vehicleDataCompleteness || this.emptyVehicleDataCompleteness();
+    this.deviceConnection = snapshot.deviceConnection || this.emptyDeviceConnection();
+    this.technicianWork = snapshot.technicianWork || this.emptyTechnicianWork();
+  }
+
+  private getMetricsCacheKey(): string | null {
+    const currentUser = this.authService.getCurrentUser() as any;
+    const userId = String(currentUser?.id || currentUser?._id || '').trim();
+    if (!userId) return null;
+
+    const today = new Date();
+    const localDateKey = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0'),
+    ].join('-');
+
+    return `gps.metrics.dashboard.v${this.metricsCacheVersion}:${userId}:${localDateKey}`;
   }
 
   getCreatorName(creator: any): string {
