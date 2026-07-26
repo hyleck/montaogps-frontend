@@ -120,6 +120,12 @@ export class PublicRegistrationComponent implements OnInit {
         this.identityScanned = true;
         this.fillFormFromIdentity(data);
         this.prepareVisibleRegistrationFields();
+        if (this.usesLinkedPhone()) {
+          // El enlace entregado por la solicitud ya está ligado al WhatsApp del
+          // cliente. Tras leer una cédula válida, completar el registro es seguro
+          // y no requiere otro dato manual.
+          queueMicrotask(() => this.submit());
+        }
       },
       error: (error) => {
         this.scanningIdentity = false;
@@ -163,6 +169,9 @@ export class PublicRegistrationComponent implements OnInit {
 
   private prepareVisibleRegistrationFields(): void {
     this.visibleRegistrationFields.clear();
+    if (this.usesLinkedPhone()) {
+      return;
+    }
     this.visibleRegistrationFields.add('phone');
     if (!this.detectedDevicePlatform) {
       this.visibleRegistrationFields.add('registration_device_platform');
@@ -176,6 +185,10 @@ export class PublicRegistrationComponent implements OnInit {
     const cedulaDigits = cedula.replace(/\D/g, '');
 
     return !!nombres && !!apellidos && cedulaDigits.length >= 9;
+  }
+
+  usesLinkedPhone(): boolean {
+    return this.info?.uses_linked_phone === true;
   }
 
   private isFieldEmpty(field: string): boolean {
@@ -206,13 +219,17 @@ export class PublicRegistrationComponent implements OnInit {
       this.messageService.add({ severity: 'warn', summary: 'Cédula incompleta', detail: 'No se pudieron leer todos los datos de la cédula. Sube una foto más clara.' });
       return;
     }
-    if (!this.form.phone) {
+    if (!this.usesLinkedPhone() && !this.form.phone) {
       this.messageService.add({ severity: 'warn', summary: 'Datos incompletos', detail: 'Completa el teléfono.' });
       return;
     }
-    if (!this.form.registration_device_platform) {
+    if (!this.usesLinkedPhone() && !this.form.registration_device_platform) {
       this.messageService.add({ severity: 'warn', summary: 'Selecciona tu dispositivo', detail: 'Indica si instalarás Montao GPS en Android o iPhone.' });
       return;
+    }
+
+    if (this.usesLinkedPhone() && !this.form.registration_device_platform) {
+      this.form.registration_device_platform = 'android';
     }
 
     this.submitting = true;

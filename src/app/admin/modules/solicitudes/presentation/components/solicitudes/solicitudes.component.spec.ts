@@ -14,11 +14,21 @@ describe('SolicitudesComponent scheduled date editing', () => {
         const messageService = {
             add: jasmine.createSpy('add'),
         };
+        const vehicleBrandsService = {
+            getMunicipalities: jasmine.createSpy('getMunicipalities').and.resolveTo([]),
+            getSectors: jasmine.createSpy('getSectors').and.resolveTo([]),
+        };
+        const userService = {
+            searchSolicitudClients: jasmine.createSpy('searchSolicitudClients').and.returnValue(of({
+                users: [],
+                totalCount: 0,
+            })),
+        };
         const component = new SolicitudesComponent(
             solicitudesService as any,
+            vehicleBrandsService as any,
             {} as any,
-            {} as any,
-            {} as any,
+            userService as any,
             {} as any,
             {} as any,
             {} as any,
@@ -33,7 +43,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         spyOn(component, 'openInstallationModal');
         spyOn(component, 'loadSolicitudes');
 
-        return { component, solicitudesService };
+        return { component, solicitudesService, vehicleBrandsService, userService };
     }
 
     it('keeps an existing unscheduled request empty when opened and saved unchanged', async () => {
@@ -65,6 +75,141 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.selectedSolicitud?.scheduled_date).toMatch(
             /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/,
         );
+    });
+
+    it('keeps a shortened Google Maps link even when it does not expose coordinates', () => {
+        const { component } = createComponent();
+        component.selectedSolicitud = {
+            type: 'instalacion',
+            status: 'pendiente',
+            latitude: 18.5,
+            longitude: -69.9,
+            installations: [{ latitude: 18.5, longitude: -69.9 }],
+        };
+        component.rootGoogleMapsLink = 'https://maps.app.goo.gl/AbCdEf123';
+
+        component.applyRootGoogleMapsLink();
+
+        expect(component.selectedSolicitud.google_maps_url).toBe(
+            'https://maps.app.goo.gl/AbCdEf123',
+        );
+        expect(component.selectedSolicitud.installations?.[0]?.google_maps_url).toBe(
+            'https://maps.app.goo.gl/AbCdEf123',
+        );
+        expect(component.selectedSolicitud.latitude).toBeUndefined();
+        expect(component.selectedSolicitud.longitude).toBeUndefined();
+        expect(component.selectedSolicitud.installations?.[0]?.latitude).toBeUndefined();
+        expect(component.selectedSolicitud.installations?.[0]?.longitude).toBeUndefined();
+    });
+
+    it('extracts coordinates from a full Google Maps link while preserving the original link', () => {
+        const { component } = createComponent();
+        component.selectedSolicitud = {
+            type: 'instalacion',
+            status: 'pendiente',
+            installations: [{}],
+        };
+        component.rootGoogleMapsLink =
+            'https://www.google.com/maps/place/Test/@18.4861,-69.9312,17z';
+
+        component.applyRootGoogleMapsLink();
+
+        expect(component.selectedSolicitud.google_maps_url).toContain(
+            'https://www.google.com/maps/place/Test/@18.4861,-69.9312,17z',
+        );
+        expect(component.selectedSolicitud.latitude).toBe(18.4861);
+        expect(component.selectedSolicitud.longitude).toBe(-69.9312);
+        expect(component.selectedSolicitud.installations?.[0]?.latitude).toBe(18.4861);
+        expect(component.selectedSolicitud.installations?.[0]?.longitude).toBe(-69.9312);
+    });
+
+    it('selects an existing client and autocompletes the saved Google Maps link', async () => {
+        const { component } = createComponent();
+        component.selectedSolicitud = {
+            type: 'instalacion',
+            status: 'pendiente',
+            installations: [{}],
+        };
+
+        await component.selectSolicitudClient({
+            _id: 'client-1',
+            name: 'Ana',
+            last_name: 'Pérez',
+            email: 'ana@example.com',
+            phone: '8095551234',
+            affiliation_type_id: 'cliente',
+            static_location_url: 'https://maps.app.goo.gl/AbCdEf123',
+        } as any);
+
+        expect(component.selectedSolicitud.client_id).toBe('client-1');
+        expect(component.selectedSolicitud.client_name).toBe('Ana Pérez');
+        expect(component.selectedSolicitud.client_email).toBe('ana@example.com');
+        expect(component.selectedSolicitud.client_phone).toBe('8095551234');
+        expect(component.rootGoogleMapsLink).toBe('https://maps.app.goo.gl/AbCdEf123');
+        expect(component.selectedSolicitud.google_maps_url).toBe(
+            'https://maps.app.goo.gl/AbCdEf123',
+        );
+        expect(component.selectedSolicitud.installations?.[0]?.google_maps_url).toBe(
+            'https://maps.app.goo.gl/AbCdEf123',
+        );
+    });
+
+    it('creates the temporary request client using only the WhatsApp number when no account exists', async () => {
+        const { component } = createComponent();
+        component.selectedSolicitud = {
+            type: 'instalacion',
+            status: 'pendiente',
+            client_id: 'old-client',
+            client_name: 'Cliente anterior',
+            client_email: 'anterior@example.com',
+            client_phone: '8090000000',
+            google_maps_url: 'https://maps.app.goo.gl/OldLink',
+            installations: [{ google_maps_url: 'https://maps.app.goo.gl/OldLink' }],
+        };
+        component.rootGoogleMapsLink = 'https://maps.app.goo.gl/OldLink';
+        component.newClientWhatsapp = '+1 (809) 555-1234';
+
+        await component.confirmNewClientWhatsapp();
+
+        expect(component.selectedSolicitud.client_id).toBeUndefined();
+        expect(component.selectedSolicitud.client_name).toBe('');
+        expect(component.selectedSolicitud.client_email).toBe('');
+        expect(component.selectedSolicitud.client_phone).toBe('18095551234');
+        expect(component.selectedSolicitud.google_maps_url).toBeUndefined();
+        expect(component.selectedSolicitud.installations?.[0]?.google_maps_url).toBeUndefined();
+    });
+
+    it('selects and displays the existing client when the WhatsApp number already belongs to an account', async () => {
+        const { component, userService } = createComponent();
+        const existingClient = {
+            _id: 'existing-client',
+            name: 'Ana',
+            last_name: 'Pérez',
+            email: 'ana@example.com',
+            phone: '8095551234',
+            affiliation_type_id: 'cliente',
+            static_location_url: 'https://maps.app.goo.gl/ClientLocation',
+        };
+        userService.searchSolicitudClients.and.returnValue(of({
+            users: [existingClient],
+            totalCount: 1,
+        }));
+        component.selectedSolicitud = {
+            type: 'instalacion',
+            status: 'pendiente',
+            installations: [{}],
+        };
+        component.newClientWhatsapp = '+1 (809) 555-1234';
+
+        component.onNewClientWhatsappChange();
+        await component.confirmNewClientWhatsapp();
+
+        expect(userService.searchSolicitudClients).toHaveBeenCalledWith('18095551234', 0, 20);
+        expect(component.selectedSolicitud.client_id).toBe('existing-client');
+        expect(component.selectedSolicitud.client_name).toBe('Ana Pérez');
+        expect(component.selectedSolicitud.client_email).toBe('ana@example.com');
+        expect(component.selectedSolicitud.client_phone).toBe('8095551234');
+        expect(component.rootGoogleMapsLink).toBe('https://maps.app.goo.gl/ClientLocation');
     });
 
     it('uses the same cancellation reason catalog and blocks a deinstallation without a reason', async () => {

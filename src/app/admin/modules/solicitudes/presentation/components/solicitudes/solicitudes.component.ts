@@ -285,6 +285,21 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     topFilterDateTo = '';
     filtersExpanded = false;
     clientEmailSuggestions: User[] = [];
+    clientSelectionDialogVisible = false;
+    newClientDialogVisible = false;
+    clientSearchQuery = '';
+    clientSearchResults: User[] = [];
+    clientSearchTotal = 0;
+    clientSearchLoading = false;
+    selectedClient: User | null = null;
+    newClientWhatsapp = '';
+    newClientLookupLoading = false;
+    newClientLookupAttempted = false;
+    existingNewClientUser: User | null = null;
+    private clientSearchRequestId = 0;
+    private clientSearchTimer?: ReturnType<typeof setTimeout>;
+    private newClientLookupRequestId = 0;
+    private newClientLookupTimer?: ReturnType<typeof setTimeout>;
     inventoryDeviceSuggestions: any[] = [];
 
     // Select options for vehicle
@@ -430,6 +445,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     ngOnDestroy(): void {
         this.stopRealtimeRefresh();
         this.clearSolicitudStartedToastTimer();
+        if (this.clientSearchTimer) {
+            clearTimeout(this.clientSearchTimer);
+        }
+        if (this.newClientLookupTimer) {
+            clearTimeout(this.newClientLookupTimer);
+        }
     }
 
     async loadInitialData(): Promise<void> {
@@ -780,6 +801,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         
         this.rootLocationMap = null;
         this.locationMap = null;
+        this.rootGoogleMapsLink = '';
+        this.selectedClient = null;
+        this.closeClientDialogs();
 
         this.dialogVisible = true;
         setTimeout(() => this.initRootLocationMap(), 200);
@@ -984,6 +1008,322 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         } catch (error) {
             // Se ignora si no existe
         }
+    }
+
+    openClientSelection(): void {
+        this.newClientDialogVisible = false;
+        this.clientSearchQuery = '';
+        this.clientSelectionDialogVisible = true;
+        void this.loadSolicitudClients();
+    }
+
+    openNewClient(): void {
+        this.clientSelectionDialogVisible = false;
+        this.newClientWhatsapp = '';
+        this.resetNewClientLookup();
+        this.newClientDialogVisible = true;
+    }
+
+    closeClientDialogs(): void {
+        this.clientSelectionDialogVisible = false;
+        this.newClientDialogVisible = false;
+        this.clientSearchResults = [];
+        this.clientSearchLoading = false;
+        this.clientSearchRequestId += 1;
+        if (this.clientSearchTimer) {
+            clearTimeout(this.clientSearchTimer);
+            this.clientSearchTimer = undefined;
+        }
+        this.resetNewClientLookup();
+    }
+
+    onClientSearchQueryChange(): void {
+        if (this.clientSearchTimer) {
+            clearTimeout(this.clientSearchTimer);
+        }
+        this.clientSearchTimer = setTimeout(() => {
+            this.clientSearchTimer = undefined;
+            void this.loadSolicitudClients();
+        }, 250);
+    }
+
+    async loadSolicitudClients(): Promise<void> {
+        const requestId = ++this.clientSearchRequestId;
+        this.clientSearchLoading = true;
+
+        try {
+            const response = await firstValueFrom(
+                this.userService.searchSolicitudClients(
+                    this.clientSearchQuery.trim(),
+                    0,
+                    60
+                )
+            );
+            if (requestId !== this.clientSearchRequestId) return;
+            this.clientSearchResults = response.users || [];
+            this.clientSearchTotal = response.totalCount || 0;
+        } catch {
+            if (requestId !== this.clientSearchRequestId) return;
+            this.clientSearchResults = [];
+            this.clientSearchTotal = 0;
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudieron cargar los clientes',
+                detail: 'Verifica tu conexión e inténtalo nuevamente.'
+            });
+        } finally {
+            if (requestId === this.clientSearchRequestId) {
+                this.clientSearchLoading = false;
+            }
+        }
+    }
+
+    async selectSolicitudClient(user: User): Promise<void> {
+        if (!this.selectedSolicitud) return;
+
+        this.selectedClient = user;
+        this.selectedSolicitud.client_id = user._id;
+        this.selectedSolicitud.client_name =
+            `${user.name || ''} ${user.last_name || ''}`.trim();
+        this.selectedSolicitud.client_email = user.email || '';
+        this.selectedSolicitud.client_phone = user.phone || user.phone2 || '';
+        await this.applySolicitudClientLocation(user);
+
+        this.closeClientDialogs();
+        this.messageService.add({
+            severity: 'success',
+            summary: 'Cliente seleccionado',
+            detail: this.selectedSolicitud.client_name || 'Los datos del cliente fueron aplicados.'
+        });
+    }
+
+    onNewClientWhatsappChange(): void {
+        this.existingNewClientUser = null;
+        this.newClientLookupAttempted = false;
+        this.newClientLookupLoading = false;
+        this.newClientLookupRequestId += 1;
+
+        if (this.newClientLookupTimer) {
+            clearTimeout(this.newClientLookupTimer);
+            this.newClientLookupTimer = undefined;
+        }
+
+        const digits = this.normalizePhoneDigits(this.newClientWhatsapp);
+        if (digits.length < 8) return;
+
+        this.newClientLookupTimer = setTimeout(() => {
+            this.newClientLookupTimer = undefined;
+            void this.lookupNewClientByWhatsapp();
+        }, 350);
+    }
+
+    async confirmNewClientWhatsapp(): Promise<void> {
+        if (!this.selectedSolicitud) return;
+
+        if (this.newClientLookupTimer) {
+            clearTimeout(this.newClientLookupTimer);
+            this.newClientLookupTimer = undefined;
+        }
+
+        const digits = this.normalizePhoneDigits(this.newClientWhatsapp);
+        if (digits.length < 8 || digits.length > 15) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'WhatsApp no válido',
+                detail: 'Ingresa un número de WhatsApp válido, incluyendo el código de país si aplica.'
+            });
+            return;
+        }
+
+        const matchingUser = (
+            this.phoneNumbersMatch(this.existingNewClientUser?.phone || '', digits)
+            || this.phoneNumbersMatch(this.existingNewClientUser?.phone2 || '', digits)
+        )
+            ? this.existingNewClientUser
+            : await this.lookupNewClientByWhatsapp(true);
+
+        if (matchingUser === undefined) return;
+        if (matchingUser) {
+            await this.selectSolicitudClient(matchingUser);
+            return;
+        }
+
+        this.selectedClient = null;
+        this.selectedSolicitud.client_id = undefined;
+        this.selectedSolicitud.client_name = '';
+        this.selectedSolicitud.client_email = '';
+        this.selectedSolicitud.client_phone = digits;
+        this.clearSolicitudClientLocation();
+        this.closeClientDialogs();
+
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Cliente nuevo',
+            detail: 'Cuando el técnico acepte la solicitud, este WhatsApp recibirá los datos del servicio y el enlace de registro.'
+        });
+    }
+
+    private async lookupNewClientByWhatsapp(showError = false): Promise<User | null | undefined> {
+        const digits = this.normalizePhoneDigits(this.newClientWhatsapp);
+        if (digits.length < 8 || digits.length > 15) {
+            this.existingNewClientUser = null;
+            this.newClientLookupAttempted = false;
+            return null;
+        }
+
+        const requestId = ++this.newClientLookupRequestId;
+        this.newClientLookupLoading = true;
+        this.newClientLookupAttempted = false;
+
+        try {
+            const response = await firstValueFrom(
+                this.userService.searchSolicitudClients(digits, 0, 20)
+            );
+            if (requestId !== this.newClientLookupRequestId) return null;
+
+            const matchingUser = (response.users || []).find((user) =>
+                this.phoneNumbersMatch(user.phone || '', digits)
+                || this.phoneNumbersMatch(user.phone2 || '', digits)
+            ) || null;
+
+            this.existingNewClientUser = matchingUser;
+            this.newClientLookupAttempted = true;
+            return matchingUser;
+        } catch {
+            if (requestId !== this.newClientLookupRequestId) return null;
+            this.existingNewClientUser = null;
+            this.newClientLookupAttempted = false;
+            if (showError) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'No se pudo verificar el WhatsApp',
+                    detail: 'No se guardó como cliente nuevo. Verifica tu conexión e inténtalo nuevamente.'
+                });
+            }
+            return undefined;
+        } finally {
+            if (requestId === this.newClientLookupRequestId) {
+                this.newClientLookupLoading = false;
+            }
+        }
+    }
+
+    private resetNewClientLookup(): void {
+        this.newClientLookupRequestId += 1;
+        this.newClientLookupLoading = false;
+        this.newClientLookupAttempted = false;
+        this.existingNewClientUser = null;
+        if (this.newClientLookupTimer) {
+            clearTimeout(this.newClientLookupTimer);
+            this.newClientLookupTimer = undefined;
+        }
+    }
+
+    private normalizePhoneDigits(value: unknown): string {
+        return String(value || '').replace(/\D/g, '');
+    }
+
+    private phoneNumbersMatch(left: unknown, right: unknown): boolean {
+        const leftDigits = this.normalizePhoneDigits(left);
+        const rightDigits = this.normalizePhoneDigits(right);
+        if (!leftDigits || !rightDigits) return false;
+        if (leftDigits === rightDigits) return true;
+        if (leftDigits.length >= 10 && rightDigits.length >= 10) {
+            return leftDigits.slice(-10) === rightDigits.slice(-10);
+        }
+        return false;
+    }
+
+    get selectedSolicitudClientLabel(): string {
+        if (!this.selectedSolicitud) return '';
+        return String(this.selectedSolicitud.client_name || '').trim()
+            || String(this.selectedSolicitud.client_email || '').trim()
+            || String(this.selectedSolicitud.client_phone || '').trim();
+    }
+
+    get hasSelectedSolicitudClient(): boolean {
+        return !!this.selectedSolicitudClientLabel;
+    }
+
+    private async applySolicitudClientLocation(user: User): Promise<void> {
+        if (!this.selectedSolicitud) return;
+
+        this.clearSolicitudClientLocation();
+        const province = String(user.province || '').trim();
+        const municipality = String(user.municipality || '').trim();
+        const sector = String(user.sector || '').trim();
+
+        this.selectedSolicitud.province = province;
+        this.selectedSolicitud.municipality = municipality;
+        this.selectedSolicitud.sector = sector;
+        this.selectedSolicitud.installations?.forEach(installation => {
+            installation.province = province;
+            installation.municipality = municipality;
+            installation.sector = sector;
+        });
+
+        if (province) {
+            try {
+                const municipalities = await this.vehicleBrandsService.getMunicipalities(province);
+                this.rootAvailableMunicipalities = municipalities.map((item: any) => ({
+                    label: item.name,
+                    value: String(item.code)
+                }));
+            } catch {
+                this.rootAvailableMunicipalities = [];
+            }
+        }
+
+        if (province && municipality) {
+            try {
+                const sectors = await this.vehicleBrandsService.getSectors(municipality, province);
+                this.rootAvailableSectors = sectors.map((item: any) => ({
+                    label: item.name,
+                    value: String(item.code)
+                }));
+            } catch {
+                this.rootAvailableSectors = [];
+            }
+        }
+
+        const mapsUrl = String(user.static_location_url || '').trim();
+        if (mapsUrl) {
+            this.rootGoogleMapsLink = mapsUrl;
+            this.syncRootGoogleMapsLink(false);
+            return;
+        }
+
+        const latitude = Number(user.static_latitude);
+        const longitude = Number(user.static_longitude);
+        if (this.isValidCoordinatePair(latitude, longitude)) {
+            this.selectedSolicitud.latitude = latitude;
+            this.selectedSolicitud.longitude = longitude;
+            this.onRootLatitudeLongitudeChange();
+        }
+    }
+
+    private clearSolicitudClientLocation(): void {
+        if (!this.selectedSolicitud) return;
+
+        this.rootGoogleMapsLink = '';
+        this.rootAvailableMunicipalities = [];
+        this.rootAvailableSectors = [];
+        this.selectedSolicitud.province = '';
+        this.selectedSolicitud.municipality = '';
+        this.selectedSolicitud.sector = '';
+        this.selectedSolicitud.latitude = undefined;
+        this.selectedSolicitud.longitude = undefined;
+        this.selectedSolicitud.google_maps_url = undefined;
+        this.selectedSolicitud.installations?.forEach(installation => {
+            installation.province = '';
+            installation.municipality = '';
+            installation.sector = '';
+            installation.latitude = undefined;
+            installation.longitude = undefined;
+            installation.google_maps_url = undefined;
+        });
+        this.rootLocationMarker?.setMap?.(null);
+        this.rootLocationMarker = null;
     }
 
     searchClientEmails(event: { query: string }): void {
@@ -1329,16 +1669,63 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     applyRootGoogleMapsLink(): void {
-        if (!this.selectedSolicitud) return;
+        this.syncRootGoogleMapsLink(true);
+    }
 
-        const coords = this.extractCoordinatesFromGoogleMapsLink(this.rootGoogleMapsLink);
-        if (!coords) {
+    private syncRootGoogleMapsLink(showFeedback = false): boolean {
+        if (!this.selectedSolicitud) return false;
+
+        const raw = String(this.rootGoogleMapsLink || '').trim();
+        if (!raw) {
+            this.selectedSolicitud.google_maps_url = undefined;
+            this.selectedSolicitud.installations?.forEach(installation => {
+                installation.google_maps_url = undefined;
+            });
+            if (showFeedback) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Link requerido',
+                    detail: 'Pega un link de Google Maps antes de aplicarlo.'
+                });
+            }
+            return !showFeedback;
+        }
+
+        const googleMapsUrl = this.normalizeGoogleMapsUrl(raw);
+        if (!googleMapsUrl) {
             this.messageService.add({
                 severity: 'warn',
                 summary: 'Link no válido',
-                detail: 'No se pudieron extraer coordenadas del link de Google Maps.'
+                detail: 'Debe ser un link válido de Google Maps.'
             });
-            return;
+            return false;
+        }
+
+        this.rootGoogleMapsLink = googleMapsUrl;
+        this.selectedSolicitud.google_maps_url = googleMapsUrl;
+        this.selectedSolicitud.installations?.forEach(installation => {
+            installation.google_maps_url = googleMapsUrl;
+        });
+
+        const coords = this.extractCoordinatesFromGoogleMapsLink(googleMapsUrl);
+        if (!coords) {
+            this.selectedSolicitud.latitude = undefined;
+            this.selectedSolicitud.longitude = undefined;
+            this.selectedSolicitud.installations?.forEach(installation => {
+                installation.latitude = undefined;
+                installation.longitude = undefined;
+            });
+            this.rootLocationMarker?.setMap?.(null);
+            this.rootLocationMarker = null;
+
+            if (showFeedback) {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Link guardado',
+                    detail: 'El enlace se conservará para abrirlo directamente en Google Maps.'
+                });
+            }
+            return true;
         }
 
         this.selectedSolicitud.latitude = coords.lat;
@@ -1350,11 +1737,37 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             this.rootLocationMap.setZoom(17);
         }
 
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Ubicación aplicada',
-            detail: 'La ubicación exacta fue tomada desde el link de Google Maps.'
-        });
+        if (showFeedback) {
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Ubicación aplicada',
+                detail: 'La ubicación exacta fue tomada desde el link de Google Maps.'
+            });
+        }
+        return true;
+    }
+
+    private normalizeGoogleMapsUrl(value: string): string | null {
+        try {
+            const parsed = new URL(String(value || '').trim());
+            if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+
+            const hostname = parsed.hostname.toLowerCase();
+            const pathname = parsed.pathname.toLowerCase();
+            const isMapsShortLink = hostname === 'maps.app.goo.gl'
+                || (hostname === 'goo.gl' && pathname.startsWith('/maps'));
+            const isGoogleMapsHost = hostname.startsWith('maps.google.')
+                || (
+                    (hostname === 'google.com'
+                        || hostname === 'www.google.com'
+                        || hostname.startsWith('www.google.'))
+                    && pathname.startsWith('/maps')
+                );
+
+            return isMapsShortLink || isGoogleMapsHost ? parsed.toString() : null;
+        } catch {
+            return null;
+        }
     }
 
     private extractCoordinatesFromGoogleMapsLink(value: string): { lat: number; lng: number } | null {
@@ -1592,7 +2005,12 @@ async initLocationMap(): Promise<void> {
         this.rootAvailableSectors = [];
         
         this.selectedSolicitud = { ...solicitud, installations: solicitud.installations ? solicitud.installations.map(i => ({ ...i })) : [] };
+        this.selectedClient = null;
+        this.closeClientDialogs();
         this.selectedSolicitudOriginalStatus = solicitud.status;
+        this.rootGoogleMapsLink = this.selectedSolicitud.google_maps_url
+            || this.selectedSolicitud.installations?.[0]?.google_maps_url
+            || '';
         this.deinstallationReasonError = false;
         this.selectedSolicitud.scheduled_date = this.toDateTimeLocalValue(
             this.selectedSolicitud.scheduled_date || this.selectedSolicitud.installations?.[0]?.scheduled_date
@@ -1703,6 +2121,10 @@ async initLocationMap(): Promise<void> {
                 summary: 'Solicitud finalizada',
                 detail: 'Esta solicitud ya está cerrada y no puede modificarse.'
             });
+            return;
+        }
+
+        if (!this.syncRootGoogleMapsLink()) {
             return;
         }
 
@@ -1843,6 +2265,15 @@ async initLocationMap(): Promise<void> {
 
     private async findSelectedSolicitudClient(): Promise<User | null> {
         if (!this.selectedSolicitud) return null;
+
+        const clientId = String(this.selectedSolicitud.client_id || '').trim();
+        if (clientId) {
+            try {
+                return this.normalizeFoundClient(await firstValueFrom(this.userService.getById(clientId)));
+            } catch {
+                // A legacy/stale id can still be resolved by email or phone below.
+            }
+        }
 
         const email = String(this.selectedSolicitud.client_email || '').trim();
         if (email) {

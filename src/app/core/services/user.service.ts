@@ -35,6 +35,8 @@ export interface PublicRegistrationInfo {
   };
   target_count: number;
   expires_at: string;
+  /** El teléfono viene firmado en el enlace; no se expone ni se pide nuevamente. */
+  uses_linked_phone?: boolean;
 }
 
 export interface PublicIdentityVerificationInfo {
@@ -143,6 +145,15 @@ export class UserService {
       params.parent = parent;
     }
     return this.http.get<UsersResponse>(`${this.apiUrl}/search`, { params });
+  }
+
+  searchSolicitudClients(query: string = '', offset: number = 0, limit: number = 30): Observable<UsersResponse> {
+    const params = {
+      q: query,
+      offset: offset.toString(),
+      limit: limit.toString()
+    };
+    return this.http.get<UsersResponse>(`${this.apiUrl}/solicitud-clients`, { params });
   }
 
   getByEmail(email: string): Observable<User> {

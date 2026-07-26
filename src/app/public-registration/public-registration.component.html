@@ -57,7 +57,12 @@
 
     </section>
 
-    <form *ngIf="!loading && !errorMessage && !completed && identityScanned" class="registration-form" (ngSubmit)="submit()">
+    <div *ngIf="!loading && !errorMessage && !completed && identityScanned && usesLinkedPhone() && submitting" class="registration-state">
+      <p-progressSpinner strokeWidth="4" styleClass="registration-spinner"></p-progressSpinner>
+      <span>Creando tu cuenta de forma segura...</span>
+    </div>
+
+    <form *ngIf="!loading && !errorMessage && !completed && identityScanned && !(usesLinkedPhone() && submitting)" class="registration-form" (ngSubmit)="submit()">
       <label *ngIf="showRegistrationField('name')">
         Nombre
         <input pInputText type="text" name="name" [(ngModel)]="form.name" autocomplete="given-name"

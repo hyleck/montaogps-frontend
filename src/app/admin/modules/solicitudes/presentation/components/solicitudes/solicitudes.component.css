@@ -12,6 +12,450 @@ app-solicitudes {
     overflow: hidden;
 }
 
+.sol-client-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.sol-client-picker__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.sol-client-picker__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    min-height: 46px;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 12px;
+    color: var(--managementColorTitleUser);
+    background: var(--managementColorCardBackground);
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.sol-client-picker__button:hover {
+    border-color: #22c55e;
+    background: color-mix(in srgb, #22c55e 8%, var(--managementColorCardBackground));
+    transform: translateY(-1px);
+}
+
+.sol-client-picker__button--select i {
+    color: #6366f1;
+}
+
+.sol-client-picker__button--new i {
+    color: #22c55e;
+}
+
+.sol-client-picker__selection {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid color-mix(in srgb, #22c55e 42%, var(--managementFieldsBorder));
+    border-radius: 13px;
+    background: color-mix(in srgb, #22c55e 7%, var(--managementColorCardBackground));
+}
+
+.sol-client-picker__icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    border-radius: 11px;
+    color: #fff;
+    background: #16a34a;
+}
+
+.sol-client-picker__identity {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.sol-client-picker__identity small {
+    color: #16a34a;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.sol-client-picker__identity strong,
+.sol-client-picker__identity span {
+    overflow: hidden;
+    color: var(--managementColorTitleUser);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sol-client-picker__identity span {
+    color: var(--managementColorTextUser);
+    font-size: 0.78rem;
+    opacity: 0.72;
+}
+
+.sol-client-picker__location {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex: 0 0 auto;
+    color: #16a34a;
+    font-size: 0.74rem;
+    font-weight: 750;
+}
+
+.sol-client-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.sol-client-selection__search {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0 0.9rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 12px;
+    background: var(--managementFieldsBackground);
+}
+
+.sol-client-selection__search i {
+    color: var(--managementColorTextUser);
+    opacity: 0.56;
+}
+
+.sol-client-selection__search input {
+    width: 100%;
+    min-height: 46px;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    color: var(--managementColorTitleUser);
+    background: transparent;
+    font: inherit;
+}
+
+.sol-client-selection__meta {
+    color: var(--managementColorTextUser);
+    font-size: 0.75rem;
+    opacity: 0.62;
+}
+
+.sol-client-selection__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    max-height: 430px;
+    overflow-y: auto;
+    padding-right: 0.2rem;
+}
+
+.sol-client-card {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+    padding: 0.75rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 13px;
+    color: var(--managementColorTitleUser);
+    background: var(--managementColorCardBackground);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.sol-client-card:hover {
+    border-color: #22c55e;
+    background: color-mix(in srgb, #22c55e 7%, var(--managementColorCardBackground));
+    transform: translateY(-1px);
+}
+
+.sol-client-card img,
+.sol-client-card__avatar {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 12px;
+}
+
+.sol-client-card img {
+    object-fit: cover;
+}
+
+.sol-client-card__avatar {
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    font-size: 0.8rem;
+    font-weight: 850;
+}
+
+.sol-client-card__content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.sol-client-card__content strong,
+.sol-client-card__content small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sol-client-card__content strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.86rem;
+}
+
+.sol-client-card__content small {
+    color: var(--managementColorTextUser);
+    font-size: 0.72rem;
+    opacity: 0.68;
+}
+
+.sol-client-card__content em {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.22rem;
+    color: #16a34a;
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 750;
+}
+
+.sol-client-card__arrow {
+    flex: 0 0 auto;
+    color: var(--managementColorTextUser);
+    opacity: 0.35;
+}
+
+.sol-client-selection__loading,
+.sol-client-selection__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    color: var(--managementColorTextUser);
+}
+
+.sol-client-selection__loading {
+    gap: 0.55rem;
+}
+
+.sol-client-selection__empty {
+    flex-direction: column;
+    gap: 0.35rem;
+    text-align: center;
+}
+
+.sol-client-selection__empty > i {
+    margin-bottom: 0.25rem;
+    color: #22c55e;
+    font-size: 1.5rem;
+}
+
+.sol-client-selection__empty span {
+    font-size: 0.78rem;
+    opacity: 0.62;
+}
+
+.sol-new-client {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    padding-top: 1rem;
+}
+
+.sol-new-client__intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid color-mix(in srgb, #22c55e 35%, var(--managementFieldsBorder));
+    border-radius: 13px;
+    background: color-mix(in srgb, #22c55e 7%, var(--managementColorCardBackground));
+}
+
+.sol-new-client__intro > i {
+    color: #16a34a;
+    font-size: 1.25rem;
+}
+
+.sol-new-client__intro strong {
+    color: var(--managementColorTitleUser);
+}
+
+.sol-new-client__intro p {
+    margin: 0.25rem 0 0;
+    color: var(--managementColorTextUser);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    opacity: 0.72;
+}
+
+.sol-new-client label {
+    color: var(--managementColorTitleUser);
+    font-weight: 750;
+}
+
+.sol-new-client > input {
+    width: 100%;
+    min-height: 46px;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 12px;
+    outline: 0;
+    color: var(--managementColorTitleUser);
+    background: var(--managementFieldsBackground);
+    font: inherit;
+    box-sizing: border-box;
+}
+
+.sol-new-client > input:focus {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 3px color-mix(in srgb, #22c55e 15%, transparent);
+}
+
+.sol-new-client__lookup,
+.sol-new-client__not-found {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 42px;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 11px;
+    color: var(--managementColorTextUser);
+    background: var(--managementFieldsBackground);
+    font-size: 0.76rem;
+    line-height: 1.35;
+}
+
+.sol-new-client__lookup i {
+    color: #16a34a;
+}
+
+.sol-new-client__not-found {
+    border-style: dashed;
+    opacity: 0.78;
+}
+
+.sol-new-client__not-found i {
+    color: #f59e0b;
+}
+
+.sol-new-client__existing {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.75rem;
+    border: 1px solid color-mix(in srgb, #22c55e 48%, var(--managementFieldsBorder));
+    border-radius: 13px;
+    background: color-mix(in srgb, #22c55e 8%, var(--managementColorCardBackground));
+}
+
+.sol-new-client__existing > img,
+.sol-new-client__avatar {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border-radius: 12px;
+}
+
+.sol-new-client__existing > img {
+    object-fit: cover;
+}
+
+.sol-new-client__avatar {
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: linear-gradient(135deg, #15803d, #22c55e);
+    font-size: 0.8rem;
+    font-weight: 850;
+}
+
+.sol-new-client__existing-content {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.sol-new-client__existing-content small {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: #16a34a;
+    font-size: 0.68rem;
+    font-weight: 850;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.sol-new-client__existing-content strong,
+.sol-new-client__existing-content span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sol-new-client__existing-content strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.88rem;
+}
+
+.sol-new-client__existing-content span {
+    color: var(--managementColorTextUser);
+    font-size: 0.74rem;
+    opacity: 0.72;
+}
+
+.sol-new-client__existing-content em {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.2rem;
+    color: #16a34a;
+    font-size: 0.68rem;
+    font-style: normal;
+    font-weight: 750;
+}
+
+@media (max-width: 680px) {
+    .sol-client-picker__actions,
+    .sol-client-selection__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sol-client-picker__selection {
+        align-items: flex-start;
+    }
+
+    .sol-client-picker__location {
+        display: none;
+    }
+}
+
 app-solicitudes > .management__route {
     flex: 0 0 auto;
     min-width: 0;

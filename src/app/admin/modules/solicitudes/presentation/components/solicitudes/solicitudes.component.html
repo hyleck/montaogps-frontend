@@ -828,42 +828,36 @@
                 </div>
             </div>
 
-            <div class="sol-form-row sol-form-row-3">
-                <div class="sol-form-field sol-email-field">
-                    <label>Email *</label>
-                    <p-autoComplete
-                        [(ngModel)]="selectedSolicitud.client_email"
-                        [suggestions]="clientEmailSuggestions"
-                        (completeMethod)="searchClientEmails($event)"
-                        (onSelect)="onClientEmailSelect($event)"
-                        (keydown.enter)="selectFirstClientEmail($event)"
-                        (onBlur)="onClientEmailBlur()"
-                        optionLabel="email"
-                        optionValue="email"
-                        [forceSelection]="false"
-                        [dropdown]="true"
-                        [minLength]="2"
-                        appendTo="body"
-                        placeholder="cliente@ejemplo.com"
-                        inputStyleClass="sol-email-autocomplete-input"
-                        styleClass="sol-email-autocomplete"
-                        required>
-                        <ng-template let-user pTemplate="item">
-                            <div class="sol-email-suggestion">
-                                <strong>{{ user.name }} {{ user.last_name }}</strong>
-                                <small>{{ user.email }}<span *ngIf="user.phone"> · {{ user.phone }}</span></small>
-                            </div>
-                        </ng-template>
-                    </p-autoComplete>
+            <div class="sol-client-picker">
+                <div class="sol-client-picker__actions">
+                    <button type="button" class="sol-client-picker__button sol-client-picker__button--select"
+                        (click)="openClientSelection()">
+                        <i class="pi pi-users"></i>
+                        {{ hasSelectedSolicitudClient ? 'Cambiar cliente' : 'Seleccionar cliente' }}
+                    </button>
+                    <button type="button" class="sol-client-picker__button sol-client-picker__button--new"
+                        (click)="openNewClient()">
+                        <i class="pi pi-user-plus"></i>
+                        Nuevo cliente
+                    </button>
                 </div>
-                <div class="sol-form-field">
-                    <label>Nombre del Cliente *</label>
-                    <input type="text" [(ngModel)]="selectedSolicitud.client_name"
-                        placeholder="Nombre completo del cliente" required />
-                </div>
-                <div class="sol-form-field">
-                    <label>Teléfono *</label>
-                    <input type="text" [(ngModel)]="selectedSolicitud.client_phone" placeholder="809-555-1234" required (blur)="onClientPhoneBlur()" />
+
+                <div class="sol-client-picker__selection" *ngIf="hasSelectedSolicitudClient">
+                    <div class="sol-client-picker__icon">
+                        <i class="pi" [ngClass]="selectedSolicitud.client_id ? 'pi-user' : 'pi-whatsapp'"></i>
+                    </div>
+                    <div class="sol-client-picker__identity">
+                        <small>{{ selectedSolicitud.client_id ? 'Cliente seleccionado' : 'Cliente nuevo por WhatsApp' }}</small>
+                        <strong>{{ selectedSolicitud.client_name || selectedSolicitud.client_phone }}</strong>
+                        <span *ngIf="selectedSolicitud.client_email">{{ selectedSolicitud.client_email }}</span>
+                        <span *ngIf="selectedSolicitud.client_name && selectedSolicitud.client_phone">
+                            {{ selectedSolicitud.client_phone }}
+                        </span>
+                    </div>
+                    <span class="sol-client-picker__location" *ngIf="rootGoogleMapsLink">
+                        <i class="pi pi-map-marker"></i>
+                        Ubicación aplicada
+                    </span>
                 </div>
             </div>
 
@@ -911,7 +905,7 @@
                     <div class="sol-map-link-field">
                         <input type="text"
                             [(ngModel)]="rootGoogleMapsLink"
-                            placeholder="Pega aquí el link de Google Maps"
+                            placeholder="Pega un link de Google Maps, incluso si está acortado"
                             (keydown.enter)="$event.preventDefault(); applyRootGoogleMapsLink()" />
                         <button type="button" class="sol-map-link-button" (click)="applyRootGoogleMapsLink()">
                             <i class="pi pi-map-marker"></i>
@@ -1336,6 +1330,131 @@
     </ng-template>
 </p-dialog>
 
+<p-dialog [(visible)]="clientSelectionDialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{width: '720px'}"
+    [breakpoints]="{'760px': '94vw'}"
+    styleClass="app-dark-dialog sol-client-selection-dialog"
+    header="Seleccionar cliente">
+    <div class="sol-client-selection">
+        <div class="sol-client-selection__search">
+            <i class="pi pi-search"></i>
+            <input type="search"
+                [(ngModel)]="clientSearchQuery"
+                (ngModelChange)="onClientSearchQueryChange()"
+                placeholder="Buscar por nombre, correo, cédula o WhatsApp" />
+        </div>
+
+        <div class="sol-client-selection__meta" *ngIf="!clientSearchLoading">
+            {{ clientSearchResults.length }} de {{ clientSearchTotal }} clientes
+        </div>
+
+        <div class="sol-client-selection__loading" *ngIf="clientSearchLoading">
+            <i class="pi pi-spin pi-spinner"></i>
+            Buscando clientes…
+        </div>
+
+        <div class="sol-client-selection__grid" *ngIf="!clientSearchLoading && clientSearchResults.length">
+            <button type="button" class="sol-client-card"
+                *ngFor="let user of clientSearchResults"
+                (click)="selectSolicitudClient(user)">
+                <img *ngIf="user.photo" [src]="user.photo" [alt]="user.name" />
+                <span class="sol-client-card__avatar" *ngIf="!user.photo">
+                    {{ (user.name || 'C').charAt(0) }}{{ (user.last_name || '').charAt(0) }}
+                </span>
+                <span class="sol-client-card__content">
+                    <strong>{{ user.name }} {{ user.last_name }}</strong>
+                    <small>{{ user.phone || user.phone2 || 'Sin teléfono' }}</small>
+                    <small>{{ user.email }}</small>
+                    <em *ngIf="user.static_location_url">
+                        <i class="pi pi-map-marker"></i>
+                        Tiene ubicación guardada
+                    </em>
+                </span>
+                <i class="pi pi-chevron-right sol-client-card__arrow"></i>
+            </button>
+        </div>
+
+        <div class="sol-client-selection__empty" *ngIf="!clientSearchLoading && !clientSearchResults.length">
+            <i class="pi pi-user"></i>
+            <strong>No encontramos clientes</strong>
+            <span>Prueba con otro nombre, correo o número.</span>
+        </div>
+    </div>
+</p-dialog>
+
+<p-dialog [(visible)]="newClientDialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{width: '460px'}"
+    [breakpoints]="{'520px': '94vw'}"
+    styleClass="app-dark-dialog sol-new-client-dialog"
+    header="Nuevo cliente">
+    <div class="sol-new-client">
+        <div class="sol-new-client__intro">
+            <i class="pi pi-whatsapp"></i>
+            <div>
+                <strong>Solo necesitamos su WhatsApp</strong>
+                <p>
+                    No se enviará nada al crear la solicitud. Cuando el técnico la acepte,
+                    este WhatsApp recibirá un mensaje con el nombre del técnico, la fecha y hora
+                    programadas y el enlace para crear la cuenta.
+                </p>
+            </div>
+        </div>
+        <label for="sol-new-client-whatsapp">Número de WhatsApp</label>
+        <input id="sol-new-client-whatsapp"
+            type="tel"
+            [(ngModel)]="newClientWhatsapp"
+            (ngModelChange)="onNewClientWhatsappChange()"
+            (keydown.enter)="$event.preventDefault(); confirmNewClientWhatsapp()"
+            placeholder="809 555 1234"
+            autocomplete="tel" />
+
+        <div class="sol-new-client__lookup" *ngIf="newClientLookupLoading">
+            <i class="pi pi-spin pi-spinner"></i>
+            Verificando si este WhatsApp ya tiene una cuenta…
+        </div>
+
+        <div class="sol-new-client__existing" *ngIf="!newClientLookupLoading && existingNewClientUser">
+            <img *ngIf="existingNewClientUser.photo"
+                [src]="existingNewClientUser.photo"
+                [alt]="existingNewClientUser.name" />
+            <span class="sol-new-client__avatar" *ngIf="!existingNewClientUser.photo">
+                {{ (existingNewClientUser.name || 'C').charAt(0) }}{{ (existingNewClientUser.last_name || '').charAt(0) }}
+            </span>
+            <span class="sol-new-client__existing-content">
+                <small><i class="pi pi-check-circle"></i> Cliente existente</small>
+                <strong>{{ existingNewClientUser.name }} {{ existingNewClientUser.last_name }}</strong>
+                <span>{{ existingNewClientUser.email }}</span>
+                <span>{{ existingNewClientUser.phone || existingNewClientUser.phone2 }}</span>
+                <em *ngIf="existingNewClientUser.static_location_url">
+                    <i class="pi pi-map-marker"></i>
+                    Se aplicará su ubicación guardada
+                </em>
+            </span>
+        </div>
+
+        <div class="sol-new-client__not-found"
+            *ngIf="!newClientLookupLoading && newClientLookupAttempted && !existingNewClientUser">
+            <i class="pi pi-user-plus"></i>
+            No existe una cuenta con este WhatsApp. Se usará como cliente nuevo.
+        </div>
+    </div>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="newClientDialogVisible = false">
+            Cancelar
+        </button>
+        <button type="button" class="sol-btn sol-btn-save" (click)="confirmNewClientWhatsapp()">
+            <i class="pi" [ngClass]="existingNewClientUser ? 'pi-user' : 'pi-check'"></i>
+            {{ existingNewClientUser ? 'Seleccionar este cliente' : 'Usar este WhatsApp' }}
+        </button>
+    </ng-template>
+</p-dialog>
+
 <p-dialog [(visible)]="missingClientDialogVisible"
     [modal]="true"
     [draggable]="false"
@@ -1350,9 +1469,10 @@
         <div class="sol-missing-client__content">
             <h3>Este cliente no existe en el sistema</h3>
             <p>
-                Puedes guardar la solicitud de instalación. Cuando la instalación se finalice,
-                se le enviará automáticamente al cliente un link de registro por WhatsApp y
-                los dispositivos instalados se transferirán automáticamente a su cuenta cuando complete el registro.
+                Puedes guardar la solicitud sin enviarle nada todavía. Cuando el técnico la acepte,
+                el cliente recibirá por WhatsApp el nombre del técnico, la fecha y hora programadas
+                en lenguaje natural y el enlace para crear su cuenta. Si completa el registro,
+                cualquier GPS instalado se transferirá a su cuenta cuando finalice el trabajo.
             </p>
         </div>
     </div>
