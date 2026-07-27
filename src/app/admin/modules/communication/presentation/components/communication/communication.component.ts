@@ -56,6 +56,11 @@ interface ChatMessage {
     type?: string;
     attachments?: ChatAttachment[];
   };
+  reaction?: {
+    emoji: string;
+    sender: string;
+    from: string;
+  };
   safeRealtimeUrl?: SafeResourceUrl;
   googleMapsUrl?: string;
   wazeUrl?: string;
@@ -2685,6 +2690,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
               parsedHtml: this.parseMessageContent(msg.content),
               time: new Date(msg.created_at * 1000),
               attachments: msg.attachments || [],
+              reaction: msg.reaction?.emoji
+                ? {
+                    emoji: msg.reaction.emoji,
+                    sender: msg.reaction.sender || 'Ester Assistant',
+                    from: msg.reaction.from || 'me',
+                  }
+                : undefined,
             };
             this.enrichWithAppUrls(mapped);
             if (msg.reply_to?.id) {

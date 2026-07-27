@@ -172,6 +172,7 @@
                     [class.comm-message--outgoing]="msg.from === 'me'"
                     [class.comm-message--incoming]="msg.from === 'incoming'"
                     [class.comm-message--system]="msg.from === 'system'"
+                    [class.comm-message--has-reaction]="!!msg.reaction"
                     [class.comm-message--sticker-only]="isStickerOnlyMessage(msg)">
                     <button *ngIf="msg.id && msg.from !== 'system'" class="comm-reply-btn"
                         (click)="setReplyTo(msg)" title="Responder" aria-label="Responder este mensaje">
@@ -269,6 +270,11 @@
                             </div>
                         </a>
                         <div class="comm-message__time">{{ msg.time | date:'HH:mm' }}</div>
+                        <span *ngIf="msg.reaction?.emoji"
+                            class="comm-message__reaction"
+                            [title]="'Reacción de ' + (msg.reaction?.sender || 'Ester Assistant')">
+                            {{ msg.reaction?.emoji }}
+                        </span>
                     </div>
                 </div>
 

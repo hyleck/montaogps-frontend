@@ -2519,6 +2519,10 @@
     gap: 4px;
 }
 
+.comm-message--has-reaction {
+    margin-bottom: 14px;
+}
+
 .comm-message:hover .comm-reply-btn {
     opacity: 1;
 }
@@ -2726,6 +2730,25 @@
     opacity: 0.4;
     text-align: right;
     margin-top: 3px;
+}
+
+.comm-message__reaction {
+    position: absolute;
+    right: 10px;
+    bottom: -15px;
+    z-index: 2;
+    display: inline-flex;
+    min-width: 30px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: #25262a;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    font-size: 0.95rem;
+    line-height: 1;
 }
 
 /* Input Area */
@@ -3741,6 +3764,11 @@
 :host-context(.app-light) .comm-message__time { color: #94a3b8; }
 :host-context(.app-light) .comm-message--outgoing .comm-message__bubble { background: #fee2e2; border-color: #fca5a5; } /* Incosis red tone instead of green */
 :host-context(.app-light) .comm-message--outgoing .comm-message__text { color: #000000; }
+:host-context(.app-light) .comm-message__reaction {
+    border-color: #d7dde6;
+    background: #ffffff;
+    box-shadow: 0 2px 5px rgba(15, 23, 42, 0.14);
+}
 :host-context(.app-light) .comm-message--system .comm-message__bubble { background: rgba(0,0,0,0.05); border: none; color: #64748b; }
 :host-context(.app-light) .comm-message--outgoing .comm-msg-sig-icon { color: #dc2626; }
 :host-context(.app-light) .comm-message--sticker-only .comm-message__bubble { background: transparent; border: 0; box-shadow: none; }
