@@ -2498,6 +2498,31 @@
     border-radius: 4px;
 }
 
+.comm-older-loader {
+    position: sticky;
+    top: 0.25rem;
+    z-index: 3;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: max-content;
+    max-width: calc(100% - 2rem);
+    margin: 0 auto 0.5rem;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    background: rgba(32, 36, 40, 0.94);
+    color: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+    font-size: 0.75rem;
+}
+
+.comm-older-loader i {
+    font-size: 0.8rem;
+}
+
 .comm-chat__no-messages {
     flex: 1;
     display: flex;
@@ -3810,6 +3835,12 @@
 :host-context(.app-light) .comm-chat__messages { background: #f1f5f9; } /* Light grey theme background */
 :host-context(.app-light) .comm-loading { color: #475569; }
 :host-context(.app-light) .comm-loading i { color: #dc2626; }
+:host-context(.app-light) .comm-older-loader {
+    border-color: #dbe3ee;
+    background: rgba(255, 255, 255, 0.96);
+    color: #475569;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+}
 :host-context(.app-light) .comm-chat__empty { background: #f8fafc; color: #64748b; }
 :host-context(.app-light) .comm-chat__empty-content h3 { color: #000000; }
 :host-context(.app-light) .comm-message__bubble { background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }

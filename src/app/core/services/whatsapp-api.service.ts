@@ -62,9 +62,16 @@ export class WhatsAppApiService {
         return this.http.get(`${this.apiUrl}/conversations`, { params });
     }
 
-    getConversationMessages(conversationId: number): Observable<any> {
+    getConversationMessages(conversationId: number, limit: number = 50, before?: number): Observable<any> {
+        const params: any = {
+            conversation_id: conversationId.toString(),
+            limit: limit.toString()
+        };
+        if (before) {
+            params.before = before.toString();
+        }
         return this.http.get(`${this.apiUrl}/conversation-messages`, {
-            params: { conversation_id: conversationId.toString() }
+            params
         });
     }
 

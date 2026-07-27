@@ -69,8 +69,9 @@
                 [class.comm-contact--ester]="!conv.assignee_id"
                 (click)="selectConversation(conv)">
                 <div class="comm-contact__avatar">
-                    <img *ngIf="conv.contact.avatar" [src]="conv.contact.avatar" alt="avatar" />
-                    <span *ngIf="!conv.contact.avatar">{{ getInitials(conv.contact.name) }}</span>
+                    <img *ngIf="getUsableAvatarUrl(conv.contact.avatar) as avatarUrl"
+                        [src]="avatarUrl" (error)="onAvatarImageError(avatarUrl)" alt="avatar" />
+                    <span *ngIf="!getUsableAvatarUrl(conv.contact.avatar)">{{ getInitials(conv.contact.name) }}</span>
                 </div>
                 <div class="comm-contact__info">
                     <div class="comm-contact__top">
@@ -111,8 +112,9 @@
                     <i class="pi pi-arrow-left"></i>
                 </button>
                 <div class="comm-chat__header-avatar">
-                    <img *ngIf="gpsUser?.photo || selectedConversation.contact.avatar" [src]="gpsUser?.photo || selectedConversation.contact.avatar" alt="avatar" />
-                    <span *ngIf="!gpsUser?.photo && !selectedConversation.contact.avatar">{{ getInitials(gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name) }}</span>
+                    <img *ngIf="getSelectedConversationAvatarUrl() as avatarUrl"
+                        [src]="avatarUrl" (error)="onAvatarImageError(avatarUrl)" alt="avatar" />
+                    <span *ngIf="!getSelectedConversationAvatarUrl()">{{ getInitials(gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name) }}</span>
                 </div>
                 <div class="comm-chat__header-info">
                     <div class="comm-chat__header-name">
@@ -154,10 +156,15 @@
             </div>
 
             <!-- Messages -->
-            <div class="comm-chat__messages" #messagesContainer>
+            <div class="comm-chat__messages" #messagesContainer (scroll)="onMessagesScroll($event)">
                 <div *ngIf="loadingMessages" class="comm-loading">
                     <i class="pi pi-spin pi-spinner"></i>
                     <span>Cargando mensajes...</span>
+                </div>
+
+                <div *ngIf="loadingOlderMessages" class="comm-older-loader">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    <span>Cargando mensajes anteriores...</span>
                 </div>
 
                 <div *ngIf="!loadingMessages && messagesLoadError" class="comm-chat__no-messages">
@@ -434,9 +441,9 @@
         <div class="comm-contact-panel__body">
             <!-- Avatar -->
             <div class="comm-contact-panel__avatar">
-                <img *ngIf="gpsUser?.photo || selectedConversation.contact.avatar"
-                    [src]="gpsUser?.photo || selectedConversation.contact.avatar" alt="avatar" />
-                <span *ngIf="!gpsUser?.photo && !selectedConversation.contact.avatar" class="comm-contact-panel__initials">
+                <img *ngIf="getSelectedConversationAvatarUrl() as avatarUrl"
+                    [src]="avatarUrl" (error)="onAvatarImageError(avatarUrl)" alt="avatar" />
+                <span *ngIf="!getSelectedConversationAvatarUrl()" class="comm-contact-panel__initials">
                     {{ getInitials(gpsUser ? (gpsUser.name + ' ' + (gpsUser.last_name || '')) : selectedConversation.contact.name) }}
                 </span>
             </div>
@@ -592,8 +599,9 @@
                     [class.comm-internal-message--me]="isMyInternalMessage(msg)"
                     [class.comm-internal-message--sticker-only]="isInternalStickerOnlyMessage(msg)">
                     <div class="comm-internal-message__avatar">
-                        <img *ngIf="msg.author.photo" [src]="msg.author.photo" alt="avatar" />
-                        <span *ngIf="!msg.author.photo">{{ getInternalAuthorInitials(msg) }}</span>
+                        <img *ngIf="getUsableAvatarUrl(msg.author.photo) as avatarUrl"
+                            [src]="avatarUrl" (error)="onAvatarImageError(avatarUrl)" alt="avatar" />
+                        <span *ngIf="!getUsableAvatarUrl(msg.author.photo)">{{ getInternalAuthorInitials(msg) }}</span>
                     </div>
                     <div class="comm-internal-message__bubble">
                         <div class="comm-internal-message__meta">
@@ -747,8 +755,9 @@
             </p>
             <div *ngIf="activeEmployees.length; else noActiveEmployees" class="comm-active-employees-dialog__list">
                 <div *ngFor="let employee of activeEmployees" class="comm-active-employees-dialog__item">
-                    <img *ngIf="employee.photo" [src]="employee.photo" [alt]="getActiveEmployeeName(employee)" />
-                    <span *ngIf="!employee.photo" class="comm-active-employees-dialog__avatar">{{ getActiveEmployeeInitials(employee) }}</span>
+                    <img *ngIf="getUsableAvatarUrl(employee.photo) as avatarUrl"
+                        [src]="avatarUrl" (error)="onAvatarImageError(avatarUrl)" [alt]="getActiveEmployeeName(employee)" />
+                    <span *ngIf="!getUsableAvatarUrl(employee.photo)" class="comm-active-employees-dialog__avatar">{{ getActiveEmployeeInitials(employee) }}</span>
                     <div>
                         <strong>{{ getActiveEmployeeName(employee) }}</strong>
                         <span>{{ employee.department_id || 'Empleado' }}</span>
@@ -1079,8 +1088,9 @@
                 class="comm-transfer-agent" role="listitem"
                 (click)="selectTransferAgent(agent)">
                 <span class="comm-transfer-agent__avatar">
-                    <img *ngIf="agent.photo" [src]="agent.photo" [alt]="getActiveEmployeeName(agent)" />
-                    <span *ngIf="!agent.photo">{{ getActiveEmployeeInitials(agent) }}</span>
+                    <img *ngIf="getUsableAvatarUrl(agent.photo) as avatarUrl"
+                        [src]="avatarUrl" (error)="onAvatarImageError(avatarUrl)" [alt]="getActiveEmployeeName(agent)" />
+                    <span *ngIf="!getUsableAvatarUrl(agent.photo)">{{ getActiveEmployeeInitials(agent) }}</span>
                 </span>
                 <span class="comm-transfer-agent__identity">
                     <strong>{{ getActiveEmployeeName(agent) }}</strong>

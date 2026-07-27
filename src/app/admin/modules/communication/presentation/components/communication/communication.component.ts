@@ -151,6 +151,7 @@ interface WhatsAppSticker {
   standalone: false
 })
 export class CommunicationComponent implements OnInit, OnDestroy {
+  private readonly failedAvatarUrls = new Set<string>();
 
   // Conversations
   conversations: ChatConversation[] = [];
@@ -246,8 +247,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // New Compose Modal
   showComposeModal: boolean = false;
   loadingMessages: boolean = false;
+  loadingOlderMessages: boolean = false;
+  hasOlderMessages: boolean = true;
   messagesLoadError: string = '';
   private activeMessagesRequestId = 0;
+  private readonly messagesPageSize = 50;
   @ViewChild('messagesContainer') messagesContainer!: ElementRef;
   @ViewChild('internalMessagesContainer') internalMessagesContainer!: ElementRef;
   @ViewChild('internalMediaFileInput') internalMediaFileInput!: ElementRef;
@@ -1416,6 +1420,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   selectConversation(conv: ChatConversation, navigate: boolean = true): void {
+    this.stopChatPolling();
     conv.unread_count = 0; // Clear indicator instantly mimicking visual read receipts
     this.resetPlayableAudio();
     this.selectedConversation = conv;
@@ -1423,6 +1428,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       localStorage.setItem(`last_opened_chat_${this.currentUserId}`, conv.id.toString());
     }
     this.messages = [];
+    this.loadingOlderMessages = false;
+    this.hasOlderMessages = true;
+    this.lastApiMessageId = null;
     this.chatInput = '';
     this.replyingTo = null;
     this.reactionPickerMessageId = null;
@@ -2672,56 +2680,21 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const conversationId = this.selectedConversation.id;
     const requestId = ++this.activeMessagesRequestId;
     this.loadingMessages = true;
+    this.loadingOlderMessages = false;
+    this.hasOlderMessages = true;
     this.messagesLoadError = '';
-    this.whatsappApi.getConversationMessages(conversationId).pipe(timeout(20000)).subscribe({
+    this.whatsappApi.getConversationMessages(conversationId, this.messagesPageSize).pipe(timeout(20000)).subscribe({
       next: (res: any) => {
         if (requestId !== this.activeMessagesRequestId || this.selectedConversation?.id !== conversationId) return;
         this.loadingMessages = false;
         if (res.success && res.messages?.length) {
-          // Build a quick lookup for reply references
-          const msgMap = new Map<number, { text: string; from: string }>();
-          for (const msg of res.messages) {
-            msgMap.set(msg.id, {
-              text: msg.content || '📎 Adjunto',
-              from: msg.from === 'incoming' ? 'incoming' : 'me',
-            });
-          }
-          this.messages = res.messages.map((msg: any) => {
-            const mapped: ChatMessage = {
-              id: msg.id,
-              from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
-              text: msg.content,
-              transcription: msg.transcription,
-              parsedHtml: this.parseMessageContent(msg.content),
-              time: new Date(msg.created_at * 1000),
-              attachments: msg.attachments || [],
-              reaction: msg.reaction?.emoji
-                ? {
-                    emoji: msg.reaction.emoji,
-                    sender: msg.reaction.sender || 'Ester Assistant',
-                    from: msg.reaction.from || 'me',
-                  }
-                : undefined,
-            };
-            this.enrichWithAppUrls(mapped);
-            if (msg.reply_to?.id) {
-              mapped.replyTo = {
-                id: msg.reply_to.id,
-                text: this.getApiReplyPreviewText(msg.reply_to),
-                from: msg.reply_to.from === 'incoming' ? 'incoming' : 'me',
-                type: msg.reply_to.type,
-                attachments: msg.reply_to.attachments || [],
-              };
-            } else if (msg.in_reply_to && msgMap.has(msg.in_reply_to)) {
-              const ref = msgMap.get(msg.in_reply_to)!;
-              mapped.replyTo = { id: msg.in_reply_to, text: ref.text, from: ref.from };
-            }
-            return mapped;
-          });
+          this.messages = this.mapApiMessages(res.messages);
           this.preparePlayableAudio(this.messages);
           this.lastApiMessageId = res.messages[res.messages.length - 1].id;
+          this.hasOlderMessages = res.messages.length >= this.messagesPageSize;
         } else {
           this.lastApiMessageId = null;
+          this.hasOlderMessages = false;
         }
         this.scrollToBottom();
         this.startChatPolling();
@@ -2733,6 +2706,124 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.loadingMessages = false;
         this.startChatPolling();
       }
+    });
+  }
+
+  onMessagesScroll(event: Event): void {
+    const container = event.currentTarget as HTMLElement | null;
+    if (
+      !container ||
+      container.scrollTop > 100 ||
+      this.loadingMessages ||
+      this.loadingOlderMessages ||
+      !this.hasOlderMessages
+    ) {
+      return;
+    }
+
+    this.loadOlderMessages(container);
+  }
+
+  private loadOlderMessages(container: HTMLElement): void {
+    if (!this.selectedConversation) return;
+
+    const conversationId = this.selectedConversation.id;
+    const oldestMessageId = this.messages.find((message) => !!message.id)?.id;
+    if (!oldestMessageId) {
+      this.hasOlderMessages = false;
+      return;
+    }
+
+    const previousScrollHeight = container.scrollHeight;
+    const previousScrollTop = container.scrollTop;
+    this.loadingOlderMessages = true;
+
+    this.whatsappApi
+      .getConversationMessages(conversationId, this.messagesPageSize, oldestMessageId)
+      .pipe(timeout(20000))
+      .subscribe({
+        next: (res: any) => {
+          if (this.selectedConversation?.id !== conversationId) return;
+
+          this.loadingOlderMessages = false;
+          const apiMessages = res.success && Array.isArray(res.messages) ? res.messages : [];
+          this.hasOlderMessages = apiMessages.length >= this.messagesPageSize;
+          if (!apiMessages.length) return;
+
+          const existingIds = new Set(
+            this.messages
+              .map((message) => message.id)
+              .filter((id): id is number => typeof id === 'number')
+          );
+          const olderMessages = this.mapApiMessages(apiMessages)
+            .filter((message) => !message.id || !existingIds.has(message.id));
+
+          if (!olderMessages.length) {
+            this.hasOlderMessages = false;
+            return;
+          }
+
+          this.messages = [...olderMessages, ...this.messages];
+          this.preparePlayableAudio(olderMessages);
+
+          setTimeout(() => {
+            if (this.selectedConversation?.id !== conversationId) return;
+            const currentContainer = this.messagesContainer?.nativeElement as HTMLElement | undefined;
+            if (!currentContainer) return;
+            currentContainer.scrollTop =
+              currentContainer.scrollHeight - previousScrollHeight + previousScrollTop;
+          });
+        },
+        error: (error) => {
+          if (this.selectedConversation?.id !== conversationId) return;
+          console.warn('[Communication] Error loading older conversation messages:', error);
+          this.loadingOlderMessages = false;
+        }
+      });
+  }
+
+  private mapApiMessages(apiMessages: any[]): ChatMessage[] {
+    const msgMap = new Map<number, { text: string; from: string }>();
+    for (const msg of apiMessages) {
+      msgMap.set(msg.id, {
+        text: msg.content || '📎 Adjunto',
+        from: msg.from === 'incoming' ? 'incoming' : 'me',
+      });
+    }
+
+    return apiMessages.map((msg: any) => {
+      const mapped: ChatMessage = {
+        id: msg.id,
+        from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
+        text: msg.content,
+        transcription: msg.transcription,
+        parsedHtml: this.parseMessageContent(msg.content),
+        time: new Date(msg.created_at * 1000),
+        attachments: msg.attachments || [],
+        reaction: msg.reaction?.emoji
+          ? {
+              emoji: msg.reaction.emoji,
+              sender: msg.reaction.sender || 'Ester Assistant',
+              from: msg.reaction.from || 'me',
+            }
+          : undefined,
+      };
+
+      this.enrichWithAppUrls(mapped);
+      if (msg.reply_to?.id) {
+        mapped.replyTo = {
+          id: msg.reply_to.id,
+          text: this.getApiReplyPreviewText(msg.reply_to),
+          from: msg.reply_to.from === 'incoming' ? 'incoming' : 'me',
+          type: msg.reply_to.type,
+          attachments: msg.reply_to.attachments || [],
+        };
+      } else if (msg.in_reply_to && msgMap.has(msg.in_reply_to)) {
+        const ref = msgMap.get(msg.in_reply_to)!;
+        mapped.replyTo = { id: msg.in_reply_to, text: ref.text, from: ref.from };
+      }
+
+      return mapped;
     });
   }
 
@@ -3599,28 +3690,41 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       if (!this.selectedConversation) return;
       const conversationId = this.selectedConversation.id;
 
-      this.whatsappApi.getConversationMessages(conversationId).pipe(timeout(20000)).subscribe({
+      this.whatsappApi.getConversationMessages(conversationId, this.messagesPageSize).pipe(timeout(20000)).subscribe({
         next: (res: any) => {
           if (this.selectedConversation?.id !== conversationId) return;
           if (res.success && res.messages?.length) {
             const newestId = res.messages[res.messages.length - 1].id;
             if (newestId !== this.lastApiMessageId) {
-              // New messages detected — replace with latest from API
-              this.messages = res.messages.map((msg: any) => {
-                const mapped: ChatMessage = {
-                  id: msg.id,
-                  from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
-                  text: msg.content,
-                  transcription: msg.transcription,
-                  parsedHtml: this.parseMessageContent(msg.content),
-                  time: new Date(msg.created_at * 1000),
-                  attachments: msg.attachments || [],
-                };
-                return this.enrichWithAppUrls(mapped);
-              });
-              this.preparePlayableAudio(this.messages);
+              const shouldScrollToBottom = this.isNearBottom();
+              const latestMessages = this.mapApiMessages(res.messages);
+              const latestById = new Map(
+                latestMessages
+                  .filter((message): message is ChatMessage & { id: number } => typeof message.id === 'number')
+                  .map((message) => [message.id, message])
+              );
+
+              const retainedMessages = this.messages
+                .filter((message) => !this.isConfirmedOptimisticMessage(message, latestMessages))
+                .map((message) => {
+                  if (typeof message.id !== 'number') return message;
+                  return latestById.get(message.id) || message;
+                });
+              const retainedIds = new Set(
+                retainedMessages
+                  .map((message) => message.id)
+                  .filter((id): id is number => typeof id === 'number')
+              );
+              const newMessages = latestMessages.filter(
+                (message) => typeof message.id !== 'number' || !retainedIds.has(message.id)
+              );
+
+              this.messages = [...retainedMessages, ...newMessages];
+              this.preparePlayableAudio(newMessages);
               this.lastApiMessageId = newestId;
-              this.scrollToBottom();
+              if (shouldScrollToBottom) {
+                this.scrollToBottom();
+              }
             }
           }
         },
@@ -3629,6 +3733,20 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         }
       });
     }, this.POLL_INTERVAL);
+  }
+
+  private isConfirmedOptimisticMessage(message: ChatMessage, confirmedMessages: ChatMessage[]): boolean {
+    if (message.id || message.from !== 'me' || !message.text) return false;
+
+    const optimisticText = this.getCleanPreview(message.text).trim().toLowerCase();
+    if (!optimisticText) return false;
+
+    return confirmedMessages.some((confirmed) => {
+      if (!confirmed.id || confirmed.from !== 'me' || !confirmed.text) return false;
+      const confirmedText = this.getCleanPreview(confirmed.text).trim().toLowerCase();
+      return confirmedText === optimisticText &&
+        Math.abs(confirmed.time.getTime() - message.time.getTime()) < 5 * 60 * 1000;
+    });
   }
 
   private stopChatPolling(): void {
@@ -3641,6 +3759,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // ============================
   // UTILS
   // ============================
+
+  private isNearBottom(): boolean {
+    const container = this.messagesContainer?.nativeElement as HTMLElement | undefined;
+    if (!container) return true;
+    return container.scrollHeight - container.scrollTop - container.clientHeight < 140;
+  }
 
   private scrollToBottom(): void {
     setTimeout(() => {
@@ -3659,6 +3783,23 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   getInitials(name: string): string {
     const parts = name.split(' ');
     return parts.map(p => p[0] || '').slice(0, 2).join('').toUpperCase();
+  }
+
+  getUsableAvatarUrl(url?: string | null): string | null {
+    const normalizedUrl = String(url || '').trim();
+    return normalizedUrl && !this.failedAvatarUrls.has(normalizedUrl)
+      ? normalizedUrl
+      : null;
+  }
+
+  getSelectedConversationAvatarUrl(): string | null {
+    return this.getUsableAvatarUrl(this.gpsUser?.photo)
+      || this.getUsableAvatarUrl(this.selectedConversation?.contact?.avatar);
+  }
+
+  onAvatarImageError(url?: string | null): void {
+    const normalizedUrl = String(url || '').trim();
+    if (normalizedUrl) this.failedAvatarUrls.add(normalizedUrl);
   }
 
   getTimeAgo(timestamp: number | null): string {
@@ -3680,5 +3821,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.resetPlayableAudio();
     this.selectedConversation = null;
     this.messages = [];
+    this.loadingOlderMessages = false;
+    this.hasOlderMessages = true;
+    this.lastApiMessageId = null;
   }
 }
