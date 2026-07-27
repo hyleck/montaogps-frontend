@@ -174,10 +174,30 @@
                     [class.comm-message--system]="msg.from === 'system'"
                     [class.comm-message--has-reaction]="!!msg.reaction"
                     [class.comm-message--sticker-only]="isStickerOnlyMessage(msg)">
-                    <button *ngIf="msg.id && msg.from !== 'system'" class="comm-reply-btn"
-                        (click)="setReplyTo(msg)" title="Responder" aria-label="Responder este mensaje">
-                        <i class="pi pi-reply"></i>
-                    </button>
+                    <div *ngIf="msg.id && msg.from !== 'system'" class="comm-message__actions">
+                        <button class="comm-reaction-btn"
+                            [class.comm-reaction-btn--active]="reactionPickerMessageId === msg.id"
+                            [disabled]="reactingMessageId === msg.id"
+                            (click)="toggleReactionPicker(msg, $event)"
+                            title="Reaccionar" aria-label="Reaccionar a este mensaje">
+                            <i [class]="reactingMessageId === msg.id ? 'pi pi-spin pi-spinner' : 'pi pi-face-smile'"></i>
+                        </button>
+                        <div *ngIf="reactionPickerMessageId === msg.id"
+                            class="comm-reaction-picker"
+                            (click)="$event.stopPropagation()">
+                            <button *ngFor="let emoji of messageReactionOptions"
+                                type="button"
+                                [class.comm-reaction-picker__option--selected]="msg.reaction?.emoji === emoji"
+                                (click)="reactToMessage(msg, emoji, $event)"
+                                [attr.aria-label]="'Reaccionar con ' + emoji">
+                                {{ emoji }}
+                            </button>
+                        </div>
+                        <button class="comm-reply-btn"
+                            (click)="setReplyTo(msg)" title="Responder" aria-label="Responder este mensaje">
+                            <i class="pi pi-reply"></i>
+                        </button>
+                    </div>
                     <div class="comm-message__bubble">
                         <!-- Reply quote -->
                         <div *ngIf="msg.replyTo" class="comm-reply-quote"

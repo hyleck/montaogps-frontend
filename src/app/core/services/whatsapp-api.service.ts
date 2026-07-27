@@ -112,6 +112,14 @@ export class WhatsAppApiService {
         return this.http.post(`${this.apiUrl}/conversation-send`, body);
     }
 
+    reactToConversationMessage(conversationId: number, messageId: number, emoji: string): Observable<any> {
+        return this.http.post(`${this.apiUrl}/conversation-reaction`, {
+            conversation_id: conversationId,
+            message_id: messageId,
+            emoji,
+        });
+    }
+
     assignAgentToConversation(conversationId: number, agentId: string): Observable<any> {
         return this.http.post(`${this.apiUrl}/conversation-assign`, { conversation_id: conversationId, agent_id: agentId });
     }

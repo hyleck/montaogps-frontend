@@ -211,6 +211,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   chatInput: string = '';
   sendingMessage: boolean = false;
   replyingTo: ChatMessage | null = null;
+  readonly messageReactionOptions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+  reactionPickerMessageId: number | null = null;
+  reactingMessageId: number | null = null;
   stickers: WhatsAppSticker[] = [];
   loadingStickers: boolean = false;
   showStickerPicker: boolean = false;
@@ -1421,6 +1424,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
     this.messages = [];
     this.chatInput = '';
+    this.replyingTo = null;
+    this.reactionPickerMessageId = null;
     this.showContactInfo = false;
     this.gpsUser = null;
     this.loadMessages();
@@ -2791,8 +2796,61 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   setReplyTo(msg: ChatMessage): void {
     if (!msg.id) return;
     this.replyingTo = msg;
+    this.reactionPickerMessageId = null;
     this.showStickerPicker = false;
     this.refocusInput();
+  }
+
+  toggleReactionPicker(msg: ChatMessage, event: Event): void {
+    event.stopPropagation();
+    if (!msg.id || this.reactingMessageId === msg.id) return;
+    this.reactionPickerMessageId =
+      this.reactionPickerMessageId === msg.id ? null : msg.id;
+  }
+
+  reactToMessage(msg: ChatMessage, emoji: string, event: Event): void {
+    event.stopPropagation();
+    if (
+      !msg.id
+      || !this.selectedConversation
+      || this.reactingMessageId !== null
+    ) {
+      return;
+    }
+
+    const conversationId = this.selectedConversation.id;
+    this.reactionPickerMessageId = null;
+    this.reactingMessageId = msg.id;
+    this.whatsappApi
+      .reactToConversationMessage(conversationId, msg.id, emoji)
+      .pipe(finalize(() => this.reactingMessageId = null))
+      .subscribe({
+        next: (res: any) => {
+          if (!res?.success) {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'No se pudo reaccionar',
+              detail: res?.error || 'Inténtalo nuevamente',
+            });
+            return;
+          }
+          msg.reaction = {
+            emoji,
+            sender: this.currentUserName || 'Tú',
+            from: 'me',
+          };
+        },
+        error: (error: any) => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'No se pudo reaccionar',
+            detail:
+              error?.error?.message
+              || error?.error?.error
+              || 'Error de conexión',
+          });
+        },
+      });
   }
 
   cancelReply(): void {

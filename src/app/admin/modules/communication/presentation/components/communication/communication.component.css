@@ -2523,11 +2523,24 @@
     margin-bottom: 14px;
 }
 
-.comm-message:hover .comm-reply-btn {
+.comm-message:hover .comm-reply-btn,
+.comm-message:hover .comm-reaction-btn,
+.comm-message__actions:focus-within .comm-reply-btn,
+.comm-message__actions:focus-within .comm-reaction-btn {
     opacity: 1;
 }
 
-.comm-reply-btn {
+.comm-message__actions {
+    position: relative;
+    order: -1;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+.comm-reply-btn,
+.comm-reaction-btn {
     width: 28px;
     height: 28px;
     display: inline-flex;
@@ -2543,22 +2556,62 @@
     opacity: 0.45;
     transition: opacity 0.15s, color 0.15s, background 0.15s;
     flex-shrink: 0;
-    order: -1;
 }
 
-.comm-message--outgoing .comm-reply-btn {
-    order: -1;
-}
-
-.comm-reply-btn:hover {
+.comm-reply-btn:hover,
+.comm-reaction-btn:hover,
+.comm-reaction-btn--active {
     color: #ffffff;
     background: rgba(255, 255, 255, 0.12);
 }
 
-.comm-reply-btn:focus-visible {
+.comm-reply-btn:focus-visible,
+.comm-reaction-btn:focus-visible {
     opacity: 1;
     outline: 2px solid #34d399;
     outline-offset: 2px;
+}
+
+.comm-reply-btn:disabled,
+.comm-reaction-btn:disabled {
+    cursor: wait;
+}
+
+.comm-reaction-picker {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 7px);
+    z-index: 20;
+    display: flex;
+    gap: 2px;
+    padding: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: #25262a;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.comm-reaction-picker button {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.comm-reaction-picker button:hover,
+.comm-reaction-picker button:focus-visible,
+.comm-reaction-picker__option--selected {
+    background: rgba(255, 255, 255, 0.1) !important;
+    transform: scale(1.13);
+    outline: none;
 }
 
 /* Reply quote inside bubble */
@@ -3784,18 +3837,32 @@
 :host-context(.app-light) .comm-reply-quote--me { border-left-color: #dc2626; }
 :host-context(.app-light) .comm-reply-quote__label { color: #000000; }
 :host-context(.app-light) .comm-reply-quote__text { color: #64748b; }
-:host-context(.app-light) .comm-reply-btn {
+:host-context(.app-light) .comm-reply-btn,
+:host-context(.app-light) .comm-reaction-btn {
     background: rgba(15, 23, 42, 0.06);
     border-color: rgba(15, 23, 42, 0.08);
     color: #475569;
 }
-:host-context(.app-light) .comm-reply-btn:hover {
+:host-context(.app-light) .comm-reply-btn:hover,
+:host-context(.app-light) .comm-reaction-btn:hover,
+:host-context(.app-light) .comm-reaction-btn--active {
     background: rgba(15, 23, 42, 0.12);
     color: #0f172a;
 }
+:host-context(.app-light) .comm-reaction-picker {
+    border-color: #d7dde6;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+}
+:host-context(.app-light) .comm-reaction-picker button:hover,
+:host-context(.app-light) .comm-reaction-picker button:focus-visible,
+:host-context(.app-light) .comm-reaction-picker__option--selected {
+    background: #eef2f7 !important;
+}
 
 @media (hover: none) {
-    .comm-reply-btn {
+    .comm-reply-btn,
+    .comm-reaction-btn {
         opacity: 0.82;
     }
 }
