@@ -668,10 +668,10 @@
                                                     </div>
                                                     <button type="button" class="activation-btn"
                                                         [disabled]="activationRunning"
-                                                        (click)="target.activation_status?.completed ? resetActivation() : startActivation()">
+                                                        (click)="target.activation_status?.completed ? resetActivation() : (canResumeActivation ? resumeActivation() : startActivation())">
                                                         <i class="pi"
-                                                            [ngClass]="activationRunning ? 'pi-spin pi-spinner' : 'pi-bolt'"></i>
-                                                        {{ activationRunning ? 'Activando...' : (target.activation_status?.completed ? 'Reiniciar Activación' : 'Iniciar Activación') }}
+                                                            [ngClass]="activationRunning ? 'pi-spin pi-spinner' : (canResumeActivation ? 'pi-play' : 'pi-bolt')"></i>
+                                                        {{ activationRunning ? 'Activando...' : (target.activation_status?.completed ? 'Reiniciar Activación' : (canResumeActivation ? 'Reanudar Activación' : 'Iniciar Activación')) }}
                                                     </button>
                                                     <button type="button" class="activation-details-btn"
                                                         *ngIf="activationStarted || target.activation_status || activationLogs.length"
@@ -1386,6 +1386,12 @@
                                         (click)="cancelActivation()">
                                         <i class="pi pi-ban"></i>
                                         Cancelar activación
+                                    </button>
+                                    <button type="button" class="activation-btn"
+                                        *ngIf="canResumeActivation"
+                                        (click)="resumeActivation()">
+                                        <i class="pi pi-play"></i>
+                                        Reanudar activación
                                     </button>
                                     <button type="button" class="activation-btn"
                                         *ngIf="!activationRunning && target.activation_status?.completed"

@@ -655,6 +655,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return lastStep?.status === 'error' ? 'Con errores' : 'Exitosa';
     }
 
+    get canResumeActivation(): boolean {
+        return !!(
+            this.target?._id &&
+            this.target?.activation_status &&
+            !this.target.activation_status.completed &&
+            !this.target.activation_status.cancelled &&
+            !this.activationRunning
+        );
+    }
+
     private normalizeYesNoSelectValue(value: any): 'yes' | 'no' | '' {
         if (value === null || value === undefined) return '';
         if (value === true || value === 1) return 'yes';
@@ -687,6 +697,21 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // Immediately notify parent so the list shows a spinner
         this.activationEvent.emit({ targetId: this.target._id, type: 'started' });
         this.runActivation();
+    }
+
+    resumeActivation(): void {
+        if (!this.canResumeActivation) return;
+
+        this.activationStarted = true;
+        this.activationRunning = true;
+        this.activationError = '';
+        this.openActivationDetails();
+        this.activationEvent.emit({
+            targetId: this.target._id,
+            type: 'progress',
+            activation_status: this.target.activation_status
+        });
+        this.startPolling();
     }
 
     private activationPollingInterval: any;
@@ -1492,6 +1517,12 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     private async setupEditTarget(target: TargetDevice) {
         try {
+        if (this.activationPollingInterval) {
+            clearInterval(this.activationPollingInterval);
+            this.activationPollingInterval = null;
+        }
+        this.activationRunning = false;
+
         // Si el target tiene originalTarget, usar esos datos en su lugar
         let targetData = target;
         if ((target as any)['originalTarget']) {
@@ -1656,10 +1687,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 }));
             }
             
-            // Reanudar polling si la activación estaba en progreso (no cancelada)
+            // Una activación incompleta queda pausada al abrir el formulario.
+            // El seguimiento solo se reanuda mediante la acción explícita del usuario.
             if (!this.activationCompleted && !this.target.activation_status.cancelled && this.target._id) {
-                this.activationRunning = true;
-                this.startPolling();
+                this.activationRunning = false;
             }
             // Si fue cancelada, mostrar el estado cancelado
             if (this.target.activation_status.cancelled) {
