@@ -58,6 +58,7 @@ export class CommunicationNotificationService implements OnDestroy {
   private internalPollingSubscription?: Subscription;
   private authSubscription?: Subscription;
   private audio?: HTMLAudioElement;
+  private otherConversationAudio?: HTMLAudioElement;
   private internalAudio?: HTMLAudioElement;
   private initialized = false;
   private internalInitialized = false;
@@ -195,7 +196,8 @@ export class CommunicationNotificationService implements OnDestroy {
 
   private processConversations(conversations: WhatsAppConversationSummary[]): void {
     const nextState = new Map<number, ConversationNotificationState>();
-    let shouldPlay = false;
+    let shouldPlayAssignedToMe = false;
+    let shouldPlayOtherConversation = false;
     let totalPending = 0;
     let esterPending = 0;
 
@@ -230,7 +232,11 @@ export class CommunicationNotificationService implements OnDestroy {
       const isIncoming = this.isIncomingMessage(conversation);
 
       if (hasNewLastMessage && isIncoming) {
-        shouldPlay = true;
+        if (this.isAssignedToCurrentUser(conversation)) {
+          shouldPlayAssignedToMe = true;
+        } else {
+          shouldPlayOtherConversation = true;
+        }
         this.emitFloatingMessage(conversation);
         continue;
       }
@@ -241,12 +247,20 @@ export class CommunicationNotificationService implements OnDestroy {
         previousState.fingerprint !== fingerprint &&
         unreadCount >= previousState.unreadCount
       ) {
-        shouldPlay = true;
+        if (this.isAssignedToCurrentUser(conversation)) {
+          shouldPlayAssignedToMe = true;
+        } else {
+          shouldPlayOtherConversation = true;
+        }
         this.emitFloatingMessage(conversation);
       }
 
       if (unreadCount > 0 && !previousState) {
-        shouldPlay = true;
+        if (this.isAssignedToCurrentUser(conversation)) {
+          shouldPlayAssignedToMe = true;
+        } else {
+          shouldPlayOtherConversation = true;
+        }
         this.emitFloatingMessage(conversation);
       }
     }
@@ -261,7 +275,9 @@ export class CommunicationNotificationService implements OnDestroy {
       return;
     }
 
-    if (shouldPlay) {
+    if (shouldPlayOtherConversation) {
+      this.playOtherConversationNotificationSound();
+    } else if (shouldPlayAssignedToMe) {
       this.playNotificationSound();
     }
   }
@@ -374,6 +390,12 @@ export class CommunicationNotificationService implements OnDestroy {
       this.audio.load();
     }
 
+    if (!this.otherConversationAudio) {
+      this.otherConversationAudio = new Audio('/assets/other-conversation-notification.mp3');
+      this.otherConversationAudio.preload = 'auto';
+      this.otherConversationAudio.load();
+    }
+
     if (!this.internalAudio) {
       this.internalAudio = new Audio('/assets/internal-chat-notification.mp3');
       this.internalAudio.preload = 'auto';
@@ -387,6 +409,14 @@ export class CommunicationNotificationService implements OnDestroy {
 
     this.audio.currentTime = 0;
     this.audio.play().catch(() => undefined);
+  }
+
+  private playOtherConversationNotificationSound(): void {
+    this.prepareAudio();
+    if (!this.otherConversationAudio) return;
+
+    this.otherConversationAudio.currentTime = 0;
+    this.otherConversationAudio.play().catch(() => undefined);
   }
 
   private playInternalNotificationSound(): void {
@@ -414,6 +444,11 @@ export class CommunicationNotificationService implements OnDestroy {
   private isIncomingMessage(conversation: WhatsAppConversationSummary): boolean {
     const lastMessageType = conversation.last_message_type;
     return lastMessageType === undefined || lastMessageType === null || Number(lastMessageType) === 0;
+  }
+
+  private isAssignedToCurrentUser(conversation: WhatsAppConversationSummary): boolean {
+    const assigneeId = String(conversation.assignee_id || '').trim();
+    return Boolean(assigneeId && assigneeId === String(this.agentId || '').trim());
   }
 
   private emitInternalFloatingMessage(message: InternalChatMessage): void {
