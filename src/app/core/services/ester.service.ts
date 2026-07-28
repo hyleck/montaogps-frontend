@@ -9,6 +9,7 @@ export interface EsterKnowledgeEntry {
   category: string;
   content: string;
   active: boolean;
+  priority: boolean;
   media_type?: 'image' | 'video' | null;
   media_url?: string | null;
   media_name?: string | null;
@@ -23,6 +24,7 @@ export interface EsterKnowledgePayload {
   category?: string;
   content: string;
   active?: boolean;
+  priority?: boolean;
   media_type?: 'image' | 'video' | null;
   media_url?: string | null;
   media_name?: string | null;

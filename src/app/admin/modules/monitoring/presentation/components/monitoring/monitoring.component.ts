@@ -42,6 +42,22 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   showUserSearchModal: boolean = false;
   isFiltersDrawerVisible: boolean = false;
   protocols: any[] = [];
+  contactsDialogVisible: boolean = false;
+  selectedContactsDeviceName: string = '';
+  selectedDeviceContacts: string[] = [];
+  private filteredMonitoringDataCache: MonitorUserResponse['data'] = [];
+  private filteredMonitoringDataSource: MonitorUserResponse['data'] | null = null;
+  private filteredMonitoringDataSignature: string = '';
+  private filteredMonitoringRenewalsSource: Map<string, string> | null = null;
+  private monitoringSummaryStatsSource: any[] | null = null;
+  private monitoringSummaryStatsCache = {
+    totalUsers: 0,
+    totalDevices: 0,
+    activeDevices: 0,
+    activeValidOnlineDevices: 0,
+    activeValidOfflineDevices: 0,
+    totalExpiredDevices: 0
+  };
 
   // Filter options
   statusOptions: any[] = [
@@ -1560,12 +1576,23 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   // Getter to filter out users without devices and apply status/expiration filters
-  get filteredMonitoringData() {
-    if (!this.monitoringResult?.data) {
+  get filteredMonitoringData(): MonitorUserResponse['data'] {
+    const sourceData = this.monitoringResult?.data;
+    if (!sourceData) {
+      this.clearMonitoringViewCache();
       return [];
     }
 
-    return this.monitoringResult.data
+    const filterSignature = this.getMonitoringFilterSignature();
+    if (
+      this.filteredMonitoringDataSource === sourceData &&
+      this.filteredMonitoringDataSignature === filterSignature &&
+      this.filteredMonitoringRenewalsSource === this._renewedDeviceIds
+    ) {
+      return this.filteredMonitoringDataCache;
+    }
+
+    const filteredData = sourceData
       .map(userData => {
         // Filter devices based on selected filters
         let filteredDevices = (userData.devices || []).filter(device => !device.canceled);
@@ -1722,10 +1749,22 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         }
         return (userData.devices?.length ?? 0) > this._selectedAccountSizeFilter;
       });
+
+    this.filteredMonitoringDataSource = sourceData;
+    this.filteredMonitoringDataSignature = filterSignature;
+    this.filteredMonitoringRenewalsSource = this._renewedDeviceIds;
+    this.filteredMonitoringDataCache = filteredData;
+    this.monitoringSummaryStatsSource = null;
+
+    return filteredData;
   }
 
   get monitoringSummaryStats() {
     const data = this.filteredMonitoringData;
+    if (this.monitoringSummaryStatsSource === data) {
+      return this.monitoringSummaryStatsCache;
+    }
+
     let totalUsers = data.length;
     let totalDevices = 0;
     let activeDevices = 0;
@@ -1758,7 +1797,8 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       });
     });
 
-    return {
+    this.monitoringSummaryStatsSource = data;
+    this.monitoringSummaryStatsCache = {
       totalUsers,
       totalDevices,
       activeDevices,
@@ -1766,6 +1806,39 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       activeValidOfflineDevices,
       totalExpiredDevices
     };
+
+    return this.monitoringSummaryStatsCache;
+  }
+
+  private getMonitoringFilterSignature(): string {
+    return [
+      this._selectedStatusFilter,
+      this._selectedConnectionFilter,
+      this._selectedOfflineDurationFilter,
+      this._selectedExpirationFilter,
+      this._selectedAffiliationFilter,
+      this._selectedProfileFilter,
+      this._selectedProtocolFilter,
+      this._selectedSimCompanyFilter,
+      this._selectedSimStatusFilter,
+      this._selectedActivationFilter,
+      this._selectedAccountSizeFilter ?? '',
+      this._expirationFromDate?.getTime() ?? '',
+      this._expirationToDate?.getTime() ?? '',
+      this._activationFromDate?.getTime() ?? '',
+      this._activationToDate?.getTime() ?? '',
+      this.customOfflineTimeValue ?? '',
+      this.customOfflineTimeUnit,
+      this._includeRenewed
+    ].join('|');
+  }
+
+  private clearMonitoringViewCache(): void {
+    this.filteredMonitoringDataCache = [];
+    this.filteredMonitoringDataSource = null;
+    this.filteredMonitoringDataSignature = '';
+    this.filteredMonitoringRenewalsSource = null;
+    this.monitoringSummaryStatsSource = null;
   }
 
   formatExpirationDate(expirationDate: Date | string): string {
@@ -1843,6 +1916,67 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       month: 'short',
       day: 'numeric'
     });
+  }
+
+  openDeviceContacts(device: any): void {
+    this.selectedContactsDeviceName =
+      String(device?.name || device?.target_plate_number || device?.device_imei || 'GPS').trim();
+    this.selectedDeviceContacts = this.parseDeviceContacts(device?.contacts);
+    this.contactsDialogVisible = true;
+  }
+
+  closeDeviceContacts(): void {
+    this.contactsDialogVisible = false;
+    this.selectedContactsDeviceName = '';
+    this.selectedDeviceContacts = [];
+  }
+
+  private parseDeviceContacts(contacts: unknown): string[] {
+    if (contacts === null || contacts === undefined || contacts === '') {
+      return [];
+    }
+
+    let values: unknown[] = Array.isArray(contacts) ? contacts : [contacts];
+
+    if (typeof contacts === 'string') {
+      const trimmedContacts = contacts.trim();
+
+      if (trimmedContacts.startsWith('[')) {
+        try {
+          const parsedContacts = JSON.parse(trimmedContacts);
+          values = Array.isArray(parsedContacts) ? parsedContacts : [parsedContacts];
+        } catch {
+          values = trimmedContacts.split(/[,;\n]+/);
+        }
+      } else {
+        values = trimmedContacts.split(/[,;\n]+/);
+      }
+    }
+
+    return Array.from(new Set(
+      values
+        .map((contact) => {
+          if (contact && typeof contact === 'object') {
+            const contactRecord = contact as Record<string, unknown>;
+            const name = String(contactRecord['name'] || '').trim();
+            const phone = String(
+              contactRecord['phone'] ||
+              contactRecord['phone_number'] ||
+              contactRecord['number'] ||
+              ''
+            ).trim();
+
+            if (name && phone) {
+              return `${name}: ${phone}`;
+            }
+
+            return name || phone;
+          }
+
+          return String(contact ?? '').trim();
+        })
+        .filter((contact) => contact.length > 0)
+    ));
   }
 
   isExpired(expirationDate: Date | string): boolean {
@@ -2437,6 +2571,10 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   trackByUser(index: number, userData: any): any {
     // Use the first route item's id as unique identifier, fallback to index
     return userData.route && userData.route.length > 0 ? userData.route[0].id : index;
+  }
+
+  trackByDevice(index: number, device: any): string | number {
+    return device?._id || device?.device_imei || index;
   }
 
   hasNoAssistance(userData: { route?: Array<{ no_assistance?: boolean }> }): boolean {

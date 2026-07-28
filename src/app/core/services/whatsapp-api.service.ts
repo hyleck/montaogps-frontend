@@ -75,6 +75,24 @@ export class WhatsAppApiService {
         });
     }
 
+    updateConversationPresence(
+        conversationId: number,
+        active: boolean,
+        typing: boolean,
+    ): Observable<any> {
+        return this.http.post(`${this.apiUrl}/conversation-presence`, {
+            conversation_id: conversationId,
+            active,
+            typing,
+        });
+    }
+
+    getConversationPresence(conversationId: number): Observable<any> {
+        return this.http.get(`${this.apiUrl}/conversation-presence`, {
+            params: { conversation_id: conversationId.toString() },
+        });
+    }
+
     getPlayableAudioUrl(mediaUrl: string): string {
         const normalizedUrl = String(mediaUrl || '').trim();
         return normalizedUrl

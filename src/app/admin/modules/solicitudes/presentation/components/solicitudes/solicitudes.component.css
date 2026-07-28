@@ -1738,6 +1738,41 @@ app-solicitudes > .management__route {
     color: var(--text-color-secondary);
 }
 
+.sol-mixed-process-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin: 0.65rem 0;
+}
+
+.sol-mixed-process-fields label {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.sol-mixed-process-fields label > span {
+    color: var(--text-color-secondary);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.sol-mixed-process-fields select {
+    width: 100%;
+    min-width: 0;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--surface-border);
+    border-radius: 7px;
+    background: var(--surface-card);
+    color: var(--text-color);
+}
+
+@media (max-width: 560px) {
+    .sol-mixed-process-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
 .sol-install-card-arrow {
     color: var(--text-color-secondary);
 }

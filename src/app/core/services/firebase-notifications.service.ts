@@ -48,7 +48,11 @@ export class FirebaseNotificationsService {
   private messaging: Messaging | null = null;
   private initialized = false;
   private subscribedTopic: string | null = null;
-  public chatTransferReceived$ = new Subject<{ conversationId?: string, summary?: string }>();
+  public chatTransferReceived$ = new Subject<{
+    conversationId?: string;
+    summary?: string;
+    targetAgentId?: string;
+  }>();
   public publicRegistrationCompleted$ = new Subject<PublicRegistrationNotification>();
 
   constructor(
@@ -167,6 +171,19 @@ export class FirebaseNotificationsService {
         payload.data?.['body'] ||
         payload.notification?.body ||
         '';
+      const notificationType = String(payload.data?.['type'] || '').trim();
+      const targetAgentId = String(
+        payload.data?.['targetAgentId']
+        || payload.data?.['agentId']
+        || '',
+      ).trim();
+
+      if (
+        notificationType === 'chat_transfer'
+        && (!targetAgentId || !this.isNotificationForCurrentUser(targetAgentId))
+      ) {
+        return;
+      }
 
       if (registration) {
         await registration.showNotification(title, {
@@ -185,10 +202,16 @@ export class FirebaseNotificationsService {
       // Emitir Subject de Transferencia Global si aplica
       if (payload.data?.['tab'] === 'chat') {
         const titleMatch = title.toLowerCase().includes('transferi');
-        if (titleMatch || payload.data?.['conversationId']) {
+        const isTransfer = notificationType === 'chat_transfer' || titleMatch;
+        if (
+          isTransfer
+          && targetAgentId
+          && this.isNotificationForCurrentUser(targetAgentId)
+        ) {
           this.chatTransferReceived$.next({ 
             conversationId: payload.data?.['conversationId'],
-            summary: payload.data?.['summary']
+            summary: payload.data?.['summary'],
+            targetAgentId,
           });
         }
       }
@@ -214,6 +237,19 @@ export class FirebaseNotificationsService {
     } catch (error) {
       console.error('Error mostrando notificación en primer plano', error);
     }
+  }
+
+  private isNotificationForCurrentUser(targetAgentId: string): boolean {
+    const currentUser = this.authService.getCurrentUser() as any;
+    if (!currentUser) return false;
+
+    const normalizedTarget = String(targetAgentId || '').trim();
+    if (!normalizedTarget) return false;
+
+    return [currentUser.id, currentUser._id]
+      .map(value => String(value || '').trim())
+      .filter(Boolean)
+      .includes(normalizedTarget);
   }
 
   sendMassNotification(data: { title: string; body: string; data?: Record<string, string>; profileTypes?: string[]; affiliationTypes?: string[]; companyTypes?: string[]; }) {

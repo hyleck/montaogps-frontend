@@ -642,6 +642,8 @@
   border-radius: 8px;
   border: 1px solid var(--monitoringDevicesSectionBorder);
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 620px;
 }
 
 /* Breadcrumbs Styles */
@@ -739,6 +741,181 @@
 
 .devices-content ::ng-deep .p-datatable .p-datatable-tbody>tr:hover {
   background-color: var(--monitoringDevicesCardBackground);
+}
+
+.contacts-table-cell {
+  text-align: center;
+}
+
+.monitoring-contacts-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 30px;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--monitoringPathLevelBackground, #007bff);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--monitoringPathLevelBackground, #007bff);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.monitoring-contacts-button:hover {
+  background: var(--monitoringPathLevelBackground, #007bff);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.monitoring-contacts-button:focus-visible {
+  outline: 2px solid var(--monitoringPathLevelBackground, #007bff);
+  outline-offset: 2px;
+}
+
+.contacts-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--monitoringDevicesSectionBorder);
+}
+
+.contacts-dialog-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.contacts-dialog-header strong {
+  color: var(--monitoringSectionTitleText);
+  font-size: 1.05rem;
+}
+
+.contacts-dialog-header small {
+  overflow: hidden;
+  color: var(--monitoringDevicesImeiText, #6c757d);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contacts-dialog-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border-radius: 12px;
+  background: var(--monitoringPathLevelBackground, #007bff);
+  color: #fff;
+}
+
+.contacts-dialog-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--monitoringDevicesImeiText, #6c757d);
+  cursor: pointer;
+}
+
+.contacts-dialog-close:hover {
+  background: var(--monitoringDevicesTypeBackground, #e9ecef);
+}
+
+.monitoring-contacts-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.52);
+}
+
+.monitoring-contacts-dialog {
+  width: min(480px, 92vw);
+  max-height: min(620px, 86vh);
+  overflow: hidden;
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 14px;
+  background: var(--monitoringDevicesSectionBackground);
+  color: var(--monitoringSectionTitleText);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+.contacts-dialog-body {
+  max-height: calc(min(620px, 86vh) - 75px);
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.contacts-dialog-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.contacts-dialog-item {
+  display: grid;
+  grid-template-columns: 28px 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.8rem;
+  border: 1px solid var(--monitoringDevicesSectionBorder);
+  border-radius: 10px;
+  background: var(--monitoringDevicesCardBackground);
+  color: var(--monitoringSectionTitleText);
+  overflow-wrap: anywhere;
+}
+
+.contact-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--monitoringDevicesTypeBackground, #e9ecef);
+  color: var(--monitoringSectionTitleText);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.contacts-dialog-item > i {
+  color: var(--monitoringPathLevelBackground, #007bff);
+}
+
+.contacts-dialog-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 2rem 1rem;
+  color: var(--monitoringDevicesImeiText, #6c757d);
+  text-align: center;
+}
+
+.contacts-dialog-empty > i {
+  margin-bottom: 0.3rem;
+  color: var(--monitoringPathLevelBackground, #007bff);
+  font-size: 2rem;
+}
+
+.contacts-dialog-empty strong {
+  color: var(--monitoringSectionTitleText);
 }
 
 .devices-content ::ng-deep .p-paginator {

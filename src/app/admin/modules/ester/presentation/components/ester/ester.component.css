@@ -311,8 +311,24 @@
   opacity: 0.68;
 }
 
+.knowledge-card--priority {
+  border-color: rgba(245, 158, 11, 0.56);
+  background:
+    linear-gradient(145deg, rgba(245, 158, 11, 0.09), transparent 58%),
+    var(--globalColorBackground, #202127);
+}
+
+.knowledge-card__badges {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+}
+
 .knowledge-card__category,
-.knowledge-card__status {
+.knowledge-card__status,
+.knowledge-card__priority {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -321,7 +337,7 @@
 }
 
 .knowledge-card__category {
-  max-width: 65%;
+  max-width: 100%;
   padding: 6px 9px;
   border-radius: 999px;
   overflow: hidden;
@@ -331,7 +347,16 @@
   background: rgba(124, 58, 237, 0.11);
 }
 
+.knowledge-card__priority {
+  flex: 0 0 auto;
+  padding: 6px 9px;
+  border-radius: 999px;
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.16);
+}
+
 .knowledge-card__status {
+  flex: 0 0 auto;
   color: #18a66f;
 }
 
@@ -943,6 +968,19 @@
 .ester-editor__toggle small {
   color: var(--globalColorTextLight, #9ca3af);
   font-weight: 400;
+}
+
+.ester-editor__toggle--priority {
+  border-color: rgba(245, 158, 11, 0.42);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.ester-editor__toggle--priority input {
+  accent-color: #f59e0b;
+}
+
+.ester-editor__toggle--priority strong {
+  color: #d97706;
 }
 
 .ester-editor__actions {

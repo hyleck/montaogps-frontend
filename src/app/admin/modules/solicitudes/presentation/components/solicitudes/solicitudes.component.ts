@@ -2,7 +2,7 @@ import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
-import { SolicitudesService, Solicitud, VapiCallDetails } from '../../../../../../core/services/solicitudes.service';
+import { InstallationDetail, SolicitudesService, Solicitud, VapiCallDetails } from '../../../../../../core/services/solicitudes.service';
 import { VehicleBrandsService } from '../../../../../../core/services/vehicle-brands.service';
 import { ColorsService } from '../../../../../../core/services/colors.service';
 import { UserLatestLocation, UserService } from '../../../../../../core/services/user.service';
@@ -349,8 +349,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         { label: 'Reinstalación', value: 'reinstalacion' },
         { label: 'Desinstalación', value: 'desinstalacion' },
         { label: 'Chequeo', value: 'chequeo' },
-        { label: 'Cambio de GPS', value: 'cambio' }
+        { label: 'Cambio de GPS', value: 'cambio' },
+        { label: 'Mixta', value: 'mixta' }
     ];
+    readonly mixedProcessOptions = this.typeOptions.filter(option =>
+        ['instalacion', 'reinstalacion', 'desinstalacion', 'chequeo', 'cambio'].includes(option.value)
+    );
     readonly deinstallationReasons = DEVICE_CANCELLATION_REASONS;
 
     getEntityName(plural: boolean = false): string {
@@ -359,6 +363,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         if (t === 'reinstalacion') return plural ? 'Reinstalaciones' : 'Reinstalación';
         if (t === 'desinstalacion') return plural ? 'Desinstalaciones' : 'Desinstalación';
         if (t === 'cambio') return plural ? 'Cambios' : 'Cambio';
+        if (t === 'mixta') return plural ? 'Procesos' : 'Proceso';
         if (t === 'otro') return plural ? 'Procesos' : 'Proceso';
         return plural ? 'Instalaciones' : 'Instalación';
     }
@@ -380,6 +385,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         chequeo: 'Chequeo',
         cambio: 'Cambio',
         desinstalacion: 'Desinstalación',
+        mixta: 'Mixta',
         otro: 'Otro'
     };
 
@@ -814,6 +820,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         if (this.selectedSolicitud.type !== 'desinstalacion') {
             this.selectedSolicitud.deinstallation_reason = undefined;
         }
+        if (this.selectedSolicitud.type === 'mixta') {
+            this.selectedSolicitud.installations?.forEach(installation => {
+                installation.process_type ||= 'instalacion';
+            });
+        }
         this.deinstallationReasonError = false;
         this.onQuantityChange();
 
@@ -831,17 +842,86 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     get completionDeinstallationReasonLabel(): string {
-        if (this.completionSolicitud?.type !== 'desinstalacion') return '';
-        return this.getDeinstallationReasonLabel(this.completionSolicitud.deinstallation_reason);
+        if (!this.completionSolicitud) return '';
+        if (this.completionSolicitud.type === 'desinstalacion') {
+            return this.getDeinstallationReasonLabel(this.completionSolicitud.deinstallation_reason);
+        }
+        if (this.completionSolicitud.type !== 'mixta') return '';
+
+        const labels = (this.completionSolicitud.installations || [])
+            .filter(installation => this.getProcessTypeForSolicitud(this.completionSolicitud!, installation) === 'desinstalacion')
+            .map(installation => this.getDeinstallationReasonLabel(installation.deinstallation_reason))
+            .filter(Boolean);
+        return [...new Set(labels)].join(', ');
     }
 
     private hasValidDeinstallationReason(solicitud: Solicitud): boolean {
-        const selectedReason = String(solicitud.deinstallation_reason || '').trim();
-        return this.deinstallationReasons.some(reason => reason.value === selectedReason);
+        if (solicitud.type === 'desinstalacion') {
+            const selectedReason = String(solicitud.deinstallation_reason || '').trim();
+            return this.deinstallationReasons.some(reason => reason.value === selectedReason);
+        }
+        if (solicitud.type !== 'mixta') return true;
+
+        return (solicitud.installations || []).every(installation => {
+            if (this.getProcessTypeForSolicitud(solicitud, installation) !== 'desinstalacion') {
+                return true;
+            }
+            const selectedReason = String(installation.deinstallation_reason || '').trim();
+            return this.deinstallationReasons.some(reason => reason.value === selectedReason);
+        });
     }
 
     isDeviceRequiredForSolicitud(): boolean {
-        return ['chequeo', 'desinstalacion', 'cambio'].includes(this.selectedSolicitud?.type || '');
+        if (!this.selectedSolicitud) return false;
+        return (this.selectedSolicitud.installations || []).some(installation =>
+            this.isDeviceRequiredForProcess(this.getProcessTypeForSolicitud(this.selectedSolicitud!, installation))
+        );
+    }
+
+    getProcessTypeForSolicitud(
+        solicitud: Solicitud,
+        installation?: InstallationDetail | null,
+    ): string {
+        if (solicitud.type !== 'mixta') return solicitud.type;
+        return installation?.process_type || 'instalacion';
+    }
+
+    getInstallationProcessType(installation?: InstallationDetail | null): string {
+        if (!this.selectedSolicitud) return 'instalacion';
+        return this.getProcessTypeForSolicitud(this.selectedSolicitud, installation);
+    }
+
+    getKanbanProcessLabel(
+        solicitud: Solicitud,
+        installation: InstallationDetail,
+        index: number,
+    ): string {
+        if (solicitud.type !== 'mixta') {
+            return installation.plate || `Vehículo #${index + 1}`;
+        }
+        const processType = this.getProcessTypeForSolicitud(solicitud, installation);
+        return `${this.typeLabels[processType] || 'Proceso'} #${index + 1}`;
+    }
+
+    getCurrentInstallationProcessType(): string {
+        const installation = this.selectedSolicitud?.installations?.[this.editingInstallationIndex];
+        return this.getInstallationProcessType(installation);
+    }
+
+    getInstallationEntityName(installation?: InstallationDetail | null): string {
+        const type = this.getInstallationProcessType(installation);
+        return this.typeLabels[type] || 'Proceso';
+    }
+
+    onInstallationProcessTypeChange(installation: InstallationDetail): void {
+        if (installation.process_type !== 'desinstalacion') {
+            installation.deinstallation_reason = undefined;
+        }
+        this.deinstallationReasonError = false;
+    }
+
+    private isDeviceRequiredForProcess(type: string): boolean {
+        return ['chequeo', 'desinstalacion', 'cambio'].includes(type);
     }
 
     isSelectedSolicitudFinalized(): boolean {
@@ -876,7 +956,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
         
         while (this.selectedSolicitud.installations.length < qty) {
-            this.selectedSolicitud.installations.push({});
+            this.selectedSolicitud.installations.push(
+                this.selectedSolicitud.type === 'mixta'
+                    ? { process_type: 'instalacion' }
+                    : {}
+            );
         }
         if (this.selectedSolicitud.installations.length > qty) {
             this.selectedSolicitud.installations = this.selectedSolicitud.installations.slice(0, qty);
@@ -2129,7 +2213,22 @@ async initLocationMap(): Promise<void> {
         }
 
         if (
-            this.selectedSolicitud.type === 'desinstalacion'
+            this.selectedSolicitud.type === 'mixta'
+            && this.selectedSolicitud.installations?.some(installation =>
+                !this.mixedProcessOptions.some(option => option.value === installation.process_type)
+            )
+        ) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Tipo requerido',
+                detail: 'Debe seleccionar el tipo de cada proceso de la solicitud mixta.'
+            });
+            this.showInstallationsCards = true;
+            return;
+        }
+
+        if (
+            ['desinstalacion', 'mixta'].includes(this.selectedSolicitud.type)
             && !this.hasValidDeinstallationReason(this.selectedSolicitud)
         ) {
             this.deinstallationReasonError = true;
@@ -2144,7 +2243,10 @@ async initLocationMap(): Promise<void> {
 
         // Chequeos y desinstalaciones necesitan identificar el dispositivo.
         if (this.isDeviceRequiredForSolicitud()) {
-            const hasMissingDevice = this.selectedSolicitud.installations?.some(inst => !inst.device_imei || inst.device_imei.trim() === '');
+            const hasMissingDevice = this.selectedSolicitud.installations?.some(inst =>
+                this.isDeviceRequiredForProcess(this.getInstallationProcessType(inst))
+                && (!inst.device_imei || inst.device_imei.trim() === '')
+            );
             if (hasMissingDevice) {
                 this.messageService.add({
                     severity: 'error',
@@ -2248,7 +2350,18 @@ async initLocationMap(): Promise<void> {
     }
 
     private async shouldWarnMissingClientOnSave(): Promise<boolean> {
-        if (!this.selectedSolicitud || this.selectedSolicitud.type !== 'instalacion') return false;
+        if (
+            !this.selectedSolicitud
+            || (
+                this.selectedSolicitud.type !== 'instalacion'
+                && !(
+                    this.selectedSolicitud.type === 'mixta'
+                    && this.selectedSolicitud.installations?.some(
+                        installation => this.getInstallationProcessType(installation) === 'instalacion'
+                    )
+                )
+            )
+        ) return false;
 
         const hasClientLookupData = !!String(this.selectedSolicitud.client_email || '').trim()
             || !!String(this.selectedSolicitud.client_phone || '').trim();
@@ -2355,7 +2468,10 @@ async initLocationMap(): Promise<void> {
     }
 
     private confirmSolicitudCompletion(solicitud: Solicitud, accept: () => void): void {
-        if (solicitud.type === 'desinstalacion' && !this.hasValidDeinstallationReason(solicitud)) {
+        if (
+            ['desinstalacion', 'mixta'].includes(solicitud.type)
+            && !this.hasValidDeinstallationReason(solicitud)
+        ) {
             this.deinstallationReasonError = true;
             this.messageService.add({
                 severity: 'warn',

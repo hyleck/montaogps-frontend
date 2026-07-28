@@ -17,6 +17,10 @@ import { InternalChatAttachment, InternalChatMessage, InternalChatService } from
 import { MessageService, MenuItem } from 'primeng/api';
 import { environment } from '../../../../../../../environments/environment';
 import { finalize, Subscription, timeout } from 'rxjs';
+import {
+  buildAgentSignatureLabel,
+  compactAgentSignatureLabel,
+} from './agent-signature';
 
 interface ChatConversation {
   id: number;
@@ -39,6 +43,8 @@ interface ChatConversation {
   assignee_email?: string;
   assignee_avatar?: string;
   contact_last_seen_at?: number | null;
+  assignee_online?: boolean;
+  assignee_typing?: boolean;
 }
 
 interface ChatMessage {
@@ -287,8 +293,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private conversationsPollingInterval: any = null;
   private internalChatPollingInterval: any = null;
   private activeEmployeesPollingInterval: any = null;
+  private conversationPresenceHeartbeatInterval: any = null;
+  private conversationPresencePollingInterval: any = null;
+  private conversationTypingIdleTimer: any = null;
   private readonly POLL_INTERVAL = 5000;
   private readonly ACTIVE_EMPLOYEES_POLL_INTERVAL = 30000;
+  private readonly CONVERSATION_PRESENCE_HEARTBEAT_MS = 4000;
+  private readonly CONVERSATION_PRESENCE_POLL_MS = 2000;
+  private readonly CONVERSATION_TYPING_IDLE_MS = 2200;
 
   // User inbox
   private userInboxId: number | undefined;
@@ -303,6 +315,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private playableAudioUrls = new Map<string, string>();
   private playableAudioLoading = new Set<string>();
   private playableAudioErrors = new Set<string>();
+  private presenceConversationId: number | null = null;
+  private conversationTypingActive = false;
+  private presenceOwnedByCurrentUser = false;
+  private lastTypingSignalAt = 0;
 
   constructor(
     private whatsappApi: WhatsAppApiService,
@@ -408,6 +424,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.stopConversationPresenceSession();
     this.stopChatPolling();
     this.stopConversationsPolling();
     this.stopInternalChatPolling();
@@ -474,11 +491,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
     this.activeTab = tab;
     if (tab === 'grupo') {
+      this.stopConversationPresenceSession();
       this.stopChatPolling();
       this.loadInternalChat();
     } else {
       this.stopInternalChatPolling();
       this.stopActiveEmployeesPolling();
+      if (this.selectedConversation) {
+        this.startConversationPresenceSession();
+      }
     }
     this.router.navigate(['/admin/communication', tab]);
   }
@@ -1017,7 +1038,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // ============================
   
   openTransferModal(): void {
-    if (!this.selectedConversation) return;
+    if (!this.isConversationAssignedToMe()) return;
     this.showTransferModal = true;
     this.selectedTransferAgentId = null;
     this.isTransferring = false;
@@ -1078,7 +1099,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   selectTransferAgent(agent: any): void {
-    if (this.isTransferring) return;
+    if (this.isTransferring || !this.isConversationAssignedToMe()) return;
 
     const agentId = this.getTransferAgentId(agent);
     if (!agentId) return;
@@ -1088,7 +1109,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   selectEsterForTransfer(): void {
-    if (this.isTransferring || !this.selectedConversation?.assignee_id) return;
+    if (this.isTransferring || !this.isConversationAssignedToMe()) return;
 
     this.selectedTransferAgentId = this.esterTransferAgentId;
     this.confirmTransfer();
@@ -1106,7 +1127,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   confirmTransfer(): void {
-    if (!this.selectedConversation || !this.selectedTransferAgentId) return;
+    if (
+      !this.selectedConversation
+      || !this.isConversationAssignedToMe(this.selectedConversation)
+      || !this.selectedTransferAgentId
+    ) return;
     
     this.isTransferring = true;
     const conversationId = this.selectedConversation.id;
@@ -1141,7 +1166,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             topic: topic,
             title: 'Nueva Conversación Transferida',
             body: `Se te ha transferido el chat de ${contactName}.`,
-            data: { tab: 'chat', conversationId: conversationId.toString() },
+            data: {
+              type: 'chat_transfer',
+              tab: 'chat',
+              conversationId: conversationId.toString(),
+              targetAgentId,
+              sourceAgentId: this.whatsappAgentId || this.currentUserId,
+            },
           }).subscribe({
             error: (err) => console.error('Error enviando push de transferencia', err)
           });
@@ -1405,6 +1436,29 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return (conv.assignee_name || conv.assignee_email || `Agente ${conv.assignee_id}`).trim();
   }
 
+  isConversationAssignedToMe(
+    conv: ChatConversation | null = this.selectedConversation,
+  ): boolean {
+    const assigneeId = String(conv?.assignee_id || '').trim();
+    if (!assigneeId) return false;
+
+    return [this.whatsappAgentId, this.currentUserId]
+      .map(id => String(id || '').trim())
+      .filter(Boolean)
+      .includes(assigneeId);
+  }
+
+  getConversationManagerLabel(
+    conv: ChatConversation | null = this.selectedConversation,
+  ): string {
+    if (!conv?.assignee_id) return 'Ester Assistant';
+    return String(
+      conv.assignee_name
+      || conv.assignee_email
+      || 'otro empleado',
+    ).trim();
+  }
+
   private sortConversations(conversations: ChatConversation[]): ChatConversation[] {
     return [...conversations].sort((a, b) => {
       const aTime = Number(a.last_message_time || a.contact_last_seen_at || 0);
@@ -1420,6 +1474,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   selectConversation(conv: ChatConversation, navigate: boolean = true): void {
+    this.stopConversationPresenceSession();
     this.stopChatPolling();
     conv.unread_count = 0; // Clear indicator instantly mimicking visual read receipts
     this.resetPlayableAudio();
@@ -1436,6 +1491,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.reactionPickerMessageId = null;
     this.showContactInfo = false;
     this.gpsUser = null;
+    this.startConversationPresenceSession();
     this.loadMessages();
     this.loadGpsUser(conv.contact.phone);
     if (navigate) {
@@ -2212,8 +2268,24 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             const newConvs = this.sortConversations(res.conversations || []);
             const newFingerprint = this.getConversationsFingerprint(newConvs);
             if (newFingerprint !== this.conversationsFingerprint) {
+              const wasAssignedToMe = this.isConversationAssignedToMe();
               this.conversations = newConvs;
               this.conversationsFingerprint = newFingerprint;
+              if (this.selectedConversation) {
+                const refreshedConversation = newConvs.find(
+                  conversation => conversation.id === this.selectedConversation?.id,
+                );
+                if (refreshedConversation) {
+                  this.selectedConversation = refreshedConversation;
+                  if (wasAssignedToMe && !this.isConversationAssignedToMe(refreshedConversation)) {
+                    this.replyingTo = null;
+                    this.showStickerPicker = false;
+                    if (this.recordingVoice && this.recordingVoiceContext === 'chat') {
+                      this.cancelVoiceRecording();
+                    }
+                  }
+                }
+              }
               this.filterConversations();
             }
           }
@@ -2223,7 +2295,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private getConversationsFingerprint(convs: ChatConversation[]): string {
-    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.unread_count}:${c.assignee_id || ''}:${c.assignee_name || ''}`).join('|');
+    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.unread_count}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}`).join('|');
   }
 
   private stopConversationsPolling(): void {
@@ -2243,8 +2315,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   private getAgentSignature(): string {
     const department = this.normalizeAgentDepartment(this.currentUserDepartment);
-    const deptStr = department ? ` - ${department}` : '';
-    return `> ${this.currentUserName}${deptStr}`;
+    return `> ${buildAgentSignatureLabel(this.currentUserName, department)}`;
   }
 
   // ============================
@@ -2574,7 +2645,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     // Match signature that might or might not have a body
     const match = parsedText.match(/^>\s*([^\n]+)(?:\n([\s\S]*))?$/);
     if (match) {
-        const sig = match[1].trim();
+        const sig = compactAgentSignatureLabel(match[1]);
         const body = (match[2] || '').trim().replace(/\n/g, '<br/>');
         return `<div class="comm-msg-sig"><i class="pi pi-user comm-msg-sig-icon"></i> <span>${sig}</span></div>` +
                (body ? `<div class="comm-msg-body">${body}</div>` : '');
@@ -2828,7 +2899,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   sendMessage(): void {
-    if (!this.chatInput.trim() || !this.selectedConversation || this.sendingMessage) return;
+    if (
+      !this.chatInput.trim()
+      || !this.selectedConversation
+      || !this.isConversationAssignedToMe(this.selectedConversation)
+      || this.sendingMessage
+    ) return;
 
     const text = this.chatInput.trim();
     const replyMsg = this.replyingTo;
@@ -2848,6 +2924,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const finalApiText = `${this.getAgentSignature()}\n${text}`;
 
     this.chatInput = '';
+    this.stopConversationTyping();
     this.replyingTo = null;
     this.sendingMessage = true;
     this.scrollToBottom();
@@ -2885,7 +2962,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   setReplyTo(msg: ChatMessage): void {
-    if (!msg.id) return;
+    if (!msg.id || !this.isConversationAssignedToMe()) return;
     this.replyingTo = msg;
     this.reactionPickerMessageId = null;
     this.showStickerPicker = false;
@@ -2894,7 +2971,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   toggleReactionPicker(msg: ChatMessage, event: Event): void {
     event.stopPropagation();
-    if (!msg.id || this.reactingMessageId === msg.id) return;
+    if (
+      !msg.id
+      || !this.isConversationAssignedToMe()
+      || this.reactingMessageId === msg.id
+    ) return;
     this.reactionPickerMessageId =
       this.reactionPickerMessageId === msg.id ? null : msg.id;
   }
@@ -2904,6 +2985,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (
       !msg.id
       || !this.selectedConversation
+      || !this.isConversationAssignedToMe(this.selectedConversation)
       || this.reactingMessageId !== null
     ) {
       return;
@@ -3207,7 +3289,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!this.selectedConversation?.contact?.phone || !sticker?.id || this.sendingStickerId) return;
+    if (
+      !this.isConversationAssignedToMe()
+      || !this.selectedConversation?.contact?.phone
+      || !sticker?.id
+      || this.sendingStickerId
+    ) return;
 
     const replyMsg = this.replyingTo;
     this.replyingTo = null;
@@ -3321,7 +3408,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    if (!input.files?.length || !this.selectedConversation) return;
+    if (
+      !input.files?.length
+      || !this.selectedConversation
+      || !this.isConversationAssignedToMe(this.selectedConversation)
+    ) return;
 
     const file = input.files[0];
     const replyMsg = this.replyingTo;
@@ -3393,7 +3484,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   async startVoiceRecording(context: 'chat' | 'grupo'): Promise<void> {
-    if (context === 'chat' && (!this.selectedConversation || this.sendingMessage)) return;
+    if (
+      context === 'chat'
+      && (!this.isConversationAssignedToMe() || this.sendingMessage)
+    ) return;
     if (context === 'grupo' && (this.sendingInternalMessage || this.uploadingInternalAttachment || !!this.internalChatError)) return;
 
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
@@ -3477,7 +3571,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!this.selectedConversation) return;
+    if (!this.selectedConversation || !this.isConversationAssignedToMe(this.selectedConversation)) return;
     const replyMsg = this.replyingTo;
     this.replyingTo = null;
     this.sendingMessage = true;
@@ -3566,6 +3660,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         if (res.success) {
           this.selectedConversation!.assignee_id = this.whatsappAgentId;
           this.selectedConversation!.assignee_name = this.currentUserName || 'Agente';
+          this.startConversationPresenceSession();
           this.messageService.add({severity:'success', summary:'Control Tomado', detail:'Te has asignado esta conversación. Ester Assistant está desactivado para este flujo.'});
         } else {
           this.messageService.add({severity:'error', summary:'Error', detail:'No se pudo asignar el chat.'});
@@ -3609,7 +3704,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   openTemplateModal(): void {
-    if (!this.selectedConversation) return;
+    if (!this.selectedConversation || !this.isConversationAssignedToMe(this.selectedConversation)) return;
     this.whatsappTemplateVars.headerUser = this.currentUserName || 'Asesor';
     
     const gpsName = this.gpsUser ? `${this.gpsUser.name} ${this.gpsUser.last_name || ''}`.trim() : null;
@@ -3646,7 +3741,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   sendTemplateMessage(): void {
-    if (!this.selectedConversation || !this.selectedConversation.contact.phone) {
+    if (
+      !this.selectedConversation
+      || !this.isConversationAssignedToMe(this.selectedConversation)
+      || !this.selectedConversation.contact.phone
+    ) {
       this.messageService.add({severity:'error', summary:'Error', detail:'El contacto no tiene número de teléfono registrado.'});
       return;
     }
@@ -3756,6 +3855,176 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
   }
 
+  onChatInputChange(value: string): void {
+    if (
+      !this.selectedConversation
+      || !this.isConversationAssignedToMe(this.selectedConversation)
+    ) {
+      this.stopConversationTyping();
+      return;
+    }
+
+    if (!String(value || '').trim()) {
+      this.stopConversationTyping();
+      return;
+    }
+
+    this.conversationTypingActive = true;
+    const now = Date.now();
+    if ((now - this.lastTypingSignalAt) >= 1500) {
+      this.lastTypingSignalAt = now;
+      this.publishConversationPresence(true, true);
+    }
+
+    if (this.conversationTypingIdleTimer) {
+      clearTimeout(this.conversationTypingIdleTimer);
+    }
+    this.conversationTypingIdleTimer = setTimeout(
+      () => this.stopConversationTyping(),
+      this.CONVERSATION_TYPING_IDLE_MS,
+    );
+  }
+
+  getConversationTypingLabel(
+    conv: ChatConversation | null = this.selectedConversation,
+  ): string {
+    if (!conv) return 'El empleado';
+    const label = this.getConversationAssigneeLabel(conv);
+    const firstName = label.split(/\s+/).find(Boolean);
+    return firstName && !firstName.includes('@') ? firstName : 'El empleado';
+  }
+
+  private startConversationPresenceSession(): void {
+    if (!this.selectedConversation || this.activeTab !== 'chat') return;
+    if (this.presenceConversationId === this.selectedConversation.id) {
+      this.refreshConversationPresence();
+      if (this.isConversationAssignedToMe(this.selectedConversation)) {
+        this.publishConversationPresence(true, this.conversationTypingActive);
+      }
+      return;
+    }
+
+    this.stopConversationPresenceSession();
+    this.presenceConversationId = this.selectedConversation.id;
+    this.refreshConversationPresence();
+    if (this.isConversationAssignedToMe(this.selectedConversation)) {
+      this.publishConversationPresence(true, false);
+    }
+
+    this.conversationPresenceHeartbeatInterval = setInterval(() => {
+      if (
+        this.selectedConversation?.id === this.presenceConversationId
+        && this.isConversationAssignedToMe(this.selectedConversation)
+      ) {
+        this.publishConversationPresence(true, this.conversationTypingActive);
+      }
+    }, this.CONVERSATION_PRESENCE_HEARTBEAT_MS);
+
+    this.conversationPresencePollingInterval = setInterval(
+      () => this.refreshConversationPresence(),
+      this.CONVERSATION_PRESENCE_POLL_MS,
+    );
+  }
+
+  private stopConversationPresenceSession(): void {
+    const conversationId = this.presenceConversationId;
+    if (conversationId && this.presenceOwnedByCurrentUser) {
+      this.whatsappApi
+        .updateConversationPresence(conversationId, false, false)
+        .subscribe({ error: () => undefined });
+    }
+
+    if (this.conversationPresenceHeartbeatInterval) {
+      clearInterval(this.conversationPresenceHeartbeatInterval);
+      this.conversationPresenceHeartbeatInterval = null;
+    }
+    if (this.conversationPresencePollingInterval) {
+      clearInterval(this.conversationPresencePollingInterval);
+      this.conversationPresencePollingInterval = null;
+    }
+    if (this.conversationTypingIdleTimer) {
+      clearTimeout(this.conversationTypingIdleTimer);
+      this.conversationTypingIdleTimer = null;
+    }
+    this.presenceConversationId = null;
+    this.presenceOwnedByCurrentUser = false;
+    this.conversationTypingActive = false;
+    this.lastTypingSignalAt = 0;
+  }
+
+  private stopConversationTyping(): void {
+    if (this.conversationTypingIdleTimer) {
+      clearTimeout(this.conversationTypingIdleTimer);
+      this.conversationTypingIdleTimer = null;
+    }
+    const wasTyping = this.conversationTypingActive;
+    this.conversationTypingActive = false;
+    this.lastTypingSignalAt = 0;
+    if (wasTyping && this.presenceConversationId) {
+      this.publishConversationPresence(true, false);
+    }
+  }
+
+  private publishConversationPresence(active: boolean, typing: boolean): void {
+    const conversationId = this.presenceConversationId;
+    if (!conversationId) return;
+    if (
+      active
+      && (
+        this.selectedConversation?.id !== conversationId
+        || !this.isConversationAssignedToMe(this.selectedConversation)
+      )
+    ) {
+      return;
+    }
+
+    if (active) {
+      this.presenceOwnedByCurrentUser = true;
+    }
+    this.whatsappApi
+      .updateConversationPresence(conversationId, active, typing)
+      .subscribe({ error: () => undefined });
+  }
+
+  private refreshConversationPresence(): void {
+    const conversationId = this.presenceConversationId;
+    if (!conversationId) return;
+
+    this.whatsappApi.getConversationPresence(conversationId).subscribe({
+      next: (response: any) => {
+        if (
+          !response?.success
+          || this.presenceConversationId !== conversationId
+        ) {
+          return;
+        }
+        const presence = response.presence || {};
+        this.applyConversationPresence(
+          conversationId,
+          Boolean(presence.online),
+          Boolean(presence.typing),
+        );
+      },
+      error: () => undefined,
+    });
+  }
+
+  private applyConversationPresence(
+    conversationId: number,
+    online: boolean,
+    typing: boolean,
+  ): void {
+    const conversation = this.conversations.find(item => item.id === conversationId);
+    if (conversation) {
+      conversation.assignee_online = online;
+      conversation.assignee_typing = typing;
+    }
+    if (this.selectedConversation?.id === conversationId) {
+      this.selectedConversation.assignee_online = online;
+      this.selectedConversation.assignee_typing = typing;
+    }
+  }
+
   // ============================
   // UTILS
   // ============================
@@ -3817,6 +4086,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   goBack(): void {
+    this.stopConversationPresenceSession();
     this.stopChatPolling();
     this.resetPlayableAudio();
     this.selectedConversation = null;

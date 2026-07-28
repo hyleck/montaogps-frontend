@@ -642,8 +642,8 @@
         <div class="devices-content">
           <div class="devices-count">Devices: {{ userData.devices.length }}</div>
           <p-table [value]="userData.devices" [paginator]="userData.devices.length > 10" [rows]="10"
-            [showCurrentPageReport]="true"
-            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries" [dataKey]="'klk'+i">
+            [showCurrentPageReport]="true" [rowTrackBy]="trackByDevice" dataKey="_id"
+            currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries">
             <ng-template pTemplate="header">
               <tr>
                 <th>Name</th>
@@ -655,6 +655,7 @@
                 <th>{{ 'MONITORING.TABLE_INSTALLATION' | translate }}</th>
                 <th>Expiration Date</th>
                 <th>SIM Card</th>
+                <th>Contactos</th>
                 <th *ngIf="isMileageMonitoring">Distancia recorrido</th>
               </tr>
             </ng-template>
@@ -702,6 +703,13 @@
                     </p-badge>
                   </div>
                 </td>
+                <td class="contacts-table-cell">
+                  <button type="button" class="monitoring-contacts-button" (click)="openDeviceContacts(device)"
+                    [attr.aria-label]="'Ver contactos de ' + (device.name || device.device_imei || 'GPS')">
+                    <i class="pi pi-users" aria-hidden="true"></i>
+                    <span>Ver</span>
+                  </button>
+                </td>
                 <td *ngIf="isMileageMonitoring">
                   <div class="distance-report" *ngIf="device.distanceReport; else noDistance">
                     <span class="distance-value">{{ formatDeviceDistance(device) }}</span>
@@ -718,6 +726,44 @@
       </div>
     </ng-container>
   </div>
+
+  <div *ngIf="contactsDialogVisible" class="monitoring-contacts-backdrop" (click)="closeDeviceContacts()">
+    <section class="monitoring-contacts-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="monitoring-contacts-title" (click)="$event.stopPropagation()">
+      <div class="contacts-dialog-header">
+        <span class="contacts-dialog-icon">
+          <i class="pi pi-users" aria-hidden="true"></i>
+        </span>
+        <div>
+          <strong id="monitoring-contacts-title">Contactos del GPS</strong>
+          <small>{{ selectedContactsDeviceName }}</small>
+        </div>
+        <button type="button" class="contacts-dialog-close" (click)="closeDeviceContacts()"
+          aria-label="Cerrar contactos">
+          <i class="pi pi-times" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="contacts-dialog-body">
+        <div class="contacts-dialog-list" *ngIf="selectedDeviceContacts.length > 0; else noDeviceContacts">
+          <div class="contacts-dialog-item" *ngFor="let contact of selectedDeviceContacts; let contactIndex = index">
+            <span class="contact-number">{{ contactIndex + 1 }}</span>
+            <i class="pi pi-user" aria-hidden="true"></i>
+            <span>{{ contact }}</span>
+          </div>
+        </div>
+
+        <ng-template #noDeviceContacts>
+          <div class="contacts-dialog-empty">
+            <i class="pi pi-user-minus" aria-hidden="true"></i>
+            <strong>Sin contactos registrados</strong>
+            <span>Este GPS todavía no tiene contactos guardados.</span>
+          </div>
+        </ng-template>
+      </div>
+    </section>
+  </div>
+
   <!-- Massive Renewal Modal -->
   <p-dialog header="Renovación Masiva" [(visible)]="displayMassiveProcessesDialog" [modal]="true"
     [style]="{width: '95vw', height: '90vh'}" [draggable]="false" [resizable]="false"

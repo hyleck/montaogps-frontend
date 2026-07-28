@@ -137,7 +137,9 @@
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="!inst.completed && !inst.cancelled" class="pi pi-circle"></i>
                             <span style="font-size: 0.8rem;">
-                                {{ inst.plate || 'Vehículo #' + (i+1) }} <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                                {{ getKanbanProcessLabel(sol, inst, i) }}
+                                <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
+                                <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                             </span>
                         </div>
                     </div>
@@ -195,7 +197,9 @@
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="!inst.completed && !inst.cancelled" class="pi pi-circle"></i>
                             <span style="font-size: 0.8rem;">
-                                {{ inst.plate || 'Vehículo #' + (i+1) }} <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                                {{ getKanbanProcessLabel(sol, inst, i) }}
+                                <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
+                                <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                             </span>
                         </div>
                     </div>
@@ -252,7 +256,9 @@
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="!inst.completed && !inst.cancelled" class="pi pi-circle"></i>
                             <span style="font-size: 0.8rem;">
-                                {{ inst.plate || 'Vehículo #' + (i+1) }} <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                                {{ getKanbanProcessLabel(sol, inst, i) }}
+                                <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
+                                <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                             </span>
                         </div>
                     </div>
@@ -671,7 +677,7 @@
                 <article class="sol-vehicle-card" *ngFor="let installation of sol.installations; let index = index">
                     <header class="sol-vehicle-card__header">
                         <div>
-                            <span>Vehículo {{ index + 1 }}</span>
+                            <span>{{ typeLabels[getProcessTypeForSolicitud(sol, installation)] || 'Proceso' }} {{ index + 1 }}</span>
                             <strong>{{ installation.plate || getSolicitudPrimaryDeviceLabel(sol) }}</strong>
                         </div>
                         <span class="sol-vehicle-card__state"
@@ -681,6 +687,13 @@
                             {{ installation.cancelled ? 'Cancelado' : (installation.completed ? 'Realizado' : 'Sin finalizar') }}
                         </span>
                     </header>
+
+                    <div class="sol-vehicle-card__details" *ngIf="getProcessTypeForSolicitud(sol, installation) === 'desinstalacion'">
+                        <div>
+                            <span>Razón de desinstalación</span>
+                            <strong>{{ getDeinstallationReasonLabel(installation.deinstallation_reason || sol.deinstallation_reason) || 'No registrada' }}</strong>
+                        </div>
+                    </div>
 
                     <div class="sol-vehicle-card__details">
                         <div *ngIf="installation.brand || installation.model">
@@ -990,11 +1003,39 @@
                         </div>
                         <div class="sol-install-card-content" style="flex: 1;">
                             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.2rem;">
-                                <h4>{{ getEntityName() }} #{{i + 1}}</h4>
+                                <h4>{{ getInstallationEntityName(install) }} #{{i + 1}}</h4>
                                 <span class="sol-install-status-badge" 
                                       [ngClass]="{'status-completed': install.completed && !install.cancelled, 'status-cancelled': install.cancelled, 'status-pending': !install.completed && !install.cancelled}">
                                     {{ install.cancelled ? 'Cancelada' : (install.completed ? 'Realizada' : 'Pendiente') }}
                                 </span>
+                            </div>
+                            <div class="sol-mixed-process-fields" *ngIf="selectedSolicitud.type === 'mixta'" (click)="$event.stopPropagation()">
+                                <label>
+                                    <span>Tipo de proceso</span>
+                                    <select
+                                        [(ngModel)]="install.process_type"
+                                        (ngModelChange)="onInstallationProcessTypeChange(install)"
+                                        [disabled]="isSelectedSolicitudFinalized()"
+                                        required>
+                                        <option value="" disabled>Seleccionar tipo</option>
+                                        <option *ngFor="let option of mixedProcessOptions" [value]="option.value">
+                                            {{ option.label }}
+                                        </option>
+                                    </select>
+                                </label>
+                                <label *ngIf="install.process_type === 'desinstalacion'">
+                                    <span>Razón de desinstalación</span>
+                                    <select
+                                        [(ngModel)]="install.deinstallation_reason"
+                                        (ngModelChange)="onDeinstallationReasonChange()"
+                                        [disabled]="isSelectedSolicitudFinalized()"
+                                        required>
+                                        <option [ngValue]="undefined" disabled>Seleccionar razón</option>
+                                        <option *ngFor="let reason of deinstallationReasons" [value]="reason.value">
+                                            {{ reason.label }}
+                                        </option>
+                                    </select>
+                                </label>
                             </div>
                             <p>Vehículo, ubicación y dispositivo...</p>
                         </div>
@@ -1019,7 +1060,7 @@
 </p-dialog>
 
 <!-- New Modal: Instalación -->
-<p-dialog [(visible)]="installationModalVisible" [style]="{width: '600px', 'max-height': '90vh'}" header="{{ getEntityName() }} #{{editingInstallationIndex + 1}}" [modal]="true" class="sol-dialog" [draggable]="false" [resizable]="false">
+<p-dialog [(visible)]="installationModalVisible" [style]="{width: '600px', 'max-height': '90vh'}" header="{{ getInstallationEntityName(selectedSolicitud?.installations?.[editingInstallationIndex]) }} #{{editingInstallationIndex + 1}}" [modal]="true" class="sol-dialog" [draggable]="false" [resizable]="false">
     <div class="sol-form-container" [class.sol-form-container--readonly]="isSelectedSolicitudFinalized()" *ngIf="selectedSolicitud && selectedSolicitud.installations && selectedSolicitud.installations[editingInstallationIndex]">
             <!-- Vehicle Data Group -->
             <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('vehicle')" [class.active]="showVehicleData" style="cursor: pointer; justify-content: space-between;">
@@ -1209,7 +1250,7 @@
                     </button>
                 </div>
 
-                <div class="sol-form-row" *ngIf="selectedSolicitud.type === 'cambio'">
+                <div class="sol-form-row" *ngIf="getCurrentInstallationProcessType() === 'cambio'">
                     <div class="sol-form-field">
                         <label>Nuevo GPS</label>
                         <p-autoComplete
@@ -1249,7 +1290,7 @@
             <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('install')" [class.active]="showInstallData" style="cursor: pointer; justify-content: space-between;">
                 <div style="display: flex; align-items: center; gap: 0.6rem;">
                     <i class="pi pi-wrench" style="color: #6366f1;"></i>
-                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">{{ getEntityName() }} (Opcional)</span>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: var(--managementColorTitleUser);">{{ getInstallationEntityName(selectedSolicitud.installations[editingInstallationIndex]) }} (Opcional)</span>
                 </div>
                 <i class="pi" [ngClass]="showInstallData ? 'pi-chevron-up' : 'pi-chevron-down'" style="color: #6366f1;"></i>
             </div>
@@ -1257,7 +1298,7 @@
             <div *ngIf="showInstallData" class="sol-collapsible-section" style="animation: fadein 0.2s; display: flex; flex-direction: column; gap: 0.85rem;">
                 <div class="sol-form-row">
                     <div class="sol-form-field" style="grid-column: span 2;">
-                        <label>Lugar de {{ getEntityName() }}</label>
+                        <label>Lugar de {{ getInstallationEntityName(selectedSolicitud.installations[editingInstallationIndex]) }}</label>
                         <select [(ngModel)]="selectedSolicitud.installations[editingInstallationIndex].installation_location">
                             <option value="">Seleccionar lugar</option>
                             <option *ngFor="let loc of installationLocations" [value]="loc.value">{{ loc.label }}</option>
@@ -1289,7 +1330,7 @@
 
 
             <!-- Optional: Diagnosis (Only for Chequeos) -->
-            <ng-container *ngIf="selectedSolicitud.type === 'chequeo'">
+            <ng-container *ngIf="getCurrentInstallationProcessType() === 'chequeo'">
                 <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('diagnosis')" [class.active]="showDiagnosisData" style="cursor: pointer; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 0.6rem;">
                         <i class="pi pi-stethoscope" style="color: #6366f1;"></i>
@@ -1525,7 +1566,7 @@
         </div>
 
         <div
-            *ngIf="completionSolicitud?.type === 'desinstalacion' && completionDeinstallationReasonLabel"
+            *ngIf="completionDeinstallationReasonLabel"
             class="sol-completion-confirm__device-impact"
             role="note">
             <i class="pi pi-ban" aria-hidden="true"></i>

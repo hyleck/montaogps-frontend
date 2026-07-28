@@ -67,6 +67,8 @@
                 [hidden]="loadingConversations"
                 [class.comm-contact--active]="selectedConversation?.id === conv.id"
                 [class.comm-contact--ester]="!conv.assignee_id"
+                [class.comm-contact--mine]="isConversationAssignedToMe(conv)"
+                [class.comm-contact--employee]="!!conv.assignee_id && !isConversationAssignedToMe(conv)"
                 (click)="selectConversation(conv)">
                 <div class="comm-contact__avatar">
                     <img *ngIf="getUsableAvatarUrl(conv.contact.avatar) as avatarUrl"
@@ -81,9 +83,17 @@
                     <div class="comm-contact__bottom">
                         <div class="comm-contact__preview">
                             <div class="comm-contact__last-msg">{{ getCleanPreview(conv.last_message) }}</div>
-                            <div class="comm-contact__assignee" [class.comm-contact__assignee--ester]="!conv.assignee_id">
+                            <div class="comm-contact__assignee"
+                                [class.comm-contact__assignee--ester]="!conv.assignee_id"
+                                [class.comm-contact__assignee--mine]="isConversationAssignedToMe(conv)">
                                 <i class="pi" [ngClass]="conv.assignee_id ? 'pi-user' : 'pi-bolt'"></i>
-                                Asignado a {{ getConversationAssigneeLabel(conv) }}
+                                <span *ngIf="conv.assignee_id && conv.assignee_online"
+                                    class="comm-assignee-presence-dot"
+                                    title="Empleado dentro de esta conversación"
+                                    aria-label="En la conversación"></span>
+                                {{ isConversationAssignedToMe(conv)
+                                    ? 'Asignada a ti'
+                                    : 'Asignada a ' + getConversationAssigneeLabel(conv) }}
                             </div>
                         </div>
                         <div *ngIf="conv.unread_count > 0" class="comm-contact__badge">{{ conv.unread_count }}</div>
@@ -140,7 +150,8 @@
                     <div class="comm-chat__header-phone">{{ selectedConversation.contact.phone }}</div>
                 </div>
                 <div class="comm-chat__header-actions">
-                    <button class="comm-info-btn comm-action-btn" (click)="openTransferModal()" title="Transferir Conversación a otro Agente">
+                    <button *ngIf="isConversationAssignedToMe(selectedConversation)"
+                        class="comm-info-btn comm-action-btn" (click)="openTransferModal()" title="Transferir Conversación a otro Agente">
                         <i class="pi pi-sort-alt"></i>
                     </button>
                     <div class="comm-chat__header-status">
@@ -181,7 +192,7 @@
                     [class.comm-message--system]="msg.from === 'system'"
                     [class.comm-message--has-reaction]="!!msg.reaction"
                     [class.comm-message--sticker-only]="isStickerOnlyMessage(msg)">
-                    <div *ngIf="msg.id && msg.from !== 'system'" class="comm-message__actions">
+                    <div *ngIf="msg.id && msg.from !== 'system' && isConversationAssignedToMe(selectedConversation)" class="comm-message__actions">
                         <button class="comm-reaction-btn"
                             [class.comm-reaction-btn--active]="reactionPickerMessageId === msg.id"
                             [disabled]="reactingMessageId === msg.id"
@@ -380,8 +391,23 @@
                 </div>
             </div>
 
+            <div *ngIf="selectedConversation.assignee_id
+                    && selectedConversation.assignee_typing
+                    && !isConversationAssignedToMe(selectedConversation)"
+                class="comm-typing-indicator"
+                role="status"
+                aria-live="polite">
+                <span class="comm-typing-indicator__avatar">
+                    <i class="pi pi-comment"></i>
+                </span>
+                <span><strong>{{ getConversationTypingLabel(selectedConversation) }}</strong> está escribiendo</span>
+                <span class="comm-typing-indicator__dots" aria-hidden="true">
+                    <i></i><i></i><i></i>
+                </span>
+            </div>
+
             <!-- Input (Only shown if assigned AND inside 24h window) -->
-            <div class="comm-chat__input" *ngIf="selectedConversation.assignee_id && !isOutside24hWindow(selectedConversation)">
+            <div class="comm-chat__input" *ngIf="isConversationAssignedToMe(selectedConversation) && !isOutside24hWindow(selectedConversation)">
                 <button class="comm-attach-btn" (click)="attachMenu.toggle($event)" [disabled]="sendingMessage">
                     <i class="pi pi-paperclip"></i>
                 </button>
@@ -401,6 +427,7 @@
                 </div>
                 <textarea #messageInput [(ngModel)]="chatInput" placeholder="Escribe un mensaje..."
                     rows="1"
+                    (ngModelChange)="onChatInputChange($event)"
                     (keydown.enter)="$event.preventDefault(); sendMessage()"
                     [disabled]="sendingMessage"></textarea>
                 <button class="comm-send-btn" (click)="sendMessage()"
@@ -410,7 +437,7 @@
             </div>
 
             <!-- WhatsApp Template Banner (Shown if assigned BUT >24h) -->
-            <div *ngIf="selectedConversation.assignee_id && isOutside24hWindow(selectedConversation)" style="display: flex; justify-content: center; align-items: center; padding: 1.5rem; background: var(--surface-b, #1e293b); border-top: 1px solid var(--surface-border, #334155);">
+            <div *ngIf="isConversationAssignedToMe(selectedConversation) && isOutside24hWindow(selectedConversation)" style="display: flex; justify-content: center; align-items: center; padding: 1.5rem; background: var(--surface-b, #1e293b); border-top: 1px solid var(--surface-border, #334155);">
                 <div style="text-align: center; color: var(--text-color-secondary, #94a3b8); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
                     <div><i class="pi pi-clock" style="font-size: 1.2rem; color: #10b981;"></i></div>
                     <span style="font-size: 0.95rem;">Han pasado más de 24 horas desde el último mensaje del usuario.</span>
@@ -418,13 +445,25 @@
                 </div>
             </div>
 
-            <!-- Ester Assistant Banner (Shown if unassigned) -->
-            <div *ngIf="!selectedConversation.assignee_id" style="display: flex; justify-content: center; align-items: center; padding: 1.5rem; background: rgba(139, 92, 246, 0.05); border-top: 1px solid rgba(139, 92, 246, 0.2);">
-                <div style="text-align: center; color: var(--text-color-secondary, #94a3b8); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-                    <div><i class="pi pi-bolt" style="font-size: 1.5rem; color: #8b5cf6;"></i></div>
-                    <span style="font-size: 1rem; color: #8b5cf6; font-weight: 500;">Gestionado por Ester Assistant</span>
-                    <span style="font-size: 0.85rem;">Esta conversación está siendo atendida de forma automática.</span>
-                    <button pButton label="Tomar control de la conversación" icon="pi pi-user-plus" class="p-button-sm p-button-outlined mt-2" style="color: #8b5cf6; border-color: #8b5cf6;" (click)="assignToMe()"></button>
+            <!-- Read-only banner when the conversation belongs to Ester or another employee -->
+            <div *ngIf="!isConversationAssignedToMe(selectedConversation)"
+                class="comm-managed-banner"
+                [class.comm-managed-banner--ester]="!selectedConversation.assignee_id"
+                [class.comm-managed-banner--employee]="!!selectedConversation.assignee_id">
+                <div class="comm-managed-banner__content">
+                    <span class="comm-managed-banner__icon">
+                        <i [class]="selectedConversation.assignee_id ? 'pi pi-user' : 'pi pi-bolt'"></i>
+                    </span>
+                    <strong class="comm-managed-banner__title">Gestionado por {{ getConversationManagerLabel(selectedConversation) }}</strong>
+                    <span class="comm-managed-banner__description">
+                        {{ selectedConversation.assignee_id
+                            ? 'Esta conversación está asignada a otro empleado.'
+                            : 'Esta conversación está siendo atendida de forma automática.' }}
+                    </span>
+                    <button type="button" class="comm-managed-banner__action" (click)="assignToMe()">
+                        <i class="pi pi-user-plus"></i>
+                        <span>Tomar control de la conversación</span>
+                    </button>
                 </div>
             </div>
         </ng-container>
@@ -1069,7 +1108,7 @@
 
         <div *ngIf="!loadingTransferAgents"
             class="comm-transfer__agents" role="list" aria-label="Agentes disponibles">
-            <button *ngIf="selectedConversation?.assignee_id" type="button"
+            <button *ngIf="isConversationAssignedToMe(selectedConversation)" type="button"
                 class="comm-transfer-agent comm-transfer-agent--ester" role="listitem"
                 (click)="selectEsterForTransfer()">
                 <span class="comm-transfer-agent__avatar comm-transfer-agent__avatar--ester">
@@ -1100,13 +1139,6 @@
                     <i class="pi pi-arrow-right"></i>
                 </span>
             </button>
-        </div>
-
-        <div *ngIf="!loadingTransferAgents && !transferAgents.length && !selectedConversation?.assignee_id"
-            class="comm-transfer__empty">
-            <i class="pi pi-user-minus"></i>
-            <strong>No hay otros empleados disponibles</strong>
-            <span>Cuando exista otro empleado podrás transferirle esta conversación.</span>
         </div>
 
         <button type="button" class="comm-transfer__cancel" (click)="showTransferModal = false">

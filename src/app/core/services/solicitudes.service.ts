@@ -4,6 +4,8 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface InstallationDetail {
+    process_type?: string;
+    deinstallation_reason?: string;
     brand?: string;
     model?: string;
     year?: string;

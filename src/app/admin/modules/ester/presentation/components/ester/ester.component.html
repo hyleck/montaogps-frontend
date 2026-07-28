@@ -116,12 +116,19 @@
         *ngFor="let entry of filteredEntries; trackBy: trackById"
         class="knowledge-card"
         [class.knowledge-card--inactive]="!entry.active"
+        [class.knowledge-card--priority]="entry.priority"
       >
         <div class="knowledge-card__top">
-          <span class="knowledge-card__category">
-            <i class="pi pi-tag"></i>
-            {{ entry.category || 'General' }}
-          </span>
+          <div class="knowledge-card__badges">
+            <span class="knowledge-card__category">
+              <i class="pi pi-tag"></i>
+              {{ entry.category || 'General' }}
+            </span>
+            <span *ngIf="entry.priority" class="knowledge-card__priority">
+              <i class="pi pi-star-fill"></i>
+              Prioritario
+            </span>
+          </div>
           <span class="knowledge-card__status" [class.knowledge-card__status--inactive]="!entry.active">
             <i class="pi" [class.pi-check-circle]="entry.active" [class.pi-pause-circle]="!entry.active"></i>
             {{ entry.active ? 'Activa' : 'Pausada' }}
@@ -558,6 +565,14 @@
       <span>
         <strong>Usar en las respuestas</strong>
         <small>Si está pausada, Ester no recibirá esta información.</small>
+      </span>
+    </label>
+
+    <label class="ester-editor__toggle ester-editor__toggle--priority">
+      <input type="checkbox" name="priority" [(ngModel)]="form.priority" />
+      <span>
+        <strong>Conocimiento prioritario</strong>
+        <small>Ester lo revisará antes que el conocimiento normal en cada respuesta.</small>
       </span>
     </label>
 

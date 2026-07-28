@@ -24,6 +24,7 @@ interface EsterKnowledgeForm {
   category: string;
   content: string;
   active: boolean;
+  priority: boolean;
   mediaType: 'image' | 'video' | null;
   mediaUrl: string | null;
   mediaName: string | null;
@@ -334,6 +335,7 @@ export class EsterComponent implements OnInit, OnDestroy {
       category: entry.category || 'General',
       content: entry.content,
       active: entry.active,
+      priority: Boolean(entry.priority),
       mediaType: entry.media_type || null,
       mediaUrl: entry.media_url || null,
       mediaName: entry.media_name || null,
@@ -411,6 +413,7 @@ export class EsterComponent implements OnInit, OnDestroy {
       category: this.form.category.trim() || 'General',
       content: this.form.content.trim(),
       active: this.form.active,
+      priority: this.form.priority,
       media_type: this.form.mediaType,
       media_url: this.form.mediaUrl,
       media_name: this.form.mediaName,
@@ -641,6 +644,7 @@ export class EsterComponent implements OnInit, OnDestroy {
       category: 'General',
       content: '',
       active: true,
+      priority: false,
       mediaType: null,
       mediaUrl: null,
       mediaName: null,
