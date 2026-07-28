@@ -66,6 +66,12 @@ export interface VehicleRegistrationVerificationLinkResponse {
   device_id: string;
 }
 
+export interface InstallationEvidenceUploadResponse {
+  ok: boolean;
+  device: Target;
+  evidence: Record<string, any>;
+}
+
 export interface PublicVehicleVerificationInfo {
   device: {
     id: string;
@@ -145,6 +151,22 @@ export class TargetsService {
 
   async updateTarget(id: string, targetData: UpdateTargetDto): Promise<Target> {
     const observable = this.http.patch<Target>(`${this.apiUrl}/${id}`, targetData);
+    return await lastValueFrom(observable);
+  }
+
+  async uploadInstallationEvidence(
+    id: string,
+    files: Record<string, File>
+  ): Promise<InstallationEvidenceUploadResponse> {
+    const formData = new FormData();
+    Object.entries(files).forEach(([field, file]) => {
+      formData.append(field, file, file.name);
+    });
+
+    const observable = this.http.post<InstallationEvidenceUploadResponse>(
+      `${this.apiUrl}/${id}/installation-evidence`,
+      formData
+    );
     return await lastValueFrom(observable);
   }
 

@@ -39,8 +39,34 @@ import { Tag } from 'src/app/core/interfaces/tag.interface';
 import { FormsService } from 'src/app/core/services/forms.service';
 import { Form } from 'src/app/core/interfaces/form.interface';
 import { InventoryService } from 'src/app/core/services/inventory.service';
+import { environment } from 'src/environments/environment';
 
 
+
+type InstallationEvidenceKey =
+    | 'chasis_img'
+    | 'placa_img'
+    | 'matricula_instalacion_img'
+    | 'lugar_instalacion_antes_img'
+    | 'vehiculo_exterior_antes_img'
+    | 'vehiculo_interior_antes_img'
+    | 'gps_numeracion_img'
+    | 'simcard_numeracion_img'
+    | 'lugar_instalacion_despues_img'
+    | 'vehiculo_exterior_despues_img'
+    | 'vehiculo_interior_despues_img';
+
+interface InstallationEvidenceDefinition {
+    key: InstallationEvidenceKey;
+    label: string;
+    icon: string;
+    section: 'before' | 'equipment' | 'after';
+}
+
+interface PendingInstallationEvidence {
+    file: File;
+    previewUrl: string;
+}
 
 @Component({
     selector: 'app-target-form',
@@ -58,6 +84,22 @@ import { InventoryService } from 'src/app/core/services/inventory.service';
 export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterViewInit {
     private destroy$ = new Subject<void>();
     private smsPollingSub: Subscription | null = null;
+    readonly installationEvidenceDefinitions: InstallationEvidenceDefinition[] = [
+        { key: 'chasis_img', label: 'Chasis', icon: 'pi-hashtag', section: 'before' },
+        { key: 'placa_img', label: 'Placa', icon: 'pi-car', section: 'before' },
+        { key: 'matricula_instalacion_img', label: 'Matrícula', icon: 'pi-id-card', section: 'before' },
+        { key: 'lugar_instalacion_antes_img', label: 'Lugar antes', icon: 'pi-map-marker', section: 'before' },
+        { key: 'vehiculo_exterior_antes_img', label: 'Exterior antes', icon: 'pi-image', section: 'before' },
+        { key: 'vehiculo_interior_antes_img', label: 'Interior antes', icon: 'pi-image', section: 'before' },
+        { key: 'gps_numeracion_img', label: 'Numeración GPS', icon: 'pi-wifi', section: 'equipment' },
+        { key: 'simcard_numeracion_img', label: 'Numeración SIM', icon: 'pi-credit-card', section: 'equipment' },
+        { key: 'lugar_instalacion_despues_img', label: 'Lugar después', icon: 'pi-map-marker', section: 'after' },
+        { key: 'vehiculo_exterior_despues_img', label: 'Exterior después', icon: 'pi-image', section: 'after' },
+        { key: 'vehiculo_interior_despues_img', label: 'Interior después', icon: 'pi-image', section: 'after' }
+    ];
+    displayInstallationEvidenceDialog = false;
+    isUploadingInstallationEvidence = false;
+    pendingInstallationEvidence: Partial<Record<InstallationEvidenceKey, PendingInstallationEvidence>> = {};
 
     @Input() targetInput: TargetDevice | null = null;
     @Output() targetCreated = new EventEmitter<TargetDevice>();
@@ -404,6 +446,165 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     closeContacts(): void {
         this.showContactsModal = false;
+    }
+
+    getInstallationEvidenceBySection(
+        section: InstallationEvidenceDefinition['section']
+    ): InstallationEvidenceDefinition[] {
+        return this.installationEvidenceDefinitions.filter(item => item.section === section);
+    }
+
+    openInstallationEvidenceDialog(): void {
+        if (!this.isEditMode) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'Guarde el objetivo',
+                detail: 'Debe guardar el objetivo antes de añadir imágenes de instalación.'
+            });
+            return;
+        }
+
+        this.clearPendingInstallationEvidence();
+        this.displayInstallationEvidenceDialog = true;
+    }
+
+    closeInstallationEvidenceDialog(): void {
+        if (this.isUploadingInstallationEvidence) return;
+        this.displayInstallationEvidenceDialog = false;
+        this.clearPendingInstallationEvidence();
+    }
+
+    getInstallationEvidenceCount(): number {
+        return this.installationEvidenceDefinitions.reduce(
+            (total, item) => total + (this.getStoredInstallationEvidenceUrl(item.key) ? 1 : 0),
+            0
+        );
+    }
+
+    getPendingInstallationEvidenceCount(): number {
+        return Object.keys(this.pendingInstallationEvidence).length;
+    }
+
+    getInstallationEvidenceUrl(key: InstallationEvidenceKey): string | null {
+        return this.pendingInstallationEvidence[key]?.previewUrl
+            || this.getStoredInstallationEvidenceUrl(key);
+    }
+
+    getInstallationEvidenceOriginalName(key: InstallationEvidenceKey): string {
+        const pending = this.pendingInstallationEvidence[key];
+        if (pending) return pending.file.name;
+
+        const stored = (this.target as any)?.[key];
+        return typeof stored === 'object' && stored
+            ? String(stored.original_name || stored.filename || '')
+            : '';
+    }
+
+    hasPendingInstallationEvidence(key: InstallationEvidenceKey): boolean {
+        return !!this.pendingInstallationEvidence[key];
+    }
+
+    onInstallationEvidenceFileSelected(
+        event: Event,
+        key: InstallationEvidenceKey
+    ): void {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        input.value = '';
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Archivo no válido',
+                detail: 'Seleccione una imagen.'
+            });
+            return;
+        }
+
+        if (file.size > 12 * 1024 * 1024) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Imagen demasiado grande',
+                detail: 'La imagen no puede superar 12 MB.'
+            });
+            return;
+        }
+
+        this.removePendingInstallationEvidence(key);
+        this.pendingInstallationEvidence[key] = {
+            file,
+            previewUrl: URL.createObjectURL(file)
+        };
+    }
+
+    removePendingInstallationEvidence(
+        key: InstallationEvidenceKey,
+        event?: Event
+    ): void {
+        event?.stopPropagation();
+        const pending = this.pendingInstallationEvidence[key];
+        if (!pending) return;
+
+        URL.revokeObjectURL(pending.previewUrl);
+        delete this.pendingInstallationEvidence[key];
+    }
+
+    async uploadPendingInstallationEvidence(): Promise<void> {
+        const targetId = this.target?._id;
+        const entries = Object.entries(this.pendingInstallationEvidence) as [
+            InstallationEvidenceKey,
+            PendingInstallationEvidence
+        ][];
+
+        if (!targetId || entries.length === 0 || this.isUploadingInstallationEvidence) return;
+
+        this.isUploadingInstallationEvidence = true;
+        try {
+            const files = entries.reduce<Record<string, File>>((result, [key, pending]) => {
+                result[key] = pending.file;
+                return result;
+            }, {});
+            const response = await this.targetsService.uploadInstallationEvidence(targetId, files);
+
+            Object.entries(response.evidence || {}).forEach(([key, value]) => {
+                (this.target as any)[key] = value;
+            });
+            this.targetUpdatedWithoutClose.emit({ ...this.target });
+            this.clearPendingInstallationEvidence();
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Imágenes guardadas',
+                detail: `${entries.length} ${entries.length === 1 ? 'imagen fue guardada' : 'imágenes fueron guardadas'} correctamente.`
+            });
+        } catch (error: any) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudieron guardar',
+                detail: error?.error?.message || 'Revise las imágenes e inténtelo nuevamente.'
+            });
+        } finally {
+            this.isUploadingInstallationEvidence = false;
+        }
+    }
+
+    private getStoredInstallationEvidenceUrl(key: InstallationEvidenceKey): string | null {
+        const stored = (this.target as any)?.[key];
+        const url = typeof stored === 'string'
+            ? stored
+            : stored?.url || stored?.location_cdn || stored?.location;
+
+        if (!url || typeof url !== 'string') return null;
+        if (/^(https?:|blob:|data:)/i.test(url)) return url;
+
+        return `${environment.apiUrl.replace(/\/$/, '')}/${url.replace(/^\//, '')}`;
+    }
+
+    private clearPendingInstallationEvidence(): void {
+        Object.values(this.pendingInstallationEvidence).forEach(pending => {
+            if (pending) URL.revokeObjectURL(pending.previewUrl);
+        });
+        this.pendingInstallationEvidence = {};
     }
 
     // Propiedades para modal de observación de comandos estáticos
@@ -1986,6 +2187,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
     private resetForm() {
         this.isPreparingVehicleForm = false;
+        this.clearPendingInstallationEvidence();
+        this.displayInstallationEvidenceDialog = false;
         this.target = this.getEmptyTarget();
         this.activeTabIndex = 0;
         this.displayColorName = '';
@@ -3127,6 +3330,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.registrationScanImageIsObjectUrl = false;
         }
         this.stopSmsPolling();
+        this.clearPendingInstallationEvidence();
         this.destroy$.next();
         this.destroy$.complete();
     }

@@ -42,9 +42,6 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   showUserSearchModal: boolean = false;
   isFiltersDrawerVisible: boolean = false;
   protocols: any[] = [];
-  contactsDialogVisible: boolean = false;
-  selectedContactsDeviceName: string = '';
-  selectedDeviceContacts: string[] = [];
   private filteredMonitoringDataCache: MonitorUserResponse['data'] = [];
   private filteredMonitoringDataSource: MonitorUserResponse['data'] | null = null;
   private filteredMonitoringDataSignature: string = '';
@@ -1916,67 +1913,6 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       month: 'short',
       day: 'numeric'
     });
-  }
-
-  openDeviceContacts(device: any): void {
-    this.selectedContactsDeviceName =
-      String(device?.name || device?.target_plate_number || device?.device_imei || 'GPS').trim();
-    this.selectedDeviceContacts = this.parseDeviceContacts(device?.contacts);
-    this.contactsDialogVisible = true;
-  }
-
-  closeDeviceContacts(): void {
-    this.contactsDialogVisible = false;
-    this.selectedContactsDeviceName = '';
-    this.selectedDeviceContacts = [];
-  }
-
-  private parseDeviceContacts(contacts: unknown): string[] {
-    if (contacts === null || contacts === undefined || contacts === '') {
-      return [];
-    }
-
-    let values: unknown[] = Array.isArray(contacts) ? contacts : [contacts];
-
-    if (typeof contacts === 'string') {
-      const trimmedContacts = contacts.trim();
-
-      if (trimmedContacts.startsWith('[')) {
-        try {
-          const parsedContacts = JSON.parse(trimmedContacts);
-          values = Array.isArray(parsedContacts) ? parsedContacts : [parsedContacts];
-        } catch {
-          values = trimmedContacts.split(/[,;\n]+/);
-        }
-      } else {
-        values = trimmedContacts.split(/[,;\n]+/);
-      }
-    }
-
-    return Array.from(new Set(
-      values
-        .map((contact) => {
-          if (contact && typeof contact === 'object') {
-            const contactRecord = contact as Record<string, unknown>;
-            const name = String(contactRecord['name'] || '').trim();
-            const phone = String(
-              contactRecord['phone'] ||
-              contactRecord['phone_number'] ||
-              contactRecord['number'] ||
-              ''
-            ).trim();
-
-            if (name && phone) {
-              return `${name}: ${phone}`;
-            }
-
-            return name || phone;
-          }
-
-          return String(contact ?? '').trim();
-        })
-        .filter((contact) => contact.length > 0)
-    ));
   }
 
   isExpired(expirationDate: Date | string): boolean {

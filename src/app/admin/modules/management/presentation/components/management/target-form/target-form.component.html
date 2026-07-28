@@ -441,6 +441,24 @@
                                                 [disabled]="isEditMode"></textarea>
                                         </div>
 
+                                        <div class="target-form__field installation-evidence-launch" *ngIf="isEditMode">
+                                            <label>Imágenes de instalación</label>
+                                            <button type="button" class="installation-evidence-launch__button"
+                                                (click)="openInstallationEvidenceDialog()">
+                                                <span class="installation-evidence-launch__icon">
+                                                    <i class="pi pi-images"></i>
+                                                </span>
+                                                <span class="installation-evidence-launch__copy">
+                                                    <strong>Imágenes</strong>
+                                                    <small>Ver evidencias o completar las que faltan</small>
+                                                </span>
+                                                <span class="installation-evidence-launch__count">
+                                                    {{ getInstallationEvidenceCount() }}/{{ installationEvidenceDefinitions.length }}
+                                                </span>
+                                                <i class="pi pi-chevron-right"></i>
+                                            </button>
+                                        </div>
+
                                         <div class="target-form__field">
                                             <label for="gps_adicional">Vinculado a:</label>
                                             <div class="linked-gps-input">
@@ -1488,6 +1506,217 @@
                             </button>
                         </div>
                     </div>
+                </p-dialog>
+
+                <!-- Modal de imágenes de instalación -->
+                <p-dialog [(visible)]="displayInstallationEvidenceDialog" [modal]="true" [draggable]="false"
+                    [resizable]="false" [closable]="!isUploadingInstallationEvidence"
+                    [style]="{ width: '1040px', maxWidth: '96vw' }"
+                    [contentStyle]="{ padding: '0' }" styleClass="installation-evidence-dialog"
+                    (onHide)="closeInstallationEvidenceDialog()">
+                    <ng-template pTemplate="header">
+                        <div class="installation-evidence-dialog__header">
+                            <span><i class="pi pi-images"></i></span>
+                            <div>
+                                <strong>Imágenes de instalación</strong>
+                                <small>{{ getInstallationEvidenceCount() }} de
+                                    {{ installationEvidenceDefinitions.length }} registradas</small>
+                            </div>
+                        </div>
+                    </ng-template>
+
+                    <div class="installation-evidence-dialog__content">
+                        <div class="installation-evidence-dialog__intro">
+                            <i class="pi pi-info-circle"></i>
+                            <span>Estas son las mismas evidencias registradas por el técnico en GPS Mobile.
+                                Puede visualizar, completar o reemplazar cualquier imagen.</span>
+                        </div>
+
+                        <section class="installation-evidence-section">
+                            <div class="installation-evidence-section__title">
+                                <span><i class="pi pi-camera"></i> Antes de la instalación</span>
+                                <small>Documentos y estado inicial</small>
+                            </div>
+                            <div class="installation-evidence-grid">
+                                <article class="installation-evidence-card"
+                                    *ngFor="let item of getInstallationEvidenceBySection('before')"
+                                    [class.installation-evidence-card--pending]="hasPendingInstallationEvidence(item.key)">
+                                    <div class="installation-evidence-card__preview">
+                                        <img *ngIf="getInstallationEvidenceUrl(item.key) as imageUrl"
+                                            [src]="imageUrl" [alt]="item.label">
+                                        <div *ngIf="!getInstallationEvidenceUrl(item.key)"
+                                            class="installation-evidence-card__empty">
+                                            <i class="pi" [ngClass]="item.icon"></i>
+                                            <span>Imagen pendiente</span>
+                                        </div>
+                                        <span class="installation-evidence-card__status"
+                                            *ngIf="getInstallationEvidenceUrl(item.key)">
+                                            <i class="pi"
+                                                [ngClass]="hasPendingInstallationEvidence(item.key) ? 'pi-clock' : 'pi-check'"></i>
+                                            {{ hasPendingInstallationEvidence(item.key) ? 'Por guardar' : 'Registrada' }}
+                                        </span>
+                                    </div>
+                                    <div class="installation-evidence-card__body">
+                                        <strong>{{ item.label }}</strong>
+                                        <small *ngIf="getInstallationEvidenceOriginalName(item.key)">
+                                            {{ getInstallationEvidenceOriginalName(item.key) }}
+                                        </small>
+                                        <div class="installation-evidence-card__actions">
+                                            <a *ngIf="getInstallationEvidenceUrl(item.key) && !hasPendingInstallationEvidence(item.key)"
+                                                [href]="getInstallationEvidenceUrl(item.key)" target="_blank"
+                                                rel="noopener noreferrer" title="Abrir imagen">
+                                                <i class="pi pi-external-link"></i>
+                                            </a>
+                                            <label *ngIf="canUpdateDevices()"
+                                                [attr.for]="'installation-evidence-' + item.key">
+                                                <i class="pi pi-upload"></i>
+                                                {{ getInstallationEvidenceUrl(item.key) ? 'Reemplazar' : 'Subir' }}
+                                            </label>
+                                            <button type="button" *ngIf="hasPendingInstallationEvidence(item.key)"
+                                                (click)="removePendingInstallationEvidence(item.key, $event)"
+                                                title="Descartar cambio">
+                                                <i class="pi pi-times"></i>
+                                            </button>
+                                            <input [id]="'installation-evidence-' + item.key" type="file"
+                                                accept="image/*" hidden
+                                                (change)="onInstallationEvidenceFileSelected($event, item.key)">
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+                        </section>
+
+                        <section class="installation-evidence-section">
+                            <div class="installation-evidence-section__title">
+                                <span><i class="pi pi-wifi"></i> Equipo instalado</span>
+                                <small>Numeración del GPS y SIM</small>
+                            </div>
+                            <div class="installation-evidence-grid">
+                                <article class="installation-evidence-card"
+                                    *ngFor="let item of getInstallationEvidenceBySection('equipment')"
+                                    [class.installation-evidence-card--pending]="hasPendingInstallationEvidence(item.key)">
+                                    <div class="installation-evidence-card__preview">
+                                        <img *ngIf="getInstallationEvidenceUrl(item.key) as imageUrl"
+                                            [src]="imageUrl" [alt]="item.label">
+                                        <div *ngIf="!getInstallationEvidenceUrl(item.key)"
+                                            class="installation-evidence-card__empty">
+                                            <i class="pi" [ngClass]="item.icon"></i>
+                                            <span>Imagen pendiente</span>
+                                        </div>
+                                        <span class="installation-evidence-card__status"
+                                            *ngIf="getInstallationEvidenceUrl(item.key)">
+                                            <i class="pi"
+                                                [ngClass]="hasPendingInstallationEvidence(item.key) ? 'pi-clock' : 'pi-check'"></i>
+                                            {{ hasPendingInstallationEvidence(item.key) ? 'Por guardar' : 'Registrada' }}
+                                        </span>
+                                    </div>
+                                    <div class="installation-evidence-card__body">
+                                        <strong>{{ item.label }}</strong>
+                                        <small *ngIf="getInstallationEvidenceOriginalName(item.key)">
+                                            {{ getInstallationEvidenceOriginalName(item.key) }}
+                                        </small>
+                                        <div class="installation-evidence-card__actions">
+                                            <a *ngIf="getInstallationEvidenceUrl(item.key) && !hasPendingInstallationEvidence(item.key)"
+                                                [href]="getInstallationEvidenceUrl(item.key)" target="_blank"
+                                                rel="noopener noreferrer" title="Abrir imagen">
+                                                <i class="pi pi-external-link"></i>
+                                            </a>
+                                            <label *ngIf="canUpdateDevices()"
+                                                [attr.for]="'installation-evidence-' + item.key">
+                                                <i class="pi pi-upload"></i>
+                                                {{ getInstallationEvidenceUrl(item.key) ? 'Reemplazar' : 'Subir' }}
+                                            </label>
+                                            <button type="button" *ngIf="hasPendingInstallationEvidence(item.key)"
+                                                (click)="removePendingInstallationEvidence(item.key, $event)"
+                                                title="Descartar cambio">
+                                                <i class="pi pi-times"></i>
+                                            </button>
+                                            <input [id]="'installation-evidence-' + item.key" type="file"
+                                                accept="image/*" hidden
+                                                (change)="onInstallationEvidenceFileSelected($event, item.key)">
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+                        </section>
+
+                        <section class="installation-evidence-section">
+                            <div class="installation-evidence-section__title">
+                                <span><i class="pi pi-check-circle"></i> Después de la instalación</span>
+                                <small>Resultado final del trabajo</small>
+                            </div>
+                            <div class="installation-evidence-grid">
+                                <article class="installation-evidence-card"
+                                    *ngFor="let item of getInstallationEvidenceBySection('after')"
+                                    [class.installation-evidence-card--pending]="hasPendingInstallationEvidence(item.key)">
+                                    <div class="installation-evidence-card__preview">
+                                        <img *ngIf="getInstallationEvidenceUrl(item.key) as imageUrl"
+                                            [src]="imageUrl" [alt]="item.label">
+                                        <div *ngIf="!getInstallationEvidenceUrl(item.key)"
+                                            class="installation-evidence-card__empty">
+                                            <i class="pi" [ngClass]="item.icon"></i>
+                                            <span>Imagen pendiente</span>
+                                        </div>
+                                        <span class="installation-evidence-card__status"
+                                            *ngIf="getInstallationEvidenceUrl(item.key)">
+                                            <i class="pi"
+                                                [ngClass]="hasPendingInstallationEvidence(item.key) ? 'pi-clock' : 'pi-check'"></i>
+                                            {{ hasPendingInstallationEvidence(item.key) ? 'Por guardar' : 'Registrada' }}
+                                        </span>
+                                    </div>
+                                    <div class="installation-evidence-card__body">
+                                        <strong>{{ item.label }}</strong>
+                                        <small *ngIf="getInstallationEvidenceOriginalName(item.key)">
+                                            {{ getInstallationEvidenceOriginalName(item.key) }}
+                                        </small>
+                                        <div class="installation-evidence-card__actions">
+                                            <a *ngIf="getInstallationEvidenceUrl(item.key) && !hasPendingInstallationEvidence(item.key)"
+                                                [href]="getInstallationEvidenceUrl(item.key)" target="_blank"
+                                                rel="noopener noreferrer" title="Abrir imagen">
+                                                <i class="pi pi-external-link"></i>
+                                            </a>
+                                            <label *ngIf="canUpdateDevices()"
+                                                [attr.for]="'installation-evidence-' + item.key">
+                                                <i class="pi pi-upload"></i>
+                                                {{ getInstallationEvidenceUrl(item.key) ? 'Reemplazar' : 'Subir' }}
+                                            </label>
+                                            <button type="button" *ngIf="hasPendingInstallationEvidence(item.key)"
+                                                (click)="removePendingInstallationEvidence(item.key, $event)"
+                                                title="Descartar cambio">
+                                                <i class="pi pi-times"></i>
+                                            </button>
+                                            <input [id]="'installation-evidence-' + item.key" type="file"
+                                                accept="image/*" hidden
+                                                (change)="onInstallationEvidenceFileSelected($event, item.key)">
+                                        </div>
+                                    </div>
+                                </article>
+                            </div>
+                        </section>
+                    </div>
+
+                    <ng-template pTemplate="footer">
+                        <div class="installation-evidence-dialog__footer">
+                            <span *ngIf="getPendingInstallationEvidenceCount()">
+                                {{ getPendingInstallationEvidenceCount() }}
+                                {{ getPendingInstallationEvidenceCount() === 1 ? 'imagen lista' : 'imágenes listas' }}
+                            </span>
+                            <span *ngIf="!getPendingInstallationEvidenceCount()">Sin cambios pendientes</span>
+                            <div>
+                                <button type="button" class="installation-evidence-dialog__close"
+                                    [disabled]="isUploadingInstallationEvidence"
+                                    (click)="closeInstallationEvidenceDialog()">Cerrar</button>
+                                <button type="button" class="installation-evidence-dialog__save"
+                                    *ngIf="canUpdateDevices()"
+                                    [disabled]="!getPendingInstallationEvidenceCount() || isUploadingInstallationEvidence"
+                                    (click)="uploadPendingInstallationEvidence()">
+                                    <i class="pi"
+                                        [ngClass]="isUploadingInstallationEvidence ? 'pi-spin pi-spinner' : 'pi-cloud-upload'"></i>
+                                    {{ isUploadingInstallationEvidence ? 'Guardando...' : 'Guardar imágenes' }}
+                                </button>
+                            </div>
+                        </div>
+                    </ng-template>
                 </p-dialog>
 
                 <!-- Modal de contactos -->
