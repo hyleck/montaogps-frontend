@@ -74,6 +74,21 @@ export interface UserLatestLocation {
   source?: string;
 }
 
+export interface UserStaticLocation {
+  static_location_url?: string | null;
+  static_location_address?: string | null;
+  static_latitude?: number | null;
+  static_longitude?: number | null;
+}
+
+export interface ResolvedGoogleMapsLink {
+  original_url: string;
+  resolved_url: string;
+  latitude: number;
+  longitude: number;
+  address?: string;
+}
+
 export interface LocatedUser {
   id: string;
   name: string;
@@ -174,6 +189,18 @@ export class UserService {
 
   getLatestLocation(id: string): Observable<UserLatestLocation | null> {
     return this.http.get<UserLatestLocation | null>(`${this.apiUrl}/${id}/location/latest`);
+  }
+
+  getStaticLocation(id: string): Observable<UserStaticLocation> {
+    return this.http.get<UserStaticLocation>(`${this.apiUrl}/${id}/static-location`);
+  }
+
+  updateStaticLocation(id: string, location: UserStaticLocation): Observable<UserStaticLocation> {
+    return this.http.patch<UserStaticLocation>(`${this.apiUrl}/${id}/static-location`, location);
+  }
+
+  resolveGoogleMapsLink(url: string): Observable<ResolvedGoogleMapsLink> {
+    return this.http.post<ResolvedGoogleMapsLink>(`${this.apiUrl}/static-location/resolve-link`, { url });
   }
 
   getLocatedUsers(): Observable<LocatedUser[]> {

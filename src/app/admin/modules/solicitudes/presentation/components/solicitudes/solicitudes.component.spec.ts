@@ -75,6 +75,28 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.selectedSolicitud?.scheduled_date).toMatch(
             /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/,
         );
+        expect(component.selectedSolicitud?.scheduled_date).toMatch(/:\d0$/);
+    });
+
+    it('floors scheduled minutes to ten-minute blocks before saving', async () => {
+        const { component, solicitudesService } = createComponent();
+        component.selectedSolicitud = {
+            type: 'instalacion',
+            status: 'pendiente',
+            quantity: 2,
+            scheduled_date: '2026-07-28T15:44',
+            installations: [
+                {},
+                { scheduled_date: '2026-07-28T17:13' },
+            ],
+        };
+
+        await component.saveSolicitud();
+
+        const savedSolicitud = solicitudesService.create.calls.mostRecent().args[0] as Solicitud;
+        expect(savedSolicitud.scheduled_date).toBe('2026-07-28T15:40');
+        expect(savedSolicitud.installations?.[0]?.scheduled_date).toBe('2026-07-28T15:40');
+        expect(savedSolicitud.installations?.[1]?.scheduled_date).toBe('2026-07-28T17:10');
     });
 
     it('keeps a shortened Google Maps link even when it does not expose coordinates', () => {

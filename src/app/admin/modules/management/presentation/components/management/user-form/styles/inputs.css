@@ -65,12 +65,6 @@
     gap: 0.35rem;
 }
 
-.user-form__label-whatsapp-icon {
-    color: #25d366;
-    font-size: 1rem;
-    line-height: 1;
-}
-
 .ng-invalid {
     border-color: var(--red-500) !important;
 }

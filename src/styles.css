@@ -1539,3 +1539,113 @@ html.app-dark .p-dialog.share-method-dialog .share-method-icon {
     background: rgba(255, 77, 87, 0.16) !important;
     color: #ff5c65 !important;
 }
+
+/* El diálogo de ubicación se inserta directamente en body. Estas reglas deben
+   ser globales para que Angular no encapsule el selector html.app-dark. */
+html.app-dark .static-location-dialog {
+    border-color: #454954 !important;
+    background: #24262c !important;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.58) !important;
+}
+
+html.app-dark .static-location-dialog .p-dialog-header,
+html.app-dark .static-location-dialog .p-dialog-content {
+    background: #24262c !important;
+    color: #f5f7fb !important;
+}
+
+html.app-dark .static-location-dialog .p-dialog-header {
+    border-bottom-color: #3b3f48 !important;
+}
+
+html.app-dark .static-location-dialog .p-dialog-title,
+html.app-dark .static-location-dialog .static-location-modal__intro strong,
+html.app-dark .static-location-dialog .static-location-method__copy strong,
+html.app-dark .static-location-dialog .static-location-option__title {
+    color: #f8fafc !important;
+}
+
+html.app-dark .static-location-dialog .p-dialog-header-close {
+    color: #b8bec9 !important;
+    background: #30333a !important;
+    border-color: #474b55 !important;
+}
+
+html.app-dark .static-location-dialog .static-location-modal {
+    color: #f5f7fb !important;
+}
+
+html.app-dark .static-location-dialog .static-location-modal__intro {
+    border-color: #5a3b40 !important;
+    background: linear-gradient(135deg, #392b2f 0%, #2d2f35 100%) !important;
+}
+
+html.app-dark .static-location-dialog .static-location-modal__intro > i,
+html.app-dark .static-location-dialog .static-location-method__icon {
+    color: #ff6875 !important;
+    background: #482f34 !important;
+}
+
+html.app-dark .static-location-dialog .static-location-modal__intro span,
+html.app-dark .static-location-dialog .static-location-method__copy small,
+html.app-dark .static-location-dialog .static-location-help,
+html.app-dark .static-location-dialog .static-location-current span {
+    color: #aeb5c1 !important;
+}
+
+html.app-dark .static-location-dialog .static-location-method,
+html.app-dark .static-location-dialog .static-location-option {
+    border-color: #484c56 !important;
+    background: #30333a !important;
+    color: #c2c8d2 !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16) !important;
+}
+
+html.app-dark .static-location-dialog .static-location-method:hover {
+    border-color: #d85b66 !important;
+    background: #373940 !important;
+    color: #ff6875 !important;
+    box-shadow: 0 7px 18px rgba(0, 0, 0, 0.22) !important;
+}
+
+html.app-dark .static-location-dialog .static-location-method--active {
+    border-color: #ff5b68 !important;
+    background: #3c2d31 !important;
+    color: #ff6875 !important;
+    box-shadow: 0 0 0 2px rgba(255, 91, 104, 0.1) !important;
+}
+
+html.app-dark .static-location-dialog .static-location-field input,
+html.app-dark .static-location-dialog .static-location-search,
+html.app-dark .static-location-dialog .static-location-coordinates input {
+    border-color: #4a4f59 !important;
+    background: #25282e !important;
+    color: #f5f7fb !important;
+}
+
+html.app-dark .static-location-dialog .static-location-field input::placeholder,
+html.app-dark .static-location-dialog .static-location-search::placeholder,
+html.app-dark .static-location-dialog .static-location-coordinates input::placeholder {
+    color: #858d9a !important;
+}
+
+html.app-dark .static-location-dialog .static-location-field input:focus,
+html.app-dark .static-location-dialog .static-location-search:focus,
+html.app-dark .static-location-dialog .static-location-coordinates input:focus {
+    border-color: #ff5b68 !important;
+    background: #292c33 !important;
+    box-shadow: 0 0 0 3px rgba(255, 91, 104, 0.12) !important;
+}
+
+html.app-dark .static-location-dialog .static-location-current {
+    border-color: #474b55 !important;
+    background: #2c3037 !important;
+}
+
+html.app-dark .static-location-dialog .static-location-current strong {
+    color: #eef1f6 !important;
+}
+
+html.app-dark .static-location-dialog .location-footer {
+    border-top-color: #444851 !important;
+}

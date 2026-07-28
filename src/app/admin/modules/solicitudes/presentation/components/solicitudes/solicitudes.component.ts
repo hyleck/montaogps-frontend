@@ -41,6 +41,9 @@ interface AvailabilityTranscriptMessage {
     side: 'ester' | 'technician';
 }
 
+type SolicitudLocationConfigTarget = 'root' | 'installation';
+type SolicitudLocationConfigMethod = 'coordinates' | 'link';
+
 @Component({
     selector: 'app-solicitudes',
     templateUrl: './solicitudes.component.html',
@@ -227,6 +230,13 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     rootLocationMap: any = null;
     rootLocationMarker: any = null;
     rootGoogleMapsLink = '';
+    locationConfigDialogVisible = false;
+    locationConfigTarget: SolicitudLocationConfigTarget = 'root';
+    locationConfigMethod: SolicitudLocationConfigMethod = 'coordinates';
+    locationConfigGoogleMapsLink = '';
+    locationConfigResolvingLink = false;
+    locationConfigMap: any = null;
+    locationConfigMarker: any = null;
     showInstallData = false;
     showDetailsData = false;
     showDiagnosisData = false;
@@ -248,6 +258,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     solicitudStartedToast: SolicitudStartedToast | null = null;
     technicianDialogVisible = false;
     selectedTechnicianSolicitud: Solicitud | null = null;
+    private readonly failedTechnicianPhotos = new Set<string>();
     verifyingAvailabilityId = '';
     availabilityCallLoadingId = '';
     availabilityTranscriptDialogVisible = false;
@@ -812,7 +823,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.closeClientDialogs();
 
         this.dialogVisible = true;
-        setTimeout(() => this.initRootLocationMap(), 200);
     }
 
     onTypeChange(): void {
@@ -1013,7 +1023,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
         if (showModal) {
             this.installationModalVisible = true;
-            setTimeout(() => this.initLocationMap(), 200);
         }
         this.lookupExistingGpsTarget(index, false);
     }
@@ -1029,12 +1038,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
         switch (section) {
             case 'vehicle': this.showVehicleData = !currentlyOpen; break;
-            case 'location': 
-                this.showLocationData = !currentlyOpen; 
-                this.locationMap = null; 
-                if (this.showLocationData) { 
-                    setTimeout(() => this.initLocationMap(), 300); 
-                } 
+            case 'location':
+                this.openSolicitudLocationConfig('installation');
                 break;
             case 'device': this.showDeviceData = !currentlyOpen; break;
             case 'install': this.showInstallData = !currentlyOpen; break;
@@ -1045,16 +1050,263 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     
     
     toggleRootLocation(): void {
-        const currentlyOpen = this.showRootLocationData;
         this.showRootLocationData = false;
         this.showRootDetailsData = false;
         this.showInstallationsCards = false;
+        this.openSolicitudLocationConfig('root');
+    }
 
-        this.showRootLocationData = !currentlyOpen;
-        if (this.showRootLocationData) {
-            setTimeout(() => {
-                this.initRootLocationMap();
-            }, 100);
+    openSolicitudLocationConfig(target: SolicitudLocationConfigTarget): void {
+        if (!this.selectedSolicitud) return;
+        if (target === 'installation' && !this.getCurrentLocationInstallation()) return;
+
+        this.locationConfigTarget = target;
+        this.locationConfigMethod = 'coordinates';
+        this.locationConfigResolvingLink = false;
+        this.locationConfigGoogleMapsLink = target === 'root'
+            ? String(this.selectedSolicitud.google_maps_url || this.rootGoogleMapsLink || '')
+            : String(this.getCurrentLocationInstallation()?.google_maps_url || '');
+        this.locationConfigMap = null;
+        this.locationConfigMarker = null;
+        this.locationConfigDialogVisible = true;
+    }
+
+    selectSolicitudLocationMethod(method: SolicitudLocationConfigMethod): void {
+        this.locationConfigMethod = method;
+        if (method === 'coordinates') {
+            setTimeout(() => void this.initSolicitudLocationConfigMap());
+        }
+    }
+
+    get solicitudLocationConfigTitle(): string {
+        return this.locationConfigTarget === 'root'
+            ? 'Ubicación del cliente'
+            : `Ubicación de ${this.getEntityName()}`;
+    }
+
+    get solicitudLocationCoordinates(): { latitude?: number; longitude?: number } {
+        if (this.locationConfigTarget === 'root') {
+            return {
+                latitude: this.selectedSolicitud?.latitude,
+                longitude: this.selectedSolicitud?.longitude,
+            };
+        }
+
+        const installation = this.getCurrentLocationInstallation();
+        return {
+            latitude: installation?.latitude,
+            longitude: installation?.longitude,
+        };
+    }
+
+    get hasSolicitudLocationCoordinates(): boolean {
+        const { latitude, longitude } = this.solicitudLocationCoordinates;
+        return this.isValidCoordinatePair(Number(latitude), Number(longitude));
+    }
+
+    get solicitudLocationZoneLabel(): string {
+        const source = this.locationConfigTarget === 'root'
+            ? this.selectedSolicitud
+            : this.getCurrentLocationInstallation();
+        if (!source) return 'Sin zona configurada';
+
+        const parts = [source.sector, source.municipality, source.province]
+            .map(value => String(value || '').trim())
+            .filter(Boolean);
+        return parts.length ? parts.join(', ') : 'Sin zona configurada';
+    }
+
+    onSolicitudLocationConfigShow(): void {
+        if (this.locationConfigMethod === 'coordinates') {
+            setTimeout(() => void this.initSolicitudLocationConfigMap());
+        }
+    }
+
+    applySolicitudLocationCoordinates(): void {
+        const { latitude, longitude } = this.solicitudLocationCoordinates;
+        const lat = Number(latitude);
+        const lng = Number(longitude);
+        if (!this.isValidCoordinatePair(lat, lng)) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Coordenadas inválidas',
+                detail: 'La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.'
+            });
+            return;
+        }
+
+        this.setSolicitudLocationCoordinates(lat, lng, true);
+    }
+
+    async initSolicitudLocationConfigMap(): Promise<void> {
+        try {
+            const systemConfigsResponse = await this.systemService.getAll().toPromise();
+            const systemConfigs = systemConfigsResponse?.[0];
+            const key = systemConfigs?.map_api1?.key;
+            if (!key) return;
+
+            await MapUtils.loadMapScript(
+                'google',
+                key,
+                systemConfigs?.map_api1?.url || 'https://maps.googleapis.com/maps/api/js'
+            );
+            const mapElement = document.getElementById('solicitudLocationConfigMap');
+            if (!mapElement) return;
+
+            const coordinates = this.solicitudLocationCoordinates;
+            const hasCoordinates = this.hasSolicitudLocationCoordinates;
+            const center = hasCoordinates
+                ? { lat: Number(coordinates.latitude), lng: Number(coordinates.longitude) }
+                : { lat: 18.7357, lng: -70.1627 };
+
+            this.locationConfigMap = new google.maps.Map(mapElement, {
+                center,
+                zoom: hasCoordinates ? 16 : 8,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: true
+            });
+
+            if (hasCoordinates) {
+                this.locationConfigMarker = new google.maps.Marker({
+                    position: center,
+                    map: this.locationConfigMap
+                });
+            }
+
+            this.locationConfigMap.addListener('click', (event: any) => {
+                this.setSolicitudLocationCoordinates(
+                    event.latLng.lat(),
+                    event.latLng.lng(),
+                    false
+                );
+            });
+        } catch (error) {
+            console.error('Error inicializando el selector de ubicación:', error);
+        }
+    }
+
+    applySolicitudGoogleMapsLink(): void {
+        const normalizedLink = this.normalizeGoogleMapsUrl(this.locationConfigGoogleMapsLink);
+        if (!normalizedLink) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Link no válido',
+                detail: 'Debe ser un enlace HTTPS oficial de Google Maps.'
+            });
+            return;
+        }
+
+        const coordinates = this.extractCoordinatesFromGoogleMapsLink(normalizedLink);
+        if (coordinates) {
+            this.setSolicitudLocationLink(normalizedLink);
+            this.setSolicitudLocationCoordinates(coordinates.lat, coordinates.lng, true);
+            return;
+        }
+
+        this.locationConfigResolvingLink = true;
+        this.userService.resolveGoogleMapsLink(normalizedLink).subscribe({
+            next: (resolved) => {
+                this.locationConfigResolvingLink = false;
+                this.locationConfigGoogleMapsLink = resolved.resolved_url || normalizedLink;
+                this.setSolicitudLocationLink(this.locationConfigGoogleMapsLink);
+                this.setSolicitudLocationCoordinates(resolved.latitude, resolved.longitude, true);
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Ubicación aplicada',
+                    detail: 'Se obtuvieron las coordenadas del enlace de Google Maps.'
+                });
+            },
+            error: (error) => {
+                this.locationConfigResolvingLink = false;
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'No se pudo resolver el enlace',
+                    detail: error?.error?.message || 'El enlace no contiene coordenadas que puedan identificarse.'
+                });
+            }
+        });
+    }
+
+    clearSolicitudLocationConfig(): void {
+        if (!this.selectedSolicitud) return;
+
+        if (this.locationConfigTarget === 'root') {
+            this.selectedSolicitud.latitude = undefined;
+            this.selectedSolicitud.longitude = undefined;
+            this.selectedSolicitud.google_maps_url = undefined;
+            this.rootGoogleMapsLink = '';
+            this.selectedSolicitud.installations?.forEach(installation => {
+                installation.latitude = undefined;
+                installation.longitude = undefined;
+                installation.google_maps_url = undefined;
+            });
+        } else {
+            const installation = this.getCurrentLocationInstallation();
+            if (installation) {
+                installation.latitude = undefined;
+                installation.longitude = undefined;
+                installation.google_maps_url = undefined;
+            }
+        }
+
+        this.locationConfigGoogleMapsLink = '';
+        this.locationConfigMarker?.setMap?.(null);
+        this.locationConfigMarker = null;
+    }
+
+    private getCurrentLocationInstallation(): InstallationDetail | undefined {
+        return this.selectedSolicitud?.installations?.[this.editingInstallationIndex];
+    }
+
+    private setSolicitudLocationLink(link: string): void {
+        if (!this.selectedSolicitud) return;
+
+        if (this.locationConfigTarget === 'root') {
+            this.rootGoogleMapsLink = link;
+            this.selectedSolicitud.google_maps_url = link;
+            this.selectedSolicitud.installations?.forEach(installation => {
+                installation.google_maps_url = link;
+            });
+            return;
+        }
+
+        const installation = this.getCurrentLocationInstallation();
+        if (installation) {
+            installation.google_maps_url = link;
+        }
+    }
+
+    private setSolicitudLocationCoordinates(lat: number, lng: number, centerMap: boolean): void {
+        if (!this.selectedSolicitud || !this.isValidCoordinatePair(Number(lat), Number(lng))) return;
+
+        const latitude = Number(Number(lat).toFixed(6));
+        const longitude = Number(Number(lng).toFixed(6));
+        if (this.locationConfigTarget === 'root') {
+            this.selectedSolicitud.latitude = latitude;
+            this.selectedSolicitud.longitude = longitude;
+            this.selectedSolicitud.installations?.forEach(installation => {
+                installation.latitude = latitude;
+                installation.longitude = longitude;
+            });
+        } else {
+            const installation = this.getCurrentLocationInstallation();
+            if (!installation) return;
+            installation.latitude = latitude;
+            installation.longitude = longitude;
+        }
+
+        const position = { lat: latitude, lng: longitude };
+        if (this.locationConfigMarker) {
+            this.locationConfigMarker.setPosition(position);
+        } else if (this.locationConfigMap) {
+            this.locationConfigMarker = new google.maps.Marker({
+                position,
+                map: this.locationConfigMap
+            });
+        }
+        if (centerMap && this.locationConfigMap) {
+            this.locationConfigMap.panTo(position);
         }
     }
 
@@ -2114,7 +2366,6 @@ async initLocationMap(): Promise<void> {
         this.locationMap = null;
 
         this.dialogVisible = true;
-        setTimeout(() => this.initRootLocationMap(), 200);
 
         if (this.selectedSolicitud.province) {
             const savedM = this.selectedSolicitud.municipality;
@@ -2311,6 +2562,13 @@ async initLocationMap(): Promise<void> {
         await this.saveSolicitud();
     }
 
+    normalizeSolicitudScheduledDateInput(): void {
+        if (!this.selectedSolicitud) return;
+        this.selectedSolicitud.scheduled_date = this.toDateTimeLocalValue(
+            this.selectedSolicitud.scheduled_date
+        );
+    }
+
     private syncSolicitudScheduledDate(): void {
         if (!this.selectedSolicitud) return;
 
@@ -2323,7 +2581,9 @@ async initLocationMap(): Promise<void> {
 
         this.selectedSolicitud.installations = this.selectedSolicitud.installations.map((installation, index) => ({
             ...installation,
-            scheduled_date: index === 0 || !installation.scheduled_date ? scheduledDate : installation.scheduled_date
+            scheduled_date: index === 0 || !installation.scheduled_date
+                ? scheduledDate
+                : this.toDateTimeLocalValue(installation.scheduled_date)
         }));
     }
 
@@ -2331,18 +2591,26 @@ async initLocationMap(): Promise<void> {
         if (!value) return '';
 
         if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
-            return value;
+            return this.floorDateTimeMinutesToTen(value);
         }
 
         if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:/.test(value)) {
-            return value.slice(0, 16);
+            return this.floorDateTimeMinutesToTen(value.slice(0, 16));
         }
 
         const date = value instanceof Date ? value : new Date(value);
         if (Number.isNaN(date.getTime())) return '';
 
         const pad = (part: number) => String(part).padStart(2, '0');
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        const localValue = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+        return this.floorDateTimeMinutesToTen(localValue);
+    }
+
+    private floorDateTimeMinutesToTen(value: string): string {
+        return value.replace(/:(\d{2})$/, (_, minutes: string) => {
+            const flooredMinutes = Math.floor(Number(minutes) / 10) * 10;
+            return `:${String(flooredMinutes).padStart(2, '0')}`;
+        });
     }
 
     private getCurrentDateTimeLocalValue(): string {
@@ -2517,7 +2785,7 @@ async initLocationMap(): Promise<void> {
             pendiente: 'pi pi-clock',
             aceptada: 'pi pi-check-circle',
             rechazada: 'pi pi-times-circle',
-            en_progreso: 'pi pi-spinner',
+            en_progreso: 'pi pi-spin pi-spinner',
             por_confirmar: 'pi pi-question-circle',
             completada: 'pi pi-check-circle',
             cancelada: 'pi pi-times-circle'
@@ -2533,6 +2801,12 @@ async initLocationMap(): Promise<void> {
         return solicitud?.technician_response === 'aceptada';
     }
 
+    isPendingAcceptanceLoading(solicitud: Solicitud | null): boolean {
+        return solicitud?.status === 'pendiente'
+            && !this.isTechnicianAccepted(solicitud)
+            && !this.isTechnicianUnavailable(solicitud);
+    }
+
     isTechnicianVerifying(solicitud: Solicitud | null): boolean {
         return solicitud?.technician_response === 'verificando';
     }
@@ -2546,6 +2820,19 @@ async initLocationMap(): Promise<void> {
         const technician = this.getTechnicianById(solicitud?.mechanic_id);
         if (!technician) return 'Técnico asignado';
         return `${technician.name || ''} ${technician.last_name || ''}`.trim() || technician.email || 'Técnico asignado';
+    }
+
+    getAcceptedTechnicianPhoto(solicitud: Solicitud | null): string | null {
+        if (!this.isTechnicianAccepted(solicitud)) return null;
+
+        const photo = String(this.getTechnicianById(solicitud?.mechanic_id)?.photo || '').trim();
+        return photo && !this.failedTechnicianPhotos.has(photo) ? photo : null;
+    }
+
+    onTechnicianPhotoError(photo: string): void {
+        if (photo) {
+            this.failedTechnicianPhotos.add(photo);
+        }
     }
 
     openTechnicianAvailabilityDialog(solicitud: Solicitud, event?: Event): void {

@@ -38,22 +38,20 @@
 
                                         <div class="user-form__field">
                                             <label for="phone" class="user-form__label-with-icon">
-                                                <i class="pi pi-whatsapp user-form__label-whatsapp-icon"></i>
-                                                <span>{{ translations.phone | translate }}</span>
+                                                <span>Número de WhatsApp</span>
                                                 <span class="required-label">(Requerido)</span>
                                             </label>
                                             <input [(ngModel)]="user.phone" name="phone"
                                                 placeholder="Ej: (809) 555-0123" type="tel" id="phone" required>
                                         </div>
                                         <div class="user-form__field" *ngIf="userInput && (userInput.phone || userInput.phone2) && isCurrentUserEmployee">
-                                            <button
-                                                style="background:#25D366!important; color:white!important; text-align: left; width: 100%; border-radius: 8px; padding: 0.65rem 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; border: none; cursor: pointer; font-size: 0.9rem;"
+                                            <button class="user-form__utility-button user-form__utility-button--whatsapp"
                                                 type="button"
                                                 [disabled]="waCheckingWindow"
                                                 (click)="openWhatsApp()">
                                                 <i class="pi pi-whatsapp"></i>
                                                 <span *ngIf="!waCheckingWindow">Enviar WhatsApp</span>
-                                                <span *ngIf="waCheckingWindow"><i class="pi pi-spin pi-spinner" style="margin-right:4px"></i> Verificando...</span>
+                                                <span *ngIf="waCheckingWindow"><i class="pi pi-spin pi-spinner"></i> Verificando...</span>
                                             </button>
                                         </div>
 
@@ -64,9 +62,8 @@
                                         </div>
 
                                         <div class="user-form__field contacts-button-wrapper" *ngIf="userInput">
-                                            <button
-                                                style="background:black!important; color:white!important; text-align: left;"
-                                                type="button" class="button button--primary-flat"
+                                            <button type="button"
+                                                class="button button--primary-flat user-form__utility-button"
                                                 (click)="openContacts()">
                                                 <i class="pi pi-users"></i>
                                                 <span> Contactos</span>
@@ -150,15 +147,15 @@
                                                 [required]="!userInput">
                                         </div>
 
-                                        <div class="user-form__field" *ngIf="userInput && isCurrentUserEmployee"
-                                            style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
-                                            <button type="button" class="button button--primary-flat"
-                                                style="border: 2px solid #8b5cf6; color: #8b5cf6; padding: 0.75rem; width: 100%; border-radius: 8px; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
+                                        <div class="user-form__field user-form__quick-actions"
+                                            *ngIf="userInput && isCurrentUserEmployee">
+                                            <button type="button"
+                                                class="button button--primary-flat user-form__utility-button"
                                                 (click)="openPersonalizedCallModal()">
                                                 <i class="pi pi-phone"></i> Llamadas personalizadas
                                             </button>
-                                            <button type="button" class="button button--primary-flat"
-                                                style="border: 2px solid var(--globalColorPrimaryInmutable); padding: 0.75rem; width: 100%; border-radius: 8px; font-weight: bold; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;"
+                                            <button type="button"
+                                                class="button button--primary-flat user-form__utility-button"
                                                 (click)="openPushModal()">
                                                 <i class="pi pi-send"></i> Enviar Notificación Personalizada
                                             </button>
@@ -562,7 +559,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="settings-item settings-item--static-location">
+                                        <div class="settings-item">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-palette"></i>
                                                 <label for="theme">{{ translations.theme | translate }}</label>
@@ -623,8 +620,7 @@
                                                 name="subclienteEmail" id="subclienteEmail"
                                                 type="email"
                                                 placeholder="Ej: cliente@empresa.com"
-                                                class="settings-dropdown"
-                                                style="width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--surface-border); border-radius: 6px; background: var(--surface-card); color: var(--text-color); font-size: 0.9rem;">
+                                                class="settings-dropdown">
                                             <small class="settings-description">Correo electrónico del cliente principal al que pertenece este subcliente. Se llena automáticamente si existe un usuario padre.</small>
                                         </div>
 
@@ -669,10 +665,10 @@
                                                 'management.userForm.companyTypeDescription' | translate }}</small>
                                         </div>
 
-                                        <div class="settings-item" *ngIf="isEmployeeLocationSubject()">
+                                        <div class="settings-item settings-item--static-location" *ngIf="isCurrentUserEmployee">
                                             <div class="settings-item__header">
                                                 <i class="pi pi-map-marker"></i>
-                                                <label>Ubicación geográfica estática</label>
+                                                <label>Ubicación del cliente</label>
                                             </div>
                                             <div class="static-location-summary">
                                                 <div class="static-location-summary__icon">
@@ -680,21 +676,22 @@
                                                 </div>
                                                 <div class="static-location-summary__content">
                                                     <strong>{{ user.static_location_address || 'Sin ubicación configurada' }}</strong>
-                                                    <span *ngIf="user.static_latitude && user.static_longitude">
+                                                    <span *ngIf="user.static_latitude != null && user.static_longitude != null">
                                                         {{ user.static_latitude | number:'1.5-5' }},
                                                         {{ user.static_longitude | number:'1.5-5' }}
                                                     </span>
-                                                    <span *ngIf="!user.static_latitude || !user.static_longitude">
+                                                    <span *ngIf="user.static_latitude == null || user.static_longitude == null">
                                                         Dirección fija donde vive o trabaja el cliente.
                                                     </span>
                                                 </div>
-                                                <button type="button" class="static-location-summary__button" (click)="openLocationModal()">
-                                                    <i class="pi pi-map"></i>
-                                                    Configurar
+                                                <button type="button" class="static-location-summary__button"
+                                                    (click)="openLocationModal()" [disabled]="loadingStaticLocation">
+                                                    <i class="pi" [ngClass]="loadingStaticLocation ? 'pi-spin pi-spinner' : 'pi-map-marker'"></i>
+                                                    Ubicación
                                                 </button>
                                             </div>
                                             <small class="settings-description">
-                                                Esta ubicación es fija y no reemplaza la ubicación realtime del usuario.
+                                                Configura dónde vive, trabaja o se encuentra habitualmente este cliente.
                                             </small>
                                         </div>
 
@@ -763,71 +760,93 @@
     </div>
 </div>
 
-<p-dialog *ngIf="isEmployeeLocationSubject()" [(visible)]="showLocationModal" [modal]="true" [draggable]="false" [resizable]="false"
-    [style]="{ width: '900px', maxWidth: '96vw' }" header="Ubicación geográfica estática" styleClass="app-dark-dialog static-location-dialog" appendTo="body" (onShow)="initLocationMap()">
+<p-dialog *ngIf="isCurrentUserEmployee" [(visible)]="showLocationModal" [modal]="true" [draggable]="false" [resizable]="false"
+    [style]="{ width: '620px', maxWidth: '94vw' }" header="Ubicación del cliente"
+    styleClass="static-location-dialog" appendTo="body"
+    (onShow)="onStaticLocationModalShow()">
     <div class="static-location-modal">
         <div class="static-location-modal__intro">
             <i class="pi pi-map-marker"></i>
             <div>
-                <strong>Ubicación fija del cliente</strong>
-                <span>Guarda dónde vive o trabaja. Esta ubicación no reemplaza la ubicación realtime.</span>
+                <strong>¿Cómo deseas colocar la ubicación?</strong>
+                <span>Elige la forma más cómoda para indicar dónde vive, trabaja o se encuentra este cliente.</span>
             </div>
         </div>
 
-        <div class="static-location-options">
-            <section class="static-location-option">
-                <div class="static-location-option__title">
-                    <i class="pi pi-home"></i>
-                    <span>Dirección escrita</span>
-                </div>
-                <div class="static-location-field">
-                    <input type="text"
-                        [(ngModel)]="staticLocationManualAddress"
-                        name="staticLocationManualAddress"
-                        placeholder="Ej. Av. 27 de Febrero, Santo Domingo"
-                        (keydown.enter)="$event.preventDefault(); applyStaticManualAddress()" />
-                    <button type="button" (click)="applyStaticManualAddress()">Buscar</button>
-                </div>
-            </section>
-
-            <section class="static-location-option">
-                <div class="static-location-option__title">
-                    <i class="pi pi-link"></i>
-                    <span>Link de Google Maps</span>
-                </div>
-                <div class="static-location-field">
-                    <input type="url"
-                        [(ngModel)]="staticLocationGoogleMapsLink"
-                        name="staticLocationGoogleMapsLink"
-                        placeholder="Pega aquí el link de Google Maps"
-                        (keydown.enter)="$event.preventDefault(); applyStaticGoogleMapsLink()" />
-                    <button type="button" (click)="applyStaticGoogleMapsLink()">Aplicar</button>
-                </div>
-            </section>
+        <div class="static-location-methods" role="group" aria-label="Forma de configurar la ubicación">
+            <button type="button" class="static-location-method"
+                [class.static-location-method--active]="staticLocationMethod === 'coordinates'"
+                (click)="selectStaticLocationMethod('coordinates')">
+                <span class="static-location-method__icon"><i class="pi pi-compass"></i></span>
+                <span class="static-location-method__copy">
+                    <strong>Coordenadas</strong>
+                    <small>Escribe la latitud y longitud exactas.</small>
+                </span>
+            </button>
+            <button type="button" class="static-location-method"
+                [class.static-location-method--active]="staticLocationMethod === 'link'"
+                (click)="selectStaticLocationMethod('link')">
+                <span class="static-location-method__icon"><i class="pi pi-link"></i></span>
+                <span class="static-location-method__copy">
+                    <strong>Link de Google Maps</strong>
+                    <small>Pega un enlace completo o acortado.</small>
+                </span>
+            </button>
         </div>
 
-        <section class="static-location-option static-location-option--search">
+        <section class="static-location-option" *ngIf="staticLocationMethod === 'coordinates'">
             <div class="static-location-option__title">
-                <i class="pi pi-search"></i>
-                <span>Buscar con Google Maps</span>
+                <i class="pi pi-compass"></i>
+                <span>Escribir coordenadas</span>
             </div>
-            <input #staticLocationSearchInput
-                type="text"
-                class="static-location-search"
-                placeholder="Busca una ubicación, negocio, residencia o sector" />
+            <div class="static-location-coordinates">
+                <label>
+                    <span>Latitud</span>
+                    <input type="number" [(ngModel)]="staticLatitudeInput"
+                        name="staticLatitudeInput" min="-90" max="90" step="0.000001"
+                        placeholder="18.486100" />
+                </label>
+                <label>
+                    <span>Longitud</span>
+                    <input type="number" [(ngModel)]="staticLongitudeInput"
+                        name="staticLongitudeInput" min="-180" max="180" step="0.000001"
+                        placeholder="-69.931200" />
+                </label>
+                <button type="button" (click)="applyStaticCoordinates()">Aplicar coordenadas</button>
+            </div>
+            <div class="static-coordinate-picker">
+                <div class="static-coordinate-picker__header">
+                    <div>
+                        <i class="pi pi-map-marker"></i>
+                        <strong>Seleccionar directamente en el mapa</strong>
+                    </div>
+                    <small>Haz clic sobre el punto exacto para colocar el marcador.</small>
+                </div>
+                <div id="staticCoordinatePickerMap" class="static-coordinate-picker__map"></div>
+            </div>
         </section>
 
-        <div class="static-location-map-header">
-            <div>
-                <i class="pi pi-map"></i>
-                <span>Seleccionar punto en el mapa</span>
+        <section class="static-location-option" *ngIf="staticLocationMethod === 'link'">
+            <div class="static-location-option__title">
+                <i class="pi pi-link"></i>
+                <span>Usar link de Google Maps</span>
             </div>
-            <small>Haz clic en el mapa para ajustar la coordenada exacta.</small>
-        </div>
-
-        <div class="map-container static-location-map">
-            <div id="userLocationMap"></div>
-        </div>
+            <div class="static-location-field">
+                <input type="url"
+                    [(ngModel)]="staticLocationGoogleMapsLink"
+                    name="staticLocationGoogleMapsLink"
+                    placeholder="Pega aquí el link, incluso si está acortado"
+                    (keydown.enter)="$event.preventDefault(); applyStaticGoogleMapsLink()" />
+                <button type="button" (click)="applyStaticGoogleMapsLink()"
+                    [disabled]="resolvingStaticLocationLink">
+                    <i class="pi" [ngClass]="resolvingStaticLocationLink ? 'pi-spin pi-spinner' : 'pi-link'"></i>
+                    {{ resolvingStaticLocationLink ? 'Resolviendo...' : 'Aplicar' }}
+                </button>
+            </div>
+            <small class="static-location-help">
+                Los enlaces acortados se resolverán automáticamente para obtener sus coordenadas.
+            </small>
+        </section>
 
         <div class="static-location-current">
             <div>
@@ -836,10 +855,18 @@
             </div>
             <div>
                 <span>Coordenadas</span>
-                <strong *ngIf="user.static_latitude && user.static_longitude">
+                <strong *ngIf="user.static_latitude != null && user.static_longitude != null">
                     {{ user.static_latitude | number:'1.6-6' }}, {{ user.static_longitude | number:'1.6-6' }}
                 </strong>
-                <strong *ngIf="!user.static_latitude || !user.static_longitude">Sin coordenadas</strong>
+                <strong *ngIf="user.static_latitude == null || user.static_longitude == null">Sin coordenadas</strong>
+            </div>
+            <div *ngIf="user.static_latitude != null && user.static_longitude != null">
+                <span>Mapa</span>
+                <button type="button" class="static-location-view-map"
+                    (click)="openStaticLocationMapModal()">
+                    <i class="pi pi-map-marker"></i>
+                    Ver en el mapa
+                </button>
             </div>
         </div>
 
@@ -848,15 +875,61 @@
                 <i class="pi pi-trash"></i>
                 Limpiar
             </button>
-            <button type="button" class="button button--primary static-location-save" (click)="showLocationModal = false">
-                <i class="pi pi-check"></i>
-                Guardar y cerrar
+            <button type="button" class="button button--primary static-location-save"
+                (click)="saveStaticLocation()" [disabled]="savingStaticLocation">
+                <i class="pi" [ngClass]="savingStaticLocation ? 'pi-spin pi-spinner' : 'pi-check'"></i>
+                {{ savingStaticLocation ? 'Guardando...' : 'Guardar ubicación' }}
             </button>
         </div>
     </div>
 </p-dialog>
 
+<p-dialog [(visible)]="showStaticLocationMapModal" [modal]="true" [draggable]="false" [resizable]="false"
+    [style]="{ width: '760px', maxWidth: '94vw' }" header="Ubicación del cliente"
+    styleClass="static-location-map-dialog" appendTo="body"
+    (onShow)="initStaticLocationPreviewMap()">
+    <div class="static-location-map-preview">
+        <div class="static-location-map-preview__address">
+            <i class="pi pi-map-marker"></i>
+            <div>
+                <strong>{{ user.static_location_address || 'Ubicación seleccionada' }}</strong>
+                <span>{{ user.static_latitude | number:'1.6-6' }}, {{ user.static_longitude | number:'1.6-6' }}</span>
+            </div>
+        </div>
+        <div id="staticLocationPreviewMap" class="static-location-map-preview__map"></div>
+    </div>
+</p-dialog>
+
 <style>
+    .static-location-dialog {
+        border: 1px solid #e2e6ee;
+        border-radius: 22px;
+        overflow: hidden;
+        background: #f5f7fb;
+        box-shadow: 0 28px 80px rgba(15, 23, 42, 0.3);
+    }
+    .static-location-dialog .p-dialog-header,
+    .static-location-dialog .p-dialog-content {
+        background: #f5f7fb;
+        color: #182033;
+    }
+    .static-location-dialog .p-dialog-header {
+        padding: 1.25rem 1.35rem 1rem;
+        border-bottom: 1px solid #e6e9f0;
+    }
+    .static-location-dialog .p-dialog-title {
+        color: #182033;
+        font-size: 1.15rem;
+        font-weight: 900;
+    }
+    .static-location-dialog .p-dialog-header-close {
+        color: #6b7280;
+        background: #ffffff;
+        border: 1px solid #e3e7ee;
+    }
+    .static-location-dialog .p-dialog-content {
+        padding: 1rem 1.35rem 1.3rem;
+    }
     .premium-map-btn {
         width: 100%;
         justify-content: center;
@@ -880,23 +953,20 @@
     .static-location-summary {
         width: 100%;
         display: grid;
-        grid-template-columns: 38px minmax(0, 1fr) auto;
+        grid-template-columns: 44px minmax(0, 1fr);
         align-items: center;
-        gap: 0.7rem;
+        gap: 0.75rem;
         border: 1px solid var(--surface-border);
         border-radius: 10px;
-        padding: 0.75rem;
+        padding: 0.85rem;
         background: color-mix(in srgb, var(--surface-card) 92%, var(--primary-color) 8%);
         color: var(--text-color);
         box-sizing: border-box;
         min-width: 0;
     }
-    .settings-item--static-location {
-        grid-column: 1 / -1;
-    }
     .static-location-summary__icon {
-        width: 38px;
-        height: 38px;
+        width: 44px;
+        height: 44px;
         border-radius: 10px;
         display: grid;
         place-items: center;
@@ -915,9 +985,11 @@
     .static-location-summary__content span {
         display: block;
         min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow: visible;
+        line-height: 1.35;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
     .static-location-summary__content strong {
         font-size: 0.92rem;
@@ -932,11 +1004,14 @@
         align-items: center;
         gap: 0.35rem;
         justify-content: center;
+        grid-column: 1 / -1;
+        width: 100%;
+        min-height: 40px;
         max-width: 100%;
         border: 1px solid color-mix(in srgb, var(--primary-color) 42%, transparent);
         background: color-mix(in srgb, var(--primary-color) 16%, transparent);
         color: var(--primary-color);
-        border-radius: 999px;
+        border-radius: 10px;
         padding: 0.55rem 0.85rem;
         font-weight: 800;
         cursor: pointer;
@@ -945,25 +1020,26 @@
     .static-location-modal {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.8rem;
+        color: #182033;
     }
     .static-location-modal__intro {
         display: flex;
-        gap: 0.8rem;
+        gap: 0.7rem;
         align-items: center;
-        padding: 0.95rem;
-        border-radius: 12px;
-        border: 1px solid color-mix(in srgb, var(--primary-color) 24%, transparent);
-        background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+        padding: 0.75rem 0.8rem;
+        border-radius: 14px;
+        border: 1px solid #f1d2d5;
+        background: linear-gradient(135deg, #fff7f7 0%, #ffffff 100%);
     }
     .static-location-modal__intro > i {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
+        width: 38px;
+        height: 38px;
+        border-radius: 11px;
         display: grid;
         place-items: center;
-        color: var(--primary-color);
-        background: color-mix(in srgb, var(--primary-color) 18%, transparent);
+        color: #dc3545;
+        background: #ffe8ea;
     }
     .static-location-modal__intro div {
         display: flex;
@@ -971,13 +1047,79 @@
         gap: 0.2rem;
     }
     .static-location-modal__intro strong {
-        font-size: 1rem;
+        color: #182033;
+        font-size: 0.95rem;
     }
     .static-location-modal__intro span,
     .static-location-map-header small,
     .static-location-current span {
-        color: var(--text-color-secondary);
-        font-size: 0.82rem;
+        color: #667085;
+        font-size: 0.77rem;
+    }
+    .static-location-methods {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.65rem;
+    }
+    .static-location-method {
+        min-width: 0;
+        min-height: 74px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 0.7rem;
+        border: 1px solid #e0e5ed;
+        border-radius: 13px;
+        padding: 0.75rem;
+        background: #ffffff;
+        color: #667085;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+        transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+    .static-location-method__icon {
+        flex: 0 0 40px;
+        width: 40px;
+        height: 40px;
+        border-radius: 11px;
+        display: grid;
+        place-items: center;
+        color: #dc3545;
+        background: #fff0f1;
+    }
+    .static-location-method__icon i {
+        font-size: 1.05rem;
+    }
+    .static-location-method__copy {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    .static-location-method__copy strong {
+        color: #1f2937;
+        font-size: 0.84rem;
+        font-weight: 800;
+    }
+    .static-location-method__copy small {
+        color: #7a8496;
+        font-size: 0.69rem;
+        line-height: 1.35;
+    }
+    .static-location-method:hover {
+        border-color: #e78c94;
+        color: #dc3545;
+        transform: translateY(-1px);
+        box-shadow: 0 7px 18px rgba(220, 53, 69, 0.09);
+    }
+    .static-location-method--active {
+        border-color: #dc3545;
+        background: #fff5f6;
+        color: #dc3545;
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.08);
     }
     .static-location-options {
         display: grid;
@@ -985,74 +1127,192 @@
         gap: 0.9rem;
     }
     .static-location-option {
-        border: 1px solid var(--surface-border);
-        border-radius: 12px;
-        padding: 0.9rem;
-        background: var(--surface-card);
+        border: 1px solid #e0e5ed;
+        border-radius: 14px;
+        padding: 0.85rem;
+        background: #ffffff;
+        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
     }
     .static-location-option__title {
         display: flex;
         align-items: center;
         gap: 0.5rem;
         margin-bottom: 0.65rem;
-        color: var(--text-color);
+        color: #1f2937;
         font-weight: 800;
     }
     .static-location-option__title i {
-        color: var(--primary-color);
+        color: #dc3545;
     }
     .static-location-field {
         display: flex;
         gap: 0.55rem;
     }
     .static-location-field input,
-    .static-location-search {
+    .static-location-search,
+    .static-location-coordinates input {
         width: 100%;
-        border: 1px solid var(--surface-border);
+        border: 1px solid #d9dee7;
         border-radius: 10px;
         padding: 0.7rem 0.8rem;
-        background: var(--surface-ground, var(--surface-card));
-        color: var(--text-color);
+        background: #f8fafc;
+        color: #182033;
         outline: none;
+    }
+    .static-location-field input:focus,
+    .static-location-search:focus,
+    .static-location-coordinates input:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+        background: #ffffff;
     }
     .static-location-field button {
         border: 0;
         border-radius: 10px;
         padding: 0 0.9rem;
-        background: var(--primary-color);
-        color: var(--primary-color-text, #fff);
+        background: #dc3545;
+        color: #ffffff;
         font-weight: 800;
         cursor: pointer;
     }
-    .static-location-map-header {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        align-items: center;
+    .static-location-coordinates {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+        gap: 0.65rem;
+        align-items: end;
     }
-    .static-location-map-header div {
+    .static-location-coordinates label {
+        min-width: 0;
         display: flex;
-        align-items: center;
-        gap: 0.5rem;
+        flex-direction: column;
+        gap: 0.35rem;
+        color: #667085;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+    .static-location-coordinates input {
+        box-sizing: border-box;
+    }
+    .static-location-coordinates button {
+        min-height: 41px;
+        border: 0;
+        border-radius: 10px;
+        padding: 0.65rem 0.9rem;
+        background: #dc3545;
+        color: #ffffff;
         font-weight: 800;
+        cursor: pointer;
+        white-space: nowrap;
     }
-    .static-location-map {
-        border-radius: 14px;
-        overflow: hidden;
-        border: 1px solid var(--surface-border);
+    .static-coordinate-picker {
+        margin-top: 0.8rem;
+        padding-top: 0.8rem;
+        border-top: 1px solid #e6e9f0;
     }
-    .static-location-map #userLocationMap {
+    .static-coordinate-picker__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.7rem;
+        margin-bottom: 0.55rem;
+    }
+    .static-coordinate-picker__header div {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #273244;
+        font-size: 0.8rem;
+    }
+    .static-coordinate-picker__header i {
+        color: #dc3545;
+    }
+    .static-coordinate-picker__header small {
+        color: #667085;
+        font-size: 0.72rem;
+        text-align: right;
+    }
+    .static-coordinate-picker__map {
         width: 100%;
-        height: 360px;
+        height: 300px;
+        border: 1px solid #e0e5ed;
+        border-radius: 12px;
+        overflow: hidden;
+        background: #eef2f7;
+    }
+    .static-location-help {
+        display: block;
+        margin-top: 0.55rem;
+        color: #667085;
+        font-size: 0.78rem;
+        line-height: 1.4;
+    }
+    .static-location-search-status {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin-top: 0.55rem;
+        color: #667085;
+        font-size: 0.76rem;
+    }
+    .static-location-suggestions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-top: 0.55rem;
+        padding: 0.3rem;
+        border: 1px solid #e0e5ed;
+        border-radius: 11px;
+        background: #ffffff;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+    }
+    .static-location-suggestion {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        border: 0;
+        border-radius: 8px;
+        padding: 0.65rem 0.7rem;
+        background: transparent;
+        color: #273244;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+    .static-location-suggestion:hover {
+        background: #fff3f4;
+    }
+    .static-location-suggestion > i {
+        flex: 0 0 auto;
+        color: #dc3545;
+    }
+    .static-location-suggestion > span {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.16rem;
+    }
+    .static-location-suggestion strong,
+    .static-location-suggestion small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .static-location-suggestion strong {
+        font-size: 0.8rem;
+    }
+    .static-location-suggestion small {
+        color: #7a8496;
+        font-size: 0.7rem;
     }
     .static-location-current {
         display: grid;
         grid-template-columns: 1fr auto;
-        gap: 1rem;
-        border: 1px solid var(--surface-border);
+        gap: 0.8rem;
+        border: 1px solid #e0e5ed;
         border-radius: 12px;
-        padding: 0.85rem 1rem;
-        background: color-mix(in srgb, var(--surface-card) 92%, #000 8%);
+        padding: 0.7rem 0.85rem;
+        background: #eef2f7;
     }
     .static-location-current div {
         min-width: 0;
@@ -1061,17 +1321,81 @@
         gap: 0.2rem;
     }
     .static-location-current strong {
+        color: #273244;
+        font-size: 0.82rem;
         min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+    .static-location-current a {
+        color: #dc3545;
+        font-weight: 800;
+        text-decoration: none;
+    }
+    .static-location-view-map {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border: 0;
+        padding: 0;
+        background: transparent;
+        color: #dc3545;
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 800;
+        cursor: pointer;
+    }
+    .static-location-map-preview {
+        display: flex;
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+    .static-location-map-preview__address {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.8rem;
+        border: 1px solid #e0e5ed;
+        border-radius: 12px;
+        background: #f7f8fb;
+    }
+    .static-location-map-preview__address > i {
+        color: #dc3545;
+        font-size: 1.1rem;
+    }
+    .static-location-map-preview__address div {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+    .static-location-map-preview__address strong {
+        color: #273244;
+        font-size: 0.88rem;
+    }
+    .static-location-map-preview__address span {
+        color: #667085;
+        font-size: 0.76rem;
+    }
+    .static-location-map-preview__map {
+        width: 100%;
+        height: min(480px, 60vh);
+        min-height: 320px;
+        border: 1px solid #e0e5ed;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #eef2f7;
+    }
+    .static-location-current a:hover {
+        text-decoration: underline;
+    }
     .location-footer {
         display: flex;
         justify-content: space-between;
         gap: 1rem;
-        border-top: 1px solid var(--surface-border);
-        padding-top: 1rem;
+        border-top: 1px solid #e0e5ed;
+        padding-top: 0.8rem;
     }
     .static-location-clear,
     .static-location-save {
@@ -1088,21 +1412,35 @@
         color: #ef4444;
         background: rgba(239, 68, 68, 0.08);
     }
+    .static-location-save {
+        border: 0;
+        background: #dc3545;
+        color: #ffffff;
+        box-shadow: 0 8px 18px rgba(220, 53, 69, 0.18);
+    }
+    .static-location-summary__button:disabled,
+    .static-location-save:disabled {
+        cursor: wait;
+        opacity: 0.65;
+    }
     @media (max-width: 760px) {
         .static-location-summary {
-            grid-template-columns: 38px minmax(0, 1fr);
+            grid-template-columns: 44px minmax(0, 1fr);
         }
         .static-location-summary__button {
             grid-column: 1 / -1;
             width: 100%;
         }
-        .static-location-map-header,
         .location-footer {
             align-items: stretch;
             flex-direction: column;
         }
+        .static-location-methods {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
         .static-location-options,
-        .static-location-current {
+        .static-location-current,
+        .static-location-coordinates {
             grid-template-columns: 1fr;
         }
         .static-location-field {
@@ -1110,6 +1448,18 @@
         }
         .static-location-field button {
             padding: 0.7rem 0.9rem;
+        }
+    }
+    @media (max-width: 420px) {
+        .static-location-methods {
+            grid-template-columns: 1fr;
+        }
+        .static-location-method:last-child {
+            grid-column: auto;
+        }
+        .static-location-method {
+            min-height: 74px;
+            flex-direction: row;
         }
     }
 </style>

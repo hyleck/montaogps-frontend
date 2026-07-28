@@ -1461,6 +1461,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   private sortConversations(conversations: ChatConversation[]): ChatConversation[] {
     return [...conversations].sort((a, b) => {
+      const assignmentPriorityDifference =
+        Number(this.isConversationAssignedToMe(b))
+        - Number(this.isConversationAssignedToMe(a));
+
+      if (assignmentPriorityDifference !== 0) {
+        return assignmentPriorityDifference;
+      }
+
       const aTime = Number(a.last_message_time || a.contact_last_seen_at || 0);
       const bTime = Number(b.last_message_time || b.contact_last_seen_at || 0);
       const activityDifference = bTime - aTime;
@@ -3660,6 +3668,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         if (res.success) {
           this.selectedConversation!.assignee_id = this.whatsappAgentId;
           this.selectedConversation!.assignee_name = this.currentUserName || 'Agente';
+          this.conversations = this.sortConversations(this.conversations);
+          this.filterConversations();
           this.startConversationPresenceSession();
           this.messageService.add({severity:'success', summary:'Control Tomado', detail:'Te has asignado esta conversación. Ester Assistant está desactivado para este flujo.'});
         } else {

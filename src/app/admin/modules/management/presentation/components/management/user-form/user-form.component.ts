@@ -9,7 +9,7 @@ import { MessageService } from 'primeng/api';
 import { PersonalizedCallHistory, UserService } from '@core/services/user.service';
 import { AuthService } from '@core/services/auth.service';
 import { PrivilegeService } from './services/privilege.service';
-import { Subject, takeUntil } from 'rxjs';
+import { debounceTime, Subject, takeUntil } from 'rxjs';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { CloudService } from '@core/services/cloud.service';
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
@@ -18,9 +18,15 @@ import { MapUtils } from 'src/app/shareds/helpers/map.helper';
 import { WhatsAppApiService } from '@core/services/whatsapp-api.service';
 import { InteraccionesService, UserList } from '../../../../../interacciones/presentation/services/interacciones.service';
 import { VapiService } from '@core/services/vapi.service';
-import { isEmployeeLocationSubjectValue } from '../location-subject-privacy';
 
 declare var google: any;
+type StaticLocationMethod = 'coordinates' | 'link' | 'search';
+interface StaticLocationSuggestion {
+    description: string;
+    placeId: string;
+    mainText: string;
+    secondaryText: string;
+}
 
 import {
     AVAILABLE_MODULES, // Lista de módulos disponibles
@@ -165,6 +171,20 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     userLocationMarker: any;
     staticLocationManualAddress: string = '';
     staticLocationGoogleMapsLink: string = '';
+    staticLocationMethod: StaticLocationMethod = 'coordinates';
+    staticLatitudeInput: number | null = null;
+    staticLongitudeInput: number | null = null;
+    loadingStaticLocation: boolean = false;
+    savingStaticLocation: boolean = false;
+    resolvingStaticLocationLink: boolean = false;
+    showStaticLocationMapModal: boolean = false;
+    staticLocationPreviewMap: any;
+    staticLocationPreviewMarker: any;
+    staticLocationSuggestions: StaticLocationSuggestion[] = [];
+    searchingStaticLocation: boolean = false;
+    private staticLocationSearch$ = new Subject<string>();
+    private staticLocationAutocompleteService: any;
+    private staticLocationSearchRequestId: number = 0;
     
     selectedProvince: string = '';
     selectedMunicipality: string = '';
@@ -632,6 +652,13 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     ngOnInit() {
+        this.staticLocationSearch$
+            .pipe(
+                debounceTime(3000),
+                takeUntil(this.destroy$)
+            )
+            .subscribe(query => void this.searchStaticLocationSuggestions(query));
+
         this.loadRoles();
         this.user = this.getEmptyUser();
         this.selectedTheme = 'light';
@@ -735,8 +762,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.selectedAffiliationType = user.affiliation_type_id || 'cliente';
         this.selectedProfileType = user.profile_type_id || 'personal';
         this.selectedCompanyType = user.company_type_id || '';
-        if (!this.isEmployeeLocationSubject()) {
-            this.clearUserLocationState();
+        if (this.isCurrentUserEmployee && user._id) {
+            this.loadStaticLocation(user._id);
         }
 
         // Pre-fill parent email for subcliente
@@ -1295,7 +1322,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         delete (userToSubmit as any).locationAccuracy;
         delete (userToSubmit as any).locationUpdatedAt;
         delete (userToSubmit as any).realtime_location;
-        if (!this.isEmployeeLocationSubject()) {
+        // La ubicación fija de usuarios existentes se guarda por su endpoint
+        // dedicado para no mezclarla con la ubicación realtime protegida.
+        if (this.userInput) {
             delete (userToSubmit as any).static_location_url;
             delete (userToSubmit as any).static_location_address;
             delete (userToSubmit as any).static_latitude;
@@ -1450,9 +1479,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
         // Cuando cambia la afiliación, si es técnico mostrar sección y resetear selects
         if (key === 'affiliation_type' && typeof value === 'string') {
-            if (!this.isEmployeeLocationSubject()) {
-                this.clearUserLocationState();
-            }
             const isTech = value === 'tecnico_empleado' || value === 'tecnico_independiente';
             if (!isTech) {
                 this.selectedProvince = '';
@@ -1698,14 +1724,218 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     openLocationModal() {
-        if (!this.isEmployeeLocationSubject()) {
-            this.clearUserLocationState();
+        if (!this.isCurrentUserEmployee) {
             return;
         }
 
+        if (this.userInput?._id) {
+            this.loadStaticLocation(this.userInput._id, true);
+            return;
+        }
+
+        this.prepareStaticLocationInputs();
         this.showLocationModal = true;
+    }
+
+    selectStaticLocationMethod(method: StaticLocationMethod): void {
+        this.staticLocationMethod = method;
+        if (method === 'search') {
+            setTimeout(() => void this.initializeStaticLocationSearch());
+        } else if (method === 'coordinates') {
+            setTimeout(() => void this.initStaticCoordinatePickerMap());
+        }
+    }
+
+    onStaticLocationModalShow(): void {
+        if (this.staticLocationMethod === 'search') {
+            setTimeout(() => void this.initializeStaticLocationSearch());
+        } else if (this.staticLocationMethod === 'coordinates') {
+            setTimeout(() => void this.initStaticCoordinatePickerMap());
+        }
+    }
+
+    async initStaticCoordinatePickerMap(): Promise<void> {
+        await this.initializeStaticLocationSearch();
+
+        const mapElement = document.getElementById('staticCoordinatePickerMap');
+        if (!mapElement || typeof google === 'undefined' || !google.maps) return;
+
+        const latitude = this.toOptionalNumber(this.user.static_latitude);
+        const longitude = this.toOptionalNumber(this.user.static_longitude);
+        const hasCoordinates = latitude != null && longitude != null;
+        const center = hasCoordinates
+            ? { lat: latitude, lng: longitude }
+            : { lat: 18.7357, lng: -70.1627 };
+
+        this.userLocationMap = new google.maps.Map(mapElement, {
+            center,
+            zoom: hasCoordinates ? 17 : 8,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: true
+        });
+
+        if (this.userLocationMarker) {
+            this.userLocationMarker.setMap(null);
+            this.userLocationMarker = null;
+        }
+
+        if (hasCoordinates) {
+            this.userLocationMarker = new google.maps.Marker({
+                position: center,
+                map: this.userLocationMap,
+                title: this.user.static_location_address || 'Ubicación del cliente'
+            });
+        }
+
+        this.userLocationMap.addListener('click', (event: any) => this.onMapClick(event));
+    }
+
+    openStaticLocationMapModal(): void {
+        if (this.user.static_latitude == null || this.user.static_longitude == null) return;
+        this.showStaticLocationMapModal = true;
+    }
+
+    async initStaticLocationPreviewMap(): Promise<void> {
+        await this.initializeStaticLocationSearch();
+
+        const latitude = this.toOptionalNumber(this.user.static_latitude);
+        const longitude = this.toOptionalNumber(this.user.static_longitude);
+        const mapElement = document.getElementById('staticLocationPreviewMap');
+        if (
+            latitude == null ||
+            longitude == null ||
+            !mapElement ||
+            typeof google === 'undefined' ||
+            !google.maps
+        ) {
+            return;
+        }
+
+        const position = { lat: latitude, lng: longitude };
+        this.staticLocationPreviewMap = new google.maps.Map(mapElement, {
+            center: position,
+            zoom: 17,
+            mapTypeControl: false,
+            streetViewControl: false,
+            fullscreenControl: true
+        });
+        this.staticLocationPreviewMarker = new google.maps.Marker({
+            position,
+            map: this.staticLocationPreviewMap,
+            title: this.user.static_location_address || 'Ubicación del cliente'
+        });
+    }
+
+    applyStaticCoordinates(): void {
+        const latitude = Number(this.staticLatitudeInput);
+        const longitude = Number(this.staticLongitudeInput);
+
+        if (
+            !Number.isFinite(latitude) ||
+            !Number.isFinite(longitude) ||
+            latitude < -90 ||
+            latitude > 90 ||
+            longitude < -180 ||
+            longitude > 180
+        ) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Coordenadas inválidas',
+                detail: 'La latitud debe estar entre -90 y 90, y la longitud entre -180 y 180.'
+            });
+            return;
+        }
+
+        this.setStaticLocationPoint(latitude, longitude, this.user.static_location_address || 'Ubicación por coordenadas');
+        this.user.static_location_url = this.buildGoogleMapsLink(latitude, longitude);
+        this.staticLocationGoogleMapsLink = this.user.static_location_url;
+        this.reverseGeocodeStaticLocation(latitude, longitude);
+    }
+
+    saveStaticLocation(): void {
+        if (!this.isCurrentUserEmployee) return;
+
+        if (!this.userInput?._id) {
+            this.showLocationModal = false;
+            return;
+        }
+
+        this.savingStaticLocation = true;
+        this.userService.updateStaticLocation(this.userInput._id, {
+            static_location_url: this.sanitizeOptionalString(this.user.static_location_url) ?? null,
+            static_location_address: this.sanitizeOptionalString(this.user.static_location_address) ?? null,
+            static_latitude: this.toOptionalNumber(this.user.static_latitude) ?? null,
+            static_longitude: this.toOptionalNumber(this.user.static_longitude) ?? null
+        })
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (location) => {
+                    this.assignStaticLocation(location);
+                    this.savingStaticLocation = false;
+                    this.showLocationModal = false;
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Ubicación guardada',
+                        detail: 'La ubicación fija del cliente se actualizó correctamente.'
+                    });
+                },
+                error: (error) => {
+                    this.savingStaticLocation = false;
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'No se pudo guardar',
+                        detail: error?.error?.message || 'No fue posible actualizar la ubicación del cliente.'
+                    });
+                }
+            });
+    }
+
+    private loadStaticLocation(userId: string, openAfterLoad: boolean = false): void {
+        if (!this.isCurrentUserEmployee || !userId) return;
+
+        this.loadingStaticLocation = true;
+        this.userService.getStaticLocation(userId)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (location) => {
+                    this.assignStaticLocation(location);
+                    this.loadingStaticLocation = false;
+                    if (openAfterLoad) {
+                        this.showLocationModal = true;
+                    }
+                },
+                error: (error) => {
+                    this.loadingStaticLocation = false;
+                    if (openAfterLoad) {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'No se pudo cargar',
+                            detail: error?.error?.message || 'No fue posible consultar la ubicación del cliente.'
+                        });
+                    }
+                }
+            });
+    }
+
+    private assignStaticLocation(location: {
+        static_location_url?: string | null;
+        static_location_address?: string | null;
+        static_latitude?: number | null;
+        static_longitude?: number | null;
+    }): void {
+        this.user.static_location_url = location.static_location_url || '';
+        this.user.static_location_address = location.static_location_address || '';
+        this.user.static_latitude = this.toOptionalNumber(location.static_latitude);
+        this.user.static_longitude = this.toOptionalNumber(location.static_longitude);
+        this.prepareStaticLocationInputs();
+    }
+
+    private prepareStaticLocationInputs(): void {
         this.staticLocationManualAddress = this.user.static_location_address || '';
         this.staticLocationGoogleMapsLink = this.user.static_location_url || '';
+        this.staticLatitudeInput = this.toNullableNumber(this.user.static_latitude);
+        this.staticLongitudeInput = this.toNullableNumber(this.user.static_longitude);
     }
 
     loadDynamicProvinces() {
@@ -1760,14 +1990,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
     }
 
-    async initLocationMap() {
-        if (!this.isEmployeeLocationSubject()) {
-            this.clearUserLocationState();
-            return;
-        }
-
-        const mapElement = document.getElementById('userLocationMap');
-        if (!mapElement) return;
+    private async initializeStaticLocationSearch(): Promise<void> {
+        if (!this.isCurrentUserEmployee) return;
 
         try {
             const systemConfigsResponse = await this.systemService.getAll().toPromise();
@@ -1782,52 +2006,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
 
         if (typeof google === 'undefined') return;
-
-        this.userLocationMap = null;
-        this.userLocationMarker = null;
-
-        const defaultLat = this.user?.static_latitude || 18.4861;
-        const defaultLng = this.user?.static_longitude || -69.9312;
-
-        this.userLocationMap = new google.maps.Map(mapElement, {
-            center: { lat: defaultLat, lng: defaultLng },
-            zoom: this.user?.static_latitude ? 16 : 8,
-            mapTypeId: google.maps.MapTypeId.ROADMAP
-        });
-
-        if (this.user?.static_latitude && this.user?.static_longitude) {
-            this.userLocationMarker = new google.maps.Marker({
-                position: { lat: this.user.static_latitude, lng: this.user.static_longitude },
-                map: this.userLocationMap
-            });
-        }
-
-        this.userLocationMap.addListener('click', (event: any) => this.onMapClick(event));
         this.setupStaticLocationAutocomplete();
-    }
-
-    isEmployeeLocationSubject(): boolean {
-        return isEmployeeLocationSubjectValue({
-            affiliation_type_id: this.selectedAffiliationType,
-        });
-    }
-
-    private clearUserLocationState(): void {
-        this.showLocationModal = false;
-        this.staticLocationManualAddress = '';
-        this.staticLocationGoogleMapsLink = '';
-        this.userLocationMarker?.setMap?.(null);
-        this.userLocationMarker = null;
-        this.userLocationMap = null;
-        this.user.static_location_url = '';
-        this.user.static_location_address = '';
-        this.user.static_latitude = undefined;
-        this.user.static_longitude = undefined;
-        delete (this.user as any).latitude;
-        delete (this.user as any).longitude;
-        delete (this.user as any).locationAccuracy;
-        delete (this.user as any).locationUpdatedAt;
-        delete (this.user as any).realtime_location;
     }
 
     private async ensureGooglePlacesLibrary(): Promise<void> {
@@ -1839,23 +2018,127 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     private setupStaticLocationAutocomplete(): void {
-        const input = this.staticLocationSearchInput?.nativeElement;
-        if (!input || typeof google === 'undefined' || !google.maps?.places) return;
+        if (typeof google === 'undefined' || !google.maps?.places) return;
+        this.staticLocationAutocompleteService ??= new google.maps.places.AutocompleteService();
+    }
 
-        const autocomplete = new google.maps.places.Autocomplete(input, {
-            fields: ['formatted_address', 'geometry', 'name', 'url'],
-            componentRestrictions: { country: 'do' }
+    onStaticLocationSearchInput(value: string): void {
+        const query = String(value || '').trim();
+        this.staticLocationSuggestions = [];
+        this.searchingStaticLocation = query.length >= 3;
+        this.staticLocationSearchRequestId++;
+
+        if (query.length < 3) {
+            this.searchingStaticLocation = false;
+            return;
+        }
+
+        this.staticLocationSearch$.next(query);
+    }
+
+    private async searchStaticLocationSuggestions(query: string): Promise<void> {
+        const currentQuery = String(this.staticLocationManualAddress || '').trim();
+        if (query !== currentQuery || query.length < 3) return;
+
+        if (!this.staticLocationAutocompleteService) {
+            await this.initializeStaticLocationSearch();
+        }
+
+        if (!this.staticLocationAutocompleteService) {
+            this.searchingStaticLocation = false;
+            return;
+        }
+
+        const requestId = ++this.staticLocationSearchRequestId;
+        const request = {
+            input: query,
+            language: 'es',
+            region: 'do',
+            locationBias: {
+                center: { lat: 18.7357, lng: -70.1627 },
+                radius: 300000
+            }
+        };
+
+        const autocompleteSuggestion = google.maps.places.AutocompleteSuggestion;
+        if (autocompleteSuggestion?.fetchAutocompleteSuggestions) {
+            try {
+                const response = await autocompleteSuggestion.fetchAutocompleteSuggestions(request);
+                if (
+                    requestId !== this.staticLocationSearchRequestId ||
+                    query !== String(this.staticLocationManualAddress || '').trim()
+                ) {
+                    return;
+                }
+
+                this.staticLocationSuggestions = (response?.suggestions || [])
+                    .map((suggestion: any) => {
+                        const prediction = suggestion.placePrediction;
+                        const description = prediction?.text?.toString?.() || '';
+                        return {
+                            description,
+                            placeId: prediction?.placeId || '',
+                            mainText: prediction?.mainText?.toString?.() || description,
+                            secondaryText: prediction?.secondaryText?.toString?.() || ''
+                        };
+                    })
+                    .filter((suggestion: StaticLocationSuggestion) => suggestion.description && suggestion.placeId);
+                this.searchingStaticLocation = false;
+                this.cdr.detectChanges();
+                return;
+            } catch (error) {
+                console.warn('La API nueva de sugerencias no respondió; se usará la API compatible.', error);
+            }
+        }
+
+        this.staticLocationAutocompleteService.getPlacePredictions(request, (predictions: any[] | null, status: any) => {
+            if (
+                requestId !== this.staticLocationSearchRequestId ||
+                query !== String(this.staticLocationManualAddress || '').trim()
+            ) {
+                return;
+            }
+
+            const okStatus = google.maps.places.PlacesServiceStatus?.OK || 'OK';
+            this.staticLocationSuggestions = status === okStatus && predictions
+                ? predictions.map(prediction => ({
+                    description: prediction.description,
+                    placeId: prediction.place_id,
+                    mainText: prediction.structured_formatting?.main_text || prediction.description,
+                    secondaryText: prediction.structured_formatting?.secondary_text || ''
+                }))
+                : [];
+            this.searchingStaticLocation = false;
+            this.cdr.detectChanges();
         });
+    }
 
-        autocomplete.addListener('place_changed', () => {
-            const place = autocomplete.getPlace();
-            const location = place?.geometry?.location;
-            if (!location) return;
+    selectStaticLocationSuggestion(suggestion: StaticLocationSuggestion): void {
+        if (typeof google === 'undefined' || !suggestion?.placeId) return;
 
-            const lat = location.lat();
-            const lng = location.lng();
-            this.setStaticLocationPoint(lat, lng, place.formatted_address || place.name || input.value || 'Ubicación seleccionada');
-            this.user.static_location_url = place.url || this.buildGoogleMapsLink(lat, lng);
+        this.staticLocationManualAddress = suggestion.description;
+        this.staticLocationSuggestions = [];
+        this.searchingStaticLocation = true;
+        this.staticLocationSearchRequestId++;
+
+        const geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ placeId: suggestion.placeId }, (results: any[], status: any) => {
+            this.searchingStaticLocation = false;
+            if (status === 'OK' && results?.[0]?.geometry?.location) {
+                const result = results[0];
+                const lat = result.geometry.location.lat();
+                const lng = result.geometry.location.lng();
+                this.setStaticLocationPoint(lat, lng, result.formatted_address || suggestion.description);
+                this.user.static_location_url = this.buildGoogleMapsLink(lat, lng);
+                this.staticLocationGoogleMapsLink = this.user.static_location_url;
+            } else {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Ubicación no disponible',
+                    detail: 'No fue posible obtener las coordenadas de la ubicación seleccionada.'
+                });
+            }
+            this.cdr.detectChanges();
         });
     }
 
@@ -1870,24 +2153,52 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         const link = this.sanitizeOptionalString(this.staticLocationGoogleMapsLink);
         if (!link) return;
 
-        this.user.static_location_url = link;
         const coordinates = this.extractCoordinatesFromGoogleMapsUrl(link);
         const readableAddress = this.extractReadableLocationFromGoogleMapsUrl(link);
-        if (readableAddress) {
-            this.user.static_location_address = readableAddress;
-            this.staticLocationManualAddress = readableAddress;
-        }
-
-        if (!coordinates) {
-            this.messageService.add({
-                severity: 'warn',
-                summary: 'Ubicación no detectada',
-                detail: 'No se pudieron extraer coordenadas del link de Google Maps.'
-            });
+        if (coordinates) {
+            this.user.static_location_url = link;
+            this.setStaticLocationPoint(
+                coordinates.latitude,
+                coordinates.longitude,
+                readableAddress || 'Ubicación desde Google Maps'
+            );
+            if (!readableAddress) {
+                this.reverseGeocodeStaticLocation(coordinates.latitude, coordinates.longitude);
+            }
             return;
         }
 
-        this.setStaticLocationPoint(coordinates.latitude, coordinates.longitude, readableAddress || 'Ubicación desde Google Maps');
+        this.resolvingStaticLocationLink = true;
+        this.userService.resolveGoogleMapsLink(link)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+                next: (resolved) => {
+                    this.resolvingStaticLocationLink = false;
+                    this.user.static_location_url = resolved.resolved_url || link;
+                    this.staticLocationGoogleMapsLink = this.user.static_location_url;
+                    this.setStaticLocationPoint(
+                        resolved.latitude,
+                        resolved.longitude,
+                        resolved.address || 'Ubicación desde Google Maps'
+                    );
+                    if (!resolved.address) {
+                        this.reverseGeocodeStaticLocation(resolved.latitude, resolved.longitude);
+                    }
+                    this.messageService.add({
+                        severity: 'success',
+                        summary: 'Enlace resuelto',
+                        detail: 'Se obtuvieron correctamente las coordenadas del enlace acortado.'
+                    });
+                },
+                error: (error) => {
+                    this.resolvingStaticLocationLink = false;
+                    this.messageService.add({
+                        severity: 'warn',
+                        summary: 'No se pudo resolver el enlace',
+                        detail: error?.error?.message || 'El enlace no contiene coordenadas que puedan identificarse.'
+                    });
+                }
+            });
     }
 
     clearStaticLocation(): void {
@@ -1897,6 +2208,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.user.static_longitude = undefined;
         this.staticLocationManualAddress = '';
         this.staticLocationGoogleMapsLink = '';
+        this.staticLatitudeInput = null;
+        this.staticLongitudeInput = null;
+        this.staticLocationSuggestions = [];
+        this.searchingStaticLocation = false;
+        this.staticLocationSearchRequestId++;
         if (this.staticLocationSearchInput?.nativeElement) {
             this.staticLocationSearchInput.nativeElement.value = '';
         }
@@ -1975,15 +2291,22 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         const lat = event.latLng.lat();
         const lng = event.latLng.lng();
 
-        this.setStaticLocationPoint(lat, lng, this.user.static_location_address || 'Punto seleccionado en mapa');
+        this.setStaticLocationPoint(
+            lat,
+            lng,
+            this.user.static_location_address || 'Punto seleccionado en mapa',
+            false
+        );
         this.user.static_location_url = this.buildGoogleMapsLink(lat, lng);
         this.staticLocationGoogleMapsLink = this.user.static_location_url;
         this.reverseGeocodeStaticLocation(lat, lng);
     }
 
-    private setStaticLocationPoint(lat: number, lng: number, address?: string): void {
+    private setStaticLocationPoint(lat: number, lng: number, address?: string, adjustZoom: boolean = true): void {
         this.user.static_latitude = Number(lat.toFixed(6));
         this.user.static_longitude = Number(lng.toFixed(6));
+        this.staticLatitudeInput = this.user.static_latitude;
+        this.staticLongitudeInput = this.user.static_longitude;
         if (address) {
             this.user.static_location_address = address;
             this.staticLocationManualAddress = address;
@@ -1991,11 +2314,13 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
         if (this.userLocationMap) {
             this.userLocationMap.panTo({ lat, lng });
-            this.userLocationMap.setZoom(17);
+            if (adjustZoom) {
+                this.userLocationMap.setZoom(17);
+            }
         }
         if (this.userLocationMarker) {
             this.userLocationMarker.setPosition({ lat, lng });
-        } else {
+        } else if (this.userLocationMap && typeof google !== 'undefined') {
             this.userLocationMarker = new google.maps.Marker({
                 position: { lat, lng },
                 map: this.userLocationMap
@@ -2017,6 +2342,12 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     private buildGoogleMapsLink(lat: number, lng: number): string {
         return `https://www.google.com/maps?q=${lat},${lng}`;
+    }
+
+    private toNullableNumber(value: any): number | null {
+        if (value === null || value === undefined || value === '') return null;
+        const numberValue = Number(value);
+        return Number.isFinite(numberValue) ? numberValue : null;
     }
 
     // ─── WhatsApp Messaging ─────────────────────────────────

@@ -115,7 +115,8 @@ export const USER_FORM_STYLES = [
     './styles/privileges.css',
     './styles/prime-ng.css',
     './styles/scrollbar.css',
-    './styles/dark-mode.css'
+    './styles/dark-mode.css',
+    './styles/location-modal-theme.css'
 ];
 
 // Servicios técnicos (dinámicos con IDs y claves de traducción)
