@@ -968,8 +968,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         while (this.selectedSolicitud.installations.length < qty) {
             this.selectedSolicitud.installations.push(
                 this.selectedSolicitud.type === 'mixta'
-                    ? { process_type: 'instalacion' }
-                    : {}
+                    ? {
+                        ...this.getPrimarySolicitudLocationDefaults(),
+                        process_type: 'instalacion',
+                    }
+                    : this.getPrimarySolicitudLocationDefaults()
             );
         }
         if (this.selectedSolicitud.installations.length > qty) {
@@ -1426,10 +1429,13 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         await this.applySolicitudClientLocation(user);
 
         this.closeClientDialogs();
+        const locationWasApplied = this.hasPrimarySolicitudLocation;
         this.messageService.add({
             severity: 'success',
             summary: 'Cliente seleccionado',
-            detail: this.selectedSolicitud.client_name || 'Los datos del cliente fueron aplicados.'
+            detail: locationWasApplied
+                ? 'La ubicación guardada del cliente fue establecida como ubicación principal de la solicitud.'
+                : this.selectedSolicitud.client_name || 'Los datos del cliente fueron aplicados.'
         });
     }
 
@@ -1581,6 +1587,25 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         return !!this.selectedSolicitudClientLabel;
     }
 
+    get hasPrimarySolicitudLocation(): boolean {
+        if (!this.selectedSolicitud) return false;
+
+        const mainInstallation = this.selectedSolicitud.installations?.[0];
+        return this.isValidCoordinatePair(
+            Number(this.selectedSolicitud.latitude),
+            Number(this.selectedSolicitud.longitude),
+        )
+            || !!String(
+                this.selectedSolicitud.google_maps_url
+                || mainInstallation?.google_maps_url
+                || mainInstallation?.installation_location
+                || this.selectedSolicitud.sector
+                || this.selectedSolicitud.municipality
+                || this.selectedSolicitud.province
+                || '',
+            ).trim();
+    }
+
     private async applySolicitudClientLocation(user: User): Promise<void> {
         if (!this.selectedSolicitud) return;
 
@@ -1588,14 +1613,30 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         const province = String(user.province || '').trim();
         const municipality = String(user.municipality || '').trim();
         const sector = String(user.sector || '').trim();
+        const address = String(user.static_location_address || '').trim();
+        const mapsUrl = String(user.static_location_url || '').trim();
+        const normalizedMapsUrl = mapsUrl
+            ? this.normalizeGoogleMapsUrl(mapsUrl) || mapsUrl
+            : '';
+        const latitude = Number(user.static_latitude);
+        const longitude = Number(user.static_longitude);
+        const hasCoordinates = this.isValidCoordinatePair(latitude, longitude);
 
         this.selectedSolicitud.province = province;
         this.selectedSolicitud.municipality = municipality;
         this.selectedSolicitud.sector = sector;
+        this.selectedSolicitud.latitude = hasCoordinates ? latitude : undefined;
+        this.selectedSolicitud.longitude = hasCoordinates ? longitude : undefined;
+        this.selectedSolicitud.google_maps_url = normalizedMapsUrl || undefined;
+        this.rootGoogleMapsLink = normalizedMapsUrl;
         this.selectedSolicitud.installations?.forEach(installation => {
             installation.province = province;
             installation.municipality = municipality;
             installation.sector = sector;
+            installation.latitude = hasCoordinates ? latitude : undefined;
+            installation.longitude = hasCoordinates ? longitude : undefined;
+            installation.google_maps_url = normalizedMapsUrl || undefined;
+            installation.installation_location = address || undefined;
         });
 
         if (province) {
@@ -1622,18 +1663,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             }
         }
 
-        const mapsUrl = String(user.static_location_url || '').trim();
-        if (mapsUrl) {
-            this.rootGoogleMapsLink = mapsUrl;
-            this.syncRootGoogleMapsLink(false);
-            return;
-        }
-
-        const latitude = Number(user.static_latitude);
-        const longitude = Number(user.static_longitude);
-        if (this.isValidCoordinatePair(latitude, longitude)) {
-            this.selectedSolicitud.latitude = latitude;
-            this.selectedSolicitud.longitude = longitude;
+        if (hasCoordinates) {
             this.onRootLatitudeLongitudeChange();
         }
     }
@@ -1657,9 +1687,27 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             installation.latitude = undefined;
             installation.longitude = undefined;
             installation.google_maps_url = undefined;
+            installation.installation_location = undefined;
         });
         this.rootLocationMarker?.setMap?.(null);
         this.rootLocationMarker = null;
+    }
+
+    private getPrimarySolicitudLocationDefaults(): Partial<InstallationDetail> {
+        if (!this.selectedSolicitud) return {};
+
+        const mainInstallation = this.selectedSolicitud.installations?.[0];
+        return {
+            province: this.selectedSolicitud.province || undefined,
+            municipality: this.selectedSolicitud.municipality || undefined,
+            sector: this.selectedSolicitud.sector || undefined,
+            latitude: this.selectedSolicitud.latitude,
+            longitude: this.selectedSolicitud.longitude,
+            google_maps_url:
+                this.selectedSolicitud.google_maps_url || undefined,
+            installation_location:
+                mainInstallation?.installation_location || undefined,
+        };
     }
 
     searchClientEmails(event: { query: string }): void {

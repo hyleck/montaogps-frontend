@@ -309,6 +309,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private lastApiMessageId: number | null = null;
   private conversationsFingerprint: string = '';
   private pendingConversationId: number | null = null;
+  private pendingFocusedMessageId: number | null = null;
+  focusedMessageId: number | null = null;
   private whatsappAgentId: string = '';
   private currentUserName: string = '';
   private currentUserDepartment: string = '';
@@ -420,6 +422,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       if (convId) {
         this.pendingConversationId = +convId;
       }
+    });
+    this.route.queryParamMap.subscribe(params => {
+      const messageId = Number(params.get('messageId') || 0);
+      this.pendingFocusedMessageId = messageId > 0 ? messageId : null;
     });
   }
 
@@ -1487,6 +1493,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     conv.unread_count = 0; // Clear indicator instantly mimicking visual read receipts
     this.resetPlayableAudio();
     this.selectedConversation = conv;
+    if (navigate) {
+      this.pendingFocusedMessageId = null;
+    }
+    this.focusedMessageId = null;
     if (this.currentUserId) {
       localStorage.setItem(`last_opened_chat_${this.currentUserId}`, conv.id.toString());
     }
@@ -1505,6 +1515,39 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (navigate) {
       this.location.go(`/admin/communication/chat/${conv.id}`);
     }
+  }
+
+  openInternalMessageReference(message: InternalChatMessage): void {
+    const conversationId = Number(message.referenceConversationId || 0);
+    if (!conversationId) return;
+
+    const messageId = Number(message.referenceMessageId || 0);
+    this.pendingConversationId = conversationId;
+    this.pendingFocusedMessageId = messageId > 0 ? messageId : null;
+    this.focusedMessageId = null;
+    this.activeTab = 'chat';
+    this.stopInternalChatPolling();
+    this.stopActiveEmployeesPolling();
+
+    this.router.navigate(
+      ['/admin/communication', 'chat', conversationId],
+      {
+        queryParams: messageId > 0 ? { messageId } : undefined,
+      },
+    ).then(() => {
+      const conversation = this.conversations.find(
+        item => item.id === conversationId,
+      );
+      if (conversation) {
+        this.pendingConversationId = null;
+        this.selectConversation(conversation, false);
+        return;
+      }
+
+      if (this.userInboxId) {
+        this.loadConversations();
+      }
+    });
   }
 
   private loadGpsUser(phone: string): void {
@@ -2775,7 +2818,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           this.lastApiMessageId = null;
           this.hasOlderMessages = false;
         }
-        this.scrollToBottom();
+        if (this.pendingFocusedMessageId) {
+          this.focusReferencedMessage(this.pendingFocusedMessageId);
+        } else {
+          this.scrollToBottom();
+        }
         this.startChatPolling();
       },
       error: (error) => {
@@ -2904,6 +2951,106 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
       return mapped;
     });
+  }
+
+  private focusReferencedMessage(
+    messageId: number,
+    remainingPages = 20,
+  ): void {
+    if (
+      !this.selectedConversation
+      || this.pendingFocusedMessageId !== messageId
+    ) {
+      return;
+    }
+
+    setTimeout(() => {
+      const container = this.messagesContainer?.nativeElement as
+        | HTMLElement
+        | undefined;
+      const target = container?.querySelector<HTMLElement>(
+        `[data-message-id="${messageId}"]`,
+      );
+      if (target) {
+        this.focusedMessageId = messageId;
+        this.pendingFocusedMessageId = null;
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.focus({ preventScroll: true });
+        return;
+      }
+
+      if (
+        remainingPages <= 0
+        || !this.hasOlderMessages
+        || this.loadingOlderMessages
+      ) {
+        this.pendingFocusedMessageId = null;
+        this.scrollToBottom();
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Mensaje no disponible',
+          detail:
+            'Abrimos la conversación, pero el mensaje referido ya no está disponible.',
+        });
+        return;
+      }
+
+      this.loadOlderMessagesForReference(messageId, remainingPages);
+    }, 120);
+  }
+
+  private loadOlderMessagesForReference(
+    messageId: number,
+    remainingPages: number,
+  ): void {
+    if (!this.selectedConversation) return;
+
+    const conversationId = this.selectedConversation.id;
+    const oldestMessageId = this.messages.find(message => !!message.id)?.id;
+    if (!oldestMessageId) {
+      this.hasOlderMessages = false;
+      this.focusReferencedMessage(messageId, 0);
+      return;
+    }
+
+    this.loadingOlderMessages = true;
+    this.whatsappApi
+      .getConversationMessages(
+        conversationId,
+        this.messagesPageSize,
+        oldestMessageId,
+      )
+      .pipe(timeout(20000))
+      .subscribe({
+        next: (res: any) => {
+          if (this.selectedConversation?.id !== conversationId) return;
+
+          this.loadingOlderMessages = false;
+          const apiMessages =
+            res.success && Array.isArray(res.messages) ? res.messages : [];
+          this.hasOlderMessages =
+            apiMessages.length >= this.messagesPageSize;
+          const existingIds = new Set(
+            this.messages
+              .map(message => message.id)
+              .filter((id): id is number => typeof id === 'number'),
+          );
+          const olderMessages = this.mapApiMessages(apiMessages)
+            .filter(message => !message.id || !existingIds.has(message.id));
+          this.messages = [...olderMessages, ...this.messages];
+          this.preparePlayableAudio(olderMessages);
+          if (!olderMessages.length) {
+            this.hasOlderMessages = false;
+          }
+          this.focusReferencedMessage(messageId, remainingPages - 1);
+        },
+        error: () => {
+          if (this.selectedConversation?.id !== conversationId) return;
+          this.loadingOlderMessages = false;
+          this.hasOlderMessages = false;
+          this.focusReferencedMessage(messageId, 0);
+        },
+      });
   }
 
   sendMessage(): void {

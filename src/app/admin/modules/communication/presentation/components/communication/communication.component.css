@@ -412,6 +412,41 @@
     font-size: 0.92rem;
 }
 
+.comm-internal-message__reference {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 0.7rem;
+    padding: 0.62rem 0.72rem;
+    border: 1px solid rgba(52, 211, 153, 0.24);
+    border-radius: 11px;
+    background: rgba(52, 211, 153, 0.1);
+    color: #6ee7b7;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: border-color 0.16s ease, background 0.16s ease,
+        transform 0.16s ease;
+}
+
+.comm-internal-message__reference span {
+    flex: 1;
+    text-align: left;
+}
+
+.comm-internal-message__reference:hover {
+    border-color: rgba(52, 211, 153, 0.48);
+    background: rgba(52, 211, 153, 0.17);
+    transform: translateY(-1px);
+}
+
+.comm-internal-message__reference:focus-visible {
+    outline: 2px solid #34d399;
+    outline-offset: 2px;
+}
+
 .comm-internal__input {
     flex: 0 0 auto;
     display: flex;
@@ -2685,6 +2720,24 @@
 
 .comm-message--has-reaction {
     margin-bottom: 14px;
+}
+
+.comm-message--focused {
+    border-radius: 18px;
+    outline: 2px solid #fbbf24;
+    outline-offset: 5px;
+    animation: commMessageFocusPulse 1.2s ease-in-out 2;
+}
+
+@keyframes commMessageFocusPulse {
+    0%, 100% {
+        outline-color: rgba(251, 191, 36, 0.58);
+        filter: drop-shadow(0 0 0 rgba(251, 191, 36, 0));
+    }
+    50% {
+        outline-color: #fbbf24;
+        filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.38));
+    }
 }
 
 .comm-message:hover .comm-reply-btn,

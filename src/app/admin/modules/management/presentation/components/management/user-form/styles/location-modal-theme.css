@@ -362,12 +362,6 @@
     background: var(--user-form-accent);
 }
 
-.settings-item--static-location .static-location-summary {
-    border-color: var(--user-form-border);
-    border-radius: 11px;
-    background: #f8f9fc;
-}
-
 /* Privilegios */
 .modules-privileges {
     margin: 0;
@@ -535,7 +529,6 @@
 :host-context(.app-dark) .settings-item select,
 :host-context(.app-dark) .settings-toggle,
 :host-context(.app-dark) .services-grid,
-:host-context(.app-dark) .settings-item--static-location .static-location-summary,
 :host-context(.app-dark) .module-header {
     border-color: var(--user-form-border);
     background-color: #181d26;

@@ -20,6 +20,10 @@ export interface InternalChatMessage {
   attachments?: InternalChatAttachment[];
   createdAt: string;
   updatedAt?: string;
+  referenceConversationId?: number;
+  referenceMessageId?: number;
+  referenceProviderMessageId?: string;
+  referenceLabel?: string;
   author: InternalChatAuthor;
 }
 

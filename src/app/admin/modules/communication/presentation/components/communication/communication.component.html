@@ -187,6 +187,9 @@
                 </div>
 
                 <div *ngFor="let msg of messages" class="comm-message"
+                    [attr.data-message-id]="msg.id || null"
+                    [attr.tabindex]="-1"
+                    [class.comm-message--focused]="focusedMessageId === msg.id"
                     [class.comm-message--outgoing]="msg.from === 'me'"
                     [class.comm-message--incoming]="msg.from === 'incoming'"
                     [class.comm-message--system]="msg.from === 'system'"
@@ -648,6 +651,15 @@
                             <span>{{ msg.createdAt | date:'HH:mm' }}</span>
                         </div>
                         <div class="comm-internal-message__text" *ngIf="msg.text">{{ msg.text }}</div>
+                        <button
+                            *ngIf="msg.referenceConversationId"
+                            type="button"
+                            class="comm-internal-message__reference"
+                            (click)="openInternalMessageReference(msg)">
+                            <i class="pi pi-comments"></i>
+                            <span>{{ msg.referenceLabel || 'Ver mensaje original' }}</span>
+                            <i class="pi pi-arrow-right"></i>
+                        </button>
                         <div class="comm-internal-message__attachments" *ngIf="msg.attachments?.length">
                             <div *ngFor="let att of msg.attachments" class="comm-attachment">
                                 <div *ngIf="isInternalImageAttachment(att)" class="comm-attachment__img-wrap"
