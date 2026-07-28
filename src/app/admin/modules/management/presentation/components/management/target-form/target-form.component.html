@@ -442,15 +442,15 @@
                                         </div>
 
                                         <div class="target-form__field installation-evidence-launch" *ngIf="isEditMode">
-                                            <label>Imágenes de instalación</label>
+                                            <label>Fotos de la instalación</label>
                                             <button type="button" class="installation-evidence-launch__button"
                                                 (click)="openInstallationEvidenceDialog()">
                                                 <span class="installation-evidence-launch__icon">
                                                     <i class="pi pi-images"></i>
                                                 </span>
                                                 <span class="installation-evidence-launch__copy">
-                                                    <strong>Imágenes</strong>
-                                                    <small>Ver evidencias o completar las que faltan</small>
+                                                    <strong>Fotos antes y después</strong>
+                                                    <small>Ver o completar las fotos de la instalación</small>
                                                 </span>
                                                 <span class="installation-evidence-launch__count">
                                                     {{ getInstallationEvidenceCount() }}/{{ installationEvidenceDefinitions.length }}
@@ -1508,7 +1508,7 @@
                     </div>
                 </p-dialog>
 
-                <!-- Modal de imágenes de instalación -->
+                <!-- Modal de fotos de instalación -->
                 <p-dialog [(visible)]="displayInstallationEvidenceDialog" [modal]="true" [draggable]="false"
                     [resizable]="false" [closable]="!isUploadingInstallationEvidence"
                     [style]="{ width: '1040px', maxWidth: '96vw' }"
@@ -1518,7 +1518,7 @@
                         <div class="installation-evidence-dialog__header">
                             <span><i class="pi pi-images"></i></span>
                             <div>
-                                <strong>Imágenes de instalación</strong>
+                                <strong>Fotos de la instalación</strong>
                                 <small>{{ getInstallationEvidenceCount() }} de
                                     {{ installationEvidenceDefinitions.length }} registradas</small>
                             </div>
@@ -1528,14 +1528,15 @@
                     <div class="installation-evidence-dialog__content">
                         <div class="installation-evidence-dialog__intro">
                             <i class="pi pi-info-circle"></i>
-                            <span>Estas son las mismas evidencias registradas por el técnico en GPS Mobile.
-                                Puede visualizar, completar o reemplazar cualquier imagen.</span>
+                            <span>Estas son las mismas fotos registradas por el técnico en GPS Mobile antes,
+                                durante y después de la instalación. Puede visualizar, completar o reemplazar
+                                cualquier foto.</span>
                         </div>
 
                         <section class="installation-evidence-section">
                             <div class="installation-evidence-section__title">
-                                <span><i class="pi pi-camera"></i> Antes de la instalación</span>
-                                <small>Documentos y estado inicial</small>
+                                <span><i class="pi pi-camera"></i> Fotos antes de la instalación</span>
+                                <small>Documentos, vehículo y lugar antes de comenzar</small>
                             </div>
                             <div class="installation-evidence-grid">
                                 <article class="installation-evidence-card"
@@ -1588,8 +1589,8 @@
 
                         <section class="installation-evidence-section">
                             <div class="installation-evidence-section__title">
-                                <span><i class="pi pi-wifi"></i> Equipo instalado</span>
-                                <small>Numeración del GPS y SIM</small>
+                                <span><i class="pi pi-wifi"></i> Fotos del equipo instalado</span>
+                                <small>Numeración del GPS y de la SIM utilizados</small>
                             </div>
                             <div class="installation-evidence-grid">
                                 <article class="installation-evidence-card"
@@ -1642,8 +1643,8 @@
 
                         <section class="installation-evidence-section">
                             <div class="installation-evidence-section__title">
-                                <span><i class="pi pi-check-circle"></i> Después de la instalación</span>
-                                <small>Resultado final del trabajo</small>
+                                <span><i class="pi pi-check-circle"></i> Fotos después de la instalación</span>
+                                <small>Lugar, exterior e interior al finalizar el trabajo</small>
                             </div>
                             <div class="installation-evidence-grid">
                                 <article class="installation-evidence-card"
