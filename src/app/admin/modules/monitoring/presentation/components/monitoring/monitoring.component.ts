@@ -25,6 +25,8 @@ import * as ExcelJS from 'exceljs';
 })
 export class MonitoringComponent implements OnInit, OnDestroy {
   visualizationMode: 'list' | 'map' = 'list';
+  selectedMapData: MonitorUserResponse['data'] | null = null;
+  selectedMapBlockLabel = '';
   readonly visualizationOptions = [
     { label: 'Listado', value: 'list', icon: 'pi pi-list' },
     { label: 'Mapa', value: 'map', icon: 'pi pi-map' }
@@ -775,7 +777,39 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   onVisualizationChange(mode: 'list' | 'map'): void {
+    this.clearSelectedMapBlock();
     this.visualizationMode = mode;
+  }
+
+  viewBlockOnMap(userData: MonitorUserResponse['data'][number]): void {
+    this.selectedMapData = [userData];
+    this.selectedMapBlockLabel = this.getMonitoringBlockLabel(userData);
+    this.visualizationMode = 'map';
+
+    setTimeout(() => {
+      document
+        .getElementById('monitoring-map-view')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  showAllDevicesOnMap(): void {
+    this.clearSelectedMapBlock();
+    this.visualizationMode = 'map';
+  }
+
+  private clearSelectedMapBlock(): void {
+    this.selectedMapData = null;
+    this.selectedMapBlockLabel = '';
+  }
+
+  private getMonitoringBlockLabel(
+    userData: MonitorUserResponse['data'][number],
+  ): string {
+    const route = Array.isArray(userData?.route) ? userData.route : [];
+    return route.length
+      ? route[route.length - 1]?.fullName || 'este bloque'
+      : 'este bloque';
   }
 
   searchUserByEmail(): void {
@@ -2127,6 +2161,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   applyFilters(): void {
     // This method is triggered by custom filter inputs to ensure change detection runs
     // The actual filtering happens in the filteredMonitoringData getter
+    this.clearSelectedMapBlock();
   }
 
   private formatOfflineDuration(lastUpdate: string | Date, isLocalizado: boolean = false): string {
@@ -2462,6 +2497,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   openReport(reportId: string): void {
     console.log('Opening report:', reportId);
+    this.clearSelectedMapBlock();
     this.loading = true;
     this.error = '';
 
@@ -2495,6 +2531,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   backToReports(): void {
+    this.clearSelectedMapBlock();
     this.visualizationMode = 'list';
     this.monitoringResult = null;
     this.error = '';

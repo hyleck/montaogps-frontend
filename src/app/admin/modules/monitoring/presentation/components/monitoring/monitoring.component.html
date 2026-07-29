@@ -642,9 +642,31 @@
         </div>
       </div>
 
+      <div
+        *ngIf="visualizationMode === 'map' && selectedMapData"
+        class="selected-map-context"
+      >
+        <div class="selected-map-context__label">
+          <i class="pi pi-map-marker"></i>
+          <span>
+            Mostrando <strong>{{ selectedMapData[0].devices.length }} GPS</strong>
+            de <strong>{{ selectedMapBlockLabel }}</strong>
+          </span>
+        </div>
+        <button
+          type="button"
+          class="selected-map-context__all"
+          (click)="showAllDevicesOnMap()"
+        >
+          <i class="pi pi-globe"></i>
+          Ver todos los GPS
+        </button>
+      </div>
+
       <app-monitoring-map
+        id="monitoring-map-view"
         *ngIf="visualizationMode === 'map' && monitoringData.length > 0"
-        [data]="monitoringData"
+        [data]="selectedMapData || monitoringData"
       ></app-monitoring-map>
 
       <!-- No users with devices message -->
@@ -659,15 +681,30 @@
         <div *ngFor="let userData of monitoringData; let i = index; trackBy: trackByUser" class="monitoring-block"
           [class.monitoring-block--no-assistance]="hasNoAssistance(userData)">
         <!-- User Path as Breadcrumbs -->
-        <div *ngIf="userData.route && userData.route.length > 0" class="user-breadcrumbs">
+        <div class="user-breadcrumbs monitoring-block-toolbar">
           <div class="breadcrumb-container">
-            <ng-container *ngFor="let pathItem of userData.route; let j = index; let isLast = last">
+            <ng-container *ngFor="let pathItem of userData.route || []; let j = index; let isLast = last">
               <span class="breadcrumb-item" [class.active]="isLast">
                 {{ pathItem.fullName }}
               </span>
               <span *ngIf="!isLast" class="breadcrumb-separator">></span>
             </ng-container>
+            <span
+              *ngIf="!userData.route || userData.route.length === 0"
+              class="monitoring-block-label"
+            >
+              Bloque {{ i + 1 }}
+            </span>
           </div>
+          <button
+            type="button"
+            class="monitoring-block-map-button"
+            (click)="viewBlockOnMap(userData)"
+            [attr.aria-label]="'Ver en mapa los GPS del bloque ' + (i + 1)"
+          >
+            <i class="pi pi-map-marker"></i>
+            Ver en mapa
+          </button>
         </div>
 
         <!-- Devices as Content -->
