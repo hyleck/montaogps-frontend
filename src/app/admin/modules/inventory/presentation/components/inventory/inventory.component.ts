@@ -19,6 +19,7 @@ import { User } from 'src/app/core/interfaces/user.interface';
 import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatConduceSimcardCode } from './conduce-simcard-code.util';
 
 @Component({
   selector: 'app-inventory',
@@ -1487,7 +1488,10 @@ export class InventoryComponent implements OnInit {
         index + 1,
         d.IMEI || d.imei || 'N/A',
         this.getProtocolLabel(d.Protocol) || 'N/A',
-        d.SIM || d.sim || 'N/A'
+        formatConduceSimcardCode(
+          d.SIM || d.sim,
+          d.sim_company,
+        )
       ]);
 
       const midIndex = Math.ceil(deviceRows.length / 2);
@@ -1510,7 +1514,9 @@ export class InventoryComponent implements OnInit {
         styles: { fontSize: 8, cellPadding: 2 },
         columnStyles: {
           0: { fontStyle: 'bold' },
-          4: { fontStyle: 'bold' }
+          3: { fontSize: 7 },
+          4: { fontStyle: 'bold' },
+          7: { fontSize: 7 }
         },
         margin: { left: marginX, right: marginX }
       });
@@ -1530,17 +1536,10 @@ export class InventoryComponent implements OnInit {
       doc.text(`Simcards Incluidas (${conduce.simcards.length})`, marginX, currentY);
 
       const simcardRows = conduce.simcards.map((s: any, index: number) => {
-        let finalIccid = s.iccid || 'N/A';
-        if (s.sim_company && s.sim_company.toLowerCase() === 'nacionales' && s.iccid) {
-          const onlyNumbers = s.iccid.replace(/\D/g, '');
-          if (onlyNumbers) {
-            try {
-              finalIccid = (BigInt(onlyNumbers) * 2n).toString();
-            } catch (e) {
-              finalIccid = onlyNumbers; // Fallback if parsing fails
-            }
-          }
-        }
+        const finalIccid = formatConduceSimcardCode(
+          s.iccid,
+          s.sim_company,
+        );
 
         return [
           index + 1,
