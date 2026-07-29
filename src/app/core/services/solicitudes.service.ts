@@ -55,6 +55,7 @@ export interface Solicitud {
     client_id?: string;
     description?: string;
     notes?: string;
+    cancellation_reason?: string;
     deinstallation_reason?: string;
     contacts?: string;
     referido?: string;

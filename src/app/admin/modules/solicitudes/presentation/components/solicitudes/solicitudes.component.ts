@@ -217,6 +217,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     completionConfirmDialogVisible = false;
     completionSolicitud: Solicitud | null = null;
     private pendingCompletionAction: (() => void) | null = null;
+    cancellationDialogVisible = false;
+    cancellationSolicitud: Solicitud | null = null;
+    cancellationReason = '';
+    cancellationReasonSubmitted = false;
+    cancellingSolicitud = false;
     installationModalVisible = false;
     editingInstallationIndex: number = 0;
     existingGpsTargetByInstallation: Record<number, any> = {};
@@ -390,6 +395,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         { label: 'Cancelada', value: 'cancelada' }
     ];
 
+    get editableStatusOptions(): SelectOption[] {
+        return this.statusOptions.filter(option =>
+            Boolean(option.value) && option.value !== 'cancelada'
+        );
+    }
+
     typeLabels: Record<string, string> = {
         instalacion: 'Instalación',
         reinstalacion: 'Reinstalación',
@@ -451,6 +462,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         private systemService: SystemService,
         private router: Router
     ) { }
+
+    get isRootUser(): boolean {
+        const root = this.authService.getCurrentUser()?.root;
+        return root === true || String(root).toLowerCase() === 'true';
+    }
 
     ngOnInit(): void {
         this.initializeTopDateFilters();
@@ -2731,6 +2747,15 @@ async initLocationMap(): Promise<void> {
     }
 
     deleteSolicitud(solicitud: Solicitud): void {
+        if (!this.isRootUser) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Acceso restringido',
+                detail: 'Solo los usuarios root pueden eliminar solicitudes.'
+            });
+            return;
+        }
+
         this.confirmationService.confirm({
             message: '¿Estás seguro de eliminar esta solicitud?',
             header: 'Confirmar',
@@ -2756,23 +2781,58 @@ async initLocationMap(): Promise<void> {
             return;
         }
 
-        this.confirmationService.confirm({
-            message: '¿Estás seguro de cancelar esta solicitud?',
-            header: 'Confirmar cancelación',
-            icon: 'pi pi-exclamation-triangle',
-            key: 'solicitudes-confirm',
-            accept: () => {
-                this.solicitudesService.update(solicitud._id!, { ...solicitud, status: 'cancelada' }).subscribe({
-                    next: () => {
-                        this.messageService.add({ severity: 'warn', summary: 'Cancelada', detail: 'Solicitud cancelada correctamente' });
-                        this.loadSolicitudes(false);
-                    },
-                    error: () => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo cancelar' });
-                    }
+        this.cancellationSolicitud = solicitud;
+        this.cancellationReason = '';
+        this.cancellationReasonSubmitted = false;
+        this.cancellationDialogVisible = true;
+    }
+
+    confirmSolicitudCancellation(): void {
+        const solicitud = this.cancellationSolicitud;
+        const reason = String(this.cancellationReason || '').trim();
+        this.cancellationReasonSubmitted = true;
+
+        if (!solicitud?._id || !reason || this.cancellingSolicitud) return;
+
+        this.cancellingSolicitud = true;
+        this.solicitudesService.update(solicitud._id, {
+            status: 'cancelada',
+            cancellation_reason: reason
+        }).subscribe({
+            next: () => {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Cancelada',
+                    detail: 'Solicitud cancelada correctamente'
+                });
+                this.cancellingSolicitud = false;
+                this.cancellationDialogVisible = false;
+                this.resetSolicitudCancellation();
+                this.loadSolicitudes(false);
+            },
+            error: (error) => {
+                this.cancellingSolicitud = false;
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'No se pudo cancelar',
+                    detail: error?.error?.message
+                        || 'Verifique la razón e intente nuevamente.'
                 });
             }
         });
+    }
+
+    closeSolicitudCancellation(): void {
+        if (this.cancellingSolicitud) return;
+        this.cancellationDialogVisible = false;
+        this.resetSolicitudCancellation();
+    }
+
+    resetSolicitudCancellation(): void {
+        if (this.cancellingSolicitud) return;
+        this.cancellationSolicitud = null;
+        this.cancellationReason = '';
+        this.cancellationReasonSubmitted = false;
     }
 
     private showClosedSolicitudLockedFeedback(): void {

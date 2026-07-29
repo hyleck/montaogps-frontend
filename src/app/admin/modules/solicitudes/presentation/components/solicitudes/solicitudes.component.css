@@ -3367,20 +3367,24 @@ app-solicitudes > .management__route {
 }
 
 /* Dedicated irreversible-completion confirmation. */
+.sol-cancellation-dialog .p-dialog-header,
 .sol-completion-confirm-dialog .p-dialog-header {
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--managementFieldsBorder);
 }
 
+.sol-cancellation-dialog .p-dialog-content,
 .sol-completion-confirm-dialog .p-dialog-content {
     padding-top: 1.15rem;
 }
 
+.sol-cancellation-dialog .p-dialog-footer,
 .sol-completion-confirm-dialog .p-dialog-footer {
     padding-top: 0.85rem;
     border-top: 1px solid var(--managementFieldsBorder);
 }
 
+.sol-cancellation__header,
 .sol-completion-confirm__header {
     display: flex;
     align-items: center;
@@ -3388,6 +3392,7 @@ app-solicitudes > .management__route {
     min-width: 0;
 }
 
+.sol-cancellation__header-icon,
 .sol-completion-confirm__header-icon {
     display: inline-grid;
     place-items: center;
@@ -3401,6 +3406,7 @@ app-solicitudes > .management__route {
     font-size: 1.05rem;
 }
 
+.sol-cancellation__eyebrow,
 .sol-completion-confirm__eyebrow {
     display: block;
     margin-bottom: 0.16rem;
@@ -3411,11 +3417,123 @@ app-solicitudes > .management__route {
     text-transform: uppercase;
 }
 
+.sol-cancellation__header h2,
 .sol-completion-confirm__header h2 {
     margin: 0;
     color: var(--managementColorTitleUser);
     font-size: 1.12rem;
     line-height: 1.2;
+}
+
+.sol-cancellation {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    color: var(--managementColorTextUser);
+}
+
+.sol-cancellation > p {
+    margin: 0 0 0.3rem;
+    font-size: 0.88rem;
+    line-height: 1.55;
+}
+
+.sol-cancellation > p strong {
+    color: var(--managementColorTitleUser);
+}
+
+.sol-cancellation > label {
+    color: var(--managementColorTitleUser);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.sol-cancellation > label span {
+    color: #ef4444;
+}
+
+.sol-cancellation textarea {
+    width: 100%;
+    min-height: 118px;
+    resize: vertical;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 12px;
+    padding: 0.85rem 0.95rem;
+    background: var(--managementFieldsBackground);
+    color: var(--managementColorTitleUser);
+    font: inherit;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sol-cancellation textarea:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
+}
+
+.sol-cancellation textarea.sol-cancellation__textarea--invalid {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.sol-cancellation textarea:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.sol-cancellation__field-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 1.2rem;
+}
+
+.sol-cancellation__error {
+    color: #ef4444;
+    font-weight: 700;
+}
+
+.sol-cancellation__counter {
+    margin-left: auto;
+    color: var(--managementColorTextUser);
+    opacity: 0.65;
+}
+
+.sol-cancellation__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    width: 100%;
+}
+
+.sol-cancellation__approve {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 42px;
+    border: 1px solid #dc2626;
+    border-radius: 9px;
+    padding: 0.62rem 1rem;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    color: #fff;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(220, 38, 38, 0.2);
+}
+
+.sol-cancellation__approve:hover:not(:disabled) {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.sol-cancellation__approve:disabled,
+.sol-cancellation__actions .sol-btn:disabled {
+    cursor: wait;
+    opacity: 0.6;
 }
 
 .sol-completion-confirm {
@@ -3562,6 +3680,9 @@ app-solicitudes > .management__route {
 }
 
 @media (max-width: 520px) {
+    .sol-cancellation-dialog .p-dialog-header,
+    .sol-cancellation-dialog .p-dialog-content,
+    .sol-cancellation-dialog .p-dialog-footer,
     .sol-completion-confirm-dialog .p-dialog-header,
     .sol-completion-confirm-dialog .p-dialog-content,
     .sol-completion-confirm-dialog .p-dialog-footer {
@@ -3569,11 +3690,14 @@ app-solicitudes > .management__route {
         padding-right: 1rem;
     }
 
+    .sol-cancellation__actions,
     .sol-completion-confirm__actions {
         flex-direction: column-reverse;
         align-items: stretch;
     }
 
+    .sol-cancellation__actions .sol-btn,
+    .sol-cancellation__approve,
     .sol-completion-confirm__actions .sol-btn,
     .sol-completion-confirm__approve {
         width: 100%;

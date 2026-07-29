@@ -10,6 +10,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         const solicitudesService = {
             create: jasmine.createSpy('create').and.returnValue(of({})),
             update: jasmine.createSpy('update').and.returnValue(of({})),
+            delete: jasmine.createSpy('delete').and.returnValue(of(void 0)),
         };
         const messageService = {
             add: jasmine.createSpy('add'),
@@ -24,6 +25,15 @@ describe('SolicitudesComponent scheduled date editing', () => {
                 totalCount: 0,
             })),
         };
+        const authService = {
+            getCurrentUser: jasmine.createSpy('getCurrentUser').and.returnValue({
+                id: 'root-1',
+                root: true,
+            }),
+        };
+        const confirmationService = {
+            confirm: jasmine.createSpy('confirm'),
+        };
         const component = new SolicitudesComponent(
             solicitudesService as any,
             vehicleBrandsService as any,
@@ -33,9 +43,9 @@ describe('SolicitudesComponent scheduled date editing', () => {
             {} as any,
             {} as any,
             {} as any,
-            {} as any,
+            authService as any,
             messageService as any,
-            {} as any,
+            confirmationService as any,
             {} as any,
             {} as any,
         );
@@ -43,7 +53,15 @@ describe('SolicitudesComponent scheduled date editing', () => {
         spyOn(component, 'openInstallationModal');
         spyOn(component, 'loadSolicitudes');
 
-        return { component, solicitudesService, vehicleBrandsService, userService };
+        return {
+            component,
+            solicitudesService,
+            vehicleBrandsService,
+            userService,
+            authService,
+            confirmationService,
+            messageService,
+        };
     }
 
     it('keeps an existing unscheduled request empty when opened and saved unchanged', async () => {
@@ -316,6 +334,87 @@ describe('SolicitudesComponent scheduled date editing', () => {
 
         expect(component.completionConfirmDialogVisible).toBeTrue();
         expect(component.completionDeinstallationReasonLabel).toBe('');
+    });
+
+    it('requires a written reason before cancelling a request', () => {
+        const { component, solicitudesService } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'request-cancel',
+            type: 'instalacion',
+            status: 'pendiente',
+            client_name: 'Cliente prueba',
+        };
+
+        component.cancelSolicitud(solicitud);
+        component.cancellationReason = '   ';
+        component.confirmSolicitudCancellation();
+
+        expect(component.cancellationDialogVisible).toBeTrue();
+        expect(component.cancellationReasonSubmitted).toBeTrue();
+        expect(solicitudesService.update).not.toHaveBeenCalled();
+    });
+
+    it('keeps cancelled out of the normal status selector options', () => {
+        const { component } = createComponent();
+
+        expect(
+            component.editableStatusOptions.some(
+                option => option.value === 'cancelada',
+            ),
+        ).toBeFalse();
+    });
+
+    it('sends only the cancelled status and trimmed reason when confirmed', () => {
+        const { component, solicitudesService } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'request-cancel',
+            type: 'instalacion',
+            status: 'pendiente',
+        };
+
+        component.cancelSolicitud(solicitud);
+        component.cancellationReason = '  El cliente solicitó cancelar.  ';
+        component.confirmSolicitudCancellation();
+
+        expect(solicitudesService.update).toHaveBeenCalledOnceWith(
+            'request-cancel',
+            {
+                status: 'cancelada',
+                cancellation_reason: 'El cliente solicitó cancelar.',
+            },
+        );
+        expect(component.cancellationDialogVisible).toBeFalse();
+        expect(component.cancellationSolicitud).toBeNull();
+        expect(component.loadSolicitudes).toHaveBeenCalledWith(false);
+    });
+
+    it('does not allow a non-root user to delete a request', () => {
+        const {
+            component,
+            solicitudesService,
+            authService,
+            confirmationService,
+            messageService,
+        } = createComponent();
+        authService.getCurrentUser.and.returnValue({
+            id: 'employee-1',
+            root: false,
+        });
+
+        component.deleteSolicitud({
+            _id: 'request-delete',
+            type: 'instalacion',
+            status: 'pendiente',
+        });
+
+        expect(component.isRootUser).toBeFalse();
+        expect(confirmationService.confirm).not.toHaveBeenCalled();
+        expect(solicitudesService.delete).not.toHaveBeenCalled();
+        expect(messageService.add).toHaveBeenCalledWith(
+            jasmine.objectContaining({
+                summary: 'Acceso restringido',
+            }),
+        );
     });
 
     it('blocks any centralized completion path when a legacy deinstallation has no reason', () => {

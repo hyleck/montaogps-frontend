@@ -171,7 +171,7 @@
                         <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
-                        <button pButton pRipple icon="pi pi-trash"
+                        <button *ngIf="isRootUser" pButton pRipple icon="pi pi-trash"
                             class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
                             pTooltip="Eliminar" tooltipPosition="top"></button>
                     </div>
@@ -237,7 +237,7 @@
                         <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
-                        <button pButton pRipple icon="pi pi-trash"
+                        <button *ngIf="isRootUser" pButton pRipple icon="pi pi-trash"
                             class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
                             pTooltip="Eliminar" tooltipPosition="top"></button>
                     </div>
@@ -298,7 +298,7 @@
                         <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
-                        <button pButton pRipple icon="pi pi-trash"
+                        <button *ngIf="isRootUser" pButton pRipple icon="pi pi-trash"
                             class="p-button-rounded p-button-text p-button-danger" (click)="deleteSolicitud(sol)"
                             pTooltip="Eliminar" tooltipPosition="top"></button>
                     </div>
@@ -807,6 +807,10 @@
                             <dt>Estado</dt>
                             <dd>{{ statusLabels[sol.status] || sol.status }}</dd>
                         </div>
+                        <div *ngIf="sol.status === 'cancelada'">
+                            <dt>Razón de cancelación</dt>
+                            <dd>{{ sol.cancellation_reason || 'No registrada' }}</dd>
+                        </div>
                         <div *ngIf="sol.type === 'desinstalacion'">
                             <dt>Razón de desinstalación</dt>
                             <dd>{{ getDeinstallationReasonLabel(sol.deinstallation_reason) || 'No registrada' }}</dd>
@@ -1050,7 +1054,7 @@
                     <div class="sol-form-field">
                         <label>Estado</label>
                         <select [(ngModel)]="selectedSolicitud.status">
-                            <option *ngFor="let opt of statusOptions.slice(1)" [value]="opt.value">{{ opt.label }}</option>
+                            <option *ngFor="let opt of editableStatusOptions" [value]="opt.value">{{ opt.label }}</option>
                         </select>
                     </div>
                 </div>
@@ -1678,6 +1682,79 @@
         <button type="button" class="sol-btn sol-btn-save" [disabled]="missingClientChecking" (click)="confirmMissingClientAndSave()">
             Guardar de todos modos
         </button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="cancellationDialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="!cancellingSolicitud"
+    [closeOnEscape]="!cancellingSolicitud"
+    [style]="{width: '540px'}"
+    [breakpoints]="{'640px': '94vw'}"
+    styleClass="app-dark-dialog sol-cancellation-dialog"
+    (onHide)="resetSolicitudCancellation()">
+    <ng-template pTemplate="header">
+        <div class="sol-cancellation__header">
+            <span class="sol-cancellation__header-icon" aria-hidden="true">
+                <i class="pi pi-ban"></i>
+            </span>
+            <div>
+                <span class="sol-cancellation__eyebrow">Motivo obligatorio</span>
+                <h2>Cancelar solicitud</h2>
+            </div>
+        </div>
+    </ng-template>
+
+    <div class="sol-cancellation" role="document">
+        <p>
+            Especifique por qué se cancela
+            <strong *ngIf="cancellationSolicitud?.client_name">
+                la solicitud de {{ cancellationSolicitud?.client_name }}
+            </strong>
+            <span *ngIf="!cancellationSolicitud?.client_name">esta solicitud</span>.
+            Esta información quedará guardada en su historial.
+        </p>
+
+        <label for="solicitud-cancellation-reason">
+            Razón de cancelación <span aria-hidden="true">*</span>
+        </label>
+        <textarea id="solicitud-cancellation-reason"
+            [(ngModel)]="cancellationReason"
+            [class.sol-cancellation__textarea--invalid]="cancellationReasonSubmitted && !cancellationReason.trim()"
+            rows="5"
+            maxlength="500"
+            placeholder="Ej.: El cliente solicitó cancelar la visita..."
+            [disabled]="cancellingSolicitud"></textarea>
+        <div class="sol-cancellation__field-meta">
+            <small *ngIf="cancellationReasonSubmitted && !cancellationReason.trim()"
+                class="sol-cancellation__error">
+                Debe escribir la razón antes de cancelar.
+            </small>
+            <small class="sol-cancellation__counter">
+                {{ cancellationReason.length }}/500
+            </small>
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="sol-cancellation__actions">
+            <button type="button" class="sol-btn sol-btn-cancel"
+                [disabled]="cancellingSolicitud"
+                (click)="closeSolicitudCancellation()">
+                <i class="pi pi-times" aria-hidden="true"></i>
+                Volver
+            </button>
+            <button type="button" class="sol-btn sol-cancellation__approve"
+                [disabled]="cancellingSolicitud"
+                (click)="confirmSolicitudCancellation()">
+                <i class="pi"
+                    [ngClass]="cancellingSolicitud ? 'pi-spin pi-spinner' : 'pi-ban'"
+                    aria-hidden="true"></i>
+                {{ cancellingSolicitud ? 'Cancelando...' : 'Cancelar solicitud' }}
+            </button>
+        </div>
     </ng-template>
 </p-dialog>
 
