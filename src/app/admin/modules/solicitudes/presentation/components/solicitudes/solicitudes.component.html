@@ -37,14 +37,42 @@
                 </button>
                 <small>{{ filteredSolicitudes.length }} de {{ solicitudes.length }} solicitudes visibles</small>
             </div>
-            <button
-                type="button"
-                class="sol-top-filters__clear"
-                [disabled]="activeTopFilterCount === 0"
-                (click)="clearTopFilters()">
-                <i class="pi pi-filter-slash" aria-hidden="true"></i>
-                Limpiar
-            </button>
+            <div class="sol-top-filters__actions">
+                <button
+                    type="button"
+                    class="sol-top-filters__export sol-top-filters__export--pdf"
+                    [disabled]="!!exportingFinalizedFormat"
+                    (click)="exportFinalizedSolicitudes('pdf')"
+                    pTooltip="Generar PDF de las solicitudes finalizadas"
+                    tooltipPosition="bottom">
+                    <i
+                        class="pi"
+                        [ngClass]="exportingFinalizedFormat === 'pdf' ? 'pi-spin pi-spinner' : 'pi-file-pdf'"
+                        aria-hidden="true"></i>
+                    PDF
+                </button>
+                <button
+                    type="button"
+                    class="sol-top-filters__export sol-top-filters__export--excel"
+                    [disabled]="!!exportingFinalizedFormat"
+                    (click)="exportFinalizedSolicitudes('excel')"
+                    pTooltip="Generar Excel de las solicitudes finalizadas"
+                    tooltipPosition="bottom">
+                    <i
+                        class="pi"
+                        [ngClass]="exportingFinalizedFormat === 'excel' ? 'pi-spin pi-spinner' : 'pi-file-excel'"
+                        aria-hidden="true"></i>
+                    Excel
+                </button>
+                <button
+                    type="button"
+                    class="sol-top-filters__clear"
+                    [disabled]="activeTopFilterCount === 0"
+                    (click)="clearTopFilters()">
+                    <i class="pi pi-filter-slash" aria-hidden="true"></i>
+                    Limpiar
+                </button>
+            </div>
         </div>
 
         <div id="solicitudes-top-filters" class="sol-top-filters__grid" *ngIf="filtersExpanded">

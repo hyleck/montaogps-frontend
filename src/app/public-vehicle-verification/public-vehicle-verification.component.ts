@@ -76,7 +76,7 @@ export class PublicVehicleVerificationComponent implements OnInit, OnDestroy {
 
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      this.scanError = 'Debe subir una imagen clara de la matrícula.';
+      this.scanError = 'Debe subir una imagen clara de la matrícula o carta de ruta.';
       return;
     }
 
@@ -93,9 +93,9 @@ export class PublicVehicleVerificationComponent implements OnInit, OnDestroy {
       const response = await this.targetsService.scanPublicVehicleRegistration(this.token, file);
       this.scanData = response?.data || null;
 
-      if (this.scanData?.['es_matricula'] !== true) {
+      if (!this.isVehicleDocumentVerified()) {
         this.voiceMessage = this.scanData?.['mensaje_usuario']
-          || 'La imagen subida no parece ser una matrícula. Sube una foto clara del documento oficial del vehículo.';
+          || 'La imagen subida no parece ser una matrícula ni una carta de ruta. Sube una foto clara de uno de esos documentos.';
         if (response?.voiceAudio?.base64) {
           this.voiceAudioUrl = this.createVoiceUrl(response.voiceAudio);
           this.playVoice();
@@ -105,7 +105,7 @@ export class PublicVehicleVerificationComponent implements OnInit, OnDestroy {
 
       this.messageService.add({
         severity: 'success',
-        summary: 'Matrícula digitalizada',
+        summary: `${this.getVehicleDocumentLabel()} digitalizada`,
         detail: 'Estamos verificando el vehículo automáticamente.',
         life: 3000
       });
@@ -113,14 +113,14 @@ export class PublicVehicleVerificationComponent implements OnInit, OnDestroy {
       await this.finalize();
     } catch (error: any) {
       this.scanData = null;
-      this.scanError = error?.error?.message || 'No se pudo escanear la matrícula. Intenta con una foto más clara.';
+      this.scanError = error?.error?.message || 'No se pudo escanear el documento. Intenta con una foto más clara.';
     } finally {
       this.scanning = false;
     }
   }
 
   async finalize(): Promise<void> {
-    if (!this.registrationFile || !this.scanData || this.scanData['es_matricula'] !== true || this.finalizing) return;
+    if (!this.registrationFile || !this.scanData || !this.isVehicleDocumentVerified() || this.finalizing) return;
     this.finalizing = true;
 
     try {
@@ -129,7 +129,7 @@ export class PublicVehicleVerificationComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'success',
         summary: 'Vehículo verificado',
-        detail: 'Los datos de la matrícula fueron guardados correctamente.',
+        detail: 'Los datos del documento fueron guardados correctamente.',
         life: 3000
       });
     } catch (error: any) {
@@ -149,6 +149,7 @@ export class PublicVehicleVerificationComponent implements OnInit, OnDestroy {
 
     const labels: Record<string, string> = {
       descripcion_imagen: 'Lo que subiste',
+      tipo_documento: 'Documento',
       placa: 'Placa',
       chasis: 'Chasis',
       marca: 'Marca',
@@ -161,16 +162,40 @@ export class PublicVehicleVerificationComponent implements OnInit, OnDestroy {
       registro: 'Registro',
       fecha_emision: 'Fecha emisión',
       fecha_expiracion: 'Fecha expiración',
+      empresa_emisora: 'Empresa emisora',
+      rnc_emisor: 'RNC del emisor',
+      fecha_documento: 'Fecha del documento',
       confidence: 'Confianza'
     };
 
     return Object.entries(this.scanData)
-      .filter(([key, value]) => !['otros_datos', 'es_matricula', 'mensaje_usuario'].includes(key)
+      .filter(([key, value]) => ![
+        'otros_datos',
+        'es_documento_vehiculo',
+        'es_matricula',
+        'es_carta_de_ruta',
+        'mensaje_usuario',
+      ].includes(key)
         && value !== undefined && value !== null && value !== '')
       .map(([key, value]) => ({
         label: labels[key] || key,
-        value: typeof value === 'number' && key === 'confidence' ? `${Math.round(value * 100)}%` : String(value)
+        value: key === 'tipo_documento'
+          ? this.getVehicleDocumentLabel()
+          : (typeof value === 'number' && key === 'confidence' ? `${Math.round(value * 100)}%` : String(value))
       }));
+  }
+
+  isVehicleDocumentVerified(): boolean {
+    return this.scanData?.['es_documento_vehiculo'] === true
+      || this.scanData?.['es_matricula'] === true
+      || this.scanData?.['es_carta_de_ruta'] === true;
+  }
+
+  getVehicleDocumentLabel(): string {
+    return this.scanData?.['tipo_documento'] === 'carta_de_ruta'
+      || this.scanData?.['es_carta_de_ruta'] === true
+      ? 'Carta de ruta'
+      : 'Matrícula';
   }
 
   playVoice(): void {

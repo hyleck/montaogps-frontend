@@ -2,6 +2,9 @@ import { Component, OnDestroy, OnInit, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx-js-style';
 import { InstallationDetail, SolicitudesService, Solicitud, VapiCallDetails } from '../../../../../../core/services/solicitudes.service';
 import { VehicleBrandsService } from '../../../../../../core/services/vehicle-brands.service';
 import { ColorsService } from '../../../../../../core/services/colors.service';
@@ -43,6 +46,7 @@ interface AvailabilityTranscriptMessage {
 
 type SolicitudLocationConfigTarget = 'root' | 'installation';
 type SolicitudLocationConfigMethod = 'coordinates' | 'link';
+type FinalizedExportFormat = 'pdf' | 'excel';
 
 @Component({
     selector: 'app-solicitudes',
@@ -300,6 +304,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     topFilterDateFrom = '';
     topFilterDateTo = '';
     filtersExpanded = false;
+    exportingFinalizedFormat: FinalizedExportFormat | null = null;
     clientEmailSuggestions: User[] = [];
     clientSelectionDialogVisible = false;
     newClientDialogVisible = false;
@@ -3433,33 +3438,34 @@ async initLocationMap(): Promise<void> {
     }
 
     get filteredSolicitudes(): Solicitud[] {
-        const hasInvalidDateRange = this.hasInvalidTopFilterDateRange;
-        return this.solicitudes.filter(solicitud => {
-            if (this.topFilterTechnician === '__unassigned__' && solicitud.mechanic_id) {
-                return false;
-            }
-            if (
-                this.topFilterTechnician
-                && this.topFilterTechnician !== '__unassigned__'
-                && solicitud.mechanic_id !== this.topFilterTechnician
-            ) {
-                return false;
-            }
-            if (this.topFilterClient && this.getClientFilterKey(solicitud) !== this.topFilterClient) {
-                return false;
-            }
-            if (this.topFilterType && solicitud.type !== this.topFilterType) {
-                return false;
-            }
+        return this.solicitudes.filter(solicitud => this.matchesTopFilters(solicitud));
+    }
 
-            if (!hasInvalidDateRange && (this.topFilterDateFrom || this.topFilterDateTo)) {
-                const scheduledDate = this.getScheduledDateFilterKey(solicitud);
-                if (!scheduledDate) return false;
-                if (this.topFilterDateFrom && scheduledDate < this.topFilterDateFrom) return false;
-                if (this.topFilterDateTo && scheduledDate > this.topFilterDateTo) return false;
-            }
-            return true;
-        });
+    private matchesTopFilters(solicitud: Solicitud): boolean {
+        if (this.topFilterTechnician === '__unassigned__' && solicitud.mechanic_id) {
+            return false;
+        }
+        if (
+            this.topFilterTechnician
+            && this.topFilterTechnician !== '__unassigned__'
+            && solicitud.mechanic_id !== this.topFilterTechnician
+        ) {
+            return false;
+        }
+        if (this.topFilterClient && this.getClientFilterKey(solicitud) !== this.topFilterClient) {
+            return false;
+        }
+        if (this.topFilterType && solicitud.type !== this.topFilterType) {
+            return false;
+        }
+
+        if (!this.hasInvalidTopFilterDateRange && (this.topFilterDateFrom || this.topFilterDateTo)) {
+            const scheduledDate = this.getScheduledDateFilterKey(solicitud);
+            if (!scheduledDate) return false;
+            if (this.topFilterDateFrom && scheduledDate < this.topFilterDateFrom) return false;
+            if (this.topFilterDateTo && scheduledDate > this.topFilterDateTo) return false;
+        }
+        return true;
     }
 
     get topFilterTechnicianOptions(): SelectOption[] {
@@ -3518,6 +3524,400 @@ async initLocationMap(): Promise<void> {
         this.topFilterType = '';
         this.topFilterDateFrom = '';
         this.topFilterDateTo = '';
+    }
+
+    async exportFinalizedSolicitudes(format: FinalizedExportFormat): Promise<void> {
+        if (this.exportingFinalizedFormat) return;
+
+        this.exportingFinalizedFormat = format;
+        try {
+            const solicitudes = this.filterFinalizedSolicitudes(
+                await this.fetchAllFinalizedSolicitudes(),
+            );
+
+            if (!solicitudes.length) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Sin solicitudes finalizadas',
+                    detail: 'No hay solicitudes completadas o canceladas que coincidan con los filtros seleccionados.',
+                });
+                return;
+            }
+
+            if (format === 'pdf') {
+                this.generateFinalizedSolicitudesPdf(solicitudes);
+            } else {
+                this.generateFinalizedSolicitudesExcel(solicitudes);
+            }
+
+            this.messageService.add({
+                severity: 'success',
+                summary: format === 'pdf' ? 'PDF generado' : 'Excel generado',
+                detail: `Se exportaron ${solicitudes.length} solicitudes finalizadas.`,
+            });
+        } catch (error) {
+            console.error('Error exporting finalized solicitudes:', error);
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo generar el archivo',
+                detail: 'Ocurrió un error al cargar las solicitudes finalizadas. Inténtalo nuevamente.',
+            });
+        } finally {
+            this.exportingFinalizedFormat = null;
+        }
+    }
+
+    private async fetchAllFinalizedSolicitudes(): Promise<Solicitud[]> {
+        const [completed, cancelled] = await Promise.all([
+            this.fetchAllSolicitudesByStatus('completada'),
+            this.fetchAllSolicitudesByStatus('cancelada'),
+        ]);
+        const uniqueSolicitudes = new Map<string, Solicitud>();
+
+        [...completed, ...cancelled].forEach((solicitud, index) => {
+            uniqueSolicitudes.set(solicitud._id || `solicitud-${index}`, solicitud);
+        });
+
+        return [...uniqueSolicitudes.values()];
+    }
+
+    private async fetchAllSolicitudesByStatus(status: 'completada' | 'cancelada'): Promise<Solicitud[]> {
+        const pageSize = 500;
+        const solicitudes: Solicitud[] = [];
+        let page = 1;
+        let total = 0;
+
+        do {
+            const response = await firstValueFrom(this.solicitudesService.getAll({
+                type: this.topFilterType || undefined,
+                status,
+                page,
+                limit: pageSize,
+            }));
+            const pageData = response?.data || [];
+            total = Number(response?.total) || 0;
+            solicitudes.push(...pageData);
+
+            if (!pageData.length) break;
+            page += 1;
+        } while (solicitudes.length < total);
+
+        return solicitudes;
+    }
+
+    private filterFinalizedSolicitudes(solicitudes: Solicitud[]): Solicitud[] {
+        return solicitudes
+            .filter(solicitud => this.isSolicitudClosed(solicitud) && this.matchesTopFilters(solicitud))
+            .sort((left, right) => this.getFinalizedTimestamp(right) - this.getFinalizedTimestamp(left));
+    }
+
+    private generateFinalizedSolicitudesPdf(solicitudes: Solicitud[]): void {
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const generatedAt = this.formatExportDate(new Date());
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(17);
+        doc.setTextColor(31, 41, 55);
+        doc.text('Solicitudes finalizadas', 14, 16);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(90, 96, 110);
+        doc.text(`Generado: ${generatedAt}`, 14, 23);
+        doc.text(`Filtros: ${this.getFinalizedExportFilterSummary()}`, 14, 29, {
+            maxWidth: pageWidth - 28,
+        });
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(99, 102, 241);
+        doc.text(`${solicitudes.length} solicitud${solicitudes.length === 1 ? '' : 'es'}`, pageWidth - 14, 16, {
+            align: 'right',
+        });
+
+        autoTable(doc, {
+            startY: 35,
+            head: [['#', 'Finalizada', 'Cliente', 'Tipo', 'Estado', 'Técnico', 'Procesos', 'Ubicación']],
+            body: solicitudes.map((solicitud, index) => [
+                String(index + 1),
+                this.formatExportDate(this.getFinalizedDate(solicitud)),
+                this.getExportClientName(solicitud),
+                this.typeLabels[solicitud.type] || solicitud.type || '—',
+                this.statusLabels[solicitud.status] || solicitud.status || '—',
+                this.getExportTechnicianName(solicitud),
+                this.getExportProcesses(solicitud),
+                this.getExportLocation(solicitud),
+            ]),
+            theme: 'grid',
+            styles: {
+                fontSize: 7.2,
+                cellPadding: 1.8,
+                overflow: 'linebreak',
+                valign: 'top',
+                lineColor: [224, 226, 232],
+                lineWidth: 0.15,
+            },
+            headStyles: {
+                fillColor: [99, 102, 241],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+            },
+            alternateRowStyles: {
+                fillColor: [247, 248, 252],
+            },
+            columnStyles: {
+                0: { cellWidth: 9, halign: 'center' },
+                1: { cellWidth: 28 },
+                2: { cellWidth: 39 },
+                3: { cellWidth: 25 },
+                4: { cellWidth: 22 },
+                5: { cellWidth: 35 },
+                6: { cellWidth: 49 },
+                7: { cellWidth: 44 },
+            },
+            margin: { left: 14, right: 14, bottom: 13 },
+            didDrawPage: () => {
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(7.5);
+                doc.setTextColor(120, 124, 134);
+                doc.text(
+                    `Página ${doc.getCurrentPageInfo().pageNumber}`,
+                    pageWidth - 14,
+                    pageHeight - 7,
+                    { align: 'right' },
+                );
+            },
+        });
+
+        doc.save(`solicitudes_finalizadas_${this.toLocalDateKey(new Date())}.pdf`);
+    }
+
+    private generateFinalizedSolicitudesExcel(solicitudes: Solicitud[]): void {
+        const headers = [
+            '#',
+            'Fecha finalización',
+            'Cliente',
+            'Teléfono',
+            'Correo',
+            'Tipo',
+            'Estado',
+            'Cantidad',
+            'Técnico',
+            'Fecha programada',
+            'Ubicación',
+            'Procesos',
+            'Descripción',
+            'Notas',
+            'Razón de cancelación',
+        ];
+        const rows = solicitudes.map((solicitud, index) => [
+            index + 1,
+            this.formatExportDate(this.getFinalizedDate(solicitud)),
+            this.getExportClientName(solicitud),
+            solicitud.client_phone || '',
+            solicitud.client_email || '',
+            this.typeLabels[solicitud.type] || solicitud.type || '',
+            this.statusLabels[solicitud.status] || solicitud.status || '',
+            solicitud.quantity || solicitud.installations?.length || 1,
+            this.getExportTechnicianName(solicitud),
+            this.formatExportDate(solicitud.scheduled_date || solicitud.installations?.[0]?.scheduled_date),
+            this.getExportLocation(solicitud),
+            this.getExportProcesses(solicitud),
+            solicitud.description || '',
+            solicitud.notes || '',
+            solicitud.cancellation_reason || '',
+        ]);
+        const worksheet = XLSX.utils.aoa_to_sheet([
+            ['Solicitudes finalizadas'],
+            [`Generado: ${this.formatExportDate(new Date())}`],
+            [`Filtros: ${this.getFinalizedExportFilterSummary()}`],
+            headers,
+            ...rows,
+        ]);
+        const lastColumn = XLSX.utils.encode_col(headers.length - 1);
+        const lastRow = rows.length + 4;
+
+        worksheet['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: headers.length - 1 } },
+            { s: { r: 2, c: 0 }, e: { r: 2, c: headers.length - 1 } },
+        ];
+        worksheet['!autofilter'] = { ref: `A4:${lastColumn}${lastRow}` };
+        worksheet['!cols'] = [
+            { wch: 7 },
+            { wch: 22 },
+            { wch: 28 },
+            { wch: 16 },
+            { wch: 28 },
+            { wch: 20 },
+            { wch: 14 },
+            { wch: 10 },
+            { wch: 26 },
+            { wch: 22 },
+            { wch: 34 },
+            { wch: 48 },
+            { wch: 40 },
+            { wch: 40 },
+            { wch: 38 },
+        ];
+
+        const titleCell = worksheet['A1'];
+        if (titleCell) {
+            titleCell.s = {
+                fill: { fgColor: { rgb: '4F46E5' } },
+                font: { color: { rgb: 'FFFFFF' }, bold: true, sz: 16 },
+                alignment: { horizontal: 'left', vertical: 'center' },
+            };
+        }
+        ['A2', 'A3'].forEach(reference => {
+            if (worksheet[reference]) {
+                worksheet[reference].s = {
+                    fill: { fgColor: { rgb: 'EEF2FF' } },
+                    font: { color: { rgb: '4B5563' }, italic: true, sz: 10 },
+                };
+            }
+        });
+        headers.forEach((_, columnIndex) => {
+            const cell = worksheet[`${XLSX.utils.encode_col(columnIndex)}4`];
+            if (cell) {
+                cell.s = {
+                    fill: { fgColor: { rgb: '6366F1' } },
+                    font: { color: { rgb: 'FFFFFF' }, bold: true },
+                    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                    border: {
+                        top: { style: 'thin', color: { rgb: '4F46E5' } },
+                        bottom: { style: 'thin', color: { rgb: '4F46E5' } },
+                        left: { style: 'thin', color: { rgb: '818CF8' } },
+                        right: { style: 'thin', color: { rgb: '818CF8' } },
+                    },
+                };
+            }
+        });
+
+        for (let rowIndex = 5; rowIndex <= lastRow; rowIndex += 1) {
+            for (let columnIndex = 0; columnIndex < headers.length; columnIndex += 1) {
+                const cell = worksheet[`${XLSX.utils.encode_col(columnIndex)}${rowIndex}`];
+                if (!cell) continue;
+                cell.s = {
+                    fill: { fgColor: { rgb: rowIndex % 2 === 0 ? 'F8FAFC' : 'FFFFFF' } },
+                    alignment: { vertical: 'top', wrapText: true },
+                    border: {
+                        bottom: { style: 'hair', color: { rgb: 'E5E7EB' } },
+                    },
+                };
+            }
+        }
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Finalizadas');
+        XLSX.writeFile(workbook, `solicitudes_finalizadas_${this.toLocalDateKey(new Date())}.xlsx`);
+    }
+
+    private getFinalizedExportFilterSummary(): string {
+        const filters: string[] = [];
+        if (this.topFilterTechnician) {
+            filters.push(`Técnico: ${
+                this.topFilterTechnicianOptions.find(option => option.value === this.topFilterTechnician)?.label
+                || this.topFilterTechnician
+            }`);
+        }
+        if (this.topFilterClient) {
+            filters.push(`Cliente: ${
+                this.topFilterClientOptions.find(option => option.value === this.topFilterClient)?.label
+                || this.topFilterClient
+            }`);
+        }
+        if (this.topFilterType) {
+            filters.push(`Tipo: ${this.typeLabels[this.topFilterType] || this.topFilterType}`);
+        }
+        if (this.topFilterDateFrom) filters.push(`Desde: ${this.topFilterDateFrom}`);
+        if (this.topFilterDateTo) filters.push(`Hasta: ${this.topFilterDateTo}`);
+        return filters.length ? filters.join(' · ') : 'Todos';
+    }
+
+    private getFinalizedDate(solicitud: Solicitud): string | Date | undefined {
+        return solicitud.completed_date || solicitud.updatedAt || solicitud.createdAt;
+    }
+
+    private getFinalizedTimestamp(solicitud: Solicitud): number {
+        const date = new Date(this.getFinalizedDate(solicitud) || 0);
+        return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+    }
+
+    private getExportClientName(solicitud: Solicitud): string {
+        return this.getClientDisplayName(solicitud)
+            || solicitud.client_email
+            || solicitud.client_phone
+            || 'Sin cliente identificado';
+    }
+
+    private getExportTechnicianName(solicitud: Solicitud): string {
+        if (!solicitud.mechanic_id) return 'Sin técnico asignado';
+        const technician = this.getTechnicianById(solicitud.mechanic_id);
+        return technician ? this.getTechnicianName(technician) : 'Técnico no disponible';
+    }
+
+    private getExportProcesses(solicitud: Solicitud): string {
+        const installations = solicitud.installations || [];
+        if (!installations.length) {
+            return `${this.typeLabels[solicitud.type] || solicitud.type || 'Proceso'} x${solicitud.quantity || 1}`;
+        }
+
+        return installations.map((installation, index) => {
+            const type = installation.process_type || solicitud.type;
+            const details = [
+                installation.plate ? `placa ${installation.plate}` : '',
+                installation.device_imei ? `IMEI ${installation.device_imei}` : '',
+            ].filter(Boolean);
+            return `${this.typeLabels[type] || type || 'Proceso'} #${index + 1}${
+                details.length ? ` (${details.join(', ')})` : ''
+            }`;
+        }).join(' | ');
+    }
+
+    private getExportLocation(solicitud: Solicitud): string {
+        const installation = solicitud.installations?.[0];
+        const address = installation?.installation_location;
+        if (address) return address;
+
+        const zone = [
+            solicitud.sector || installation?.sector,
+            solicitud.municipality || installation?.municipality,
+            solicitud.province || installation?.province,
+        ].filter(Boolean).join(', ');
+        if (zone) return zone;
+
+        const latitude = solicitud.latitude ?? installation?.latitude;
+        const longitude = solicitud.longitude ?? installation?.longitude;
+        return latitude != null && longitude != null ? `${latitude}, ${longitude}` : 'Sin ubicación';
+    }
+
+    private formatExportDate(value?: string | Date): string {
+        if (!value) return '—';
+        let date: Date;
+        if (value instanceof Date) {
+            date = value;
+        } else {
+            const localDateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            date = localDateOnly
+                ? new Date(
+                    Number(localDateOnly[1]),
+                    Number(localDateOnly[2]) - 1,
+                    Number(localDateOnly[3]),
+                )
+                : new Date(value);
+        }
+        if (Number.isNaN(date.getTime())) return String(value);
+        return date.toLocaleString('es-DO', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+        });
     }
 
     private initializeTopDateFilters(): void {

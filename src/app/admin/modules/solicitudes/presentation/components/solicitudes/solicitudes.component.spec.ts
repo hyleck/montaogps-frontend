@@ -8,6 +8,7 @@ import { SolicitudesComponent } from './solicitudes.component';
 describe('SolicitudesComponent scheduled date editing', () => {
     function createComponent() {
         const solicitudesService = {
+            getAll: jasmine.createSpy('getAll').and.returnValue(of({ data: [], total: 0 })),
             create: jasmine.createSpy('create').and.returnValue(of({})),
             update: jasmine.createSpy('update').and.returnValue(of({})),
             delete: jasmine.createSpy('delete').and.returnValue(of(void 0)),
@@ -547,5 +548,58 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.filteredSolicitudes.length).toBe(2);
         expect(solicitudesService.update).not.toHaveBeenCalled();
         expect(solicitudesService.create).not.toHaveBeenCalled();
+    });
+
+    it('exports only finalized requests that match the active filters', () => {
+        const { component } = createComponent();
+        component.topFilterTechnician = 'tech-1';
+        component.topFilterType = 'instalacion';
+        component.topFilterDateFrom = '2026-07-10';
+        component.topFilterDateTo = '2026-07-20';
+
+        const filtered = (component as any).filterFinalizedSolicitudes([
+            {
+                _id: 'completed-match',
+                type: 'instalacion',
+                status: 'completada',
+                mechanic_id: 'tech-1',
+                scheduled_date: '2026-07-15T09:00',
+                updatedAt: '2026-07-16T09:00:00Z',
+            },
+            {
+                _id: 'cancelled-match',
+                type: 'instalacion',
+                status: 'cancelada',
+                mechanic_id: 'tech-1',
+                scheduled_date: '2026-07-20T09:00',
+                updatedAt: '2026-07-21T09:00:00Z',
+            },
+            {
+                _id: 'still-open',
+                type: 'instalacion',
+                status: 'en_progreso',
+                mechanic_id: 'tech-1',
+                scheduled_date: '2026-07-15T09:00',
+            },
+            {
+                _id: 'other-technician',
+                type: 'instalacion',
+                status: 'completada',
+                mechanic_id: 'tech-2',
+                scheduled_date: '2026-07-15T09:00',
+            },
+            {
+                _id: 'outside-date',
+                type: 'instalacion',
+                status: 'completada',
+                mechanic_id: 'tech-1',
+                scheduled_date: '2026-07-21T09:00',
+            },
+        ] as Solicitud[]);
+
+        expect(filtered.map((solicitud: Solicitud) => solicitud._id)).toEqual([
+            'cancelled-match',
+            'completed-match',
+        ]);
     });
 });

@@ -23,7 +23,7 @@
     <div *ngIf="!loading && !errorMessage && completed" class="vehicle-success">
       <i class="pi pi-check-circle"></i>
       <h2>Vehículo verificado</h2>
-      <p>Gracias. Los datos de la matrícula fueron confirmados correctamente.</p>
+      <p>Gracias. Los datos del documento del vehículo fueron confirmados correctamente.</p>
     </div>
 
     <section *ngIf="!loading && !errorMessage && !completed" class="vehicle-flow">
@@ -32,24 +32,24 @@
         <div>
           <h2>{{ info?.device?.name || 'Vehículo' }}</h2>
           <p *ngIf="info?.device?.imei">IMEI: {{ info?.device?.imei }}</p>
-          <p>Sube una foto clara de la matrícula. Si los datos se leen correctamente, el vehículo se verifica automáticamente.</p>
+          <p>Sube una foto clara de la matrícula o carta de ruta. Si los datos se leen correctamente, el vehículo se verifica automáticamente.</p>
         </div>
       </div>
 
       <label class="vehicle-upload">
         <input type="file" accept="image/*" (change)="onRegistrationFileSelected($event)">
         <i class="pi pi-cloud-upload"></i>
-        <strong>{{ registrationFile ? registrationFile.name : 'Subir foto de la matrícula' }}</strong>
+        <strong>{{ registrationFile ? registrationFile.name : 'Subir matrícula o carta de ruta' }}</strong>
         <span>Debe verse completa y legible.</span>
       </label>
 
       <div *ngIf="previewUrl || scanData" class="vehicle-result">
-        <img *ngIf="previewUrl" class="vehicle-preview" [src]="previewUrl" alt="Vista previa de la matrícula">
+        <img *ngIf="previewUrl" class="vehicle-preview" [src]="previewUrl" alt="Vista previa del documento del vehículo">
 
         <div class="vehicle-data">
           <div class="vehicle-data__header">
             <strong>Datos digitalizados</strong>
-            <span *ngIf="scanData?.['es_matricula'] === true"><i class="pi pi-check-circle"></i> Matrícula detectada</span>
+            <span *ngIf="isVehicleDocumentVerified()"><i class="pi pi-check-circle"></i> {{ getVehicleDocumentLabel() }} detectada</span>
           </div>
 
           <div *ngIf="getDataEntries().length; else emptyData" class="vehicle-data__list">
@@ -70,7 +70,7 @@
 
       <div *ngIf="scanning" class="vehicle-state">
         <p-progressSpinner strokeWidth="4" styleClass="vehicle-spinner"></p-progressSpinner>
-        <span>Escaneando matrícula con IA...</span>
+        <span>Escaneando documento con IA...</span>
       </div>
 
       <div *ngIf="finalizing" class="vehicle-state">

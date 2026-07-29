@@ -87,7 +87,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     readonly installationEvidenceDefinitions: InstallationEvidenceDefinition[] = [
         { key: 'chasis_img', label: 'Chasis', icon: 'pi-hashtag', section: 'before' },
         { key: 'placa_img', label: 'Placa', icon: 'pi-car', section: 'before' },
-        { key: 'matricula_instalacion_img', label: 'Matrícula', icon: 'pi-id-card', section: 'before' },
+        { key: 'matricula_instalacion_img', label: 'Matrícula o carta de ruta', icon: 'pi-id-card', section: 'before' },
         { key: 'lugar_instalacion_antes_img', label: 'Lugar antes', icon: 'pi-map-marker', section: 'before' },
         { key: 'vehiculo_exterior_antes_img', label: 'Exterior antes', icon: 'pi-image', section: 'before' },
         { key: 'vehiculo_interior_antes_img', label: 'Interior antes', icon: 'pi-image', section: 'before' },
@@ -862,7 +862,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             if (this.isRegistrationScanVerified()) {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Matrícula digitalizada',
+                    summary: `${this.getRegistrationDocumentLabel()} digitalizada`,
                     detail: 'El vehículo se verificará automáticamente.'
                 });
                 this.isScanningRegistration = false;
@@ -872,7 +872,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
             const voiceMessage =
                 this.registrationScanResult?.['mensaje_usuario'] ||
-                'La imagen subida no parece ser una matrícula. Debe subir una foto clara de la matrícula o documento oficial del vehículo.';
+                'La imagen subida no parece ser una matrícula ni una carta de ruta. Debe subir una foto clara de uno de esos documentos.';
             this.registrationScanVoiceMessage = voiceMessage;
 
             if (response?.voiceAudio?.base64) {
@@ -881,11 +881,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
         } catch (error: any) {
             console.error('Error scanning vehicle registration:', error);
-            this.registrationScanError = error?.error?.message || error?.message || 'No se pudo escanear la matrícula';
+            this.registrationScanError = error?.error?.message || error?.message || 'No se pudo escanear la matrícula o carta de ruta';
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: this.registrationScanError || 'No se pudo escanear la matrícula'
+                detail: this.registrationScanError || 'No se pudo escanear el documento vehicular'
             });
         } finally {
             this.isScanningRegistration = false;
@@ -897,7 +897,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'error',
                 summary: 'Faltan datos',
-                detail: 'Debe subir y digitalizar una matrícula válida.'
+                detail: 'Debe subir y digitalizar una matrícula o carta de ruta válida.'
             });
             return;
         }
@@ -926,7 +926,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'success',
                 summary: 'Vehículo verificado',
-                detail: 'Los datos de la matrícula fueron guardados correctamente.'
+                detail: 'Los datos del documento fueron guardados correctamente.'
             });
             this.closeVehicleRegistrationDialog();
             this.vehicleVerified.emit(this.target);
@@ -953,7 +953,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     isRegistrationScanVerified(): boolean {
-        return this.registrationScanResult?.['es_matricula'] === true;
+        return this.registrationScanResult?.['es_documento_vehiculo'] === true
+            || this.registrationScanResult?.['es_matricula'] === true
+            || this.registrationScanResult?.['es_carta_de_ruta'] === true;
+    }
+
+    getRegistrationDocumentLabel(): string {
+        return this.registrationScanResult?.['tipo_documento'] === 'carta_de_ruta'
+            || this.registrationScanResult?.['es_carta_de_ruta'] === true
+            ? 'Carta de ruta'
+            : 'Matrícula';
     }
 
     canFinalizeVehicleVerification(): boolean {
@@ -979,8 +988,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         this.registrationScanImageUrl = savedImageUrl;
         this.registrationScanImageIsObjectUrl = false;
         this.registrationScanResult = savedMetadata
-            ? { es_matricula: true, ...savedMetadata }
-            : { es_matricula: true };
+            ? { es_documento_vehiculo: true, es_matricula: true, ...savedMetadata }
+            : { es_documento_vehiculo: true, es_matricula: true };
         this.registrationScanError = null;
         this.registrationScanVoiceMessage = null;
     }
@@ -1050,6 +1059,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         const labels: Record<string, string> = {
             descripcion_imagen: 'Lo que subiste',
+            tipo_documento: 'Documento',
             placa: 'Placa',
             chasis: 'Chasis',
             marca: 'Marca',
@@ -1062,6 +1072,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             registro: 'Registro',
             fecha_emision: 'Fecha emisión',
             fecha_expiracion: 'Fecha expiración',
+            empresa_emisora: 'Empresa emisora',
+            rnc_emisor: 'RNC del emisor',
+            fecha_documento: 'Fecha del documento',
             confidence: 'Confianza'
         };
         const entries: { label: string; value: string }[] = [];
@@ -1069,7 +1082,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         Object.entries(this.registrationScanResult).forEach(([key, value]) => {
             if (
                 key === 'otros_datos' ||
+                key === 'es_documento_vehiculo' ||
                 key === 'es_matricula' ||
+                key === 'es_carta_de_ruta' ||
                 key === 'mensaje_usuario' ||
                 value === null ||
                 value === undefined ||
@@ -1080,9 +1095,11 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
             entries.push({
                 label: labels[key] || key,
-                value: typeof value === 'number' && key === 'confidence'
-                    ? `${Math.round(value * 100)}%`
-                    : String(value)
+                value: key === 'tipo_documento'
+                    ? this.getRegistrationDocumentLabel()
+                    : (typeof value === 'number' && key === 'confidence'
+                        ? `${Math.round(value * 100)}%`
+                        : String(value))
             });
         });
 
@@ -2288,7 +2305,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.target.target_model_id = selectedModelId;
                 }
             } catch (error) {
-                console.error('Error cargando modelos luego de verificar matrícula:', error);
+                console.error('Error cargando modelos luego de verificar el documento vehicular:', error);
             }
         }
 

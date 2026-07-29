@@ -283,7 +283,7 @@
                                                         <strong>{{ getLinkedVehicleValue('device_imei') || target.gps_adicional || 'No disponible' }}</strong>
                                                     </div>
                                                     <div class="linked-vehicle-info-card__item">
-                                                        <span>Matrícula</span>
+                                                        <span>Matrícula o carta de ruta</span>
                                                         <strong>{{ getLinkedVehicleValue('target_plate_number') || 'No disponible' }}</strong>
                                                     </div>
                                                     <div class="linked-vehicle-info-card__item">
@@ -1416,8 +1416,8 @@
                             style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem; border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 8px; background: rgba(248, 250, 252, 0.08);">
                             <i class="pi pi-id-card" style="color: var(--globalColorAccent); font-size: 1.1rem;"></i>
                             <div style="display: flex; flex-direction: column; gap: 0.15rem;">
-                                <strong>Verificación de matrícula</strong>
-                                <span style="color: var(--globalColorTextMuted); font-size: 0.76rem; line-height: 1.35;">Para poder verificar los datos del vehículo debe subir una foto clara de la matrícula.</span>
+                                <strong>Verificación del vehículo</strong>
+                                <span style="color: var(--globalColorTextMuted); font-size: 0.76rem; line-height: 1.35;">Para verificar los datos del vehículo, suba una foto clara de la matrícula o carta de ruta.</span>
                             </div>
                         </div>
 
@@ -1434,14 +1434,14 @@
 
                         <div class="vehicle-verification__preview" *ngIf="registrationScanImageUrl"
                             style="overflow: hidden; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.22); background: rgba(15, 23, 42, 0.04);">
-                            <img [src]="registrationScanImageUrl" alt="Matrícula del vehículo"
+                            <img [src]="registrationScanImageUrl" alt="Matrícula o carta de ruta del vehículo"
                                 style="display: block; width: 100%; max-height: 220px; object-fit: contain;">
                         </div>
 
                         <div class="vehicle-verification__state" *ngIf="isScanningRegistration"
                             style="display: flex; align-items: center; gap: 0.65rem; padding: 0.75rem; border: 1px solid rgba(148, 163, 184, 0.22); border-radius: 8px; background: rgba(248, 250, 252, 0.08);">
                             <i class="pi pi-spin pi-spinner" style="color: var(--globalColorAccent);"></i>
-                            <span>Escaneando matrícula...</span>
+                            <span>Escaneando documento...</span>
                         </div>
 
                         <div class="vehicle-verification__state vehicle-verification__state--success"
@@ -1508,7 +1508,7 @@
                                 [disabled]="isScanningRegistration || isFinalizingRegistration"
                                 (click)="openVehicleVerificationPicker()">
                                 <i class="pi pi-upload"></i>
-                                Subir matrícula
+                                Subir documento
                             </button>
                         </div>
                     </div>
