@@ -93,7 +93,42 @@
 
 .header-actions {
   display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
   gap: 10px;
+}
+
+.visualization-control {
+  display: flex;
+  min-width: 160px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.visualization-control label {
+  color: var(--monitoringDescriptionText);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.visualization-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visualization-option i {
+  color: #3b82f6;
+}
+
+:host ::ng-deep .visualization-dropdown {
+  min-width: 160px;
+  border-color: var(--monitoringDevicesSectionBorder);
+  background: var(--monitoringDevicesCardBackground);
+}
+
+:host ::ng-deep .visualization-dropdown .p-dropdown-label {
+  color: var(--monitoringSectionTitleText);
 }
 
 .monitoring-status-card {
@@ -1219,6 +1254,24 @@
 }
 
 @media screen and (max-width: 768px) {
+
+  .monitoring-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .header-actions {
+    align-items: stretch;
+  }
+
+  .visualization-control {
+    width: 100%;
+  }
+
+  :host ::ng-deep .visualization-dropdown {
+    width: 100%;
+  }
 
   .report-stats,
   .report-summary-details {

@@ -167,6 +167,20 @@ export class WhatsAppApiService {
         return this.http.post(`${this.apiUrl}/conversation-assign`, { conversation_id: conversationId, agent_id: agentId });
     }
 
+    sendConversationReminder(conversationId: number): Observable<{
+        success: boolean;
+        sentTo?: string;
+        error?: string;
+    }> {
+        return this.http.post<{
+            success: boolean;
+            sentTo?: string;
+            error?: string;
+        }>(`${this.apiUrl}/conversation-reminder`, {
+            conversation_id: conversationId,
+        });
+    }
+
     sendWhatsAppTemplateToUser(payload: { phone: string; template_name: string; variables: string[]; agent_id?: string; conversation_id?: number }): Observable<any> {
         return this.http.post(`${this.apiUrl}/send-whatsapp`, payload);
     }

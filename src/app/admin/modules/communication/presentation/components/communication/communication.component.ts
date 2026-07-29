@@ -47,6 +47,19 @@ interface ChatConversation {
   contact_last_seen_at?: number | null;
   assignee_online?: boolean;
   assignee_typing?: boolean;
+  reminder_eligible?: boolean;
+  reminder_waiting_since?: number | null;
+  campaign_id?: string;
+  campaign_execution_id?: string;
+  campaign_recipient_id?: string;
+  campaign_name?: string;
+  campaign_objective?: string;
+  campaign_objectives?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+  }>;
+  campaign_active?: boolean;
 }
 
 interface ChatMessage {
@@ -220,6 +233,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   chatInput: string = '';
   sendingMessage: boolean = false;
   sendingEsterReply: boolean = false;
+  sendingConversationReminder: boolean = false;
   replyingTo: ChatMessage | null = null;
   readonly messageReactionOptions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
   reactionPickerMessageId: number | null = null;
@@ -1509,6 +1523,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.lastApiMessageId = null;
     this.chatInput = '';
     this.sendingEsterReply = false;
+    this.sendingConversationReminder = false;
     this.replyingTo = null;
     this.reactionPickerMessageId = null;
     this.showContactInfo = false;
@@ -2374,7 +2389,18 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private getConversationsFingerprint(convs: ChatConversation[]): string {
-    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.unread_count}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.contact.satisfaction_level ?? ''}`).join('|');
+    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.unread_count}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.reminder_eligible ? 1 : 0}:${c.reminder_waiting_since || ''}:${c.contact.satisfaction_level ?? ''}:${c.campaign_execution_id || ''}:${c.campaign_active ? 1 : 0}`).join('|');
+  }
+
+  openActiveCampaign(): void {
+    const conversation = this.selectedConversation;
+    if (!conversation?.campaign_id) return;
+    this.router.navigate(['/admin/interacciones'], {
+      queryParams: {
+        listId: conversation.campaign_id,
+        executionId: conversation.campaign_execution_id || null,
+      },
+    });
   }
 
   private stopConversationsPolling(): void {
@@ -3907,6 +3933,53 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.messageService.add({severity:'error', summary:'Error', detail:'Problema en la red al asignar.'});
       }
     });
+  }
+
+  sendConversationReminder(): void {
+    const conversation = this.selectedConversation;
+    if (
+      !conversation?.reminder_eligible
+      || !conversation.assignee_id
+      || this.isConversationAssignedToMe(conversation)
+      || this.sendingConversationReminder
+    ) {
+      return;
+    }
+
+    this.sendingConversationReminder = true;
+    this.whatsappApi.sendConversationReminder(conversation.id)
+      .pipe(finalize(() => {
+        this.sendingConversationReminder = false;
+      }))
+      .subscribe({
+        next: (response) => {
+          conversation.reminder_eligible = false;
+          const listedConversation = this.conversations.find(
+            item => item.id === conversation.id,
+          );
+          if (listedConversation) {
+            listedConversation.reminder_eligible = false;
+          }
+          this.conversationsFingerprint =
+            this.getConversationsFingerprint(this.conversations);
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Zumbido enviado',
+            detail: `Se notificó a ${response.sentTo || this.getConversationManagerLabel(conversation)}.`,
+          });
+        },
+        error: (error) => {
+          const detail = Array.isArray(error?.error?.message)
+            ? error.error.message.join(' ')
+            : error?.error?.message
+              || 'No se pudo enviar el recordatorio.';
+          this.messageService.add({
+            severity: 'error',
+            summary: 'No se pudo enviar el zumbido',
+            detail,
+          });
+        },
+      });
   }
 
   isOutside24hWindow(conv: ChatConversation): boolean {

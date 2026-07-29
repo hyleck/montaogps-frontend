@@ -174,6 +174,26 @@
                 </div>
             </div>
 
+            <section
+                *ngIf="selectedConversation.campaign_active && selectedConversation.campaign_id"
+                class="comm-campaign-context"
+                aria-label="Contexto de campaña activo">
+                <div class="comm-campaign-context__icon">
+                    <i class="pi pi-megaphone"></i>
+                </div>
+                <div class="comm-campaign-context__copy">
+                    <span>Conversación de campaña</span>
+                    <strong>{{ selectedConversation.campaign_name || 'Campaña activa' }}</strong>
+                    <small *ngIf="selectedConversation.campaign_objective">
+                        {{ selectedConversation.campaign_objective }}
+                    </small>
+                </div>
+                <button type="button" (click)="openActiveCampaign()">
+                    <i class="pi pi-chart-line"></i>
+                    Ver campaña
+                </button>
+            </section>
+
             <!-- Messages -->
             <div class="comm-chat__messages" #messagesContainer (scroll)="onMessagesScroll($event)">
                 <div *ngIf="loadingMessages" class="comm-loading">
@@ -486,6 +506,21 @@
                             ? 'Esta conversación está asignada a otro empleado.'
                             : 'Esta conversación está siendo atendida de forma automática.' }}
                     </span>
+                    <button
+                        *ngIf="selectedConversation.assignee_id && selectedConversation.reminder_eligible"
+                        type="button"
+                        class="comm-managed-banner__action comm-managed-banner__action--reminder"
+                        (click)="sendConversationReminder()"
+                        [disabled]="sendingConversationReminder">
+                        <i
+                            class="pi"
+                            [ngClass]="sendingConversationReminder ? 'pi-spin pi-spinner' : 'pi-bell'"></i>
+                        <span>
+                            {{ sendingConversationReminder
+                                ? 'Enviando zumbido…'
+                                : 'Enviar zumbido de recordatorio' }}
+                        </span>
+                    </button>
                     <button type="button" class="comm-managed-banner__action" (click)="assignToMe()">
                         <i class="pi pi-user-plus"></i>
                         <span>Tomar control de la conversación</span>

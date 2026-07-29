@@ -25,3 +25,26 @@ messaging.onBackgroundMessage(function (payload) {
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
+
+self.addEventListener('notificationclick', function (event) {
+  const notificationType = event.notification?.data?.type;
+  const route = event.notification?.data?.route;
+  event.notification.close();
+  if (notificationType !== 'conversation_reminder_buzz' || !route) return;
+
+  const targetUrl = new URL(route, self.location.origin).href;
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then(async function (windowClients) {
+        const existingClient = windowClients.find(function (client) {
+          return client.url.startsWith(self.location.origin);
+        });
+        if (existingClient) {
+          await existingClient.navigate(targetUrl);
+          return existingClient.focus();
+        }
+        return self.clients.openWindow(targetUrl);
+      }),
+  );
+});

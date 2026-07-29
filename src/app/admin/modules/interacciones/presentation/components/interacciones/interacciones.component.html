@@ -8,7 +8,7 @@
       <h2 class="inter-sidebar__title">
         <i class="pi pi-share-alt"></i> Campañas
       </h2>
-      <button class="btn-nueva" (click)="openNewForm()" pTooltip="Nueva campaña">
+      <button type="button" class="btn-nueva" (click)="openNewForm()" pTooltip="Nueva campaña" aria-label="Crear nueva campaña">
         <i class="pi pi-plus"></i>
       </button>
     </div>
@@ -17,7 +17,7 @@
       <div class="search-wrapper">
         <i class="pi pi-search search-icon"></i>
         <input type="text" placeholder="Buscar campaña..." [(ngModel)]="searchTerm" (input)="filterLists()" class="search-input" />
-        <button *ngIf="searchTerm" class="search-clear" (click)="searchTerm=''; filterLists()">
+        <button type="button" *ngIf="searchTerm" class="search-clear" (click)="searchTerm=''; filterLists()" aria-label="Limpiar búsqueda">
           <i class="pi pi-times"></i>
         </button>
       </div>
@@ -63,10 +63,13 @@
         </div>
 
         <div class="list-card__actions">
-          <button class="btn-action" (click)="openEditForm(list); $event.stopPropagation()" pTooltip="Editar">
+          <button type="button" class="btn-action" (click)="openEditForm(list); $event.stopPropagation()" pTooltip="Editar" aria-label="Editar campaña">
             <i class="pi pi-pencil"></i>
           </button>
-          <button class="btn-action btn-action--danger" (click)="confirmDelete(list, $event); $event.stopPropagation()" pTooltip="Eliminar">
+          <button type="button" class="btn-action" (click)="confirmArchive(list, $event)" pTooltip="Archivar" aria-label="Archivar campaña">
+            <i class="pi pi-box"></i>
+          </button>
+          <button *ngIf="isRootUser" type="button" class="btn-action btn-action--danger" (click)="confirmDelete(list, $event); $event.stopPropagation()" pTooltip="Eliminar definitivamente" aria-label="Eliminar campaña definitivamente">
             <i class="pi pi-trash"></i>
           </button>
         </div>
@@ -159,6 +162,93 @@
                 optionValue="value"
                 placeholder="Todos"
                 [showClear]="true"
+                (onChange)="onFilterChange()"
+                styleClass="w-full">
+              </p-dropdown>
+            </div>
+
+            <div class="form-group">
+              <label>Provincia</label>
+              <input pInputText [(ngModel)]="formFilters.province" placeholder="Ej. Santiago" class="w-full" (input)="onFilterChange()" />
+            </div>
+
+            <div class="form-group">
+              <label>Municipio o ciudad</label>
+              <input pInputText [(ngModel)]="formFilters.municipality" placeholder="Ej. Santiago de los Caballeros" class="w-full" (input)="onFilterChange()" />
+            </div>
+
+            <div class="form-group">
+              <label>Satisfacción mínima</label>
+              <input pInputText type="number" min="0" max="10" [(ngModel)]="formFilters.satisfaction_min" placeholder="0" class="w-full" (input)="onFilterChange()" />
+            </div>
+
+            <div class="form-group">
+              <label>Satisfacción máxima</label>
+              <input pInputText type="number" min="0" max="10" [(ngModel)]="formFilters.satisfaction_max" placeholder="10" class="w-full" (input)="onFilterChange()" />
+            </div>
+
+            <div class="form-group">
+              <label>Contacto automático</label>
+              <p-dropdown
+                [options]="booleanOptions"
+                [(ngModel)]="formFilters.autocontact"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todos"
+                (onChange)="onFilterChange()"
+                styleClass="w-full">
+              </p-dropdown>
+            </div>
+
+            <div class="form-group">
+              <label>Activo durante los últimos días</label>
+              <input pInputText type="number" min="1" [(ngModel)]="formFilters.active_within_days" placeholder="Ej. 30" class="w-full" (input)="onFilterChange()" />
+            </div>
+
+            <div class="form-group">
+              <label>Cantidad mínima de GPS</label>
+              <input pInputText type="number" min="0" [(ngModel)]="formFilters.min_device_count" placeholder="0" class="w-full" (input)="onFilterChange()" />
+            </div>
+
+            <div class="form-group">
+              <label>Cantidad máxima de GPS</label>
+              <input pInputText type="number" min="0" [(ngModel)]="formFilters.max_device_count" placeholder="Sin límite" class="w-full" (input)="onFilterChange()" />
+            </div>
+
+            <div class="form-group">
+              <label>Solicitud abierta</label>
+              <p-dropdown
+                [options]="booleanOptions"
+                [(ngModel)]="formFilters.has_open_request"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todas"
+                (onChange)="onFilterChange()"
+                styleClass="w-full">
+              </p-dropdown>
+            </div>
+
+            <div class="form-group">
+              <label>Estado de solicitud</label>
+              <p-dropdown
+                [options]="requestStatusOptions"
+                [(ngModel)]="formFilters.request_status"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Cualquier estado"
+                (onChange)="onFilterChange()"
+                styleClass="w-full">
+              </p-dropdown>
+            </div>
+
+            <div class="form-group form-group--full">
+              <label>Gestión de la conversación</label>
+              <p-dropdown
+                [options]="conversationAssignmentOptions"
+                [(ngModel)]="formFilters.conversation_assignment"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todas"
                 (onChange)="onFilterChange()"
                 styleClass="w-full">
               </p-dropdown>
@@ -336,6 +426,11 @@
             (click)="interactionChannel='vapi'; openPushModal()"
             pTooltip="Llamar a la campaña usando el Asistente de IA (Vapi)">
           </button>
+          <button pButton label="SMS" icon="pi pi-mobile"
+            class="p-button-outlined p-button-sm"
+            (click)="interactionChannel='sms'; openPushModal()"
+            pTooltip="Enviar SMS nacional con Broadcaster Mobile">
+          </button>
           <button pButton label="Editar" icon="pi pi-pencil" class="p-button-outlined p-button-sm" (click)="openEditForm(selectedList)"></button>
         </div>
       </div>
@@ -350,9 +445,77 @@
         </div>
         <div *ngIf="selectedList?.notified_users?.length">
           <i class="pi pi-check-circle" style="color: #6366f1;"></i>
-          <strong style="color: #6366f1;">{{ selectedList.notified_users?.length }}</strong> notificados en total
+          <strong style="color: #6366f1;">{{ selectedList.notified_unique_count ?? selectedList.notified_users?.length }}</strong> usuarios notificados históricamente
         </div>
       </div>
+
+      <section class="campaign-dashboard" *ngIf="campaignMetrics">
+        <article class="campaign-kpi">
+          <i class="pi pi-send"></i>
+          <div><strong>{{ campaignMetrics.totals?.sent || 0 }}</strong><span>Enviados</span></div>
+        </article>
+        <article class="campaign-kpi">
+          <i class="pi pi-comments"></i>
+          <div><strong>{{ campaignMetrics.totals?.replied || 0 }}</strong><span>Respondieron · {{ campaignMetrics.response_rate || 0 }}%</span></div>
+        </article>
+        <article class="campaign-kpi campaign-kpi--positive">
+          <i class="pi pi-thumbs-up"></i>
+          <div><strong>{{ campaignMetrics.totals?.positive || 0 }}</strong><span>Positivos</span></div>
+        </article>
+        <article class="campaign-kpi campaign-kpi--conversion">
+          <i class="pi pi-check-circle"></i>
+          <div><strong>{{ campaignMetrics.totals?.converted || 0 }}</strong><span>Solicitudes · {{ campaignMetrics.conversion_rate || 0 }}%</span></div>
+        </article>
+      </section>
+
+      <section class="campaign-runs">
+        <div class="campaign-section-header">
+          <div>
+            <h4><i class="pi pi-history"></i> Ejecuciones</h4>
+            <p>Cada envío continúa en el backend y conserva sus resultados.</p>
+          </div>
+          <button pButton icon="pi pi-refresh" class="p-button-text p-button-sm" (click)="loadCampaignExecutions()" aria-label="Actualizar ejecuciones" pTooltip="Actualizar"></button>
+        </div>
+        <p-progressBar *ngIf="loadingCampaignData" mode="indeterminate"></p-progressBar>
+        <div class="campaign-run-empty" *ngIf="!loadingCampaignData && campaignExecutions.length === 0">
+          Esta campaña todavía no tiene ejecuciones.
+        </div>
+        <article
+          class="campaign-run-card"
+          *ngFor="let execution of campaignExecutions"
+          [id]="'campaign-execution-' + execution._id"
+          [class.campaign-run-card--focused]="focusedExecutionId === execution._id">
+          <div class="campaign-run-card__head">
+            <div class="campaign-run-channel">
+              <i class="pi" [ngClass]="execution.channel === 'whatsapp' ? 'pi-whatsapp' : execution.channel === 'vapi' ? 'pi-phone' : execution.channel === 'sms' ? 'pi-mobile' : 'pi-bell'"></i>
+              <div>
+                <strong>{{ execution.title || execution.list_name }}</strong>
+                <span>{{ execution.channel | uppercase }} · {{ execution.createdAt | date:'short' }}</span>
+              </div>
+            </div>
+            <span class="campaign-status" [ngClass]="'campaign-status--' + execution.status">
+              <i *ngIf="execution.status === 'running' || execution.status === 'queued'" class="pi pi-spin pi-spinner"></i>
+              {{ executionStatusLabel(execution.status) }}
+            </span>
+          </div>
+          <p-progressBar [value]="executionProgress(execution)" [showValue]="false"></p-progressBar>
+          <div class="campaign-run-stats">
+            <span><strong>{{ execution.totals.sent || 0 }}</strong> enviados</span>
+            <span><strong>{{ execution.totals.replied || 0 }}</strong> respuestas</span>
+            <span><strong>{{ execution.totals.interested || 0 }}</strong> interesados</span>
+            <span><strong>{{ execution.totals.failed || 0 }}</strong> errores</span>
+            <span><strong>{{ execution.totals.skipped || 0 }}</strong> protegidos</span>
+          </div>
+          <div class="campaign-run-actions">
+            <button pButton label="Ver detalle" icon="pi pi-list" class="p-button-text p-button-sm" (click)="openExecutionDetails(execution)"></button>
+            <button *ngIf="execution.status === 'running' || execution.status === 'queued' || execution.status === 'scheduled'" pButton label="Pausar" icon="pi pi-pause" class="p-button-text p-button-sm" (click)="pauseExecution(execution)"></button>
+            <button *ngIf="execution.status === 'paused' || execution.status === 'failed'" pButton label="Reanudar" icon="pi pi-play" class="p-button-text p-button-sm" (click)="resumeExecution(execution)"></button>
+            <button *ngIf="execution.totals.failed > 0" pButton label="Reintentar errores" icon="pi pi-replay" class="p-button-text p-button-sm" (click)="retryExecution(execution)"></button>
+            <button *ngIf="execution.status === 'completed' && execution.follow_up_body && !execution.follow_up_execution_id" pButton label="Seguimiento" icon="pi pi-comments" class="p-button-text p-button-sm campaign-ester-action" (click)="followUpExecution(execution)"></button>
+            <button *ngIf="execution.status === 'running' || execution.status === 'queued' || execution.status === 'scheduled' || execution.status === 'paused'" pButton label="Cancelar" icon="pi pi-times" class="p-button-text p-button-sm p-button-danger" (click)="cancelExecution(execution)"></button>
+          </div>
+        </article>
+      </section>
 
       <!-- Tabla de usuarios -->
       <div class="detail-table-wrap">
@@ -487,26 +650,100 @@
   [modal]="true"
   [closable]="!sendingPush"
   (onHide)="closePushModal()"
-  [header]="interactionChannel === 'whatsapp' ? 'Enviar WhatsApp' : interactionChannel === 'vapi' ? 'Realizar Llamada IA' : 'Enviar Notificación Push'"
+  [header]="interactionChannel === 'whatsapp' ? 'Crear campaña de WhatsApp' : interactionChannel === 'vapi' ? 'Crear campaña de llamadas con Ester' : interactionChannel === 'sms' ? 'Crear campaña SMS' : 'Crear campaña de notificaciones'"
   styleClass="push-dialog"
-  [style]="{width: '480px'}">
+  [style]="{width: targetUserName ? '520px' : '760px', maxWidth: '95vw'}">
 
   <div class="push-form">
     <div class="push-meta">
       <i *ngIf="interactionChannel === 'whatsapp'" class="pi pi-whatsapp push-meta__icon text-green-500"></i>
       <i *ngIf="interactionChannel === 'push'" class="pi pi-bell push-meta__icon"></i>
+      <i *ngIf="interactionChannel === 'sms'" class="pi pi-mobile push-meta__icon"></i>
       <div>
         <strong class="push-meta__list">{{ targetUserName ? targetUserName : selectedList?.name }}</strong>
         <span class="push-meta__count">{{ targetUserName ? '1 destinatario individual' : listUsersTotal + ' destinatario(s)' }}</span>
       </div>
     </div>
 
+    <ng-container *ngIf="!targetUserName">
+      <div class="campaign-compose-grid">
+        <div class="form-group form-group--full">
+          <label>Usar una plantilla</label>
+          <p-dropdown
+            [options]="campaignTemplates"
+            [(ngModel)]="selectedTemplateId"
+            optionLabel="name"
+            optionValue="_id"
+            placeholder="Seleccionar plantilla"
+            [showClear]="true"
+            (onChange)="applyCampaignTemplate()"
+            styleClass="w-full">
+            <ng-template pTemplate="item" let-template>
+              <div class="campaign-template-option">
+                <strong>{{ template.name }}</strong>
+                <small>{{ template.category }} · {{ template.description }}</small>
+              </div>
+            </ng-template>
+          </p-dropdown>
+        </div>
+
+        <div class="form-group form-group--full">
+          <label>Objetivo de la campaña</label>
+          <textarea pInputTextarea [(ngModel)]="campaignObjective" rows="2" class="w-full" placeholder="Ej. Confirmar que la instalación funciona y detectar cualquier incidencia concreta."></textarea>
+        </div>
+
+        <div class="campaign-ester-draft">
+          <div>
+            <strong><i class="pi pi-sparkles"></i> Preparar con Ester</strong>
+            <span>Ester usa la base de conocimiento y propone mensaje, variante, seguimiento y objetivos. Tú revisas antes de enviar.</span>
+          </div>
+          <button pButton label="Preparar borrador" icon="pi pi-sparkles" class="p-button-sm campaign-ester-action" [loading]="generatingCampaignDraft" [disabled]="!campaignObjective.trim()" (click)="generateCampaignDraft()"></button>
+        </div>
+
+        <div class="campaign-template-save">
+          <input
+            pInputText
+            [(ngModel)]="campaignTemplateName"
+            placeholder="Nombre para guardar esta plantilla"
+            class="w-full" />
+          <button
+            pButton
+            type="button"
+            label="Guardar plantilla"
+            icon="pi pi-bookmark"
+            class="p-button-outlined p-button-sm"
+            [loading]="savingCampaignTemplate"
+            [disabled]="!campaignTemplateName.trim() || !getCampaignBody().trim()"
+            (click)="saveCurrentCampaignTemplate()">
+          </button>
+        </div>
+      </div>
+
+      <div class="campaign-audience-safety">
+        <div class="campaign-audience-safety__head">
+          <strong><i class="pi pi-shield"></i> Revisión de audiencia</strong>
+          <span *ngIf="loadingAudiencePreview"><i class="pi pi-spin pi-spinner"></i> Analizando…</span>
+          <span *ngIf="audiencePreview">{{ audiencePreview.summary?.selected || 0 }} seleccionados</span>
+        </div>
+        <div class="campaign-safety-stats" *ngIf="audiencePreview">
+          <span><strong>{{ audiencePreview.summary?.missing_destination || 0 }}</strong> sin destino</span>
+          <span><strong>{{ audiencePreview.summary?.duplicate_destination || 0 }}</strong> duplicados</span>
+          <span><strong>{{ audiencePreview.summary?.autocontact_disabled || 0 }}</strong> no autorizan contacto</span>
+          <span><strong>{{ audiencePreview.summary?.low_satisfaction || 0 }}</strong> satisfacción baja</span>
+          <span><strong>{{ audiencePreview.summary?.awaiting_employee_reply || 0 }}</strong> esperando empleado</span>
+        </div>
+        <ul *ngIf="audiencePreview?.summary?.warnings?.length">
+          <li *ngFor="let warning of audiencePreview.summary.warnings">{{ warning }}</li>
+        </ul>
+      </div>
+    </ng-container>
+
     <div *ngIf="interactionChannel === 'whatsapp'" style="margin-top:1rem;">
       <div style="background-color: rgba(245, 158, 11, 0.1); color: #d97706; border-left: 4px solid #f59e0b; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.9rem;">
         <i class="pi pi-shield" style="margin-right: 0.5rem;"></i>
         <strong>Límite Diario (Nivel 1):</strong> Según políticas de Meta, tienes un límite de envío masivo de <strong>{{ whatsappQuota.limit }} clientes únicos</strong> cada 24 horas. Te quedan <strong>{{ whatsappQuota.available }}</strong> envíos disponibles hoy.
         <span *ngIf="!targetUserName && listUsersTotal > whatsappQuota.available" style="display: block; margin-top: 5px; color: #dc2626; font-weight: bold;">
-          <i class="pi pi-times-circle" style="margin-right: 4px;"></i> Tu campaña actual tiene {{ listUsersTotal }} usuarios, pero solo te quedan {{ whatsappQuota.available }}. El botón de envío ha sido bloqueado.
+          <i class="pi pi-info-circle" style="margin-right: 4px;"></i> La audiencia supera la cuota restante. El backend procesará únicamente lo permitido por Meta y conservará los errores para reintento.
         </span>
         <span *ngIf="targetUserName && whatsappQuota.available === 0" style="display: block; margin-top: 5px; color: #dc2626; font-weight: bold;">
           <i class="pi pi-times-circle" style="margin-right: 4px;"></i> Has agotado todos tus envíos de WhatsApp permitidos por hoy.
@@ -514,7 +751,7 @@
       </div>
 
       <div class="form-group form-group--full">
-        <label>Nombre del destinatario *</label>
+        <label>{{ targetUserName ? 'Nombre del destinatario *' : 'Nombre dinámico del destinatario' }}</label>
         <input pInputText [(ngModel)]="whatsappTemplateVars.name" placeholder="Ej. Juan Pérez" class="w-full" [disabled]="sendingPush" />
       </div>
 
@@ -557,10 +794,75 @@
           class="w-full">
         </textarea>
         <small style="color: #64748b; margin-top: 0.25rem; display: block;">
-          Ester leerá esto como su objetivo de conversación con el usuario. Hablará naturally en Dominicano.
+          Ester usará esto como objetivo y hablará naturalmente en español dominicano.
         </small>
       </div>
     </ng-container>
+
+    <ng-container *ngIf="interactionChannel === 'sms'">
+      <div class="campaign-channel-note campaign-channel-note--sms">
+        <i class="pi pi-mobile"></i>
+        El SMS nacional se envía mediante Broadcaster Mobile. Los números inválidos quedarán registrados para revisión o reintento.
+      </div>
+      <div class="form-group form-group--full" style="margin-top:.75rem">
+        <label>Mensaje SMS *</label>
+        <textarea pInputTextarea [(ngModel)]="pushBody" placeholder="Escribe un mensaje breve..." rows="5" maxlength="480" [disabled]="sendingPush" class="w-full"></textarea>
+        <small>{{ pushBody.length }}/480 caracteres</small>
+      </div>
+    </ng-container>
+
+    <div *ngIf="!targetUserName" class="campaign-advanced">
+      <button type="button" class="campaign-advanced__toggle" (click)="showAdvancedCampaignOptions = !showAdvancedCampaignOptions">
+        <span><i class="pi pi-sliders-h"></i> Programación, protección y seguimiento</span>
+        <i class="pi" [ngClass]="showAdvancedCampaignOptions ? 'pi-chevron-up' : 'pi-chevron-down'"></i>
+      </button>
+      <div *ngIf="showAdvancedCampaignOptions" class="campaign-advanced__body">
+        <div class="campaign-option-row">
+          <p-checkbox [(ngModel)]="scheduleCampaign" [binary]="true" inputId="scheduleCampaign"></p-checkbox>
+          <label for="scheduleCampaign">Programar para una fecha y hora</label>
+        </div>
+        <div class="form-group" *ngIf="scheduleCampaign">
+          <label>Fecha y hora en República Dominicana</label>
+          <input pInputText type="datetime-local" [(ngModel)]="scheduledAt" class="w-full" />
+        </div>
+        <div class="campaign-hours-grid">
+          <div class="form-group">
+            <label>Enviar desde</label>
+            <input pInputText type="number" min="0" max="23" [(ngModel)]="allowedStartHour" class="w-full" />
+          </div>
+          <div class="form-group">
+            <label>Enviar hasta</label>
+            <input pInputText type="number" min="1" max="24" [(ngModel)]="allowedEndHour" class="w-full" />
+          </div>
+        </div>
+        <div class="campaign-option-row">
+          <p-checkbox [(ngModel)]="excludeLowSatisfaction" [binary]="true" inputId="excludeLowSatisfaction"></p-checkbox>
+          <label for="excludeLowSatisfaction">Proteger clientes con satisfacción de 4 o menos</label>
+        </div>
+        <div class="campaign-option-row">
+          <p-checkbox [(ngModel)]="excludeWaitingConversations" [binary]="true" inputId="excludeWaitingConversations"></p-checkbox>
+          <label for="excludeWaitingConversations">No contactar chats que esperan respuesta de un empleado</label>
+        </div>
+        <div class="form-group form-group--full">
+          <label>Variante B opcional</label>
+          <textarea pInputTextarea [(ngModel)]="campaignBodyVariantB" rows="3" class="w-full" placeholder="La mitad de la audiencia recibirá esta variante para comparar resultados."></textarea>
+        </div>
+        <div class="campaign-option-row">
+          <p-checkbox [(ngModel)]="automaticFollowUp" [binary]="true" inputId="automaticFollowUp"></p-checkbox>
+          <label for="automaticFollowUp">Crear seguimiento automático para quienes no respondan</label>
+        </div>
+        <div *ngIf="automaticFollowUp" class="campaign-follow-up-grid">
+          <div class="form-group">
+            <label>Esperar horas</label>
+            <input pInputText type="number" min="1" max="720" [(ngModel)]="followUpAfterHours" class="w-full" />
+          </div>
+          <div class="form-group">
+            <label>Mensaje de seguimiento</label>
+            <textarea pInputTextarea [(ngModel)]="followUpBody" rows="3" class="w-full" placeholder="Mensaje breve y no repetitivo."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <ng-container *ngIf="interactionChannel === 'push'">
       <div class="form-group form-group--full" style="margin-top:1rem">
@@ -586,7 +888,7 @@
     <div class="push-progress" *ngIf="sendingPush">
       <p-progressBar mode="indeterminate" styleClass="push-bar"></p-progressBar>
       <span class="push-progress__text">
-        Enviando... {{ pushSentCount }} enviados, {{ pushErrorCount }} errores
+        Creando la ejecución segura de la campaña…
       </span>
     </div>
   </div>
@@ -597,13 +899,89 @@
       (click)="closePushModal()">
     </button>
     <button pButton
-      [label]="targetUserName ? (interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a usuario' : interactionChannel === 'vapi' ? 'Llamar usuario con IA' : 'Enviar push a usuario') : (interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a todos' : interactionChannel === 'vapi' ? 'Llamar a todos con IA' : 'Enviar push a todos')"
-      [icon]="interactionChannel === 'whatsapp' ? 'pi pi-whatsapp' : interactionChannel === 'vapi' ? 'pi pi-phone' : 'pi pi-send'"
+      [label]="targetUserName ? (interactionChannel === 'whatsapp' ? 'Enviar WhatsApp a usuario' : interactionChannel === 'vapi' ? 'Llamar usuario con IA' : 'Enviar push a usuario') : (scheduleCampaign ? 'Programar campaña' : 'Crear ejecución')"
+      [icon]="scheduleCampaign ? 'pi pi-calendar' : interactionChannel === 'whatsapp' ? 'pi pi-whatsapp' : interactionChannel === 'vapi' ? 'pi pi-phone' : interactionChannel === 'sms' ? 'pi pi-mobile' : 'pi pi-send'"
       [loading]="sendingPush"
-      [disabled]="(interactionChannel === 'whatsapp' && ((!targetUserName && listUsersTotal > whatsappQuota.available) || (targetUserName && whatsappQuota.available === 0) || !whatsappTemplateVars.name.trim() || !whatsappTemplateVars.body.trim())) || (interactionChannel === 'vapi' && !vapiQuery.trim()) || (interactionChannel === 'push' && (!pushTitle.trim() || !pushBody.trim()))"
+      [disabled]="(interactionChannel === 'whatsapp' && ((targetUserName && whatsappQuota.available === 0) || !whatsappTemplateVars.name.trim() || !whatsappTemplateVars.body.trim())) || (interactionChannel === 'vapi' && !vapiQuery.trim()) || (interactionChannel === 'push' && (!pushTitle.trim() || !pushBody.trim())) || (interactionChannel === 'sms' && !pushBody.trim()) || (scheduleCampaign && !scheduledAt)"
       (click)="sendPushToList()">
     </button>
   </ng-template>
+</p-dialog>
+
+<p-dialog
+  [(visible)]="showExecutionDetails"
+  [modal]="true"
+  styleClass="campaign-execution-dialog"
+  [style]="{width: '980px', maxWidth: '96vw'}">
+  <ng-template pTemplate="header">
+    <div class="campaign-execution-dialog__header">
+      <i class="pi pi-chart-line"></i>
+      <div>
+        <strong>{{ selectedExecutionDetails?.title || selectedExecutionDetails?.list_name || 'Detalle de ejecución' }}</strong>
+        <span *ngIf="selectedExecutionDetails">
+          {{ selectedExecutionDetails.channel | uppercase }} ·
+          {{ executionStatusLabel(selectedExecutionDetails.status) }}
+        </span>
+      </div>
+    </div>
+  </ng-template>
+
+  <p-progressBar *ngIf="loadingExecutionDetails" mode="indeterminate"></p-progressBar>
+
+  <div *ngIf="!loadingExecutionDetails && selectedExecutionDetails" class="campaign-recipient-detail">
+    <div class="campaign-recipient-summary">
+      <span><strong>{{ selectedExecutionDetails.totals?.total || 0 }}</strong> destinatarios</span>
+      <span><strong>{{ selectedExecutionDetails.totals?.sent || 0 }}</strong> enviados</span>
+      <span><strong>{{ selectedExecutionDetails.totals?.replied || 0 }}</strong> respondieron</span>
+      <span><strong>{{ selectedExecutionDetails.totals?.failed || 0 }}</strong> errores</span>
+    </div>
+
+    <p-table
+      [value]="selectedExecutionDetails.recipients || []"
+      [paginator]="(selectedExecutionDetails.recipients?.length || 0) > 20"
+      [rows]="20"
+      [rowsPerPageOptions]="[20, 50, 100]"
+      styleClass="p-datatable-sm p-datatable-striped"
+      responsiveLayout="scroll">
+      <ng-template pTemplate="header">
+        <tr>
+          <th>Destinatario</th>
+          <th>Estado</th>
+          <th>Resultado</th>
+          <th>Detalle</th>
+          <th>Intentos</th>
+          <th>Conversación</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-recipient>
+        <tr>
+          <td>
+            <strong>{{ recipient.name }}</strong>
+            <small class="campaign-recipient-phone">{{ recipient.phone || recipient.email || 'Sin destino' }}</small>
+          </td>
+          <td>{{ recipientStatusLabel(recipient.status) }}</td>
+          <td>{{ recipientOutcomeLabel(recipient.outcome) }}</td>
+          <td>{{ recipient.outcome_reason || recipient.skip_reason || recipient.error || '—' }}</td>
+          <td>{{ recipient.attempts || 0 }}/{{ recipient.max_attempts || 0 }}</td>
+          <td>
+            <button
+              *ngIf="recipient.conversation_id"
+              pButton
+              type="button"
+              icon="pi pi-comments"
+              label="Abrir"
+              class="p-button-text p-button-sm"
+              (click)="openExecutionConversation(recipient)">
+            </button>
+            <span *ngIf="!recipient.conversation_id">—</span>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage">
+        <tr><td colspan="6">No hay destinatarios registrados.</td></tr>
+      </ng-template>
+    </p-table>
+  </div>
 </p-dialog>
 
 <!-- ── Modal Historial de Usuario ────────────────────────────────────── -->

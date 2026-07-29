@@ -89,6 +89,8 @@ const routes: Routes = [
       },
       {
         path: 'monitor-ia',
+        canMatch: [RootGuard],
+        canActivate: [RootGuard],
         loadChildren: () => import('../modules/monitor-ia/presentation/monitor-ia.module').then(m => m.MonitorIaModule)
       },
     ]

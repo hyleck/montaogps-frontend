@@ -2,7 +2,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
+import {
+    ConversationReminderNotification,
+    FirebaseNotificationsService,
+} from '@core/services/firebase-notifications.service';
 import { CommunicationFloatingMessage, CommunicationNotificationService } from '@core/services/communication-notification.service';
 
 @Component({
@@ -15,8 +18,11 @@ export class AdminComponent implements OnInit, OnDestroy {
     showChatTransferModal: boolean = false;
     transferConversationId: string | null = null;
     transferSummaryText: string | null = null;
+    showConversationReminderModal: boolean = false;
+    conversationReminder: ConversationReminderNotification | null = null;
     floatingMessage: CommunicationFloatingMessage | null = null;
     private transferSub!: Subscription;
+    private reminderSub!: Subscription;
     private floatingSub!: Subscription;
     private floatingTimer: any = null;
 
@@ -38,6 +44,15 @@ export class AdminComponent implements OnInit, OnDestroy {
             this.showChatTransferModal = true;
         });
 
+        this.reminderSub =
+            this.firebaseNotifications.conversationReminderReceived$
+                .subscribe((reminder) => {
+                    if (!reminder?.conversationId) return;
+                    this.conversationReminder = reminder;
+                    this.showConversationReminderModal = true;
+                    this.communicationNotifications.playReminderBuzz();
+                });
+
         this.floatingSub = this.communicationNotifications.floatingMessage$.subscribe((message) => {
             this.floatingMessage = message;
             if (this.floatingTimer) clearTimeout(this.floatingTimer);
@@ -55,6 +70,9 @@ export class AdminComponent implements OnInit, OnDestroy {
         if (this.floatingSub) {
             this.floatingSub.unsubscribe();
         }
+        if (this.reminderSub) {
+            this.reminderSub.unsubscribe();
+        }
         if (this.floatingTimer) {
             clearTimeout(this.floatingTimer);
         }
@@ -67,6 +85,31 @@ export class AdminComponent implements OnInit, OnDestroy {
         } else {
             this.router.navigate(['/admin/communication', 'chat']);
         }
+    }
+
+    openReminderConversation(): void {
+        const conversationId = this.conversationReminder?.conversationId;
+        this.showConversationReminderModal = false;
+        this.conversationReminder = null;
+        if (!conversationId) return;
+        this.router.navigate([
+            '/admin/communication',
+            'chat',
+            conversationId,
+        ]);
+    }
+
+    closeConversationReminder(): void {
+        this.showConversationReminderModal = false;
+        this.conversationReminder = null;
+    }
+
+    formatReminderTime(timestamp: number): string {
+        if (!timestamp) return '';
+        return new Date(timestamp * 1000).toLocaleTimeString('es-DO', {
+            hour: '2-digit',
+            minute: '2-digit',
+        });
     }
 
     openFloatingConversation(): void {

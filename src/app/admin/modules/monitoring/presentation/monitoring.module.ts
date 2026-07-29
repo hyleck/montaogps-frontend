@@ -6,10 +6,12 @@ import { MonitoringComponent } from './components/monitoring/monitoring.componen
 import { PrimengModule } from '../../../../shareds/libraries/primeng/primeng.module';
 import { TranslateModule } from '@ngx-translate/core';
 import { ProtocolsService } from '../../../../core/services/protocols.service';
+import { MonitoringMapComponent } from './components/monitoring-map/monitoring-map.component';
 
 @NgModule({
   declarations: [
-    MonitoringComponent
+    MonitoringComponent,
+    MonitoringMapComponent
   ],
   imports: [
     CommonModule,

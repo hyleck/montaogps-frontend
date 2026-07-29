@@ -325,9 +325,9 @@ export class SidebarComponent implements OnInit, OnDestroy {
         return this.isRootUser;
       }
       
-      // Ocultar Monitor IA del sidebar
+      // Monitor IA contiene operaciones globales y solo debe mostrarse a root
       if (item.path === '/admin/monitor-ia') {
-        return false;
+        return this.isRootUser;
       }
 
       // Para otros elementos, mostrar siempre

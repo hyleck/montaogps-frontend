@@ -1,202 +1,187 @@
 <p-toast></p-toast>
-<div class="monitor-container p-4" style="padding-right: 20px !important;">
+<p-confirmDialog></p-confirmDialog>
 
-    <div class="header-section"
-        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding: 2rem 2rem 0 2rem;">
-        <div>
-            <h2 style="margin: 0; color: var(--text-color);">Monitor IA (Deep Scan)</h2>
-            <p style="color: var(--text-color-secondary); margin-top: 0.5rem;">
-                Pipeline avanzado de escaneo asíncrono para revisión profunda de estado telemetría de todos los
-                usuarios.
-            </p>
-        </div>
+<section class="monitor-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow"><i class="pi pi-shield"></i> Operación root</span>
+      <h1>Monitor de conectividad</h1>
+      <p>
+        Revisa telemetría y SIM en vivo, conserva el historial y prepara acciones
+        verificables para los equipos que llevan más de 48 horas offline.
+      </p>
+    </div>
+    <div class="header-actions">
+      <button
+        pButton
+        type="button"
+        icon="pi pi-list"
+        label="Segmentación"
+        class="p-button-outlined"
+        (click)="goToSegmentation()"
+      ></button>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-filter"
+        label="Embudo"
+        class="p-button-outlined"
+        (click)="goToFunnel()"
+      ></button>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-play"
+        label="Nuevo escaneo"
+        [loading]="starting"
+        [disabled]="isRunning"
+        (click)="confirmStartScan()"
+      ></button>
+    </div>
+  </header>
 
-        <div style="display: flex; gap: 1rem; align-items: center;">
-            <p-button label="Ver Segmentación Guardada" icon="pi pi-database" styleClass="p-button-secondary p-button-outlined" [routerLink]="['/admin/monitor-ia/segmentacion']"></p-button>
-            <p-button label="Embudo de Reactivación" icon="pi pi-filter" styleClass="p-button-warning p-button-outlined" [routerLink]="['/admin/monitor-ia/funnel']"></p-button>
+  <div class="summary-grid" *ngIf="session">
+    <article class="summary-card">
+      <i class="pi pi-users"></i>
+      <div>
+        <span>Usuarios revisados</span>
+        <strong>{{ session.processedUsers || 0 }} / {{ session.totalUsers || 0 }}</strong>
+      </div>
+    </article>
+    <article class="summary-card">
+      <i class="pi pi-map-marker"></i>
+      <div>
+        <span>Dispositivos</span>
+        <strong>{{ session.totalDevices || 0 }}</strong>
+      </div>
+    </article>
+    <article class="summary-card warning">
+      <i class="pi pi-power-off"></i>
+      <div>
+        <span>Offline +48h</span>
+        <strong>{{ session.offlineDevices || 0 }}</strong>
+      </div>
+    </article>
+    <article class="summary-card" [class.danger]="session.errorsCount">
+      <i class="pi pi-exclamation-circle"></i>
+      <div>
+        <span>Alertas técnicas</span>
+        <strong>{{ session.errorsCount || 0 }}</strong>
+      </div>
+    </article>
+  </div>
 
-            <p-button label="Iniciar Monitoreo Profundo" icon="pi pi-bolt" styleClass="p-button-primary p-button-lg"
-                (onClick)="iniciarMonitoreoProfundo()" [loading]="isLoadingStart"
-                [disabled]="session?.status === 'running'">
-            </p-button>
-        </div>
+  <article class="session-card" *ngIf="session; else emptyState">
+    <div class="session-heading">
+      <div>
+        <span class="status-pill" [ngClass]="statusClass">{{ statusLabel }}</span>
+        <h2>{{ session.message || 'Preparando información' }}</h2>
+        <p *ngIf="session.currentActivity?.userName">
+          Revisando a {{ session.currentActivity?.userName }}
+          <span *ngIf="session.currentActivity?.deviceName">
+            · {{ session.currentActivity?.deviceName }}
+          </span>
+        </p>
+      </div>
+      <strong class="progress-value">{{ session.progress || 0 }}%</strong>
+    </div>
+    <p-progressBar [value]="session.progress || 0" [showValue]="false"></p-progressBar>
+
+    <div class="error-panel" *ngIf="session.error || session.errorSamples?.length">
+      <strong>Detalles que requieren revisión</strong>
+      <p *ngIf="session.error">{{ session.error }}</p>
+      <ul *ngIf="session.errorSamples?.length">
+        <li *ngFor="let error of session.errorSamples">{{ error }}</li>
+      </ul>
+    </div>
+  </article>
+
+  <ng-template #emptyState>
+    <article class="empty-state">
+      <i class="pi pi-search"></i>
+      <h2>Aún no hay un escaneo para esta cuenta</h2>
+      <p>Inicia el primero para consultar el árbol del usuario root autenticado.</p>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-play"
+        label="Iniciar escaneo"
+        [loading]="starting"
+        (click)="confirmStartScan()"
+      ></button>
+    </article>
+  </ng-template>
+
+  <section class="results-card" *ngIf="session">
+    <div class="results-toolbar">
+      <div>
+        <h2>Usuarios con equipos offline</h2>
+        <p>{{ recordsTotal }} usuarios en el resultado del escaneo.</p>
+      </div>
+      <div class="search-box">
+        <i class="pi pi-search"></i>
+        <input
+          pInputText
+          type="search"
+          [(ngModel)]="search"
+          placeholder="Cliente, teléfono o ID"
+          (keyup.enter)="applySearch()"
+        />
+        <button
+          pButton
+          type="button"
+          icon="pi pi-search"
+          class="p-button-text"
+          aria-label="Buscar"
+          (click)="applySearch()"
+        ></button>
+      </div>
     </div>
 
-    <!-- Main Container: 2-Column Split -->
-    <div style="display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap; padding: 0 2rem;">
-
-        <!-- Left Column: Offline Users (ca. 30%) -->
-        <div class="offline-column"
-            style="flex: 1;  background: var(--surface-b); border-radius: 8px; border: 1px solid var(--surface-border); display: flex; flex-direction: column; gap: 1rem;  max-height: 800px; overflow-y: auto;">
-            <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="pi pi-exclamation-triangle" style="color: var(--orange-500); font-size: 1.2rem;"></i>
-                    <h3 style="margin: 0; color: var(--text-color);">Revisión Offline</h3>
-                </div>
-                <span style="background: rgba(249, 115, 22, 0.15); color: var(--orange-500); font-weight: 800; font-size: 0.8rem; padding: 0.2rem 0.6rem; border-radius: 12px; display: inline-flex; align-items: center; gap: 0.3rem;">
-                    <i class="pi pi-power-off" style="font-size: 0.7rem;"></i> 
-                    {{ getTotalOfflineDevicesCount() }}
-                </span>
-            </div>
-            <span style="font-size: 0.85rem; color: var(--text-color-secondary);">Usuarios con equipos
-                desconectados.</span>
-
-            <div *ngIf="getOfflineUsers().length === 0"
-                style="padding: 2rem 1rem; text-align: center; color: var(--text-color-secondary); font-size: 0.9rem; background: var(--surface-ground); border-radius: 6px; border: 1px dashed var(--surface-border);">
-                Ningún equipo desconectado (todavía).
-            </div>
-
-            <div *ngFor="let record of getOfflineUsers()" class="offline-user-card"
-                style="background: var(--surface-card); border-left: 4px solid var(--orange-500); border-radius: 6px; padding: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-                <div
-                    style="font-weight: 800; margin-bottom: 0.8rem; color: var(--text-color); font-size: 1.15rem; letter-spacing: -0.5px; display: flex; align-items: center; gap: 0.5rem; border-bottom: 2px solid rgba(var(--orange-500-rgb, 249, 115, 22), 0.2); padding-bottom: 0.4rem;">
-                    <i class="pi pi-user" style="color: var(--orange-500); font-size: 1.1rem;"></i>
-                    <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{
-                        record.route[record.route.length - 1]?.fullName || record.userId }}</span>
-                </div>
-
-                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-                    <div *ngFor="let dev of (expandedOfflineRecords[record.userId] ? record.offlineDevices : (record.offlineDevices | slice:0:15))"
-                        style="font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.3rem; border-bottom: 1px dashed var(--surface-border); padding-bottom: 0.6rem; padding-top: 0.3rem;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; width: 100%;">
-                            <i class="pi pi-circle-fill"
-                                style="color: var(--red-500); font-size: 0.4rem; margin-top: 2px;"></i>
-                            <span
-                                style="color: #6b7280; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;"
-                                [title]="dev.name">{{ dev.name || 'Sin nombre' }}</span>
-                        </div>
-                        <div style="padding-left: 1rem;">
-                            <span
-                                style="font-size: 0.7rem; color: var(--text-color-secondary); background: var(--surface-ground); padding: 0.15rem 0.4rem; border-radius: 4px; display: inline-flex; align-items: center;">
-                                <i class="pi pi-clock" style="font-size: 0.6rem; margin-right: 4px;"></i>
-                                {{ formatTimeOffline(dev.traccarInfo?.lastUpdate) }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div *ngIf="record.offlineDevices.length > 15"
-                    style="margin-top: 0.5rem; border-top: 1px solid var(--surface-border); padding-top: 0.5rem;">
-                    <button pButton type="button"
-                        [label]="expandedOfflineRecords[record.userId] ? 'Ver menos' : 'Mostrar todos (' + record.offlineDevices.length + ')'"
-                        [icon]="expandedOfflineRecords[record.userId] ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"
-                        class="p-button-text p-button-sm p-0" (click)="toggleOfflineRecord(record.userId)">
-                    </button>
-                </div>
-            </div>
+    <div class="record-list" *ngIf="offlineRecords.length; else noOfflineRecords">
+      <article
+        class="record-card"
+        *ngFor="let record of offlineRecords; trackBy: trackRecord"
+      >
+        <div class="record-owner">
+          <div class="owner-icon"><i class="pi pi-user"></i></div>
+          <div>
+            <h3>{{ record.userName || record.userId }}</h3>
+            <span>{{ record.userPhone || 'Sin número registrado' }}</span>
+          </div>
+          <span class="device-count">{{ record.offlineDevices.length }} offline</span>
         </div>
 
-        <!-- Right Column: n8n Flow & Results (ca. 70%) -->
-        <div class="flow-column" style="flex: 2;  display: flex; flex-direction: column; gap: 2rem;">
-
-
-
-            <!-- Redesigned User-Centric Flow -->
-            <div class="users-flow-container" *ngIf="session?.status === 'running' || records.length > 0"
-                style="padding-right: 2rem !important;">
-                <div class="n8n-flow-header" style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="pi pi-search" style="color: var(--primary-color);"></i>
-                        <span style="font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px;">Buscando dispositivos fuera de linea</span>
-                    </div>
-                    
-                    <!-- Compact Inline Stats -->
-                    <div *ngIf="session" style="display: flex; align-items: center; gap: 1rem; font-size: 0.8rem; color: var(--text-color-secondary);">
-                        <span class="status-badge" [ngClass]="session.status" style="font-size: 0.7rem; padding: 0.15rem 0.6rem;">
-                            <i class="pi" style="font-size: 0.7rem;" [ngClass]="{
-                                'pi-spin pi-spinner': session.status === 'running',
-                                'pi-check-circle': session.status === 'completed',
-                                'pi-times-circle': session.status === 'failed'
-                            }"></i>
-                            {{ session.status | uppercase }}
-                        </span>
-                        
-                        <span style="color: var(--primary-color); font-weight: 800; font-variant-numeric: tabular-nums;">
-                            {{ session.progress }}% completado
-                        </span>
-                        
-                        <span style="border-left: 1px solid var(--surface-border); padding-left: 1rem;">
-                            Usuarios revisados: <b style="color: var(--text-color);">{{ session.processedUsers || session.recordIds?.length || 0 }}</b> de <b style="color: var(--text-color);">{{ session.totalUsers || 0 }}</b>
-                        </span>
-                    </div>
-                </div>
-
-                <div class="users-canvas" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; height: 800px; overflow-y: auto; padding-right: 1rem; padding-bottom: 2rem;">
-
-                    <!-- Usuario Activo (Live) -->
-                    <div class="user-card active-user" *ngIf="session?.currentActivity && session?.status === 'running'"
-                        style="background: var(--surface-card); border: 1px solid var(--primary-color); border-left: 4px solid var(--primary-color); border-radius: 6px; padding: 1rem; position: relative; box-shadow: 0 0 10px rgba(var(--primary-color-rgb), 0.1);">
-                        <div style="position: absolute; top: 1rem; right: 1rem;">
-                            <i class="pi pi-spin pi-spinner"
-                                style="color: var(--primary-color); font-size: 1.2rem;"></i>
-                        </div>
-                        <div
-                            style="font-size: 0.8rem; color: var(--primary-color); margin-bottom: 0.2rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-                            Procesando Usuario...</div>
-                        <div
-                            style="font-weight: 800; color: var(--text-color); margin-bottom: 1rem; font-size: 1.25rem; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">
-                            {{ session.currentActivity.userName }}
-                        </div>
-
-                        <!-- Internal Device Flow for Active User -->
-                        <div class="active-devices-flow"
-                            style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 200px; overflow-y: auto; padding-right: 0.5rem;">
-
-                            <!-- Completed Devices list (max 5 items, if more show summary to avoid lag) -->
-                            <div *ngIf="session.currentActivity.completedDevices?.length > 0"
-                                style="font-size: 0.75rem; color: var(--text-color-secondary);">
-                                <i class="pi pi-check" style="color: #22c55e;"></i> {{
-                                session.currentActivity.completedDevices.length }} disp. listos
-                            </div>
-
-                            <!-- Actively processing device -->
-                            <div *ngIf="session.currentActivity.currentDevice"
-                                style="background: rgba(59, 130, 246, 0.1); padding: 0.4rem; border-radius: 4px; font-size: 0.75rem; border-left: 2px solid #3b82f6;">
-                                <span class="pulsing-blue-text"
-                                    style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; font-weight: bold; color: #3b82f6;">
-                                    {{ session.currentActivity.currentDevice }}
-                                </span>
-                            </div>
-
-                            <!-- Pending Devices (max 5) -->
-                            <div *ngFor="let pending of (session.currentActivity.pendingDevices | slice:0:5)"
-                                style="background: var(--surface-ground); padding: 0.4rem; border-radius: 4px; font-size: 0.75rem; border-left: 2px solid var(--surface-border); color: var(--text-color-secondary);">
-                                <span
-                                    style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">{{
-                                    pending }}</span>
-                            </div>
-
-                            <!-- Rest of pending summary -->
-                            <div *ngIf="session.currentActivity.pendingDevices?.length > 5"
-                                style="text-align: center; font-size: 0.7rem; color: var(--text-color-secondary); margin-top: 0.2rem;">
-                                + {{ session.currentActivity.pendingDevices.length - 5 }} en cola...
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Usuarios Completados (History) inverted -->
-                    <div class="user-card completed-user" *ngFor="let record of records.slice().reverse()"
-                        style="background: var(--surface-card); border: 1px solid var(--surface-border); border-left: 4px solid #22c55e; border-radius: 6px; padding: 1rem; position: relative;">
-                        <div style="position: absolute; top: 1rem; right: 1rem;">
-                            <i class="pi pi-check-circle" style="color: #22c55e; font-size: 1.2rem;"></i>
-                        </div>
-                        <div
-                            style="font-size: 0.8rem; color: #22c55e; font-weight: 600; margin-bottom: 0.2rem; text-transform: uppercase; letter-spacing: 0.5px;">
-                            Usuario Verificado</div>
-                        <div
-                            style="font-weight: 800; color: var(--text-color); margin-bottom: 0.8rem; font-size: 1.1rem; letter-spacing: -0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90%;">
-                            {{ record.route[record.route.length - 1]?.fullName || record.userId }}
-                        </div>
-                        <div style="font-size: 0.75rem; color: var(--text-color-secondary);">
-                            <span style="display: inline-flex; align-items: center; gap: 0.3rem;"><i
-                                    class="pi pi-box"></i> {{ record.devices?.length || 0 }} dispositivos
-                                checkeados</span>
-                        </div>
-                    </div>
-
-                </div>
+        <div class="device-list">
+          <div class="device-row" *ngFor="let device of record.offlineDevices">
+            <div>
+              <strong>{{ device.name || 'Dispositivo sin nombre' }}</strong>
+              <span>{{ device.device_imei || 'IMEI no disponible' }}</span>
             </div>
+            <span class="category-chip" [attr.data-category]="device.offlineCategory">
+              {{ device.offlineCategory === 'estado_inicial' ? 'Estado inicial' : device.offlineCategory }}
+            </span>
+            <time>{{ formatTimeOffline(device.traccarInfo?.lastUpdate) }}</time>
+          </div>
+        </div>
+      </article>
+    </div>
 
-        </div> <!-- /.flow-column -->
-    </div> <!-- /.main-container-split -->
-</div>
+    <ng-template #noOfflineRecords>
+      <div class="inline-empty">
+        <i class="pi pi-check-circle"></i>
+        <span>No hay equipos offline en esta página.</span>
+      </div>
+    </ng-template>
+
+    <p-paginator
+      *ngIf="recordsTotal > limit"
+      [first]="(page - 1) * limit"
+      [rows]="limit"
+      [totalRecords]="recordsTotal"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="{first} - {last} de {totalRecords}"
+      (onPageChange)="onPageChange($event)"
+    ></p-paginator>
+  </section>
+</section>

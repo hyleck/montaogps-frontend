@@ -1,7 +1,14 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Subject, debounceTime, takeUntil } from 'rxjs';
-import { InteraccionesService, UserList, UserListFilters } from '../../services/interacciones.service';
+import {
+  CampaignChannel,
+  CampaignExecution,
+  CampaignTemplate,
+  InteraccionesService,
+  UserList,
+  UserListFilters
+} from '../../services/interacciones.service';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { FirebaseNotificationsService } from '@core/services/firebase-notifications.service';
 import { SystemService } from '@core/services/system.service';
@@ -59,6 +66,35 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   sendingPush = false;
   pushSentCount = 0;
   pushErrorCount = 0;
+  campaignExecutions: CampaignExecution[] = [];
+  campaignMetrics: any = null;
+  campaignTemplates: CampaignTemplate[] = [];
+  selectedTemplateId: string | null = null;
+  audiencePreview: any = null;
+  loadingCampaignData = false;
+  loadingAudiencePreview = false;
+  generatingCampaignDraft = false;
+  scheduleCampaign = false;
+  scheduledAt = '';
+  allowedStartHour = 8;
+  allowedEndHour = 19;
+  excludeLowSatisfaction = false;
+  excludeWaitingConversations = true;
+  automaticFollowUp = false;
+  followUpAfterHours = 24;
+  followUpBody = '';
+  campaignObjective = '';
+  campaignBodyVariantB = '';
+  campaignTone = 'amable y directo';
+  campaignDraftGeneratedByEster = false;
+  campaignTemplateName = '';
+  savingCampaignTemplate = false;
+  showExecutionDetails = false;
+  loadingExecutionDetails = false;
+  selectedExecutionDetails: any = null;
+  showAdvancedCampaignOptions = false;
+  private campaignPollTimer?: ReturnType<typeof setInterval>;
+  focusedExecutionId: string | null = null;
 
   // ── Historial de Usuario ────────────────────────────────────
   showHistoryModal = false;
@@ -97,6 +133,30 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     { label: 'Inactivo', value: false },
   ];
 
+  booleanOptions = [
+    { label: 'Todos', value: null },
+    { label: 'Sí', value: true },
+    { label: 'No', value: false },
+  ];
+
+  conversationAssignmentOptions = [
+    { label: 'Todas', value: '' },
+    { label: 'Gestionadas por Ester', value: 'ester' },
+    { label: 'Asignadas a empleados', value: 'assigned' },
+    { label: 'Sin asignar', value: 'unassigned' },
+    { label: 'Esperando empleado', value: 'waiting' },
+  ];
+
+  requestStatusOptions = [
+    { label: 'Cualquier estado', value: '' },
+    { label: 'Pendiente', value: 'pendiente' },
+    { label: 'Aceptada', value: 'aceptada' },
+    { label: 'En proceso', value: 'en_progreso' },
+    { label: 'Por confirmar', value: 'por_confirmar' },
+    { label: 'Completada', value: 'completada' },
+    { label: 'Cancelada', value: 'cancelada' },
+  ];
+
   constructor(
     private interaccionesService: InteraccionesService,
     private messageService: MessageService,
@@ -112,6 +172,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
 
   systemContacts: any[] = [];
   whatsappAgentId: string = '';
+  isRootUser = false;
   assignToEster: boolean = false;
 
   // ── Manual Interactions ───────────────────────────────────────
@@ -137,14 +198,22 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.loadAgentId();
     this.loadLists();
     this.loadSystemContacts();
+    this.loadCampaignTemplates();
 
     // Debounce el preview para no llamar en cada cambio de filtro
     this.previewTrigger$
       .pipe(debounceTime(400), takeUntil(this.destroy$))
       .subscribe(() => this.runPreview());
+
+    this.campaignPollTimer = setInterval(() => {
+      if (this.selectedList && !this.showForm) {
+        this.loadCampaignExecutions(false);
+      }
+    }, 15000);
   }
 
   ngOnDestroy() {
+    if (this.campaignPollTimer) clearInterval(this.campaignPollTimer);
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -184,6 +253,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       this.userService.getById(currentUser.id).pipe(takeUntil(this.destroy$)).subscribe({
         next: (user: any) => {
           this.whatsappAgentId = String(user?._id || user?.id || currentUser.id);
+          this.isRootUser = user?.root === true || String(user?.root).toLowerCase() === 'true';
         }
       });
     }
@@ -218,6 +288,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
         this.loadingLists = false;
 
         const listId = this.route.snapshot.queryParamMap.get('listId');
+        this.focusedExecutionId = this.route.snapshot.queryParamMap.get('executionId');
         if (listId) {
           const found = this.lists.find(l => l._id === listId);
           if (found) {
@@ -225,6 +296,8 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
             this.showForm = false;
             this.listUsersPage = 0;
             this.loadListUsers();
+            this.loadCampaignExecutions();
+            this.loadCampaignMetrics();
           }
         }
       },
@@ -254,6 +327,8 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.showForm = false;
     this.listUsersPage = 0;
     this.loadListUsers();
+    this.loadCampaignExecutions();
+    this.loadCampaignMetrics();
 
     this.router.navigate([], {
       relativeTo: this.route,
@@ -344,17 +419,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   }
 
   runPreview() {
-    // Build only non-empty filters
-    const activeFilters: UserListFilters = {};
-    if (this.formFilters.affiliation_type_id) activeFilters.affiliation_type_id = this.formFilters.affiliation_type_id;
-    if (this.formFilters.company_type_id) activeFilters.company_type_id = this.formFilters.company_type_id;
-    if (this.formFilters.profile_type_id) activeFilters.profile_type_id = this.formFilters.profile_type_id;
-    if (this.formFilters.status !== undefined && this.formFilters.status !== null) {
-      activeFilters.status = this.formFilters.status;
-    }
-    if (this.formFilters.exclude_notified) activeFilters.exclude_notified = true;
-    if (this.formFilters.force_empty) activeFilters.force_empty = true;
-    if (this.formFilters.manual_user_ids?.length) activeFilters.manual_user_ids = this.formFilters.manual_user_ids;
+    const activeFilters = this.buildActiveFilters();
 
     const hasFilters = Object.keys(activeFilters).length > 0;
     const hasExternal = this.formExternalContacts.some(c => c.name.trim() !== '');
@@ -385,16 +450,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const activeFilters: UserListFilters = {};
-    if (this.formFilters.affiliation_type_id) activeFilters.affiliation_type_id = this.formFilters.affiliation_type_id;
-    if (this.formFilters.company_type_id) activeFilters.company_type_id = this.formFilters.company_type_id;
-    if (this.formFilters.profile_type_id) activeFilters.profile_type_id = this.formFilters.profile_type_id;
-    if (this.formFilters.status !== undefined && this.formFilters.status !== null) {
-      activeFilters.status = this.formFilters.status;
-    }
-    if (this.formFilters.exclude_notified) activeFilters.exclude_notified = true;
-    if (this.formFilters.force_empty) activeFilters.force_empty = true;
-    if (this.formFilters.manual_user_ids?.length) activeFilters.manual_user_ids = this.formFilters.manual_user_ids;
+    const activeFilters = this.buildActiveFilters();
 
     this.savingForm = true;
     const validExternal = this.formExternalContacts.filter(c => c.name.trim() !== '');
@@ -416,11 +472,67 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
         this.messageService.add({ severity: 'success', summary: 'Éxito', detail: `Lista ${this.isEditing ? 'actualizada' : 'creada'} correctamente` });
         this.loadLists();
       },
-      error: () => {
+      error: (error) => {
         this.savingForm = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar la lista' });
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: error?.error?.message || 'No se pudo guardar la campaña'
+        });
       }
     });
+  }
+
+  private buildActiveFilters(): UserListFilters {
+    const activeFilters: UserListFilters = {};
+    const simpleKeys: Array<keyof UserListFilters> = [
+      'affiliation_type_id',
+      'company_type_id',
+      'profile_type_id',
+      'province',
+      'municipality',
+      'request_status',
+      'conversation_assignment',
+    ];
+    simpleKeys.forEach(key => {
+      const value = this.formFilters[key];
+      if (value !== undefined && value !== null && value !== '') {
+        (activeFilters as any)[key] = value;
+      }
+    });
+    const numberKeys: Array<keyof UserListFilters> = [
+      'satisfaction_min',
+      'satisfaction_max',
+      'active_within_days',
+      'min_device_count',
+      'max_device_count',
+    ];
+    numberKeys.forEach(key => {
+      const value = this.formFilters[key];
+      if (value !== undefined && value !== null && value !== '') {
+        (activeFilters as any)[key] = Number(value);
+      }
+    });
+    const booleanKeys: Array<keyof UserListFilters> = [
+      'status',
+      'autocontact',
+      'has_open_request',
+    ];
+    booleanKeys.forEach(key => {
+      const value = this.formFilters[key];
+      if (value !== undefined && value !== null) {
+        (activeFilters as any)[key] = value;
+      }
+    });
+    if (this.formFilters.exclude_notified) activeFilters.exclude_notified = true;
+    if (this.formFilters.force_empty) activeFilters.force_empty = true;
+    if (this.formFilters.manual_user_ids?.length) {
+      activeFilters.manual_user_ids = this.formFilters.manual_user_ids;
+    }
+    if (this.formFilters.excluded_user_ids?.length) {
+      activeFilters.excluded_user_ids = this.formFilters.excluded_user_ids;
+    }
+    return activeFilters;
   }
 
   cancelForm() {
@@ -436,6 +548,41 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       rejectLabel: 'Cancelar',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => this.deleteList(list),
+    });
+  }
+
+  confirmArchive(list: UserList, event: Event) {
+    event.stopPropagation();
+    this.confirmationService.confirm({
+      message: `¿Archivar la campaña "${list.name}"? Conservará todo su historial y podrás restaurarla posteriormente.`,
+      header: 'Archivar campaña',
+      icon: 'pi pi-box',
+      acceptLabel: 'Archivar',
+      rejectLabel: 'Cancelar',
+      accept: () => this.archiveList(list),
+    });
+  }
+
+  archiveList(list: UserList) {
+    this.interaccionesService.archive(list._id).pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        if (this.selectedList?._id === list._id) {
+          this.selectedList = null;
+          this.showForm = false;
+          this.clearUrlParam();
+        }
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Campaña archivada',
+          detail: `Se conservó el historial de "${list.name}".`
+        });
+        this.loadLists();
+      },
+      error: (error) => this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: error?.error?.message || 'No se pudo archivar la campaña'
+      })
     });
   }
 
@@ -479,8 +626,402 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
     this.whatsappTemplateVars.bodySaludos = this.getDominicanTimeGreeting();
     this.whatsappTemplateVars.name = '[Nombre del usuario]'; // Indicador dinámico
     this.whatsappTemplateVars.body = '';
+    this.vapiQuery = '';
+    this.campaignObjective = '';
+    this.campaignBodyVariantB = '';
+    this.campaignDraftGeneratedByEster = false;
+    this.followUpBody = '';
+    this.scheduleCampaign = false;
+    this.scheduledAt = '';
+    this.automaticFollowUp = false;
+    this.excludeLowSatisfaction = false;
+    this.excludeWaitingConversations = true;
+    this.selectedTemplateId = null;
+    this.audiencePreview = null;
+    this.previewCampaignAudience();
     
     this.showPushModal = true;
+  }
+
+  loadCampaignTemplates() {
+    this.interaccionesService.getCampaignTemplates()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: templates => this.campaignTemplates = templates,
+        error: () => this.campaignTemplates = []
+      });
+  }
+
+  applyCampaignTemplate() {
+    const template = this.campaignTemplates.find(item => item._id === this.selectedTemplateId);
+    if (!template) return;
+    this.pushTitle = template.title || '';
+    this.campaignObjective = template.objective || '';
+    this.followUpBody = template.follow_up_body || '';
+    this.whatsappTemplateVars.body = template.body;
+    this.pushBody = template.body;
+    this.vapiQuery = template.objective || template.body;
+    this.campaignBodyVariantB = '';
+    this.campaignDraftGeneratedByEster = false;
+    if (template.objectives?.length && this.selectedList) {
+      this.selectedList.objectives = template.objectives.map(objective => ({ ...objective }));
+    }
+  }
+
+  previewCampaignAudience() {
+    if (!this.selectedList || this.targetUserId) return;
+    this.loadingAudiencePreview = true;
+    this.interaccionesService
+      .previewCampaignAudience(this.selectedList._id, this.interactionChannel)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: preview => {
+          this.audiencePreview = preview;
+          this.loadingAudiencePreview = false;
+        },
+        error: () => {
+          this.audiencePreview = null;
+          this.loadingAudiencePreview = false;
+        }
+      });
+  }
+
+  loadCampaignExecutions(showLoading = true) {
+    if (!this.selectedList) return;
+    if (showLoading) this.loadingCampaignData = true;
+    this.interaccionesService
+      .getCampaignExecutions(this.selectedList._id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: executions => {
+          this.campaignExecutions = executions;
+          this.loadingCampaignData = false;
+          this.focusCampaignExecution();
+        },
+        error: () => this.loadingCampaignData = false
+      });
+  }
+
+  private focusCampaignExecution(): void {
+    if (!this.focusedExecutionId) return;
+    setTimeout(() => {
+      document
+        .getElementById(`campaign-execution-${this.focusedExecutionId}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+  }
+
+  loadCampaignMetrics() {
+    if (!this.selectedList) return;
+    this.interaccionesService
+      .getCampaignMetrics(this.selectedList._id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: metrics => this.campaignMetrics = metrics,
+        error: () => this.campaignMetrics = null
+      });
+  }
+
+  generateCampaignDraft() {
+    if (!this.selectedList || !this.campaignObjective.trim()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Indica el objetivo',
+        detail: 'Explica brevemente qué quieres lograr con la campaña.'
+      });
+      return;
+    }
+    this.generatingCampaignDraft = true;
+    this.interaccionesService.generateCampaignDraft({
+      objective: this.campaignObjective,
+      channel: this.interactionChannel,
+      audience_description: `${this.selectedList.name}: ${this.selectedList.description || 'audiencia configurada'}`,
+      tone: this.campaignTone
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: draft => {
+        this.pushTitle = draft.title || this.pushTitle;
+        this.whatsappTemplateVars.body = draft.body || this.whatsappTemplateVars.body;
+        this.pushBody = draft.body || this.pushBody;
+        this.vapiQuery = this.campaignObjective || draft.body;
+        this.campaignBodyVariantB = draft.body_variant_b || '';
+        this.followUpBody = draft.follow_up_body || '';
+        this.campaignDraftGeneratedByEster = true;
+        if (Array.isArray(draft.objectives) && this.selectedList) {
+          this.selectedList.objectives = draft.objectives.map((objective: any, index: number) => ({
+            id: `ester-${Date.now()}-${index}`,
+            title: objective.title,
+            description: objective.description
+          }));
+        }
+        this.generatingCampaignDraft = false;
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Borrador preparado',
+          detail: 'Ester preparó el contenido. Revísalo antes de programar el envío.'
+        });
+      },
+      error: error => {
+        this.generatingCampaignDraft = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Ester no pudo preparar el borrador',
+          detail: error?.error?.message || 'Inténtalo nuevamente.'
+        });
+      }
+    });
+  }
+
+  saveCurrentCampaignTemplate() {
+    const name = this.campaignTemplateName.trim();
+    const body = this.getCampaignBody();
+    if (!name || !body.trim()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Plantilla incompleta',
+        detail: 'Indica un nombre y escribe el mensaje antes de guardarla.'
+      });
+      return;
+    }
+    this.savingCampaignTemplate = true;
+    this.interaccionesService.createCampaignTemplate({
+      name,
+      description: this.campaignObjective || `Plantilla para ${this.interactionChannel}`,
+      category: 'Personalizadas',
+      channels: [this.interactionChannel],
+      title: this.pushTitle || undefined,
+      body,
+      objective: this.campaignObjective || undefined,
+      follow_up_body: this.followUpBody || undefined,
+      objectives: this.selectedList?.objectives || []
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: template => {
+        this.savingCampaignTemplate = false;
+        this.campaignTemplates = [...this.campaignTemplates, template];
+        this.selectedTemplateId = template._id;
+        this.campaignTemplateName = '';
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Plantilla guardada',
+          detail: 'Ya puedes reutilizarla en futuras campañas.'
+        });
+      },
+      error: error => {
+        this.savingCampaignTemplate = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo guardar',
+          detail: error?.error?.message || 'Inténtalo nuevamente.'
+        });
+      }
+    });
+  }
+
+  openExecutionDetails(execution: CampaignExecution) {
+    this.showExecutionDetails = true;
+    this.loadingExecutionDetails = true;
+    this.selectedExecutionDetails = execution;
+    this.interaccionesService.getCampaignExecution(execution._id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: details => {
+          this.selectedExecutionDetails = details;
+          this.loadingExecutionDetails = false;
+        },
+        error: () => {
+          this.loadingExecutionDetails = false;
+          this.messageService.add({
+            severity: 'error',
+            summary: 'No se pudo cargar el detalle',
+            detail: 'Actualiza la ejecución e inténtalo nuevamente.'
+          });
+        }
+      });
+  }
+
+  openExecutionConversation(recipient: any) {
+    if (!recipient?.conversation_id) return;
+    this.router.navigate([
+      '/admin/communication/chat',
+      recipient.conversation_id
+    ]);
+  }
+
+  recipientStatusLabel(value: string): string {
+    return ({
+      pending: 'Pendiente',
+      sending: 'Enviando',
+      sent: 'Enviado',
+      failed: 'Error',
+      skipped: 'Protegido',
+      cancelled: 'Cancelado'
+    } as Record<string, string>)[value] || value;
+  }
+
+  recipientOutcomeLabel(value: string): string {
+    return ({
+      pending: 'Sin respuesta',
+      no_response: 'Sin respuesta',
+      positive: 'Positivo',
+      negative: 'Negativo',
+      interested: 'Interesado',
+      not_interested: 'No interesado',
+      information_requested: 'Pidió información',
+      follow_up: 'En seguimiento',
+      request_created: 'Solicitud creada',
+      escalated: 'Escalado'
+    } as Record<string, string>)[value] || value;
+  }
+
+  private queueCampaignExecution() {
+    if (!this.selectedList) return;
+    const body = this.getCampaignBody();
+    if (!body.trim()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Mensaje requerido',
+        detail: 'Escribe el contenido de la campaña.'
+      });
+      return;
+    }
+    if (this.scheduleCampaign && !this.scheduledAt) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Fecha requerida',
+        detail: 'Selecciona la fecha y hora del envío.'
+      });
+      return;
+    }
+    this.sendingPush = true;
+    this.interaccionesService.createCampaignExecution({
+      list_id: this.selectedList._id,
+      channel: this.interactionChannel,
+      title: this.pushTitle || this.selectedList.name,
+      body,
+      body_variant_b: this.campaignBodyVariantB || undefined,
+      template_name: 'simple',
+      sender_name: this.whatsappTemplateVars.headerUser || 'Soporte',
+      objective: this.campaignObjective || (this.interactionChannel === 'vapi' ? this.vapiQuery : ''),
+      objectives: this.selectedList.objectives || [],
+      generated_by_ester: this.campaignDraftGeneratedByEster,
+      assign_to_ester: this.assignToEster,
+      exclude_low_satisfaction: this.excludeLowSatisfaction,
+      exclude_waiting_conversations: this.excludeWaitingConversations,
+      automatic_follow_up: this.automaticFollowUp,
+      follow_up_after_hours: this.followUpAfterHours,
+      follow_up_body: this.followUpBody || undefined,
+      scheduled_at: this.scheduleCampaign && this.scheduledAt
+        ? new Date(this.scheduledAt).toISOString()
+        : undefined,
+      allowed_start_hour: this.allowedStartHour,
+      allowed_end_hour: this.allowedEndHour,
+      timezone: 'America/Santo_Domingo',
+      delay_ms: this.interactionChannel === 'vapi' ? 30000 : 500
+    }).pipe(takeUntil(this.destroy$)).subscribe({
+      next: execution => {
+        this.sendingPush = false;
+        this.showPushModal = false;
+        this.loadCampaignExecutions();
+        this.loadCampaignMetrics();
+        this.messageService.add({
+          severity: 'success',
+          summary: execution.status === 'scheduled' ? 'Campaña programada' : 'Campaña en cola',
+          detail: 'El backend continuará el proceso aunque cierres esta pantalla.',
+          life: 6000
+        });
+      },
+      error: error => {
+        this.sendingPush = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo iniciar la campaña',
+          detail: error?.error?.message || 'Revisa la audiencia y vuelve a intentarlo.'
+        });
+      }
+    });
+  }
+
+  getCampaignBody(): string {
+    if (this.interactionChannel === 'whatsapp') return this.whatsappTemplateVars.body;
+    if (this.interactionChannel === 'vapi') return this.vapiQuery;
+    return this.pushBody;
+  }
+
+  pauseExecution(execution: CampaignExecution) {
+    this.interaccionesService.pauseCampaignExecution(execution._id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadCampaignExecutions(false));
+  }
+
+  resumeExecution(execution: CampaignExecution) {
+    this.interaccionesService.resumeCampaignExecution(execution._id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadCampaignExecutions(false));
+  }
+
+  cancelExecution(execution: CampaignExecution) {
+    this.confirmationService.confirm({
+      message: 'Se cancelarán únicamente los destinatarios que todavía no se hayan procesado.',
+      header: 'Cancelar ejecución',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Cancelar ejecución',
+      rejectLabel: 'Volver',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => this.interaccionesService.cancelCampaignExecution(execution._id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(() => this.loadCampaignExecutions(false))
+    });
+  }
+
+  retryExecution(execution: CampaignExecution) {
+    this.interaccionesService.retryCampaignExecution(execution._id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => this.loadCampaignExecutions(false));
+  }
+
+  followUpExecution(execution: CampaignExecution) {
+    if (!execution.follow_up_body) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Sin mensaje de seguimiento',
+        detail: 'Configura un mensaje de seguimiento en la próxima ejecución.'
+      });
+      return;
+    }
+    this.interaccionesService.createCampaignFollowUp(execution._id, execution.follow_up_body)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.loadCampaignExecutions();
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Seguimiento creado',
+            detail: 'Sólo se incluyeron clientes que todavía no tienen un resultado final.'
+          });
+        },
+        error: error => this.messageService.add({
+          severity: 'warn',
+          summary: 'No se creó el seguimiento',
+          detail: error?.error?.message || 'No hay destinatarios pendientes.'
+        })
+      });
+  }
+
+  executionProgress(execution: CampaignExecution): number {
+    const total = execution.totals?.total || 0;
+    if (!total) return 0;
+    return Math.round(((total - (execution.totals.pending || 0)) / total) * 100);
+  }
+
+  executionStatusLabel(status: string): string {
+    return ({
+      scheduled: 'Programada',
+      queued: 'En cola',
+      running: 'En proceso',
+      paused: 'Pausada',
+      completed: 'Completada',
+      cancelled: 'Cancelada',
+      failed: 'Con errores'
+    } as any)[status] || status;
   }
 
   showChecklistModal = false;
@@ -520,7 +1061,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
   targetUserPhone: string | null = null;
   targetUserIsExternal: boolean = false;
   targetUserAutocontact: boolean | null = null;
-  interactionChannel: 'push' | 'whatsapp' | 'vapi' = 'push';
+  interactionChannel: CampaignChannel = 'push';
 
   // WhatsApp Variables Mad-Libs style
   whatsappTemplateVars = { headerUser: '', bodySaludos: '', name: '', body: '' };
@@ -679,17 +1220,23 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
         this.messageService.add({ severity: 'warn', summary: 'Atención', detail: 'El motivo de la llamada es requerido' });
         return;
       }
-    } else {
+    } else if (this.interactionChannel === 'push') {
       if (!this.selectedList || !this.pushTitle.trim() || !this.pushBody.trim()) {
         this.messageService.add({ severity: 'warn', summary: 'Atención', detail: 'Título y mensaje son requeridos' });
         return;
       }
+    } else if (!this.pushBody.trim()) {
+      this.messageService.add({ severity: 'warn', summary: 'Atención', detail: 'El mensaje SMS es requerido' });
+      return;
     }
 
     if (this.targetUserId) {
       this.sendPersonalPush();
       return;
     }
+
+    this.queueCampaignExecution();
+    return;
 
     this.sendingPush = true;
     this.pushSentCount = 0;
@@ -741,7 +1288,8 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
                   this.whatsappTemplateVars.name === '[Nombre del usuario]' ? this.toTitleCase(this.getUserFullName(user)) : this.whatsappTemplateVars.name, 
                   this.whatsappTemplateVars.body
                 ],
-                agent_id: this.assignToEster ? '0' : (this.whatsappAgentId ? this.whatsappAgentId : undefined)
+                agent_id: this.assignToEster ? undefined : (this.whatsappAgentId ? this.whatsappAgentId : undefined),
+                clear_assignment: this.assignToEster
               }).toPromise();
               console.log(`[WA-CAMPAIGN] Respuesta para "${phone}":`, JSON.stringify(res));
               if (res && res.success === false) {
@@ -883,7 +1431,8 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           this.whatsappTemplateVars.name,
           this.whatsappTemplateVars.body
         ],
-        agent_id: this.assignToEster ? '0' : (this.whatsappAgentId ? this.whatsappAgentId : undefined)
+        agent_id: this.assignToEster ? undefined : (this.whatsappAgentId ? this.whatsappAgentId : undefined),
+        clear_assignment: this.assignToEster
       }).toPromise();
       if (res && res.success === false) {
          console.error('Meta API Error:', res.error);

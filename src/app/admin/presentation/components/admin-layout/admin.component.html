@@ -60,3 +60,55 @@
         </button>
     </div>
 </p-dialog>
+
+<p-dialog
+    header="Zumbido de recordatorio"
+    [(visible)]="showConversationReminderModal"
+    [modal]="true"
+    [style]="{width: 'min(520px, calc(100vw - 28px))'}"
+    [closable]="true"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="closeConversationReminder()"
+    styleClass="conversation-reminder-dialog">
+    <div *ngIf="conversationReminder" class="conversation-reminder">
+        <div class="conversation-reminder__hero">
+            <div class="conversation-reminder__icon">
+                <i class="pi pi-bell"></i>
+            </div>
+            <div>
+                <div class="conversation-reminder__eyebrow">
+                    {{ conversationReminder.senderName }} te envió un recordatorio
+                </div>
+                <h3>{{ conversationReminder.contactName }} espera una respuesta</h3>
+                <p>Estos son los últimos mensajes de la conversación.</p>
+            </div>
+        </div>
+
+        <div class="conversation-reminder__messages">
+            <div
+                *ngFor="let message of conversationReminder.messages"
+                class="conversation-reminder__message"
+                [class.conversation-reminder__message--customer]="message.from === 'customer'">
+                <div class="conversation-reminder__message-meta">
+                    <span>{{ message.from === 'customer' ? conversationReminder.contactName : 'Empleado' }}</span>
+                    <time *ngIf="message.time">{{ formatReminderTime(message.time) }}</time>
+                </div>
+                <div>{{ message.text }}</div>
+            </div>
+            <div
+                *ngIf="!conversationReminder.messages.length"
+                class="conversation-reminder__empty">
+                No se pudo cargar la vista previa, pero la conversación sigue esperando.
+            </div>
+        </div>
+
+        <button
+            type="button"
+            class="conversation-reminder__action"
+            (click)="openReminderConversation()">
+            <i class="pi pi-comments"></i>
+            <span>Entrar a la conversación</span>
+        </button>
+    </div>
+</p-dialog>

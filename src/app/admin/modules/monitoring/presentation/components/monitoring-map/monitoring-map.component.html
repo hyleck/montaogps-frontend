@@ -1,0 +1,92 @@
+<section class="monitoring-map-shell">
+  <div #mapElement class="monitoring-map-canvas"></div>
+
+  <div class="monitoring-map-panel">
+    <div class="monitoring-map-panel__title">
+      <i class="pi pi-map"></i>
+      <span>GPS en el mapa</span>
+    </div>
+
+    <div class="monitoring-map-stats">
+      <span><b>{{ stats.mapped }}</b> ubicados</span>
+      <span *ngIf="stats.withoutLocation > 0">
+        <b>{{ stats.withoutLocation }}</b> sin coordenadas
+      </span>
+    </div>
+
+    <div class="monitoring-map-location-filters">
+      <label for="monitoring-map-province">Provincia</label>
+      <select
+        id="monitoring-map-province"
+        [ngModel]="selectedProvince"
+        (ngModelChange)="onProvinceChange($event)"
+        [disabled]="loadingLocationFilters"
+      >
+        <option value="">Todas las provincias</option>
+        <option *ngFor="let province of provinces" [value]="province.code">
+          {{ province.name }}
+        </option>
+      </select>
+
+      <label for="monitoring-map-municipality">Municipio</label>
+      <select
+        id="monitoring-map-municipality"
+        [ngModel]="selectedMunicipality"
+        (ngModelChange)="onMunicipalityChange($event)"
+        [disabled]="
+          !selectedProvince ||
+          loadingLocationFilters ||
+          loadingMunicipalities
+        "
+      >
+        <option value="">
+          {{
+            loadingMunicipalities
+              ? 'Cargando municipios...'
+              : 'Todos los municipios'
+          }}
+        </option>
+        <option
+          *ngFor="let municipality of municipalities"
+          [value]="municipality.code"
+        >
+          {{ municipality.name }}
+        </option>
+      </select>
+
+      <button
+        *ngIf="selectedProvince || selectedMunicipality"
+        type="button"
+        class="monitoring-map-clear-filter"
+        (click)="clearLocationFilters()"
+      >
+        <i class="pi pi-times"></i>
+        Limpiar ubicación
+      </button>
+
+      <small *ngIf="loadingLocationFilters" class="location-filter-status">
+        <i class="pi pi-spin pi-spinner"></i>
+        Preparando provincias y municipios...
+      </small>
+      <small *ngIf="locationFilterError" class="location-filter-error">
+        {{ locationFilterError }}
+      </small>
+    </div>
+
+    <div class="monitoring-map-legend" aria-label="Leyenda del mapa">
+      <span><i class="legend-dot online"></i>En línea</span>
+      <span><i class="legend-dot localizado"></i>Localizado</span>
+      <span><i class="legend-dot offline"></i>Fuera de línea</span>
+      <span><i class="legend-dot expired"></i>Expirado</span>
+    </div>
+  </div>
+
+  <div
+    *ngIf="stats.total > 0 && stats.mapped === 0"
+    class="monitoring-map-empty"
+  >
+    <i class="pi pi-map-marker"></i>
+    <strong>No hay coordenadas disponibles</strong>
+    <span>Los GPS filtrados no tienen una última ubicación válida.</span>
+  </div>
+</section>

@@ -15,6 +15,32 @@
 
     </div>
     <div class="header-actions">
+      <div *ngIf="monitoringResult" class="visualization-control">
+        <label for="monitoring-visualization">Visualización</label>
+        <p-dropdown
+          inputId="monitoring-visualization"
+          [options]="visualizationOptions"
+          [(ngModel)]="visualizationMode"
+          optionLabel="label"
+          optionValue="value"
+          (ngModelChange)="onVisualizationChange($event)"
+          appendTo="body"
+          styleClass="visualization-dropdown"
+        >
+          <ng-template pTemplate="selectedItem" let-option>
+            <span class="visualization-option" *ngIf="option">
+              <i [class]="option.icon"></i>
+              {{ option.label }}
+            </span>
+          </ng-template>
+          <ng-template pTemplate="item" let-option>
+            <span class="visualization-option">
+              <i [class]="option.icon"></i>
+              {{ option.label }}
+            </span>
+          </ng-template>
+        </p-dropdown>
+      </div>
       <p-button *ngIf="!monitoringResult" label="Nuevo monitoreo" icon="pi pi-plus" (onClick)="openUserSearchModal()"
         styleClass="p-button-primary">
       </p-button>
@@ -616,6 +642,11 @@
         </div>
       </div>
 
+      <app-monitoring-map
+        *ngIf="visualizationMode === 'map' && monitoringData.length > 0"
+        [data]="monitoringData"
+      ></app-monitoring-map>
+
       <!-- No users with devices message -->
       <div *ngIf="monitoringData.length === 0" class="no-data-container">
         <p-card header="No Devices Found">
@@ -624,8 +655,9 @@
       </div>
 
       <!-- Users with devices -->
-      <div *ngFor="let userData of monitoringData; let i = index; trackBy: trackByUser" class="monitoring-block"
-        [class.monitoring-block--no-assistance]="hasNoAssistance(userData)">
+      <ng-container *ngIf="visualizationMode === 'list'">
+        <div *ngFor="let userData of monitoringData; let i = index; trackBy: trackByUser" class="monitoring-block"
+          [class.monitoring-block--no-assistance]="hasNoAssistance(userData)">
         <!-- User Path as Breadcrumbs -->
         <div *ngIf="userData.route && userData.route.length > 0" class="user-breadcrumbs">
           <div class="breadcrumb-container">
@@ -715,7 +747,8 @@
             </ng-template>
           </p-table>
         </div>
-      </div>
+        </div>
+      </ng-container>
     </ng-container>
   </div>
 

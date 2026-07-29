@@ -24,6 +24,11 @@ import * as ExcelJS from 'exceljs';
   standalone: false
 })
 export class MonitoringComponent implements OnInit, OnDestroy {
+  visualizationMode: 'list' | 'map' = 'list';
+  readonly visualizationOptions = [
+    { label: 'Listado', value: 'list', icon: 'pi pi-list' },
+    { label: 'Mapa', value: 'map', icon: 'pi pi-map' }
+  ];
   userEmail: string = '';
   userId: string = '';
   monitoringType: 'device-status' | 'mileage' = 'device-status';
@@ -767,6 +772,10 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopStatusPolling();
+  }
+
+  onVisualizationChange(mode: 'list' | 'map'): void {
+    this.visualizationMode = mode;
   }
 
   searchUserByEmail(): void {
@@ -2458,6 +2467,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
     this.monitoringService.getMonitoringReport(reportId).subscribe({
       next: (report) => {
+        this.visualizationMode = 'list';
         this.monitoringResult = report;
         if (report?.monitoringType) {
           this.monitoringType = report.monitoringType;
@@ -2485,6 +2495,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   backToReports(): void {
+    this.visualizationMode = 'list';
     this.monitoringResult = null;
     this.error = '';
     console.log('Back to reports list');

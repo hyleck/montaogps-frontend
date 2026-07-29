@@ -40,6 +40,20 @@ export interface PublicRegistrationNotification {
   failed?: string;
 }
 
+export interface ConversationReminderMessage {
+  from: 'customer' | 'employee';
+  text: string;
+  time: number;
+}
+
+export interface ConversationReminderNotification {
+  conversationId: string;
+  contactName: string;
+  senderName: string;
+  targetAgentId: string;
+  messages: ConversationReminderMessage[];
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -53,6 +67,8 @@ export class FirebaseNotificationsService {
     summary?: string;
     targetAgentId?: string;
   }>();
+  public conversationReminderReceived$ =
+    new Subject<ConversationReminderNotification>();
   public publicRegistrationCompleted$ = new Subject<PublicRegistrationNotification>();
 
   constructor(
@@ -146,22 +162,9 @@ export class FirebaseNotificationsService {
     payload: MessagePayload
   ): Promise<void> {
     try {
-      if (typeof window === 'undefined' || typeof Notification === 'undefined') {
+      if (typeof window === 'undefined') {
         return;
       }
-
-      if (Notification.permission !== 'granted') {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-          return;
-        }
-      }
-
-      const registration =
-        (await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')) ??
-        (await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-          scope: '/',
-        }));
 
       const title =
         payload.data?.['title'] ||
@@ -179,11 +182,40 @@ export class FirebaseNotificationsService {
       ).trim();
 
       if (
-        notificationType === 'chat_transfer'
+        ['chat_transfer', 'conversation_reminder_buzz'].includes(notificationType)
         && (!targetAgentId || !this.isNotificationForCurrentUser(targetAgentId))
       ) {
         return;
       }
+
+      if (notificationType === 'conversation_reminder_buzz') {
+        this.conversationReminderReceived$.next({
+          conversationId: String(payload.data?.['conversationId'] || ''),
+          contactName: String(payload.data?.['contactName'] || 'Cliente'),
+          senderName: String(payload.data?.['senderName'] || 'Otro empleado'),
+          targetAgentId,
+          messages: this.parseConversationReminderMessages(
+            payload.data?.['messages'],
+          ),
+        });
+      }
+
+      if (typeof Notification === 'undefined') {
+        return;
+      }
+
+      if (Notification.permission !== 'granted') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          return;
+        }
+      }
+
+      const registration =
+        (await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js')) ??
+        (await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+          scope: '/',
+        }));
 
       if (registration) {
         await registration.showNotification(title, {
@@ -236,6 +268,23 @@ export class FirebaseNotificationsService {
 
     } catch (error) {
       console.error('Error mostrando notificación en primer plano', error);
+    }
+  }
+
+  private parseConversationReminderMessages(
+    rawMessages?: string,
+  ): ConversationReminderMessage[] {
+    try {
+      const messages = JSON.parse(String(rawMessages || '[]'));
+      if (!Array.isArray(messages)) return [];
+
+      return messages.slice(-3).map((message: any) => ({
+        from: message?.from === 'employee' ? 'employee' : 'customer',
+        text: String(message?.text || 'Mensaje'),
+        time: Number(message?.time || 0),
+      }));
+    } catch {
+      return [];
     }
   }
 

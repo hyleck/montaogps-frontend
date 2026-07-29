@@ -359,6 +359,10 @@ export class CommunicationNotificationService implements OnDestroy {
     return next;
   }
 
+  playReminderBuzz(): void {
+    this.playNotificationSound();
+  }
+
   private emitTotalPendingCount(): void {
     this.pendingCountSubject.next(this.whatsappPendingCount + this.internalPendingCount);
   }

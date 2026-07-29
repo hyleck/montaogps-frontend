@@ -7,11 +7,15 @@ import { MonitorIaComponent } from './components/monitor-ia/monitor-ia.component
 import { MonitorIaSegmentationComponent } from './components/monitor-ia-segmentation/monitor-ia-segmentation.component';
 import { MonitorIaFunnelComponent } from './components/monitor-ia-funnel/monitor-ia-funnel.component';
 
-import { TableModule } from 'primeng/table';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { ButtonModule } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
-import { BadgeModule } from 'primeng/badge';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { PaginatorModule } from 'primeng/paginator';
+import { InputTextModule } from 'primeng/inputtext';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { TooltipModule } from 'primeng/tooltip';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 @NgModule({
   declarations: [
@@ -22,12 +26,16 @@ import { BadgeModule } from 'primeng/badge';
   imports: [
     CommonModule,
     MonitorIaRoutingModule,
-    TableModule,
     ProgressBarModule,
     ButtonModule,
     ToastModule,
-    BadgeModule,
-    FormsModule
-  ]
+    ConfirmDialogModule,
+    PaginatorModule,
+    InputTextModule,
+    ProgressSpinnerModule,
+    TooltipModule,
+    FormsModule,
+  ],
+  providers: [ConfirmationService, MessageService],
 })
 export class MonitorIaModule { }
