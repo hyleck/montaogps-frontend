@@ -26,11 +26,13 @@ interface ChatConversation {
   id: number;
   status: string;
   contact: {
-    id: number;
+    id: number | string;
     name: string;
     phone: string;
     email: string;
     avatar: string;
+    user_id?: string | null;
+    satisfaction_level?: number | null;
   };
   last_message: string;
   last_message_time: number | null;
@@ -217,6 +219,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   messages: ChatMessage[] = [];
   chatInput: string = '';
   sendingMessage: boolean = false;
+  sendingEsterReply: boolean = false;
   replyingTo: ChatMessage | null = null;
   readonly messageReactionOptions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
   reactionPickerMessageId: number | null = null;
@@ -1505,6 +1508,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.hasOlderMessages = true;
     this.lastApiMessageId = null;
     this.chatInput = '';
+    this.sendingEsterReply = false;
     this.replyingTo = null;
     this.reactionPickerMessageId = null;
     this.showContactInfo = false;
@@ -1586,6 +1590,30 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
 
     return this.userTargets?.length || 0;
+  }
+
+  hasCustomerSatisfaction(): boolean {
+    return Boolean(
+      this.gpsUser?._id
+      || this.selectedConversation?.contact?.user_id,
+    );
+  }
+
+  getCustomerSatisfactionLevel(): number {
+    const suppliedLevel =
+      this.selectedConversation?.contact?.satisfaction_level
+      ?? this.gpsUser?.customer_satisfaction_level
+      ?? 10;
+    const numericLevel = Number(suppliedLevel);
+    if (!Number.isFinite(numericLevel)) return 10;
+    return Math.min(10, Math.max(0, Math.round(numericLevel)));
+  }
+
+  getCustomerSatisfactionClass(): string {
+    const level = this.getCustomerSatisfactionLevel();
+    if (level >= 8) return 'comm-customer-satisfaction--high';
+    if (level >= 5) return 'comm-customer-satisfaction--medium';
+    return 'comm-customer-satisfaction--low';
   }
 
   openGpsDetailsModal(event?: Event): void {
@@ -2346,7 +2374,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   private getConversationsFingerprint(convs: ChatConversation[]): string {
-    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.unread_count}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}`).join('|');
+    return convs.map(c => `${c.id}:${c.last_message}:${c.last_message_time}:${c.unread_count}:${c.assignee_id || ''}:${c.assignee_name || ''}:${c.assignee_online ? 1 : 0}:${c.assignee_typing ? 1 : 0}:${c.contact.satisfaction_level ?? ''}`).join('|');
   }
 
   private stopConversationsPolling(): void {
@@ -2833,6 +2861,58 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.startChatPolling();
       }
     });
+  }
+
+  canAskEsterToReply(): boolean {
+    const conversation = this.selectedConversation;
+    const latestMessage = this.messages[this.messages.length - 1];
+    return !!(
+      conversation
+      && this.isConversationAssignedToMe(conversation)
+      && !this.isOutside24hWindow(conversation)
+      && latestMessage?.from === 'incoming'
+      && latestMessage.id
+    );
+  }
+
+  askEsterToReply(): void {
+    if (!this.canAskEsterToReply() || this.sendingEsterReply) return;
+
+    const conversationId = this.selectedConversation!.id;
+    this.sendingEsterReply = true;
+    this.whatsappApi
+      .sendEmployeeEsterReply(conversationId)
+      .pipe(timeout(210000))
+      .subscribe({
+        next: response => {
+          this.sendingEsterReply = false;
+          if (this.selectedConversation?.id !== conversationId) return;
+
+          if (response?.success) {
+            this.chatInput = '';
+            this.stopConversationTyping();
+            this.replyingTo = null;
+            this.loadMessages();
+            return;
+          }
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Ester no pudo responder',
+            detail:
+              response?.error
+              || 'Intenta nuevamente en unos segundos.',
+          });
+        },
+        error: () => {
+          this.sendingEsterReply = false;
+          if (this.selectedConversation?.id !== conversationId) return;
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Ester no pudo responder',
+            detail: 'Intenta nuevamente en unos segundos.',
+          });
+        },
+      });
   }
 
   onMessagesScroll(event: Event): void {

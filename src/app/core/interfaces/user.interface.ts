@@ -84,6 +84,19 @@ export interface User {
     document_type?: string;
     title?: string;
   };
+  customer_satisfaction_level?: number;
+  customer_satisfaction_updated_at?: string | Date;
+  customer_satisfaction_history?: Array<{
+    message_id: number;
+    conversation_id: number;
+    sentiment: 'positive' | 'negative';
+    delta: number;
+    previous_level: number;
+    new_level: number;
+    reason?: string;
+    message_excerpt?: string;
+    created_at?: string | Date;
+  }>;
   idSessions?: Array<{ date: string; device: string }>;
   interaction_progress?: { listId: string; completed_objectives: string[] }[];
 }

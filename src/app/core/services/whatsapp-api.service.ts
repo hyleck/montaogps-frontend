@@ -3,6 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
+export interface EmployeeEsterReplyResponse {
+    success: boolean;
+    enabled: boolean;
+    message?: string;
+    error?: string;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -73,6 +80,17 @@ export class WhatsAppApiService {
         return this.http.get(`${this.apiUrl}/conversation-messages`, {
             params
         });
+    }
+
+    sendEmployeeEsterReply(
+        conversationId: number,
+    ): Observable<EmployeeEsterReplyResponse> {
+        return this.http.post<EmployeeEsterReplyResponse>(
+            `${this.apiUrl}/conversation-ester-reply`,
+            {
+                conversation_id: conversationId,
+            },
+        );
     }
 
     updateConversationPresence(

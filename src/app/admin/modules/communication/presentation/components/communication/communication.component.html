@@ -139,6 +139,14 @@
                             <i class="pi pi-external-link"></i>
                             <span>Ir a cuenta</span>
                         </button>
+                        <span
+                            *ngIf="hasCustomerSatisfaction()"
+                            class="comm-customer-satisfaction"
+                            [ngClass]="getCustomerSatisfactionClass()"
+                            [title]="'Nivel de satisfacción del cliente: ' + getCustomerSatisfactionLevel() + ' de 10'">
+                            <i class="pi pi-heart"></i>
+                            Satisfacción {{ getCustomerSatisfactionLevel() }}/10
+                        </span>
                     </div>
                     <div *ngIf="gpsUser" class="comm-chat__header-subtext">
                         <i class="pi pi-map"></i>
@@ -407,6 +415,21 @@
                 <span class="comm-typing-indicator__dots" aria-hidden="true">
                     <i></i><i></i><i></i>
                 </span>
+            </div>
+
+            <div *ngIf="canAskEsterToReply()"
+                class="comm-ester-reply-action">
+                <button type="button"
+                    class="comm-ester-reply-button"
+                    [disabled]="sendingEsterReply || sendingMessage"
+                    (click)="askEsterToReply()">
+                    <i [class]="sendingEsterReply
+                        ? 'pi pi-spin pi-spinner'
+                        : 'pi pi-bolt'"></i>
+                    {{ sendingEsterReply
+                        ? 'Ester está respondiendo…'
+                        : 'Dejar que le responda Ester' }}
+                </button>
             </div>
 
             <!-- Input (Only shown if assigned AND inside 24h window) -->
