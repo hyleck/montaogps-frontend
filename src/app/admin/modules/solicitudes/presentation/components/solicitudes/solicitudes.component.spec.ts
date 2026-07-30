@@ -118,6 +118,114 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(savedSolicitud.installations?.[1]?.scheduled_date).toBe('2026-07-28T17:10');
     });
 
+    it('marks an active request as overdue after its scheduled local date and time', () => {
+        const { component } = createComponent();
+        const solicitud: Solicitud = {
+            type: 'instalacion',
+            status: 'pendiente',
+            scheduled_date: '2026-07-30T10:00',
+        };
+
+        expect(component.isSolicitudOverdue(
+            solicitud,
+            new Date(2026, 6, 30, 10, 1),
+        )).toBeTrue();
+    });
+
+    it('does not mark a request as overdue before its scheduled time', () => {
+        const { component } = createComponent();
+        const solicitud: Solicitud = {
+            type: 'instalacion',
+            status: 'en_progreso',
+            scheduled_date: '2026-07-30T10:00',
+        };
+
+        expect(component.isSolicitudOverdue(
+            solicitud,
+            new Date(2026, 6, 30, 9, 59),
+        )).toBeFalse();
+    });
+
+    it('uses the first installation date when the request has no root scheduled date', () => {
+        const { component } = createComponent();
+        const solicitud: Solicitud = {
+            type: 'instalacion',
+            status: 'pendiente',
+            installations: [{ scheduled_date: '2026-07-29T16:00' }],
+        };
+
+        expect(component.isSolicitudOverdue(
+            solicitud,
+            new Date(2026, 6, 30, 8, 0),
+        )).toBeTrue();
+    });
+
+    it('never marks requests awaiting confirmation, completed or cancelled as overdue', () => {
+        const { component } = createComponent();
+        const now = new Date(2026, 6, 30, 8, 0);
+        const awaitingConfirmation: Solicitud = {
+            type: 'instalacion',
+            status: 'por_confirmar',
+            scheduled_date: '2026-07-29T16:00',
+        };
+        const completed: Solicitud = {
+            type: 'instalacion',
+            status: 'completada',
+            scheduled_date: '2026-07-29T16:00',
+        };
+        const cancelled: Solicitud = {
+            type: 'instalacion',
+            status: 'cancelada',
+            scheduled_date: '2026-07-29T16:00',
+        };
+
+        expect(component.isSolicitudOverdue(awaitingConfirmation, now)).toBeFalse();
+        expect(component.isSolicitudOverdue(completed, now)).toBeFalse();
+        expect(component.isSolicitudOverdue(cancelled, now)).toBeFalse();
+    });
+
+    it('shows the finalization date and time for requests awaiting confirmation', () => {
+        const { component } = createComponent();
+        const finalizedAt = new Date(2026, 6, 30, 15, 40);
+        const solicitud: Solicitud = {
+            type: 'instalacion',
+            status: 'por_confirmar',
+            completed_date: finalizedAt.toISOString(),
+        };
+
+        expect(component.getSolicitudFinalizedDateDisplay(solicitud))
+            .toBe('30/07/2026 a las 3:40 p. m.');
+    });
+
+    it('uses updatedAt as the finalization date for legacy requests', () => {
+        const { component } = createComponent();
+        const finalizedAt = new Date(2026, 6, 30, 9, 10);
+        const solicitud: Solicitud = {
+            type: 'instalacion',
+            status: 'por_confirmar',
+            updatedAt: finalizedAt.toISOString(),
+        };
+
+        expect(component.getSolicitudFinalizedDateDisplay(solicitud))
+            .toBe('30/07/2026 a las 9:10 a. m.');
+    });
+
+    it('shows the scheduled time in twelve-hour format on request cards', () => {
+        const { component } = createComponent();
+
+        expect(component.getScheduledDateDisplay({
+            type: 'instalacion',
+            status: 'pendiente',
+            scheduled_date: '2026-07-30T15:40',
+        })).toContain('3:40 p. m.');
+
+        expect(component.getScheduledDateDisplay({
+            type: 'instalacion',
+            status: 'pendiente',
+            scheduled_date: '2026-07-30T00:10',
+        })).toContain('12:10 a. m.');
+    });
+
     it('keeps a shortened Google Maps link even when it does not expose coordinates', () => {
         const { component } = createComponent();
         component.selectedSolicitud = {
@@ -590,14 +698,14 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(solicitudesService.create).not.toHaveBeenCalled();
     });
 
-    it('exports only finalized requests that match the active filters', () => {
+    it('exports matching requests from every status', () => {
         const { component } = createComponent();
         component.topFilterTechnician = 'tech-1';
         component.topFilterType = 'instalacion';
         component.topFilterDateFrom = '2026-07-10';
         component.topFilterDateTo = '2026-07-20';
 
-        const filtered = (component as any).filterFinalizedSolicitudes([
+        const filtered = (component as any).filterSolicitudesForExport([
             {
                 _id: 'completed-match',
                 type: 'instalacion',
@@ -640,6 +748,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(filtered.map((solicitud: Solicitud) => solicitud._id)).toEqual([
             'cancelled-match',
             'completed-match',
+            'still-open',
         ]);
     });
 });

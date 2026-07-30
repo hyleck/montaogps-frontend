@@ -52,7 +52,7 @@ type HealthLevel = 'critical' | 'warning' | 'stable' | 'good' | 'excellent';
   styleUrls: ['./metrics.component.css']
 })
 export class MetricsComponent implements OnInit {
-  private readonly metricsCacheVersion = 1;
+  private readonly metricsCacheVersion = 2;
   private readonly metricsCacheFreshMs = 5 * 60 * 1000;
   private readonly metricsCacheMaxAgeMs = 30 * 60 * 1000;
 
@@ -64,15 +64,19 @@ export class MetricsComponent implements OnInit {
     total: 0,
     verified: 0,
     pending: 0,
+    noAssistance: 0,
     verifiedPercent: 0,
     pendingPercent: 0,
+    noAssistancePercent: 0,
   };
   vehicleVerification: VehicleVerificationMetrics = {
     total: 0,
     verified: 0,
     pending: 0,
+    noDocuments: 0,
     verifiedPercent: 0,
     pendingPercent: 0,
+    noDocumentsPercent: 0,
   };
   vehicleDataCompleteness: VehicleDataCompletenessMetrics = {
     total: 0,
@@ -305,14 +309,14 @@ export class MetricsComponent implements OnInit {
       {
         label: 'Clientes verificados',
         value: `${this.clientVerification.verified}/${this.clientVerification.total}`,
-        detail: `${this.clientVerification.pending} pendientes por verificar`,
+        detail: `${this.clientVerification.pending} pendientes · ${this.clientVerification.noAssistance} sin asistencia`,
         icon: 'pi pi-verified',
         tone: 'green',
       },
       {
         label: 'Vehículos verificados',
         value: `${this.vehicleVerification.verified}/${this.vehicleVerification.total}`,
-        detail: `${this.vehicleVerification.pending} vehículos sin verificar`,
+        detail: `${this.vehicleVerification.pending} sin verificar · ${this.vehicleVerification.noDocuments} sin documentos`,
         icon: 'pi pi-car',
         tone: 'blue',
       },
@@ -340,8 +344,10 @@ export class MetricsComponent implements OnInit {
       total: 0,
       verified: 0,
       pending: 0,
+      noAssistance: 0,
       verifiedPercent: 0,
       pendingPercent: 0,
+      noAssistancePercent: 0,
     };
   }
 
@@ -350,8 +356,10 @@ export class MetricsComponent implements OnInit {
       total: 0,
       verified: 0,
       pending: 0,
+      noDocuments: 0,
       verifiedPercent: 0,
       pendingPercent: 0,
+      noDocumentsPercent: 0,
     };
   }
 

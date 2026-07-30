@@ -2102,6 +2102,56 @@ app-solicitudes > .management__route {
     color: #2563eb;
 }
 
+.sol-kanban-card--overdue,
+.sol-kanban-card--overdue.sol-kanban-card--accepted,
+.sol-kanban-card--overdue.sol-kanban-card--unavailable,
+.sol-kanban-card--overdue.sol-kanban-card--verifying {
+    background:
+        linear-gradient(180deg, rgba(239, 68, 68, 0.16), rgba(245, 158, 11, 0.06)),
+        var(--managementColorBackgroundUser);
+    border-color: rgba(239, 68, 68, 0.62);
+    box-shadow: 0 10px 24px rgba(239, 68, 68, 0.17);
+}
+
+.sol-kanban-card--overdue::before,
+.sol-kanban-card--overdue:hover::before,
+.sol-kanban-card--overdue.sol-kanban-card--accepted::before,
+.sol-kanban-card--overdue.sol-kanban-card--unavailable::before,
+.sol-kanban-card--overdue.sol-kanban-card--verifying::before {
+    width: 5px;
+    background: linear-gradient(180deg, #ef4444, #f59e0b);
+}
+
+.sol-kanban-card--overdue .sol-kanban-client {
+    color: #dc2626;
+}
+
+.sol-kanban-card--overdue .sol-kanban-date {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626 !important;
+}
+
+.sol-overdue-badge {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 0.35rem;
+    padding: 0.3rem 0.58rem;
+    border: 1px solid rgba(239, 68, 68, 0.28);
+    border-radius: 999px;
+    background: rgba(239, 68, 68, 0.13);
+    color: #dc2626;
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.sol-overdue-badge i {
+    color: currentColor;
+    font-size: 0.7rem;
+    opacity: 1;
+}
+
 .sol-kanban-card-top {
     display: flex;
     justify-content: space-between;
@@ -2121,17 +2171,43 @@ app-solicitudes > .management__route {
 }
 
 .sol-kanban-date {
+    box-sizing: border-box;
+    display: inline-flex !important;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
     font-size: 0.68rem;
     font-weight: 600;
     background: rgba(99, 102, 241, 0.08);
     padding: 0.2rem 0.55rem;
     border-radius: 20px;
     color: #6366f1;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
     flex-shrink: 0;
 }
 
+.sol-kanban-date--finalized {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+    background: rgba(16, 185, 129, 0.11);
+    color: #059669;
+    white-space: normal;
+    line-height: 1.35;
+}
+
+.sol-kanban-date--finalized i {
+    color: currentColor;
+    font-size: 0.7rem;
+    opacity: 1;
+}
+
 .sol-kanban-content {
+    min-width: 0;
     font-size: 0.82rem;
     color: var(--managementColorTextUser);
     display: flex;

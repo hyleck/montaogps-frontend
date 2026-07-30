@@ -106,8 +106,10 @@ export interface ClientVerificationMetrics {
   total: number;
   verified: number;
   pending: number;
+  noAssistance: number;
   verifiedPercent: number;
   pendingPercent: number;
+  noAssistancePercent: number;
 }
 
 export interface PersonalizedCallHistory {

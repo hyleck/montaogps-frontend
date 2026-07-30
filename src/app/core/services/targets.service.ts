@@ -40,8 +40,10 @@ export interface VehicleVerificationMetrics {
   total: number;
   verified: number;
   pending: number;
+  noDocuments: number;
   verifiedPercent: number;
   pendingPercent: number;
+  noDocumentsPercent: number;
 }
 
 export interface VehicleDataCompletenessMetrics {

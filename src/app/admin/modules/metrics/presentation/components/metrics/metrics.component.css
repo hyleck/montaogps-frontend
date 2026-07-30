@@ -526,7 +526,7 @@
 
 .verification-card__summary {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -552,6 +552,10 @@
 
 .verification-card__summary-item--verified strong {
   color: #16a34a;
+}
+
+.verification-card__summary-item--excluded strong {
+  color: #64748b;
 }
 
 .verification-card__summary span {
@@ -584,6 +588,10 @@
   background: linear-gradient(90deg, #ef4444, #fb7185);
 }
 
+.verification-bar__excluded {
+  background: linear-gradient(90deg, #64748b, #94a3b8);
+}
+
 .verification-card__legend {
   display: flex;
   align-items: center;
@@ -610,6 +618,14 @@
 
 .verification-card__legend span:last-child i {
   background: #ef4444;
+}
+
+.verification-card__legend .verification-card__legend-item--pending i {
+  background: #ef4444;
+}
+
+.verification-card__legend .verification-card__legend-item--excluded i {
+  background: #94a3b8;
 }
 
 .verification-card--empty {
@@ -955,6 +971,10 @@
     grid-template-columns: 1fr;
   }
 
+  .verification-card__summary {
+    grid-template-columns: 1fr;
+  }
+
   .type-row em {
     text-align: left;
   }
@@ -1162,6 +1182,11 @@
 :host-context(.app-dark) .verification-card__summary-item--verified strong,
 :host-context(body.app-dark) .verification-card__summary-item--verified strong {
   color: #22c55e !important;
+}
+
+:host-context(.app-dark) .verification-card__summary-item--excluded strong,
+:host-context(body.app-dark) .verification-card__summary-item--excluded strong {
+  color: #a1a1aa !important;
 }
 
 :host-context(.app-dark) .metrics-header p,

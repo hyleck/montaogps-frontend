@@ -46,7 +46,7 @@ interface AvailabilityTranscriptMessage {
 
 type SolicitudLocationConfigTarget = 'root' | 'installation';
 type SolicitudLocationConfigMethod = 'coordinates' | 'link';
-type FinalizedExportFormat = 'pdf' | 'excel';
+type SolicitudExportFormat = 'pdf' | 'excel';
 
 @Component({
     selector: 'app-solicitudes',
@@ -61,11 +61,23 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
     solicitudes: Solicitud[] = [];
-    
-    get pendientes() { return this.sortSolicitudesForDisplay(this.filteredSolicitudes.filter(s => s.status === 'pendiente' || s.status === 'aceptada' || s.status === 'rechazada')); }
-    get enProgreso() { return this.sortSolicitudesForDisplay(this.filteredSolicitudes.filter(s => s.status === 'en_progreso')); }
-    get porConfirmar() { return this.sortSolicitudesForDisplay(this.filteredSolicitudes.filter(s => s.status === 'por_confirmar')); }
-    get completadas() { return this.sortSolicitudesForDisplay(this.filteredSolicitudes.filter(s => s.status === 'completada' || s.status === 'cancelada')); }
+    private filteredSolicitudesCacheSource: Solicitud[] | null = null;
+    private filteredSolicitudesCacheKey = '';
+    private filteredSolicitudesCache: Solicitud[] = [];
+    private kanbanColumnsCacheSource: Solicitud[] | null = null;
+    private kanbanColumnsCache = {
+        pendientes: [] as Solicitud[],
+        enProgreso: [] as Solicitud[],
+        porConfirmar: [] as Solicitud[],
+        completadas: [] as Solicitud[],
+    };
+    private topFilterClientOptionsCacheSource: Solicitud[] | null = null;
+    private topFilterClientOptionsCache: SelectOption[] = [];
+
+    get pendientes(): Solicitud[] { return this.getKanbanColumns().pendientes; }
+    get enProgreso(): Solicitud[] { return this.getKanbanColumns().enProgreso; }
+    get porConfirmar(): Solicitud[] { return this.getKanbanColumns().porConfirmar; }
+    get completadas(): Solicitud[] { return this.getKanbanColumns().completadas; }
     
     // Drag and Drop
     draggedSolicitud: Solicitud | null = null;
@@ -194,6 +206,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 item.order = idx;
                 this.solicitudesService.update(item._id!, { order: idx, status: item.status }).subscribe();
             });
+            this.solicitudes = [...this.solicitudes];
 
             if (oldStatus !== newStatus) {
                 this.messageService.add({
@@ -306,7 +319,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     topFilterDateFrom = '';
     topFilterDateTo = '';
     filtersExpanded = false;
-    exportingFinalizedFormat: FinalizedExportFormat | null = null;
+    exportingSolicitudesFormat: SolicitudExportFormat | null = null;
     clientEmailSuggestions: User[] = [];
     clientSelectionDialogVisible = false;
     newClientDialogVisible = false;
@@ -3463,7 +3476,9 @@ async initLocationMap(): Promise<void> {
     private upsertSolicitud(updated: Solicitud): void {
         const index = this.solicitudes.findIndex(sol => sol._id === updated._id);
         if (index >= 0) {
-            this.solicitudes[index] = updated;
+            this.solicitudes = this.solicitudes.map((solicitud, solicitudIndex) =>
+                solicitudIndex === index ? updated : solicitud
+            );
             return;
         }
         this.solicitudes = [updated, ...this.solicitudes];
@@ -3479,7 +3494,53 @@ async initLocationMap(): Promise<void> {
     }
 
     get filteredSolicitudes(): Solicitud[] {
-        return this.solicitudes.filter(solicitud => this.matchesTopFilters(solicitud));
+        const cacheKey = [
+            this.topFilterTechnician,
+            this.topFilterClient,
+            this.topFilterType,
+            this.topFilterDateFrom,
+            this.topFilterDateTo,
+        ].join('|');
+
+        if (
+            this.filteredSolicitudesCacheSource === this.solicitudes
+            && this.filteredSolicitudesCacheKey === cacheKey
+        ) {
+            return this.filteredSolicitudesCache;
+        }
+
+        this.filteredSolicitudesCacheSource = this.solicitudes;
+        this.filteredSolicitudesCacheKey = cacheKey;
+        this.filteredSolicitudesCache = this.solicitudes.filter(solicitud =>
+            this.matchesTopFilters(solicitud)
+        );
+        return this.filteredSolicitudesCache;
+    }
+
+    private getKanbanColumns(): typeof this.kanbanColumnsCache {
+        const filtered = this.filteredSolicitudes;
+        if (this.kanbanColumnsCacheSource === filtered) {
+            return this.kanbanColumnsCache;
+        }
+
+        this.kanbanColumnsCacheSource = filtered;
+        this.kanbanColumnsCache = {
+            pendientes: this.sortSolicitudesForDisplay(filtered.filter(solicitud =>
+                solicitud.status === 'pendiente'
+                || solicitud.status === 'aceptada'
+                || solicitud.status === 'rechazada'
+            )),
+            enProgreso: this.sortSolicitudesForDisplay(filtered.filter(solicitud =>
+                solicitud.status === 'en_progreso'
+            )),
+            porConfirmar: this.sortSolicitudesForDisplay(filtered.filter(solicitud =>
+                solicitud.status === 'por_confirmar'
+            )),
+            completadas: this.sortSolicitudesForDisplay(filtered.filter(solicitud =>
+                solicitud.status === 'completada' || solicitud.status === 'cancelada'
+            )),
+        };
+        return this.kanbanColumnsCache;
     }
 
     private matchesTopFilters(solicitud: Solicitud): boolean {
@@ -3527,6 +3588,10 @@ async initLocationMap(): Promise<void> {
     }
 
     get topFilterClientOptions(): SelectOption[] {
+        if (this.topFilterClientOptionsCacheSource === this.solicitudes) {
+            return this.topFilterClientOptionsCache;
+        }
+
         const clients = new Map<string, string>();
         for (const solicitud of this.solicitudes) {
             const value = this.getClientFilterKey(solicitud);
@@ -3538,9 +3603,11 @@ async initLocationMap(): Promise<void> {
                 clients.set(value, label);
             }
         }
-        return [...clients.entries()]
+        this.topFilterClientOptionsCacheSource = this.solicitudes;
+        this.topFilterClientOptionsCache = [...clients.entries()]
             .map(([value, label]) => ({ value, label }))
             .sort((a, b) => a.label.localeCompare(b.label));
+        return this.topFilterClientOptionsCache;
     }
 
     get hasInvalidTopFilterDateRange(): boolean {
@@ -3567,92 +3634,58 @@ async initLocationMap(): Promise<void> {
         this.topFilterDateTo = '';
     }
 
-    async exportFinalizedSolicitudes(format: FinalizedExportFormat): Promise<void> {
-        if (this.exportingFinalizedFormat) return;
+    async exportSolicitudes(format: SolicitudExportFormat): Promise<void> {
+        if (this.exportingSolicitudesFormat) return;
 
-        this.exportingFinalizedFormat = format;
+        this.exportingSolicitudesFormat = format;
         try {
-            const solicitudes = this.filterFinalizedSolicitudes(
-                await this.fetchAllFinalizedSolicitudes(),
-            );
+            const filteredSolicitudes = this.filterSolicitudesForExport(this.solicitudes);
+            const solicitudes = format === 'pdf'
+                ? filteredSolicitudes.filter(solicitud => this.isSolicitudClosed(solicitud))
+                : filteredSolicitudes;
 
             if (!solicitudes.length) {
                 this.messageService.add({
                     severity: 'warn',
-                    summary: 'Sin solicitudes finalizadas',
-                    detail: 'No hay solicitudes completadas o canceladas que coincidan con los filtros seleccionados.',
+                    summary: format === 'pdf' ? 'Sin solicitudes finalizadas' : 'Sin solicitudes',
+                    detail: format === 'pdf'
+                        ? 'No hay solicitudes completadas o canceladas que coincidan con los filtros seleccionados.'
+                        : 'No hay solicitudes que coincidan con los filtros seleccionados.',
                 });
                 return;
             }
 
+            await new Promise<void>(resolve => setTimeout(resolve, 0));
             if (format === 'pdf') {
-                this.generateFinalizedSolicitudesPdf(solicitudes);
+                this.generateSolicitudesPdf(solicitudes);
             } else {
-                this.generateFinalizedSolicitudesExcel(solicitudes);
+                this.generateSolicitudesExcel(solicitudes);
             }
 
             this.messageService.add({
                 severity: 'success',
                 summary: format === 'pdf' ? 'PDF generado' : 'Excel generado',
-                detail: `Se exportaron ${solicitudes.length} solicitudes finalizadas.`,
+                detail: `Se exportaron ${solicitudes.length} solicitudes.`,
             });
         } catch (error) {
-            console.error('Error exporting finalized solicitudes:', error);
+            console.error('Error exporting solicitudes:', error);
             this.messageService.add({
                 severity: 'error',
                 summary: 'No se pudo generar el archivo',
-                detail: 'Ocurrió un error al cargar las solicitudes finalizadas. Inténtalo nuevamente.',
+                detail: 'Ocurrió un error al generar el reporte de solicitudes. Inténtalo nuevamente.',
             });
         } finally {
-            this.exportingFinalizedFormat = null;
+            this.exportingSolicitudesFormat = null;
         }
     }
 
-    private async fetchAllFinalizedSolicitudes(): Promise<Solicitud[]> {
-        const [completed, cancelled] = await Promise.all([
-            this.fetchAllSolicitudesByStatus('completada'),
-            this.fetchAllSolicitudesByStatus('cancelada'),
-        ]);
-        const uniqueSolicitudes = new Map<string, Solicitud>();
-
-        [...completed, ...cancelled].forEach((solicitud, index) => {
-            uniqueSolicitudes.set(solicitud._id || `solicitud-${index}`, solicitud);
-        });
-
-        return [...uniqueSolicitudes.values()];
-    }
-
-    private async fetchAllSolicitudesByStatus(status: 'completada' | 'cancelada'): Promise<Solicitud[]> {
-        const pageSize = 500;
-        const solicitudes: Solicitud[] = [];
-        let page = 1;
-        let total = 0;
-
-        do {
-            const response = await firstValueFrom(this.solicitudesService.getAll({
-                type: this.topFilterType || undefined,
-                status,
-                page,
-                limit: pageSize,
-            }));
-            const pageData = response?.data || [];
-            total = Number(response?.total) || 0;
-            solicitudes.push(...pageData);
-
-            if (!pageData.length) break;
-            page += 1;
-        } while (solicitudes.length < total);
-
-        return solicitudes;
-    }
-
-    private filterFinalizedSolicitudes(solicitudes: Solicitud[]): Solicitud[] {
+    private filterSolicitudesForExport(solicitudes: Solicitud[]): Solicitud[] {
         return solicitudes
-            .filter(solicitud => this.isSolicitudClosed(solicitud) && this.matchesTopFilters(solicitud))
-            .sort((left, right) => this.getFinalizedTimestamp(right) - this.getFinalizedTimestamp(left));
+            .filter(solicitud => this.matchesTopFilters(solicitud))
+            .sort((left, right) => this.getSolicitudExportTimestamp(right) - this.getSolicitudExportTimestamp(left));
     }
 
-    private generateFinalizedSolicitudesPdf(solicitudes: Solicitud[]): void {
+    private generateSolicitudesPdf(solicitudes: Solicitud[]): void {
         const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
@@ -3667,7 +3700,7 @@ async initLocationMap(): Promise<void> {
         doc.setFontSize(8.5);
         doc.setTextColor(90, 96, 110);
         doc.text(`Generado: ${generatedAt}`, 14, 23);
-        doc.text(`Filtros: ${this.getFinalizedExportFilterSummary()}`, 14, 29, {
+        doc.text(`Filtros: ${this.getSolicitudesExportFilterSummary()}`, 14, 29, {
             maxWidth: pageWidth - 28,
         });
 
@@ -3683,7 +3716,7 @@ async initLocationMap(): Promise<void> {
             head: [['#', 'Finalizada', 'Cliente', 'Tipo', 'Estado', 'Técnico', 'Procesos', 'Ubicación']],
             body: solicitudes.map((solicitud, index) => [
                 String(index + 1),
-                this.formatExportDate(this.getFinalizedDate(solicitud)),
+                this.formatExportDate(this.getSolicitudCompletionDate(solicitud)),
                 this.getExportClientName(solicitud),
                 this.typeLabels[solicitud.type] || solicitud.type || '—',
                 this.statusLabels[solicitud.status] || solicitud.status || '—',
@@ -3735,9 +3768,11 @@ async initLocationMap(): Promise<void> {
         doc.save(`solicitudes_finalizadas_${this.toLocalDateKey(new Date())}.pdf`);
     }
 
-    private generateFinalizedSolicitudesExcel(solicitudes: Solicitud[]): void {
+    private generateSolicitudesExcel(solicitudes: Solicitud[]): void {
         const headers = [
             '#',
+            'Fecha de creación',
+            'Fecha programada',
             'Fecha finalización',
             'Cliente',
             'Teléfono',
@@ -3746,7 +3781,6 @@ async initLocationMap(): Promise<void> {
             'Estado',
             'Cantidad',
             'Técnico',
-            'Fecha programada',
             'Ubicación',
             'Procesos',
             'Descripción',
@@ -3755,7 +3789,9 @@ async initLocationMap(): Promise<void> {
         ];
         const rows = solicitudes.map((solicitud, index) => [
             index + 1,
-            this.formatExportDate(this.getFinalizedDate(solicitud)),
+            this.formatExportDate(solicitud.createdAt),
+            this.formatExportDate(solicitud.scheduled_date || solicitud.installations?.[0]?.scheduled_date),
+            this.formatExportDate(this.getSolicitudCompletionDate(solicitud)),
             this.getExportClientName(solicitud),
             solicitud.client_phone || '',
             solicitud.client_email || '',
@@ -3763,7 +3799,6 @@ async initLocationMap(): Promise<void> {
             this.statusLabels[solicitud.status] || solicitud.status || '',
             solicitud.quantity || solicitud.installations?.length || 1,
             this.getExportTechnicianName(solicitud),
-            this.formatExportDate(solicitud.scheduled_date || solicitud.installations?.[0]?.scheduled_date),
             this.getExportLocation(solicitud),
             this.getExportProcesses(solicitud),
             solicitud.description || '',
@@ -3771,9 +3806,9 @@ async initLocationMap(): Promise<void> {
             solicitud.cancellation_reason || '',
         ]);
         const worksheet = XLSX.utils.aoa_to_sheet([
-            ['Solicitudes finalizadas'],
+            ['Reporte de solicitudes'],
             [`Generado: ${this.formatExportDate(new Date())}`],
-            [`Filtros: ${this.getFinalizedExportFilterSummary()}`],
+            [`Filtros: ${this.getSolicitudesExportFilterSummary()}`],
             headers,
             ...rows,
         ]);
@@ -3789,6 +3824,8 @@ async initLocationMap(): Promise<void> {
         worksheet['!cols'] = [
             { wch: 7 },
             { wch: 22 },
+            { wch: 22 },
+            { wch: 22 },
             { wch: 28 },
             { wch: 16 },
             { wch: 28 },
@@ -3796,7 +3833,6 @@ async initLocationMap(): Promise<void> {
             { wch: 14 },
             { wch: 10 },
             { wch: 26 },
-            { wch: 22 },
             { wch: 34 },
             { wch: 48 },
             { wch: 40 },
@@ -3837,26 +3873,12 @@ async initLocationMap(): Promise<void> {
             }
         });
 
-        for (let rowIndex = 5; rowIndex <= lastRow; rowIndex += 1) {
-            for (let columnIndex = 0; columnIndex < headers.length; columnIndex += 1) {
-                const cell = worksheet[`${XLSX.utils.encode_col(columnIndex)}${rowIndex}`];
-                if (!cell) continue;
-                cell.s = {
-                    fill: { fgColor: { rgb: rowIndex % 2 === 0 ? 'F8FAFC' : 'FFFFFF' } },
-                    alignment: { vertical: 'top', wrapText: true },
-                    border: {
-                        bottom: { style: 'hair', color: { rgb: 'E5E7EB' } },
-                    },
-                };
-            }
-        }
-
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Finalizadas');
-        XLSX.writeFile(workbook, `solicitudes_finalizadas_${this.toLocalDateKey(new Date())}.xlsx`);
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Solicitudes');
+        XLSX.writeFile(workbook, `solicitudes_${this.toLocalDateKey(new Date())}.xlsx`);
     }
 
-    private getFinalizedExportFilterSummary(): string {
+    private getSolicitudesExportFilterSummary(): string {
         const filters: string[] = [];
         if (this.topFilterTechnician) {
             filters.push(`Técnico: ${
@@ -3878,12 +3900,25 @@ async initLocationMap(): Promise<void> {
         return filters.length ? filters.join(' · ') : 'Todos';
     }
 
-    private getFinalizedDate(solicitud: Solicitud): string | Date | undefined {
-        return solicitud.completed_date || solicitud.updatedAt || solicitud.createdAt;
+    private getSolicitudCompletionDate(solicitud: Solicitud): string | Date | undefined {
+        if (solicitud.completed_date) return solicitud.completed_date;
+        if (
+            solicitud.status === 'por_confirmar'
+            || solicitud.status === 'completada'
+            || solicitud.status === 'cancelada'
+        ) {
+            return solicitud.updatedAt;
+        }
+        return undefined;
     }
 
-    private getFinalizedTimestamp(solicitud: Solicitud): number {
-        const date = new Date(this.getFinalizedDate(solicitud) || 0);
+    private getSolicitudExportTimestamp(solicitud: Solicitud): number {
+        const value = this.getSolicitudCompletionDate(solicitud)
+            || solicitud.scheduled_date
+            || solicitud.installations?.[0]?.scheduled_date
+            || solicitud.updatedAt
+            || solicitud.createdAt;
+        const date = new Date(value || 0);
         return Number.isNaN(date.getTime()) ? 0 : date.getTime();
     }
 
@@ -3963,11 +3998,13 @@ async initLocationMap(): Promise<void> {
 
     private initializeTopDateFilters(): void {
         const today = new Date();
-        const sevenDaysAgo = new Date(today);
-        sevenDaysAgo.setDate(today.getDate() - 7);
+        const tenDaysAgo = new Date(today);
+        const fiveDaysAhead = new Date(today);
+        tenDaysAgo.setDate(today.getDate() - 10);
+        fiveDaysAhead.setDate(today.getDate() + 5);
 
-        this.topFilterDateFrom = this.toLocalDateKey(sevenDaysAgo);
-        this.topFilterDateTo = this.toLocalDateKey(today);
+        this.topFilterDateFrom = this.toLocalDateKey(tenDaysAgo);
+        this.topFilterDateTo = this.toLocalDateKey(fiveDaysAhead);
     }
 
     private getClientFilterKey(solicitud: Solicitud): string {
@@ -4346,6 +4383,79 @@ async initLocationMap(): Promise<void> {
         this.solicitudToInstall = null;
     }
 
+    isSolicitudOverdue(sol: Solicitud, now: Date = new Date()): boolean {
+        if (
+            !sol
+            || sol.status === 'por_confirmar'
+            || sol.status === 'completada'
+            || sol.status === 'cancelada'
+        ) {
+            return false;
+        }
+
+        const scheduledAt = this.getSolicitudScheduledDateTime(sol);
+        return scheduledAt !== null && scheduledAt.getTime() < now.getTime();
+    }
+
+    private getSolicitudScheduledDateTime(sol: Solicitud): Date | null {
+        const rawDate = sol.scheduled_date || sol.installations?.[0]?.scheduled_date;
+        if (!rawDate) return null;
+
+        if (rawDate instanceof Date) {
+            return Number.isNaN(rawDate.getTime()) ? null : new Date(rawDate.getTime());
+        }
+
+        const value = String(rawDate).trim();
+        const localDateTime = value.match(
+            /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?$/,
+        );
+        if (localDateTime) {
+            const [, year, month, day, hour, minute, second = '0'] = localDateTime;
+            const parsed = new Date(
+                Number(year),
+                Number(month) - 1,
+                Number(day),
+                Number(hour),
+                Number(minute),
+                Number(second),
+            );
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        const localDateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (localDateOnly) {
+            const [, year, month, day] = localDateOnly;
+            const parsed = new Date(
+                Number(year),
+                Number(month) - 1,
+                Number(day),
+                23,
+                59,
+                59,
+                999,
+            );
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    getSolicitudFinalizedDateDisplay(sol: Solicitud): string {
+        const rawDate = sol.completed_date || sol.updatedAt || sol.createdAt;
+        if (!rawDate) return '';
+
+        const date = new Date(rawDate);
+        if (Number.isNaN(date.getTime())) return '';
+
+        const pad = (value: number) => String(value).padStart(2, '0');
+        const formattedDate = `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+        const formattedTime = this.formatTimeToTwelveHours(
+            `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+        );
+        return `${formattedDate} a las ${formattedTime}`;
+    }
+
     getScheduledDateDisplay(sol: Solicitud): string {
         const rawDate = sol.scheduled_date || sol.installations?.[0]?.scheduled_date;
         if (!rawDate) return '';
@@ -4365,7 +4475,10 @@ async initLocationMap(): Promise<void> {
         }
 
         // Technical date format
-        const technicalDate = time ? `${day}/${month}/${year} a las ${time}` : `${day}/${month}/${year}`;
+        const technicalTime = time ? this.formatTimeToTwelveHours(time) : '';
+        const technicalDate = technicalTime
+            ? `${day}/${month}/${year} a las ${technicalTime}`
+            : `${day}/${month}/${year}`;
 
         // Natural language
         const targetDate = new Date(Number(year), Number(month) - 1, Number(day));
@@ -4384,5 +4497,15 @@ async initLocationMap(): Promise<void> {
         else naturalLanguage = `Hace ${Math.abs(diffDays)} días`;
 
         return `${naturalLanguage} (${technicalDate})`;
+    }
+
+    private formatTimeToTwelveHours(time: string): string {
+        const [rawHour, minute = '00'] = time.split(':');
+        const hour = Number(rawHour);
+        if (!Number.isInteger(hour) || hour < 0 || hour > 23) return time;
+
+        const period = hour >= 12 ? 'p. m.' : 'a. m.';
+        const twelveHour = hour % 12 || 12;
+        return `${twelveHour}:${minute} ${period}`;
     }
 }

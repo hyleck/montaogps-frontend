@@ -41,26 +41,26 @@
                 <button
                     type="button"
                     class="sol-top-filters__export sol-top-filters__export--pdf"
-                    [disabled]="!!exportingFinalizedFormat"
-                    (click)="exportFinalizedSolicitudes('pdf')"
-                    pTooltip="Generar PDF de las solicitudes finalizadas"
+                    [disabled]="!!exportingSolicitudesFormat"
+                    (click)="exportSolicitudes('pdf')"
+                    pTooltip="Generar PDF de las solicitudes finalizadas filtradas"
                     tooltipPosition="bottom">
                     <i
                         class="pi"
-                        [ngClass]="exportingFinalizedFormat === 'pdf' ? 'pi-spin pi-spinner' : 'pi-file-pdf'"
+                        [ngClass]="exportingSolicitudesFormat === 'pdf' ? 'pi-spin pi-spinner' : 'pi-file-pdf'"
                         aria-hidden="true"></i>
                     PDF
                 </button>
                 <button
                     type="button"
                     class="sol-top-filters__export sol-top-filters__export--excel"
-                    [disabled]="!!exportingFinalizedFormat"
-                    (click)="exportFinalizedSolicitudes('excel')"
-                    pTooltip="Generar Excel de las solicitudes finalizadas"
+                    [disabled]="!!exportingSolicitudesFormat"
+                    (click)="exportSolicitudes('excel')"
+                    pTooltip="Generar Excel de las solicitudes filtradas en todos los estados"
                     tooltipPosition="bottom">
                     <i
                         class="pi"
-                        [ngClass]="exportingFinalizedFormat === 'excel' ? 'pi-spin pi-spinner' : 'pi-file-excel'"
+                        [ngClass]="exportingSolicitudesFormat === 'excel' ? 'pi-spin pi-spinner' : 'pi-file-excel'"
                         aria-hidden="true"></i>
                     Excel
                 </button>
@@ -143,13 +143,17 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('pendiente')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of pendientes" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of pendientes" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
                 </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
+                    <span class="sol-overdue-badge" *ngIf="isSolicitudOverdue(sol)">
+                        <i class="pi pi-exclamation-triangle"></i>
+                        Solicitud atrasada
+                    </span>
                     <div class="sol-card-tags">
                         <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
@@ -214,13 +218,17 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('en_progreso')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of enProgreso" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of enProgreso" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
                 </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
+                    <span class="sol-overdue-badge" *ngIf="isSolicitudOverdue(sol)">
+                        <i class="pi pi-exclamation-triangle"></i>
+                        Solicitud atrasada
+                    </span>
                     <div class="sol-card-tags">
                         <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
@@ -280,13 +288,16 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('por_confirmar')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of porConfirmar" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of porConfirmar" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
                 </div>
                 <div class="sol-kanban-content">
-                    <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
+                    <span class="sol-kanban-date sol-kanban-date--finalized" *ngIf="getSolicitudFinalizedDateDisplay(sol) as finalizedDate">
+                        <i class="pi pi-check-circle"></i>
+                        Finalizada: {{ finalizedDate }}
+                    </span>
                     <div class="sol-card-tags">
                         <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">

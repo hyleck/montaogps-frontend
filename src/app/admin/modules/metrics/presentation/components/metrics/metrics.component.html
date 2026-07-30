@@ -79,7 +79,7 @@
       <div class="metrics-panel__header">
         <div>
           <h2>Verificación</h2>
-          <span>Clientes y vehículos verificados vs pendientes</span>
+          <span>Clientes y vehículos verificados, pendientes y sin documentación</span>
         </div>
       </div>
 
@@ -105,16 +105,22 @@
               <strong>{{ clientVerification.pending }}</strong>
               <span>Sin verificar</span>
             </div>
+            <div class="verification-card__summary-item verification-card__summary-item--excluded">
+              <strong>{{ clientVerification.noAssistance }}</strong>
+              <span>No asistencia</span>
+            </div>
           </div>
 
-          <div class="verification-bar" aria-label="Clientes verificados vs sin verificar">
+          <div class="verification-bar" aria-label="Clientes verificados, sin verificar y sin asistencia">
             <span class="verification-bar__verified" [style.width.%]="clientVerification.verifiedPercent"></span>
             <span class="verification-bar__pending" [style.width.%]="clientVerification.pendingPercent"></span>
+            <span class="verification-bar__excluded" [style.width.%]="clientVerification.noAssistancePercent"></span>
           </div>
 
           <div class="verification-card__legend">
             <span><i></i>{{ clientVerification.verifiedPercent }}% verificados</span>
-            <span><i></i>{{ clientVerification.pendingPercent }}% pendientes</span>
+            <span class="verification-card__legend-item--pending"><i></i>{{ clientVerification.pendingPercent }}% pendientes</span>
+            <span class="verification-card__legend-item--excluded"><i></i>{{ clientVerification.noAssistancePercent }}% no asistencia</span>
           </div>
         </div>
 
@@ -148,16 +154,22 @@
               <strong>{{ vehicleVerification.pending }}</strong>
               <span>Sin verificar</span>
             </div>
+            <div class="verification-card__summary-item verification-card__summary-item--excluded">
+              <strong>{{ vehicleVerification.noDocuments }}</strong>
+              <span>Sin documentos</span>
+            </div>
           </div>
 
-          <div class="verification-bar" aria-label="Vehículos verificados vs sin verificar">
+          <div class="verification-bar" aria-label="Vehículos verificados, sin verificar y sin documentos">
             <span class="verification-bar__verified" [style.width.%]="vehicleVerification.verifiedPercent"></span>
             <span class="verification-bar__pending" [style.width.%]="vehicleVerification.pendingPercent"></span>
+            <span class="verification-bar__excluded" [style.width.%]="vehicleVerification.noDocumentsPercent"></span>
           </div>
 
           <div class="verification-card__legend">
             <span><i></i>{{ vehicleVerification.verifiedPercent }}% verificados</span>
-            <span><i></i>{{ vehicleVerification.pendingPercent }}% sin verificar</span>
+            <span class="verification-card__legend-item--pending"><i></i>{{ vehicleVerification.pendingPercent }}% sin verificar</span>
+            <span class="verification-card__legend-item--excluded"><i></i>{{ vehicleVerification.noDocumentsPercent }}% sin documentos</span>
           </div>
         </div>
 
