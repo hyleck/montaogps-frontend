@@ -16,6 +16,7 @@ import { User } from 'src/app/core/interfaces/user.interface';
 import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import { MessageService } from 'primeng/api';
 import * as ExcelJS from 'exceljs';
+import { MonitoringLocationFilterChange } from '../monitoring-map/monitoring-map.component';
 
 @Component({
   selector: 'app-monitoring',
@@ -27,6 +28,13 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   visualizationMode: 'list' | 'map' = 'list';
   selectedMapData: MonitorUserResponse['data'] | null = null;
   selectedMapBlockLabel = '';
+  private monitoringLocationFilter: MonitoringLocationFilterChange = {
+    active: false,
+    visibleDeviceKeys: [],
+    province: '',
+    municipality: '',
+    sector: ''
+  };
   readonly visualizationOptions = [
     { label: 'Listado', value: 'list', icon: 'pi pi-list' },
     { label: 'Mapa', value: 'map', icon: 'pi pi-map' }
@@ -778,10 +786,14 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   onVisualizationChange(mode: 'list' | 'map'): void {
     this.clearSelectedMapBlock();
+    if (mode === 'list') {
+      this.clearMonitoringLocationFilter();
+    }
     this.visualizationMode = mode;
   }
 
   viewBlockOnMap(userData: MonitorUserResponse['data'][number]): void {
+    this.clearMonitoringLocationFilter();
     this.selectedMapData = [userData];
     this.selectedMapBlockLabel = this.getMonitoringBlockLabel(userData);
     this.visualizationMode = 'map';
@@ -794,13 +806,34 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   showAllDevicesOnMap(): void {
+    this.clearMonitoringLocationFilter();
     this.clearSelectedMapBlock();
     this.visualizationMode = 'map';
+  }
+
+  onMonitoringLocationFilterChange(
+    filter: MonitoringLocationFilterChange,
+  ): void {
+    this.monitoringLocationFilter = {
+      ...filter,
+      visibleDeviceKeys: [...filter.visibleDeviceKeys]
+    };
+  }
+
+  private clearMonitoringLocationFilter(): void {
+    this.monitoringLocationFilter = {
+      active: false,
+      visibleDeviceKeys: [],
+      province: '',
+      municipality: '',
+      sector: ''
+    };
   }
 
   private clearSelectedMapBlock(): void {
     this.selectedMapData = null;
     this.selectedMapBlockLabel = '';
+    this.clearMonitoringLocationFilter();
   }
 
   private getMonitoringBlockLabel(
@@ -1805,6 +1838,23 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       return this.monitoringSummaryStatsCache;
     }
 
+    this.monitoringSummaryStatsSource = data;
+    this.monitoringSummaryStatsCache =
+      this.calculateMonitoringSummaryStats(data);
+
+    return this.monitoringSummaryStatsCache;
+  }
+
+  private calculateMonitoringSummaryStats(
+    data: MonitorUserResponse['data'],
+  ): {
+    totalUsers: number;
+    totalDevices: number;
+    activeDevices: number;
+    activeValidOnlineDevices: number;
+    activeValidOfflineDevices: number;
+    totalExpiredDevices: number;
+  } {
     let totalUsers = data.length;
     let totalDevices = 0;
     let activeDevices = 0;
@@ -1837,8 +1887,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       });
     });
 
-    this.monitoringSummaryStatsSource = data;
-    this.monitoringSummaryStatsCache = {
+    return {
       totalUsers,
       totalDevices,
       activeDevices,
@@ -1846,8 +1895,6 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       activeValidOfflineDevices,
       totalExpiredDevices
     };
-
-    return this.monitoringSummaryStatsCache;
   }
 
   private getMonitoringFilterSignature(): string {
@@ -2570,11 +2617,55 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     return Array.isArray(route) && route.length > 0 && route[route.length - 1]?.no_assistance === true;
   }
 
+  private getExcelMonitoringData(): MonitorUserResponse['data'] {
+    const data = this.filteredMonitoringData;
+    if (!this.monitoringLocationFilter.active) {
+      return data;
+    }
+
+    const visibleDeviceKeys = new Set(
+      this.monitoringLocationFilter.visibleDeviceKeys,
+    );
+    return data
+      .map((userData) => ({
+        ...userData,
+        devices: (userData.devices || []).filter((device) =>
+          visibleDeviceKeys.has(this.getMonitoringDeviceKey(device)),
+        )
+      }))
+      .filter((userData) => userData.devices.length > 0);
+  }
+
+  private getMonitoringDeviceKey(device: any): string {
+    return String(
+      device?._id ||
+        device?.id ||
+        device?.device_imei ||
+        device?.api_device_id ||
+        '',
+    ).trim();
+  }
+
+  private getMonitoringLocationFilterLabel(): string {
+    return [
+      this.monitoringLocationFilter.province
+        ? `Provincia: ${this.monitoringLocationFilter.province}`
+        : '',
+      this.monitoringLocationFilter.municipality
+        ? `Municipio: ${this.monitoringLocationFilter.municipality}`
+        : '',
+      this.monitoringLocationFilter.sector
+        ? `Sector: ${this.monitoringLocationFilter.sector}`
+        : ''
+    ].filter(Boolean).join(' · ');
+  }
+
   async exportToExcel(): Promise<void> {
     if (!this.monitoringResult?.data) {
       return;
     }
 
+    const exportData = this.getExcelMonitoringData();
     const includeMileage = this.monitoringType === 'mileage';
     const includeRenewalDate = this.selectedExpirationFilter === 'expired' && this.includeRenewed;
     const includeSimCardColumn = !this.isCurrentUserClient();
@@ -2632,9 +2723,31 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
     let currentRow = 1; // Start from row 1
 
+    if (this.monitoringLocationFilter.active) {
+      const locationFilterRow = worksheet.addRow({
+        col1: '',
+        col2: `Filtros geográficos: ${this.getMonitoringLocationFilterLabel()}`
+      });
+      locationFilterRow.getCell(2).font = {
+        bold: true,
+        color: { argb: 'FF1D4ED8' },
+        size: 12
+      };
+      worksheet.mergeCells(
+        `B${locationFilterRow.number}:${excelLastColumnLetter}${locationFilterRow.number}`,
+      );
+      currentRow = locationFilterRow.number + 1;
+      worksheet.addRow({});
+      currentRow++;
+    }
+
     // Add summary header for current filters
-    const summary = this.monitoringSummaryStats;
-    if (summary.totalUsers > 0 || summary.totalDevices > 0) {
+    const summary = this.calculateMonitoringSummaryStats(exportData);
+    if (
+      summary.totalUsers > 0 ||
+      summary.totalDevices > 0 ||
+      this.monitoringLocationFilter.active
+    ) {
       const summaryTitle = worksheet.addRow({
         col1: '',
         col2: 'Resumen del monitoreo (según filtros aplicados)'
@@ -2679,7 +2792,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     }
 
     // Process each user
-    this.filteredMonitoringData.forEach((userData, userIndex) => {
+    exportData.forEach((userData, userIndex) => {
       const hasNoAssistance = this.hasNoAssistance(userData);
       // Add user route as title
       const userHierarchy = userData.route && userData.route.length > 0
@@ -2987,7 +3100,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       });
 
       // Add spacing between users (except for the last user)
-      if (userIndex < this.filteredMonitoringData.length - 1) {
+      if (userIndex < exportData.length - 1) {
         worksheet.addRow({
           col1: '',
           col2: '',

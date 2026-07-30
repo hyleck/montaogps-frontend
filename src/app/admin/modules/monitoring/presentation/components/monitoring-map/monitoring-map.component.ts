@@ -2,9 +2,11 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  EventEmitter,
   Input,
   OnChanges,
   OnDestroy,
+  Output,
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
@@ -28,6 +30,14 @@ interface LocationOption {
   name: string;
 }
 
+export interface MonitoringLocationFilterChange {
+  active: boolean;
+  visibleDeviceKeys: string[];
+  province: string;
+  municipality: string;
+  sector: string;
+}
+
 interface AdministrativeBoundary {
   feature: GeoJSON.Feature<
     GeoJSON.Polygon | GeoJSON.MultiPolygon,
@@ -37,6 +47,19 @@ interface AdministrativeBoundary {
   municipalityCode: string;
   provinceName: string;
   municipalityName: string;
+  bbox: [number, number, number, number];
+}
+
+interface SectorBoundary {
+  feature: GeoJSON.Feature<
+    GeoJSON.Polygon | GeoJSON.MultiPolygon,
+    Record<string, any>
+  >;
+  provinceCode: string;
+  municipalityCode: string;
+  sectorCode: string;
+  identifier: string;
+  sectorName: string;
   bbox: [number, number, number, number];
 }
 
@@ -50,6 +73,8 @@ export class MonitoringMapComponent
   implements AfterViewInit, OnChanges, OnDestroy
 {
   @Input() data: MonitoringMapData = [];
+  @Output() locationFilterChange =
+    new EventEmitter<MonitoringLocationFilterChange>();
   @ViewChild('mapElement', { static: true })
   mapElement!: ElementRef<HTMLDivElement>;
 
@@ -60,10 +85,13 @@ export class MonitoringMapComponent
   };
   provinces: LocationOption[] = [];
   municipalities: LocationOption[] = [];
+  sectors: LocationOption[] = [];
   selectedProvince = '';
   selectedMunicipality = '';
+  selectedSector = '';
   loadingLocationFilters = false;
   loadingMunicipalities = false;
+  loadingSectors = false;
   locationFilterError = '';
 
   private map: maplibregl.Map | null = null;
@@ -74,6 +102,7 @@ export class MonitoringMapComponent
   private totalDevices = 0;
   private devicesWithoutLocation = 0;
   private administrativeBoundaries: AdministrativeBoundary[] = [];
+  private sectorBoundaries: SectorBoundary[] = [];
   private readonly sourceId = 'monitoring-devices';
   private readonly pulseLayerId = 'monitoring-device-pulses';
   private readonly pointLayerId = 'monitoring-device-points';
@@ -93,6 +122,8 @@ export class MonitoringMapComponent
   };
   private readonly administrativeBoundariesUrl =
     'https://mapageneral.mineria.gob.do/arcgis/rest/services/PortalMapa/Portal_AP/MapServer/5/query';
+  private readonly sectorBoundariesUrl =
+    'https://services.arcgis.com/4TKcmj8FHh5Vtobt/ArcGIS/rest/services/Dominican_Division_view/FeatureServer/3/query';
 
   constructor(
     httpBackend: HttpBackend,
@@ -121,9 +152,13 @@ export class MonitoringMapComponent
   }
 
   async onProvinceChange(provinceCode: string): Promise<void> {
+    this.locationFilterError = '';
     this.selectedProvince = String(provinceCode || '');
     this.selectedMunicipality = '';
+    this.selectedSector = '';
     this.municipalities = [];
+    this.sectors = [];
+    this.sectorBoundaries = [];
     this.applyLocationFilters();
 
     if (!this.selectedProvince) {
@@ -144,15 +179,82 @@ export class MonitoringMapComponent
     }
   }
 
-  onMunicipalityChange(municipalityCode: string): void {
+  async onMunicipalityChange(municipalityCode: string): Promise<void> {
+    this.locationFilterError = '';
     this.selectedMunicipality = String(municipalityCode || '');
+    this.selectedSector = '';
+    this.sectors = [];
+    this.sectorBoundaries = [];
+    this.applyLocationFilters();
+
+    if (!this.selectedProvince || !this.selectedMunicipality) {
+      return;
+    }
+
+    this.loadingSectors = true;
+    try {
+      const sectors = await this.locationCatalog.getSectors(
+        this.selectedMunicipality,
+        this.selectedProvince,
+      );
+      this.sectors = this.normalizeLocationOptions(sectors);
+
+      try {
+        const boundariesResponse = await firstValueFrom(
+          this.externalHttp.get<GeoJSON.FeatureCollection>(
+            this.sectorBoundariesUrl,
+            {
+              params: new HttpParams()
+                .set(
+                  'where',
+                  `PROV='${this.escapeArcGisValue(this.selectedProvince)}' AND MUN='${this.escapeArcGisValue(this.selectedMunicipality)}'`,
+                )
+                .set(
+                  'outFields',
+                  'PROV,MUN,BP,TOPONIMIA,ENLACE,CODIGO',
+                )
+                .set('returnGeometry', 'true')
+                .set('outSR', '4326')
+                .set('maxAllowableOffset', '0.00015')
+                .set('geometryPrecision', '6')
+                .set('resultRecordCount', '2000')
+              .set('f', 'geojson'),
+            },
+          ),
+        );
+        this.sectorBoundaries = (boundariesResponse?.features || [])
+          .map((feature) => this.toSectorBoundary(feature))
+          .filter(
+            (boundary): boundary is SectorBoundary => boundary !== null,
+          );
+      } catch {
+        this.sectorBoundaries = [];
+        this.locationFilterError =
+          'La delimitación de sectores no está disponible; se usará la dirección reportada por el GPS.';
+      }
+
+      this.assignSectorAreas(this.pendingFeatures);
+      this.applyLocationFilters();
+    } catch {
+      this.locationFilterError =
+        'No se pudieron cargar los sectores de este municipio.';
+    } finally {
+      this.loadingSectors = false;
+    }
+  }
+
+  onSectorChange(sectorCode: string): void {
+    this.selectedSector = String(sectorCode || '');
     this.applyLocationFilters();
   }
 
   clearLocationFilters(): void {
     this.selectedProvince = '';
     this.selectedMunicipality = '';
+    this.selectedSector = '';
     this.municipalities = [];
+    this.sectors = [];
+    this.sectorBoundaries = [];
     this.applyLocationFilters();
   }
 
@@ -445,9 +547,13 @@ export class MonitoringMapComponent
           },
           properties: {
             id: device?._id || device?.id || '',
+            deviceKey: this.getDeviceKey(device),
             name: device?.name || device?.device_imei || 'GPS',
             plate: device?.target_plate_number || 'Sin placa',
             imei: device?.device_imei || 'Sin IMEI',
+            address: this.getDeviceAddress(device),
+            sectorCode: this.getExplicitSectorCode(device),
+            sectorName: this.getExplicitSectorName(device),
             clientName,
             connection: this.getConnectionLabel(device, statusGroup),
             expiration: this.formatDate(device?.expiration_date),
@@ -462,6 +568,9 @@ export class MonitoringMapComponent
     this.devicesWithoutLocation = Math.max(0, total - features.length);
     if (this.administrativeBoundaries.length) {
       this.assignAdministrativeAreas(features);
+    }
+    if (this.sectorBoundaries.length) {
+      this.assignSectorAreas(features);
     }
     this.pendingFeatures = features;
 
@@ -533,13 +642,151 @@ export class MonitoringMapComponent
       ) {
         return false;
       }
+      if (this.selectedSector && !this.matchesSelectedSector(properties)) {
+        return false;
+      }
       return true;
     });
 
     this.updateStats(features.length);
+    this.emitLocationFilterChange(features);
     if (this.mapLoaded) {
       this.applyFeatures(features);
     }
+  }
+
+  private emitLocationFilterChange(
+    features: GeoJSON.Feature<GeoJSON.Point>[],
+  ): void {
+    const active = Boolean(
+      this.selectedProvince ||
+        this.selectedMunicipality ||
+        this.selectedSector,
+    );
+    const selectedProvince = this.provinces.find(
+      (option) => option.code === this.selectedProvince,
+    );
+    const selectedMunicipality = this.municipalities.find(
+      (option) => option.code === this.selectedMunicipality,
+    );
+    const selectedSector = this.sectors.find(
+      (option) => option.code === this.selectedSector,
+    );
+
+    this.locationFilterChange.emit({
+      active,
+      visibleDeviceKeys: active
+        ? features
+            .map((feature) =>
+              String(feature.properties?.['deviceKey'] || '').trim(),
+            )
+            .filter(Boolean)
+        : [],
+      province: selectedProvince?.name || '',
+      municipality: selectedMunicipality?.name || '',
+      sector: selectedSector?.name || '',
+    });
+  }
+
+  private matchesSelectedSector(
+    properties: GeoJSON.GeoJsonProperties,
+  ): boolean {
+    const selectedSector = this.sectors.find(
+      (option) => option.code === this.selectedSector,
+    );
+    if (!selectedSector) {
+      return false;
+    }
+
+    const explicitCode = this.normalizeCode(properties?.['sectorCode']);
+    const numericExplicitCode = Number(explicitCode);
+    const numericSelectedCode = Number(selectedSector.code);
+    if (
+      explicitCode &&
+      (explicitCode === selectedSector.code ||
+        (Number.isFinite(numericExplicitCode) &&
+          Number.isFinite(numericSelectedCode) &&
+          numericExplicitCode === numericSelectedCode))
+    ) {
+      return true;
+    }
+
+    const sectorAliases = this.getSectorSearchAliases(selectedSector.name);
+    if (!sectorAliases.length) {
+      return false;
+    }
+
+    return [properties?.['sectorName'], properties?.['address']].some(
+      (value) => {
+        const normalizedValue = this.normalizeSearchText(value);
+        return sectorAliases.some(
+          (alias) =>
+            normalizedValue === alias || normalizedValue.includes(alias),
+        );
+      },
+    );
+  }
+
+  private getSectorSearchAliases(name: string): string[] {
+    const normalizedName = this.normalizeSearchText(name);
+    if (!normalizedName) {
+      return [];
+    }
+
+    const withoutCommonPrefix = normalizedName.replace(
+      /^(?:barrio|ensanche|urbanizacion|residencial|sector)\s+/,
+      '',
+    );
+    return [...new Set([normalizedName, withoutCommonPrefix])]
+      .filter((alias) => alias.length >= 3);
+  }
+
+  private getDeviceKey(device: any): string {
+    return String(
+      device?._id ||
+        device?.id ||
+        device?.device_imei ||
+        device?.api_device_id ||
+        '',
+    ).trim();
+  }
+
+  private getDeviceAddress(device: any): string {
+    return String(
+      device?.traccarInfo?.lastLocation?.address ||
+        device?.traccarInfo?.geolocation?.address ||
+        device?.lastLocation?.address ||
+        device?.address ||
+        '',
+    ).trim();
+  }
+
+  private getExplicitSectorCode(device: any): string {
+    return this.normalizeCode(
+      device?.sector_code ||
+        device?.sectorCode ||
+        device?.traccarInfo?.lastLocation?.sectorCode ||
+        '',
+    );
+  }
+
+  private getExplicitSectorName(device: any): string {
+    return String(
+      device?.sector_name ||
+        device?.sectorName ||
+        device?.sector ||
+        device?.traccarInfo?.lastLocation?.sector ||
+        '',
+    ).trim();
+  }
+
+  private normalizeSearchText(value: any): string {
+    return String(value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('es')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
   }
 
   private updateStats(mapped: number): void {
@@ -564,6 +811,44 @@ export class MonitoringMapComponent
         municipalityName: boundary?.municipalityName || 'Fuera de cobertura',
       };
     }
+  }
+
+  private assignSectorAreas(
+    features: GeoJSON.Feature<GeoJSON.Point>[],
+  ): void {
+    for (const feature of features) {
+      const coordinates = feature.geometry.coordinates as [number, number];
+      const boundary = this.findSectorBoundary(coordinates);
+      feature.properties = {
+        ...(feature.properties || {}),
+        sectorCode:
+          boundary?.sectorCode ||
+          feature.properties?.['sectorCode'] ||
+          '',
+        sectorIdentifier: boundary?.identifier || '',
+        sectorName:
+          boundary?.sectorName ||
+          feature.properties?.['sectorName'] ||
+          '',
+      };
+    }
+  }
+
+  private findSectorBoundary(
+    point: [number, number],
+  ): SectorBoundary | undefined {
+    return this.sectorBoundaries.find((boundary) => {
+      const [minLng, minLat, maxLng, maxLat] = boundary.bbox;
+      if (
+        point[0] < minLng ||
+        point[0] > maxLng ||
+        point[1] < minLat ||
+        point[1] > maxLat
+      ) {
+        return false;
+      }
+      return this.isPointInGeometry(point, boundary.feature.geometry);
+    });
   }
 
   private findAdministrativeBoundary(
@@ -657,6 +942,39 @@ export class MonitoringMapComponent
     };
   }
 
+  private toSectorBoundary(
+    rawFeature: GeoJSON.Feature,
+  ): SectorBoundary | null {
+    if (
+      !rawFeature?.geometry ||
+      !['Polygon', 'MultiPolygon'].includes(rawFeature.geometry.type)
+    ) {
+      return null;
+    }
+
+    const feature = rawFeature as GeoJSON.Feature<
+      GeoJSON.Polygon | GeoJSON.MultiPolygon,
+      Record<string, any>
+    >;
+    const properties = feature.properties || {};
+    const bbox = this.calculateGeometryBounds(feature.geometry);
+    if (!bbox) {
+      return null;
+    }
+
+    return {
+      feature,
+      provinceCode: this.normalizeCode(properties['PROV']),
+      municipalityCode: this.normalizeCode(properties['MUN']),
+      sectorCode: String(properties['BP'] || '').trim(),
+      identifier: String(
+        properties['ENLACE'] || properties['CODIGO'] || '',
+      ).trim(),
+      sectorName: String(properties['TOPONIMIA'] || '').trim(),
+      bbox,
+    };
+  }
+
   private calculateGeometryBounds(
     geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon,
   ): [number, number, number, number] | null {
@@ -703,6 +1021,10 @@ export class MonitoringMapComponent
   private normalizeCode(value: any): string {
     const code = String(value ?? '').trim();
     return code.length === 1 ? code.padStart(2, '0') : code;
+  }
+
+  private escapeArcGisValue(value: string): string {
+    return String(value || '').replace(/'/g, "''");
   }
 
   private applyFeatures(
@@ -894,6 +1216,7 @@ export class MonitoringMapComponent
       ['Cliente', properties['clientName']],
       ['Provincia', properties['provinceName']],
       ['Municipio', properties['municipalityName']],
+      ['Sector', properties['sectorName']],
       ['Placa', properties['plate']],
       ['IMEI', properties['imei']],
       ['Conexión', properties['connection']],
@@ -923,6 +1246,24 @@ export class MonitoringMapComponent
       return null;
     }
 
+    if (this.selectedSector) {
+      const selectedSectorBounds = this.sectorBoundaries
+        .filter((boundary) => {
+          const sameSectorCode =
+            boundary.sectorCode === this.selectedSector ||
+            Number(boundary.sectorCode) === Number(this.selectedSector);
+          return (
+            boundary.provinceCode === this.selectedProvince &&
+            boundary.municipalityCode === this.selectedMunicipality &&
+            sameSectorCode
+          );
+        })
+        .map((boundary) => boundary.bbox);
+      if (selectedSectorBounds.length) {
+        return this.mergeBounds(selectedSectorBounds);
+      }
+    }
+
     const selectedBoundaries = this.administrativeBoundaries.filter(
       (boundary) =>
         boundary.provinceCode === this.selectedProvince &&
@@ -933,12 +1274,20 @@ export class MonitoringMapComponent
       return null;
     }
 
-    return selectedBoundaries.reduce<[number, number, number, number]>(
+    return this.mergeBounds(
+      selectedBoundaries.map((boundary) => boundary.bbox),
+    );
+  }
+
+  private mergeBounds(
+    bounds: Array<[number, number, number, number]>,
+  ): [number, number, number, number] {
+    return bounds.reduce<[number, number, number, number]>(
       (result, boundary) => [
-        Math.min(result[0], boundary.bbox[0]),
-        Math.min(result[1], boundary.bbox[1]),
-        Math.max(result[2], boundary.bbox[2]),
-        Math.max(result[3], boundary.bbox[3]),
+        Math.min(result[0], boundary[0]),
+        Math.min(result[1], boundary[1]),
+        Math.max(result[2], boundary[2]),
+        Math.max(result[3], boundary[3]),
       ],
       [
         Number.POSITIVE_INFINITY,

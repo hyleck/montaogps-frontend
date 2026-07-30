@@ -54,8 +54,32 @@
         </option>
       </select>
 
+      <label for="monitoring-map-sector">Sector</label>
+      <select
+        id="monitoring-map-sector"
+        [ngModel]="selectedSector"
+        (ngModelChange)="onSectorChange($event)"
+        [disabled]="
+          !selectedMunicipality ||
+          loadingLocationFilters ||
+          loadingMunicipalities ||
+          loadingSectors
+        "
+      >
+        <option value="">
+          {{
+            loadingSectors
+              ? 'Cargando sectores...'
+              : 'Todos los sectores'
+          }}
+        </option>
+        <option *ngFor="let sector of sectors" [value]="sector.code">
+          {{ sector.name }}
+        </option>
+      </select>
+
       <button
-        *ngIf="selectedProvince || selectedMunicipality"
+        *ngIf="selectedProvince || selectedMunicipality || selectedSector"
         type="button"
         class="monitoring-map-clear-filter"
         (click)="clearLocationFilters()"
@@ -66,7 +90,7 @@
 
       <small *ngIf="loadingLocationFilters" class="location-filter-status">
         <i class="pi pi-spin pi-spinner"></i>
-        Preparando provincias y municipios...
+        Preparando provincias, municipios y sectores...
       </small>
       <small *ngIf="locationFilterError" class="location-filter-error">
         {{ locationFilterError }}

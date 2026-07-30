@@ -667,6 +667,7 @@
         id="monitoring-map-view"
         *ngIf="visualizationMode === 'map' && monitoringData.length > 0"
         [data]="selectedMapData || monitoringData"
+        (locationFilterChange)="onMonitoringLocationFilterChange($event)"
       ></app-monitoring-map>
 
       <!-- No users with devices message -->
