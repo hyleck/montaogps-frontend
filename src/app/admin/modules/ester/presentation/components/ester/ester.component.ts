@@ -14,6 +14,7 @@ import {
   EsterKnowledgePayload,
   EsterService,
   EsterSkill,
+  EsterSupervisorSettings,
   EsterWorkflowNode,
   EsterWorkflowRun,
   EsterWorkflowStatus,
@@ -32,6 +33,12 @@ interface EsterKnowledgeForm {
   mediaSize: number | null;
 }
 
+type EsterView =
+  | 'knowledge'
+  | 'skills'
+  | 'supervisor'
+  | 'workflow';
+
 @Component({
   selector: 'app-ester',
   templateUrl: './ester.component.html',
@@ -46,9 +53,16 @@ export class EsterComponent implements OnInit, OnDestroy {
   deletingId = '';
   editingId = '';
   searchTerm = '';
-  activeView: 'knowledge' | 'skills' | 'workflow' = 'knowledge';
+  activeView: EsterView = 'knowledge';
   skills: EsterSkill[] = [];
   skillsLoading = true;
+  supervisorSettings?: EsterSupervisorSettings;
+  supervisorLoading = true;
+  supervisorSaving = false;
+  supervisorForm = {
+    active: true,
+    guidelines: '',
+  };
   private readonly updatingSkillIds = new Set<string>();
   workflowRuns: EsterWorkflowRun[] = [];
   selectedWorkflowRunId = '';
@@ -75,6 +89,7 @@ export class EsterComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadEntries();
     this.loadSkills();
+    this.loadSupervisorSettings();
   }
 
   ngOnDestroy(): void {
@@ -126,7 +141,7 @@ export class EsterComponent implements OnInit, OnDestroy {
     ) || this.workflowRuns[0];
   }
 
-  setActiveView(view: 'knowledge' | 'skills' | 'workflow'): void {
+  setActiveView(view: EsterView): void {
     this.activeView = view;
     if (view === 'workflow' && !this.workflowSubscription) {
       this.startWorkflowPolling();
@@ -137,6 +152,7 @@ export class EsterComponent implements OnInit, OnDestroy {
     const titles = {
       knowledge: 'Base de conocimiento',
       skills: 'Habilidades',
+      supervisor: 'Supervisor',
       workflow: 'Flujo de trabajo',
     };
     return titles[this.activeView];
@@ -148,6 +164,8 @@ export class EsterComponent implements OnInit, OnDestroy {
         'Administra la información que Ester utiliza al responder a los clientes.',
       skills:
         'Controla las capacidades incorporadas en el código de Ester.',
+      supervisor:
+        'Define las pautas que validan cada respuesta antes de enviarla.',
       workflow:
         'Supervisa en vivo cómo Ester procesa y responde cada conversación.',
     };
@@ -285,6 +303,65 @@ export class EsterComponent implements OnInit, OnDestroy {
         );
       },
     });
+  }
+
+  loadSupervisorSettings(): void {
+    this.supervisorLoading = true;
+    this.esterService.getSupervisorSettings().subscribe({
+      next: settings => {
+        this.supervisorSettings = settings;
+        this.supervisorForm = {
+          active: settings.active,
+          guidelines: settings.guidelines || '',
+        };
+        this.supervisorLoading = false;
+      },
+      error: () => {
+        this.supervisorLoading = false;
+        this.notify(
+          'error',
+          'No se pudo cargar la configuración del supervisor.',
+        );
+      },
+    });
+  }
+
+  saveSupervisorSettings(): void {
+    if (this.supervisorSaving) return;
+
+    this.supervisorSaving = true;
+    this.esterService
+      .updateSupervisorSettings({
+        active: this.supervisorForm.active,
+        guidelines: this.supervisorForm.guidelines.trim(),
+      })
+      .subscribe({
+        next: settings => {
+          this.supervisorSettings = settings;
+          this.supervisorForm = {
+            active: settings.active,
+            guidelines: settings.guidelines || '',
+          };
+          this.supervisorSaving = false;
+          this.notify(
+            'success',
+            settings.active
+              ? 'Supervisor actualizado y activo.'
+              : 'Supervisor desactivado.',
+          );
+        },
+        error: () => {
+          this.supervisorSaving = false;
+          this.notify(
+            'error',
+            'No se pudo guardar la configuración del supervisor.',
+          );
+        },
+      });
+  }
+
+  get supervisorGuidelinesCharacters(): number {
+    return this.supervisorForm.guidelines.length;
   }
 
   toggleSkill(skill: EsterSkill): void {
