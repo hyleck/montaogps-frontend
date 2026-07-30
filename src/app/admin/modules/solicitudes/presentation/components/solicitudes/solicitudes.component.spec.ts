@@ -526,6 +526,46 @@ describe('SolicitudesComponent scheduled date editing', () => {
         ]);
     });
 
+    it('loads every backend page before applying the Kanban date range', async () => {
+        const { component, solicitudesService } = createComponent();
+        const allSolicitudes: Solicitud[] = [
+            { _id: 'request-1', type: 'instalacion', status: 'pendiente', scheduled_date: '2026-07-10T08:00' },
+            { _id: 'request-2', type: 'chequeo', status: 'completada', scheduled_date: '2026-07-15T09:00' },
+            { _id: 'request-3', type: 'cambio', status: 'en_progreso', scheduled_date: '2026-07-20T10:00' },
+            { _id: 'request-4', type: 'desinstalacion', status: 'cancelada', scheduled_date: '2026-07-25T11:00' },
+            { _id: 'request-5', type: 'reinstalacion', status: 'por_confirmar', scheduled_date: '2026-08-01T12:00' },
+        ];
+
+        (component.loadSolicitudes as jasmine.Spy).and.callThrough();
+        (component as any).solicitudesPageSize = 2;
+        solicitudesService.getAll.and.callFake((filters: { page?: number; limit?: number }) => {
+            const page = filters.page || 1;
+            const limit = filters.limit || 2;
+            const start = (page - 1) * limit;
+            return of({
+                data: allSolicitudes.slice(start, start + limit),
+                total: allSolicitudes.length,
+            });
+        });
+
+        await component.loadSolicitudes();
+        component.topFilterDateFrom = '2026-07-10';
+        component.topFilterDateTo = '2026-07-25';
+
+        expect(solicitudesService.getAll).toHaveBeenCalledTimes(3);
+        expect(component.solicitudes.length).toBe(5);
+        expect(component.filteredSolicitudes.map(item => item._id)).toEqual([
+            'request-1',
+            'request-2',
+            'request-3',
+            'request-4',
+        ]);
+        expect(component.completadas.map(item => item._id)).toEqual([
+            'request-2',
+            'request-4',
+        ]);
+    });
+
     it('does not hide requests for an invalid date range and clears all filters locally', () => {
         const { component, solicitudesService } = createComponent();
         component.solicitudes = [

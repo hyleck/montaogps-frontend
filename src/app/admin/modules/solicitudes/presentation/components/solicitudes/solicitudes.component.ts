@@ -258,6 +258,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     loading = false;
     totalItems = 0;
     currentPage = 1;
+    private readonly solicitudesPageSize = 500;
+    private solicitudesLoadSequence = 0;
     private readonly realtimeRefreshMs = 5000;
     private realtimeRefreshTimer?: ReturnType<typeof setInterval>;
     private realtimeStateVersion = '';
@@ -481,6 +483,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.solicitudesLoadSequence += 1;
         this.stopRealtimeRefresh();
         this.clearSolicitudStartedToastTimer();
         if (this.clientSearchTimer) {
@@ -670,36 +673,74 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
     }
 
-    loadSolicitudes(resetPage = true, options: { silent?: boolean } = {}): void {
+    async loadSolicitudes(resetPage = true, options: { silent?: boolean } = {}): Promise<void> {
         if (resetPage) this.currentPage = 1;
         const silent = options.silent === true;
+        const loadSequence = ++this.solicitudesLoadSequence;
         if (!silent) {
             this.loading = true;
         }
-        this.solicitudesService.getAll({
-            type: this.filterType || undefined,
-            status: this.filterStatus || undefined,
-            search: this.searchQuery || undefined,
-            page: this.currentPage,
-            limit: 20
-        }).subscribe({
-            next: (response: { data: Solicitud[]; total: number }) => {
-                this.detectSolicitudesStarted(response.data, silent);
-                this.solicitudes = response.data;
-                this.totalItems = response.total;
-                if (!silent) {
-                    this.loading = false;
+
+        try {
+            const solicitudes: Solicitud[] = [];
+            let page = 1;
+            let loadedRecords = 0;
+            let total = 0;
+
+            do {
+                const response = await firstValueFrom(this.solicitudesService.getAll({
+                    type: this.filterType || undefined,
+                    status: this.filterStatus || undefined,
+                    search: this.searchQuery || undefined,
+                    page,
+                    limit: this.solicitudesPageSize
+                }));
+
+                if (loadSequence !== this.solicitudesLoadSequence) {
+                    return;
                 }
-                this.loadModelNamesForTable();
-                this.resolveUserNames();
-            },
-            error: () => {
-                if (!silent) {
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar las solicitudes' });
-                    this.loading = false;
+
+                const pageData = response?.data || [];
+                total = Number(response?.total) || 0;
+                solicitudes.push(...pageData);
+                loadedRecords += pageData.length;
+
+                if (!pageData.length) {
+                    break;
                 }
+                page += 1;
+            } while (loadedRecords < total);
+
+            const uniqueSolicitudes = new Map<string, Solicitud>();
+            solicitudes.forEach((solicitud, index) => {
+                uniqueSolicitudes.set(
+                    solicitud._id || `solicitud-sin-id-${index}`,
+                    solicitud
+                );
+            });
+            const completeData = [...uniqueSolicitudes.values()];
+
+            this.detectSolicitudesStarted(completeData, silent);
+            this.solicitudes = completeData;
+            this.totalItems = total;
+            void this.loadModelNamesForTable();
+            this.resolveUserNames();
+        } catch {
+            if (loadSequence !== this.solicitudesLoadSequence) {
+                return;
             }
-        });
+            if (!silent) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Error',
+                    detail: 'No se pudieron cargar las solicitudes'
+                });
+            }
+        } finally {
+            if (loadSequence === this.solicitudesLoadSequence && !silent) {
+                this.loading = false;
+            }
+        }
     }
 
     private detectSolicitudesStarted(nextSolicitudes: Solicitud[], silent: boolean): void {
