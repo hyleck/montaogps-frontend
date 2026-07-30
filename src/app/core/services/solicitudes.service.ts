@@ -24,6 +24,7 @@ export interface InstallationDetail {
     latitude?: number;
     longitude?: number;
     google_maps_url?: string;
+    location_address?: string;
     installation_location?: string;
     scheduled_date?: string | Date;
     engine_shutdown?: string;
@@ -65,6 +66,7 @@ export interface Solicitud {
     latitude?: number;
     longitude?: number;
     google_maps_url?: string;
+    location_address?: string;
     mechanic_id?: string;
     scheduled_date?: string | Date;
     confirmation_permission?: string;

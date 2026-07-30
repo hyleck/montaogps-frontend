@@ -753,6 +753,15 @@
 
         <div class="static-location-methods" role="group" aria-label="Forma de configurar la ubicación">
             <button type="button" class="static-location-method"
+                [class.static-location-method--active]="staticLocationMethod === 'search'"
+                (click)="selectStaticLocationMethod('search')">
+                <span class="static-location-method__icon"><i class="pi pi-search"></i></span>
+                <span class="static-location-method__copy">
+                    <strong>Buscar en Google Maps</strong>
+                    <small>Negocios, ciudades, direcciones y lugares.</small>
+                </span>
+            </button>
+            <button type="button" class="static-location-method"
                 [class.static-location-method--active]="staticLocationMethod === 'coordinates'"
                 (click)="selectStaticLocationMethod('coordinates')">
                 <span class="static-location-method__icon"><i class="pi pi-compass"></i></span>
@@ -771,6 +780,85 @@
                 </span>
             </button>
         </div>
+
+        <section class="static-location-option static-location-option--search"
+            *ngIf="staticLocationMethod === 'search'">
+            <div class="static-location-option__title">
+                <i class="pi pi-map-marker"></i>
+                <span>Buscar una ubicación</span>
+            </div>
+
+            <div class="static-location-search-box">
+                <i class="pi pi-search static-location-search-box__leading"></i>
+                <input #staticLocationSearchInput
+                    type="search"
+                    class="static-location-search"
+                    [(ngModel)]="staticLocationManualAddress"
+                    name="staticLocationManualAddress"
+                    autocomplete="off"
+                    spellcheck="false"
+                    aria-label="Buscar negocios, ciudades, direcciones y lugares en Google Maps"
+                    aria-autocomplete="list"
+                    [attr.aria-expanded]="staticLocationSuggestions.length > 0"
+                    aria-controls="staticLocationSuggestions"
+                    placeholder="Busca un negocio, ciudad, dirección o lugar"
+                    (ngModelChange)="onStaticLocationSearchInput($event)"
+                    (keydown)="onStaticLocationSearchKeydown($event)" />
+                <i *ngIf="searchingStaticLocation"
+                    class="pi pi-spin pi-spinner static-location-search-box__trailing"
+                    aria-label="Buscando"></i>
+                <button *ngIf="!searchingStaticLocation && staticLocationManualAddress"
+                    type="button"
+                    class="static-location-search-box__clear"
+                    aria-label="Limpiar búsqueda"
+                    (click)="clearStaticLocationSearch()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+
+            <small class="static-location-help">
+                Escribe al menos 3 caracteres. La búsqueda se realizará 3 segundos después de que dejes de escribir.
+            </small>
+
+            <div class="static-location-search-status" *ngIf="searchingStaticLocation" aria-live="polite">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Buscando lugares en Google Maps...</span>
+            </div>
+
+            <div id="staticLocationSuggestions"
+                class="static-location-suggestions"
+                role="listbox"
+                aria-label="Sugerencias de Google Maps"
+                *ngIf="!searchingStaticLocation && staticLocationSuggestions.length">
+                <button type="button"
+                    class="static-location-suggestion"
+                    role="option"
+                    *ngFor="let suggestion of staticLocationSuggestions"
+                    (click)="selectStaticLocationSuggestion(suggestion)">
+                    <i class="pi pi-map-marker"></i>
+                    <span>
+                        <strong>{{ suggestion.mainText }}</strong>
+                        <small *ngIf="suggestion.secondaryText">{{ suggestion.secondaryText }}</small>
+                    </span>
+                    <i class="pi pi-angle-right static-location-suggestion__arrow"></i>
+                </button>
+                <div class="static-location-google-attribution">Resultados de Google Maps</div>
+            </div>
+
+            <div class="static-location-search-status static-location-search-status--empty"
+                *ngIf="!searchingStaticLocation && staticLocationSearchAttempted && !staticLocationSearchUnavailable && !staticLocationSuggestions.length"
+                aria-live="polite">
+                <i class="pi pi-info-circle"></i>
+                <span>No encontramos resultados. Prueba escribiendo el nombre completo o agrega la ciudad.</span>
+            </div>
+
+            <div class="static-location-search-status static-location-search-status--error"
+                *ngIf="!searchingStaticLocation && staticLocationSearchUnavailable"
+                aria-live="polite">
+                <i class="pi pi-exclamation-triangle"></i>
+                <span>No se pudo conectar con Google Maps. Intenta nuevamente.</span>
+            </div>
+        </section>
 
         <section class="static-location-option" *ngIf="staticLocationMethod === 'coordinates'">
             <div class="static-location-option__title">
@@ -986,7 +1074,7 @@
     }
     .static-location-methods {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.65rem;
     }
     .static-location-method {
@@ -1071,6 +1159,54 @@
     }
     .static-location-option__title i {
         color: #dc3545;
+    }
+    .static-location-option--search {
+        position: relative;
+        z-index: 2;
+    }
+    .static-location-search-box {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    .static-location-search-box__leading {
+        position: absolute;
+        left: 0.85rem;
+        z-index: 1;
+        color: #dc3545;
+        pointer-events: none;
+    }
+    .static-location-search-box .static-location-search {
+        box-sizing: border-box;
+        min-height: 46px;
+        padding-left: 2.55rem;
+        padding-right: 2.7rem;
+        font-size: 0.86rem;
+    }
+    .static-location-search::-webkit-search-cancel-button {
+        display: none;
+    }
+    .static-location-search-box__trailing {
+        position: absolute;
+        right: 0.9rem;
+        color: #dc3545;
+    }
+    .static-location-search-box__clear {
+        position: absolute;
+        right: 0.5rem;
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
+        color: #667085;
+        cursor: pointer;
+    }
+    .static-location-search-box__clear:hover {
+        background: #eef2f7;
+        color: #182033;
     }
     .static-location-field {
         display: flex;
@@ -1179,13 +1315,25 @@
         align-items: center;
         gap: 0.45rem;
         margin-top: 0.55rem;
+        border-radius: 9px;
+        padding: 0.58rem 0.65rem;
+        background: #f8fafc;
         color: #667085;
         font-size: 0.76rem;
+    }
+    .static-location-search-status--empty {
+        color: #596579;
+    }
+    .static-location-search-status--error {
+        background: #fff1f2;
+        color: #c92f3e;
     }
     .static-location-suggestions {
         display: flex;
         flex-direction: column;
         gap: 0.25rem;
+        max-height: 290px;
+        overflow-y: auto;
         margin-top: 0.55rem;
         padding: 0.3rem;
         border: 1px solid #e0e5ed;
@@ -1210,6 +1358,11 @@
     .static-location-suggestion:hover {
         background: #fff3f4;
     }
+    .static-location-suggestion:focus-visible {
+        outline: 2px solid #dc3545;
+        outline-offset: -2px;
+        background: #fff3f4;
+    }
     .static-location-suggestion > i {
         flex: 0 0 auto;
         color: #dc3545;
@@ -1232,6 +1385,18 @@
     .static-location-suggestion small {
         color: #7a8496;
         font-size: 0.7rem;
+    }
+    .static-location-suggestion .static-location-suggestion__arrow {
+        margin-left: auto;
+        color: #98a2b3;
+    }
+    .static-location-google-attribution {
+        padding: 0.4rem 0.65rem 0.25rem;
+        border-top: 1px solid #edf0f4;
+        color: #7a8496;
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-align: right;
     }
     .static-location-current {
         display: grid;
@@ -1360,7 +1525,7 @@
             flex-direction: column;
         }
         .static-location-methods {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: 1fr;
         }
         .static-location-options,
         .static-location-current,
@@ -1375,12 +1540,6 @@
         }
     }
     @media (max-width: 420px) {
-        .static-location-methods {
-            grid-template-columns: 1fr;
-        }
-        .static-location-method:last-child {
-            grid-column: auto;
-        }
         .static-location-method {
             min-height: 74px;
             flex-direction: row;

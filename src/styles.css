@@ -1589,7 +1589,9 @@ html.app-dark .static-location-dialog .static-location-method__icon {
 html.app-dark .static-location-dialog .static-location-modal__intro span,
 html.app-dark .static-location-dialog .static-location-method__copy small,
 html.app-dark .static-location-dialog .static-location-help,
-html.app-dark .static-location-dialog .static-location-current span {
+html.app-dark .static-location-dialog .static-location-current span,
+html.app-dark .static-location-dialog .static-location-suggestion small,
+html.app-dark .static-location-dialog .static-location-google-attribution {
     color: #aeb5c1 !important;
 }
 
@@ -1635,6 +1637,44 @@ html.app-dark .static-location-dialog .static-location-coordinates input:focus {
     border-color: #ff5b68 !important;
     background: #292c33 !important;
     box-shadow: 0 0 0 3px rgba(255, 91, 104, 0.12) !important;
+}
+
+html.app-dark .static-location-dialog .static-location-search-box__clear {
+    color: #aeb5c1 !important;
+}
+
+html.app-dark .static-location-dialog .static-location-search-box__clear:hover {
+    background: #3a3e46 !important;
+    color: #f8fafc !important;
+}
+
+html.app-dark .static-location-dialog .static-location-suggestions {
+    border-color: #484c56 !important;
+    background: #25282e !important;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34) !important;
+}
+
+html.app-dark .static-location-dialog .static-location-suggestion {
+    color: #eef1f6 !important;
+}
+
+html.app-dark .static-location-dialog .static-location-suggestion:hover,
+html.app-dark .static-location-dialog .static-location-suggestion:focus-visible {
+    background: #3c2d31 !important;
+}
+
+html.app-dark .static-location-dialog .static-location-google-attribution {
+    border-top-color: #41454e !important;
+}
+
+html.app-dark .static-location-dialog .static-location-search-status {
+    background: #292c33 !important;
+    color: #b9c0cb !important;
+}
+
+html.app-dark .static-location-dialog .static-location-search-status--error {
+    background: #3c2d31 !important;
+    color: #ff8a94 !important;
 }
 
 html.app-dark .static-location-dialog .static-location-current {

@@ -26,6 +26,7 @@ interface StaticLocationSuggestion {
     placeId: string;
     mainText: string;
     secondaryText: string;
+    placePrediction?: any;
 }
 
 import {
@@ -171,7 +172,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     userLocationMarker: any;
     staticLocationManualAddress: string = '';
     staticLocationGoogleMapsLink: string = '';
-    staticLocationMethod: StaticLocationMethod = 'coordinates';
+    staticLocationMethod: StaticLocationMethod = 'search';
     staticLatitudeInput: number | null = null;
     staticLongitudeInput: number | null = null;
     loadingStaticLocation: boolean = false;
@@ -182,8 +183,11 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     staticLocationPreviewMarker: any;
     staticLocationSuggestions: StaticLocationSuggestion[] = [];
     searchingStaticLocation: boolean = false;
+    staticLocationSearchAttempted: boolean = false;
+    staticLocationSearchUnavailable: boolean = false;
     private staticLocationSearch$ = new Subject<string>();
     private staticLocationAutocompleteService: any;
+    private staticLocationAutocompleteSessionToken: any;
     private staticLocationSearchRequestId: number = 0;
     
     selectedProvince: string = '';
@@ -1748,7 +1752,10 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     onStaticLocationModalShow(): void {
         if (this.staticLocationMethod === 'search') {
-            setTimeout(() => void this.initializeStaticLocationSearch());
+            setTimeout(() => {
+                void this.initializeStaticLocationSearch();
+                this.staticLocationSearchInput?.nativeElement?.focus();
+            });
         } else if (this.staticLocationMethod === 'coordinates') {
             setTimeout(() => void this.initStaticCoordinatePickerMap());
         }
@@ -2019,12 +2026,23 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     private setupStaticLocationAutocomplete(): void {
         if (typeof google === 'undefined' || !google.maps?.places) return;
-        this.staticLocationAutocompleteService ??= new google.maps.places.AutocompleteService();
+        if (google.maps.places.AutocompleteService) {
+            this.staticLocationAutocompleteService ??= new google.maps.places.AutocompleteService();
+        }
+        if (
+            !this.staticLocationAutocompleteSessionToken &&
+            google.maps.places.AutocompleteSessionToken
+        ) {
+            this.staticLocationAutocompleteSessionToken =
+                new google.maps.places.AutocompleteSessionToken();
+        }
     }
 
     onStaticLocationSearchInput(value: string): void {
         const query = String(value || '').trim();
         this.staticLocationSuggestions = [];
+        this.staticLocationSearchAttempted = false;
+        this.staticLocationSearchUnavailable = false;
         this.searchingStaticLocation = query.length >= 3;
         this.staticLocationSearchRequestId++;
 
@@ -2040,12 +2058,26 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         const currentQuery = String(this.staticLocationManualAddress || '').trim();
         if (query !== currentQuery || query.length < 3) return;
 
-        if (!this.staticLocationAutocompleteService) {
+        if (
+            typeof google === 'undefined' ||
+            !google.maps?.places ||
+            (
+                !google.maps.places.AutocompleteSuggestion?.fetchAutocompleteSuggestions &&
+                !this.staticLocationAutocompleteService
+            )
+        ) {
             await this.initializeStaticLocationSearch();
         }
 
-        if (!this.staticLocationAutocompleteService) {
+        const autocompleteSuggestion = google?.maps?.places?.AutocompleteSuggestion;
+        if (
+            !autocompleteSuggestion?.fetchAutocompleteSuggestions &&
+            !this.staticLocationAutocompleteService
+        ) {
             this.searchingStaticLocation = false;
+            this.staticLocationSearchAttempted = true;
+            this.staticLocationSearchUnavailable = true;
+            this.cdr.detectChanges();
             return;
         }
 
@@ -2054,13 +2086,16 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             input: query,
             language: 'es',
             region: 'do',
+            // Favorece resultados dominicanos sin excluir lugares de otros países.
             locationBias: {
-                center: { lat: 18.7357, lng: -70.1627 },
-                radius: 300000
-            }
+                west: -72.2,
+                south: 17.3,
+                east: -68.0,
+                north: 20.2
+            },
+            sessionToken: this.staticLocationAutocompleteSessionToken
         };
 
-        const autocompleteSuggestion = google.maps.places.AutocompleteSuggestion;
         if (autocompleteSuggestion?.fetchAutocompleteSuggestions) {
             try {
                 const response = await autocompleteSuggestion.fetchAutocompleteSuggestions(request);
@@ -2079,16 +2114,26 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                             description,
                             placeId: prediction?.placeId || '',
                             mainText: prediction?.mainText?.toString?.() || description,
-                            secondaryText: prediction?.secondaryText?.toString?.() || ''
+                            secondaryText: prediction?.secondaryText?.toString?.() || '',
+                            placePrediction: prediction
                         };
                     })
                     .filter((suggestion: StaticLocationSuggestion) => suggestion.description && suggestion.placeId);
                 this.searchingStaticLocation = false;
+                this.staticLocationSearchAttempted = true;
                 this.cdr.detectChanges();
                 return;
             } catch (error) {
                 console.warn('La API nueva de sugerencias no respondió; se usará la API compatible.', error);
             }
+        }
+
+        if (!this.staticLocationAutocompleteService) {
+            this.searchingStaticLocation = false;
+            this.staticLocationSearchAttempted = true;
+            this.staticLocationSearchUnavailable = true;
+            this.cdr.detectChanges();
+            return;
         }
 
         this.staticLocationAutocompleteService.getPlacePredictions(request, (predictions: any[] | null, status: any) => {
@@ -2100,7 +2145,10 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             }
 
             const okStatus = google.maps.places.PlacesServiceStatus?.OK || 'OK';
-            this.staticLocationSuggestions = status === okStatus && predictions
+            const zeroResultsStatus =
+                google.maps.places.PlacesServiceStatus?.ZERO_RESULTS || 'ZERO_RESULTS';
+            const requestSucceeded = status === okStatus;
+            this.staticLocationSuggestions = requestSucceeded && predictions
                 ? predictions.map(prediction => ({
                     description: prediction.description,
                     placeId: prediction.place_id,
@@ -2109,26 +2157,52 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 }))
                 : [];
             this.searchingStaticLocation = false;
+            this.staticLocationSearchAttempted = true;
+            this.staticLocationSearchUnavailable =
+                !requestSucceeded && status !== zeroResultsStatus;
             this.cdr.detectChanges();
         });
     }
 
-    selectStaticLocationSuggestion(suggestion: StaticLocationSuggestion): void {
+    async selectStaticLocationSuggestion(suggestion: StaticLocationSuggestion): Promise<void> {
         if (typeof google === 'undefined' || !suggestion?.placeId) return;
 
         this.staticLocationManualAddress = suggestion.description;
         this.staticLocationSuggestions = [];
+        this.staticLocationSearchAttempted = false;
+        this.staticLocationSearchUnavailable = false;
         this.searchingStaticLocation = true;
         this.staticLocationSearchRequestId++;
 
+        if (suggestion.placePrediction?.toPlace) {
+            try {
+                const place = suggestion.placePrediction.toPlace();
+                await place.fetchFields({
+                    fields: ['displayName', 'formattedAddress', 'location', 'googleMapsURI']
+                });
+                if (place.location) {
+                    const lat = place.location.lat();
+                    const lng = place.location.lng();
+                    this.setStaticLocationPoint(lat, lng, suggestion.description);
+                    const googleMapsUrl =
+                        place.googleMapsURI || this.buildGoogleMapsLink(lat, lng);
+                    this.user.static_location_url = googleMapsUrl;
+                    this.staticLocationGoogleMapsLink = googleMapsUrl;
+                    this.finishStaticLocationSelection();
+                    return;
+                }
+            } catch (error) {
+                console.warn('No fue posible cargar el detalle moderno del lugar; se usará geocodificación.', error);
+            }
+        }
+
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ placeId: suggestion.placeId }, (results: any[], status: any) => {
-            this.searchingStaticLocation = false;
             if (status === 'OK' && results?.[0]?.geometry?.location) {
                 const result = results[0];
                 const lat = result.geometry.location.lat();
                 const lng = result.geometry.location.lng();
-                this.setStaticLocationPoint(lat, lng, result.formatted_address || suggestion.description);
+                this.setStaticLocationPoint(lat, lng, suggestion.description || result.formatted_address);
                 this.user.static_location_url = this.buildGoogleMapsLink(lat, lng);
                 this.staticLocationGoogleMapsLink = this.user.static_location_url;
             } else {
@@ -2138,8 +2212,37 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                     detail: 'No fue posible obtener las coordenadas de la ubicación seleccionada.'
                 });
             }
-            this.cdr.detectChanges();
+            this.finishStaticLocationSelection();
         });
+    }
+
+    onStaticLocationSearchKeydown(event: KeyboardEvent): void {
+        if (event.key === 'Escape') {
+            this.staticLocationSuggestions = [];
+            return;
+        }
+
+        if (event.key === 'Enter' && this.staticLocationSuggestions.length) {
+            event.preventDefault();
+            void this.selectStaticLocationSuggestion(this.staticLocationSuggestions[0]);
+        }
+    }
+
+    clearStaticLocationSearch(): void {
+        this.staticLocationManualAddress = '';
+        this.staticLocationSuggestions = [];
+        this.staticLocationSearchAttempted = false;
+        this.staticLocationSearchUnavailable = false;
+        this.searchingStaticLocation = false;
+        this.staticLocationSearchRequestId++;
+        this.staticLocationSearchInput?.nativeElement?.focus();
+    }
+
+    private finishStaticLocationSelection(): void {
+        this.searchingStaticLocation = false;
+        this.staticLocationAutocompleteSessionToken = null;
+        this.setupStaticLocationAutocomplete();
+        this.cdr.detectChanges();
     }
 
     applyStaticManualAddress(): void {
@@ -2211,6 +2314,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         this.staticLatitudeInput = null;
         this.staticLongitudeInput = null;
         this.staticLocationSuggestions = [];
+        this.staticLocationSearchAttempted = false;
+        this.staticLocationSearchUnavailable = false;
         this.searchingStaticLocation = false;
         this.staticLocationSearchRequestId++;
         if (this.staticLocationSearchInput?.nativeElement) {

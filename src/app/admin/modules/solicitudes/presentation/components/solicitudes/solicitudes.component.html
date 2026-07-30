@@ -486,11 +486,20 @@
             <i class="pi pi-map-marker"></i>
             <div>
                 <strong>¿Cómo deseas colocar la ubicación?</strong>
-                <span>Escribe las coordenadas, selecciona el punto en el mapa o pega un enlace de Google Maps.</span>
+                <span>Busca un lugar en Google Maps, escribe las coordenadas, selecciona el punto o pega un enlace.</span>
             </div>
         </div>
 
         <div class="sol-location-config-methods">
+            <button type="button"
+                [class.active]="locationConfigMethod === 'search'"
+                (click)="selectSolicitudLocationMethod('search')">
+                <span class="sol-location-config-method__icon"><i class="pi pi-search"></i></span>
+                <span>
+                    <strong>Buscar en Google Maps</strong>
+                    <small>Negocios, ciudades, direcciones y lugares.</small>
+                </span>
+            </button>
             <button type="button"
                 [class.active]="locationConfigMethod === 'coordinates'"
                 (click)="selectSolicitudLocationMethod('coordinates')">
@@ -510,6 +519,85 @@
                 </span>
             </button>
         </div>
+
+        <section class="sol-location-config-option sol-location-config-option--search"
+            *ngIf="locationConfigMethod === 'search'">
+            <div class="sol-location-config-option__title">
+                <i class="pi pi-map-marker"></i>
+                <span>Buscar una ubicación</span>
+            </div>
+
+            <div class="sol-location-search-box">
+                <i class="pi pi-search sol-location-search-box__leading"></i>
+                <input #solicitudLocationSearchInput
+                    type="search"
+                    [(ngModel)]="locationConfigSearchQuery"
+                    autocomplete="off"
+                    spellcheck="false"
+                    aria-label="Buscar negocios, ciudades, direcciones y lugares en Google Maps"
+                    aria-autocomplete="list"
+                    [attr.aria-expanded]="locationConfigSuggestions.length > 0"
+                    aria-controls="solicitudLocationSuggestions"
+                    placeholder="Busca un negocio, ciudad, dirección o lugar"
+                    (ngModelChange)="onSolicitudLocationSearchInput($event)"
+                    (keydown)="onSolicitudLocationSearchKeydown($event)" />
+                <i *ngIf="locationConfigSearching"
+                    class="pi pi-spin pi-spinner sol-location-search-box__trailing"
+                    aria-label="Buscando"></i>
+                <button *ngIf="!locationConfigSearching && locationConfigSearchQuery"
+                    type="button"
+                    class="sol-location-search-box__clear"
+                    aria-label="Limpiar búsqueda"
+                    (click)="clearSolicitudLocationSearch()">
+                    <i class="pi pi-times"></i>
+                </button>
+            </div>
+
+            <small class="sol-location-config-help">
+                Escribe al menos 3 caracteres. Google buscará 3 segundos después de que dejes de escribir.
+            </small>
+
+            <div class="sol-location-search-status"
+                *ngIf="locationConfigSearching"
+                aria-live="polite">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Buscando lugares en Google Maps...</span>
+            </div>
+
+            <div id="solicitudLocationSuggestions"
+                class="sol-location-suggestions"
+                role="listbox"
+                aria-label="Sugerencias de Google Maps"
+                *ngIf="!locationConfigSearching && locationConfigSuggestions.length">
+                <button type="button"
+                    class="sol-location-suggestion"
+                    role="option"
+                    *ngFor="let suggestion of locationConfigSuggestions"
+                    (click)="selectSolicitudLocationSuggestion(suggestion)">
+                    <i class="pi pi-map-marker"></i>
+                    <span>
+                        <strong>{{ suggestion.mainText }}</strong>
+                        <small *ngIf="suggestion.secondaryText">{{ suggestion.secondaryText }}</small>
+                    </span>
+                    <i class="pi pi-angle-right sol-location-suggestion__arrow"></i>
+                </button>
+                <div class="sol-location-google-attribution">Resultados de Google Maps</div>
+            </div>
+
+            <div class="sol-location-search-status"
+                *ngIf="!locationConfigSearching && locationConfigSearchAttempted && !locationConfigSearchUnavailable && !locationConfigSuggestions.length"
+                aria-live="polite">
+                <i class="pi pi-info-circle"></i>
+                <span>No encontramos resultados. Prueba con el nombre completo o agrega la ciudad.</span>
+            </div>
+
+            <div class="sol-location-search-status sol-location-search-status--error"
+                *ngIf="!locationConfigSearching && locationConfigSearchUnavailable"
+                aria-live="polite">
+                <i class="pi pi-exclamation-triangle"></i>
+                <span>No se pudo conectar con Google Maps. Intenta nuevamente.</span>
+            </div>
+        </section>
 
         <section class="sol-location-config-option" *ngIf="locationConfigMethod === 'coordinates'">
             <div class="sol-location-config-option__title">
@@ -639,6 +727,10 @@
         </section>
 
         <div class="sol-location-config-current">
+            <div class="sol-location-config-current__address">
+                <span>Dirección</span>
+                <strong>{{ locationConfigSelectedAddress || 'Sin dirección seleccionada' }}</strong>
+            </div>
             <div>
                 <span>Zona</span>
                 <strong>{{ solicitudLocationZoneLabel }}</strong>

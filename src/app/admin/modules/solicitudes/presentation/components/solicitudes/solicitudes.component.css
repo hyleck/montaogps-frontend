@@ -3970,7 +3970,7 @@ app-solicitudes > .management__route {
 
 .sol-location-config-methods {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.65rem;
 }
 
@@ -4033,6 +4033,172 @@ app-solicitudes > .management__route {
 
 .sol-location-config-option__title i {
     color: #dc3545;
+}
+
+.sol-location-config-option--search {
+    position: relative;
+    z-index: 2;
+}
+
+.sol-location-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.sol-location-search-box__leading {
+    position: absolute;
+    left: 0.85rem;
+    z-index: 1;
+    color: #dc3545;
+    pointer-events: none;
+}
+
+.sol-location-search-box > input {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid #dce1e9;
+    border-radius: 10px;
+    padding: 0.65rem 2.7rem 0.65rem 2.55rem;
+    background: #f8f9fc;
+    color: #273244;
+    font: inherit;
+    font-size: 0.82rem;
+    outline: none;
+}
+
+.sol-location-search-box > input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.sol-location-search-box > input:focus {
+    border-color: #dc3545;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.sol-location-search-box__trailing {
+    position: absolute;
+    right: 0.9rem;
+    color: #dc3545;
+}
+
+.sol-location-search-box__clear {
+    position: absolute;
+    right: 0.5rem;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #667085;
+    cursor: pointer;
+}
+
+.sol-location-search-box__clear:hover {
+    background: #eef2f7;
+    color: #182033;
+}
+
+.sol-location-search-status {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+    border-radius: 9px;
+    padding: 0.58rem 0.65rem;
+    background: #f8fafc;
+    color: #667085;
+    font-size: 0.74rem;
+}
+
+.sol-location-search-status--error {
+    background: #fff1f2;
+    color: #c92f3e;
+}
+
+.sol-location-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-height: 290px;
+    overflow-y: auto;
+    margin-top: 0.55rem;
+    padding: 0.3rem;
+    border: 1px solid #e0e5ed;
+    border-radius: 11px;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.sol-location-suggestion {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    border: 0;
+    border-radius: 8px;
+    padding: 0.65rem 0.7rem;
+    background: transparent;
+    color: #273244;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.sol-location-suggestion:hover,
+.sol-location-suggestion:focus-visible {
+    background: #fff3f4;
+}
+
+.sol-location-suggestion:focus-visible {
+    outline: 2px solid #dc3545;
+    outline-offset: -2px;
+}
+
+.sol-location-suggestion > i {
+    flex: 0 0 auto;
+    color: #dc3545;
+}
+
+.sol-location-suggestion > span {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.16rem;
+}
+
+.sol-location-suggestion strong,
+.sol-location-suggestion small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sol-location-suggestion strong {
+    font-size: 0.79rem;
+}
+
+.sol-location-suggestion small {
+    color: #7a8496;
+    font-size: 0.69rem;
+}
+
+.sol-location-suggestion .sol-location-suggestion__arrow {
+    margin-left: auto;
+    color: #98a2b3;
+}
+
+.sol-location-google-attribution {
+    padding: 0.4rem 0.65rem 0.25rem;
+    border-top: 1px solid #edf0f4;
+    color: #7a8496;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-align: right;
 }
 
 .sol-location-config-coordinates {
@@ -4161,6 +4327,10 @@ app-solicitudes > .management__route {
     gap: 0.18rem;
 }
 
+.sol-location-config-current__address {
+    grid-column: 1 / -1;
+}
+
 .sol-location-config-current strong {
     overflow: hidden;
     color: #273244;
@@ -4236,10 +4406,60 @@ html.app-dark .sol-location-config-map-header div {
 html.app-dark .sol-location-config-coordinates input,
 html.app-dark .sol-location-config-link input,
 html.app-dark .sol-location-config-zone__grid select,
+html.app-dark .sol-location-search-box > input,
 html.app-dark .sol-location-config-current {
     border-color: #343c4a;
     background: #181d26;
     color: #d7dce5;
+}
+
+html.app-dark .sol-location-search-box > input:focus {
+    border-color: #ff6673;
+    background: #202631;
+    box-shadow: 0 0 0 3px rgba(255, 102, 115, 0.12);
+}
+
+html.app-dark .sol-location-search-box__clear {
+    color: #aeb7c5;
+}
+
+html.app-dark .sol-location-search-box__clear:hover {
+    background: #303846;
+    color: #ffffff;
+}
+
+html.app-dark .sol-location-suggestions {
+    border-color: #343c4a;
+    background: #181d26;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+}
+
+html.app-dark .sol-location-suggestion {
+    color: #f4f6fa;
+}
+
+html.app-dark .sol-location-suggestion:hover,
+html.app-dark .sol-location-suggestion:focus-visible {
+    background: #322129;
+}
+
+html.app-dark .sol-location-suggestion small,
+html.app-dark .sol-location-google-attribution {
+    color: #aeb7c5;
+}
+
+html.app-dark .sol-location-google-attribution {
+    border-top-color: #343c4a;
+}
+
+html.app-dark .sol-location-search-status {
+    background: #181d26;
+    color: #aeb7c5;
+}
+
+html.app-dark .sol-location-search-status--error {
+    background: #322129;
+    color: #ff8792;
 }
 
 html.app-dark .sol-location-config-methods > button.active {
