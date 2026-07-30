@@ -85,6 +85,7 @@
                             <div class="comm-contact__last-msg">{{ getCleanPreview(conv.last_message) }}</div>
                             <div class="comm-contact__assignee"
                                 [class.comm-contact__assignee--ester]="!conv.assignee_id"
+                                [class.comm-contact__assignee--ester-disabled]="isEsterAutoReplyDisabled(conv)"
                                 [class.comm-contact__assignee--mine]="isConversationAssignedToMe(conv)">
                                 <i class="pi" [ngClass]="conv.assignee_id ? 'pi-user' : 'pi-bolt'"></i>
                                 <span *ngIf="conv.assignee_id && conv.assignee_online"
@@ -495,16 +496,27 @@
             <div *ngIf="!isConversationAssignedToMe(selectedConversation)"
                 class="comm-managed-banner"
                 [class.comm-managed-banner--ester]="!selectedConversation.assignee_id"
+                [class.comm-managed-banner--ester-disabled]="isEsterAutoReplyDisabled(selectedConversation)"
                 [class.comm-managed-banner--employee]="!!selectedConversation.assignee_id">
                 <div class="comm-managed-banner__content">
                     <span class="comm-managed-banner__icon">
-                        <i [class]="selectedConversation.assignee_id ? 'pi pi-user' : 'pi pi-bolt'"></i>
+                        <i [class]="selectedConversation.assignee_id
+                            ? 'pi pi-user'
+                            : isEsterAutoReplyDisabled(selectedConversation)
+                                ? 'pi pi-ban'
+                                : 'pi pi-bolt'"></i>
                     </span>
-                    <strong class="comm-managed-banner__title">Gestionado por {{ getConversationManagerLabel(selectedConversation) }}</strong>
+                    <strong class="comm-managed-banner__title">
+                        {{ isEsterAutoReplyDisabled(selectedConversation)
+                            ? 'Ester Assistant está desactivada'
+                            : 'Gestionado por ' + getConversationManagerLabel(selectedConversation) }}
+                    </strong>
                     <span class="comm-managed-banner__description">
                         {{ selectedConversation.assignee_id
                             ? 'Esta conversación está asignada a otro empleado.'
-                            : 'Esta conversación está siendo atendida de forma automática.' }}
+                            : isEsterAutoReplyDisabled(selectedConversation)
+                                ? 'La conversación sigue asignada a Ester, pero no responderá automáticamente.'
+                                : 'Esta conversación está siendo atendida de forma automática.' }}
                     </span>
                     <button
                         *ngIf="selectedConversation.assignee_id && selectedConversation.reminder_eligible"
@@ -523,7 +535,11 @@
                     </button>
                     <button type="button" class="comm-managed-banner__action" (click)="assignToMe()">
                         <i class="pi pi-user-plus"></i>
-                        <span>Tomar control de la conversación</span>
+                        <span>
+                            {{ isEsterAutoReplyDisabled(selectedConversation)
+                                ? 'Ester está desactivada · Tomar control'
+                                : 'Tomar control de la conversación' }}
+                        </span>
                     </button>
                 </div>
             </div>

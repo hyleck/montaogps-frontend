@@ -14,6 +14,7 @@ import { ProtocolsService } from '@core/services/protocols.service';
 import { Protocol } from '@core/interfaces/protocol.interface';
 import { CommunicationNotificationService } from '@core/services/communication-notification.service';
 import { InternalChatAttachment, InternalChatMessage, InternalChatService } from '@core/services/internal-chat.service';
+import { EsterService } from '@core/services/ester.service';
 import { MessageService, MenuItem } from 'primeng/api';
 import { environment } from '../../../../../../../environments/environment';
 import { finalize, Subscription, timeout } from 'rxjs';
@@ -184,6 +185,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   sidebarDisplayed = true;
   activeTab: 'chat' | 'correo' | 'foro' | 'grupo' = 'chat';
   autoResponse: boolean = false;
+  esterAutoReplyActive: boolean | null = null;
   showContactInfo: boolean = false;
   gpsUser: any = null;
 
@@ -338,6 +340,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private conversationTypingActive = false;
   private presenceOwnedByCurrentUser = false;
   private lastTypingSignalAt = 0;
+  private esterAutoReplyStatusLoading = false;
+  private esterAutoReplyStatusLoadedAt = 0;
+  private readonly ESTER_AUTO_REPLY_STATUS_TTL_MS = 30000;
 
   constructor(
     private whatsappApi: WhatsAppApiService,
@@ -353,6 +358,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     private inventoryService: InventoryService,
     private protocolsService: ProtocolsService,
     private internalChatService: InternalChatService,
+    private esterService: EsterService,
     private communicationNotifications: CommunicationNotificationService,
     private systemService: SystemService,
     private cdr: ChangeDetectorRef,
@@ -413,6 +419,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.updateAttachmentMenu();
     this.loadStickers();
     this.loadGpsDetailsProtocols();
+    this.refreshEsterAutoReplyStatus(true);
     this.internalChatMuted = this.communicationNotifications.isInternalChatMuted();
     this.internalChatMutedSubscription = this.communicationNotifications.internalChatMuted$.subscribe((muted) => {
       this.internalChatMuted = muted;
@@ -1400,6 +1407,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // ============================
 
   loadConversations(): void {
+    this.refreshEsterAutoReplyStatus();
     const cacheKey = `whatsapp_convs_${this.userInboxId}_all`;
     if (!this.conversations.length) {
       this.filteredConversations = [];
@@ -1457,6 +1465,42 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   getConversationAssigneeLabel(conv: ChatConversation): string {
     if (!conv.assignee_id) return 'Ester Assistant';
     return (conv.assignee_name || conv.assignee_email || `Agente ${conv.assignee_id}`).trim();
+  }
+
+  isEsterAutoReplyDisabled(
+    conv: ChatConversation | null = this.selectedConversation,
+  ): boolean {
+    return !!conv && !conv.assignee_id && this.esterAutoReplyActive === false;
+  }
+
+  private refreshEsterAutoReplyStatus(force = false): void {
+    const now = Date.now();
+    if (
+      this.esterAutoReplyStatusLoading
+      || (
+        !force
+        && now - this.esterAutoReplyStatusLoadedAt
+          < this.ESTER_AUTO_REPLY_STATUS_TTL_MS
+      )
+    ) {
+      return;
+    }
+
+    this.esterAutoReplyStatusLoading = true;
+    this.esterService.getCommunicationStatus()
+      .pipe(finalize(() => {
+        this.esterAutoReplyStatusLoading = false;
+        this.esterAutoReplyStatusLoadedAt = Date.now();
+      }))
+      .subscribe({
+        next: status => {
+          this.esterAutoReplyActive =
+            status?.whatsappAutoReplyActive !== false;
+        },
+        error: () => {
+          // Conserva el último estado conocido si la consulta temporalmente falla.
+        },
+      });
   }
 
   isConversationAssignedToMe(
@@ -2356,6 +2400,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private startConversationsPolling(): void {
     this.stopConversationsPolling();
     this.conversationsPollingInterval = setInterval(() => {
+      this.refreshEsterAutoReplyStatus();
       this.whatsappApi.getConversations(this.userInboxId, 1, this.whatsappAgentId, true).subscribe({
         next: (res: any) => {
           if (res.success) {

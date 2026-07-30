@@ -2052,6 +2052,16 @@
     background: rgba(139, 92, 246, 0.14);
 }
 
+.comm-contact__assignee--ester-disabled,
+.comm-contact__assignee--ester-disabled i {
+    color: #9ca3af;
+}
+
+.comm-contact__assignee--ester-disabled {
+    border-color: rgba(156, 163, 175, 0.42);
+    background: rgba(107, 114, 128, 0.14);
+}
+
 .comm-contact__assignee--mine,
 .comm-contact__assignee--mine i {
     color: #4ade80;
@@ -2120,6 +2130,13 @@
     --managed-border: rgba(239, 68, 68, 0.34);
     --managed-background: rgba(239, 68, 68, 0.07);
     --managed-action-background: rgba(239, 68, 68, 0.12);
+}
+
+.comm-managed-banner--ester-disabled {
+    --managed-accent: #9ca3af;
+    --managed-border: rgba(156, 163, 175, 0.34);
+    --managed-background: rgba(107, 114, 128, 0.08);
+    --managed-action-background: rgba(107, 114, 128, 0.16);
 }
 
 .comm-managed-banner__content {
@@ -4208,6 +4225,14 @@
 :host-context(.app-light) .comm-contact__assignee--ester {
     border-color: rgba(124, 58, 237, 0.32);
     background: rgba(124, 58, 237, 0.08);
+}
+:host-context(.app-light) .comm-contact__assignee--ester-disabled,
+:host-context(.app-light) .comm-contact__assignee--ester-disabled i {
+    color: #6b7280;
+}
+:host-context(.app-light) .comm-contact__assignee--ester-disabled {
+    border-color: rgba(107, 114, 128, 0.3);
+    background: rgba(107, 114, 128, 0.08);
 }
 :host-context(.app-light) .comm-contact__assignee--mine,
 :host-context(.app-light) .comm-contact__assignee--mine i { color: #15803d; }

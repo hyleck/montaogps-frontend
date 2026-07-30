@@ -96,6 +96,10 @@ export interface EsterSupervisorSettingsPayload {
   guidelines?: string;
 }
 
+export interface EsterCommunicationStatus {
+  whatsappAutoReplyActive: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class EsterService {
   private readonly apiUrl = `${environment.apiUrl}/ester/knowledge`;
@@ -146,6 +150,12 @@ export class EsterService {
   getSkills(): Observable<EsterSkill[]> {
     return this.http.get<EsterSkill[]>(
       `${environment.apiUrl}/ester/skills`,
+    );
+  }
+
+  getCommunicationStatus(): Observable<EsterCommunicationStatus> {
+    return this.http.get<EsterCommunicationStatus>(
+      `${environment.apiUrl}/ester/communication-status`,
     );
   }
 
