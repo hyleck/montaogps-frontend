@@ -83,6 +83,51 @@ export interface SolicitudesRealtimeState {
     latestUpdatedAt: string | null;
 }
 
+export interface TechnicianScheduleConflict {
+    solicitud_id: string;
+    type: string;
+    type_label: string;
+    client_name?: string;
+    scheduled_date: string | Date;
+    difference_minutes: number;
+}
+
+export interface TechnicianScheduleAvailability {
+    available: boolean;
+    conflict?: TechnicianScheduleConflict;
+}
+
+export interface TechnicianRecommendation {
+    technician_id: string;
+    technician_name: string;
+    distance_km: number | null;
+    reason: string;
+    location_reference?: {
+        type: 'app' | 'last_process';
+        source: string;
+        recorded_at?: string | Date;
+        latitude: number;
+        longitude: number;
+        distance_km: number;
+    };
+    last_process?: {
+        solicitud_id: string;
+        type: string;
+        type_label: string;
+        client_name?: string;
+        completed_date?: string | Date;
+        latitude: number;
+        longitude: number;
+    };
+}
+
+export interface TechnicianRecommendationResponse {
+    recommendation: TechnicianRecommendation | null;
+    evaluated_technicians: number;
+    available_technicians: number;
+    message?: string;
+}
+
 export interface VapiCallDetails {
     success: boolean;
     recordingUrl?: string;
@@ -118,6 +163,42 @@ export class SolicitudesService {
 
     getById(id: string): Observable<Solicitud> {
         return this.http.get<Solicitud>(`${this.apiUrl}/${id}`);
+    }
+
+    checkTechnicianScheduleConflict(
+        mechanicId: string,
+        scheduledDate: string | Date,
+        excludeId?: string,
+    ): Observable<TechnicianScheduleAvailability> {
+        let params = new HttpParams()
+            .set('mechanic_id', mechanicId)
+            .set('scheduled_date', String(scheduledDate));
+        if (excludeId) {
+            params = params.set('exclude_id', excludeId);
+        }
+        return this.http.get<TechnicianScheduleAvailability>(
+            `${this.apiUrl}/technician-schedule-conflict`,
+            { params },
+        );
+    }
+
+    getTechnicianRecommendation(input: {
+        scheduledDate: string | Date;
+        latitude: number;
+        longitude: number;
+        excludeId?: string;
+    }): Observable<TechnicianRecommendationResponse> {
+        let params = new HttpParams()
+            .set('scheduled_date', String(input.scheduledDate))
+            .set('latitude', String(input.latitude))
+            .set('longitude', String(input.longitude));
+        if (input.excludeId) {
+            params = params.set('exclude_id', input.excludeId);
+        }
+        return this.http.get<TechnicianRecommendationResponse>(
+            `${this.apiUrl}/technician-recommendation`,
+            { params },
+        );
     }
 
     create(solicitud: Partial<Solicitud>): Observable<Solicitud> {

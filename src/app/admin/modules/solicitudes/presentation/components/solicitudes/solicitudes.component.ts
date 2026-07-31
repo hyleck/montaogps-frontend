@@ -5,7 +5,14 @@ import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx-js-style';
-import { InstallationDetail, SolicitudesService, Solicitud, VapiCallDetails } from '../../../../../../core/services/solicitudes.service';
+import {
+    InstallationDetail,
+    SolicitudesService,
+    Solicitud,
+    TechnicianRecommendation,
+    TechnicianScheduleConflict,
+    VapiCallDetails,
+} from '../../../../../../core/services/solicitudes.service';
 import { VehicleBrandsService } from '../../../../../../core/services/vehicle-brands.service';
 import { ColorsService } from '../../../../../../core/services/colors.service';
 import { UserLatestLocation, UserService } from '../../../../../../core/services/user.service';
@@ -54,6 +61,20 @@ interface SolicitudLocationSuggestion {
     mainText: string;
     secondaryText: string;
     placePrediction?: any;
+}
+
+interface SolicitudCalendarDay {
+    dateKey: string;
+    dayNumber: number;
+    inCurrentMonth: boolean;
+    isToday: boolean;
+    solicitudes: Solicitud[];
+}
+
+interface SolicitudCalendarWorkItem {
+    label: string;
+    detail: string;
+    state: 'pending' | 'completed' | 'cancelled';
 }
 
 @Component({
@@ -329,6 +350,14 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     missingClientChecking = false;
     private skipMissingClientCheckOnce = false;
     deinstallationReasonError = false;
+    technicianScheduleChecking = false;
+    technicianScheduleConflict: TechnicianScheduleConflict | null = null;
+    technicianScheduleValidationError = '';
+    private technicianScheduleValidationSequence = 0;
+    technicianRecommendationLoading = false;
+    technicianRecommendation: TechnicianRecommendation | null = null;
+    technicianRecommendationMessage = '';
+    private technicianRecommendationSequence = 0;
 
     // Filters
     filterType = '';
@@ -341,6 +370,31 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     topFilterDateTo = '';
     filtersExpanded = false;
     exportingSolicitudesFormat: SolicitudExportFormat | null = null;
+    calendarDialogVisible = false;
+    calendarCurrentMonth = new Date(
+        new Date().getFullYear(),
+        new Date().getMonth(),
+        1,
+    );
+    calendarMonthLabel = '';
+    calendarTechnicianFilter = '';
+    calendarDays: SolicitudCalendarDay[] = [];
+    calendarMonthRequestCount = 0;
+    calendarUnscheduledSolicitudes: Solicitud[] = [];
+    calendarBreakdownDialogVisible = false;
+    calendarBreakdownDateLabel = '';
+    calendarBreakdownTechnicianName = '';
+    calendarBreakdownTechnicianPhoto: string | null = null;
+    calendarBreakdownSolicitudes: Solicitud[] = [];
+    readonly calendarWeekdayLabels = [
+        'Lunes',
+        'Martes',
+        'Miércoles',
+        'Jueves',
+        'Viernes',
+        'Sábado',
+        'Domingo',
+    ];
     clientEmailSuggestions: User[] = [];
     clientSelectionDialogVisible = false;
     newClientDialogVisible = false;
@@ -349,6 +403,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     clientSearchTotal = 0;
     clientSearchLoading = false;
     selectedClient: User | null = null;
+    technicianSelectionDialogVisible = false;
+    technicianSearchQuery = '';
     newClientWhatsapp = '';
     newClientLookupLoading = false;
     newClientLookupAttempted = false;
@@ -761,6 +817,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             this.detectSolicitudesStarted(completeData, silent);
             this.solicitudes = completeData;
             this.totalItems = total;
+            if (this.calendarDialogVisible) {
+                this.refreshSolicitudCalendar();
+            }
             void this.loadModelNamesForTable();
             this.resolveUserNames();
         } catch {
@@ -911,6 +970,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.isEditMode = false;
         this.selectedSolicitudOriginalStatus = '';
         this.deinstallationReasonError = false;
+        this.resetTechnicianScheduleValidation();
+        this.resetTechnicianRecommendation();
         
         this.showRootLocationData = false;
         this.showRootDetailsData = false;
@@ -921,8 +982,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.rootGoogleMapsLink = '';
         this.selectedClient = null;
         this.closeClientDialogs();
+        this.closeTechnicianSelection();
 
         this.dialogVisible = true;
+        void this.refreshTechnicianRecommendation();
     }
 
     onTypeChange(): void {
@@ -1705,6 +1768,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
         this.locationConfigMarker?.setMap?.(null);
         this.locationConfigMarker = null;
+        if (this.locationConfigTarget === 'root') {
+            void this.refreshTechnicianRecommendation();
+        }
     }
 
     private getCurrentLocationInstallation(): InstallationDetail | undefined {
@@ -1804,6 +1870,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 installation.latitude = latitude;
                 installation.longitude = longitude;
             });
+            void this.refreshTechnicianRecommendation();
         } else {
             const installation = this.getCurrentLocationInstallation();
             if (!installation) return;
@@ -1886,6 +1953,82 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             this.clientSearchTimer = undefined;
         }
         this.resetNewClientLookup();
+    }
+
+    get selectedSolicitudTechnician(): User | null {
+        return this.getTechnicianById(
+            this.selectedSolicitud?.mechanic_id,
+        );
+    }
+
+    get filteredTechniciansForSelection(): User[] {
+        const query = this.normalizeFilterText(this.technicianSearchQuery);
+        return this.availableTechnicians
+            .filter(technician => {
+                if (!query) return true;
+                return this.normalizeFilterText([
+                    this.getTechnicianName(technician),
+                    technician.email,
+                    technician.phone,
+                    technician.phone2,
+                ].filter(Boolean).join(' ')).includes(query);
+            })
+            .sort((first, second) =>
+                this.getTechnicianName(first).localeCompare(
+                    this.getTechnicianName(second),
+                    'es',
+                )
+            );
+    }
+
+    openTechnicianSelection(): void {
+        this.technicianSearchQuery = '';
+        this.technicianSelectionDialogVisible = true;
+    }
+
+    closeTechnicianSelection(): void {
+        this.technicianSelectionDialogVisible = false;
+        this.technicianSearchQuery = '';
+    }
+
+    selectSolicitudTechnician(technician: User): void {
+        if (!this.selectedSolicitud) return;
+        const technicianId = String(
+            technician._id || (technician as any).id || '',
+        ).trim();
+        if (!technicianId) return;
+
+        this.selectedSolicitud.mechanic_id = technicianId;
+        this.closeTechnicianSelection();
+        this.onSelectedTechnicianChange();
+    }
+
+    clearSolicitudTechnician(): void {
+        if (!this.selectedSolicitud) return;
+        this.selectedSolicitud.mechanic_id = undefined;
+        this.closeTechnicianSelection();
+        this.onSelectedTechnicianChange();
+    }
+
+    getTechnicianSelectionPhoto(technician: User | null): string | null {
+        const photo = String(technician?.photo || '').trim();
+        return photo && !this.failedTechnicianPhotos.has(photo)
+            ? photo
+            : null;
+    }
+
+    getTechnicianSelectionInitials(technician: User | null): string {
+        if (!technician) return 'T';
+        const words = this.getTechnicianName(technician)
+            .split(/\s+/)
+            .filter(Boolean);
+        return `${words[0]?.[0] || 'T'}${words[1]?.[0] || ''}`.toUpperCase();
+    }
+
+    getTechnicianSelectionId(technician: User): string {
+        return String(
+            technician?._id || (technician as any)?.id || '',
+        ).trim();
     }
 
     onClientSearchQueryChange(): void {
@@ -2180,6 +2323,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
         if (hasCoordinates) {
             this.onRootLatitudeLongitudeChange();
+        } else {
+            void this.refreshTechnicianRecommendation();
         }
     }
 
@@ -2207,6 +2352,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         });
         this.rootLocationMarker?.setMap?.(null);
         this.rootLocationMarker = null;
+        void this.refreshTechnicianRecommendation();
     }
 
     private getPrimarySolicitudLocationDefaults(): Partial<InstallationDetail> {
@@ -2627,6 +2773,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                     detail: 'El enlace se conservará para abrirlo directamente en Google Maps.'
                 });
             }
+            void this.refreshTechnicianRecommendation();
             return true;
         }
 
@@ -2824,6 +2971,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         if (this.rootLocationMap) {
             this.rootLocationMap.panTo({ lat, lng });
         }
+        void this.refreshTechnicianRecommendation();
     }
 async initLocationMap(): Promise<void> {
         try {
@@ -2909,7 +3057,10 @@ async initLocationMap(): Promise<void> {
         this.selectedSolicitud = { ...solicitud, installations: solicitud.installations ? solicitud.installations.map(i => ({ ...i })) : [] };
         this.selectedClient = null;
         this.closeClientDialogs();
+        this.closeTechnicianSelection();
         this.selectedSolicitudOriginalStatus = solicitud.status;
+        this.resetTechnicianScheduleValidation();
+        this.resetTechnicianRecommendation();
         this.rootGoogleMapsLink = this.selectedSolicitud.google_maps_url
             || this.selectedSolicitud.installations?.[0]?.google_maps_url
             || '';
@@ -2949,6 +3100,7 @@ async initLocationMap(): Promise<void> {
         }
 
         this.openInstallationModal(0, false);
+        void this.refreshTechnicianRecommendation();
     }
 
     closeClosedSolicitudInfo(): void {
@@ -3095,12 +3247,17 @@ async initLocationMap(): Promise<void> {
 
         }
 
+        this.syncSolicitudScheduledDate();
+        if (!await this.validateSelectedTechnicianSchedule(true)) {
+            this.showRootDetailsData = true;
+            return;
+        }
+
         if (!this.skipMissingClientCheckOnce && await this.shouldWarnMissingClientOnSave()) {
             this.missingClientDialogVisible = true;
             return;
         }
         this.skipMissingClientCheckOnce = false;
-        this.syncSolicitudScheduledDate();
 
         if (this.selectedSolicitud.status === 'completada' && this.selectedSolicitudOriginalStatus !== 'completada') {
             this.confirmSolicitudCompletion(this.selectedSolicitud, () => this.persistSolicitud());
@@ -3120,8 +3277,12 @@ async initLocationMap(): Promise<void> {
                     this.dialogVisible = false;
                     this.loadSolicitudes(false);
                 },
-                error: () => {
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar' });
+                error: (error) => {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'No se pudo actualizar',
+                        detail: error?.error?.message || 'No se pudo actualizar la solicitud',
+                    });
                 }
             });
         } else {
@@ -3131,8 +3292,12 @@ async initLocationMap(): Promise<void> {
                     this.dialogVisible = false;
                     this.loadSolicitudes();
                 },
-                error: () => {
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo crear' });
+                error: (error) => {
+                    this.messageService.add({
+                        severity: 'error',
+                        summary: 'No se pudo crear',
+                        detail: error?.error?.message || 'No se pudo crear la solicitud',
+                    });
                 }
             });
         }
@@ -3149,6 +3314,210 @@ async initLocationMap(): Promise<void> {
         this.selectedSolicitud.scheduled_date = this.toDateTimeLocalValue(
             this.selectedSolicitud.scheduled_date
         );
+        void this.validateSelectedTechnicianSchedule();
+        void this.refreshTechnicianRecommendation();
+    }
+
+    onSelectedTechnicianChange(): void {
+        void this.validateSelectedTechnicianSchedule();
+    }
+
+    async validateSelectedTechnicianSchedule(
+        showToast = false,
+    ): Promise<boolean> {
+        const validationSequence = ++this.technicianScheduleValidationSequence;
+        this.technicianScheduleConflict = null;
+        this.technicianScheduleValidationError = '';
+
+        const mechanicId = String(
+            this.selectedSolicitud?.mechanic_id || '',
+        ).trim();
+        const scheduledDate = this.toDateTimeLocalValue(
+            this.selectedSolicitud?.scheduled_date
+            || this.selectedSolicitud?.installations?.[0]?.scheduled_date,
+        );
+        if (!mechanicId || !scheduledDate) {
+            this.technicianScheduleChecking = false;
+            return true;
+        }
+
+        this.technicianScheduleChecking = true;
+        try {
+            const result = await firstValueFrom(
+                this.solicitudesService.checkTechnicianScheduleConflict(
+                    mechanicId,
+                    scheduledDate,
+                    this.selectedSolicitud?._id,
+                ),
+            );
+            if (validationSequence !== this.technicianScheduleValidationSequence) {
+                return false;
+            }
+
+            this.technicianScheduleConflict =
+                result.available ? null : result.conflict || null;
+            if (this.technicianScheduleConflict && showToast) {
+                this.messageService.add({
+                    severity: 'warn',
+                    summary: 'Técnico no disponible',
+                    detail: this.technicianScheduleConflictMessage,
+                });
+            }
+            return result.available;
+        } catch (error: any) {
+            if (validationSequence !== this.technicianScheduleValidationSequence) {
+                return false;
+            }
+            this.technicianScheduleValidationError =
+                error?.error?.message
+                || 'No se pudo validar la disponibilidad del técnico.';
+            if (showToast) {
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'No se pudo validar',
+                    detail: this.technicianScheduleValidationError,
+                });
+            }
+            return false;
+        } finally {
+            if (validationSequence === this.technicianScheduleValidationSequence) {
+                this.technicianScheduleChecking = false;
+            }
+        }
+    }
+
+    get technicianScheduleConflictMessage(): string {
+        const conflict = this.technicianScheduleConflict;
+        if (!conflict) return '';
+
+        const client = conflict.client_name
+            ? ` para ${conflict.client_name}`
+            : '';
+        const scheduled = this.getScheduledDateDisplay({
+            type: conflict.type,
+            status: 'pendiente',
+            scheduled_date: conflict.scheduled_date,
+        });
+        return `El técnico no está disponible en esa fecha porque tiene una solicitud de ${conflict.type_label}${client} programada para ${scheduled}. Debe existir al menos una hora de diferencia.`;
+    }
+
+    private resetTechnicianScheduleValidation(): void {
+        this.technicianScheduleValidationSequence += 1;
+        this.technicianScheduleChecking = false;
+        this.technicianScheduleConflict = null;
+        this.technicianScheduleValidationError = '';
+    }
+
+    async refreshTechnicianRecommendation(): Promise<void> {
+        const recommendationSequence = ++this.technicianRecommendationSequence;
+        this.technicianRecommendation = null;
+        this.technicianRecommendationMessage = '';
+
+        const scheduledDate = this.toDateTimeLocalValue(
+            this.selectedSolicitud?.scheduled_date
+            || this.selectedSolicitud?.installations?.[0]?.scheduled_date,
+        );
+        const latitude = Number(
+            this.selectedSolicitud?.latitude
+            ?? this.selectedSolicitud?.installations?.[0]?.latitude,
+        );
+        const longitude = Number(
+            this.selectedSolicitud?.longitude
+            ?? this.selectedSolicitud?.installations?.[0]?.longitude,
+        );
+        if (!scheduledDate) {
+            this.technicianRecommendationLoading = false;
+            this.technicianRecommendationMessage =
+                'Selecciona la fecha y la hora para calcular el técnico recomendado.';
+            return;
+        }
+        if (!this.isValidCoordinatePair(latitude, longitude)) {
+            this.technicianRecommendationLoading = false;
+            this.technicianRecommendationMessage =
+                'Configura la ubicación exacta de la solicitud para calcular el técnico recomendado.';
+            return;
+        }
+
+        this.technicianRecommendationLoading = true;
+        try {
+            const response = await firstValueFrom(
+                this.solicitudesService.getTechnicianRecommendation({
+                    scheduledDate,
+                    latitude,
+                    longitude,
+                    excludeId: this.selectedSolicitud?._id,
+                }),
+            );
+            if (
+                recommendationSequence
+                !== this.technicianRecommendationSequence
+            ) {
+                return;
+            }
+
+            this.technicianRecommendation = response.recommendation;
+            this.technicianRecommendationMessage =
+                response.message
+                || (
+                    response.recommendation
+                        ? `${response.available_technicians} de ${response.evaluated_technicians} técnicos están disponibles para este horario.`
+                        : 'No fue posible determinar un técnico recomendado.'
+                );
+        } catch (error: any) {
+            if (
+                recommendationSequence
+                !== this.technicianRecommendationSequence
+            ) {
+                return;
+            }
+            this.technicianRecommendationMessage =
+                error?.error?.message
+                || 'No se pudo calcular el técnico recomendado.';
+        } finally {
+            if (
+                recommendationSequence
+                === this.technicianRecommendationSequence
+            ) {
+                this.technicianRecommendationLoading = false;
+            }
+        }
+    }
+
+    applyTechnicianRecommendation(): void {
+        if (!this.selectedSolicitud || !this.technicianRecommendation) return;
+        this.selectedSolicitud.mechanic_id =
+            this.technicianRecommendation.technician_id;
+        void this.validateSelectedTechnicianSchedule();
+    }
+
+    get isRecommendedTechnicianSelected(): boolean {
+        return !!this.technicianRecommendation
+            && this.selectedSolicitud?.mechanic_id
+                === this.technicianRecommendation.technician_id;
+    }
+
+    getTechnicianRecommendationLocationText(
+        recommendation: TechnicianRecommendation,
+    ): string {
+        const reference = recommendation.location_reference;
+        if (!reference || !Number.isFinite(reference.distance_km)) return '';
+
+        const age = this.getRelativeLocationAge(reference.recorded_at);
+        const source = reference.type === 'app'
+            ? 'ubicación marcada en la app'
+            : 'ubicación del último proceso';
+        return [
+            `Técnico a ${reference.distance_km.toFixed(1)} km`,
+            age !== 'sin fecha' ? age : '',
+            `según su ${source}`,
+        ].filter(Boolean).join(' · ');
+    }
+
+    private resetTechnicianRecommendation(): void {
+        this.technicianRecommendationSequence += 1;
+        this.technicianRecommendationLoading = false;
+        this.technicianRecommendation = null;
+        this.technicianRecommendationMessage = '';
     }
 
     private syncSolicitudScheduledDate(): void {
@@ -3401,9 +3770,12 @@ async initLocationMap(): Promise<void> {
 
     hideDialog(): void {
         this.dialogVisible = false;
+        this.closeTechnicianSelection();
         this.selectedSolicitud = null;
         this.selectedSolicitudOriginalStatus = '';
         this.deinstallationReasonError = false;
+        this.resetTechnicianScheduleValidation();
+        this.resetTechnicianRecommendation();
     }
 
     getStatusIcon(status: string): string {
@@ -3458,6 +3830,9 @@ async initLocationMap(): Promise<void> {
     onTechnicianPhotoError(photo: string): void {
         if (photo) {
             this.failedTechnicianPhotos.add(photo);
+            if (this.calendarBreakdownTechnicianPhoto === photo) {
+                this.calendarBreakdownTechnicianPhoto = null;
+            }
         }
     }
 
@@ -3716,13 +4091,16 @@ async initLocationMap(): Promise<void> {
         const diffMs = Math.max(0, Date.now() - date.getTime());
         const diffMinutes = Math.floor(diffMs / 60000);
         if (diffMinutes < 1) return 'ahora';
-        if (diffMinutes < 60) return `hace ${diffMinutes} min`;
+        if (diffMinutes === 1) return 'hace 1 minuto';
+        if (diffMinutes < 60) return `hace ${diffMinutes} minutos`;
 
         const diffHours = Math.floor(diffMinutes / 60);
-        if (diffHours < 24) return `hace ${diffHours} h`;
+        if (diffHours === 1) return 'hace 1 hora';
+        if (diffHours < 24) return `hace ${diffHours} horas`;
 
         const diffDays = Math.floor(diffHours / 24);
-        return `hace ${diffDays} d`;
+        if (diffDays === 1) return 'hace 1 día';
+        return `hace ${diffDays} días`;
     }
 
     verifyTechnicianAvailability(): void {
@@ -4091,6 +4469,293 @@ async initLocationMap(): Promise<void> {
         this.topFilterType = '';
         this.topFilterDateFrom = '';
         this.topFilterDateTo = '';
+    }
+
+    get calendarTechnicianOptions(): SelectOption[] {
+        return this.topFilterTechnicianOptions.filter(
+            option => option.value !== '__unassigned__',
+        );
+    }
+
+    openSolicitudCalendar(): void {
+        const today = new Date();
+        this.calendarCurrentMonth = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1,
+        );
+        this.calendarTechnicianFilter =
+            this.topFilterTechnician
+            && this.topFilterTechnician !== '__unassigned__'
+                ? this.topFilterTechnician
+                : '';
+        this.refreshSolicitudCalendar();
+        this.calendarDialogVisible = true;
+    }
+
+    changeSolicitudCalendarMonth(monthOffset: number): void {
+        this.calendarCurrentMonth = new Date(
+            this.calendarCurrentMonth.getFullYear(),
+            this.calendarCurrentMonth.getMonth() + monthOffset,
+            1,
+        );
+        this.refreshSolicitudCalendar();
+    }
+
+    goToCurrentSolicitudCalendarMonth(): void {
+        const today = new Date();
+        this.calendarCurrentMonth = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1,
+        );
+        this.refreshSolicitudCalendar();
+    }
+
+    refreshSolicitudCalendar(): void {
+        const year = this.calendarCurrentMonth.getFullYear();
+        const month = this.calendarCurrentMonth.getMonth();
+        const firstDayOfMonth = new Date(year, month, 1);
+        const mondayBasedOffset = (firstDayOfMonth.getDay() + 6) % 7;
+        const calendarStart = new Date(year, month, 1 - mondayBasedOffset);
+        const currentMonthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+        const todayKey = this.toLocalDateKey(new Date());
+        const scheduledByDay = new Map<string, Solicitud[]>();
+        const unscheduled: Solicitud[] = [];
+        let monthRequestCount = 0;
+
+        for (const solicitud of this.solicitudes) {
+            if (!solicitud.mechanic_id) continue;
+            if (
+                this.calendarTechnicianFilter
+                && solicitud.mechanic_id !== this.calendarTechnicianFilter
+            ) {
+                continue;
+            }
+
+            const dateKey = this.getScheduledDateFilterKey(solicitud);
+            if (!dateKey) {
+                unscheduled.push(solicitud);
+                continue;
+            }
+
+            const daySolicitudes = scheduledByDay.get(dateKey) || [];
+            daySolicitudes.push(solicitud);
+            scheduledByDay.set(dateKey, daySolicitudes);
+            if (dateKey.startsWith(currentMonthPrefix)) {
+                monthRequestCount += 1;
+            }
+        }
+
+        for (const daySolicitudes of scheduledByDay.values()) {
+            daySolicitudes.sort((first, second) =>
+                (this.getSolicitudScheduledDateTime(first)?.getTime() || 0)
+                - (this.getSolicitudScheduledDateTime(second)?.getTime() || 0)
+            );
+        }
+
+        this.calendarDays = Array.from({ length: 42 }, (_, index) => {
+            const date = new Date(
+                calendarStart.getFullYear(),
+                calendarStart.getMonth(),
+                calendarStart.getDate() + index,
+            );
+            const dateKey = this.toLocalDateKey(date);
+            return {
+                dateKey,
+                dayNumber: date.getDate(),
+                inCurrentMonth: date.getMonth() === month,
+                isToday: dateKey === todayKey,
+                solicitudes: scheduledByDay.get(dateKey) || [],
+            };
+        });
+        this.calendarMonthLabel = firstDayOfMonth
+            .toLocaleDateString('es-DO', {
+                month: 'long',
+                year: 'numeric',
+            })
+            .replace(/^./, character => character.toUpperCase());
+        this.calendarMonthRequestCount = monthRequestCount;
+        this.calendarUnscheduledSolicitudes =
+            this.sortSolicitudesForDisplay(unscheduled);
+    }
+
+    getCalendarSolicitudTime(solicitud: Solicitud): string {
+        const date = this.getSolicitudScheduledDateTime(solicitud);
+        if (!date) return 'Sin hora';
+        const pad = (value: number) => String(value).padStart(2, '0');
+        return this.formatTimeToTwelveHours(
+            `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+        );
+    }
+
+    getCalendarSolicitudLabel(solicitud: Solicitud): string {
+        return [
+            this.getCalendarSolicitudTime(solicitud),
+            this.getClientDisplayName(solicitud) || 'Sin cliente',
+            this.typeLabels[solicitud.type] || solicitud.type,
+            this.getTechnicianDisplayName(solicitud),
+        ].join(' · ');
+    }
+
+    getCalendarTechnicianPhoto(solicitud: Solicitud | null): string | null {
+        const photo = String(
+            this.getTechnicianById(solicitud?.mechanic_id)?.photo || '',
+        ).trim();
+        return photo && !this.failedTechnicianPhotos.has(photo) ? photo : null;
+    }
+
+    getCalendarTechnicianInitials(solicitud: Solicitud | null): string {
+        const words = this.getTechnicianDisplayName(solicitud)
+            .split(/\s+/)
+            .filter(Boolean);
+        if (!words.length) return 'T';
+        return `${words[0][0] || ''}${words[1]?.[0] || ''}`.toUpperCase();
+    }
+
+    openCalendarTechnicianBreakdown(
+        day: SolicitudCalendarDay,
+        solicitud: Solicitud,
+        event?: Event,
+    ): void {
+        event?.stopPropagation();
+        const technicianId = solicitud.mechanic_id;
+        if (!technicianId) return;
+
+        this.calendarBreakdownSolicitudes = day.solicitudes
+            .filter(item => item.mechanic_id === technicianId)
+            .sort((first, second) =>
+                (this.getSolicitudScheduledDateTime(first)?.getTime() || 0)
+                - (this.getSolicitudScheduledDateTime(second)?.getTime() || 0)
+            );
+        this.calendarBreakdownDateLabel =
+            this.formatCalendarDateKey(day.dateKey);
+        this.calendarBreakdownTechnicianName =
+            this.getTechnicianDisplayName(solicitud);
+        this.calendarBreakdownTechnicianPhoto =
+            this.getCalendarTechnicianPhoto(solicitud);
+        this.calendarBreakdownDialogVisible = true;
+    }
+
+    get calendarBreakdownCompletedCount(): number {
+        return this.calendarBreakdownSolicitudes.filter(
+            solicitud =>
+                solicitud.status === 'por_confirmar'
+                || solicitud.status === 'completada',
+        ).length;
+    }
+
+    get calendarBreakdownPendingCount(): number {
+        return this.calendarBreakdownSolicitudes.filter(
+            solicitud =>
+                solicitud.status !== 'por_confirmar'
+                && solicitud.status !== 'completada'
+                && solicitud.status !== 'cancelada',
+        ).length;
+    }
+
+    get calendarBreakdownCancelledCount(): number {
+        return this.calendarBreakdownSolicitudes.filter(
+            solicitud => solicitud.status === 'cancelada',
+        ).length;
+    }
+
+    getCalendarActivityLabel(solicitud: Solicitud): string {
+        if (
+            solicitud.status === 'por_confirmar'
+            || solicitud.status === 'completada'
+        ) {
+            return 'Trabajo realizado';
+        }
+        if (solicitud.status === 'cancelada') return 'Trabajo cancelado';
+        return 'Trabajo programado';
+    }
+
+    getCalendarWorkItems(
+        solicitud: Solicitud,
+    ): SolicitudCalendarWorkItem[] {
+        const installations = solicitud.installations || [];
+        const defaultState = this.getCalendarWorkState(solicitud);
+        if (!installations.length) {
+            return [{
+                label: `${this.typeLabels[solicitud.type] || solicitud.type || 'Proceso'} x${solicitud.quantity || 1}`,
+                detail: 'Sin vehículo o dispositivo especificado',
+                state: defaultState,
+            }];
+        }
+
+        return installations.map((installation, index) => {
+            const processType = this.getProcessTypeForSolicitud(
+                solicitud,
+                installation,
+            );
+            const vehicle = [
+                installation.plate,
+                this.getBrandName(installation.brand) !== '—'
+                    ? this.getBrandName(installation.brand)
+                    : '',
+                this.getModelName(installation.brand, installation.model),
+                installation.year,
+            ].filter(Boolean).join(' ');
+            const imei =
+                installation.new_device_imei
+                || installation.device_imei
+                || '';
+            const detail = [
+                vehicle || `Proceso #${index + 1}`,
+                imei ? `IMEI ${imei}` : '',
+            ].filter(Boolean).join(' · ');
+            const state: SolicitudCalendarWorkItem['state'] =
+                installation.cancelled
+                    ? 'cancelled'
+                    : installation.completed
+                        ? 'completed'
+                        : defaultState;
+            return {
+                label: this.typeLabels[processType] || processType || 'Proceso',
+                detail,
+                state,
+            };
+        });
+    }
+
+    getCalendarSolicitudLocation(solicitud: Solicitud): string {
+        return this.getExportLocation(solicitud);
+    }
+
+    getCalendarWorkState(
+        solicitud: Solicitud,
+    ): SolicitudCalendarWorkItem['state'] {
+        if (solicitud.status === 'cancelada') return 'cancelled';
+        if (
+            solicitud.status === 'por_confirmar'
+            || solicitud.status === 'completada'
+        ) {
+            return 'completed';
+        }
+        return 'pending';
+    }
+
+    private formatCalendarDateKey(dateKey: string): string {
+        const [year, month, day] = dateKey.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        if (Number.isNaN(date.getTime())) return dateKey;
+        return date.toLocaleDateString('es-DO', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        }).replace(/^./, character => character.toUpperCase());
+    }
+
+    openSolicitudFromCalendar(
+        solicitud: Solicitud,
+        event?: Event,
+    ): void {
+        event?.stopPropagation();
+        this.calendarDialogVisible = false;
+        this.calendarBreakdownDialogVisible = false;
+        void this.editSolicitud(solicitud);
     }
 
     async exportSolicitudes(format: SolicitudExportFormat): Promise<void> {

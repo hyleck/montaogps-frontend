@@ -15,6 +15,7 @@ export interface InternalChatAuthor {
 
 export interface InternalChatMessage {
   _id: string;
+  groupId: string;
   text: string;
   type: string;
   attachments?: InternalChatAttachment[];
@@ -25,6 +26,19 @@ export interface InternalChatMessage {
   referenceProviderMessageId?: string;
   referenceLabel?: string;
   author: InternalChatAuthor;
+}
+
+export interface InternalChatGroup {
+  id: string;
+  name: string;
+  type: 'admin' | 'installation';
+  technicianId?: string;
+  technician?: {
+    name: string;
+    lastName: string;
+    email: string;
+    photo: string;
+  };
 }
 
 export interface InternalChatAttachment {
@@ -40,6 +54,7 @@ export interface InternalChatAttachment {
 export interface InternalChatMessagesResponse {
   messages: InternalChatMessage[];
   total: number;
+  groupId: string;
 }
 
 @Injectable({
@@ -50,17 +65,28 @@ export class InternalChatService {
 
   constructor(private readonly http: HttpClient) {}
 
-  getMessages(options: { limit?: number; before?: string; after?: string } = {}): Observable<InternalChatMessagesResponse> {
+  getGroups(): Observable<{ groups: InternalChatGroup[] }> {
+    return this.http.get<{ groups: InternalChatGroup[] }>(
+      `${this.apiUrl}/groups`,
+    );
+  }
+
+  getMessages(options: { limit?: number; before?: string; after?: string; groupId?: string; allGroups?: boolean } = {}): Observable<InternalChatMessagesResponse> {
     let params = new HttpParams();
     if (options.limit) params = params.set('limit', String(options.limit));
     if (options.before) params = params.set('before', options.before);
     if (options.after) params = params.set('after', options.after);
+    if (options.groupId) params = params.set('groupId', options.groupId);
+    if (options.allGroups) params = params.set('allGroups', 'true');
 
     return this.http.get<InternalChatMessagesResponse>(`${this.apiUrl}/messages`, { params });
   }
 
-  sendMessage(text: string, attachments: InternalChatAttachment[] = [], type = 'text'): Observable<{ message: InternalChatMessage }> {
-    return this.http.post<{ message: InternalChatMessage }>(`${this.apiUrl}/messages`, { text, attachments, type });
+  sendMessage(text: string, attachments: InternalChatAttachment[] = [], type = 'text', groupId?: string): Observable<{ message: InternalChatMessage }> {
+    return this.http.post<{ message: InternalChatMessage }>(
+      `${this.apiUrl}/messages`,
+      { text, attachments, type, groupId },
+    );
   }
 
   uploadAttachment(file: File): Observable<{ attachment: InternalChatAttachment }> {
@@ -69,7 +95,13 @@ export class InternalChatService {
     return this.http.post<{ attachment: InternalChatAttachment }>(`${this.apiUrl}/attachments`, formData);
   }
 
-  clearMessages(): Observable<{ success: boolean; deleted: number }> {
-    return this.http.delete<{ success: boolean; deleted: number }>(`${this.apiUrl}/messages`);
+  clearMessages(groupId?: string): Observable<{ success: boolean; deleted: number }> {
+    const params = groupId
+      ? new HttpParams().set('groupId', groupId)
+      : undefined;
+    return this.http.delete<{ success: boolean; deleted: number }>(
+      `${this.apiUrl}/messages`,
+      { params },
+    );
   }
 }

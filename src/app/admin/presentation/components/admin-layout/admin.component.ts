@@ -116,13 +116,18 @@ export class AdminComponent implements OnInit, OnDestroy {
         if (!this.floatingMessage) return;
         const source = this.floatingMessage.source || 'whatsapp';
         const conversationId = this.floatingMessage.conversationId;
+        const groupId = this.floatingMessage.groupId;
         this.floatingMessage = null;
         if (this.floatingTimer) {
             clearTimeout(this.floatingTimer);
             this.floatingTimer = null;
         }
         if (source === 'internal') {
-            this.router.navigate(['/admin/communication', 'grupo']);
+            this.router.navigate(['/admin/communication', 'grupo'], {
+                queryParams: {
+                    groupId: groupId || 'admin',
+                },
+            });
             return;
         }
         if (!conversationId) return;

@@ -8,12 +8,14 @@ import { LangService } from '../../../../shareds/services/langi18/lang.service';
 import { TranslateService } from '@ngx-translate/core';
 import { SelectionService } from '../../../../core/services/selection.service';
 import { TargetsService } from '../../../../core/services/targets.service';
-import { Target, CreateProcessDto } from '../../../../core/interfaces/target.interface';
+import { Target, CreateProcessDto, UpdateTargetDto } from '../../../../core/interfaces/target.interface';
 import { PlansService } from '../../../../core/services/plans.service';
 import { Plan } from '../../../../core/interfaces/plan.interface';
 import { UserService } from '../../../../core/services/user.service';
 import { User } from '../../../../core/interfaces/user.interface';
 import { SystemService } from '../../../../core/services/system.service';
+import { ProtocolsService } from '../../../../core/services/protocols.service';
+import { SIM_CARD_TYPES } from '../../../../core/constants/sim-card-types.constant';
 import { Subject, takeUntil, debounceTime, distinctUntilChanged, filter, firstValueFrom } from 'rxjs';
 import { AlertsService, AlertResponse, AlertStatus, CreateAlertDto } from '../../../../core/services/alerts.service';
 import * as XLSX from 'xlsx-js-style';
@@ -24,6 +26,44 @@ import { MapAlertComponent } from '../map-alert/map-alert.component';
 import { FirebaseNotificationsService, NotificationLog } from '../../../../core/services/firebase-notifications.service';
 import { SupportService } from '../../../../core/services/support.service';
 import { CreateTicketDto } from '../../../../core/interfaces/support.interface';
+
+interface RealtimeGeneratedTargetLink {
+  target_id: string;
+  target_name: string;
+  target_imei: string;
+  url: string;
+  expires_at: string;
+}
+
+type BulkProcessType =
+  | 'installation'
+  | 'expiration'
+  | 'renewal'
+  | 'technician_change'
+  | 'installation_details_change'
+  | 'gps_model_change'
+  | 'sim_type_change';
+
+interface BulkProcessOption {
+  value: BulkProcessType;
+  labelKey: string;
+  icon: string;
+}
+
+interface BulkProcessResult {
+  target_id: string;
+  target_name: string;
+  target_imei: string;
+  status: 'pending' | 'processing' | 'success' | 'error';
+  error?: string;
+}
+
+interface BulkProcessChange {
+  update: UpdateTargetDto;
+  before: Record<string, any>;
+  after: Record<string, any>;
+  details: string;
+}
 
 @Component({
   selector: 'app-navbar',
@@ -117,8 +157,79 @@ export class NavbarComponent implements OnInit, OnDestroy {
   realtimeLinkDialogVisible: boolean = false;
   realtimeExpirationTime: string = '24h';
   realtimeGeneratedLink: string = '';
+  realtimeGeneratedLinks: RealtimeGeneratedTargetLink[] = [];
   realtimeCopySuccess: boolean = false;
   generatingRealtimeLink: boolean = false;
+
+  // Modal de procesos masivos para objetivos seleccionados
+  bulkProcessDialogVisible: boolean = false;
+  bulkProcessCatalogLoading: boolean = false;
+  applyingBulkProcess: boolean = false;
+  bulkProcessProgress: number = 0;
+  bulkProcessResults: BulkProcessResult[] = [];
+  bulkProcessTechnicians: Array<{ label: string; value: string }> = [];
+  bulkProcessGpsModels: Array<{ label: string; value: string }> = [];
+  readonly bulkProcessSimTypes = [...SIM_CARD_TYPES];
+  readonly bulkProcessOptions: BulkProcessOption[] = [
+    {
+      value: 'installation',
+      labelKey: 'management.targetForm.processTypeInstallationDateChange',
+      icon: 'pi pi-calendar'
+    },
+    {
+      value: 'expiration',
+      labelKey: 'management.targetForm.processTypeExpirationDateChange',
+      icon: 'pi pi-calendar-times'
+    },
+    {
+      value: 'renewal',
+      labelKey: 'management.targetForm.processTypeServiceRenewal',
+      icon: 'pi pi-refresh'
+    },
+    {
+      value: 'technician_change',
+      labelKey: 'management.targetForm.processTypeTechnicianChange',
+      icon: 'pi pi-user-edit'
+    },
+    {
+      value: 'installation_details_change',
+      labelKey: 'management.targetForm.processTypeInstallationDetailsChange',
+      icon: 'pi pi-file-edit'
+    },
+    {
+      value: 'gps_model_change',
+      labelKey: 'management.targetForm.processTypeGpsModelChange',
+      icon: 'pi pi-wifi'
+    },
+    {
+      value: 'sim_type_change',
+      labelKey: 'management.targetForm.processTypeSimTypeChange',
+      icon: 'pi pi-credit-card'
+    }
+  ];
+  bulkProcessForm: {
+    type: BulkProcessType | '';
+    registrationDate: string;
+    description: string;
+    newInstallationDate: string;
+    newExpirationDate: string;
+    renewalYears: number | null;
+    newTechnician: string;
+    newInstallationDetails: string;
+    newGpsModel: string;
+    newSimType: string;
+  } = {
+    type: '',
+    registrationDate: this.getLocalDateInputValue(),
+    description: '',
+    newInstallationDate: '',
+    newExpirationDate: '',
+    renewalYears: 1,
+    newTechnician: '',
+    newInstallationDetails: '',
+    newGpsModel: '',
+    newSimType: ''
+  };
 
   // Modal de alertas
   alertsDialogVisible: boolean = false;
@@ -512,6 +623,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     private alertsService: AlertsService,
     private firebaseNotificationsService: FirebaseNotificationsService,
     private supportService: SupportService,
+    private protocolsService: ProtocolsService,
     private systemService: SystemService
   ) {
     this.currentTheme = status.getState('theme') as string;
@@ -702,6 +814,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
         label: this.translate.instant('navbar.share'),
         icon: 'pi pi-share-alt',
         command: () => this.shareSelectedTargets()
+      },
+      {
+        label: 'Realizar proceso',
+        icon: 'pi pi-list-check',
+        command: () => this.openBulkProcessDialog()
       },
       {
         separator: true
@@ -1834,6 +1951,385 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }));
   }
 
+  get bulkProcessSuccessCount(): number {
+    return this.bulkProcessResults.filter(result => result.status === 'success').length;
+  }
+
+  get bulkProcessErrorCount(): number {
+    return this.bulkProcessResults.filter(result => result.status === 'error').length;
+  }
+
+  get bulkProcessIsFinished(): boolean {
+    return this.bulkProcessResults.length > 0
+      && this.bulkProcessResults.every(result => result.status === 'success' || result.status === 'error');
+  }
+
+  get canApplyBulkProcess(): boolean {
+    if (
+      this.applyingBulkProcess
+      || this.bulkProcessCatalogLoading
+      || !this.bulkProcessForm.type
+      || !this.bulkProcessForm.registrationDate
+      || this.currentSelectedTargets.length === 0
+    ) {
+      return false;
+    }
+
+    switch (this.bulkProcessForm.type) {
+      case 'installation':
+        return !!this.bulkProcessForm.newInstallationDate;
+      case 'expiration':
+        return !!this.bulkProcessForm.newExpirationDate;
+      case 'renewal':
+        return Number(this.bulkProcessForm.renewalYears) > 0;
+      case 'technician_change':
+        return !!this.bulkProcessForm.newTechnician;
+      case 'installation_details_change':
+        return !!this.bulkProcessForm.newInstallationDetails.trim();
+      case 'gps_model_change':
+        return !!this.bulkProcessForm.newGpsModel;
+      case 'sim_type_change':
+        return !!this.bulkProcessForm.newSimType;
+      default:
+        return false;
+    }
+  }
+
+  async openBulkProcessDialog(): Promise<void> {
+    const selectedTargets = this.selectionService.selectedTargetsValue || [];
+    if (!selectedTargets.length) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Sin objetivos',
+        detail: 'Seleccione al menos un objetivo para realizar el proceso.'
+      });
+      return;
+    }
+
+    this.resetBulkProcessForm();
+    this.bulkProcessResults = selectedTargets.map(target => ({
+      target_id: String(target?._id || target?.id || ''),
+      target_name: target?.name || 'Objetivo sin nombre',
+      target_imei: target?.device_imei || target?.imei || '',
+      status: 'pending'
+    }));
+    this.bulkProcessDialogVisible = true;
+    await this.loadBulkProcessCatalogs();
+  }
+
+  onBulkProcessTypeChange(): void {
+    this.bulkProcessResults = this.bulkProcessResults.map(result => ({
+      ...result,
+      status: 'pending',
+      error: undefined
+    }));
+    this.bulkProcessProgress = 0;
+  }
+
+  closeBulkProcessDialog(): void {
+    if (this.applyingBulkProcess) {
+      return;
+    }
+    this.bulkProcessDialogVisible = false;
+  }
+
+  async applyBulkProcess(): Promise<void> {
+    if (!this.canApplyBulkProcess) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Datos incompletos',
+        detail: 'Complete los datos requeridos para aplicar el proceso.'
+      });
+      return;
+    }
+
+    const selectedTargets = [...this.currentSelectedTargets];
+    if (!selectedTargets.length) {
+      return;
+    }
+
+    this.applyingBulkProcess = true;
+    this.bulkProcessProgress = 0;
+    this.bulkProcessResults = selectedTargets.map(target => ({
+      target_id: String(target?._id || (target as any)?.id || ''),
+      target_name: target?.name || 'Objetivo sin nombre',
+      target_imei: target?.device_imei || target?.imei || '',
+      status: 'pending'
+    }));
+
+    for (let index = 0; index < selectedTargets.length; index++) {
+      const selectedTarget = selectedTargets[index];
+      const targetId = String(selectedTarget?._id || (selectedTarget as any)?.id || '');
+      const result = this.bulkProcessResults[index];
+      result.status = 'processing';
+
+      try {
+        if (!targetId) {
+          throw new Error('El objetivo no tiene un identificador válido.');
+        }
+
+        const target = await this.targetsService.getTargetById(targetId);
+        const change = this.buildBulkProcessChange(target);
+        const currentUser = this.authService.getCurrentUser();
+        const processType = this.bulkProcessForm.type as BulkProcessType;
+
+        await this.targetsService.updateTarget(targetId, change.update);
+
+        const processData: CreateProcessDto = {
+          type: this.getBulkProcessTypeId(processType),
+          registrationDate: this.bulkProcessForm.registrationDate,
+          description: this.bulkProcessForm.description.trim() || 'Proceso masivo',
+          details: change.details,
+          target: {
+            _id: targetId,
+            name: target.name,
+            device_imei: target.device_imei || target.imei,
+            sim_card_number: target.sim_card_number || target.sim_card
+          },
+          user: {
+            _id: currentUser?.id || 'sistema',
+            name: currentUser?.name || 'Sistema',
+            email: currentUser?.email || 'sistema@montao.net'
+          },
+          reference: targetId,
+          before: change.before,
+          after: {
+            ...change.after,
+            status: 'completed',
+            processType,
+            processDate: this.bulkProcessForm.registrationDate,
+            bulk: true
+          },
+          creator: currentUser?.id || 'sistema'
+        };
+
+        await this.targetsService.createProcess(processData);
+        Object.assign(selectedTarget as any, change.update);
+        result.status = 'success';
+      } catch (error: any) {
+        console.error(`Error aplicando proceso masivo al objetivo ${targetId}:`, error);
+        result.status = 'error';
+        result.error = this.getBulkProcessErrorMessage(error);
+      }
+
+      this.bulkProcessProgress = Math.round(((index + 1) / selectedTargets.length) * 100);
+    }
+
+    this.applyingBulkProcess = false;
+
+    if (this.bulkProcessSuccessCount > 0) {
+      this.selectionService.notifyTargetsUpdated();
+    }
+
+    const allSuccessful = this.bulkProcessErrorCount === 0;
+    this.messageService.add({
+      severity: allSuccessful ? 'success' : (this.bulkProcessSuccessCount > 0 ? 'warn' : 'error'),
+      summary: allSuccessful ? 'Proceso masivo completado' : 'Proceso masivo finalizado',
+      detail: `${this.bulkProcessSuccessCount} aplicados, ${this.bulkProcessErrorCount} con error.`
+    });
+  }
+
+  private resetBulkProcessForm(): void {
+    this.bulkProcessForm = {
+      type: '',
+      registrationDate: this.getLocalDateInputValue(),
+      description: '',
+      newInstallationDate: '',
+      newExpirationDate: '',
+      renewalYears: 1,
+      newTechnician: '',
+      newInstallationDetails: '',
+      newGpsModel: '',
+      newSimType: ''
+    };
+    this.bulkProcessProgress = 0;
+    this.bulkProcessResults = [];
+  }
+
+  private async loadBulkProcessCatalogs(): Promise<void> {
+    this.bulkProcessCatalogLoading = true;
+    const [techniciansResult, protocolsResult] = await Promise.allSettled([
+      firstValueFrom(this.userService.getTechnicians()),
+      firstValueFrom(this.protocolsService.getAllProtocols())
+    ]);
+
+    if (techniciansResult.status === 'fulfilled') {
+      this.bulkProcessTechnicians = techniciansResult.value
+        .map((technician: User) => ({
+          label: `${technician.name || ''} ${technician.last_name || ''}`.trim(),
+          value: String(technician._id || (technician as any).id || '')
+        }))
+        .filter(option => !!option.value)
+        .sort((a, b) => a.label.localeCompare(b.label));
+    } else {
+      console.error('No se pudieron cargar los técnicos para el proceso masivo:', techniciansResult.reason);
+      this.bulkProcessTechnicians = [];
+    }
+
+    if (protocolsResult.status === 'fulfilled') {
+      this.bulkProcessGpsModels = protocolsResult.value
+        .map(protocol => ({
+          label: protocol.name,
+          value: protocol._id
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+    } else {
+      console.error('No se pudieron cargar los modelos GPS para el proceso masivo:', protocolsResult.reason);
+      this.bulkProcessGpsModels = [];
+    }
+
+    this.bulkProcessCatalogLoading = false;
+  }
+
+  private buildBulkProcessChange(target: Target): BulkProcessChange {
+    const targetData = target as any;
+    const targetName = target.name || target.device_imei || target.imei || 'objetivo';
+    const currentUser = this.authService.getCurrentUser();
+    const actorName = currentUser?.name || currentUser?.email || 'Usuario';
+    const reason = this.bulkProcessForm.description.trim()
+      ? ` Motivo: ${this.bulkProcessForm.description.trim()}.`
+      : '';
+
+    switch (this.bulkProcessForm.type) {
+      case 'installation': {
+        const previousDate = targetData.activation_date || target.installation_date || 'no definida';
+        const newDate = this.bulkProcessForm.newInstallationDate;
+        return {
+          update: { activation_date: newDate, last_change_date: new Date() },
+          before: { activation_date: previousDate },
+          after: { activation_date: newDate },
+          details: `El usuario ${actorName} cambió la fecha de instalación de ${targetName} de ${previousDate} a ${newDate}.${reason}`
+        };
+      }
+      case 'expiration': {
+        const previousDate = target.expiration_date || 'no definida';
+        const newDate = this.bulkProcessForm.newExpirationDate;
+        return {
+          update: { expiration_date: newDate, last_change_date: new Date() },
+          before: { expiration_date: previousDate },
+          after: { expiration_date: newDate },
+          details: `El usuario ${actorName} cambió la fecha de expiración de ${targetName} de ${previousDate} a ${newDate}.${reason}`
+        };
+      }
+      case 'renewal': {
+        if (!target.expiration_date) {
+          throw new Error('El objetivo no tiene una fecha de expiración para renovar.');
+        }
+        const years = Number(this.bulkProcessForm.renewalYears);
+        const newDate = this.addYearsToDateInput(target.expiration_date, years);
+        return {
+          update: { expiration_date: newDate, last_change_date: new Date() },
+          before: { expiration_date: target.expiration_date },
+          after: { expiration_date: newDate, renewalYears: years },
+          details: `El usuario ${actorName} renovó el servicio de ${targetName} por ${years} ${years === 1 ? 'año' : 'años'}, cambiando la expiración de ${target.expiration_date} a ${newDate}.${reason}`
+        };
+      }
+      case 'technician_change': {
+        const previousTechnicianId = targetData.mechanic_id || '';
+        const previousTechnician = this.getBulkTechnicianLabel(previousTechnicianId) || 'no asignado';
+        const newTechnicianId = this.bulkProcessForm.newTechnician;
+        const newTechnician = this.getBulkTechnicianLabel(newTechnicianId) || 'técnico seleccionado';
+        return {
+          update: { mechanic_id: newTechnicianId, last_change_date: new Date() },
+          before: { mechanic_id: previousTechnicianId, technician: previousTechnician },
+          after: { mechanic_id: newTechnicianId, technician: newTechnician },
+          details: `El usuario ${actorName} cambió el técnico de ${targetName} de ${previousTechnician} a ${newTechnician}.${reason}`
+        };
+      }
+      case 'installation_details_change': {
+        const previousDetails = target.installation_details || 'no definidos';
+        const newDetails = this.bulkProcessForm.newInstallationDetails.trim();
+        return {
+          update: { installation_details: newDetails, last_change_date: new Date() },
+          before: { installation_details: previousDetails },
+          after: { installation_details: newDetails },
+          details: `El usuario ${actorName} actualizó los detalles de instalación de ${targetName} de "${previousDetails}" a "${newDetails}".${reason}`
+        };
+      }
+      case 'gps_model_change': {
+        const previousModelId = targetData.type || targetData.protocol?._id || '';
+        const previousModel = this.getBulkGpsModelLabel(previousModelId) || targetData.protocol?.name || 'no definido';
+        const newModelId = this.bulkProcessForm.newGpsModel;
+        const newModel = this.getBulkGpsModelLabel(newModelId) || 'modelo seleccionado';
+        return {
+          update: { type: newModelId, last_change_date: new Date() },
+          before: { type: previousModelId, gps_model: previousModel },
+          after: { type: newModelId, gps_model: newModel },
+          details: `El usuario ${actorName} cambió el modelo de GPS de ${targetName} de ${previousModel} a ${newModel}.${reason}`
+        };
+      }
+      case 'sim_type_change': {
+        if (targetData.protocol?.isAirtag) {
+          throw new Error('El tipo de SIM no aplica para objetivos AirTag.');
+        }
+        const previousType = target.sim_company || 'no definido';
+        const newType = this.bulkProcessForm.newSimType;
+        const newTypeLabel = this.bulkProcessSimTypes.find(option => option.value === newType)?.label || newType;
+        return {
+          update: { sim_company: newType, last_change_date: new Date() },
+          before: { sim_company: previousType },
+          after: { sim_company: newType },
+          details: `El usuario ${actorName} cambió el tipo de SIM de ${targetName} de ${previousType} a ${newTypeLabel}.${reason}`
+        };
+      }
+      default:
+        throw new Error('Seleccione un tipo de proceso válido.');
+    }
+  }
+
+  private getBulkProcessTypeId(type: BulkProcessType): number {
+    const processTypes: Record<BulkProcessType, number> = {
+      installation: 2,
+      expiration: 3,
+      renewal: 4,
+      technician_change: 8,
+      installation_details_change: 10,
+      gps_model_change: 11,
+      sim_type_change: 15
+    };
+    return processTypes[type];
+  }
+
+  private getBulkTechnicianLabel(id: string): string {
+    return this.bulkProcessTechnicians.find(option => option.value === String(id || ''))?.label || '';
+  }
+
+  private getBulkGpsModelLabel(id: string): string {
+    return this.bulkProcessGpsModels.find(option => option.value === String(id || ''))?.label || '';
+  }
+
+  private addYearsToDateInput(dateValue: string, years: number): string {
+    const normalizedYears = Number(years);
+    if (!Number.isInteger(normalizedYears) || normalizedYears <= 0) {
+      throw new Error('La duración de la renovación no es válida.');
+    }
+
+    const datePart = String(dateValue).substring(0, 10);
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart);
+    if (!match) {
+      throw new Error(`La fecha de expiración "${dateValue}" no es válida.`);
+    }
+
+    const newDate = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    if (Number.isNaN(newDate.getTime())) {
+      throw new Error(`La fecha de expiración "${dateValue}" no es válida.`);
+    }
+    newDate.setFullYear(newDate.getFullYear() + normalizedYears);
+    return this.getLocalDateInputValue(newDate);
+  }
+
+  private getLocalDateInputValue(date: Date = new Date()): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private getBulkProcessErrorMessage(error: any): string {
+    const message = error?.error?.message || error?.message || 'No se pudo aplicar el proceso.';
+    return Array.isArray(message) ? message.join(', ') : String(message);
+  }
+
   /**
    * Abre el modal de transferencia de targets
    */
@@ -1873,6 +2369,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     this.targetsToShare = [...selectedTargets];
     this.realtimeGeneratedLink = '';
+    this.realtimeGeneratedLinks = [];
     this.realtimeCopySuccess = false;
     this.shareMethodDialogVisible = true;
   }
@@ -1905,11 +2402,11 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   openRealtimeShare() {
-    if (this.targetsToShare.length !== 1) {
+    if (!this.targetsToShare.length) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Selecciona un solo objetivo',
-        detail: 'El link en tiempo real se genera para un objetivo específico.'
+        summary: 'Sin objetivos',
+        detail: 'Selecciona al menos un objetivo para generar los links.'
       });
       return;
     }
@@ -1918,60 +2415,107 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.realtimeLinkDialogVisible = true;
     this.realtimeExpirationTime = '24h';
     this.realtimeGeneratedLink = '';
+    this.realtimeGeneratedLinks = [];
     this.realtimeCopySuccess = false;
   }
 
   async generateSelectedRealtimeLink() {
-    const target = this.targetsToShare[0];
-    const targetId = target?._id || (target as any)?.id;
-    if (!targetId) {
+    const uniqueTargets = [...new Map(
+      this.targetsToShare
+        .map(target => [
+          String(target?._id || (target as any)?.id || '').trim(),
+          target
+        ] as const)
+        .filter(([targetId]) => !!targetId)
+    ).entries()].map(([targetId, target]) => ({ targetId, target }));
+
+    if (!uniqueTargets.length) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Sin objetivo',
-        detail: 'No se pudo identificar el objetivo seleccionado.'
+        summary: 'Sin objetivos válidos',
+        detail: 'No se pudieron identificar los objetivos seleccionados.'
       });
       return;
     }
 
     try {
       this.generatingRealtimeLink = true;
+      this.realtimeGeneratedLink = '';
+      this.realtimeGeneratedLinks = [];
+      this.realtimeCopySuccess = false;
       const systems = await firstValueFrom(this.systemService.getAll());
       const mapConfig = systems?.[0]?.map_api1 || systems?.[0]?.map_api2;
       const expirationDate = this.getRealtimeExpirationDate(this.realtimeExpirationTime);
-      const shortLink = await this.targetsService.createRealtimeShortLink({
-        target_id: targetId,
-        expires_at: expirationDate.toISOString(),
-        map_key: mapConfig?.key || ''
-      });
+      const generatedResults = await Promise.all(
+        uniqueTargets.map(async ({ targetId, target }): Promise<RealtimeGeneratedTargetLink | null> => {
+          try {
+            const shortLink = await this.targetsService.createRealtimeShortLink({
+              target_id: targetId,
+              expires_at: expirationDate.toISOString(),
+              map_key: mapConfig?.key || ''
+            });
+            if (!shortLink?.short_code) {
+              throw new Error('El backend no devolvió un código');
+            }
+            return {
+              target_id: targetId,
+              target_name: target.name || 'Objetivo sin nombre',
+              target_imei: String(target.device_imei || target.imei || ''),
+              url: `${window.location.origin}/realtimelink?c=${encodeURIComponent(shortLink.short_code)}`,
+              expires_at: shortLink.expires_at
+            };
+          } catch (error) {
+            console.error(`Error generando link en tiempo real para ${targetId}:`, error);
+            return null;
+          }
+        })
+      );
 
-      if (!shortLink?.short_code) {
-        throw new Error('El backend no devolvió un código para el link en tiempo real');
+      this.realtimeGeneratedLinks = generatedResults.filter(
+        (item): item is RealtimeGeneratedTargetLink => item !== null
+      );
+      this.realtimeGeneratedLink = this.realtimeGeneratedLinks[0]?.url || '';
+
+      if (!this.realtimeGeneratedLinks.length) {
+        throw new Error('No se pudo generar ninguno de los links en tiempo real');
       }
 
-      this.realtimeGeneratedLink = `${window.location.origin}/realtimelink?c=${encodeURIComponent(shortLink.short_code)}`;
+      const failedCount = uniqueTargets.length - this.realtimeGeneratedLinks.length;
+      if (failedCount > 0) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Generación parcial',
+          detail: `Se generaron ${this.realtimeGeneratedLinks.length} de ${uniqueTargets.length} links. ${failedCount} no pudieron generarse.`
+        });
+      }
       await this.copyRealtimeLinkToClipboard();
     } catch (error) {
       console.error('Error generando link en tiempo real:', error);
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo generar el link en tiempo real.'
+        detail: 'No se pudieron generar los links en tiempo real.'
       });
     } finally {
       this.generatingRealtimeLink = false;
     }
   }
 
-  async copyRealtimeLinkToClipboard() {
-    if (!this.realtimeGeneratedLink) return;
+  async copyRealtimeLinkToClipboard(link?: RealtimeGeneratedTargetLink) {
+    const clipboardText = link?.url || this.getRealtimeLinksClipboardText();
+    if (!clipboardText) return;
 
     try {
-      await navigator.clipboard.writeText(this.realtimeGeneratedLink);
+      await navigator.clipboard.writeText(clipboardText);
       this.realtimeCopySuccess = true;
       this.messageService.add({
         severity: 'success',
-        summary: 'Link copiado',
-        detail: 'El link en tiempo real fue copiado al portapapeles.',
+        summary: link || this.realtimeGeneratedLinks.length === 1
+          ? 'Link copiado'
+          : 'Links copiados',
+        detail: link || this.realtimeGeneratedLinks.length === 1
+          ? 'El link en tiempo real fue copiado al portapapeles.'
+          : `${this.realtimeGeneratedLinks.length} links fueron copiados al portapapeles.`,
         life: 2500
       });
       setTimeout(() => this.realtimeCopySuccess = false, 3000);
@@ -1985,9 +2529,23 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
+  getRealtimeLinksClipboardText(): string {
+    if (!this.realtimeGeneratedLinks.length) {
+      return this.realtimeGeneratedLink;
+    }
+    if (this.realtimeGeneratedLinks.length === 1) {
+      return this.realtimeGeneratedLinks[0].url;
+    }
+    return this.realtimeGeneratedLinks.map(item => [
+      `${item.target_name}${item.target_imei ? ` · IMEI ${item.target_imei}` : ''}`,
+      item.url
+    ].join('\n')).join('\n\n');
+  }
+
   closeRealtimeShare() {
     this.realtimeLinkDialogVisible = false;
     this.realtimeGeneratedLink = '';
+    this.realtimeGeneratedLinks = [];
     this.realtimeCopySuccess = false;
     this.generatingRealtimeLink = false;
   }

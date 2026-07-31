@@ -28,7 +28,7 @@
     <div class="chat-floating-card__content">
         <div class="chat-floating-card__eyebrow">
             <i class="pi" [ngClass]="floatingMessage.source === 'internal' ? 'pi-users' : 'pi-comment'"></i>
-            {{ floatingMessage.source === 'internal' ? 'Grupo Montao GPS' : 'Nuevo mensaje' }}
+            {{ floatingMessage.source === 'internal' ? (floatingMessage.contactPhone || 'Grupo') : 'Nuevo mensaje' }}
         </div>
         <div class="chat-floating-card__name">{{ floatingMessage.contactName }}</div>
         <div class="chat-floating-card__phone" *ngIf="floatingMessage.contactPhone">{{ floatingMessage.contactPhone }}</div>

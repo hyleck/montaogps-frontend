@@ -32,6 +32,7 @@ interface ConversationNotificationState {
 export interface CommunicationFloatingMessage {
   source?: 'whatsapp' | 'internal';
   conversationId: number;
+  groupId?: string;
   contactName: string;
   contactPhone: string;
   message: string;
@@ -287,7 +288,7 @@ export class CommunicationNotificationService implements OnDestroy {
     this.internalInitialized = false;
     this.lastInternalMessageId = '';
 
-    this.internalChatService.getMessages({ limit: 1 }).pipe(
+    this.internalChatService.getMessages({ limit: 1, allGroups: true }).pipe(
       catchError(() => of(null)),
     ).subscribe((response) => {
       const latest = response?.messages?.[response.messages.length - 1];
@@ -297,9 +298,17 @@ export class CommunicationNotificationService implements OnDestroy {
 
     this.internalPollingSubscription = interval(5000).pipe(
       switchMap(() => {
-        const options: { limit?: number; after?: string } = this.lastInternalMessageId
-          ? { limit: 50, after: this.lastInternalMessageId }
-          : { limit: 1 };
+        const options: {
+          limit?: number;
+          after?: string;
+          allGroups?: boolean;
+        } = this.lastInternalMessageId
+          ? {
+            limit: 50,
+            after: this.lastInternalMessageId,
+            allGroups: true,
+          }
+          : { limit: 1, allGroups: true };
         return this.internalChatService.getMessages(options).pipe(catchError(() => of(null)));
       }),
     ).subscribe((response) => {
@@ -459,8 +468,11 @@ export class CommunicationNotificationService implements OnDestroy {
     this.floatingMessageSubject.next({
       source: 'internal',
       conversationId: 0,
+      groupId: message.groupId,
       contactName: this.getInternalAuthorName(message),
-      contactPhone: 'Grupo Montao GPS',
+      contactPhone: String(message.groupId || '').startsWith('technician:')
+        ? 'Grupo de instalaciones'
+        : 'Montao GPS',
       message: message.text || 'Nuevo mensaje en el grupo',
       time: message.createdAt ? Math.floor(new Date(message.createdAt).getTime() / 1000) : null,
     });

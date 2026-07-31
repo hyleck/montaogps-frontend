@@ -13,7 +13,12 @@ import { InventoryService } from '@core/services/inventory.service';
 import { ProtocolsService } from '@core/services/protocols.service';
 import { Protocol } from '@core/interfaces/protocol.interface';
 import { CommunicationNotificationService } from '@core/services/communication-notification.service';
-import { InternalChatAttachment, InternalChatMessage, InternalChatService } from '@core/services/internal-chat.service';
+import {
+  InternalChatAttachment,
+  InternalChatGroup,
+  InternalChatMessage,
+  InternalChatService,
+} from '@core/services/internal-chat.service';
 import { EsterService } from '@core/services/ester.service';
 import { MessageService, MenuItem } from 'primeng/api';
 import { environment } from '../../../../../../../environments/environment';
@@ -311,6 +316,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private chatPollingInterval: any = null;
   private conversationsPollingInterval: any = null;
   private internalChatPollingInterval: any = null;
+  private internalChatRequestId: number = 0;
   private activeEmployeesPollingInterval: any = null;
   private conversationPresenceHeartbeatInterval: any = null;
   private conversationPresencePollingInterval: any = null;
@@ -402,6 +408,10 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   globalTargetsTotal: number = 0;
 
   internalMessages: InternalChatMessage[] = [];
+  internalGroups: InternalChatGroup[] = [];
+  selectedInternalGroupId: string = 'admin';
+  loadingInternalGroups: boolean = false;
+  showInternalGroupMenu: boolean = false;
   internalChatInput: string = '';
   loadingInternalMessages: boolean = false;
   sendingInternalMessage: boolean = false;
@@ -434,7 +444,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       if (tab === 'chat' || tab === 'grupo') {
         this.activeTab = tab;
         if (tab === 'grupo') {
-          this.loadInternalChat();
+          this.loadInternalGroups();
         } else {
           this.stopActiveEmployeesPolling();
         }
@@ -450,6 +460,17 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.route.queryParamMap.subscribe(params => {
       const messageId = Number(params.get('messageId') || 0);
       this.pendingFocusedMessageId = messageId > 0 ? messageId : null;
+      const requestedGroupId = String(params.get('groupId') || '').trim();
+      if (requestedGroupId) {
+        const changed = this.selectedInternalGroupId !== requestedGroupId;
+        this.selectedInternalGroupId = requestedGroupId;
+        if (changed && this.activeTab === 'grupo' && this.internalGroups.length) {
+          this.ensureSelectedInternalGroup();
+          this.internalMessages = [];
+          this.stopInternalChatPolling();
+          this.loadInternalChat();
+        }
+      }
     });
   }
 
@@ -523,7 +544,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (tab === 'grupo') {
       this.stopConversationPresenceSession();
       this.stopChatPolling();
-      this.loadInternalChat();
+      this.loadInternalGroups();
     } else {
       this.stopInternalChatPolling();
       this.stopActiveEmployeesPolling();
@@ -2472,12 +2493,92 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   // MESSAGES
   // ============================
 
+  get selectedInternalGroup(): InternalChatGroup | undefined {
+    return this.internalGroups.find(
+      group => group.id === this.selectedInternalGroupId,
+    );
+  }
+
+  get selectedInternalGroupName(): string {
+    return this.selectedInternalGroup?.name || 'Montao GPS';
+  }
+
+  toggleInternalGroupMenu(): void {
+    this.showInternalGroupMenu = !this.showInternalGroupMenu;
+    if (this.showInternalGroupMenu && !this.internalGroups.length) {
+      this.loadInternalGroups(false);
+    }
+  }
+
+  loadInternalGroups(loadSelectedChat = true): void {
+    if (this.loadingInternalGroups) return;
+
+    if (this.internalGroups.length) {
+      this.ensureSelectedInternalGroup();
+      if (loadSelectedChat) this.loadInternalChat();
+      return;
+    }
+
+    this.loadingInternalGroups = true;
+    this.internalChatService.getGroups().subscribe({
+      next: (response) => {
+        this.loadingInternalGroups = false;
+        this.internalGroups = response?.groups || [];
+        this.ensureSelectedInternalGroup();
+        if (loadSelectedChat) this.loadInternalChat();
+      },
+      error: (error) => {
+        this.loadingInternalGroups = false;
+        this.internalChatError =
+          error?.error?.message || 'No se pudieron cargar los grupos.';
+      },
+    });
+  }
+
+  selectInternalGroup(group: InternalChatGroup): void {
+    if (!group?.id) return;
+
+    this.showInternalGroupMenu = false;
+    this.activeTab = 'grupo';
+    const changed = this.selectedInternalGroupId !== group.id;
+    this.selectedInternalGroupId = group.id;
+    if (changed) {
+      this.internalMessages = [];
+      this.internalChatInput = '';
+      this.stopInternalChatPolling();
+    }
+    this.router.navigate(['/admin/communication', 'grupo'], {
+      queryParams: { groupId: group.id },
+    });
+    this.loadInternalChat();
+  }
+
+  private ensureSelectedInternalGroup(): void {
+    if (
+      !this.internalGroups.some(
+        group => group.id === this.selectedInternalGroupId,
+      )
+    ) {
+      this.selectedInternalGroupId =
+        this.internalGroups[0]?.id || 'admin';
+    }
+  }
+
   loadInternalChat(): void {
     this.communicationNotifications.markInternalChatRead();
     this.loadingInternalMessages = true;
     this.internalChatError = '';
-    this.internalChatService.getMessages({ limit: 50 }).subscribe({
+    const groupId = this.selectedInternalGroupId;
+    const requestId = ++this.internalChatRequestId;
+    this.internalChatService.getMessages({
+      limit: 50,
+      groupId,
+    }).subscribe({
       next: (res) => {
+        if (
+          requestId !== this.internalChatRequestId
+          || groupId !== this.selectedInternalGroupId
+        ) return;
         this.loadingInternalMessages = false;
         this.internalMessages = res.messages || [];
         this.scrollInternalChatToBottom();
@@ -2485,8 +2586,13 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.startActiveEmployeesPolling();
       },
       error: (error) => {
+        if (
+          requestId !== this.internalChatRequestId
+          || groupId !== this.selectedInternalGroupId
+        ) return;
         this.loadingInternalMessages = false;
-        this.internalChatError = error?.error?.message || 'No se pudo cargar el grupo Montao GPS.';
+        this.internalChatError =
+          error?.error?.message || 'No se pudo cargar el grupo seleccionado.';
         this.stopInternalChatPolling();
         this.stopActiveEmployeesPolling();
       }
@@ -2508,19 +2614,31 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     const text = this.internalChatInput.trim();
     if (!text || this.sendingInternalMessage) return;
 
+    const groupId = this.selectedInternalGroupId;
     this.sendingInternalMessage = true;
     this.internalChatInput = '';
-    this.internalChatService.sendMessage(text).subscribe({
+    this.internalChatService.sendMessage(
+      text,
+      [],
+      'text',
+      groupId,
+    ).subscribe({
       next: (res) => {
         this.sendingInternalMessage = false;
-        if (res.message && !this.internalMessages.some(message => message._id === res.message._id)) {
+        if (
+          groupId === this.selectedInternalGroupId
+          && res.message
+          && !this.internalMessages.some(message => message._id === res.message._id)
+        ) {
           this.internalMessages = [...this.internalMessages, res.message];
         }
         this.scrollInternalChatToBottom();
       },
       error: (error) => {
         this.sendingInternalMessage = false;
-        this.internalChatInput = text;
+        if (groupId === this.selectedInternalGroupId) {
+          this.internalChatInput = text;
+        }
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo enviar',
@@ -2533,6 +2651,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   sendInternalAttachment(file: File, forcedText?: string): void {
     if (!file || this.uploadingInternalAttachment || !!this.internalChatError) return;
 
+    const groupId = this.selectedInternalGroupId;
     this.uploadingInternalAttachment = true;
     this.internalChatService.uploadAttachment(file).subscribe({
       next: (res) => {
@@ -2544,17 +2663,28 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         }
         const text = forcedText ?? this.internalChatInput.trim();
         if (!forcedText) this.internalChatInput = '';
-        this.internalChatService.sendMessage(text, [attachment], attachment.fileType || 'file').subscribe({
+        this.internalChatService.sendMessage(
+          text,
+          [attachment],
+          attachment.fileType || 'file',
+          groupId,
+        ).subscribe({
           next: (messageRes) => {
             this.uploadingInternalAttachment = false;
-            if (messageRes.message && !this.internalMessages.some(message => message._id === messageRes.message._id)) {
+            if (
+              groupId === this.selectedInternalGroupId
+              && messageRes.message
+              && !this.internalMessages.some(message => message._id === messageRes.message._id)
+            ) {
               this.internalMessages = [...this.internalMessages, messageRes.message];
             }
             this.scrollInternalChatToBottom();
           },
           error: (error) => {
             this.uploadingInternalAttachment = false;
-            if (!forcedText) this.internalChatInput = text;
+            if (!forcedText && groupId === this.selectedInternalGroupId) {
+              this.internalChatInput = text;
+            }
             this.messageService.add({
               severity: 'error',
               summary: 'No se pudo enviar',
@@ -2590,6 +2720,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   sendInternalSticker(sticker: WhatsAppSticker): void {
     if (!sticker?.url || this.sendingStickerId) return;
 
+    const groupId = this.selectedInternalGroupId;
     this.sendingStickerId = sticker.id;
     const attachment: InternalChatAttachment = {
       url: sticker.url,
@@ -2598,10 +2729,19 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       fileType: 'sticker',
       fileId: sticker.id,
     };
-    this.internalChatService.sendMessage('', [attachment], 'sticker').subscribe({
+    this.internalChatService.sendMessage(
+      '',
+      [attachment],
+      'sticker',
+      groupId,
+    ).subscribe({
       next: (res) => {
         this.sendingStickerId = null;
-        if (res.message && !this.internalMessages.some(message => message._id === res.message._id)) {
+        if (
+          groupId === this.selectedInternalGroupId
+          && res.message
+          && !this.internalMessages.some(message => message._id === res.message._id)
+        ) {
           this.internalMessages = [...this.internalMessages, res.message];
         }
         this.showStickerPicker = false;
@@ -2702,7 +2842,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.internalChatPollingInterval = setInterval(() => {
       if (this.activeTab !== 'grupo') return;
       const lastId = this.internalMessages[this.internalMessages.length - 1]?._id;
-      this.internalChatService.getMessages({ limit: 50, after: lastId }).subscribe({
+      this.internalChatService.getMessages({
+        limit: 50,
+        after: lastId,
+        groupId: this.selectedInternalGroupId,
+      }).subscribe({
         next: (res) => {
           const newMessages = (res.messages || []).filter(
             message => !this.internalMessages.some(existing => existing._id === message._id)
@@ -2737,10 +2881,25 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private loadActiveEmployeesCount(): void {
     this.userService.getActiveUsers(15).subscribe({
       next: (users) => {
-        this.activeEmployees = (users || []).filter((user: any) =>
-          ['empleado', 'tecnico_empleado'].includes(String(user?.affiliation_type_id || '').toLowerCase()) &&
-          String(user?._id || user?.id || '') !== this.currentUserId
-        ).sort((first: any, second: any) => this.getActiveEmployeeName(first).localeCompare(this.getActiveEmployeeName(second)));
+        const selectedGroup = this.selectedInternalGroup;
+        this.activeEmployees = (users || []).filter((user: any) => {
+          const affiliation = String(
+            user?.affiliation_type_id || '',
+          ).toLowerCase();
+          const userId = String(user?._id || user?.id || '');
+          const isAdministrativeEmployee = affiliation === 'empleado';
+          const isSelectedTechnician =
+            selectedGroup?.type === 'installation'
+            && userId === selectedGroup.technicianId;
+          return (
+            userId !== this.currentUserId
+            && (isAdministrativeEmployee || isSelectedTechnician)
+          );
+        }).sort((first: any, second: any) =>
+          this.getActiveEmployeeName(first).localeCompare(
+            this.getActiveEmployeeName(second),
+          ),
+        );
         this.activeEmployeesCount = this.activeEmployees.length;
       },
       error: () => {

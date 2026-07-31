@@ -4,9 +4,48 @@
         <button class="comm-tabs__btn" [class.comm-tabs__btn--active]="activeTab === 'chat'" (click)="navigateToTab('chat')">
             <i class="pi pi-comments"></i> Chat
         </button>
-        <button class="comm-tabs__btn" [class.comm-tabs__btn--active]="activeTab === 'grupo'" (click)="navigateToTab('grupo')">
-            <i class="pi pi-users"></i> Grupo Montao GPS
-        </button>
+        <div class="comm-tabs__groups">
+            <button class="comm-tabs__btn"
+                [class.comm-tabs__btn--active]="activeTab === 'grupo'"
+                type="button"
+                (click)="toggleInternalGroupMenu()"
+                aria-haspopup="menu"
+                [attr.aria-expanded]="showInternalGroupMenu">
+                <i class="pi pi-users"></i>
+                Grupos
+                <i class="pi pi-chevron-down comm-tabs__chevron"></i>
+            </button>
+            <div *ngIf="showInternalGroupMenu" class="comm-groups-menu" role="menu">
+                <div *ngIf="loadingInternalGroups" class="comm-groups-menu__state">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    Cargando grupos...
+                </div>
+                <button *ngFor="let group of internalGroups"
+                    type="button"
+                    role="menuitem"
+                    class="comm-groups-menu__item"
+                    [class.comm-groups-menu__item--active]="group.id === selectedInternalGroupId"
+                    (click)="selectInternalGroup(group)">
+                    <span class="comm-groups-menu__avatar"
+                        [class.comm-groups-menu__avatar--admin]="group.type === 'admin'">
+                        <img *ngIf="group.technician?.photo" [src]="group.technician?.photo"
+                            [alt]="group.name" />
+                        <i *ngIf="!group.technician?.photo"
+                            class="pi"
+                            [ngClass]="group.type === 'admin' ? 'pi-building' : 'pi-wrench'"></i>
+                    </span>
+                    <span>
+                        <strong>{{ group.name }}</strong>
+                        <small>{{ group.type === 'admin' ? 'Empleados administrativos' : 'Técnico y empleados administrativos' }}</small>
+                    </span>
+                    <i *ngIf="group.id === selectedInternalGroupId" class="pi pi-check"></i>
+                </button>
+                <div *ngIf="!loadingInternalGroups && internalGroups.length === 0"
+                    class="comm-groups-menu__state">
+                    No hay grupos disponibles.
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- No Inbox State -->
@@ -658,7 +697,7 @@
     </div>
     </div>
 
-    <!-- ====== GRUPO MONTAO GPS TAB ====== -->
+    <!-- ====== GRUPOS INTERNOS ====== -->
     <div *ngIf="activeTab === 'grupo' && !noInbox" class="comm-internal">
         <section class="comm-internal__panel">
             <header class="comm-internal__header">
@@ -667,9 +706,13 @@
                         <i class="pi pi-users"></i>
                     </span>
                     <div>
-                        <h2>Grupo Montao GPS</h2>
+                        <h2>{{ selectedInternalGroupName }}</h2>
                         <p>
-                            {{ internalChatMuted ? 'Silenciado para ti' : 'Chat interno para empleados' }}
+                            {{ internalChatMuted
+                                ? 'Silenciado para ti'
+                                : (selectedInternalGroup?.type === 'installation'
+                                    ? 'Técnico y empleados administrativos'
+                                    : 'Empleados administrativos') }}
                             <button class="comm-internal__presence" type="button" *ngIf="activeEmployeesCount !== null"
                                 (click)="openActiveEmployeesDialog()"
                                 [attr.aria-label]="'Ver ' + activeEmployeesCount + ' empleados activos'">
@@ -862,7 +905,7 @@
                     [(ngModel)]="internalChatInput"
                     name="internalChatInput"
                     rows="1"
-                    placeholder="Escribe en Grupo Montao GPS..."
+                    [placeholder]="'Escribe en ' + selectedInternalGroupName + '...'"
                     [disabled]="sendingInternalMessage || !!internalChatError"
                     (keydown.enter)="$event.preventDefault(); sendInternalMessage()"></textarea>
                 <button type="submit" [disabled]="!internalChatInput.trim() || sendingInternalMessage || !!internalChatError">

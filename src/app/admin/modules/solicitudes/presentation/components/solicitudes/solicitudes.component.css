@@ -614,6 +614,7 @@ app-solicitudes > .management__route {
     gap: 0.45rem;
 }
 
+.sol-top-filters__calendar,
 .sol-top-filters__export,
 .sol-top-filters__clear {
     display: inline-flex;
@@ -629,6 +630,21 @@ app-solicitudes > .management__route {
     font-size: 0.72rem;
     font-weight: 750;
     cursor: pointer;
+}
+
+.sol-top-filters__calendar {
+    color: #4f46e5;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.sol-top-filters__calendar i {
+    color: #6366f1;
+}
+
+.sol-top-filters__calendar:hover {
+    border-color: rgba(99, 102, 241, 0.48);
+    background: color-mix(in srgb, #6366f1 10%, transparent);
 }
 
 .sol-top-filters__export {
@@ -661,6 +677,487 @@ app-solicitudes > .management__route {
     opacity: 0.4;
 }
 
+/* ============================================
+   TECHNICIAN REQUEST CALENDAR
+   ============================================ */
+
+.sol-calendar-dialog .p-dialog-content {
+    padding: 0;
+    overflow: hidden;
+}
+
+.sol-calendar {
+    display: flex;
+    max-height: min(82vh, 900px);
+    flex-direction: column;
+    min-height: 0;
+    color: var(--managementColorTitleUser);
+    background: var(--managementColorBackgroundUser);
+}
+
+.sol-calendar__toolbar {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid var(--managementFieldsBorder);
+    background: var(--managementColorCardBackground);
+}
+
+.sol-calendar__navigation {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.sol-calendar__nav-button,
+.sol-calendar__today-button {
+    display: inline-grid;
+    min-width: 40px;
+    min-height: 40px;
+    place-items: center;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 11px;
+    color: var(--managementColorTitleUser);
+    background: var(--managementFieldsBackground);
+    cursor: pointer;
+    font: inherit;
+    font-weight: 800;
+    transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.sol-calendar__today-button {
+    display: inline-flex;
+    padding: 0 0.85rem;
+    color: #4f46e5;
+}
+
+.sol-calendar__nav-button:hover,
+.sol-calendar__today-button:hover {
+    border-color: #6366f1;
+    background: color-mix(in srgb, #6366f1 9%, var(--managementFieldsBackground));
+}
+
+.sol-calendar__month {
+    display: flex;
+    width: min(260px, 28vw);
+    flex-direction: column;
+    padding: 0 0.3rem;
+}
+
+.sol-calendar__month strong {
+    font-size: 1rem;
+    line-height: 1.2;
+}
+
+.sol-calendar__month span {
+    margin-top: 0.15rem;
+    color: var(--managementColorTextUser);
+    font-size: 0.72rem;
+}
+
+.sol-calendar__technician-filter {
+    display: flex;
+    min-width: min(310px, 34vw);
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sol-calendar__technician-filter span {
+    color: var(--managementColorTextUser);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.sol-calendar__technician-filter select {
+    min-height: 42px;
+    padding: 0 0.8rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 11px;
+    outline: 0;
+    color: var(--managementColorTitleUser);
+    background: var(--managementFieldsBackground);
+    font: inherit;
+    font-size: 0.82rem;
+}
+
+.sol-calendar__technician-filter select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.14);
+}
+
+.sol-calendar__legend {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.65rem 1.1rem;
+    border-bottom: 1px solid var(--managementFieldsBorder);
+    color: var(--managementColorTextUser);
+    background: var(--managementColorCardBackground);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.sol-calendar__legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.sol-calendar__legend i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ef4444;
+}
+
+.sol-calendar__legend i[data-status="en_progreso"] {
+    background: #f59e0b;
+}
+
+.sol-calendar__legend i[data-status="por_confirmar"] {
+    background: #8b5cf6;
+}
+
+.sol-calendar__legend i[data-status="completada"] {
+    background: #10b981;
+}
+
+.sol-calendar__legend i[data-status="cancelada"] {
+    background: #9ca3af;
+}
+
+.sol-calendar__scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.6) transparent;
+}
+
+.sol-calendar__weekdays,
+.sol-calendar__grid {
+    display: grid;
+    min-width: 980px;
+    grid-template-columns: repeat(7, minmax(140px, 1fr));
+}
+
+.sol-calendar__weekdays {
+    position: sticky;
+    z-index: 4;
+    top: 0;
+    border-bottom: 1px solid var(--managementFieldsBorder);
+    background: var(--managementColorCardBackground);
+}
+
+.sol-calendar__weekdays span {
+    padding: 0.55rem 0.7rem;
+    border-right: 1px solid var(--managementFieldsBorder);
+    color: var(--managementColorTextUser);
+    font-size: 0.68rem;
+    font-weight: 850;
+    letter-spacing: 0.045em;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.sol-calendar-day {
+    min-height: 142px;
+    padding: 0.5rem;
+    border-right: 1px solid var(--managementFieldsBorder);
+    border-bottom: 1px solid var(--managementFieldsBorder);
+    background: var(--managementColorCardBackground);
+}
+
+.sol-calendar-day:nth-child(7n) {
+    border-right: 0;
+}
+
+.sol-calendar-day--outside {
+    background: color-mix(in srgb, var(--managementColorBackgroundUser) 78%, transparent);
+    opacity: 0.56;
+}
+
+.sol-calendar-day--today {
+    box-shadow: inset 0 0 0 2px #6366f1;
+}
+
+.sol-calendar-day > header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 26px;
+    margin-bottom: 0.35rem;
+}
+
+.sol-calendar-day > header time {
+    display: grid;
+    width: 25px;
+    height: 25px;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--managementColorTextUser);
+    font-size: 0.74rem;
+    font-weight: 850;
+}
+
+.sol-calendar-day--today > header time {
+    color: #fff;
+    background: #6366f1;
+}
+
+.sol-calendar-day > header small {
+    display: grid;
+    min-width: 20px;
+    height: 20px;
+    place-items: center;
+    padding: 0 0.25rem;
+    border-radius: 999px;
+    color: #4f46e5;
+    background: rgba(99, 102, 241, 0.12);
+    font-size: 0.62rem;
+    font-weight: 850;
+}
+
+.sol-calendar-day__events {
+    display: flex;
+    flex-direction: column;
+    gap: 0.32rem;
+}
+
+.sol-calendar-event {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.15rem 0.42rem;
+    padding: 0.42rem 0.48rem;
+    border: 1px solid rgba(239, 68, 68, 0.28);
+    border-left: 4px solid #ef4444;
+    border-radius: 9px;
+    color: var(--managementColorTitleUser);
+    background: color-mix(in srgb, #ef4444 8%, var(--managementFieldsBackground));
+    text-align: left;
+    cursor: pointer;
+}
+
+.sol-calendar-event[data-status="en_progreso"] {
+    border-color: rgba(245, 158, 11, 0.28);
+    border-left-color: #f59e0b;
+    background: color-mix(in srgb, #f59e0b 9%, var(--managementFieldsBackground));
+}
+
+.sol-calendar-event[data-status="por_confirmar"] {
+    border-color: rgba(139, 92, 246, 0.3);
+    border-left-color: #8b5cf6;
+    background: color-mix(in srgb, #8b5cf6 8%, var(--managementFieldsBackground));
+}
+
+.sol-calendar-event[data-status="completada"] {
+    border-color: rgba(16, 185, 129, 0.3);
+    border-left-color: #10b981;
+    background: color-mix(in srgb, #10b981 8%, var(--managementFieldsBackground));
+}
+
+.sol-calendar-event[data-status="cancelada"] {
+    border-color: rgba(156, 163, 175, 0.34);
+    border-left-color: #9ca3af;
+    background: color-mix(in srgb, #9ca3af 9%, var(--managementFieldsBackground));
+    opacity: 0.72;
+}
+
+.sol-calendar-event--overdue {
+    box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.45);
+}
+
+.sol-calendar-event:hover {
+    filter: brightness(1.035);
+    transform: translateY(-1px);
+}
+
+.sol-calendar-event__time {
+    grid-row: 1 / span 2;
+    color: #4f46e5;
+    font-size: 0.64rem;
+    font-weight: 900;
+    white-space: nowrap;
+}
+
+.sol-calendar-event strong,
+.sol-calendar-event__meta {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sol-calendar-event strong {
+    font-size: 0.71rem;
+}
+
+.sol-calendar-event__meta {
+    color: var(--managementColorTextUser);
+    font-size: 0.61rem;
+}
+
+.sol-calendar-unscheduled {
+    flex: 0 0 auto;
+    padding: 0.75rem 1.1rem 0.9rem;
+    border-top: 1px solid var(--managementFieldsBorder);
+    background: var(--managementColorCardBackground);
+}
+
+.sol-calendar-unscheduled__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.55rem;
+    color: var(--managementColorTextUser);
+    font-size: 0.74rem;
+    font-weight: 850;
+}
+
+.sol-calendar-unscheduled__heading span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+}
+
+.sol-calendar-unscheduled__heading b {
+    display: grid;
+    min-width: 24px;
+    height: 24px;
+    place-items: center;
+    border-radius: 999px;
+    color: #6b7280;
+    background: rgba(107, 114, 128, 0.12);
+}
+
+.sol-calendar-unscheduled__list {
+    display: flex;
+    gap: 0.45rem;
+    overflow-x: auto;
+    padding-bottom: 0.15rem;
+}
+
+.sol-calendar-unscheduled__list button {
+    display: flex;
+    min-width: 210px;
+    max-width: 280px;
+    flex-direction: column;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 10px;
+    color: var(--managementColorTitleUser);
+    background: var(--managementFieldsBackground);
+    text-align: left;
+    cursor: pointer;
+}
+
+.sol-calendar-unscheduled__list button:hover {
+    border-color: #6366f1;
+}
+
+.sol-calendar-unscheduled__list strong,
+.sol-calendar-unscheduled__list span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sol-calendar-unscheduled__list strong {
+    font-size: 0.74rem;
+}
+
+.sol-calendar-unscheduled__list span {
+    margin-top: 0.15rem;
+    color: var(--managementColorTextUser);
+    font-size: 0.64rem;
+}
+
+.sol-calendar__empty {
+    display: flex;
+    min-height: 160px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    color: var(--managementColorTextUser);
+    text-align: center;
+}
+
+.sol-calendar__empty i {
+    color: #818cf8;
+    font-size: 1.6rem;
+}
+
+.sol-calendar__empty strong {
+    color: var(--managementColorTitleUser);
+}
+
+.sol-calendar__empty span {
+    font-size: 0.74rem;
+}
+
+@media (max-width: 768px) {
+    .sol-calendar {
+        max-height: calc(100dvh - 5rem);
+    }
+
+    .sol-calendar__toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 0.8rem;
+    }
+
+    .sol-calendar__navigation {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+    }
+
+    .sol-calendar__month {
+        width: auto;
+        min-width: 0;
+    }
+
+    .sol-calendar__month strong,
+    .sol-calendar__month span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .sol-calendar__technician-filter {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .sol-calendar__legend {
+        gap: 0.55rem 0.8rem;
+        padding: 0.6rem 0.8rem;
+    }
+
+    .sol-calendar__weekdays,
+    .sol-calendar__grid {
+        min-width: 840px;
+        grid-template-columns: repeat(7, minmax(120px, 1fr));
+    }
+
+    .sol-calendar-day {
+        min-height: 128px;
+    }
+
+    .sol-calendar-unscheduled {
+        padding-inline: 0.8rem;
+    }
+}
+
 .sol-top-filters__grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(145px, 1fr)) minmax(300px, 1.5fr);
@@ -678,7 +1175,6 @@ app-solicitudes > .management__route {
 }
 
 .sol-top-filter-field > span,
-.sol-top-filter-dates__label,
 .sol-top-filter-dates__inputs label > span {
     color: var(--managementColorTextUser);
     font-size: 0.65rem;
@@ -1363,6 +1859,52 @@ app-solicitudes > .management__route {
     color: #ef4444;
     font-size: 0.76rem;
     line-height: 1.35;
+}
+
+.sol-technician-schedule-status {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin: 0.15rem 0 1rem;
+    padding: 0.8rem 0.9rem;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.sol-technician-schedule-status > i {
+    margin-top: 0.1rem;
+    flex: 0 0 auto;
+}
+
+.sol-technician-schedule-status strong {
+    display: block;
+    margin-bottom: 0.1rem;
+}
+
+.sol-technician-schedule-status--checking {
+    color: #2563eb;
+    border-color: rgba(59, 130, 246, 0.28);
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.sol-technician-schedule-status--conflict,
+.sol-technician-schedule-status--error {
+    color: #b91c1c;
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.09);
+}
+
+html.app-dark .sol-technician-schedule-status--checking {
+    color: #93c5fd;
+    background: rgba(37, 99, 235, 0.16);
+}
+
+html.app-dark .sol-technician-schedule-status--conflict,
+html.app-dark .sol-technician-schedule-status--error {
+    color: #fca5a5;
+    background: rgba(220, 38, 38, 0.16);
 }
 
 .sol-map-link-field {
@@ -4208,8 +4750,7 @@ app-solicitudes > .management__route {
     gap: 0.6rem;
 }
 
-.sol-location-config-coordinates label,
-.sol-location-config-zone__grid label {
+.sol-location-config-coordinates label {
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -4220,8 +4761,7 @@ app-solicitudes > .management__route {
 }
 
 .sol-location-config-coordinates input,
-.sol-location-config-link input,
-.sol-location-config-zone__grid select {
+.sol-location-config-link input {
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
@@ -4237,8 +4777,7 @@ app-solicitudes > .management__route {
 }
 
 .sol-location-config-coordinates input:focus,
-.sol-location-config-link input:focus,
-.sol-location-config-zone__grid select:focus {
+.sol-location-config-link input:focus {
     border-color: #dc3545;
     background: #ffffff;
     box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
@@ -4302,12 +4841,6 @@ app-solicitudes > .management__route {
 .sol-location-config-help {
     display: block;
     margin-top: 0.5rem;
-}
-
-.sol-location-config-zone__grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.55rem;
 }
 
 .sol-location-config-current {
@@ -4405,7 +4938,6 @@ html.app-dark .sol-location-config-map-header div {
 
 html.app-dark .sol-location-config-coordinates input,
 html.app-dark .sol-location-config-link input,
-html.app-dark .sol-location-config-zone__grid select,
 html.app-dark .sol-location-search-box > input,
 html.app-dark .sol-location-config-current {
     border-color: #343c4a;
@@ -4559,7 +5091,6 @@ html.app-dark .sol-location-config-clear:hover {
     }
 
     .sol-location-config-methods,
-    .sol-location-config-zone__grid,
     .sol-location-config-coordinates,
     .sol-location-config-current {
         grid-template-columns: 1fr;

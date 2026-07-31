@@ -70,6 +70,211 @@
     </div>
 </div>
 
+@defer (when bulkProcessDialogVisible) {
+<p-dialog [(visible)]="bulkProcessDialogVisible" [modal]="true" [draggable]="false" [resizable]="false"
+    [closable]="!applyingBulkProcess" [closeOnEscape]="!applyingBulkProcess" [dismissableMask]="false"
+    appendTo="body" styleClass="bulk-process-dialog" [style]="{width: '880px', maxWidth: '96vw'}"
+    (onHide)="closeBulkProcessDialog()">
+    <ng-template pTemplate="header">
+        <div class="bulk-process-dialog__header">
+            <span class="bulk-process-dialog__icon">
+                <i class="pi pi-list-check"></i>
+            </span>
+            <div>
+                <h2>Realizar proceso masivo</h2>
+                <p>Aplicar un mismo proceso a {{ currentSelectedTargets.length }} objetivos seleccionados</p>
+            </div>
+        </div>
+    </ng-template>
+
+    <div class="bulk-process">
+        <div *ngIf="bulkProcessCatalogLoading" class="bulk-process__loading">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Preparando opciones del proceso...</span>
+        </div>
+
+        <ng-container *ngIf="!bulkProcessCatalogLoading">
+            <section class="bulk-process__section">
+                <div class="bulk-process__section-title">
+                    <span>1</span>
+                    <div>
+                        <h3>Seleccione el proceso</h3>
+                        <p>Los cambios de GPS, SIM, IMEI y número de SIM no están disponibles de forma masiva.</p>
+                    </div>
+                </div>
+
+                <div class="bulk-process__options">
+                    <button *ngFor="let option of bulkProcessOptions" type="button" class="bulk-process__option"
+                        [class.bulk-process__option--selected]="bulkProcessForm.type === option.value"
+                        [disabled]="applyingBulkProcess"
+                        (click)="bulkProcessForm.type = option.value; onBulkProcessTypeChange()">
+                        <i [class]="option.icon"></i>
+                        <span>{{ option.labelKey | translate }}</span>
+                        <i class="pi pi-check-circle bulk-process__option-check"></i>
+                    </button>
+                </div>
+            </section>
+
+            <section class="bulk-process__section" *ngIf="bulkProcessForm.type">
+                <div class="bulk-process__section-title">
+                    <span>2</span>
+                    <div>
+                        <h3>Configure el proceso</h3>
+                        <p>Estos datos se aplicarán a todos los objetivos seleccionados.</p>
+                    </div>
+                </div>
+
+                <div class="bulk-process__form-grid">
+                    <label class="bulk-process__field">
+                        <span>Fecha del proceso <b>(Requerido)</b></span>
+                        <input type="date" [(ngModel)]="bulkProcessForm.registrationDate"
+                            [disabled]="applyingBulkProcess">
+                    </label>
+
+                    <label class="bulk-process__field" *ngIf="bulkProcessForm.type === 'installation'">
+                        <span>Nueva fecha de instalación <b>(Requerido)</b></span>
+                        <input type="date" [(ngModel)]="bulkProcessForm.newInstallationDate"
+                            [disabled]="applyingBulkProcess">
+                    </label>
+
+                    <label class="bulk-process__field" *ngIf="bulkProcessForm.type === 'expiration'">
+                        <span>Nueva fecha de expiración <b>(Requerido)</b></span>
+                        <input type="date" [(ngModel)]="bulkProcessForm.newExpirationDate"
+                            [disabled]="applyingBulkProcess">
+                    </label>
+
+                    <label class="bulk-process__field" *ngIf="bulkProcessForm.type === 'renewal'">
+                        <span>Duración de la renovación <b>(Requerido)</b></span>
+                        <select [(ngModel)]="bulkProcessForm.renewalYears" [disabled]="applyingBulkProcess">
+                            <option [ngValue]="1">1 año</option>
+                            <option [ngValue]="2">2 años</option>
+                            <option [ngValue]="3">3 años</option>
+                            <option [ngValue]="4">4 años</option>
+                            <option [ngValue]="5">5 años</option>
+                        </select>
+                        <small>Se sumará esta duración a la expiración actual de cada objetivo.</small>
+                    </label>
+
+                    <label class="bulk-process__field" *ngIf="bulkProcessForm.type === 'technician_change'">
+                        <span>Nuevo técnico <b>(Requerido)</b></span>
+                        <select [(ngModel)]="bulkProcessForm.newTechnician" [disabled]="applyingBulkProcess">
+                            <option value="">Seleccione un técnico</option>
+                            <option *ngFor="let technician of bulkProcessTechnicians" [value]="technician.value">
+                                {{ technician.label }}
+                            </option>
+                        </select>
+                    </label>
+
+                    <label class="bulk-process__field" *ngIf="bulkProcessForm.type === 'gps_model_change'">
+                        <span>Nuevo modelo de GPS <b>(Requerido)</b></span>
+                        <select [(ngModel)]="bulkProcessForm.newGpsModel" [disabled]="applyingBulkProcess">
+                            <option value="">Seleccione un modelo de GPS</option>
+                            <option *ngFor="let model of bulkProcessGpsModels" [value]="model.value">
+                                {{ model.label }}
+                            </option>
+                        </select>
+                    </label>
+
+                    <label class="bulk-process__field" *ngIf="bulkProcessForm.type === 'sim_type_change'">
+                        <span>Nuevo tipo de SIM <b>(Requerido)</b></span>
+                        <select [(ngModel)]="bulkProcessForm.newSimType" [disabled]="applyingBulkProcess">
+                            <option value="">Seleccione un tipo de SIM</option>
+                            <option *ngFor="let simType of bulkProcessSimTypes" [value]="simType.value">
+                                {{ simType.label }}
+                            </option>
+                        </select>
+                    </label>
+
+                    <label class="bulk-process__field bulk-process__field--wide"
+                        *ngIf="bulkProcessForm.type === 'installation_details_change'">
+                        <span>Nuevos detalles de instalación <b>(Requerido)</b></span>
+                        <textarea rows="3" [(ngModel)]="bulkProcessForm.newInstallationDetails"
+                            [disabled]="applyingBulkProcess"
+                            placeholder="Escriba los detalles que se aplicarán a todos los objetivos"></textarea>
+                    </label>
+
+                    <label class="bulk-process__field bulk-process__field--wide">
+                        <span>Notas del proceso <em>(Opcional)</em></span>
+                        <textarea rows="3" [(ngModel)]="bulkProcessForm.description"
+                            [disabled]="applyingBulkProcess"
+                            placeholder="¿Por qué se está realizando este proceso?"></textarea>
+                    </label>
+                </div>
+            </section>
+
+            <section class="bulk-process__section">
+                <div class="bulk-process__section-title">
+                    <span>3</span>
+                    <div>
+                        <h3>Objetivos seleccionados</h3>
+                        <p>El resultado de cada objetivo se mostrará de manera independiente.</p>
+                    </div>
+                </div>
+
+                <div class="bulk-process__progress" *ngIf="applyingBulkProcess || bulkProcessIsFinished">
+                    <div>
+                        <strong>{{ applyingBulkProcess ? 'Aplicando proceso...' : 'Proceso finalizado' }}</strong>
+                        <span>{{ bulkProcessProgress }}%</span>
+                    </div>
+                    <p-progressBar [value]="bulkProcessProgress" [showValue]="false"></p-progressBar>
+                </div>
+
+                <div class="bulk-process__targets">
+                    <div *ngFor="let result of bulkProcessResults" class="bulk-process__target"
+                        [class.bulk-process__target--success]="result.status === 'success'"
+                        [class.bulk-process__target--error]="result.status === 'error'">
+                        <div class="bulk-process__target-icon">
+                            <i *ngIf="result.status === 'pending'" class="pi pi-map-marker"></i>
+                            <i *ngIf="result.status === 'processing'" class="pi pi-spin pi-spinner"></i>
+                            <i *ngIf="result.status === 'success'" class="pi pi-check"></i>
+                            <i *ngIf="result.status === 'error'" class="pi pi-times"></i>
+                        </div>
+                        <div class="bulk-process__target-copy">
+                            <strong>{{ result.target_name }}</strong>
+                            <small *ngIf="result.target_imei">IMEI: {{ result.target_imei }}</small>
+                            <small *ngIf="result.error" class="bulk-process__target-error">{{ result.error }}</small>
+                        </div>
+                        <span class="bulk-process__target-status">
+                            {{
+                                result.status === 'success' ? 'Aplicado' :
+                                result.status === 'error' ? 'Error' :
+                                result.status === 'processing' ? 'Procesando' : 'Pendiente'
+                            }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="bulk-process__summary" *ngIf="bulkProcessIsFinished">
+                    <span class="bulk-process__summary-success">
+                        <i class="pi pi-check-circle"></i>
+                        {{ bulkProcessSuccessCount }} aplicados
+                    </span>
+                    <span class="bulk-process__summary-error" *ngIf="bulkProcessErrorCount">
+                        <i class="pi pi-exclamation-circle"></i>
+                        {{ bulkProcessErrorCount }} con error
+                    </span>
+                </div>
+            </section>
+        </ng-container>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <div class="bulk-process__footer">
+            <button type="button" class="button button--flat-negative" [disabled]="applyingBulkProcess"
+                (click)="closeBulkProcessDialog()">
+                <i class="pi pi-times"></i>
+                {{ bulkProcessIsFinished ? 'Cerrar' : 'Cancelar' }}
+            </button>
+            <button type="button" class="bulk-process__submit" [disabled]="!canApplyBulkProcess"
+                (click)="applyBulkProcess()">
+                <i [class]="applyingBulkProcess ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+                {{ applyingBulkProcess ? 'Aplicando...' : 'Aplicar a ' + currentSelectedTargets.length + ' objetivos' }}
+            </button>
+        </div>
+    </ng-template>
+</p-dialog>
+}
+
 @defer (when alertsDialogVisible) {
 <p-dialog header="{{ 'navbar.alerts' | translate }}" [(visible)]="alertsDialogVisible" [modal]="true"
     [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
@@ -1173,7 +1378,7 @@
 <!-- Modal de link en tiempo real -->
 @defer (when realtimeLinkDialogVisible) {
 <p-dialog [(visible)]="realtimeLinkDialogVisible" [modal]="true" [resizable]="false" [draggable]="false"
-    [style]="{width: '500px', maxWidth: '92vw'}" [blockScroll]="true" appendTo="body"
+    [style]="{width: '640px', maxWidth: '94vw'}" [blockScroll]="true" appendTo="body"
     styleClass="realtime-share-dialog" (onHide)="closeRealtimeShare()">
 
     <ng-template pTemplate="header">
@@ -1184,14 +1389,27 @@
     </ng-template>
 
     <div class="realtime-share-content">
-        <div class="realtime-target-summary" *ngIf="targetsToShare[0] as target"
+        <div class="realtime-targets-summary"
             [ngStyle]="currentTheme === 'dark'
                 ? {'background': '#24262b', 'border-color': '#ff4d57'}
                 : {'background': '#f8fafc'}">
-            <strong [ngStyle]="{'color': currentTheme === 'dark' ? '#f8fafc' : '#1f2937'}">{{ target.name }}</strong>
-            <span [ngStyle]="{'color': currentTheme === 'dark' ? '#d1d5db' : '#6b7280'}">
-                IMEI: {{ target.device_imei || target.imei }}
-            </span>
+            <div class="realtime-targets-summary__heading">
+                <span>
+                    <i class="pi pi-map-marker"></i>
+                    Objetivos seleccionados
+                </span>
+                <b>{{ targetsToShare.length }}</b>
+            </div>
+            <div class="realtime-targets-summary__list">
+                <div *ngFor="let target of targetsToShare">
+                    <strong [ngStyle]="{'color': currentTheme === 'dark' ? '#f8fafc' : '#1f2937'}">
+                        {{ target.name || 'Objetivo sin nombre' }}
+                    </strong>
+                    <span [ngStyle]="{'color': currentTheme === 'dark' ? '#d1d5db' : '#6b7280'}">
+                        IMEI: {{ target.device_imei || target.imei || 'No disponible' }}
+                    </span>
+                </div>
+            </div>
         </div>
 
         <label class="realtime-field">
@@ -1214,21 +1432,47 @@
             </select>
         </label>
 
-        <div class="realtime-generated-link" *ngIf="realtimeGeneratedLink">
-            <span class="realtime-generated-label">Link generado</span>
-            <div class="realtime-link-box">
-                <span>{{ realtimeGeneratedLink }}</span>
-                <button type="button" (click)="copyRealtimeLinkToClipboard()" title="Copiar link">
+        <div class="realtime-generated-link" *ngIf="realtimeGeneratedLinks.length">
+            <div class="realtime-generated-heading">
+                <span class="realtime-generated-label">
+                    {{ realtimeGeneratedLinks.length === 1 ? 'Link generado' : 'Links generados' }}
+                </span>
+                <button
+                    type="button"
+                    class="realtime-copy-all"
+                    *ngIf="realtimeGeneratedLinks.length > 1"
+                    (click)="copyRealtimeLinkToClipboard()">
                     <i class="pi pi-copy"></i>
+                    Copiar todos
                 </button>
+            </div>
+
+            <div class="realtime-generated-list">
+                <article *ngFor="let generated of realtimeGeneratedLinks">
+                    <div class="realtime-generated-target">
+                        <strong>{{ generated.target_name }}</strong>
+                        <span *ngIf="generated.target_imei">
+                            IMEI {{ generated.target_imei }}
+                        </span>
+                    </div>
+                    <div class="realtime-link-box">
+                        <span>{{ generated.url }}</span>
+                        <button
+                            type="button"
+                            (click)="copyRealtimeLinkToClipboard(generated)"
+                            [title]="'Copiar link de ' + generated.target_name">
+                            <i class="pi pi-copy"></i>
+                        </button>
+                    </div>
+                </article>
             </div>
             <small>
                 <i class="pi pi-info-circle"></i>
-                Expira en {{ getRealtimeExpirationText(realtimeExpirationTime) }}
+                Todos expiran en {{ getRealtimeExpirationText(realtimeExpirationTime) }}
             </small>
             <div class="realtime-copy-success" *ngIf="realtimeCopySuccess">
                 <i class="pi pi-check-circle"></i>
-                Link copiado correctamente
+                {{ realtimeGeneratedLinks.length === 1 ? 'Link copiado correctamente' : 'Links copiados correctamente' }}
             </div>
         </div>
     </div>
@@ -1249,7 +1493,11 @@
                     : null">
                 <i class="pi" [ngClass]="generatingRealtimeLink ? 'pi-spin pi-spinner' : 'pi-link'"
                     style="margin-right: 6px;"></i>
-                Generar link
+                {{ generatingRealtimeLink
+                    ? 'Generando...'
+                    : (targetsToShare.length === 1
+                        ? 'Generar link'
+                        : 'Generar ' + targetsToShare.length + ' links') }}
             </button>
         </div>
     </ng-template>
