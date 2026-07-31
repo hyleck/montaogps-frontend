@@ -79,6 +79,21 @@
     font-size: 0.65rem;
 }
 
+.comm-tabs__unread-badge {
+    display: inline-grid;
+    min-width: 1.2rem;
+    height: 1.2rem;
+    place-items: center;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 0 0 2px #0d1117;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
 .comm-groups-menu {
     position: absolute;
     z-index: 120;
@@ -137,9 +152,31 @@
     font-size: 0.71rem;
 }
 
-.comm-groups-menu__item > .pi-check {
+.comm-groups-menu__meta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+}
+
+.comm-groups-menu__meta > .pi-check {
     color: #34d399;
     font-size: 0.78rem;
+}
+
+.comm-groups-menu__badge {
+    display: inline-grid;
+    min-width: 1.42rem;
+    height: 1.42rem;
+    place-items: center;
+    padding: 0 0.36rem;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.28);
+    font-size: 0.68rem;
+    font-weight: 850;
+    line-height: 1;
 }
 
 .comm-groups-menu__avatar {
@@ -172,6 +209,37 @@
     gap: 0.5rem;
     color: rgba(255, 255, 255, 0.52);
     font-size: 0.82rem;
+}
+
+.comm-groups-menu__row {
+    display: grid;
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) 36px;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.comm-groups-menu__clean {
+    display: grid;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    padding: 0;
+    border: 1px solid rgba(248, 113, 113, 0.18);
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.07);
+    color: #f87171;
+    cursor: pointer;
+}
+
+.comm-groups-menu__clean:hover:not(:disabled) {
+    border-color: rgba(248, 113, 113, 0.4);
+    background: rgba(239, 68, 68, 0.14);
+}
+
+.comm-groups-menu__clean:disabled {
+    cursor: wait;
+    opacity: 0.65;
 }
 
 .comm-internal {
@@ -4100,6 +4168,7 @@
 :host-context(.app-light) .comm-tabs__btn { color: #64748b; }
 :host-context(.app-light) .comm-tabs__btn:hover { background: #f1f5f9; color: #000000; }
 :host-context(.app-light) .comm-tabs__btn--active { background: rgba(220, 38, 38, 0.1); color: #dc2626; }
+:host-context(.app-light) .comm-tabs__unread-badge { box-shadow: 0 0 0 2px #ffffff; }
 
 :host-context(.app-light) .comm-groups-menu {
     border-color: #e2e8f0;
@@ -4120,6 +4189,17 @@
 :host-context(.app-light) .comm-groups-menu__item small,
 :host-context(.app-light) .comm-groups-menu__state {
     color: #64748b;
+}
+
+:host-context(.app-light) .comm-groups-menu__clean {
+    border-color: rgba(220, 38, 38, 0.18);
+    background: rgba(220, 38, 38, 0.06);
+    color: #dc2626;
+}
+
+:host-context(.app-light) .comm-groups-menu__clean:hover:not(:disabled) {
+    border-color: rgba(220, 38, 38, 0.35);
+    background: rgba(220, 38, 38, 0.1);
 }
 
 :host-context(.app-light) .comm-internal {

@@ -20,7 +20,7 @@ import {
   InternalChatService,
 } from '@core/services/internal-chat.service';
 import { EsterService } from '@core/services/ester.service';
-import { MessageService, MenuItem } from 'primeng/api';
+import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { environment } from '../../../../../../../environments/environment';
 import { finalize, Subscription, timeout } from 'rxjs';
 import {
@@ -316,6 +316,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   private chatPollingInterval: any = null;
   private conversationsPollingInterval: any = null;
   private internalChatPollingInterval: any = null;
+  private internalGroupsPollingInterval: any = null;
   private internalChatRequestId: number = 0;
   private activeEmployeesPollingInterval: any = null;
   private conversationPresenceHeartbeatInterval: any = null;
@@ -366,6 +367,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     private internalChatService: InternalChatService,
     private esterService: EsterService,
     private communicationNotifications: CommunicationNotificationService,
+    private confirmationService: ConfirmationService,
     private systemService: SystemService,
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer
@@ -411,6 +413,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   internalGroups: InternalChatGroup[] = [];
   selectedInternalGroupId: string = 'admin';
   loadingInternalGroups: boolean = false;
+  canClearInternalMessages: boolean = false;
+  clearingInternalGroupId: string | null = null;
   showInternalGroupMenu: boolean = false;
   internalChatInput: string = '';
   loadingInternalMessages: boolean = false;
@@ -433,6 +437,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.internalChatMuted = this.communicationNotifications.isInternalChatMuted();
     this.internalChatMutedSubscription = this.communicationNotifications.internalChatMuted$.subscribe((muted) => {
       this.internalChatMuted = muted;
+      if (this.internalGroups.length) {
+        this.syncInternalUnreadCount();
+      }
     });
 
     this.loadUserInbox();
@@ -479,6 +486,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.stopChatPolling();
     this.stopConversationsPolling();
     this.stopInternalChatPolling();
+    this.stopInternalGroupsPolling();
     this.stopActiveEmployeesPolling();
     this.cancelVoiceRecording();
     this.internalChatMutedSubscription?.unsubscribe();
@@ -511,6 +519,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.userInboxId = 5;
         this.noInbox = false;
         this.loadConversations();
+        this.loadInternalGroups(false, true);
+        this.startInternalGroupsPolling();
         this.hasEmailInbox = true;
         if (this.activeTab === 'correo') {
           this.initializeMailbox();
@@ -2503,17 +2513,25 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return this.selectedInternalGroup?.name || 'Montao GPS';
   }
 
+  get totalInternalUnreadCount(): number {
+    if (this.internalChatMuted) return 0;
+    return this.internalGroups.reduce(
+      (total, group) => total + Math.max(0, Number(group.unreadCount) || 0),
+      0,
+    );
+  }
+
   toggleInternalGroupMenu(): void {
     this.showInternalGroupMenu = !this.showInternalGroupMenu;
-    if (this.showInternalGroupMenu && !this.internalGroups.length) {
-      this.loadInternalGroups(false);
+    if (this.showInternalGroupMenu) {
+      this.loadInternalGroups(false, true);
     }
   }
 
-  loadInternalGroups(loadSelectedChat = true): void {
+  loadInternalGroups(loadSelectedChat = true, force = false): void {
     if (this.loadingInternalGroups) return;
 
-    if (this.internalGroups.length) {
+    if (this.internalGroups.length && !force) {
       this.ensureSelectedInternalGroup();
       if (loadSelectedChat) this.loadInternalChat();
       return;
@@ -2524,7 +2542,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       next: (response) => {
         this.loadingInternalGroups = false;
         this.internalGroups = response?.groups || [];
+        this.canClearInternalMessages = response?.canClearMessages === true;
         this.ensureSelectedInternalGroup();
+        this.syncInternalUnreadCount();
         if (loadSelectedChat) this.loadInternalChat();
       },
       error: (error) => {
@@ -2542,6 +2562,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.activeTab = 'grupo';
     const changed = this.selectedInternalGroupId !== group.id;
     this.selectedInternalGroupId = group.id;
+    this.setInternalGroupUnreadCount(group.id, 0);
     if (changed) {
       this.internalMessages = [];
       this.internalChatInput = '';
@@ -2551,6 +2572,62 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       queryParams: { groupId: group.id },
     });
     this.loadInternalChat();
+  }
+
+  confirmClearInternalGroup(
+    group: InternalChatGroup,
+    event?: Event,
+  ): void {
+    event?.stopPropagation();
+    if (
+      !this.canClearInternalMessages
+      || !group?.id
+      || this.clearingInternalGroupId
+    ) return;
+
+    this.showInternalGroupMenu = false;
+    this.confirmationService.confirm({
+      header: `Limpiar ${group.name}`,
+      message:
+        `Se eliminarán permanentemente todos los mensajes de “${group.name}”. Los demás grupos no serán afectados.`,
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Limpiar grupo',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => this.clearInternalGroup(group),
+    });
+  }
+
+  private clearInternalGroup(group: InternalChatGroup): void {
+    this.clearingInternalGroupId = group.id;
+    this.internalChatService.clearMessages(group.id).pipe(
+      finalize(() => {
+        this.clearingInternalGroupId = null;
+      }),
+    ).subscribe({
+      next: (response) => {
+        this.setInternalGroupUnreadCount(group.id, 0);
+        if (group.id === this.selectedInternalGroupId) {
+          this.internalMessages = [];
+          this.stopInternalChatPolling();
+          this.loadInternalChat();
+        }
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Conversación limpiada',
+          detail:
+            `${response?.deleted || 0} mensajes eliminados de ${group.name}.`,
+        });
+      },
+      error: (error) => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo limpiar la conversación',
+          detail:
+            error?.error?.message || 'Inténtalo nuevamente.',
+        });
+      },
+    });
   }
 
   private ensureSelectedInternalGroup(): void {
@@ -2564,8 +2641,51 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
   }
 
+  private setInternalGroupUnreadCount(
+    groupId: string,
+    unreadCount: number,
+  ): void {
+    this.internalGroups = this.internalGroups.map((group) =>
+      group.id === groupId
+        ? { ...group, unreadCount: Math.max(0, unreadCount) }
+        : group
+    );
+    this.syncInternalUnreadCount();
+  }
+
+  private syncInternalUnreadCount(): void {
+    this.communicationNotifications.syncInternalPendingCount(
+      this.totalInternalUnreadCount,
+    );
+  }
+
+  private markSelectedInternalGroupRead(groupId: string): void {
+    if (!groupId || this.activeTab !== 'grupo') return;
+
+    this.setInternalGroupUnreadCount(groupId, 0);
+    this.internalChatService.markGroupRead(groupId).subscribe({
+      next: () => this.setInternalGroupUnreadCount(groupId, 0),
+      error: () => this.loadInternalGroups(false, true),
+    });
+  }
+
+  private startInternalGroupsPolling(): void {
+    this.stopInternalGroupsPolling();
+    this.internalGroupsPollingInterval = setInterval(() => {
+      if (!this.noInbox) {
+        this.loadInternalGroups(false, true);
+      }
+    }, this.POLL_INTERVAL);
+  }
+
+  private stopInternalGroupsPolling(): void {
+    if (this.internalGroupsPollingInterval) {
+      clearInterval(this.internalGroupsPollingInterval);
+      this.internalGroupsPollingInterval = null;
+    }
+  }
+
   loadInternalChat(): void {
-    this.communicationNotifications.markInternalChatRead();
     this.loadingInternalMessages = true;
     this.internalChatError = '';
     const groupId = this.selectedInternalGroupId;
@@ -2581,6 +2701,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         ) return;
         this.loadingInternalMessages = false;
         this.internalMessages = res.messages || [];
+        this.markSelectedInternalGroupRead(groupId);
         this.scrollInternalChatToBottom();
         this.startInternalChatPolling();
         this.startActiveEmployeesPolling();
@@ -2601,6 +2722,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   toggleInternalChatMuted(): void {
     const muted = this.communicationNotifications.toggleInternalChatMuted();
+    this.internalChatMuted = muted;
+    this.syncInternalUnreadCount();
     this.messageService.add({
       severity: muted ? 'info' : 'success',
       summary: muted ? 'Grupo silenciado' : 'Grupo activo',
@@ -2853,6 +2976,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           );
           if (newMessages.length) {
             this.internalMessages = [...this.internalMessages, ...newMessages];
+            this.markSelectedInternalGroupRead(this.selectedInternalGroupId);
             this.scrollInternalChatToBottom();
           }
         },

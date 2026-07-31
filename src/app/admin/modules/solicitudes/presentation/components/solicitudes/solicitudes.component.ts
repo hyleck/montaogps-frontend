@@ -105,6 +105,16 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     };
     private topFilterClientOptionsCacheSource: Solicitud[] | null = null;
     private topFilterClientOptionsCache: SelectOption[] = [];
+    private topFilterTechnicianOptionsCacheTechnicians: User[] | null = null;
+    private topFilterTechnicianOptionsCacheSolicitudes: Solicitud[] | null = null;
+    private topFilterTechnicianOptionsCache: SelectOption[] = [];
+    private calendarTechnicianOptionsCacheSource: SelectOption[] | null = null;
+    private calendarTechnicianOptionsCache: SelectOption[] = [];
+    private technicianByIdCacheSource: User[] | null = null;
+    private technicianByIdCache = new Map<string, User>();
+    private technicianSelectionCacheSource: User[] | null = null;
+    private technicianSelectionCacheQuery = '';
+    private technicianSelectionCache: User[] = [];
 
     get pendientes(): Solicitud[] { return this.getKanbanColumns().pendientes; }
     get enProgreso(): Solicitud[] { return this.getKanbanColumns().enProgreso; }
@@ -304,6 +314,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     showInstallData = false;
     showDetailsData = false;
     showDiagnosisData = false;
+    showGpsChangeData = false;
     
     locationMap: any = null;
     locationMarker: any = null;
@@ -465,6 +476,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         { label: 'Cambio de GPS', value: 'cambio' },
         { label: 'Mixta', value: 'mixta' }
     ];
+    readonly topFilterTypeOptions = this.typeOptions.slice(1);
     readonly mixedProcessOptions = this.typeOptions.filter(option =>
         ['instalacion', 'reinstalacion', 'desinstalacion', 'chequeo', 'cambio'].includes(option.value)
     );
@@ -1151,6 +1163,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.showInstallData = false;
         this.showDetailsData = false;
         this.showDiagnosisData = false;
+        this.showGpsChangeData = false;
         
         this.availableModels = [];
         this.availableMunicipalities = [];
@@ -1201,6 +1214,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.showInstallData = false;
         this.showDetailsData = false;
         this.showDiagnosisData = false;
+        this.showGpsChangeData = false;
 
         switch (section) {
             case 'vehicle': this.showVehicleData = !currentlyOpen; break;
@@ -1211,7 +1225,79 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             case 'install': this.showInstallData = !currentlyOpen; break;
             case 'details': this.showDetailsData = !currentlyOpen; break;
             case 'diagnosis': this.showDiagnosisData = !currentlyOpen; break;
+            case 'gpsChange': this.showGpsChangeData = !currentlyOpen; break;
         }
+    }
+
+    getGpsChangeInstallation(
+        solicitud: Solicitud | null | undefined,
+        sourceInstallation: InstallationDetail | null | undefined,
+        sourceIndex: number,
+    ): InstallationDetail | null {
+        const gpsChangeInstallations = solicitud?.gps_change?.installations || [];
+        const sourceImei = String(sourceInstallation?.device_imei || '').trim();
+        if (gpsChangeInstallations.length && sourceImei) {
+            const imeiMatch = gpsChangeInstallations.find(installation =>
+                String(installation?.device_imei || '').trim() === sourceImei,
+            );
+            if (imeiMatch) return imeiMatch;
+        }
+
+        if (gpsChangeInstallations[sourceIndex]) {
+            return gpsChangeInstallations[sourceIndex];
+        }
+
+        const recovery = sourceInstallation?.checkup_recovery;
+        const replacementImei = String(
+            recovery?.replacement_device_imei
+            || sourceInstallation?.new_device_imei
+            || '',
+        ).trim();
+        if (!replacementImei) return null;
+
+        return {
+            ...sourceInstallation,
+            device_imei: recovery?.previous_device_imei || sourceInstallation?.device_imei,
+            new_device_imei: replacementImei,
+            sim_card_number:
+                recovery?.previous_sim_card_number
+                || sourceInstallation?.sim_card_number,
+            new_sim_card_number:
+                recovery?.replacement_sim_card_number
+                || sourceInstallation?.new_sim_card_number,
+            new_sim_company:
+                recovery?.replacement_sim_company
+                || sourceInstallation?.new_sim_company,
+        };
+    }
+
+    getGpsChangeStatusLabel(solicitud: Solicitud | null | undefined): string {
+        const status = solicitud?.gps_change?.status || solicitud?.status || '';
+        return this.statusLabels[status] || status || 'Registrado';
+    }
+
+    getGpsChangeTitle(solicitud: Solicitud | null | undefined): string {
+        const status = solicitud?.gps_change?.status || solicitud?.status || '';
+        if (status === 'completada' || status === 'por_confirmar') return 'Cambio de GPS realizado';
+        if (status === 'cancelada' || status === 'rechazada') return 'Cambio de GPS cancelado';
+        return 'Cambio de GPS en proceso';
+    }
+
+    getGpsChangeStatusIcon(solicitud: Solicitud | null | undefined): string {
+        const status = solicitud?.gps_change?.status || solicitud?.status || '';
+        if (status === 'completada' || status === 'por_confirmar') return 'pi pi-check-circle';
+        if (status === 'cancelada' || status === 'rechazada') return 'pi pi-times-circle';
+        return 'pi pi-spin pi-spinner';
+    }
+
+    isGpsChangeCompleted(solicitud: Solicitud | null | undefined): boolean {
+        const status = solicitud?.gps_change?.status || solicitud?.status || '';
+        return status === 'completada' || status === 'por_confirmar';
+    }
+
+    isGpsChangeCancelled(solicitud: Solicitud | null | undefined): boolean {
+        const status = solicitud?.gps_change?.status || solicitud?.status || '';
+        return status === 'cancelada' || status === 'rechazada';
     }
     
     
@@ -1963,7 +2049,16 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     get filteredTechniciansForSelection(): User[] {
         const query = this.normalizeFilterText(this.technicianSearchQuery);
-        return this.availableTechnicians
+        if (
+            this.technicianSelectionCacheSource === this.availableTechnicians
+            && this.technicianSelectionCacheQuery === query
+        ) {
+            return this.technicianSelectionCache;
+        }
+
+        this.technicianSelectionCacheSource = this.availableTechnicians;
+        this.technicianSelectionCacheQuery = query;
+        this.technicianSelectionCache = this.availableTechnicians
             .filter(technician => {
                 if (!query) return true;
                 return this.normalizeFilterText([
@@ -1979,6 +2074,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                     'es',
                 )
             );
+        return this.technicianSelectionCache;
     }
 
     openTechnicianSelection(): void {
@@ -3271,7 +3367,9 @@ async initLocationMap(): Promise<void> {
         if (!this.selectedSolicitud) return;
 
         if (this.isEditMode && this.selectedSolicitud._id) {
-            this.solicitudesService.update(this.selectedSolicitud._id, this.selectedSolicitud).subscribe({
+            const solicitudPayload = { ...this.selectedSolicitud };
+            delete solicitudPayload.gps_change;
+            this.solicitudesService.update(this.selectedSolicitud._id, solicitudPayload).subscribe({
                 next: () => {
                     this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Solicitud actualizada' });
                     this.dialogVisible = false;
@@ -3811,7 +3909,18 @@ async initLocationMap(): Promise<void> {
 
     getTechnicianById(id?: string): User | null {
         if (!id) return null;
-        return this.availableTechnicians.find(tech => (tech._id || (tech as any).id) === id) || null;
+        if (this.technicianByIdCacheSource !== this.availableTechnicians) {
+            this.technicianByIdCacheSource = this.availableTechnicians;
+            this.technicianByIdCache = new Map(
+                this.availableTechnicians
+                    .map(technician => [
+                        String(technician._id || (technician as any).id || ''),
+                        technician,
+                    ] as const)
+                    .filter(([technicianId]) => technicianId),
+            );
+        }
+        return this.technicianByIdCache.get(String(id)) || null;
     }
 
     getTechnicianDisplayName(solicitud: Solicitud | null): string {
@@ -4408,6 +4517,13 @@ async initLocationMap(): Promise<void> {
     }
 
     get topFilterTechnicianOptions(): SelectOption[] {
+        if (
+            this.topFilterTechnicianOptionsCacheTechnicians === this.availableTechnicians
+            && this.topFilterTechnicianOptionsCacheSolicitudes === this.solicitudes
+        ) {
+            return this.topFilterTechnicianOptionsCache;
+        }
+
         const options = this.availableTechnicians
             .map(technician => ({
                 value: String(technician._id || technician.id || ''),
@@ -4421,7 +4537,10 @@ async initLocationMap(): Promise<void> {
         if (this.solicitudes.some(solicitud => !solicitud.mechanic_id)) {
             options.unshift({ value: '__unassigned__', label: 'Sin técnico asignado' });
         }
-        return options;
+        this.topFilterTechnicianOptionsCacheTechnicians = this.availableTechnicians;
+        this.topFilterTechnicianOptionsCacheSolicitudes = this.solicitudes;
+        this.topFilterTechnicianOptionsCache = options;
+        return this.topFilterTechnicianOptionsCache;
     }
 
     get topFilterClientOptions(): SelectOption[] {
@@ -4471,10 +4590,35 @@ async initLocationMap(): Promise<void> {
         this.topFilterDateTo = '';
     }
 
+    trackBySelectOption(index: number, option: SelectOption): string | number {
+        return option?.value || index;
+    }
+
+    trackBySolicitud(index: number, solicitud: Solicitud): string | number {
+        return solicitud?._id || index;
+    }
+
+    trackByInstallation(index: number, installation: InstallationDetail): string {
+        const installationId = String((installation as any)?._id || '').trim();
+        if (installationId) return installationId;
+        return [
+            installation?.device_imei,
+            installation?.new_device_imei,
+            installation?.plate,
+            index,
+        ].filter(value => value !== undefined && value !== null).join('|');
+    }
+
     get calendarTechnicianOptions(): SelectOption[] {
-        return this.topFilterTechnicianOptions.filter(
+        const options = this.topFilterTechnicianOptions;
+        if (this.calendarTechnicianOptionsCacheSource === options) {
+            return this.calendarTechnicianOptionsCache;
+        }
+        this.calendarTechnicianOptionsCacheSource = options;
+        this.calendarTechnicianOptionsCache = options.filter(
             option => option.value !== '__unassigned__',
         );
+        return this.calendarTechnicianOptionsCache;
     }
 
     openSolicitudCalendar(): void {

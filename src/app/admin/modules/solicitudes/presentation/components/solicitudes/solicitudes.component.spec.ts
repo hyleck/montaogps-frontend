@@ -95,6 +95,94 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(savedSolicitud.installations?.[0]?.scheduled_date).toBeUndefined();
     });
 
+    it('matches the GPS change detail to the chequeo installation by previous IMEI', () => {
+        const { component } = createComponent();
+        const sourceInstallation = { device_imei: 'OLD-IMEI-2' };
+        const solicitud: Solicitud = {
+            _id: 'chequeo-id',
+            type: 'chequeo',
+            status: 'por_confirmar',
+            installations: [sourceInstallation],
+            gps_change: {
+                _id: 'cambio-id',
+                type: 'cambio',
+                status: 'completada',
+                installations: [
+                    { device_imei: 'OLD-IMEI-1', new_device_imei: 'NEW-IMEI-1' },
+                    { device_imei: 'OLD-IMEI-2', new_device_imei: 'NEW-IMEI-2' },
+                ],
+            },
+        };
+
+        const result = component.getGpsChangeInstallation(
+            solicitud,
+            sourceInstallation,
+            0,
+        );
+
+        expect(result?.new_device_imei).toBe('NEW-IMEI-2');
+        expect(component.getGpsChangeTitle(solicitud)).toBe('Cambio de GPS realizado');
+        expect(component.getGpsChangeStatusLabel(solicitud)).toBe('Completada');
+    });
+
+    it('shows a GPS replacement performed directly inside the chequeo recovery', () => {
+        const { component } = createComponent();
+        const sourceInstallation = {
+            device_imei: 'OLD-INLINE-IMEI',
+            sim_card_number: 'OLD-INLINE-SIM',
+            new_device_imei: 'NEW-INLINE-IMEI',
+            new_sim_card_number: 'NEW-INLINE-SIM',
+            completed: true,
+            checkup_recovery: {
+                gps_replacement_attempted: true,
+                previous_device_imei: 'OLD-INLINE-IMEI',
+                replacement_device_imei: 'NEW-INLINE-IMEI',
+            },
+        };
+        const solicitud: Solicitud = {
+            _id: 'inline-chequeo-id',
+            type: 'chequeo',
+            status: 'por_confirmar',
+            installations: [sourceInstallation],
+        };
+
+        const result = component.getGpsChangeInstallation(
+            solicitud,
+            sourceInstallation,
+            0,
+        );
+
+        expect(result).toEqual(jasmine.objectContaining({
+            device_imei: 'OLD-INLINE-IMEI',
+            new_device_imei: 'NEW-INLINE-IMEI',
+            new_sim_card_number: 'NEW-INLINE-SIM',
+        }));
+        expect(component.getGpsChangeTitle(solicitud)).toBe('Cambio de GPS realizado');
+        expect(component.isGpsChangeCompleted(solicitud)).toBeTrue();
+    });
+
+    it('keeps technician filter options and filtered results stable across change detection reads', () => {
+        const { component } = createComponent();
+        component.availableTechnicians = [
+            { _id: 'tech-1', name: 'Ana', last_name: 'Pérez' } as any,
+            { _id: 'tech-2', name: 'Luis', last_name: 'Gómez' } as any,
+        ];
+        component.solicitudes = [
+            { _id: 'sol-1', type: 'chequeo', status: 'pendiente', mechanic_id: 'tech-1' },
+            { _id: 'sol-2', type: 'instalacion', status: 'pendiente', mechanic_id: 'tech-2' },
+        ];
+
+        const firstOptionsRead = component.topFilterTechnicianOptions;
+        expect(component.topFilterTechnicianOptions).toBe(firstOptionsRead);
+
+        component.topFilterTechnician = 'tech-1';
+        const firstFilteredRead = component.filteredSolicitudes;
+
+        expect(firstFilteredRead.map(solicitud => solicitud._id)).toEqual(['sol-1']);
+        expect(component.filteredSolicitudes).toBe(firstFilteredRead);
+        expect(component.getTechnicianById('tech-1')?.name).toBe('Ana');
+    });
+
     it('still defaults a newly created request to the current local date and time', async () => {
         const { component } = createComponent();
 

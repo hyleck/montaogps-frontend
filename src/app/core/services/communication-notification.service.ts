@@ -348,6 +348,14 @@ export class CommunicationNotificationService implements OnDestroy {
     this.emitTotalPendingCount();
   }
 
+  syncInternalPendingCount(count: number): void {
+    this.internalPendingCount = this.internalChatMuted
+      ? 0
+      : Math.max(0, Number(count) || 0);
+    this.internalPendingCountSubject.next(this.internalPendingCount);
+    this.emitTotalPendingCount();
+  }
+
   isInternalChatMuted(): boolean {
     return this.internalChatMuted;
   }

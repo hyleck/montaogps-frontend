@@ -89,7 +89,7 @@
                 <span>Técnico</span>
                 <select [(ngModel)]="topFilterTechnician">
                     <option value="">Todos los técnicos</option>
-                    <option *ngFor="let technician of topFilterTechnicianOptions" [value]="technician.value">
+                    <option *ngFor="let technician of topFilterTechnicianOptions; trackBy: trackBySelectOption" [value]="technician.value">
                         {{ technician.label }}
                     </option>
                 </select>
@@ -99,7 +99,7 @@
                 <span>Cliente</span>
                 <select [(ngModel)]="topFilterClient">
                     <option value="">Todos los clientes</option>
-                    <option *ngFor="let client of topFilterClientOptions" [value]="client.value">
+                    <option *ngFor="let client of topFilterClientOptions; trackBy: trackBySelectOption" [value]="client.value">
                         {{ client.label }}
                     </option>
                 </select>
@@ -109,7 +109,7 @@
                 <span>Tipo</span>
                 <select [(ngModel)]="topFilterType">
                     <option value="">Todos los tipos</option>
-                    <option *ngFor="let type of typeOptions.slice(1)" [value]="type.value">
+                    <option *ngFor="let type of topFilterTypeOptions; trackBy: trackBySelectOption" [value]="type.value">
                         {{ type.label }}
                     </option>
                 </select>
@@ -185,7 +185,7 @@
                         (ngModelChange)="refreshSolicitudCalendar()">
                         <option value="">Todos los técnicos</option>
                         <option
-                            *ngFor="let technician of calendarTechnicianOptions"
+                            *ngFor="let technician of calendarTechnicianOptions; trackBy: trackBySelectOption"
                             [value]="technician.value">
                             {{ technician.label }}
                         </option>
@@ -428,7 +428,7 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('pendiente')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of pendientes" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of pendientes; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
@@ -452,7 +452,7 @@
                         <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
-                        <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
+                        <div *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
                             <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="!inst.completed && !inst.cancelled && sol.status === 'en_progreso'"
@@ -503,7 +503,7 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('en_progreso')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of enProgreso" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of enProgreso; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
@@ -524,7 +524,7 @@
                         <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
-                        <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
+                        <div *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
                             <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="!inst.completed && !inst.cancelled"
@@ -573,7 +573,7 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('por_confirmar')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of porConfirmar" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of porConfirmar; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
@@ -592,7 +592,7 @@
                         <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
-                        <div *ngFor="let inst of sol.installations; let i = index" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
+                        <div *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
                             <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="!inst.completed && !inst.cancelled" class="pi pi-circle"></i>
@@ -637,7 +637,7 @@
                 <button pButton pRipple icon="pi pi-plus" class="p-button-rounded p-button-text p-button-sm" style="width:28px;height:28px;" (click)="openNew('completada')" pTooltip="Nueva Solicitud" tooltipPosition="top"></button>
             </div>
             
-            <div class="sol-kanban-card sol-kanban-card--closed-summary sol-kanban-card--locked" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of completadas" (click)="!dragSuppressClick && editSolicitud(sol)"
+            <div class="sol-kanban-card sol-kanban-card--closed-summary sol-kanban-card--locked" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of completadas; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="false">
                 <div class="sol-closed-head">
                     <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
@@ -1335,6 +1335,45 @@
                         </div>
                     </div>
 
+                    <ng-container *ngIf="getProcessTypeForSolicitud(sol, installation) === 'chequeo'">
+                        <section class="sol-info-card sol-info-card--full" style="width: auto; margin: 0 0.85rem 0.8rem;"
+                            *ngIf="getGpsChangeInstallation(sol, installation, index) as gpsChangeInstallation">
+                            <div class="sol-info-card__title" style="justify-content: space-between;">
+                                <i class="pi pi-sync"></i>
+                                <h3>{{ getGpsChangeTitle(sol) }}</h3>
+                                <span class="sol-vehicle-card__state"
+                                    style="margin-left: auto;"
+                                    [class.is-completed]="isGpsChangeCompleted(sol)"
+                                    [class.is-cancelled]="isGpsChangeCancelled(sol)">
+                                    <i [class]="getGpsChangeStatusIcon(sol)"></i>
+                                    {{ getGpsChangeStatusLabel(sol) }}
+                                </span>
+                            </div>
+                            <div class="sol-vehicle-card__details" style="padding: 0;">
+                                <div>
+                                    <span>GPS retirado</span>
+                                    <strong>{{ gpsChangeInstallation.device_imei || 'No registrado' }}</strong>
+                                </div>
+                                <div>
+                                    <span>GPS colocado</span>
+                                    <strong>{{ gpsChangeInstallation.new_device_imei || 'Pendiente de seleccionar' }}</strong>
+                                </div>
+                                <div>
+                                    <span>SIM anterior</span>
+                                    <strong>{{ gpsChangeInstallation.sim_card_number || 'No registrada' }}</strong>
+                                </div>
+                                <div>
+                                    <span>SIM nueva</span>
+                                    <strong>{{ gpsChangeInstallation.new_sim_card_number || 'Pendiente de seleccionar' }}</strong>
+                                </div>
+                                <div *ngIf="sol.gps_change?.completed_date">
+                                    <span>Finalizado</span>
+                                    <strong>{{ sol.gps_change?.completed_date | date: 'dd/MM/yyyy, h:mm a' }}</strong>
+                                </div>
+                            </div>
+                        </section>
+                    </ng-container>
+
                     <div class="sol-vehicle-card__notes"
                         *ngIf="installation.diagnosis || installation.installation_details || installation.notes">
                         <div *ngIf="installation.diagnosis">
@@ -1972,6 +2011,58 @@
 
             <!-- Optional: Diagnosis (Only for Chequeos) -->
             <ng-container *ngIf="getCurrentInstallationProcessType() === 'chequeo'">
+                <ng-container *ngIf="getGpsChangeInstallation(selectedSolicitud, selectedSolicitud.installations[editingInstallationIndex], editingInstallationIndex) as gpsChangeInstallation">
+                    <div class="sol-form-separator sol-form-separator--clickable sol-gps-change-separator"
+                        (click)="toggleSection('gpsChange')"
+                        [class.active]="showGpsChangeData"
+                        style="cursor: pointer; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 0.6rem; min-width: 0;">
+                            <i class="pi pi-sync"></i>
+                            <span style="font-size: 0.85rem; font-weight: 700;">
+                                {{ getGpsChangeTitle(selectedSolicitud) }}
+                            </span>
+                            <small class="sol-vehicle-card__state"
+                                [class.is-completed]="isGpsChangeCompleted(selectedSolicitud)"
+                                [class.is-cancelled]="isGpsChangeCancelled(selectedSolicitud)">
+                                <i [class]="getGpsChangeStatusIcon(selectedSolicitud)"></i>
+                                {{ getGpsChangeStatusLabel(selectedSolicitud) }}
+                            </small>
+                        </div>
+                        <i class="pi" [ngClass]="showGpsChangeData ? 'pi-chevron-up' : 'pi-chevron-down'"></i>
+                    </div>
+
+                    <div *ngIf="showGpsChangeData"
+                        class="sol-collapsible-section"
+                        style="animation: fadein 0.2s;">
+                        <div class="sol-vehicle-card__details" style="padding: 0;">
+                            <div>
+                                <span>GPS retirado</span>
+                                <strong>{{ gpsChangeInstallation.device_imei || 'No registrado' }}</strong>
+                            </div>
+                            <div>
+                                <span>GPS colocado</span>
+                                <strong>{{ gpsChangeInstallation.new_device_imei || 'Pendiente de seleccionar' }}</strong>
+                            </div>
+                            <div>
+                                <span>SIM anterior</span>
+                                <strong>{{ gpsChangeInstallation.sim_card_number || 'No registrada' }}</strong>
+                            </div>
+                            <div>
+                                <span>SIM nueva</span>
+                                <strong>{{ gpsChangeInstallation.new_sim_card_number || 'Pendiente de seleccionar' }}</strong>
+                            </div>
+                            <div *ngIf="selectedSolicitud.gps_change?.createdAt">
+                                <span>Iniciado</span>
+                                <strong>{{ selectedSolicitud.gps_change?.createdAt | date: 'dd/MM/yyyy, h:mm a' }}</strong>
+                            </div>
+                            <div *ngIf="selectedSolicitud.gps_change?.completed_date">
+                                <span>Finalizado</span>
+                                <strong>{{ selectedSolicitud.gps_change?.completed_date | date: 'dd/MM/yyyy, h:mm a' }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </ng-container>
+
                 <div class="sol-form-separator sol-form-separator--clickable" (click)="toggleSection('diagnosis')" [class.active]="showDiagnosisData" style="cursor: pointer; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 0.6rem;">
                         <i class="pi pi-stethoscope" style="color: #6366f1;"></i>

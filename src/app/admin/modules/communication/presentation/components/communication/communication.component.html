@@ -13,33 +13,58 @@
                 [attr.aria-expanded]="showInternalGroupMenu">
                 <i class="pi pi-users"></i>
                 Grupos
+                <span *ngIf="totalInternalUnreadCount > 0"
+                    class="comm-tabs__unread-badge"
+                    aria-label="Mensajes nuevos en grupos">
+                    {{ totalInternalUnreadCount > 99 ? '99+' : totalInternalUnreadCount }}
+                </span>
                 <i class="pi pi-chevron-down comm-tabs__chevron"></i>
             </button>
             <div *ngIf="showInternalGroupMenu" class="comm-groups-menu" role="menu">
-                <div *ngIf="loadingInternalGroups" class="comm-groups-menu__state">
+                <div *ngIf="loadingInternalGroups && internalGroups.length === 0"
+                    class="comm-groups-menu__state">
                     <i class="pi pi-spin pi-spinner"></i>
                     Cargando grupos...
                 </div>
-                <button *ngFor="let group of internalGroups"
-                    type="button"
-                    role="menuitem"
-                    class="comm-groups-menu__item"
-                    [class.comm-groups-menu__item--active]="group.id === selectedInternalGroupId"
-                    (click)="selectInternalGroup(group)">
-                    <span class="comm-groups-menu__avatar"
-                        [class.comm-groups-menu__avatar--admin]="group.type === 'admin'">
-                        <img *ngIf="group.technician?.photo" [src]="group.technician?.photo"
-                            [alt]="group.name" />
-                        <i *ngIf="!group.technician?.photo"
-                            class="pi"
-                            [ngClass]="group.type === 'admin' ? 'pi-building' : 'pi-wrench'"></i>
-                    </span>
-                    <span>
-                        <strong>{{ group.name }}</strong>
-                        <small>{{ group.type === 'admin' ? 'Empleados administrativos' : 'Técnico y empleados administrativos' }}</small>
-                    </span>
-                    <i *ngIf="group.id === selectedInternalGroupId" class="pi pi-check"></i>
-                </button>
+                <div *ngFor="let group of internalGroups"
+                    class="comm-groups-menu__row">
+                    <button type="button"
+                        role="menuitem"
+                        class="comm-groups-menu__item"
+                        [class.comm-groups-menu__item--active]="group.id === selectedInternalGroupId"
+                        (click)="selectInternalGroup(group)">
+                        <span class="comm-groups-menu__avatar"
+                            [class.comm-groups-menu__avatar--admin]="group.type === 'admin'">
+                            <img *ngIf="group.technician?.photo" [src]="group.technician?.photo"
+                                [alt]="group.name" />
+                            <i *ngIf="!group.technician?.photo"
+                                class="pi"
+                                [ngClass]="group.type === 'admin' ? 'pi-building' : 'pi-wrench'"></i>
+                        </span>
+                        <span>
+                            <strong>{{ group.name }}</strong>
+                            <small>{{ group.type === 'admin' ? 'Empleados administrativos' : 'Técnico y empleados administrativos' }}</small>
+                        </span>
+                        <span class="comm-groups-menu__meta">
+                            <span *ngIf="(group.unreadCount || 0) > 0"
+                                class="comm-groups-menu__badge"
+                                [attr.aria-label]="group.unreadCount + ' mensajes nuevos'">
+                                {{ (group.unreadCount || 0) > 99 ? '99+' : group.unreadCount }}
+                            </span>
+                            <i *ngIf="group.id === selectedInternalGroupId" class="pi pi-check"></i>
+                        </span>
+                    </button>
+                    <button *ngIf="canClearInternalMessages"
+                        type="button"
+                        class="comm-groups-menu__clean"
+                        [disabled]="!!clearingInternalGroupId"
+                        [attr.aria-label]="'Limpiar conversación ' + group.name"
+                        [title]="'Limpiar ' + group.name"
+                        (click)="confirmClearInternalGroup(group, $event)">
+                        <i class="pi"
+                            [ngClass]="clearingInternalGroupId === group.id ? 'pi-spin pi-spinner' : 'pi-eraser'"></i>
+                    </button>
+                </div>
                 <div *ngIf="!loadingInternalGroups && internalGroups.length === 0"
                     class="comm-groups-menu__state">
                     No hay grupos disponibles.

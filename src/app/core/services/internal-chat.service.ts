@@ -32,6 +32,7 @@ export interface InternalChatGroup {
   id: string;
   name: string;
   type: 'admin' | 'installation';
+  unreadCount?: number;
   technicianId?: string;
   technician?: {
     name: string;
@@ -65,9 +66,30 @@ export class InternalChatService {
 
   constructor(private readonly http: HttpClient) {}
 
-  getGroups(): Observable<{ groups: InternalChatGroup[] }> {
-    return this.http.get<{ groups: InternalChatGroup[] }>(
+  getGroups(): Observable<{
+    groups: InternalChatGroup[];
+    canClearMessages: boolean;
+  }> {
+    return this.http.get<{
+      groups: InternalChatGroup[];
+      canClearMessages: boolean;
+    }>(
       `${this.apiUrl}/groups`,
+    );
+  }
+
+  markGroupRead(groupId: string): Observable<{
+    success: boolean;
+    groupId: string;
+    unreadCount: number;
+  }> {
+    return this.http.post<{
+      success: boolean;
+      groupId: string;
+      unreadCount: number;
+    }>(
+      `${this.apiUrl}/groups/read`,
+      { groupId },
     );
   }
 
@@ -104,4 +126,5 @@ export class InternalChatService {
       { params },
     );
   }
+
 }

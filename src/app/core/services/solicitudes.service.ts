@@ -17,6 +17,7 @@ export interface InstallationDetail {
     sim_card_number?: string;
     new_sim_card_number?: string;
     sim_company?: string;
+    new_sim_company?: string;
     new_protocol?: string;
     province?: string;
     municipality?: string;
@@ -31,6 +32,15 @@ export interface InstallationDetail {
     ignition_sensor?: string;
     installation_details?: string;
     diagnosis?: string;
+    resolution_type?: string;
+    checkup_recovery?: {
+        gps_replacement_attempted?: boolean;
+        previous_device_imei?: string;
+        replacement_device_imei?: string;
+        previous_sim_card_number?: string;
+        replacement_sim_card_number?: string;
+        replacement_sim_company?: string;
+    };
     images?: string[];
     audio?: string;
     contacts?: string;
@@ -73,6 +83,8 @@ export interface Solicitud {
     completed_date?: string;
     user_id?: string;
     id_rent?: string;
+    source_chequeo_id?: string;
+    gps_change?: Solicitud;
     createdAt?: string;
     updatedAt?: string;
 }
