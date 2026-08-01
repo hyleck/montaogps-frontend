@@ -5,6 +5,7 @@ import { environment } from 'src/environments/environment';
 import {
   FunnelDevice,
   FunnelSession,
+  MonitorClient,
   MonitorRecord,
   MonitorSession,
   OfflineCategory,
@@ -18,13 +19,13 @@ export class MonitorIaApiService {
 
   constructor(private readonly http: HttpClient) {}
 
-  startScan(includeSimStatus = true): Observable<{
+  startScan(clientId: string): Observable<{
     message: string;
     sessionId: string;
   }> {
     return this.http.post<{ message: string; sessionId: string }>(
       `${this.baseUrl}/start`,
-      { includeSimStatus },
+      { clientId, includeSimStatus: false },
     );
   }
 
@@ -34,9 +35,27 @@ export class MonitorIaApiService {
     );
   }
 
+  getClients(
+    search = '',
+    page = 1,
+    limit = 50,
+  ): Observable<PagedResponse<MonitorClient>> {
+    return this.http.get<PagedResponse<MonitorClient>>(
+      `${this.baseUrl}/clients`,
+      { params: this.pageParams(page, limit, search) },
+    );
+  }
+
   getSession(sessionId: string): Observable<MonitorSession> {
     return this.http.get<MonitorSession>(
       `${this.baseUrl}/session/${sessionId}`,
+    );
+  }
+
+  cancelScan(sessionId: string): Observable<MonitorSession> {
+    return this.http.patch<MonitorSession>(
+      `${this.baseUrl}/session/${sessionId}/cancel`,
+      {},
     );
   }
 
@@ -52,6 +71,28 @@ export class MonitorIaApiService {
         params: this.pageParams(page, limit, search),
       },
     );
+  }
+
+  sendWillisContactTest(): Observable<{
+    success: boolean;
+    email: string;
+    phone: string;
+    contactName: string;
+    message: string;
+    contactedAt: string;
+    conversationId?: number;
+    matchedScanRecord: boolean;
+  }> {
+    return this.http.post<{
+      success: boolean;
+      email: string;
+      phone: string;
+      contactName: string;
+      message: string;
+      contactedAt: string;
+      conversationId?: number;
+      matchedScanRecord: boolean;
+    }>(`${this.baseUrl}/contact-test`, {});
   }
 
   getSegmentation(options: {
@@ -92,9 +133,7 @@ export class MonitorIaApiService {
   }
 
   getActiveFunnel(): Observable<FunnelSession | null> {
-    return this.http.get<FunnelSession | null>(
-      `${this.baseUrl}/funnel/active`,
-    );
+    return this.http.get<FunnelSession | null>(`${this.baseUrl}/funnel/active`);
   }
 
   getFunnelDevices(
@@ -119,21 +158,14 @@ export class MonitorIaApiService {
     );
   }
 
-  markContacted(
-    deviceId: string,
-    response: string,
-  ): Observable<FunnelDevice> {
+  markContacted(deviceId: string, response: string): Observable<FunnelDevice> {
     return this.http.patch<FunnelDevice>(
       `${this.baseUrl}/funnel/device/${deviceId}/contact`,
       { response },
     );
   }
 
-  private pageParams(
-    page: number,
-    limit: number,
-    search: string,
-  ): HttpParams {
+  private pageParams(page: number, limit: number, search: string): HttpParams {
     let params = new HttpParams()
       .set('page', String(page))
       .set('limit', String(limit));

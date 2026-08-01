@@ -3,22 +3,33 @@ export type MonitorSessionStatus =
   | 'running'
   | 'completed'
   | 'completed_with_errors'
-  | 'failed';
+  | 'failed'
+  | 'cancelled';
 
 export type OfflineCategory =
-  | 'vigente'
-  | 'estado_inicial'
-  | 'suspendido'
-  | 'expirado';
+  'vigente' | 'estado_inicial' | 'suspendido' | 'expirado';
 
 export interface MonitorSession {
   _id: string;
+  phase?: number;
+  scanRootUserId?: string;
+  scanRootUserName?: string;
+  scanRootUserPhone?: string;
   status: MonitorSessionStatus;
   progress: number;
   totalUsers: number;
   processedUsers: number;
   totalDevices: number;
   offlineDevices: number;
+  qualifyingUsers?: number;
+  validContactPhones?: number;
+  testContactStatus?: 'not_contacted' | 'sending' | 'sent' | 'failed';
+  testContactEmail?: string;
+  testContactPhone?: string;
+  testContactMessage?: string;
+  testContactAttemptedAt?: string;
+  testContactedAt?: string;
+  testContactError?: string;
   errorsCount: number;
   errorSamples?: string[];
   message?: string;
@@ -36,10 +47,32 @@ export interface MonitorRecord {
   _id: string;
   userId: string;
   userName: string;
+  userEmail?: string;
   userPhone?: string;
+  normalizedUserPhone?: string;
+  userPhoneValid?: boolean;
+  contactStatus?: 'not_contacted' | 'sending' | 'sent' | 'failed';
+  contactMode?: 'test' | 'production' | '';
+  contactMessage?: string;
+  contactAttemptedAt?: string;
+  contactedAt?: string;
+  contactError?: string;
+  providerMessageId?: string;
+  conversationId?: number;
   route: Array<{ id: string; fullName: string }>;
   devices: any[];
   offlineDevices: any[];
+}
+
+export interface MonitorClient {
+  _id: string;
+  name: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  phone2?: string;
+  photo?: string;
+  affiliation_type_id?: string;
 }
 
 export interface OfflineDeviceRecord {
@@ -117,8 +150,7 @@ export interface PagedResponse<T> {
   limit: number;
 }
 
-export interface SegmentationResponse
-  extends PagedResponse<OfflineDeviceRecord> {
+export interface SegmentationResponse extends PagedResponse<OfflineDeviceRecord> {
   summary: SegmentationSummary;
   session: MonitorSession | null;
 }

@@ -1,8 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { finalize } from 'rxjs';
 import {
+  MonitorClient,
   MonitorRecord,
   MonitorSession,
 } from '../../models/monitor-ia.models';
@@ -23,34 +23,42 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
   search = '';
   loading = true;
   starting = false;
+  canceling = false;
+  sendingTestContact = false;
+  latestTestContact: {
+    status: 'sent' | 'failed';
+    phone?: string;
+    contactedAt?: string;
+    error?: string;
+  } | null = null;
+  selectedClient: MonitorClient | null = null;
+  clientSearchResults: MonitorClient[] = [];
+  clientSearchTotal = 0;
+  clientSearch = '';
+  clientSearchLoading = false;
+  clientPickerOpen = true;
   private pollingTimer?: ReturnType<typeof setInterval>;
+  private clientSearchTimer?: ReturnType<typeof setTimeout>;
+  private clientSearchRequestId = 0;
 
   constructor(
     private readonly api: MonitorIaApiService,
-    private readonly router: Router,
-    private readonly confirmationService: ConfirmationService,
     private readonly messageService: MessageService,
+    private readonly confirmationService: ConfirmationService,
   ) {}
 
   ngOnInit(): void {
     this.loadActiveSession();
+    this.loadClients();
   }
 
   ngOnDestroy(): void {
     this.stopPolling();
+    if (this.clientSearchTimer) clearTimeout(this.clientSearchTimer);
   }
 
   confirmStartScan(): void {
-    this.confirmationService.confirm({
-      header: 'Iniciar escaneo profundo',
-      icon: 'pi pi-shield',
-      message:
-        'Se consultará en vivo la telemetría y el estado de las SIM de todo tu árbol de usuarios. El historial anterior se conservará.',
-      acceptLabel: 'Iniciar escaneo',
-      rejectLabel: 'Cancelar',
-      acceptButtonStyleClass: 'p-button-primary',
-      accept: () => this.startScan(),
-    });
+    if (!this.starting && !this.isRunning) this.startScan();
   }
 
   applySearch(): void {
@@ -63,19 +71,77 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
     this.loadRecords();
   }
 
-  goToSegmentation(): void {
-    this.router.navigate(['/admin/monitor-ia/segmentacion']);
-  }
-
-  goToFunnel(): void {
-    this.router.navigate(['/admin/monitor-ia/funnel']);
-  }
-
   get isRunning(): boolean {
     return (
-      this.session?.status === 'queued' ||
-      this.session?.status === 'running'
+      this.session?.status === 'queued' || this.session?.status === 'running'
     );
+  }
+
+  get canSendTestContact(): boolean {
+    return !this.sendingTestContact;
+  }
+
+  get displayedTestContactStatus(): string {
+    return (
+      this.latestTestContact?.status ||
+      this.session?.testContactStatus ||
+      'not_contacted'
+    );
+  }
+
+  get displayedTestContactPhone(): string {
+    return (
+      this.latestTestContact?.phone || this.session?.testContactPhone || ''
+    );
+  }
+
+  get displayedTestContactedAt(): string | undefined {
+    return (
+      this.latestTestContact?.contactedAt || this.session?.testContactedAt
+    );
+  }
+
+  get displayedTestContactError(): string {
+    return (
+      this.latestTestContact?.error || this.session?.testContactError || ''
+    );
+  }
+
+  get selectedClientId(): string {
+    return String(this.selectedClient?._id || '').trim();
+  }
+
+  get selectedClientName(): string {
+    if (!this.selectedClient) return '';
+    return [this.selectedClient.name, this.selectedClient.last_name]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+  }
+
+  get selectedClientInitials(): string {
+    const words = this.selectedClientName.split(/\s+/).filter(Boolean);
+    return `${words[0]?.[0] || 'C'}${words[1]?.[0] || ''}`.toUpperCase();
+  }
+
+  onClientSearchChange(): void {
+    if (this.clientSearchTimer) clearTimeout(this.clientSearchTimer);
+    this.clientPickerOpen = true;
+    this.clientSearchTimer = setTimeout(() => {
+      this.clientSearchTimer = undefined;
+      this.loadClients();
+    }, 300);
+  }
+
+  selectClient(client: MonitorClient): void {
+    this.selectedClient = client;
+    this.clientPickerOpen = false;
+    this.clientSearch = '';
+  }
+
+  openClientPicker(): void {
+    this.clientPickerOpen = true;
+    this.loadClients();
   }
 
   get offlineRecords(): MonitorRecord[] {
@@ -91,6 +157,7 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
       completed: 'Completado',
       completed_with_errors: 'Completado con alertas',
       failed: 'Falló',
+      cancelled: 'Cancelado',
     };
     return labels[this.session?.status || ''] || 'Sin ejecución';
   }
@@ -118,10 +185,57 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
     return record._id || record.userId;
   }
 
+  cancelScan(): void {
+    if (!this.session?._id || !this.isRunning || this.canceling) return;
+
+    this.canceling = true;
+    this.api
+      .cancelScan(this.session._id)
+      .pipe(finalize(() => (this.canceling = false)))
+      .subscribe({
+        next: (session) => {
+          this.stopPolling();
+          this.session = session;
+          this.loadRecords();
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Escaneo cancelado',
+            detail: session.message,
+          });
+        },
+        error: (error) =>
+          this.showError(error, 'No se pudo cancelar el escaneo.'),
+      });
+  }
+
+  confirmWillisContactTest(): void {
+    if (!this.canSendTestContact || this.sendingTestContact) return;
+
+    this.confirmationService.confirm({
+      header: 'Enviar prueba por WhatsApp',
+      message:
+        'Esta prueba está bloqueada en el backend para que únicamente pueda recibirla willis@montao.net. Ningún otro cliente será contactado.',
+      icon: 'pi pi-shield',
+      acceptLabel: 'Enviar solo a Willis',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-success',
+      accept: () => this.sendWillisContactTest(),
+    });
+  }
+
   private startScan(): void {
+    if (!this.selectedClientId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Selecciona un cliente',
+        detail: 'Elige la rama que deseas monitorear antes de iniciar.',
+      });
+      return;
+    }
+
     this.starting = true;
     this.api
-      .startScan(true)
+      .startScan(this.selectedClientId)
       .pipe(finalize(() => (this.starting = false)))
       .subscribe({
         next: (result) => {
@@ -132,12 +246,21 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
           });
           this.session = {
             _id: result.sessionId,
+            phase: 1,
+            scanRootUserId: this.selectedClientId,
+            scanRootUserName: this.selectedClientName,
+            scanRootUserPhone:
+              this.selectedClient?.phone || this.selectedClient?.phone2 || '',
             status: 'queued',
             progress: 0,
             totalUsers: 0,
             processedUsers: 0,
             totalDevices: 0,
             offlineDevices: 0,
+            qualifyingUsers: 0,
+            validContactPhones: 0,
+            testContactStatus: 'not_contacted',
+            testContactEmail: 'willis@montao.net',
             errorsCount: 0,
             message: result.message,
           };
@@ -146,10 +269,39 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
           this.startPolling();
         },
         error: (error) =>
-          this.showError(
-            error,
-            'No se pudo iniciar el escaneo profundo.',
-          ),
+          this.showError(error, 'No se pudo iniciar la Fase 1.'),
+      });
+  }
+
+  private sendWillisContactTest(): void {
+    this.sendingTestContact = true;
+    this.api
+      .sendWillisContactTest()
+      .pipe(finalize(() => (this.sendingTestContact = false)))
+      .subscribe({
+        next: (result) => {
+          this.latestTestContact = {
+            status: 'sent',
+            phone: result.phone,
+            contactedAt: result.contactedAt,
+            error: '',
+          };
+          this.loadRecords();
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Prueba enviada a Willis',
+            detail: `El mensaje se envió únicamente a ${result.email}.`,
+          });
+        },
+        error: (error) => {
+          this.latestTestContact = {
+            status: 'failed',
+            error:
+              error?.error?.message ||
+              'No se pudo enviar la prueba a Willis.',
+          };
+          this.showError(error, 'No se pudo enviar la prueba a Willis.');
+        },
       });
   }
 
@@ -161,11 +313,9 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (session) => {
           this.session = session;
+          this.restoreSelectedClient(session);
           if (session?._id) this.loadRecords();
-          if (
-            session?.status === 'queued' ||
-            session?.status === 'running'
-          ) {
+          if (session?.status === 'queued' || session?.status === 'running') {
             this.startPolling();
           }
         },
@@ -194,10 +344,7 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
         const wasRunning = this.isRunning;
         this.session = session;
         this.loadRecords();
-        if (
-          session.status !== 'queued' &&
-          session.status !== 'running'
-        ) {
+        if (session.status !== 'queued' && session.status !== 'running') {
           this.stopPolling();
           if (wasRunning) {
             this.messageService.add({
@@ -224,12 +371,64 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
       .getRecords(this.session._id, this.page, this.limit, this.search)
       .subscribe({
         next: (response) => {
-          this.records = response.items || [];
+          this.records = (response.items || []).map((record) => ({
+            ...record,
+            userPhoneValid: this.isContactPhoneValid(record),
+          }));
           this.recordsTotal = response.total || 0;
         },
         error: (error) =>
           this.showError(error, 'No se pudieron cargar los resultados.'),
       });
+  }
+
+  private loadClients(): void {
+    const requestId = ++this.clientSearchRequestId;
+    this.clientSearchLoading = true;
+    this.api
+      .getClients(this.clientSearch.trim(), 1, 50)
+      .pipe(
+        finalize(() => {
+          if (requestId === this.clientSearchRequestId) {
+            this.clientSearchLoading = false;
+          }
+        }),
+      )
+      .subscribe({
+        next: (response) => {
+          if (requestId !== this.clientSearchRequestId) return;
+          this.clientSearchResults = response.items || [];
+          this.clientSearchTotal = response.total || 0;
+        },
+        error: (error) => {
+          if (requestId !== this.clientSearchRequestId) return;
+          this.showError(error, 'No se pudieron cargar los clientes.');
+        },
+      });
+  }
+
+  private restoreSelectedClient(session: MonitorSession | null): void {
+    if (!session?.scanRootUserId || this.selectedClient) return;
+    this.selectedClient = {
+      _id: session.scanRootUserId,
+      name: session.scanRootUserName || 'Cliente',
+      last_name: '',
+      phone: session.scanRootUserPhone || '',
+    };
+    this.clientPickerOpen = false;
+  }
+
+  private isContactPhoneValid(record: MonitorRecord): boolean {
+    if (record.userPhoneValid === true) return true;
+
+    const rawPhone = String(record.userPhone || '').trim();
+    const digits = rawPhone.replace(/\D/g, '');
+    return (
+      /^[2-9]\d{2}[2-9]\d{6}$/.test(digits) ||
+      /^1[2-9]\d{2}[2-9]\d{6}$/.test(digits) ||
+      (rawPhone.startsWith('+') && /^\d{8,15}$/.test(digits)) ||
+      /^[1-9]\d{10,14}$/.test(digits)
+    );
   }
 
   private showError(error: any, fallback: string): void {

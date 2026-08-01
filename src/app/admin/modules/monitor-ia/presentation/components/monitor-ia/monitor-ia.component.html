@@ -4,62 +4,247 @@
 <section class="monitor-page">
   <header class="page-header">
     <div>
-      <span class="eyebrow"><i class="pi pi-shield"></i> Operación root</span>
-      <h1>Monitor de conectividad</h1>
+      <span class="eyebrow"><i class="pi pi-bolt"></i> Monitor IA</span>
+      <h1>Escaneo por fases</h1>
       <p>
-        Revisa telemetría y SIM en vivo, conserva el historial y prepara acciones
-        verificables para los equipos que llevan más de 48 horas offline.
+        Cada fase genera una lista concreta y fácil de trabajar. El envío de
+        prueba puede ejecutarse directamente sin generar un reporte.
       </p>
     </div>
     <div class="header-actions">
       <button
+        *ngIf="isRunning"
         pButton
         type="button"
-        icon="pi pi-list"
-        label="Segmentación"
-        class="p-button-outlined"
-        (click)="goToSegmentation()"
-      ></button>
-      <button
-        pButton
-        type="button"
-        icon="pi pi-filter"
-        label="Embudo"
-        class="p-button-outlined"
-        (click)="goToFunnel()"
+        icon="pi pi-times"
+        label="Cancelar escaneo"
+        class="p-button-outlined p-button-danger"
+        [loading]="canceling"
+        (click)="cancelScan()"
       ></button>
       <button
         pButton
         type="button"
         icon="pi pi-play"
-        label="Nuevo escaneo"
+        [label]="session ? 'Iniciar nuevo escaneo' : 'Iniciar escaneo'"
         [loading]="starting"
-        [disabled]="isRunning"
+        [disabled]="isRunning || !selectedClientId"
         (click)="confirmStartScan()"
       ></button>
     </div>
   </header>
 
+  <section class="phase-board">
+    <article class="phase-card active">
+      <div class="phase-number">1</div>
+      <div class="phase-content">
+        <span class="phase-status">Fase activa</span>
+        <h2>Un GPS fuera de línea por más de 3 días</h2>
+        <p>
+          Crea la lista de usuarios que tienen exactamente un GPS fuera de línea
+          y cuya última conexión fue hace más de 72 horas.
+        </p>
+        <div class="criteria-list">
+          <span><i class="pi pi-check"></i> Un solo GPS fuera de línea</span>
+          <span><i class="pi pi-check"></i> Más de 3 días sin conexión</span>
+          <span><i class="pi pi-check"></i> Sin acciones automáticas</span>
+        </div>
+      </div>
+    </article>
+
+    <article
+      class="phase-card contact-phase"
+      [class.active]="true"
+    >
+      <div class="phase-number">2</div>
+      <div class="phase-content">
+        <span class="phase-status">Prueba directa por WhatsApp</span>
+        <h2>Contactar por WhatsApp</h2>
+        <p>
+          Envía la primera comunicación desde el módulo de Comunicación. Por
+          seguridad, esta prueba solo puede contactar a
+          <strong>willis&#64;montao.net</strong>. No necesitas ejecutar el
+          escaneo y puedes enviarla nuevamente cuando lo necesites.
+        </p>
+        <div class="test-contact-guard">
+          <i class="pi pi-shield"></i>
+          <span>
+            <strong>Destinatario bloqueado</strong>
+            <small>Ningún otro cliente recibirá el mensaje.</small>
+          </span>
+        </div>
+        <div
+          class="test-contact-result sent"
+          *ngIf="displayedTestContactStatus === 'sent'"
+        >
+          <i class="pi pi-check-circle"></i>
+          <span>
+            <strong>Prueba enviada correctamente</strong>
+            <small>
+              {{ displayedTestContactPhone }} ·
+              {{ displayedTestContactedAt | date: "dd/MM/yyyy h:mm a" }}
+            </small>
+          </span>
+        </div>
+        <div
+          class="test-contact-result failed"
+          *ngIf="displayedTestContactStatus === 'failed'"
+        >
+          <i class="pi pi-exclamation-circle"></i>
+          <span>
+            <strong>La prueba anterior falló</strong>
+            <small>{{ displayedTestContactError }}</small>
+          </span>
+        </div>
+        <button
+          pButton
+          type="button"
+          icon="pi pi-send"
+          [label]="
+            displayedTestContactStatus === 'sent'
+              ? 'Enviar nuevamente a Willis'
+              : 'Enviar prueba a Willis'
+          "
+          class="p-button-success test-contact-button"
+          [loading]="sendingTestContact"
+          [disabled]="sendingTestContact"
+          (click)="confirmWillisContactTest()"
+        ></button>
+      </div>
+    </article>
+  </section>
+
+  <section class="branch-selector">
+    <div class="branch-selector__heading">
+      <div class="branch-selector__icon"><i class="pi pi-sitemap"></i></div>
+      <div>
+        <span class="phase-status">Rama del escaneo</span>
+        <h2>Selecciona el cliente que deseas monitorear</h2>
+        <p>
+          La Fase 1 revisará a este cliente y a todos los usuarios que estén por
+          debajo de él.
+        </p>
+      </div>
+    </div>
+
+    <div class="selected-client" *ngIf="selectedClient">
+      <img
+        *ngIf="selectedClient.photo"
+        [src]="selectedClient.photo"
+        [alt]="selectedClientName"
+      />
+      <span class="selected-client__avatar" *ngIf="!selectedClient.photo">
+        {{ selectedClientInitials }}
+      </span>
+      <span class="selected-client__content">
+        <small>Cliente seleccionado</small>
+        <strong>{{ selectedClientName }}</strong>
+        <span>
+          {{
+            selectedClient.phone ||
+              selectedClient.phone2 ||
+              selectedClient.email ||
+              "Sin contacto registrado"
+          }}
+        </span>
+      </span>
+      <button
+        pButton
+        type="button"
+        icon="pi pi-pencil"
+        label="Cambiar cliente"
+        class="p-button-outlined"
+        [disabled]="isRunning"
+        (click)="openClientPicker()"
+      ></button>
+    </div>
+
+    <div class="client-picker" *ngIf="clientPickerOpen && !isRunning">
+      <div class="client-picker__search">
+        <i class="pi pi-search"></i>
+        <input
+          pInputText
+          type="search"
+          [(ngModel)]="clientSearch"
+          placeholder="Buscar por nombre, correo, cédula o WhatsApp"
+          (ngModelChange)="onClientSearchChange()"
+        />
+      </div>
+
+      <div class="client-picker__meta" *ngIf="!clientSearchLoading">
+        {{ clientSearchResults.length }} de {{ clientSearchTotal }} clientes
+      </div>
+
+      <div class="client-picker__loading" *ngIf="clientSearchLoading">
+        <i class="pi pi-spin pi-spinner"></i>
+        Buscando clientes…
+      </div>
+
+      <div
+        class="client-picker__results"
+        *ngIf="!clientSearchLoading && clientSearchResults.length"
+      >
+        <button
+          type="button"
+          class="client-option"
+          *ngFor="let client of clientSearchResults"
+          (click)="selectClient(client)"
+        >
+          <img *ngIf="client.photo" [src]="client.photo" [alt]="client.name" />
+          <span class="client-option__avatar" *ngIf="!client.photo">
+            {{ (client.name || "C").charAt(0)
+            }}{{ (client.last_name || "").charAt(0) }}
+          </span>
+          <span class="client-option__content">
+            <strong>{{ client.name }} {{ client.last_name }}</strong>
+            <small>{{ client.phone || client.phone2 || "Sin teléfono" }}</small>
+            <small>{{ client.email }}</small>
+          </span>
+          <i class="pi pi-chevron-right"></i>
+        </button>
+      </div>
+
+      <div
+        class="client-picker__empty"
+        *ngIf="!clientSearchLoading && !clientSearchResults.length"
+      >
+        <i class="pi pi-user"></i>
+        <strong>No encontramos clientes</strong>
+        <span>Prueba con otro nombre, correo o número.</span>
+      </div>
+    </div>
+  </section>
+
   <div class="summary-grid" *ngIf="session">
+    <article class="summary-card primary">
+      <i class="pi pi-address-book"></i>
+      <div>
+        <span>Usuarios para contactar</span>
+        <strong>{{ session.qualifyingUsers || recordsTotal || 0 }}</strong>
+      </div>
+    </article>
+    <article class="summary-card success">
+      <i class="pi pi-check-circle"></i>
+      <div>
+        <span>Teléfonos válidos</span>
+        <strong>{{ session.validContactPhones || 0 }}</strong>
+      </div>
+    </article>
     <article class="summary-card">
       <i class="pi pi-users"></i>
       <div>
         <span>Usuarios revisados</span>
-        <strong>{{ session.processedUsers || 0 }} / {{ session.totalUsers || 0 }}</strong>
+        <strong
+          >{{ session.processedUsers || 0 }} /
+          {{ session.totalUsers || 0 }}</strong
+        >
       </div>
     </article>
     <article class="summary-card">
       <i class="pi pi-map-marker"></i>
       <div>
-        <span>Dispositivos</span>
+        <span>GPS revisados</span>
         <strong>{{ session.totalDevices || 0 }}</strong>
-      </div>
-    </article>
-    <article class="summary-card warning">
-      <i class="pi pi-power-off"></i>
-      <div>
-        <span>Offline +48h</span>
-        <strong>{{ session.offlineDevices || 0 }}</strong>
       </div>
     </article>
     <article class="summary-card" [class.danger]="session.errorsCount">
@@ -74,20 +259,29 @@
   <article class="session-card" *ngIf="session; else emptyState">
     <div class="session-heading">
       <div>
-        <span class="status-pill" [ngClass]="statusClass">{{ statusLabel }}</span>
-        <h2>{{ session.message || 'Preparando información' }}</h2>
+        <span class="status-pill" [ngClass]="statusClass">{{
+          statusLabel
+        }}</span>
+        <h2>{{ session.message || "Preparando información" }}</h2>
         <p *ngIf="session.currentActivity?.userName">
           Revisando a {{ session.currentActivity?.userName }}
-          <span *ngIf="session.currentActivity?.deviceName">
-            · {{ session.currentActivity?.deviceName }}
-          </span>
+        </p>
+        <p class="session-scope" *ngIf="session.scanRootUserName">
+          <i class="pi pi-sitemap"></i>
+          Rama monitoreada: {{ session.scanRootUserName }}
         </p>
       </div>
       <strong class="progress-value">{{ session.progress || 0 }}%</strong>
     </div>
-    <p-progressBar [value]="session.progress || 0" [showValue]="false"></p-progressBar>
+    <p-progressBar
+      [value]="session.progress || 0"
+      [showValue]="false"
+    ></p-progressBar>
 
-    <div class="error-panel" *ngIf="session.error || session.errorSamples?.length">
+    <div
+      class="error-panel"
+      *ngIf="session.error || session.errorSamples?.length"
+    >
       <strong>Detalles que requieren revisión</strong>
       <p *ngIf="session.error">{{ session.error }}</p>
       <ul *ngIf="session.errorSamples?.length">
@@ -99,14 +293,17 @@
   <ng-template #emptyState>
     <article class="empty-state">
       <i class="pi pi-search"></i>
-      <h2>Aún no hay un escaneo para esta cuenta</h2>
-      <p>Inicia el primero para consultar el árbol del usuario root autenticado.</p>
+      <h2>La Fase 1 está lista para comenzar</h2>
+      <p>
+        Inicia el escaneo para crear la primera lista de usuarios a contactar.
+      </p>
       <button
         pButton
         type="button"
         icon="pi pi-play"
         label="Iniciar escaneo"
         [loading]="starting"
+        [disabled]="!selectedClientId"
         (click)="confirmStartScan()"
       ></button>
     </article>
@@ -115,8 +312,12 @@
   <section class="results-card" *ngIf="session">
     <div class="results-toolbar">
       <div>
-        <h2>Usuarios con equipos offline</h2>
-        <p>{{ recordsTotal }} usuarios en el resultado del escaneo.</p>
+        <span class="results-kicker">Resultado de la Fase 1</span>
+        <h2>Lista de usuarios para contactar</h2>
+        <p>
+          {{ recordsTotal }} usuarios cumplen exactamente los dos criterios;
+          {{ session.validContactPhones || 0 }} tienen un teléfono válido.
+        </p>
       </div>
       <div class="search-box">
         <i class="pi pi-search"></i>
@@ -124,7 +325,7 @@
           pInputText
           type="search"
           [(ngModel)]="search"
-          placeholder="Cliente, teléfono o ID"
+          placeholder="Cliente, correo, teléfono o ID"
           (keyup.enter)="applySearch()"
         />
         <button
@@ -138,7 +339,10 @@
       </div>
     </div>
 
-    <div class="record-list" *ngIf="offlineRecords.length; else noOfflineRecords">
+    <div
+      class="record-list"
+      *ngIf="offlineRecords.length; else noOfflineRecords"
+    >
       <article
         class="record-card"
         *ngFor="let record of offlineRecords; trackBy: trackRecord"
@@ -147,21 +351,68 @@
           <div class="owner-icon"><i class="pi pi-user"></i></div>
           <div>
             <h3>{{ record.userName || record.userId }}</h3>
-            <span>{{ record.userPhone || 'Sin número registrado' }}</span>
+            <span class="record-email" *ngIf="record.userEmail">
+              {{ record.userEmail }}
+            </span>
+            <div
+              class="contact-phone"
+              [class.valid]="record.userPhoneValid"
+              [class.invalid]="!record.userPhoneValid"
+            >
+              <i
+                class="pi"
+                [ngClass]="
+                  record.userPhoneValid
+                    ? 'pi-check-circle'
+                    : 'pi-exclamation-triangle'
+                "
+              ></i>
+              <span>
+                <strong>{{
+                  record.userPhone || "Sin número registrado"
+                }}</strong>
+                <small>{{
+                  record.userPhoneValid ? "Teléfono válido" : "Revisar teléfono"
+                }}</small>
+              </span>
+            </div>
           </div>
-          <span class="device-count">{{ record.offlineDevices.length }} offline</span>
+          <span
+            class="device-count"
+            [class.pending]="!record.userPhoneValid"
+            [class.sent]="record.contactStatus === 'sent'"
+            [class.failed]="record.contactStatus === 'failed'"
+          >
+            {{
+              record.contactStatus === "sent"
+                ? "Prueba enviada"
+                : record.contactStatus === "failed"
+                  ? "Envío fallido"
+                : record.userPhoneValid
+                  ? "Contacto verificado"
+                  : "Contacto pendiente"
+            }}
+          </span>
+        </div>
+
+        <div class="contact-error" *ngIf="record.contactStatus === 'failed'">
+          <i class="pi pi-exclamation-circle"></i>
+          {{ record.contactError || "No se pudo completar el envío." }}
         </div>
 
         <div class="device-list">
           <div class="device-row" *ngFor="let device of record.offlineDevices">
             <div>
-              <strong>{{ device.name || 'Dispositivo sin nombre' }}</strong>
-              <span>{{ device.device_imei || 'IMEI no disponible' }}</span>
+              <strong>{{ device.name || "Dispositivo sin nombre" }}</strong>
+              <span>IMEI: {{ device.device_imei || "No disponible" }}</span>
             </div>
-            <span class="category-chip" [attr.data-category]="device.offlineCategory">
-              {{ device.offlineCategory === 'estado_inicial' ? 'Estado inicial' : device.offlineCategory }}
-            </span>
-            <time>{{ formatTimeOffline(device.traccarInfo?.lastUpdate) }}</time>
+            <span class="category-chip">Fuera de línea +3 días</span>
+            <time>
+              {{ formatTimeOffline(device.traccarInfo?.lastUpdate) }}
+              <small>{{
+                device.traccarInfo?.lastUpdate | date: "dd/MM/yyyy h:mm a"
+              }}</small>
+            </time>
           </div>
         </div>
       </article>
@@ -170,7 +421,10 @@
     <ng-template #noOfflineRecords>
       <div class="inline-empty">
         <i class="pi pi-check-circle"></i>
-        <span>No hay equipos offline en esta página.</span>
+        <span *ngIf="isRunning">El escaneo está creando la lista.</span>
+        <span *ngIf="!isRunning"
+          >Ningún usuario cumple los criterios de la Fase 1.</span
+        >
       </div>
     </ng-template>
 
