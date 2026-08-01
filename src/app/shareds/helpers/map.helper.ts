@@ -156,7 +156,7 @@ export class MapUtils {
         style: MapUtils.openStreetMapRasterStyle(),
         center: [lng, lat],
         zoom,
-        attributionControl: false
+        attributionControl: {}
       });
       map.addControl(new maplibregl.NavigationControl(), 'top-right');
       map.addControl(new maplibregl.FullscreenControl(), 'top-right');
@@ -184,12 +184,10 @@ export class MapUtils {
         osm: {
           type: 'raster',
           tiles: [
-            'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-            'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+            'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
           ],
           tileSize: 256,
-          attribution: '© OpenStreetMap Contributors'
+          attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>'
         }
       },
       layers: [
@@ -198,7 +196,7 @@ export class MapUtils {
           type: 'raster',
           source: 'osm',
           minzoom: 0,
-          maxzoom: 22
+          maxzoom: 19
         }
       ]
     };

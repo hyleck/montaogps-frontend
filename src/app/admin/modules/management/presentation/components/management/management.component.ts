@@ -31,7 +31,6 @@ import { WhatsAppApiService } from '@core/services/whatsapp-api.service';
 import { ProtocolsService } from '@core/services/protocols.service';
 import { InventoryService, Warehouse, InventoryItem } from '@core/services/inventory.service';
 import { SolicitudesService } from '@core/services/solicitudes.service';
-import { SystemService } from '@core/services/system.service';
 import { UserActivity, UserActivityService } from '@core/services/user-activity.service';
 import { Protocol } from '@core/interfaces/protocol.interface';
 import { SIM_CARD_TYPES } from '@core/constants/sim-card-types.constant';
@@ -44,6 +43,7 @@ import {
   isEmployeeLocationSubjectValue,
   sanitizeManagementLocationSubject,
 } from './location-subject-privacy';
+import * as maplibregl from 'maplibre-gl';
 
 @Component({
   selector: 'app-management',
@@ -746,7 +746,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     private protocolsService: ProtocolsService,
     private inventoryService: InventoryService,
     private solicitudesService: SolicitudesService,
-    private systemService: SystemService,
     private userActivityService: UserActivityService
   ) { }
 
@@ -918,6 +917,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.userLocationMarker?.remove?.();
+    this.userLocationMapInstance?.remove?.();
     this.cleanupSubscriptions();
     if (this.priorityIntervalId) {
       clearInterval(this.priorityIntervalId);
@@ -4583,7 +4584,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   private enforceDefaultMapWhenNoTarget(): void {
     if (!this.selectedTargetForMap && this.selectedMap !== 'google-light' && this.selectedMap !== 'osm-light') {
-      this.setMapProvider('google-light');
+      this.setMapProvider('osm-light');
     }
   }
 
@@ -5800,8 +5801,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.userLocationActivities = [];
     this.userLocationGroupedActivities = [];
     this.selectedLocationUser = null;
-    this.userLocationMarker?.setMap?.(null);
+    this.userLocationMarker?.remove?.();
     this.userLocationMarker = null;
+    this.userLocationMapInstance?.remove?.();
     this.userLocationMapInstance = null;
   }
 
@@ -5835,40 +5837,30 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   private async renderUserLocationMap(position: { lat: number; lng: number }): Promise<void> {
     try {
-      const systemConfigsResponse = await lastValueFrom(this.systemService.getAll());
-      const systemConfigs = systemConfigsResponse?.[0];
-      const mapKey = systemConfigs?.map_api1?.key;
-      const mapUrl = systemConfigs?.map_api1?.url;
-
-      if (!mapKey || !mapUrl) {
-        this.userLocationDialogError = 'No hay configuración de mapa disponible.';
-        return;
-      }
-
-      await MapUtils.loadMapScript('google', mapKey, mapUrl);
-
       const mapElement = this.userLocationMap?.nativeElement;
       if (!mapElement) {
         this.userLocationDialogError = 'No se pudo preparar el mapa.';
         return;
       }
 
-      this.userLocationMapInstance = new google.maps.Map(mapElement, {
-        center: position,
-        zoom: 16,
-        mapTypeId: google.maps.MapTypeId.ROADMAP,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: true,
-      });
+      this.userLocationMarker?.remove?.();
+      this.userLocationMapInstance?.remove?.();
+      this.userLocationMapInstance = MapUtils.createMap(
+        'osm',
+        mapElement,
+        '',
+        'light',
+        position.lat,
+        position.lng,
+        16,
+      );
 
-      this.userLocationMarker = new google.maps.Marker({
-        position,
-        map: this.userLocationMapInstance,
-        title: this.selectedLocationUser
-          ? `${this.selectedLocationUser.name || ''} ${this.selectedLocationUser.last_name || ''}`.trim()
-          : 'Usuario',
-      });
+      this.userLocationMarker = new maplibregl.Marker({ color: '#ef4444' })
+        .setLngLat([position.lng, position.lat])
+        .addTo(this.userLocationMapInstance);
+      this.userLocationMarker.getElement().title = this.selectedLocationUser
+        ? `${this.selectedLocationUser.name || ''} ${this.selectedLocationUser.last_name || ''}`.trim()
+        : 'Usuario';
 
       this.userLocationDialogLoading = false;
     } catch (error) {

@@ -14,8 +14,8 @@ export interface MapProviderConfig {
 })
 export class MapProviderService {
   private config: MapProviderConfig = {
-    selectedMap: 'mapbox-light',
-    providerType: 'mapbox',
+    selectedMap: 'osm-light',
+    providerType: 'osm',
     providerTheme: 'light',
     mapsKey: null
   };
@@ -39,7 +39,7 @@ export class MapProviderService {
     if (typeof savedProvider === 'string') {
       this.setProvider(savedProvider);
     } else {
-      this.setProvider(`mapbox-${defaultTheme}`);
+      this.setProvider('osm-light');
     }
     
     // Generar key inicial para que el mapa se pueda mostrar

@@ -834,7 +834,8 @@
     [header]="solicitudLocationConfigTitle"
     styleClass="sol-location-config-dialog"
     appendTo="body"
-    (onShow)="onSolicitudLocationConfigShow()">
+    (onShow)="onSolicitudLocationConfigShow()"
+    (onHide)="onSolicitudLocationConfigHide()">
     <div class="sol-location-config-modal">
         <div class="sol-location-config-intro">
             <i class="pi pi-map-marker"></i>
@@ -1102,7 +1103,8 @@
 
 <p-dialog [(visible)]="techniciansMapDialogVisible" [style]="{width: '860px'}" header="Técnicos en mapa"
     [modal]="true" styleClass="app-dark-dialog sol-technicians-map-dialog" [draggable]="false" [resizable]="false"
-    (onShow)="techniciansWithLocation.length && initTechniciansMap()">
+    (onShow)="techniciansWithLocation.length && initTechniciansMap()"
+    (onHide)="onTechniciansMapHide()">
     <ng-template pTemplate="content">
         <div class="sol-technicians-map-modal">
             <div class="sol-location-loading" *ngIf="techniciansMapLoading">
@@ -1132,7 +1134,8 @@
 
 <p-dialog [(visible)]="technicianLocationDialogVisible" [style]="{width: '620px'}" header="Ubicación del técnico"
     [modal]="true" styleClass="app-dark-dialog sol-technician-location-dialog" [draggable]="false" [resizable]="false"
-    (onShow)="technicianLocation && initTechnicianLocationMap()">
+    (onShow)="technicianLocation && initTechnicianLocationMap()"
+    (onHide)="onTechnicianLocationMapHide()">
     <ng-template pTemplate="content">
         <div class="sol-technician-location-modal">
             <div class="sol-location-status" *ngIf="!technicianLocationLoading && technicianLocation" [class.sol-location-status--stale]="isTechnicianLocationStale()">

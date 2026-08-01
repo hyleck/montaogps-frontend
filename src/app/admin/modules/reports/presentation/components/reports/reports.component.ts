@@ -1550,12 +1550,10 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
               osm: {
                 type: 'raster',
                 tiles: [
-                  'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
                 ],
                 tileSize: 256,
-                attribution: '© OpenStreetMap Contributors'
+                attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>'
               }
             },
             layers: [
@@ -1564,14 +1562,14 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
                 type: 'raster',
                 source: 'osm',
                 minzoom: 0,
-                maxzoom: 22
+                maxzoom: 19
               }
             ]
           },
           center: [lng, lat],
           zoom: 15,
           interactive: false,
-          attributionControl: false
+          attributionControl: {}
         });
 
         this.stopPreviewMaps[index] = map;

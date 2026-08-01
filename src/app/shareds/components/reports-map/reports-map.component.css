@@ -142,28 +142,16 @@
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-/* Ocultar controles por defecto de Google Maps */
-::ng-deep .gm-ui-hover-effect {
-    display: none !important;
-}
-
-::ng-deep .gm-style-iw {
+/* El contenido de los popups conserva el diseño propio sobre MapLibre. */
+::ng-deep .maplibregl-popup-content {
     padding: 0 !important;
+    background: transparent !important;
     border-radius: 8px !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
 }
 
-::ng-deep .gm-style-iw-c {
-    padding: 0 !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15) !important;
-    border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-::ng-deep .gm-style-iw-d {
-    overflow: hidden !important;
-    max-height: none !important;
+::ng-deep .maplibregl-popup-tip {
+    border-top-color: #ffffff !important;
 }
 
 /* Loading indicator */
@@ -396,4 +384,4 @@
         min-width: 60px;
         max-width: 80px;
     }
-} 
+}

@@ -18,6 +18,7 @@ import { MapUtils } from 'src/app/shareds/helpers/map.helper';
 import { WhatsAppApiService } from '@core/services/whatsapp-api.service';
 import { InteraccionesService, UserList } from '../../../../../interacciones/presentation/services/interacciones.service';
 import { VapiService } from '@core/services/vapi.service';
+import * as maplibregl from 'maplibre-gl';
 
 declare var google: any;
 type StaticLocationMethod = 'coordinates' | 'link' | 'search';
@@ -1674,6 +1675,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     ngOnDestroy() {
+        this.destroyStaticCoordinatePickerMap();
+        this.destroyStaticLocationPreviewMap();
         this.destroy$.next();
         this.destroy$.complete();
     }
@@ -1762,40 +1765,35 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     async initStaticCoordinatePickerMap(): Promise<void> {
-        await this.initializeStaticLocationSearch();
-
         const mapElement = document.getElementById('staticCoordinatePickerMap');
-        if (!mapElement || typeof google === 'undefined' || !google.maps) return;
+        if (!mapElement) return;
 
         const latitude = this.toOptionalNumber(this.user.static_latitude);
         const longitude = this.toOptionalNumber(this.user.static_longitude);
         const hasCoordinates = latitude != null && longitude != null;
-        const center = hasCoordinates
-            ? { lat: latitude, lng: longitude }
-            : { lat: 18.7357, lng: -70.1627 };
+        const centerLat = hasCoordinates ? latitude : 18.7357;
+        const centerLng = hasCoordinates ? longitude : -70.1627;
 
-        this.userLocationMap = new google.maps.Map(mapElement, {
-            center,
-            zoom: hasCoordinates ? 17 : 8,
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: true
-        });
-
-        if (this.userLocationMarker) {
-            this.userLocationMarker.setMap(null);
-            this.userLocationMarker = null;
-        }
+        this.destroyStaticCoordinatePickerMap();
+        this.userLocationMap = MapUtils.createMap(
+            'osm',
+            mapElement,
+            '',
+            'light',
+            centerLat,
+            centerLng,
+            hasCoordinates ? 17 : 8
+        );
 
         if (hasCoordinates) {
-            this.userLocationMarker = new google.maps.Marker({
-                position: center,
-                map: this.userLocationMap,
-                title: this.user.static_location_address || 'Ubicación del cliente'
-            });
+            this.userLocationMarker = new maplibregl.Marker({ color: '#ef4444' })
+                .setLngLat([centerLng, centerLat])
+                .addTo(this.userLocationMap);
+            this.userLocationMarker.getElement().title =
+                this.user.static_location_address || 'Ubicación del cliente';
         }
 
-        this.userLocationMap.addListener('click', (event: any) => this.onMapClick(event));
+        this.userLocationMap.on('click', (event: maplibregl.MapMouseEvent) => this.onMapClick(event));
     }
 
     openStaticLocationMapModal(): void {
@@ -1804,34 +1802,46 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     async initStaticLocationPreviewMap(): Promise<void> {
-        await this.initializeStaticLocationSearch();
-
         const latitude = this.toOptionalNumber(this.user.static_latitude);
         const longitude = this.toOptionalNumber(this.user.static_longitude);
         const mapElement = document.getElementById('staticLocationPreviewMap');
         if (
             latitude == null ||
             longitude == null ||
-            !mapElement ||
-            typeof google === 'undefined' ||
-            !google.maps
+            !mapElement
         ) {
             return;
         }
 
-        const position = { lat: latitude, lng: longitude };
-        this.staticLocationPreviewMap = new google.maps.Map(mapElement, {
-            center: position,
-            zoom: 17,
-            mapTypeControl: false,
-            streetViewControl: false,
-            fullscreenControl: true
-        });
-        this.staticLocationPreviewMarker = new google.maps.Marker({
-            position,
-            map: this.staticLocationPreviewMap,
-            title: this.user.static_location_address || 'Ubicación del cliente'
-        });
+        this.destroyStaticLocationPreviewMap();
+        this.staticLocationPreviewMap = MapUtils.createMap(
+            'osm',
+            mapElement,
+            '',
+            'light',
+            latitude,
+            longitude,
+            17
+        );
+        this.staticLocationPreviewMarker = new maplibregl.Marker({ color: '#ef4444' })
+            .setLngLat([longitude, latitude])
+            .addTo(this.staticLocationPreviewMap);
+        this.staticLocationPreviewMarker.getElement().title =
+            this.user.static_location_address || 'Ubicación del cliente';
+    }
+
+    private destroyStaticCoordinatePickerMap(): void {
+        this.userLocationMarker?.remove?.();
+        this.userLocationMarker = null;
+        this.userLocationMap?.remove?.();
+        this.userLocationMap = null;
+    }
+
+    private destroyStaticLocationPreviewMap(): void {
+        this.staticLocationPreviewMarker?.remove?.();
+        this.staticLocationPreviewMarker = null;
+        this.staticLocationPreviewMap?.remove?.();
+        this.staticLocationPreviewMap = null;
     }
 
     applyStaticCoordinates(): void {
@@ -2178,14 +2188,14 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             try {
                 const place = suggestion.placePrediction.toPlace();
                 await place.fetchFields({
-                    fields: ['displayName', 'formattedAddress', 'location', 'googleMapsURI']
+                    fields: ['formattedAddress', 'location']
                 });
                 if (place.location) {
                     const lat = place.location.lat();
                     const lng = place.location.lng();
-                    this.setStaticLocationPoint(lat, lng, suggestion.description);
-                    const googleMapsUrl =
-                        place.googleMapsURI || this.buildGoogleMapsLink(lat, lng);
+                    const address = place.formattedAddress || suggestion.description;
+                    this.setStaticLocationPoint(lat, lng, address);
+                    const googleMapsUrl = this.buildGoogleMapsLink(lat, lng);
                     this.user.static_location_url = googleMapsUrl;
                     this.staticLocationGoogleMapsLink = googleMapsUrl;
                     this.finishStaticLocationSelection();
@@ -2321,10 +2331,8 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         if (this.staticLocationSearchInput?.nativeElement) {
             this.staticLocationSearchInput.nativeElement.value = '';
         }
-        if (this.userLocationMarker) {
-            this.userLocationMarker.setMap(null);
-            this.userLocationMarker = null;
-        }
+        this.userLocationMarker?.remove?.();
+        this.userLocationMarker = null;
     }
 
     private geocodeStaticLocation(address: string): void {
@@ -2357,7 +2365,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             if (status === 'OK' && results && results[0]) {
                 const location = results[0].geometry.location;
                 // Move map
-                this.userLocationMap.panTo(location);
+                this.userLocationMap.setCenter([location.lng(), location.lat()]);
                 this.userLocationMap.setZoom(zoomLevel);
             } else {
                 console.warn('Geocoding failed for: ', address, 'Status: ', status);
@@ -2393,8 +2401,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     onMapClick(event: any) {
-        const lat = event.latLng.lat();
-        const lng = event.latLng.lng();
+        const lat = Number(event?.lngLat?.lat);
+        const lng = Number(event?.lngLat?.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
         this.setStaticLocationPoint(
             lat,
@@ -2418,23 +2427,25 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         }
 
         if (this.userLocationMap) {
-            this.userLocationMap.panTo({ lat, lng });
+            this.userLocationMap.setCenter([lng, lat]);
             if (adjustZoom) {
                 this.userLocationMap.setZoom(17);
             }
         }
         if (this.userLocationMarker) {
-            this.userLocationMarker.setPosition({ lat, lng });
-        } else if (this.userLocationMap && typeof google !== 'undefined') {
-            this.userLocationMarker = new google.maps.Marker({
-                position: { lat, lng },
-                map: this.userLocationMap
-            });
+            this.userLocationMarker.setLngLat([lng, lat]);
+        } else if (this.userLocationMap) {
+            this.userLocationMarker = new maplibregl.Marker({ color: '#ef4444' })
+                .setLngLat([lng, lat])
+                .addTo(this.userLocationMap);
         }
     }
 
-    private reverseGeocodeStaticLocation(lat: number, lng: number): void {
-        if (typeof google === 'undefined') return;
+    private async reverseGeocodeStaticLocation(lat: number, lng: number): Promise<void> {
+        if (typeof google === 'undefined' || !google.maps?.Geocoder) {
+            await this.initializeStaticLocationSearch();
+        }
+        if (typeof google === 'undefined' || !google.maps?.Geocoder) return;
 
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ location: { lat, lng } }, (results: any, status: any) => {

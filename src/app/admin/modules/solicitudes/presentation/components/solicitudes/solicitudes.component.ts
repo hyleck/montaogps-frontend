@@ -32,6 +32,7 @@ import {
 import { INSTALLATION_LOCATIONS } from '../../../../management/presentation/components/management/target-form/constants/target-form-data.constants';
 import { SystemService } from '../../../../../../core/services/system.service';
 import { MapUtils } from '../../../../../../shareds/helpers/map.helper';
+import * as maplibregl from 'maplibre-gl';
 interface SelectOption {
     label: string;
     value: string;
@@ -637,6 +638,14 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
+        this.destroyLocationConfigMap();
+        this.destroyProcessLocationMap();
+        this.destroyTechnicianLocationMap();
+        this.destroyTechniciansMap();
+        this.rootLocationMarker?.remove?.();
+        this.rootLocationMap?.remove?.();
+        this.locationMarker?.remove?.();
+        this.locationMap?.remove?.();
         this.solicitudesLoadSequence += 1;
         this.stopRealtimeRefresh();
         this.clearSolicitudStartedToastTimer();
@@ -733,15 +742,18 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.focusInstMapOnSelection('sector');
     }
 
-    geocodeInstLocation(address: string, zoomLevel: number) {
-        if (!this.locationMap || typeof google === 'undefined') return;
+    async geocodeInstLocation(address: string, zoomLevel: number): Promise<void> {
+        if (!this.locationMap) return;
+        if (typeof google === 'undefined' || !google.maps?.Geocoder) {
+            await this.initializeSolicitudLocationPlaces();
+        }
+        if (typeof google === 'undefined' || !google.maps?.Geocoder) return;
 
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ address: address + ', República Dominicana' }, (results: any, status: any) => {
             if (status === 'OK' && results && results[0]) {
                 const location = results[0].geometry.location;
-                // Move map
-                this.locationMap.panTo(location);
+                this.locationMap.panTo([location.lng(), location.lat()]);
                 this.locationMap.setZoom(zoomLevel);
             } else {
                 console.warn('Geocoding failed for: ', address, 'Status: ', status);
@@ -1387,8 +1399,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             clearTimeout(this.locationConfigSearchTimer);
             this.locationConfigSearchTimer = undefined;
         }
-        this.locationConfigMap = null;
-        this.locationConfigMarker = null;
+        this.destroyLocationConfigMap();
         this.locationConfigDialogVisible = true;
     }
 
@@ -1680,19 +1691,13 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             try {
                 const place = suggestion.placePrediction.toPlace();
                 await place.fetchFields({
-                    fields: [
-                        'displayName',
-                        'formattedAddress',
-                        'location',
-                        'googleMapsURI'
-                    ]
+                    fields: ['formattedAddress', 'location']
                 });
                 if (place.location) {
                     this.applySolicitudLocationPlace(
                         place.location.lat(),
                         place.location.lng(),
-                        suggestion.description,
-                        place.googleMapsURI
+                        place.formattedAddress || suggestion.description
                     );
                     return;
                 }
@@ -1771,43 +1776,34 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     async initSolicitudLocationConfigMap(): Promise<void> {
         try {
-            const systemConfigsResponse = await this.systemService.getAll().toPromise();
-            const systemConfigs = systemConfigsResponse?.[0];
-            const key = systemConfigs?.map_api1?.key;
-            if (!key) return;
-
-            await MapUtils.loadMapScript(
-                'google',
-                key,
-                systemConfigs?.map_api1?.url || 'https://maps.googleapis.com/maps/api/js'
-            );
             const mapElement = document.getElementById('solicitudLocationConfigMap');
             if (!mapElement) return;
 
             const coordinates = this.solicitudLocationCoordinates;
             const hasCoordinates = this.hasSolicitudLocationCoordinates;
-            const center = hasCoordinates
-                ? { lat: Number(coordinates.latitude), lng: Number(coordinates.longitude) }
-                : { lat: 18.7357, lng: -70.1627 };
+            const centerLat = hasCoordinates ? Number(coordinates.latitude) : 18.7357;
+            const centerLng = hasCoordinates ? Number(coordinates.longitude) : -70.1627;
 
-            this.locationConfigMap = new google.maps.Map(mapElement, {
-                center,
-                zoom: hasCoordinates ? 16 : 8,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true
-            });
+            this.destroyLocationConfigMap();
+            this.locationConfigMap = MapUtils.createMap(
+                'osm',
+                mapElement,
+                '',
+                'light',
+                centerLat,
+                centerLng,
+                hasCoordinates ? 16 : 8
+            );
 
             if (hasCoordinates) {
-                this.locationConfigMarker = new google.maps.Marker({
-                    position: center,
-                    map: this.locationConfigMap
-                });
+                this.locationConfigMarker = new maplibregl.Marker({ color: '#ef4444' })
+                    .setLngLat([centerLng, centerLat])
+                    .addTo(this.locationConfigMap);
             }
 
-            this.locationConfigMap.addListener('click', (event: any) => {
-                const latitude = event.latLng.lat();
-                const longitude = event.latLng.lng();
+            this.locationConfigMap.on('click', (event: maplibregl.MapMouseEvent) => {
+                const latitude = event.lngLat.lat;
+                const longitude = event.lngLat.lng;
                 this.setSolicitudLocationCoordinates(
                     latitude,
                     longitude,
@@ -1818,6 +1814,13 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         } catch (error) {
             console.error('Error inicializando el selector de ubicación:', error);
         }
+    }
+
+    private destroyLocationConfigMap(): void {
+        this.locationConfigMarker?.remove?.();
+        this.locationConfigMarker = null;
+        this.locationConfigMap?.remove?.();
+        this.locationConfigMap = null;
     }
 
     applySolicitudGoogleMapsLink(): void {
@@ -1910,7 +1913,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             clearTimeout(this.locationConfigSearchTimer);
             this.locationConfigSearchTimer = undefined;
         }
-        this.locationConfigMarker?.setMap?.(null);
+        this.locationConfigMarker?.remove?.();
         this.locationConfigMarker = null;
         if (this.locationConfigTarget === 'root') {
             void this.refreshTechnicianRecommendation();
@@ -1959,7 +1962,14 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
     }
 
-    private reverseGeocodeSolicitudLocation(latitude: number, longitude: number): void {
+    onSolicitudLocationConfigHide(): void {
+        this.destroyLocationConfigMap();
+    }
+
+    private async reverseGeocodeSolicitudLocation(latitude: number, longitude: number): Promise<void> {
+        if (typeof google === 'undefined' || !google.maps?.Geocoder) {
+            await this.initializeSolicitudLocationPlaces();
+        }
         if (typeof google === 'undefined' || !google.maps?.Geocoder) return;
 
         const requestId = this.locationConfigSearchRequestId;
@@ -2024,15 +2034,14 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
         const position = { lat: latitude, lng: longitude };
         if (this.locationConfigMarker) {
-            this.locationConfigMarker.setPosition(position);
+            this.locationConfigMarker.setLngLat([longitude, latitude]);
         } else if (this.locationConfigMap) {
-            this.locationConfigMarker = new google.maps.Marker({
-                position,
-                map: this.locationConfigMap
-            });
+            this.locationConfigMarker = new maplibregl.Marker({ color: '#ef4444' })
+                .setLngLat([longitude, latitude])
+                .addTo(this.locationConfigMap);
         }
         if (centerMap && this.locationConfigMap) {
-            this.locationConfigMap.panTo(position);
+            this.locationConfigMap.setCenter([longitude, latitude]);
         }
     }
 
@@ -2504,7 +2513,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             installation.google_maps_url = undefined;
             installation.location_address = undefined;
         });
-        this.rootLocationMarker?.setMap?.(null);
+        this.rootLocationMarker?.remove?.();
         this.rootLocationMarker = null;
         void this.refreshTechnicianRecommendation();
     }
@@ -2821,25 +2830,18 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     async initRootLocationMap(): Promise<void> {
         try {
-            const systemConfigsResponse = await this.systemService.getAll().toPromise();
-            const systemConfigs = systemConfigsResponse?.[0];
-            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
-            const MAP_API1_URL = systemConfigs?.map_api1?.url;
-            if (!MAP_API1_KEY || !MAP_API1_URL) return;
-            
-            await MapUtils.loadMapScript('google', MAP_API1_KEY, MAP_API1_URL);
             const mapElement = document.getElementById('map-container-root');
             if (!mapElement) return;
 
-            this.rootLocationMap = new google.maps.Map(mapElement, {
-                center: { lat: 18.4861, lng: -69.9312 },
-                zoom: 13,
-                mapTypeId: google.maps.MapTypeId.ROADMAP
-            });
+            this.rootLocationMarker?.remove?.();
+            this.rootLocationMap?.remove?.();
+            this.rootLocationMap = MapUtils.createMap(
+                'osm', mapElement, '', 'light', 18.4861, -69.9312, 13
+            );
 
-            this.rootLocationMap.addListener('click', (e: any) => {
-                const lat = e.latLng.lat();
-                const lng = e.latLng.lng();
+            this.rootLocationMap.on('click', (event: maplibregl.MapMouseEvent) => {
+                const lat = event.lngLat.lat;
+                const lng = event.lngLat.lng;
                 if (this.selectedSolicitud) {
                     this.selectedSolicitud.latitude = parseFloat(lat.toFixed(6));
                     this.selectedSolicitud.longitude = parseFloat(lng.toFixed(6));
@@ -2850,7 +2852,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
             if (this.selectedSolicitud?.latitude && this.selectedSolicitud?.longitude) {
                 this.updateRootLocationMarker(this.selectedSolicitud.latitude, this.selectedSolicitud.longitude);
-                this.rootLocationMap.setCenter({ lat: this.selectedSolicitud.latitude, lng: this.selectedSolicitud.longitude });
+                this.rootLocationMap.setCenter([this.selectedSolicitud.longitude, this.selectedSolicitud.latitude]);
                 this.rootLocationMap.setZoom(15);
             }
         } catch (error) {
@@ -2859,14 +2861,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     updateRootLocationMarker(lat: number, lng: number): void {
-        if (this.rootLocationMarker) {
-            this.rootLocationMarker.setMap(null);
-        }
+        this.rootLocationMarker?.remove?.();
         if (this.rootLocationMap) {
-            this.rootLocationMarker = new google.maps.Marker({
-                position: { lat, lng },
-                map: this.rootLocationMap
-            });
+            this.rootLocationMarker = new maplibregl.Marker({ color: '#ef4444' })
+                .setLngLat([lng, lat])
+                .addTo(this.rootLocationMap);
         }
     }
 
@@ -2917,7 +2916,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 installation.latitude = undefined;
                 installation.longitude = undefined;
             });
-            this.rootLocationMarker?.setMap?.(null);
+            this.rootLocationMarker?.remove?.();
             this.rootLocationMarker = null;
 
             if (showFeedback) {
@@ -2936,7 +2935,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.onRootLatitudeLongitudeChange();
 
         if (this.rootLocationMap) {
-            this.rootLocationMap.panTo(coords);
+            this.rootLocationMap.panTo([coords.lng, coords.lat]);
             this.rootLocationMap.setZoom(17);
         }
 
@@ -3010,15 +3009,19 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             && lng <= 180;
     }
 
-    geocodeRootLocation(address: string, zoomLevel: number) {
-        if (!this.rootLocationMap || typeof google === 'undefined') return;
+    async geocodeRootLocation(address: string, zoomLevel: number): Promise<void> {
+        if (!this.rootLocationMap) return;
+        if (typeof google === 'undefined' || !google.maps?.Geocoder) {
+            await this.initializeSolicitudLocationPlaces();
+        }
+        if (typeof google === 'undefined' || !google.maps?.Geocoder) return;
 
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ address: address + ', República Dominicana' }, (results: any, status: any) => {
             if (status === 'OK' && results && results[0]) {
                 const location = results[0].geometry.location;
                 // Move map
-                this.rootLocationMap.panTo(location);
+                this.rootLocationMap.panTo([location.lng(), location.lat()]);
                 this.rootLocationMap.setZoom(zoomLevel);
             } else {
                 console.warn('Geocoding failed for: ', address, 'Status: ', status);
@@ -3123,18 +3126,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
         this.updateRootLocationMarker(lat, lng);
         if (this.rootLocationMap) {
-            this.rootLocationMap.panTo({ lat, lng });
+            this.rootLocationMap.panTo([lng, lat]);
         }
         void this.refreshTechnicianRecommendation();
     }
 async initLocationMap(): Promise<void> {
         try {
-            const systemConfigsResponse = await this.systemService.getAll().toPromise();
-            const systemConfigs = systemConfigsResponse?.[0];
-            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
-            if (!MAP_API1_KEY) return;
-            
-            await MapUtils.loadMapScript('google', MAP_API1_KEY, systemConfigs?.map_api1?.url || 'https://maps.googleapis.com/maps/api/js');
             const mapElement = document.getElementById(`solLocationMap-${this.editingInstallationIndex}`);
             if (!mapElement) {
                 setTimeout(() => this.initLocationMap(), 200); // Retry resolving DOM node
@@ -3153,23 +3150,19 @@ async initLocationMap(): Promise<void> {
                     zoom = 16;
                 }
 
-                this.locationMap = new google.maps.Map(mapElement, {
-                    center: { lat, lng },
-                    zoom: zoom,
-                    mapTypeControl: false,
-                    streetViewControl: false
-                });
+                this.locationMarker?.remove?.();
+                this.locationMap?.remove?.();
+                this.locationMap = MapUtils.createMap('osm', mapElement, '', 'light', lat, lng, zoom);
 
                 if (currentInst?.latitude && currentInst?.longitude) {
-                    this.locationMarker = new google.maps.Marker({
-                        position: { lat, lng },
-                        map: this.locationMap
-                    });
+                    this.locationMarker = new maplibregl.Marker({ color: '#ef4444' })
+                        .setLngLat([lng, lat])
+                        .addTo(this.locationMap);
                 }
 
-                this.locationMap.addListener('click', (e: any) => {
-                    const clickLat = e.latLng.lat();
-                    const clickLng = e.latLng.lng();
+                this.locationMap.on('click', (event: maplibregl.MapMouseEvent) => {
+                    const clickLat = event.lngLat.lat;
+                    const clickLng = event.lngLat.lng;
                     
                     if(this.selectedSolicitud?.installations?.[this.editingInstallationIndex]) {
                         this.selectedSolicitud.installations[this.editingInstallationIndex].latitude = clickLat;
@@ -3177,12 +3170,11 @@ async initLocationMap(): Promise<void> {
                     }
 
                     if (this.locationMarker) {
-                        this.locationMarker.setPosition({ lat: clickLat, lng: clickLng });
+                        this.locationMarker.setLngLat([clickLng, clickLat]);
                     } else {
-                        this.locationMarker = new google.maps.Marker({
-                            position: { lat: clickLat, lng: clickLng },
-                            map: this.locationMap
-                        });
+                        this.locationMarker = new maplibregl.Marker({ color: '#ef4444' })
+                            .setLngLat([clickLng, clickLat])
+                            .addTo(this.locationMap);
                     }
                 });
             }
@@ -3819,13 +3811,18 @@ async initLocationMap(): Promise<void> {
 
     closeProcessLocationMap(): void {
         this.processLocationMapDialogVisible = false;
-        this.processLocationMapMarker?.setMap?.(null);
-        this.processLocationMapMarker = null;
-        this.processLocationMap = null;
+        this.destroyProcessLocationMap();
         this.processLocationMapCoordinates = null;
         this.processLocationMapAddress = '';
         this.processLocationMapError = '';
         this.processLocationMapLoading = false;
+    }
+
+    private destroyProcessLocationMap(): void {
+        this.processLocationMapMarker?.remove?.();
+        this.processLocationMapMarker = null;
+        this.processLocationMap?.remove?.();
+        this.processLocationMap = null;
     }
 
     private getStoredProcessCoordinates(
@@ -3864,16 +3861,11 @@ async initLocationMap(): Promise<void> {
                 }
             }
 
-            const systemConfigsResponse = await this.systemService.getAll().toPromise();
-            const systemConfigs = systemConfigsResponse?.[0];
-            const mapKey = systemConfigs?.map_api1?.key;
-            const mapUrl = systemConfigs?.map_api1?.url;
-            if (!mapKey || !mapUrl) {
-                throw new Error('No hay configuración de mapa disponible.');
-            }
-
-            await MapUtils.loadMapScript('google', mapKey, mapUrl);
             if (!coordinates && this.processLocationMapAddress) {
+                await this.initializeSolicitudLocationPlaces();
+                if (typeof google === 'undefined' || !google.maps?.Geocoder) {
+                    throw new Error('No se pudo convertir la dirección en coordenadas.');
+                }
                 coordinates = await this.geocodeProcessLocation(this.processLocationMapAddress);
                 this.processLocationMapCoordinates = coordinates;
             }
@@ -3884,19 +3876,21 @@ async initLocationMap(): Promise<void> {
             const mapElement = document.getElementById('solicitud-process-location-map');
             if (!mapElement || !this.processLocationMapDialogVisible) return;
 
-            this.processLocationMap = new google.maps.Map(mapElement, {
-                center: coordinates,
-                zoom: 16,
-                mapTypeId: google.maps.MapTypeId.ROADMAP,
-                mapTypeControl: true,
-                streetViewControl: false,
-                fullscreenControl: true,
-            });
-            this.processLocationMapMarker = new google.maps.Marker({
-                position: coordinates,
-                map: this.processLocationMap,
-                title: this.processLocationMapAddress || this.getClientDisplayName(solicitud),
-            });
+            this.destroyProcessLocationMap();
+            this.processLocationMap = MapUtils.createMap(
+                'osm',
+                mapElement,
+                '',
+                'light',
+                coordinates.lat,
+                coordinates.lng,
+                16
+            );
+            this.processLocationMapMarker = new maplibregl.Marker({ color: '#ef4444' })
+                .setLngLat([coordinates.lng, coordinates.lat])
+                .addTo(this.processLocationMap);
+            this.processLocationMapMarker.getElement().title = this.processLocationMapAddress
+                || this.getClientDisplayName(solicitud);
             this.processLocationMapLoading = false;
         } catch (error: any) {
             console.error('Error mostrando la ubicación del proceso:', error);
@@ -4711,39 +4705,43 @@ async initLocationMap(): Promise<void> {
         if (!location?.latitude || !location?.longitude) return;
 
         try {
-            const systemConfigsResponse = await this.systemService.getAll().toPromise();
-            const systemConfigs = systemConfigsResponse?.[0];
-            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
-            const MAP_API1_URL = systemConfigs?.map_api1?.url;
-            if (!MAP_API1_KEY || !MAP_API1_URL) {
-                this.technicianLocationError = 'No hay configuración de mapa disponible.';
-                return;
-            }
-
-            await MapUtils.loadMapScript('google', MAP_API1_KEY, MAP_API1_URL);
             const mapElement = document.getElementById('technician-location-map');
             if (!mapElement) return;
 
-            const position = { lat: Number(location.latitude), lng: Number(location.longitude) };
-            this.technicianLocationMap = new google.maps.Map(mapElement, {
-                center: position,
-                zoom: 16,
-                mapTypeId: google.maps.MapTypeId.ROADMAP,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true
-            });
+            const latitude = Number(location.latitude);
+            const longitude = Number(location.longitude);
+            this.destroyTechnicianLocationMap();
+            this.technicianLocationMap = MapUtils.createMap(
+                'osm',
+                mapElement,
+                '',
+                'light',
+                latitude,
+                longitude,
+                16
+            );
 
-            this.technicianLocationMarker?.setMap?.(null);
-            this.technicianLocationMarker = new google.maps.Marker({
-                position,
-                map: this.technicianLocationMap,
-                title: this.getTechnicianDisplayName(this.selectedTechnicianSolicitud)
-            });
+            this.technicianLocationMarker = new maplibregl.Marker({ color: '#ef4444' })
+                .setLngLat([longitude, latitude])
+                .addTo(this.technicianLocationMap);
+            this.technicianLocationMarker.getElement().title = this.getTechnicianDisplayName(
+                this.selectedTechnicianSolicitud
+            );
         } catch (error) {
             console.error('Error loading technician location map:', error);
             this.technicianLocationError = 'No se pudo mostrar el mapa del técnico.';
         }
+    }
+
+    onTechnicianLocationMapHide(): void {
+        this.destroyTechnicianLocationMap();
+    }
+
+    private destroyTechnicianLocationMap(): void {
+        this.technicianLocationMarker?.remove?.();
+        this.technicianLocationMarker = null;
+        this.technicianLocationMap?.remove?.();
+        this.technicianLocationMap = null;
     }
 
     getTechnicianLocationAgeLabel(): string {
@@ -4820,45 +4818,33 @@ async initLocationMap(): Promise<void> {
         if (!this.techniciansWithLocation.length) return;
 
         try {
-            const systemConfigsResponse = await this.systemService.getAll().toPromise();
-            const systemConfigs = systemConfigsResponse?.[0];
-            const MAP_API1_KEY = systemConfigs?.map_api1?.key;
-            const MAP_API1_URL = systemConfigs?.map_api1?.url;
-            if (!MAP_API1_KEY || !MAP_API1_URL) {
-                this.techniciansMapError = 'No hay configuración de mapa disponible.';
-                return;
-            }
-
-            await MapUtils.loadMapScript('google', MAP_API1_KEY, MAP_API1_URL);
             const mapElement = document.getElementById('technicians-map');
             if (!mapElement) return;
 
             const firstLocation = this.techniciansWithLocation[0].location;
-            this.techniciansMap = new google.maps.Map(mapElement, {
-                center: { lat: Number(firstLocation.latitude), lng: Number(firstLocation.longitude) },
-                zoom: 12,
-                mapTypeId: google.maps.MapTypeId.ROADMAP,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true
-            });
+            this.destroyTechniciansMap();
+            this.techniciansMap = MapUtils.createMap(
+                'osm',
+                mapElement,
+                '',
+                'light',
+                Number(firstLocation.latitude),
+                Number(firstLocation.longitude),
+                12
+            );
 
-            this.techniciansMapMarkers.forEach(marker => marker?.setMap?.(null));
-            this.techniciansMapMarkers = [];
-            const bounds = new google.maps.LatLngBounds();
+            const bounds = new maplibregl.LngLatBounds();
 
             this.techniciansWithLocation.forEach(({ technician, location }) => {
-                const position = { lat: Number(location.latitude), lng: Number(location.longitude) };
-                bounds.extend(position);
-
-                const marker = new google.maps.Marker({
-                    position,
-                    map: this.techniciansMap,
-                    title: this.getTechnicianName(technician),
-                });
-
-                this.techniciansMapMarkers.push(marker);
-                this.techniciansMapMarkers.push(this.createTechnicianLabelOverlay(position, this.getTechnicianMarkerLabel(technician, location)));
+                const latitude = Number(location.latitude);
+                const longitude = Number(location.longitude);
+                bounds.extend([longitude, latitude]);
+                this.techniciansMapMarkers.push(
+                    this.createTechnicianMapMarker(
+                        { lat: latitude, lng: longitude },
+                        this.getTechnicianMarkerLabel(technician, location)
+                    )
+                );
             });
 
             if (this.techniciansWithLocation.length === 1) {
@@ -4867,7 +4853,7 @@ async initLocationMap(): Promise<void> {
                 return;
             }
 
-            this.techniciansMap.fitBounds(bounds, 64);
+            this.techniciansMap.fitBounds(bounds, { padding: 64, maxZoom: 15 });
         } catch (error) {
             console.error('Error rendering technicians map:', error);
             this.techniciansMapError = 'No se pudo mostrar el mapa de técnicos.';
@@ -4884,33 +4870,34 @@ async initLocationMap(): Promise<void> {
         return `${this.getTechnicianName(technician)} · ${this.getRelativeLocationAge(location?.recordedAt)}`;
     }
 
-    private createTechnicianLabelOverlay(position: { lat: number; lng: number }, text: string): any {
-        const overlay = new google.maps.OverlayView();
-        let div: HTMLDivElement | null = null;
+    onTechniciansMapHide(): void {
+        this.destroyTechniciansMap();
+    }
 
-        overlay.onAdd = () => {
-            div = document.createElement('div');
-            div.className = 'sol-tech-map-label';
-            div.textContent = text;
-            overlay.getPanes()?.overlayMouseTarget.appendChild(div);
-        };
+    private destroyTechniciansMap(): void {
+        this.techniciansMapMarkers.forEach(marker => marker?.remove?.());
+        this.techniciansMapMarkers = [];
+        this.techniciansMap?.remove?.();
+        this.techniciansMap = null;
+    }
 
-        overlay.draw = () => {
-            if (!div) return;
-            const projection = overlay.getProjection();
-            const point = projection.fromLatLngToDivPixel(new google.maps.LatLng(position.lat, position.lng));
-            if (!point) return;
-            div.style.left = `${point.x}px`;
-            div.style.top = `${point.y - 46}px`;
-        };
+    private createTechnicianMapMarker(position: { lat: number; lng: number }, text: string): maplibregl.Marker {
+        const element = document.createElement('div');
+        element.className = 'sol-tech-map-marker';
+        element.title = text;
 
-        overlay.onRemove = () => {
-            div?.parentNode?.removeChild(div);
-            div = null;
-        };
+        const pin = document.createElement('span');
+        pin.className = 'sol-tech-map-marker__pin';
+        pin.innerHTML = '<i class="pi pi-user"></i>';
 
-        overlay.setMap(this.techniciansMap);
-        return overlay;
+        const label = document.createElement('div');
+        label.className = 'sol-tech-map-label';
+        label.textContent = text;
+
+        element.append(pin, label);
+        return new maplibregl.Marker({ element, anchor: 'bottom' })
+            .setLngLat([position.lng, position.lat])
+            .addTo(this.techniciansMap);
     }
 
     private getRelativeLocationAge(recordedAt?: string | Date): string {

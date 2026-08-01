@@ -271,12 +271,10 @@ export class MonitoringMapComponent
           osm: {
             type: 'raster',
             tiles: [
-              'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             ],
             tileSize: 256,
-            attribution: '© OpenStreetMap Contributors',
+            attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap contributors</a>',
           },
         },
         layers: [
@@ -285,13 +283,13 @@ export class MonitoringMapComponent
             type: 'raster',
             source: 'osm',
             minzoom: 0,
-            maxzoom: 22,
+            maxzoom: 19,
           },
         ],
       },
       center: [-69.9312, 18.4861],
       zoom: 8,
-      attributionControl: false,
+      attributionControl: {},
     });
 
     this.map.addControl(new maplibregl.NavigationControl(), 'top-right');
