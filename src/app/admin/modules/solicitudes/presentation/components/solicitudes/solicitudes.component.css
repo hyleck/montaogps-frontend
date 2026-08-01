@@ -2701,6 +2701,37 @@ html.app-dark .sol-technician-schedule-status--error {
     gap: 0.5rem;
 }
 
+.sol-card-title-block {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.22rem;
+}
+
+.sol-card-title-block .sol-kanban-client {
+    width: 100%;
+    max-width: 100%;
+}
+
+.sol-request-creator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    max-width: 100%;
+    color: var(--managementColorTextUser);
+    font-size: 0.66rem;
+    font-weight: 650;
+    line-height: 1.25;
+    opacity: 0.66;
+}
+
+.sol-request-creator i {
+    flex: 0 0 auto;
+    font-size: 0.62rem;
+}
+
 .sol-kanban-client {
     font-weight: 800;
     color: var(--managementColorTitleUser);
@@ -2900,7 +2931,8 @@ html.app-dark .sol-technician-schedule-status--error {
     font-weight: 800;
 }
 
-.sol-closed-status[data-status="cancelada"] {
+.sol-closed-status[data-status="cancelada"],
+.sol-closed-status[data-status="rechazada"] {
     background: rgba(239, 68, 68, 0.11);
     color: #dc2626;
 }
@@ -2940,6 +2972,11 @@ html.app-dark .sol-technician-schedule-status--error {
     font-size: 0.7rem;
 }
 
+.sol-closed-device:hover {
+    border-color: #6366f1;
+    filter: brightness(1.08);
+}
+
 .sol-closed-device i {
     flex: 0 0 auto;
     color: #10b981;
@@ -2962,6 +2999,61 @@ html.app-dark .sol-technician-schedule-status--error {
     color: #6366f1;
     font-size: 0.6rem;
     font-weight: 800;
+}
+
+.sol-process-summary {
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.24rem;
+}
+
+.sol-process-name {
+    display: block;
+    flex: 0 1 auto !important;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+}
+
+.sol-process-final-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    max-width: 100%;
+    padding: 0.16rem 0.42rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 0.61rem;
+    font-weight: 800;
+    line-height: 1.15;
+    white-space: normal;
+}
+
+.sol-process-final-status i {
+    flex: 0 0 auto;
+    font-size: 0.62rem !important;
+}
+
+.sol-process-final-status[data-state="online"] {
+    border-color: rgba(16, 185, 129, 0.3);
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+}
+
+.sol-process-final-status[data-state="offline"] {
+    border-color: rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+}
+
+.sol-closed-device .sol-process-final-status i {
+    color: currentColor;
 }
 
 .sol-closed-footer {
@@ -3105,7 +3197,8 @@ html.app-dark .sol-technician-schedule-status--error {
     white-space: nowrap;
 }
 
-.sol-closed-info__status[data-status="cancelada"] {
+.sol-closed-info__status[data-status="cancelada"],
+.sol-closed-info__status[data-status="rechazada"] {
     background: rgba(239, 68, 68, 0.12);
     color: #dc2626;
 }
@@ -3205,6 +3298,14 @@ html.app-dark .sol-technician-schedule-status--error {
 
 .sol-info-link:hover {
     text-decoration: underline;
+}
+
+.sol-info-link--button {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
 }
 
 .sol-closed-info__vehicles {
@@ -3386,6 +3487,450 @@ html.app-dark .sol-technician-schedule-status--error {
     background: rgba(99, 102, 241, 0.14);
 }
 
+.sol-process-device-loading,
+.sol-process-device-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--managementColorTextUser);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.sol-process-device-loading i {
+    color: #6366f1;
+}
+
+.sol-process-device-warning {
+    color: #b45309;
+}
+
+html.app-dark .sol-process-device-warning {
+    color: #fbbf24;
+}
+
+.sol-process-timeline-card {
+    padding: 1rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 16px;
+    background: var(--managementColorBackgroundUser);
+}
+
+.sol-process-timeline-card__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--managementFieldsBorder);
+}
+
+.sol-process-timeline-card__header span {
+    display: block;
+    margin-bottom: 0.2rem;
+    color: #6366f1;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.sol-process-timeline-card__header h3 {
+    margin: 0;
+    color: var(--managementColorTitleUser);
+    font-size: 1rem;
+}
+
+.sol-process-timeline-card__header p {
+    max-width: 620px;
+    margin: 0.3rem 0 0;
+    color: var(--managementColorTextUser);
+    font-size: 0.7rem;
+    line-height: 1.45;
+    opacity: 0.7;
+}
+
+.sol-process-timeline-card__header > i {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.12);
+    color: #6366f1;
+    font-size: 1rem;
+}
+
+.sol-process-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.sol-process-timeline__item {
+    --sol-timeline-accent: #64748b;
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    gap: 0.75rem;
+}
+
+.sol-process-timeline__item[data-state="info"] {
+    --sol-timeline-accent: #6366f1;
+}
+
+.sol-process-timeline__item[data-state="success"] {
+    --sol-timeline-accent: #10b981;
+}
+
+.sol-process-timeline__item[data-state="warning"] {
+    --sol-timeline-accent: #f59e0b;
+}
+
+.sol-process-timeline__item[data-state="danger"] {
+    --sol-timeline-accent: #ef4444;
+}
+
+.sol-process-timeline__rail {
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.sol-process-timeline__rail::after {
+    position: absolute;
+    top: 34px;
+    bottom: 0;
+    width: 2px;
+    background: color-mix(in srgb, var(--sol-timeline-accent) 30%, var(--managementFieldsBorder));
+    content: '';
+}
+
+.sol-process-timeline__item:last-child .sol-process-timeline__rail::after {
+    display: none;
+}
+
+.sol-process-timeline__rail > span {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 2px solid color-mix(in srgb, var(--sol-timeline-accent) 55%, transparent);
+    border-radius: 50%;
+    background: var(--managementColorBackgroundUser);
+    color: var(--sol-timeline-accent);
+    font-size: 0.68rem;
+    font-weight: 900;
+}
+
+.sol-process-timeline__content {
+    min-width: 0;
+    margin-bottom: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-left: 3px solid var(--sol-timeline-accent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--sol-timeline-accent) 4%, var(--managementColorBackgroundUser));
+}
+
+.sol-process-timeline__content > header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.sol-process-timeline__title {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 0.58rem;
+}
+
+.sol-process-timeline__icon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--sol-timeline-accent) 14%, transparent);
+    color: var(--sol-timeline-accent);
+}
+
+.sol-process-timeline__title small {
+    display: block;
+    margin-bottom: 0.1rem;
+    color: var(--sol-timeline-accent);
+    font-size: 0.56rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.sol-process-timeline__title h4 {
+    margin: 0;
+    color: var(--managementColorTitleUser);
+    font-size: 0.8rem;
+    line-height: 1.3;
+}
+
+.sol-process-timeline__content time {
+    flex: 0 0 auto;
+    color: var(--managementColorTextUser);
+    font-size: 0.62rem;
+    font-weight: 700;
+    opacity: 0.65;
+}
+
+.sol-process-timeline__content > p {
+    margin: 0.55rem 0 0;
+    color: var(--managementColorTextUser);
+    font-size: 0.7rem;
+    line-height: 1.5;
+}
+
+.sol-process-timeline__details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin: 0.72rem 0 0;
+    padding-top: 0.68rem;
+    border-top: 1px dashed var(--managementFieldsBorder);
+}
+
+.sol-process-timeline__details > div {
+    min-width: 0;
+    padding: 0.45rem 0.55rem;
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--managementFieldsBorder) 40%, transparent);
+}
+
+.sol-process-timeline__details dt {
+    margin-bottom: 0.14rem;
+    color: var(--managementColorTextUser);
+    font-size: 0.55rem;
+    font-weight: 800;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+    opacity: 0.62;
+}
+
+.sol-process-timeline__details dd {
+    margin: 0;
+    color: var(--managementColorTitleUser);
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.sol-process-timeline__evidence {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin-top: 0.7rem;
+}
+
+.sol-process-timeline__evidence a {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.42rem;
+    padding: 0.55rem;
+    border: 1px solid rgba(99, 102, 241, 0.22);
+    border-radius: 9px;
+    background: rgba(99, 102, 241, 0.07);
+    color: #6366f1;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.sol-process-timeline__evidence a:hover {
+    background: rgba(99, 102, 241, 0.14);
+}
+
+.sol-process-timeline__evidence small {
+    grid-column: 2;
+    color: var(--managementColorTextUser);
+    font-size: 0.55rem;
+    font-weight: 600;
+    opacity: 0.62;
+}
+
+.sol-process-timeline__audio {
+    width: min(100%, 420px);
+    height: 36px;
+    margin-top: 0.7rem;
+}
+
+.sol-process-map-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    margin-top: 0.72rem;
+    padding: 0.5rem 0.72rem;
+    border: 1px solid rgba(99, 102, 241, 0.28);
+    border-radius: 9px;
+    background: rgba(99, 102, 241, 0.09);
+    color: #6366f1;
+    font-size: 0.67rem;
+    font-weight: 850;
+    cursor: pointer;
+    transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+
+.sol-process-map-button:hover {
+    border-color: rgba(99, 102, 241, 0.5);
+    background: rgba(99, 102, 241, 0.16);
+    transform: translateY(-1px);
+}
+
+.sol-process-location-map-modal {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    color: var(--managementColorTextUser);
+}
+
+.sol-process-location-map-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.75rem;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 12px;
+    background: var(--managementColorBackgroundUser);
+}
+
+.sol-process-location-map-summary__icon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.12);
+    color: #6366f1;
+}
+
+.sol-process-location-map-summary div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.sol-process-location-map-summary strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.76rem;
+    line-height: 1.35;
+}
+
+.sol-process-location-map-summary small {
+    color: var(--managementColorTextUser);
+    font-size: 0.62rem;
+    opacity: 0.68;
+}
+
+.sol-process-location-map-shell {
+    position: relative;
+    overflow: hidden;
+    min-height: 430px;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 14px;
+    background: var(--managementColorBackgroundUser);
+}
+
+.sol-process-location-map {
+    width: 100%;
+    height: 430px;
+}
+
+.sol-process-location-map-state {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.55rem;
+    background: color-mix(in srgb, var(--managementColorBackgroundUser) 92%, transparent);
+    color: #6366f1;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.sol-process-location-map-state.is-error {
+    padding: 1rem;
+    color: #dc2626;
+    text-align: center;
+}
+
+.sol-process-technical-details {
+    overflow: hidden;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 13px;
+    background: var(--managementColorBackgroundUser);
+}
+
+.sol-process-technical-details > summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    color: var(--managementColorTitleUser);
+    font-size: 0.72rem;
+    font-weight: 800;
+    cursor: pointer;
+    list-style: none;
+}
+
+.sol-process-technical-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.sol-process-technical-details > summary span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.48rem;
+}
+
+.sol-process-technical-details > summary span i {
+    color: #6366f1;
+}
+
+.sol-process-technical-details > summary > i {
+    color: var(--managementColorTextUser);
+    font-size: 0.7rem;
+    transition: transform 0.18s ease;
+}
+
+.sol-process-technical-details[open] > summary > i {
+    transform: rotate(180deg);
+}
+
+.sol-process-technical-details__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0 0.85rem 0.85rem;
+    border-top: 1px solid var(--managementFieldsBorder);
+}
+
+.sol-process-technical-details__body > .sol-closed-info__grid {
+    margin-top: 0.85rem;
+}
+
 @media (max-width: 720px) {
     .sol-closed-info__hero {
         grid-template-columns: 42px minmax(0, 1fr);
@@ -3408,6 +3953,39 @@ html.app-dark .sol-technician-schedule-status--error {
 
     .sol-vehicle-card__details {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sol-process-timeline-card {
+        padding: 0.75rem;
+    }
+
+    .sol-process-timeline__item {
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 0.45rem;
+    }
+
+    .sol-process-timeline__rail > span {
+        width: 28px;
+        height: 28px;
+    }
+
+    .sol-process-timeline__rail::after {
+        top: 30px;
+    }
+
+    .sol-process-timeline__content > header {
+        flex-direction: column;
+    }
+
+    .sol-process-timeline__details,
+    .sol-process-timeline__evidence {
+        grid-template-columns: 1fr;
+    }
+
+    .sol-process-location-map-shell,
+    .sol-process-location-map {
+        height: 360px;
+        min-height: 360px;
     }
 }
 
@@ -3463,6 +4041,8 @@ html.app-dark .sol-technician-schedule-status--error {
 }
 .sol-kanban-inst-item:hover {
     background: rgba(245, 158, 11, 0.15);
+    transform: translateX(3px);
+    filter: brightness(1.08);
 }
 .sol-kanban-inst-item.completed {
     background: rgba(16, 185, 129, 0.1);

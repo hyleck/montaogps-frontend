@@ -33,16 +33,28 @@ export interface InstallationDetail {
     installation_details?: string;
     diagnosis?: string;
     resolution_type?: string;
+    connection_status?: string;
     checkup_recovery?: {
+        connection_checked?: boolean;
+        connection_corrected?: boolean;
+        power_checked?: boolean;
+        power_corrected?: boolean;
+        sim_replacement_attempted?: boolean;
         gps_replacement_attempted?: boolean;
         previous_device_imei?: string;
         replacement_device_imei?: string;
         previous_sim_card_number?: string;
         replacement_sim_card_number?: string;
         replacement_sim_company?: string;
+        last_online_check_step?: 'connection' | 'power' | 'sim' | 'gps';
+        online_confirmed?: boolean;
+        online_confirmed_at?: string | Date;
     };
     images?: string[];
     audio?: string;
+    final_device_status?: string;
+    final_device_online?: boolean;
+    final_device_status_at?: string | Date;
     contacts?: string;
     notes?: string;
     completed?: boolean;
@@ -81,6 +93,8 @@ export interface Solicitud {
     scheduled_date?: string | Date;
     confirmation_permission?: string;
     completed_date?: string;
+    created_by_id?: string;
+    created_by_name?: string;
     user_id?: string;
     id_rent?: string;
     source_chequeo_id?: string;

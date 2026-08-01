@@ -431,7 +431,12 @@
             <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of pendientes; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
-                    <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                    <div class="sol-card-title-block">
+                        <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                        <small *ngIf="getSolicitudCreatorName(sol) as creator" class="sol-request-creator">
+                            <i class="pi pi-user"></i> Creada por {{ creator }}
+                        </small>
+                    </div>
                 </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
@@ -452,19 +457,31 @@
                         <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
-                        <div *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
+                        <button type="button" *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation"
+                            class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled"
+                            [class.cancelled]="inst.cancelled" (click)="openKanbanProcessDetails(sol, inst, i, $event)"
+                            style="width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer;"
+                            [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
                             <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="!inst.completed && !inst.cancelled && sol.status === 'en_progreso'"
                                 class="pi pi-spin pi-spinner sol-process-loading"></i>
                             <i *ngIf="!inst.completed && !inst.cancelled && sol.status !== 'en_progreso'"
                                 class="pi pi-circle"></i>
-                            <span style="font-size: 0.8rem;">
-                                {{ getKanbanProcessLabel(sol, inst, i) }}
-                                <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
-                                <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                            <span class="sol-process-summary">
+                                <span class="sol-process-name">
+                                    {{ getKanbanProcessLabel(sol, inst, i) }}
+                                    <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
+                                    <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                                </span>
+                                <small *ngIf="(inst.completed || inst.cancelled) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
+                                    [attr.data-state]="getInstallationFinalDeviceState(inst)">
+                                    <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
+                                    {{ getInstallationFinalDeviceStatusLabel(inst) }}
+                                </small>
                             </span>
-                        </div>
+                            <i class="pi pi-chevron-right" style="margin-left: auto; font-size: 0.62rem;"></i>
+                        </button>
                     </div>
                 </div>
                 <div class="sol-tech-row" *ngIf="sol.mechanic_id" (click)="$event.stopPropagation()">
@@ -506,7 +523,12 @@
             <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of enProgreso; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
-                    <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                    <div class="sol-card-title-block">
+                        <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                        <small *ngIf="getSolicitudCreatorName(sol) as creator" class="sol-request-creator">
+                            <i class="pi pi-user"></i> Creada por {{ creator }}
+                        </small>
+                    </div>
                 </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date" *ngIf="sol.scheduled_date || sol.installations?.[0]?.scheduled_date" style="display: block; margin-bottom: 0.5rem; color: #6b7280; font-size: 0.8rem; font-weight: 500;">📅 {{ getScheduledDateDisplay(sol) }}</span>
@@ -524,17 +546,29 @@
                         <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
-                        <div *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
+                        <button type="button" *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation"
+                            class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled"
+                            [class.cancelled]="inst.cancelled" (click)="openKanbanProcessDetails(sol, inst, i, $event)"
+                            style="width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer;"
+                            [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
                             <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="!inst.completed && !inst.cancelled"
                                 class="pi pi-spin pi-spinner sol-process-loading"></i>
-                            <span style="font-size: 0.8rem;">
-                                {{ getKanbanProcessLabel(sol, inst, i) }}
-                                <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
-                                <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                            <span class="sol-process-summary">
+                                <span class="sol-process-name">
+                                    {{ getKanbanProcessLabel(sol, inst, i) }}
+                                    <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
+                                    <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                                </span>
+                                <small *ngIf="(inst.completed || inst.cancelled) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
+                                    [attr.data-state]="getInstallationFinalDeviceState(inst)">
+                                    <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
+                                    {{ getInstallationFinalDeviceStatusLabel(inst) }}
+                                </small>
                             </span>
-                        </div>
+                            <i class="pi pi-chevron-right" style="margin-left: auto; font-size: 0.62rem;"></i>
+                        </button>
                     </div>
                 </div>
                 <div class="sol-tech-row" *ngIf="sol.mechanic_id" (click)="$event.stopPropagation()">
@@ -576,7 +610,12 @@
             <div class="sol-kanban-card" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" [class.sol-kanban-card--overdue]="isSolicitudOverdue(sol)" *ngFor="let sol of porConfirmar; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="true" (dragstart)="onDragStart($event, sol)" (dragend)="onDragEnd($event)">
                 <div class="sol-kanban-card-top">
-                    <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                    <div class="sol-card-title-block">
+                        <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                        <small *ngIf="getSolicitudCreatorName(sol) as creator" class="sol-request-creator">
+                            <i class="pi pi-user"></i> Creada por {{ creator }}
+                        </small>
+                    </div>
                 </div>
                 <div class="sol-kanban-content">
                     <span class="sol-kanban-date sol-kanban-date--finalized" *ngIf="getSolicitudFinalizedDateDisplay(sol) as finalizedDate">
@@ -592,16 +631,28 @@
                         <span class="sol-technician-unavailable" *ngIf="isTechnicianUnavailable(sol)">Técnico no disponible</span>
                     </div>
                     <div *ngIf="sol.installations && sol.installations.length > 0" class="sol-kanban-installations">
-                        <div *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation" class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled" [class.cancelled]="inst.cancelled">
+                        <button type="button" *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation"
+                            class="sol-kanban-inst-item" [class.completed]="inst.completed && !inst.cancelled"
+                            [class.cancelled]="inst.cancelled" (click)="openKanbanProcessDetails(sol, inst, i, $event)"
+                            style="width: 100%; border: 0; font: inherit; text-align: left; cursor: pointer;"
+                            [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
                             <i *ngIf="inst.completed && !inst.cancelled" class="pi pi-check-circle"></i>
                             <i *ngIf="inst.cancelled" class="pi pi-times-circle"></i>
                             <i *ngIf="!inst.completed && !inst.cancelled" class="pi pi-circle"></i>
-                            <span style="font-size: 0.8rem;">
-                                {{ getKanbanProcessLabel(sol, inst, i) }}
-                                <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
-                                <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                            <span class="sol-process-summary">
+                                <span class="sol-process-name">
+                                    {{ getKanbanProcessLabel(sol, inst, i) }}
+                                    <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
+                                    <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
+                                </span>
+                                <small *ngIf="(inst.completed || inst.cancelled) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
+                                    [attr.data-state]="getInstallationFinalDeviceState(inst)">
+                                    <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
+                                    {{ getInstallationFinalDeviceStatusLabel(inst) }}
+                                </small>
                             </span>
-                        </div>
+                            <i class="pi pi-chevron-right" style="margin-left: auto; font-size: 0.62rem;"></i>
+                        </button>
                     </div>
                 </div>
                 <div class="sol-tech-row" *ngIf="sol.mechanic_id" (click)="$event.stopPropagation()">
@@ -640,7 +691,12 @@
             <div class="sol-kanban-card sol-kanban-card--closed-summary sol-kanban-card--locked" [class.sol-kanban-card--accepted]="isTechnicianAccepted(sol)" [class.sol-kanban-card--unavailable]="isTechnicianUnavailable(sol)" [class.sol-kanban-card--verifying]="isTechnicianVerifying(sol)" *ngFor="let sol of completadas; trackBy: trackBySolicitud" (click)="!dragSuppressClick && editSolicitud(sol)"
                 draggable="false">
                 <div class="sol-closed-head">
-                    <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                    <div class="sol-card-title-block">
+                        <span class="sol-kanban-client">{{ getClientDisplayName(sol) || 'Sin Cliente' }}</span>
+                        <small *ngIf="getSolicitudCreatorName(sol) as creator" class="sol-request-creator">
+                            <i class="pi pi-user"></i> Creada por {{ creator }}
+                        </small>
+                    </div>
                     <div class="sol-closed-head__state">
                         <span class="sol-closed-lock" pTooltip="Solicitud cerrada: no se puede mover ni reabrir" tooltipPosition="top">
                             <i class="pi pi-lock"></i>
@@ -659,10 +715,23 @@
                     </span>
                 </div>
 
-                <div class="sol-closed-device" *ngIf="sol.installations && sol.installations.length > 0">
-                    <i class="pi pi-car"></i>
-                    <span>{{ getSolicitudPrimaryDeviceLabel(sol) }}</span>
-                    <small *ngIf="sol.installations.length > 1">+{{ sol.installations.length - 1 }}</small>
+                <div *ngIf="sol.installations && sol.installations.length > 0" style="display: flex; flex-direction: column; gap: 0.35rem;">
+                    <button type="button" class="sol-closed-device"
+                        *ngFor="let inst of sol.installations; let i = index; trackBy: trackByInstallation"
+                        (click)="openKanbanProcessDetails(sol, inst, i, $event)"
+                        style="width: 100%; font: inherit; text-align: left; cursor: pointer;"
+                        [attr.aria-label]="'Ver detalles de ' + getKanbanProcessLabel(sol, inst, i)">
+                        <i class="pi" [ngClass]="inst.cancelled ? 'pi-times-circle' : (inst.completed ? 'pi-check-circle' : 'pi-circle')"></i>
+                        <span class="sol-process-summary">
+                            <span class="sol-process-name">{{ getKanbanProcessLabel(sol, inst, i) }}</span>
+                            <small *ngIf="(inst.completed || inst.cancelled) && hasInstallationFinalDeviceStatus(inst)" class="sol-process-final-status"
+                                [attr.data-state]="getInstallationFinalDeviceState(inst)">
+                                <i [class]="getInstallationFinalDeviceStatusIcon(inst)"></i>
+                                {{ getInstallationFinalDeviceStatusLabel(inst) }}
+                            </small>
+                        </span>
+                        <i class="pi pi-chevron-right" style="margin-left: auto; font-size: 0.62rem;"></i>
+                    </button>
                 </div>
 
                 <div class="sol-closed-footer" (click)="$event.stopPropagation()">
@@ -1091,6 +1160,452 @@
     </ng-template>
 </p-dialog>
 
+<!-- Read-only details for one process selected from a Kanban card -->
+<p-dialog [(visible)]="processDetailsDialogVisible"
+    [style]="{width: '820px'}"
+    [breakpoints]="{'900px': '94vw'}"
+    [header]="'Detalle de ' + getInstallationEntityName(processDetailsInstallation) + ' #' + (processDetailsIndex + 1)"
+    [modal]="true"
+    styleClass="app-dark-dialog sol-process-details-dialog"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="closeKanbanProcessDetails()">
+    <ng-template pTemplate="content">
+        <div class="sol-closed-info" *ngIf="processDetailsSolicitud as sol">
+            <ng-container *ngIf="processDetailsInstallation as installation">
+                <header class="sol-closed-info__hero">
+                    <div class="sol-closed-info__hero-icon">
+                        <i class="pi" [ngClass]="installation.cancelled ? 'pi-times' : (installation.completed ? 'pi-check' : 'pi-cog')"></i>
+                    </div>
+                    <div class="sol-closed-info__hero-copy">
+                        <span class="sol-closed-info__eyebrow">{{ typeLabels[getProcessTypeForSolicitud(sol, installation)] || getProcessTypeForSolicitud(sol, installation) }}</span>
+                        <h2>{{ getClientDisplayName(sol) || 'Cliente sin nombre' }}</h2>
+                        <p>{{ installation.plate || installation.device_imei || 'Proceso sin vehículo o dispositivo identificado' }}</p>
+                    </div>
+                    <span class="sol-closed-info__status" [attr.data-status]="installation.cancelled ? 'cancelada' : 'completada'">
+                        <i class="pi" [ngClass]="installation.cancelled ? 'pi-times-circle' : (installation.completed ? 'pi-check-circle' : 'pi-clock')"></i>
+                        {{ installation.cancelled ? 'Cancelado' : (installation.completed ? 'Realizado' : 'Pendiente') }}
+                    </span>
+                </header>
+
+                <section class="sol-process-timeline-card">
+                    <div class="sol-process-timeline-card__header">
+                        <div>
+                            <span>Bitácora del técnico</span>
+                            <h3>Trabajo realizado paso a paso</h3>
+                            <p>El orden representa el flujo del trabajo. Solo mostramos una hora cuando quedó registrada por el sistema.</p>
+                        </div>
+                        <i class="pi pi-list-check"></i>
+                    </div>
+
+                    <ol class="sol-process-timeline">
+                        <li *ngFor="let step of processDetailsTimeline; let stepIndex = index"
+                            class="sol-process-timeline__item"
+                            [attr.data-state]="step.state">
+                            <div class="sol-process-timeline__rail">
+                                <span>{{ stepIndex + 1 }}</span>
+                            </div>
+                            <article class="sol-process-timeline__content">
+                                <header>
+                                    <div class="sol-process-timeline__title">
+                                        <span class="sol-process-timeline__icon"><i class="pi" [ngClass]="step.icon"></i></span>
+                                        <div>
+                                            <small>Paso {{ stepIndex + 1 }}</small>
+                                            <h4>{{ step.title }}</h4>
+                                        </div>
+                                    </div>
+                                    <time *ngIf="step.timestamp">{{ step.timestamp | date: 'dd/MM/yyyy, h:mm a' }}</time>
+                                </header>
+                                <p>{{ step.description }}</p>
+
+                                <dl class="sol-process-timeline__details" *ngIf="step.details.length">
+                                    <div *ngFor="let detail of step.details">
+                                        <dt>{{ detail.label }}</dt>
+                                        <dd>{{ detail.value }}</dd>
+                                    </div>
+                                </dl>
+
+                                <button *ngIf="step.showLocationAction" type="button"
+                                    class="sol-process-map-button"
+                                    (click)="openProcessLocationMap(sol, installation)">
+                                    <i class="pi pi-map-marker"></i>
+                                    Ver en el mapa
+                                </button>
+
+                                <div class="sol-process-timeline__evidence" *ngIf="step.evidence?.length">
+                                    <a *ngFor="let evidence of step.evidence"
+                                        [href]="evidence.url" target="_blank" rel="noopener">
+                                        <i class="pi pi-image"></i>
+                                        <span>{{ evidence.label }}</span>
+                                        <small *ngIf="evidence.uploadedAt">{{ evidence.uploadedAt | date: 'dd/MM/yyyy, h:mm a' }}</small>
+                                    </a>
+                                </div>
+                                <audio *ngIf="step.audio" controls [src]="step.audio" class="sol-process-timeline__audio"></audio>
+                            </article>
+                        </li>
+                    </ol>
+                </section>
+
+                <section class="sol-info-card sol-info-card--full" *ngIf="processDetailsDeviceLoading">
+                    <div class="sol-process-device-loading">
+                        <i class="pi pi-spin pi-spinner"></i>
+                        <span>Completando la bitácora con la activación y las evidencias del dispositivo...</span>
+                    </div>
+                </section>
+
+                <section class="sol-info-card sol-info-card--full" *ngIf="!processDetailsDeviceLoading && processDetailsDeviceError">
+                    <div class="sol-process-device-warning">
+                        <i class="pi pi-info-circle"></i>
+                        <span>{{ processDetailsDeviceError }} La bitácora muestra los datos guardados en la solicitud.</span>
+                    </div>
+                </section>
+
+                <details class="sol-process-technical-details">
+                    <summary>
+                        <span><i class="pi pi-database"></i> Ver ficha técnica consolidada</span>
+                        <i class="pi pi-chevron-down"></i>
+                    </summary>
+                    <div class="sol-process-technical-details__body">
+                <div class="sol-closed-info__grid">
+                    <section class="sol-info-card">
+                        <div class="sol-info-card__title">
+                            <i class="pi pi-calendar"></i>
+                            <h3>Proceso</h3>
+                        </div>
+                        <dl class="sol-info-list sol-info-list--two-columns">
+                            <div>
+                                <dt>Tipo</dt>
+                                <dd>{{ typeLabels[getProcessTypeForSolicitud(sol, installation)] || getProcessTypeForSolicitud(sol, installation) }}</dd>
+                            </div>
+                            <div>
+                                <dt>Estado de solicitud</dt>
+                                <dd>{{ statusLabels[sol.status] || sol.status }}</dd>
+                            </div>
+                            <div *ngIf="installation.scheduled_date || sol.scheduled_date">
+                                <dt>Programado</dt>
+                                <dd>{{ (installation.scheduled_date || sol.scheduled_date) | date: 'dd/MM/yyyy, h:mm a' }}</dd>
+                            </div>
+                            <div *ngIf="sol.completed_date">
+                                <dt>Finalizado</dt>
+                                <dd>{{ sol.completed_date | date: 'dd/MM/yyyy, h:mm a' }}</dd>
+                            </div>
+                            <div *ngIf="getProcessTypeForSolicitud(sol, installation) === 'desinstalacion'">
+                                <dt>Razón de desinstalación</dt>
+                                <dd>{{ getDeinstallationReasonLabel(installation.deinstallation_reason || sol.deinstallation_reason) || 'No registrada' }}</dd>
+                            </div>
+                            <div *ngIf="sol.mechanic_id">
+                                <dt>Técnico</dt>
+                                <dd>{{ getTechnicianDisplayName(sol) }}</dd>
+                            </div>
+                            <div *ngIf="sol.technician_response">
+                                <dt>Respuesta del técnico</dt>
+                                <dd>{{ getTechnicianResponseLabel(sol.technician_response) }}</dd>
+                            </div>
+                            <div *ngIf="installation.cancelled || sol.status === 'rechazada' || sol.status === 'cancelada'">
+                                <dt>Motivo de cancelación</dt>
+                                <dd>{{ sol.cancellation_reason || installation.installation_details || 'No registrado' }}</dd>
+                            </div>
+                        </dl>
+                    </section>
+
+                    <section class="sol-info-card">
+                        <div class="sol-info-card__title">
+                            <i class="pi pi-car"></i>
+                            <h3>Vehículo</h3>
+                        </div>
+                        <dl class="sol-info-list sol-info-list--two-columns">
+                            <div *ngIf="installation.brand || installation.model">
+                                <dt>Marca / modelo</dt>
+                                <dd>{{ getBrandName(installation.brand) }} {{ getModelName(installation.brand, installation.model) }}</dd>
+                            </div>
+                            <div *ngIf="installation.year"><dt>Año</dt><dd>{{ installation.year }}</dd></div>
+                            <div *ngIf="installation.color"><dt>Color</dt><dd>{{ getColorName(installation.color) }}</dd></div>
+                            <div *ngIf="installation.plate"><dt>Placa</dt><dd>{{ installation.plate }}</dd></div>
+                            <div *ngIf="installation.chassis"><dt>Chasis</dt><dd>{{ installation.chassis }}</dd></div>
+                            <div *ngIf="!installation.brand && !installation.model && !installation.year && !installation.color && !installation.plate && !installation.chassis">
+                                <dt>Información</dt><dd>No registrada</dd>
+                            </div>
+                        </dl>
+                    </section>
+
+                    <section class="sol-info-card">
+                        <div class="sol-info-card__title">
+                            <i class="pi pi-map-marker"></i>
+                            <h3>Ubicación</h3>
+                        </div>
+                        <dl class="sol-info-list">
+                            <div *ngIf="getProcessDetailAddress(sol, installation)">
+                                <dt>Dirección</dt><dd>{{ getProcessDetailAddress(sol, installation) }}</dd>
+                            </div>
+                            <div *ngIf="getProcessDetailZone(sol, installation)">
+                                <dt>Zona</dt><dd>{{ getProcessDetailZone(sol, installation) }}</dd>
+                            </div>
+                            <div *ngIf="getProcessDetailCoordinates(sol, installation)">
+                                <dt>Coordenadas</dt>
+                                <dd>
+                                    <button type="button" class="sol-info-link sol-info-link--button"
+                                        (click)="openProcessLocationMap(sol, installation)">
+                                        <i class="pi pi-map"></i>{{ getProcessDetailCoordinates(sol, installation) }}
+                                    </button>
+                                </dd>
+                            </div>
+                            <div *ngIf="!getProcessDetailAddress(sol, installation) && !getProcessDetailZone(sol, installation) && !getProcessDetailCoordinates(sol, installation)">
+                                <dt>Información</dt><dd>No registrada</dd>
+                            </div>
+                        </dl>
+                    </section>
+
+                    <section class="sol-info-card">
+                        <div class="sol-info-card__title">
+                            <i class="pi pi-microchip"></i>
+                            <h3>GPS y SIM</h3>
+                        </div>
+                        <dl class="sol-info-list sol-info-list--two-columns">
+                            <div *ngIf="installation.device_imei"><dt>IMEI</dt><dd>{{ installation.device_imei }}</dd></div>
+                            <div *ngIf="installation.new_device_imei"><dt>Nuevo IMEI</dt><dd>{{ installation.new_device_imei }}</dd></div>
+                            <div *ngIf="installation.sim_card_number"><dt>SIM</dt><dd>{{ installation.sim_card_number }}</dd></div>
+                            <div *ngIf="installation.new_sim_card_number"><dt>Nueva SIM</dt><dd>{{ installation.new_sim_card_number }}</dd></div>
+                            <div *ngIf="installation.sim_company"><dt>Compañía SIM</dt><dd>{{ installation.sim_company }}</dd></div>
+                            <div *ngIf="installation.new_sim_company"><dt>Nueva compañía</dt><dd>{{ installation.new_sim_company }}</dd></div>
+                            <div *ngIf="installation.new_protocol"><dt>Protocolo nuevo</dt><dd>{{ installation.new_protocol }}</dd></div>
+                            <div *ngIf="!installation.device_imei && !installation.new_device_imei && !installation.sim_card_number && !installation.new_sim_card_number">
+                                <dt>Información</dt><dd>No registrada</dd>
+                            </div>
+                        </dl>
+                    </section>
+                </div>
+
+                <section class="sol-info-card sol-info-card--full"
+                    *ngIf="installation.installation_location || installation.engine_shutdown || installation.ignition_sensor || installation.contacts || sol.contacts || sol.referido">
+                    <div class="sol-info-card__title">
+                        <i class="pi pi-wrench"></i>
+                        <h3>Configuración del trabajo</h3>
+                    </div>
+                    <dl class="sol-info-list sol-info-list--two-columns">
+                        <div *ngIf="installation.installation_location"><dt>Lugar de instalación</dt><dd>{{ getInstallationLocationLabel(installation.installation_location) }}</dd></div>
+                        <div *ngIf="installation.engine_shutdown"><dt>Apagado de motor</dt><dd>{{ installation.engine_shutdown }}</dd></div>
+                        <div *ngIf="installation.ignition_sensor"><dt>Sensor de ignición</dt><dd>{{ installation.ignition_sensor }}</dd></div>
+                        <div *ngIf="installation.contacts || sol.contacts"><dt>Contacto</dt><dd>{{ installation.contacts || sol.contacts }}</dd></div>
+                        <div *ngIf="sol.referido"><dt>Referido por</dt><dd>{{ sol.referido }}</dd></div>
+                    </dl>
+                </section>
+
+                <section class="sol-info-card sol-info-card--full"
+                    *ngIf="installation.diagnosis || installation.installation_details || installation.resolution_type || installation.connection_status || installation.notes || sol.description || sol.notes">
+                    <div class="sol-info-card__title">
+                        <i class="pi pi-file-edit"></i>
+                        <h3>Resultado y notas</h3>
+                    </div>
+                    <div class="sol-vehicle-card__notes" style="margin: 0;">
+                        <div *ngIf="installation.diagnosis"><span>Diagnóstico</span><p>{{ installation.diagnosis }}</p></div>
+                        <div *ngIf="installation.resolution_type"><span>Resolución</span><p>{{ getCheckupResolutionLabel(installation.resolution_type) }}</p></div>
+                        <div *ngIf="installation.connection_status"><span>Estado final de conexión</span><p>{{ getConnectionStatusLabel(installation.connection_status) }}</p></div>
+                        <div *ngIf="installation.installation_details"><span>Detalles del trabajo</span><p>{{ installation.installation_details }}</p></div>
+                        <div *ngIf="installation.notes"><span>Notas</span><p>{{ installation.notes }}</p></div>
+                        <div *ngIf="sol.description"><span>Descripción de la solicitud</span><p>{{ sol.description }}</p></div>
+                        <div *ngIf="sol.notes"><span>Notas de la solicitud</span><p>{{ sol.notes }}</p></div>
+                    </div>
+                </section>
+
+                <ng-container *ngIf="getProcessTypeForSolicitud(sol, installation) === 'chequeo'">
+                    <section class="sol-info-card sol-info-card--full"
+                        *ngIf="hasCheckupRecoveryDetails(installation)">
+                        <div class="sol-info-card__title">
+                            <i class="pi pi-verified"></i>
+                            <h3>Acciones realizadas durante el chequeo</h3>
+                        </div>
+                        <dl class="sol-info-list sol-info-list--two-columns">
+                            <div *ngIf="installation.checkup_recovery?.connection_checked">
+                                <dt>Conexión del GPS</dt>
+                                <dd>{{ installation.checkup_recovery?.connection_corrected ? 'Revisada y corregida' : 'Revisada; no requirió corrección' }}</dd>
+                            </div>
+                            <div *ngIf="installation.checkup_recovery?.power_checked">
+                                <dt>Alimentación eléctrica</dt>
+                                <dd>{{ installation.checkup_recovery?.power_corrected ? 'Revisada y corregida' : 'Revisada; no requirió corrección' }}</dd>
+                            </div>
+                            <div *ngIf="installation.checkup_recovery?.sim_replacement_attempted">
+                                <dt>Cambio de SIM card</dt>
+                                <dd>Realizado</dd>
+                            </div>
+                            <div *ngIf="installation.checkup_recovery?.previous_sim_card_number">
+                                <dt>SIM retirada</dt>
+                                <dd>{{ installation.checkup_recovery?.previous_sim_card_number }}</dd>
+                            </div>
+                            <div *ngIf="installation.checkup_recovery?.replacement_sim_card_number">
+                                <dt>SIM colocada</dt>
+                                <dd>{{ installation.checkup_recovery?.replacement_sim_card_number }}</dd>
+                            </div>
+                            <div *ngIf="installation.checkup_recovery?.replacement_sim_company">
+                                <dt>Compañía de la SIM nueva</dt>
+                                <dd>{{ installation.checkup_recovery?.replacement_sim_company }}</dd>
+                            </div>
+                            <div *ngIf="installation.checkup_recovery?.gps_replacement_attempted">
+                                <dt>Cambio de GPS</dt>
+                                <dd>Realizado</dd>
+                            </div>
+                            <div *ngIf="installation.checkup_recovery?.last_online_check_step">
+                                <dt>Última validación en línea</dt>
+                                <dd>{{ getRecoveryStepLabel(installation.checkup_recovery?.last_online_check_step) }}</dd>
+                            </div>
+                            <div *ngIf="installation.checkup_recovery?.online_confirmed">
+                                <dt>GPS nuevamente en línea</dt>
+                                <dd>
+                                    Confirmado
+                                    <ng-container *ngIf="installation.checkup_recovery?.online_confirmed_at">
+                                        el {{ installation.checkup_recovery?.online_confirmed_at | date: 'dd/MM/yyyy, h:mm a' }}
+                                    </ng-container>
+                                </dd>
+                            </div>
+                        </dl>
+                    </section>
+
+                    <section class="sol-info-card sol-info-card--full"
+                        *ngIf="getGpsChangeInstallation(sol, installation, processDetailsIndex) as gpsChangeInstallation">
+                        <div class="sol-info-card__title">
+                            <i class="pi pi-sync"></i>
+                            <h3>{{ getGpsChangeTitle(sol) }}</h3>
+                            <span class="sol-vehicle-card__state" style="margin-left: auto;"
+                                [class.is-completed]="isGpsChangeCompleted(sol)"
+                                [class.is-cancelled]="isGpsChangeCancelled(sol)">
+                                <i [class]="getGpsChangeStatusIcon(sol)"></i>{{ getGpsChangeStatusLabel(sol) }}
+                            </span>
+                        </div>
+                        <dl class="sol-info-list sol-info-list--two-columns">
+                            <div><dt>GPS retirado</dt><dd>{{ gpsChangeInstallation.device_imei || 'No registrado' }}</dd></div>
+                            <div><dt>GPS colocado</dt><dd>{{ gpsChangeInstallation.new_device_imei || 'Pendiente de seleccionar' }}</dd></div>
+                            <div><dt>SIM anterior</dt><dd>{{ gpsChangeInstallation.sim_card_number || 'No registrada' }}</dd></div>
+                            <div><dt>SIM nueva</dt><dd>{{ gpsChangeInstallation.new_sim_card_number || 'Pendiente de seleccionar' }}</dd></div>
+                            <div *ngIf="gpsChangeInstallation.new_sim_company"><dt>Compañía SIM</dt><dd>{{ gpsChangeInstallation.new_sim_company }}</dd></div>
+                            <div *ngIf="gpsChangeInstallation.new_protocol"><dt>Protocolo nuevo</dt><dd>{{ gpsChangeInstallation.new_protocol }}</dd></div>
+                            <div *ngIf="sol.gps_change?.scheduled_date"><dt>Programado</dt><dd>{{ sol.gps_change?.scheduled_date | date: 'dd/MM/yyyy, h:mm a' }}</dd></div>
+                            <div *ngIf="sol.gps_change?.completed_date"><dt>Finalizado</dt><dd>{{ sol.gps_change?.completed_date | date: 'dd/MM/yyyy, h:mm a' }}</dd></div>
+                            <div *ngIf="sol.gps_change?.mechanic_id"><dt>Técnico del cambio</dt><dd>{{ getTechnicianDisplayName(sol.gps_change!) }}</dd></div>
+                            <div *ngIf="sol.gps_change?.cancellation_reason"><dt>Motivo de cancelación</dt><dd>{{ sol.gps_change?.cancellation_reason }}</dd></div>
+                        </dl>
+                        <div class="sol-vehicle-card__notes" style="margin-top: 1rem;"
+                            *ngIf="gpsChangeInstallation.installation_details || gpsChangeInstallation.diagnosis">
+                            <div *ngIf="gpsChangeInstallation.installation_details"><span>Detalles del cambio</span><p>{{ gpsChangeInstallation.installation_details }}</p></div>
+                            <div *ngIf="gpsChangeInstallation.diagnosis"><span>Diagnóstico</span><p>{{ gpsChangeInstallation.diagnosis }}</p></div>
+                        </div>
+                    </section>
+                </ng-container>
+
+                <section class="sol-info-card sol-info-card--full"
+                    *ngIf="getProcessTypeForSolicitud(sol, installation) === 'cambio' && getGpsChangeInstallation(sol, installation, processDetailsIndex) as gpsChangeInstallation">
+                    <div class="sol-info-card__title">
+                        <i class="pi pi-sync"></i>
+                        <h3>Cambio de GPS</h3>
+                    </div>
+                    <dl class="sol-info-list sol-info-list--two-columns">
+                        <div><dt>GPS retirado</dt><dd>{{ gpsChangeInstallation.device_imei || 'No registrado' }}</dd></div>
+                        <div><dt>GPS colocado</dt><dd>{{ gpsChangeInstallation.new_device_imei || 'Pendiente de seleccionar' }}</dd></div>
+                        <div><dt>SIM anterior</dt><dd>{{ gpsChangeInstallation.sim_card_number || 'No registrada' }}</dd></div>
+                        <div><dt>SIM nueva</dt><dd>{{ gpsChangeInstallation.new_sim_card_number || 'No registrada' }}</dd></div>
+                        <div *ngIf="gpsChangeInstallation.new_sim_company"><dt>Compañía SIM nueva</dt><dd>{{ gpsChangeInstallation.new_sim_company }}</dd></div>
+                        <div *ngIf="gpsChangeInstallation.new_protocol"><dt>Protocolo nuevo</dt><dd>{{ gpsChangeInstallation.new_protocol }}</dd></div>
+                    </dl>
+                </section>
+
+                <section class="sol-info-card sol-info-card--full"
+                    *ngIf="!processDetailsDeviceLoading && getProcessActivationStatusLabel()">
+                    <div class="sol-info-card__title">
+                        <i class="pi pi-bolt"></i>
+                        <h3>Activación del GPS</h3>
+                    </div>
+                    <dl class="sol-info-list sol-info-list--two-columns">
+                        <div><dt>Resultado</dt><dd>{{ getProcessActivationStatusLabel() }}</dd></div>
+                        <div *ngIf="processDetailsDevice?.activation_status?.completedAt">
+                            <dt>Finalizada</dt><dd>{{ processDetailsDevice.activation_status.completedAt | date: 'dd/MM/yyyy, h:mm a' }}</dd>
+                        </div>
+                        <div *ngFor="let step of getProcessActivationSteps()">
+                            <dt>{{ step.label }}</dt>
+                            <dd>{{ step.status === 'success' ? 'Completado' : (step.status === 'error' ? 'Con error' : (step.status === 'running' ? 'En proceso' : 'Pendiente')) }}</dd>
+                        </div>
+                    </dl>
+                    <div class="sol-vehicle-card__notes" style="margin-top: 1rem;" *ngIf="getProcessActivationLogs().length">
+                        <div *ngFor="let log of getProcessActivationLogs()">
+                            <span>
+                                Registro de activación
+                                <ng-container *ngIf="log.time"> · {{ log.time | date: 'dd/MM/yyyy, h:mm a' }}</ng-container>
+                            </span>
+                            <p>{{ log.message }}</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="sol-info-card sol-info-card--full" *ngIf="installation.images?.length || installation.audio || getProcessDeviceEvidence().length">
+                    <div class="sol-info-card__title">
+                        <i class="pi pi-paperclip"></i>
+                        <h3>Evidencias</h3>
+                    </div>
+                    <div class="sol-vehicle-card__evidence" style="padding: 0;">
+                        <a *ngFor="let image of installation.images; let evidenceIndex = index"
+                            [href]="image" target="_blank" rel="noopener" class="sol-evidence-chip">
+                            <i class="pi pi-image"></i>Evidencia del diagnóstico {{ evidenceIndex + 1 }}
+                        </a>
+                        <a *ngFor="let evidence of getProcessDeviceEvidence()"
+                            [href]="evidence.url" target="_blank" rel="noopener" class="sol-evidence-chip">
+                            <i class="pi pi-image"></i>{{ evidence.label }}
+                        </a>
+                        <audio *ngIf="installation.audio" controls [src]="installation.audio" style="width: min(100%, 360px); height: 36px;"></audio>
+                    </div>
+                </section>
+
+                    </div>
+                </details>
+            </ng-container>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="closeKanbanProcessDetails()">
+            <i class="pi pi-times"></i> Cerrar
+        </button>
+    </ng-template>
+</p-dialog>
+
+<!-- Internal map for a process location; never redirects to Google Maps. -->
+<p-dialog [(visible)]="processLocationMapDialogVisible"
+    [style]="{width: '780px'}"
+    [breakpoints]="{'850px': '94vw'}"
+    header="Ubicación del proceso"
+    [modal]="true"
+    styleClass="app-dark-dialog sol-process-location-map-dialog"
+    [draggable]="false"
+    [resizable]="false"
+    (onHide)="closeProcessLocationMap()">
+    <ng-template pTemplate="content">
+        <div class="sol-process-location-map-modal">
+            <div class="sol-process-location-map-summary">
+                <span class="sol-process-location-map-summary__icon"><i class="pi pi-map-marker"></i></span>
+                <div>
+                    <strong>{{ processLocationMapAddress || 'Ubicación del proceso' }}</strong>
+                    <small *ngIf="processLocationMapCoordinates">
+                        {{ processLocationMapCoordinates.lat | number: '1.5-6' }},
+                        {{ processLocationMapCoordinates.lng | number: '1.5-6' }}
+                    </small>
+                </div>
+            </div>
+
+            <div class="sol-process-location-map-shell">
+                <div id="solicitud-process-location-map" class="sol-process-location-map"></div>
+                <div class="sol-process-location-map-state" *ngIf="processLocationMapLoading">
+                    <i class="pi pi-spin pi-spinner"></i>
+                    <span>Cargando ubicación...</span>
+                </div>
+                <div class="sol-process-location-map-state is-error" *ngIf="!processLocationMapLoading && processLocationMapError">
+                    <i class="pi pi-exclamation-triangle"></i>
+                    <span>{{ processLocationMapError }}</span>
+                </div>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="closeProcessLocationMap()">
+            <i class="pi pi-times"></i> Cerrar
+        </button>
+    </ng-template>
+</p-dialog>
+
 <!-- Read-only details for completed/cancelled solicitudes -->
 <p-dialog [(visible)]="closedInfoDialogVisible"
     [style]="{width: '900px'}"
@@ -1162,7 +1677,7 @@
                             <dt>Estado</dt>
                             <dd>{{ statusLabels[sol.status] || sol.status }}</dd>
                         </div>
-                        <div *ngIf="sol.status === 'cancelada'">
+                        <div *ngIf="sol.status === 'cancelada' || isAdministrativeRejection(sol)">
                             <dt>Razón de cancelación</dt>
                             <dd>{{ sol.cancellation_reason || 'No registrada' }}</dd>
                         </div>

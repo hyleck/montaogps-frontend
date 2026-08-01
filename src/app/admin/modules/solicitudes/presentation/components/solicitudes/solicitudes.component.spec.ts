@@ -34,6 +34,9 @@ describe('SolicitudesComponent scheduled date editing', () => {
                 totalCount: 0,
             })),
         };
+        const targetsService = {
+            getTargetByImei: jasmine.createSpy('getTargetByImei').and.resolveTo({}),
+        };
         const authService = {
             getCurrentUser: jasmine.createSpy('getCurrentUser').and.returnValue({
                 id: 'root-1',
@@ -48,7 +51,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
             vehicleBrandsService as any,
             {} as any,
             userService as any,
-            {} as any,
+            targetsService as any,
             {} as any,
             {} as any,
             {} as any,
@@ -68,6 +71,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
             solicitudesService,
             vehicleBrandsService,
             userService,
+            targetsService,
             authService,
             confirmationService,
             messageService,
@@ -159,6 +163,210 @@ describe('SolicitudesComponent scheduled date editing', () => {
         }));
         expect(component.getGpsChangeTitle(solicitud)).toBe('Cambio de GPS realizado');
         expect(component.isGpsChangeCompleted(solicitud)).toBeTrue();
+    });
+
+    it('describes every persisted checkup recovery action with readable labels', () => {
+        const { component } = createComponent();
+        const installation = {
+            process_type: 'chequeo',
+            connection_status: 'bien_conectado',
+            resolution_type: 'cambio_gps',
+            checkup_recovery: {
+                connection_checked: true,
+                connection_corrected: true,
+                power_checked: true,
+                power_corrected: false,
+                sim_replacement_attempted: true,
+                gps_replacement_attempted: true,
+                last_online_check_step: 'gps' as const,
+                online_confirmed: true,
+                online_confirmed_at: '2026-07-31T12:00:00.000Z',
+            },
+        };
+
+        expect(component.hasCheckupRecoveryDetails(installation)).toBeTrue();
+        expect(component.getCheckupResolutionLabel(installation.resolution_type)).toBe('GPS reemplazado');
+        expect(component.getConnectionStatusLabel(installation.connection_status)).toBe('Bien conectado');
+        expect(component.getRecoveryStepLabel(installation.checkup_recovery.last_online_check_step)).toBe('Cambio de GPS');
+    });
+
+    it('loads the replacement GPS evidence only when the process detail is opened', async () => {
+        const { component, targetsService } = createComponent();
+        targetsService.getTargetByImei.and.resolveTo({
+            chasis_img: { url: 'https://files.example/chassis.jpg' },
+            lugar_instalacion_despues_img: {
+                url: 'https://files.example/after.jpg',
+                label: 'Instalación terminada',
+            },
+            activation_status: {
+                completed: true,
+                steps: [{ label: 'Validar SIM', status: 'success' }],
+            },
+        });
+        const installation = {
+            process_type: 'chequeo',
+            device_imei: 'OLD-IMEI',
+            checkup_recovery: {
+                gps_replacement_attempted: true,
+                replacement_device_imei: 'NEW-IMEI',
+            },
+        };
+        const solicitud: Solicitud = {
+            _id: 'request-id',
+            type: 'chequeo',
+            status: 'en_progreso',
+            installations: [installation],
+        };
+
+        component.openKanbanProcessDetails(solicitud, installation, 0);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(targetsService.getTargetByImei).toHaveBeenCalledOnceWith('NEW-IMEI');
+        expect(component.getProcessDeviceEvidence()).toEqual([
+            jasmine.objectContaining({ label: 'Foto del chasis', url: 'https://files.example/chassis.jpg' }),
+            jasmine.objectContaining({ label: 'Instalación terminada', url: 'https://files.example/after.jpg' }),
+        ]);
+        expect(component.getProcessActivationStatusLabel()).toBe('Activación completada');
+        expect(component.getProcessActivationSteps()[0].label).toBe('Validar SIM');
+    });
+
+    it('orders the complete technician work as a readable step-by-step timeline', () => {
+        const { component } = createComponent();
+        component.processDetailsDevice = {
+            chasis_img: { url: 'https://files.example/chassis.jpg' },
+            activation_status: {
+                completed: true,
+                completedAt: '2026-07-31T15:00:00.000Z',
+                steps: [
+                    { label: 'Validar SIM', description: 'SIM disponible', status: 'success' },
+                    { label: 'Configurar APN', status: 'success' },
+                ],
+                logs: [{ message: 'GPS respondió correctamente', time: '2026-07-31T14:59:00.000Z' }],
+            },
+        };
+        const installation = {
+            process_type: 'chequeo',
+            device_imei: 'OLD-IMEI',
+            new_device_imei: 'NEW-IMEI',
+            sim_card_number: 'OLD-SIM',
+            new_sim_card_number: 'NEW-SIM',
+            diagnosis: 'GPS sin comunicación',
+            resolution_type: 'cambio_gps',
+            connection_status: 'bien_conectado',
+            final_device_status: 'online',
+            final_device_online: true,
+            final_device_status_at: '2026-07-31T15:02:00.000Z',
+            completed: true,
+            images: ['https://files.example/diagnosis.jpg'],
+            checkup_recovery: {
+                connection_checked: true,
+                connection_corrected: true,
+                power_checked: true,
+                power_corrected: false,
+                sim_replacement_attempted: true,
+                previous_sim_card_number: 'OLD-SIM',
+                replacement_sim_card_number: 'NEW-SIM',
+                gps_replacement_attempted: true,
+                previous_device_imei: 'OLD-IMEI',
+                replacement_device_imei: 'NEW-IMEI',
+                last_online_check_step: 'gps' as const,
+                online_confirmed: true,
+                online_confirmed_at: '2026-07-31T15:01:00.000Z',
+            },
+        };
+        const solicitud: Solicitud = {
+            _id: 'timeline-request',
+            type: 'chequeo',
+            status: 'completada',
+            technician_response: 'aceptada',
+            installations: [installation],
+        };
+
+        const timeline = component.getProcessTechnicianTimeline(solicitud, installation, 0);
+
+        expect(timeline.map(step => step.title)).toEqual([
+            'Aceptó el proceso asignado',
+            'Revisó los datos iniciales del proceso',
+            'Inició el chequeo del GPS',
+            'Revisó la conexión del GPS',
+            'Revisó la alimentación eléctrica',
+            'Reemplazó la SIM card',
+            'Realizó el cambio de GPS',
+            'Activó y validó el GPS',
+            'Confirmó el GPS nuevamente en línea',
+            'Registró el resultado técnico',
+            'Adjuntó las evidencias del trabajo',
+            'Finalizó este proceso',
+        ]);
+        const gpsChangeStep = timeline.find(step => step.title === 'Realizó el cambio de GPS');
+        expect(gpsChangeStep?.details).toContain(jasmine.objectContaining({ label: 'GPS retirado', value: 'OLD-IMEI' }));
+        expect(gpsChangeStep?.details).toContain(jasmine.objectContaining({ label: 'GPS colocado', value: 'NEW-IMEI' }));
+        expect(timeline.find(step => step.title === 'Activó y validó el GPS')?.details).toContain(
+            jasmine.objectContaining({ label: 'Validación 1: Validar SIM', value: 'Completado · SIM disponible' }),
+        );
+        expect(timeline.find(step => step.title === 'Finalizó este proceso')?.details).toContain(
+            jasmine.objectContaining({ label: 'Estado del GPS al finalizar', value: 'En línea al finalizar' }),
+        );
+    });
+
+    it('labels final GPS states without replacing missing historical data with the current state', () => {
+        const { component } = createComponent();
+
+        expect(component.getInstallationFinalDeviceStatusLabel({ final_device_online: true })).toBe('En línea al finalizar');
+        expect(component.getInstallationFinalDeviceStatusLabel({ final_device_online: false })).toBe('Fuera de línea al finalizar');
+        expect(component.getInstallationFinalDeviceStatusLabel({ completed: true })).toBe('');
+        expect(component.hasInstallationFinalDeviceStatus({ completed: true })).toBeFalse();
+    });
+
+    it('shows the saved request creator and resolves legacy creator ids from the user cache', () => {
+        const { component } = createComponent();
+
+        expect(component.getSolicitudCreatorName({
+            type: 'instalacion',
+            status: 'pendiente',
+            created_by_name: 'Fidelis Stephanie Familia Diaz',
+        })).toBe('Fidelis Stephanie Familia Diaz');
+
+        component.userNameCache['legacy-creator'] = 'Pedro González';
+        expect(component.getSolicitudCreatorName({
+            type: 'instalacion',
+            status: 'pendiente',
+            user_id: 'legacy-creator',
+        })).toBe('Pedro González');
+    });
+
+    it('opens the process location in the internal map instead of navigating to Google Maps', () => {
+        const { component } = createComponent();
+        const installation = {
+            process_type: 'instalacion',
+            latitude: 18.735693,
+            longitude: -70.162651,
+            location_address: 'Ubicación de prueba',
+        };
+        const solicitud: Solicitud = {
+            _id: 'request-with-location',
+            type: 'instalacion',
+            status: 'en_progreso',
+            installations: [installation],
+        };
+        const initMap = spyOn<any>(component, 'initProcessLocationMap').and.resolveTo();
+        jasmine.clock().install();
+        try {
+            component.openProcessLocationMap(solicitud, installation);
+            jasmine.clock().tick(1);
+
+            expect(component.processLocationMapDialogVisible).toBeTrue();
+            expect(component.processLocationMapAddress).toBe('Ubicación de prueba');
+            expect(component.processLocationMapCoordinates).toEqual({
+                lat: 18.735693,
+                lng: -70.162651,
+            });
+            expect(initMap).toHaveBeenCalledOnceWith(solicitud, installation);
+            expect(component.getProcessTechnicianTimeline(solicitud, installation, 0)[1].showLocationAction).toBeTrue();
+        } finally {
+            jasmine.clock().uninstall();
+        }
     });
 
     it('keeps technician filter options and filtered results stable across change detection reads', () => {
@@ -809,7 +1017,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         ).toBeFalse();
     });
 
-    it('sends only the cancelled status and trimmed reason when confirmed', () => {
+    it('stores a cancelled request as rejected with its trimmed reason', () => {
         const { component, solicitudesService } = createComponent();
         const solicitud: Solicitud = {
             _id: 'request-cancel',
@@ -824,13 +1032,35 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(solicitudesService.update).toHaveBeenCalledOnceWith(
             'request-cancel',
             {
-                status: 'cancelada',
+                status: 'rechazada',
                 cancellation_reason: 'El cliente solicitó cancelar.',
             },
         );
         expect(component.cancellationDialogVisible).toBeFalse();
         expect(component.cancellationSolicitud).toBeNull();
         expect(component.loadSolicitudes).toHaveBeenCalledWith(false);
+    });
+
+    it('closes only administrative rejections and keeps technician rejections pending', () => {
+        const { component } = createComponent();
+        const technicianRejection: Solicitud = {
+            _id: 'technician-rejection',
+            type: 'instalacion',
+            status: 'rechazada',
+            technician_response: 'rechazada',
+        };
+        const administrativeRejection: Solicitud = {
+            _id: 'administrative-rejection',
+            type: 'instalacion',
+            status: 'rechazada',
+            cancellation_reason: 'El cliente canceló la visita.',
+        };
+        component.solicitudes = [technicianRejection, administrativeRejection];
+
+        expect(component.pendientes.map(item => item._id)).toEqual(['technician-rejection']);
+        expect(component.completadas.map(item => item._id)).toEqual(['administrative-rejection']);
+        expect(component.isSolicitudClosed(technicianRejection)).toBeFalse();
+        expect(component.isSolicitudClosed(administrativeRejection)).toBeTrue();
     });
 
     it('does not allow a non-root user to delete a request', () => {
@@ -1300,5 +1530,39 @@ describe('SolicitudesComponent scheduled date editing', () => {
         ]);
         expect(workItems[0].detail).toContain('A123456');
         expect(workItems[0].detail).toContain('IMEI 123456789012345');
+    });
+
+    it('opens one Kanban process in a read-only detail dialog without opening the request card', () => {
+        const { component } = createComponent();
+        const installation = {
+            process_type: 'chequeo',
+            plate: 'A123456',
+            device_imei: '123456789012345',
+        };
+        const solicitud: Solicitud = {
+            _id: 'request-with-processes',
+            type: 'mixta',
+            status: 'en_progreso',
+            installations: [installation],
+        };
+        const event = {
+            stopPropagation: jasmine.createSpy('stopPropagation'),
+            preventDefault: jasmine.createSpy('preventDefault'),
+        } as unknown as Event;
+
+        component.openKanbanProcessDetails(solicitud, installation, 0, event);
+
+        expect(event.stopPropagation).toHaveBeenCalled();
+        expect(event.preventDefault).toHaveBeenCalled();
+        expect(component.processDetailsDialogVisible).toBeTrue();
+        expect(component.processDetailsSolicitud).toBe(solicitud);
+        expect(component.processDetailsInstallation).toBe(installation);
+        expect(component.processDetailsIndex).toBe(0);
+
+        component.closeKanbanProcessDetails();
+
+        expect(component.processDetailsDialogVisible).toBeFalse();
+        expect(component.processDetailsSolicitud).toBeNull();
+        expect(component.processDetailsInstallation).toBeNull();
     });
 });
