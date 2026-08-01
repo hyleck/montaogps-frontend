@@ -15,7 +15,7 @@ import { Target } from '@core/interfaces/target.interface';
 import { Tag } from '@core/interfaces/tag.interface';
 import { AuthService } from '@core/services/auth.service';
 import { UserLatestLocation, UserService, UsersResponse } from '@core/services/user.service';
-import { TargetsService, TargetsResponse } from '@core/services/targets.service';
+import { HistoryBlockResponse, TargetsService, TargetsResponse } from '@core/services/targets.service';
 import { StatusService } from '@shared/services/status.service';
 import { ManagementService } from '@management/presentation/services/management.service';
 import { ScreenService } from '@management/presentation/services/screen.service';
@@ -278,6 +278,20 @@ export class ManagementComponent implements OnInit, OnDestroy {
   itemTypeForTag: 'user' | 'target' | null = null;
   selectedTagId: string | null = null;
   loadingTags: boolean = false;
+
+  // Bloqueo privado de rangos del historial de recorrido
+  historyPasswordDialogVisible: boolean = false;
+  historyRangeDialogVisible: boolean = false;
+  historyBlockTarget: any = null;
+  historyBlockPassword: string = '';
+  historyBlockStartsAt: Date | null = null;
+  historyBlockEndsAt: Date | null = null;
+  verifyingHistoryPassword: boolean = false;
+  blockingHistory: boolean = false;
+  loadingHistoryBlocks: boolean = false;
+  historyBlocks: HistoryBlockResponse[] = [];
+  editingHistoryBlockId: string | null = null;
+  historyBlockActionId: string | null = null;
 
   // ====================================
   // PROPIEDADES PÚBLICAS - TRADUCCIONES
@@ -1790,6 +1804,226 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.targetToEdit = target || null;
     this.initialFormTab = 0;
     this.uiService.showTargetForm();
+  }
+
+  openHistoryBlockPassword(target: any, event?: Event): void {
+    event?.stopPropagation();
+    if (!this.canUpdateDevices()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Sin permiso',
+        detail: 'No tienes permiso para modificar este objetivo.'
+      });
+      return;
+    }
+
+    this.historyBlockTarget = target?.originalTarget || target;
+    this.historyBlockPassword = '';
+    this.historyBlockStartsAt = null;
+    this.historyBlockEndsAt = null;
+    this.historyRangeDialogVisible = false;
+    this.historyPasswordDialogVisible = true;
+  }
+
+  async verifyHistoryPassword(): Promise<void> {
+    if (!this.historyBlockPassword.trim() || this.verifyingHistoryPassword) return;
+
+    this.verifyingHistoryPassword = true;
+    try {
+      await this.targetsService.verifyHistoryBlockPassword(this.historyBlockPassword);
+      this.historyPasswordDialogVisible = false;
+      this.historyRangeDialogVisible = true;
+      await this.loadHistoryBlocks();
+    } catch (error: any) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Clave incorrecta',
+        detail: this.getHistoryBlockError(error, 'La clave ingresada no corresponde al usuario logueado.')
+      });
+    } finally {
+      this.verifyingHistoryPassword = false;
+    }
+  }
+
+  canBlockSelectedHistoryRange(): boolean {
+    if (!this.historyBlockStartsAt || !this.historyBlockEndsAt) return false;
+    return this.historyBlockStartsAt.getTime() < this.historyBlockEndsAt.getTime();
+  }
+
+  async blockHistoryRange(): Promise<void> {
+    const targetId = String(this.historyBlockTarget?._id || '').trim();
+    if (!targetId || !this.canBlockSelectedHistoryRange() || this.blockingHistory) {
+      if (this.historyBlockStartsAt && this.historyBlockEndsAt &&
+          this.historyBlockStartsAt.getTime() >= this.historyBlockEndsAt.getTime()) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Rango inválido',
+          detail: 'La fecha final debe ser posterior a la fecha inicial.'
+        });
+      }
+      return;
+    }
+
+    this.blockingHistory = true;
+    try {
+      const payload = {
+        starts_at: this.historyBlockStartsAt!.toISOString(),
+        ends_at: this.historyBlockEndsAt!.toISOString(),
+        password: this.historyBlockPassword
+      };
+      if (this.editingHistoryBlockId) {
+        await this.targetsService.updateHistoryBlock(
+          targetId,
+          this.editingHistoryBlockId,
+          payload
+        );
+      } else {
+        await this.targetsService.createHistoryBlock(targetId, payload);
+      }
+
+      this.messageService.add({
+        severity: 'success',
+        summary: this.editingHistoryBlockId ? 'Bloqueo actualizado' : 'Historial bloqueado',
+        detail: 'La configuración de privacidad del historial fue guardada.'
+      });
+      this.cancelHistoryBlockEdit();
+      await this.loadHistoryBlocks();
+    } catch (error: any) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'No se pudo bloquear el historial',
+        detail: this.getHistoryBlockError(error, 'Verifica el rango e inténtalo nuevamente.')
+      });
+    } finally {
+      this.blockingHistory = false;
+    }
+  }
+
+  async loadHistoryBlocks(): Promise<void> {
+    const targetId = String(this.historyBlockTarget?._id || '').trim();
+    if (!targetId || !this.historyBlockPassword) return;
+
+    this.loadingHistoryBlocks = true;
+    try {
+      this.historyBlocks = await this.targetsService.getHistoryBlocks(
+        targetId,
+        this.historyBlockPassword
+      );
+    } catch (error: any) {
+      this.historyBlocks = [];
+      this.messageService.add({
+        severity: 'error',
+        summary: 'No se pudieron cargar los bloqueos',
+        detail: this.getHistoryBlockError(error, 'Inténtalo nuevamente.')
+      });
+    } finally {
+      this.loadingHistoryBlocks = false;
+    }
+  }
+
+  editHistoryBlock(block: HistoryBlockResponse): void {
+    this.editingHistoryBlockId = block.id;
+    this.historyBlockStartsAt = new Date(block.starts_at);
+    this.historyBlockEndsAt = new Date(block.ends_at);
+  }
+
+  cancelHistoryBlockEdit(): void {
+    this.editingHistoryBlockId = null;
+    this.historyBlockStartsAt = null;
+    this.historyBlockEndsAt = null;
+  }
+
+  async toggleHistoryBlock(block: HistoryBlockResponse): Promise<void> {
+    const targetId = String(this.historyBlockTarget?._id || '').trim();
+    if (!targetId || this.historyBlockActionId) return;
+
+    this.historyBlockActionId = block.id;
+    try {
+      await this.targetsService.setHistoryBlockStatus(
+        targetId,
+        block.id,
+        !block.active,
+        this.historyBlockPassword
+      );
+      await this.loadHistoryBlocks();
+      this.messageService.add({
+        severity: 'success',
+        summary: block.active ? 'Bloqueo desactivado' : 'Bloqueo activado',
+        detail: block.active
+          ? 'Ese rango volverá a estar disponible en los historiales.'
+          : 'Ese rango volverá a omitirse de los historiales.'
+      });
+    } catch (error: any) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'No se pudo cambiar el bloqueo',
+        detail: this.getHistoryBlockError(error, 'Inténtalo nuevamente.')
+      });
+    } finally {
+      this.historyBlockActionId = null;
+    }
+  }
+
+  confirmDeleteHistoryBlock(block: HistoryBlockResponse): void {
+    if (this.historyBlockActionId) return;
+    this.confirmationService.confirm({
+      header: 'Eliminar bloqueo',
+      message: '¿Deseas eliminar permanentemente este bloqueo del historial?',
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Eliminar',
+      rejectLabel: 'Cancelar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => void this.deleteHistoryBlock(block)
+    });
+  }
+
+  private async deleteHistoryBlock(block: HistoryBlockResponse): Promise<void> {
+    const targetId = String(this.historyBlockTarget?._id || '').trim();
+    if (!targetId || this.historyBlockActionId) return;
+
+    this.historyBlockActionId = block.id;
+    try {
+      await this.targetsService.deleteHistoryBlock(
+        targetId,
+        block.id,
+        this.historyBlockPassword
+      );
+      if (this.editingHistoryBlockId === block.id) {
+        this.cancelHistoryBlockEdit();
+      }
+      await this.loadHistoryBlocks();
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Bloqueo eliminado',
+        detail: 'El rango fue eliminado de la configuración de privacidad.'
+      });
+    } catch (error: any) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'No se pudo eliminar el bloqueo',
+        detail: this.getHistoryBlockError(error, 'Inténtalo nuevamente.')
+      });
+    } finally {
+      this.historyBlockActionId = null;
+    }
+  }
+
+  closeHistoryBlockDialogs(force: boolean = false): void {
+    if (!force && (this.verifyingHistoryPassword || this.blockingHistory || !!this.historyBlockActionId)) return;
+    this.historyPasswordDialogVisible = false;
+    this.historyRangeDialogVisible = false;
+    this.historyBlockTarget = null;
+    this.historyBlockPassword = '';
+    this.historyBlockStartsAt = null;
+    this.historyBlockEndsAt = null;
+    this.historyBlocks = [];
+    this.editingHistoryBlockId = null;
+    this.historyBlockActionId = null;
+  }
+
+  private getHistoryBlockError(error: any, fallback: string): string {
+    const message = error?.error?.message;
+    return Array.isArray(message) ? message.join(' ') : (message || error?.message || fallback);
   }
 
   initialFormTab: number = 0;

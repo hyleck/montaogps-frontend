@@ -89,6 +89,18 @@ export interface RealtimeShortLinkResponse {
   expires_at: string;
 }
 
+export interface HistoryBlockResponse {
+  id: string;
+  device_id: string;
+  device_imei: string;
+  starts_at: string;
+  ends_at: string;
+  active: boolean;
+  created_by_email?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface PublicRealtimeShortLinkInfo {
   target_id: string;
   expires_at: string;
@@ -350,6 +362,70 @@ export class TargetsService {
     return await lastValueFrom(observable.pipe(
       timeout(60000) // 60 second timeout
     ));
+  }
+
+  async verifyHistoryBlockPassword(password: string): Promise<{ valid: boolean }> {
+    const observable = this.http.post<{ valid: boolean }>(
+      `${environment.apiUrl}/reports/history-blocks/verify-password`,
+      { password }
+    );
+    return await lastValueFrom(observable);
+  }
+
+  async createHistoryBlock(
+    deviceId: string,
+    payload: { starts_at: string; ends_at: string; password: string }
+  ): Promise<HistoryBlockResponse> {
+    const observable = this.http.post<HistoryBlockResponse>(
+      `${environment.apiUrl}/reports/device/${encodeURIComponent(deviceId)}/history-blocks`,
+      payload
+    );
+    return await lastValueFrom(observable);
+  }
+
+  async getHistoryBlocks(deviceId: string, password: string): Promise<HistoryBlockResponse[]> {
+    const observable = this.http.post<HistoryBlockResponse[]>(
+      `${environment.apiUrl}/reports/device/${encodeURIComponent(deviceId)}/history-blocks/list`,
+      { password }
+    );
+    return await lastValueFrom(observable);
+  }
+
+  async updateHistoryBlock(
+    deviceId: string,
+    blockId: string,
+    payload: { starts_at: string; ends_at: string; password: string }
+  ): Promise<HistoryBlockResponse> {
+    const observable = this.http.patch<HistoryBlockResponse>(
+      `${environment.apiUrl}/reports/device/${encodeURIComponent(deviceId)}/history-blocks/${encodeURIComponent(blockId)}`,
+      payload
+    );
+    return await lastValueFrom(observable);
+  }
+
+  async setHistoryBlockStatus(
+    deviceId: string,
+    blockId: string,
+    active: boolean,
+    password: string
+  ): Promise<HistoryBlockResponse> {
+    const observable = this.http.patch<HistoryBlockResponse>(
+      `${environment.apiUrl}/reports/device/${encodeURIComponent(deviceId)}/history-blocks/${encodeURIComponent(blockId)}/status`,
+      { active, password }
+    );
+    return await lastValueFrom(observable);
+  }
+
+  async deleteHistoryBlock(
+    deviceId: string,
+    blockId: string,
+    password: string
+  ): Promise<{ deleted: boolean }> {
+    const observable = this.http.delete<{ deleted: boolean }>(
+      `${environment.apiUrl}/reports/device/${encodeURIComponent(deviceId)}/history-blocks/${encodeURIComponent(blockId)}`,
+      { body: { password } }
+    );
+    return await lastValueFrom(observable);
   }
 
   async updateRouteHistoryCache(

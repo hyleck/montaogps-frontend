@@ -471,6 +471,12 @@
                                                             class="button button--primary-flat" title="Editar objetivo"
                                                             *ngIf="canUpdateDevices()"> <i
                                                                 class="pi pi-pen-to-square"></i> </button>
+                                                        <button *ngIf="canUpdateDevices()"
+                                                            (click)="openHistoryBlockPassword(target, $event)"
+                                                            class="button button--primary-flat-icon history-privacy-button"
+                                                            title="Bloquear un rango del historial">
+                                                            <i class="pi pi-eye-slash"></i>
+                                                        </button>
                                                         <button (click)="managementTags(target, 'target')"
                                                             class="button button--primary-flat"
                                                             [title]="'management.targetForm.manageTags' | translate"> <i
@@ -1035,6 +1041,12 @@
                                                         (click)="showTargetForm(target)" title="Editar objetivo"
                                                         *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square"></i>
                                                     </button>
+                                                    <button *ngIf="canUpdateDevices()"
+                                                        class="button button--primary-flat-icon history-privacy-button"
+                                                        title="Bloquear un rango del historial"
+                                                        (click)="openHistoryBlockPassword(target, $event)">
+                                                        <i class="pi pi-eye-slash"></i>
+                                                    </button>
                                                     <button (click)="managementTags(target, 'target')"
                                                         class="button button--primary-flat"
                                                         [title]="'management.targetForm.manageTags' | translate"> <i
@@ -1158,6 +1170,12 @@
                                                     <ng-container *ngFor="let linkedTarget of getLinkedCardTargets(target); let first = first">
                                                         <button class="button button--primary-flat" (click)="showTargetForm(linkedTarget)" [title]="first ? 'Editar principal' : 'Editar vinculado'" *ngIf="canUpdateDevices()">
                                                             <i [class]="first ? 'pi pi-pen-to-square' : 'pi pi-link'"></i>
+                                                        </button>
+                                                        <button *ngIf="canUpdateDevices()"
+                                                            class="button button--primary-flat-icon history-privacy-button"
+                                                            title="Bloquear un rango del historial"
+                                                            (click)="openHistoryBlockPassword(linkedTarget, $event)">
+                                                            <i class="pi pi-eye-slash"></i>
                                                         </button>
                                                         <button class="button button--primary-flat-icon" [title]="first ? 'Agregar principal a acceso directo' : 'Agregar vinculado a acceso directo'" (click)="addToShortcuts(linkedTarget, $event)">
                                                             <i [class]="isTargetInShortcuts(linkedTarget) ? 'pi pi-bookmark-fill' : 'pi pi-bookmark'" [style.color]="isTargetInShortcuts(linkedTarget) ? 'gold' : ''"></i>
@@ -1974,6 +1992,157 @@
             </div>
         </aside>
     </div>
+</p-dialog>
+
+<p-dialog [(visible)]="historyPasswordDialogVisible" [modal]="true" [draggable]="false"
+    [resizable]="false" [closable]="false" [closeOnEscape]="false" [dismissableMask]="false"
+    [style]="{width: 'min(460px, 94vw)'}" styleClass="history-block-dialog">
+    <ng-template pTemplate="header">
+        <div class="history-block-dialog__header">
+            <span class="history-block-dialog__icon"><i class="pi pi-eye-slash"></i></span>
+            <div>
+                <strong>Acceso protegido</strong>
+                <small>{{ historyBlockTarget?.name || 'Objetivo seleccionado' }}</small>
+            </div>
+        </div>
+    </ng-template>
+
+    <div class="history-block-dialog__body">
+        <p>Confirma la clave del usuario logueado para continuar.</p>
+        <label for="history-block-password">Clave actual</label>
+        <div class="history-block-dialog__password">
+            <i class="pi pi-key"></i>
+            <input id="history-block-password" pInputText type="password" autocomplete="current-password"
+                [(ngModel)]="historyBlockPassword" [disabled]="verifyingHistoryPassword"
+                (keydown.enter)="$event.preventDefault(); verifyHistoryPassword()"
+                placeholder="Escribe tu clave" />
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button pButton type="button" label="Cancelar" class="p-button-text"
+            (click)="closeHistoryBlockDialogs()" [disabled]="verifyingHistoryPassword"></button>
+        <button pButton type="button" label="Continuar" icon="pi pi-arrow-right"
+            class="p-button-danger" (click)="verifyHistoryPassword()"
+            [loading]="verifyingHistoryPassword" [disabled]="!historyBlockPassword.trim()"></button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="historyRangeDialogVisible" [modal]="true" [draggable]="false"
+    [resizable]="false" [closable]="false" [closeOnEscape]="false" [dismissableMask]="false"
+    [style]="{width: 'min(780px, 96vw)'}" styleClass="history-block-dialog history-block-dialog--range">
+    <ng-template pTemplate="header">
+        <div class="history-block-dialog__header">
+            <span class="history-block-dialog__icon"><i class="pi pi-eye-slash"></i></span>
+            <div>
+                <strong>Bloquear historial</strong>
+                <small>{{ historyBlockTarget?.name || 'Objetivo seleccionado' }}</small>
+            </div>
+        </div>
+    </ng-template>
+
+    <div class="history-block-dialog__body">
+        <div class="history-block-dialog__notice">
+            <i class="pi pi-shield"></i>
+            <span>Las posiciones dentro del rango se excluirán del mapa, las paradas y los reportes guardados.</span>
+        </div>
+
+        <div class="history-block-dialog__form-title">
+            <div>
+                <strong>{{ editingHistoryBlockId ? 'Modificar bloqueo' : 'Agregar un bloqueo' }}</strong>
+                <small>{{ editingHistoryBlockId ? 'Actualiza el rango seleccionado.' : 'Selecciona el rango que deseas omitir.' }}</small>
+            </div>
+            <button *ngIf="editingHistoryBlockId" type="button" class="history-block-dialog__cancel-edit"
+                (click)="cancelHistoryBlockEdit()" [disabled]="blockingHistory">
+                <i class="pi pi-times"></i> Cancelar edición
+            </button>
+        </div>
+
+        <div class="history-block-dialog__dates">
+            <label>
+                <span>Desde</span>
+                <p-calendar [(ngModel)]="historyBlockStartsAt" [showIcon]="true" [showTime]="true"
+                    hourFormat="12" dateFormat="dd/mm/yy" appendTo="body" placeholder="Fecha y hora inicial"
+                    [disabled]="blockingHistory"></p-calendar>
+            </label>
+            <label>
+                <span>Hasta</span>
+                <p-calendar [(ngModel)]="historyBlockEndsAt" [showIcon]="true" [showTime]="true"
+                    hourFormat="12" dateFormat="dd/mm/yy" appendTo="body" placeholder="Fecha y hora final"
+                    [disabled]="blockingHistory"></p-calendar>
+            </label>
+        </div>
+
+        <small class="history-block-dialog__error" *ngIf="historyBlockStartsAt && historyBlockEndsAt && !canBlockSelectedHistoryRange()">
+            <i class="pi pi-exclamation-circle"></i> La fecha final debe ser posterior a la fecha inicial.
+        </small>
+
+        <section class="history-block-list">
+            <div class="history-block-list__header">
+                <div>
+                    <strong>Bloqueos guardados</strong>
+                    <small>Los bloqueos desactivados no se aplican al historial.</small>
+                </div>
+                <span>{{ historyBlocks.length }}</span>
+            </div>
+
+            <div *ngIf="loadingHistoryBlocks" class="history-block-list__state">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando bloqueos...</span>
+            </div>
+
+            <div *ngIf="!loadingHistoryBlocks && !historyBlocks.length" class="history-block-list__state">
+                <i class="pi pi-inbox"></i>
+                <span>Este objetivo todavía no tiene rangos bloqueados.</span>
+            </div>
+
+            <div *ngIf="!loadingHistoryBlocks && historyBlocks.length" class="history-block-list__items">
+                <article *ngFor="let block of historyBlocks" class="history-block-item"
+                    [class.history-block-item--inactive]="!block.active"
+                    [class.history-block-item--editing]="editingHistoryBlockId === block.id">
+                    <div class="history-block-item__content">
+                        <div class="history-block-item__top">
+                            <span class="history-block-item__status" [class.is-inactive]="!block.active">
+                                <i [class]="block.active ? 'pi pi-eye-slash' : 'pi pi-eye'"></i>
+                                {{ block.active ? 'Activo' : 'Desactivado' }}
+                            </span>
+                            <small *ngIf="block.created_by_email">Por {{ block.created_by_email }}</small>
+                        </div>
+                        <div class="history-block-item__dates">
+                            <span><i class="pi pi-calendar"></i>{{ block.starts_at | date:'dd/MM/yyyy, h:mm a' }}</span>
+                            <i class="pi pi-arrow-right"></i>
+                            <span><i class="pi pi-calendar-times"></i>{{ block.ends_at | date:'dd/MM/yyyy, h:mm a' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="history-block-item__actions">
+                        <button type="button" title="Modificar bloqueo" (click)="editHistoryBlock(block)"
+                            [disabled]="!!historyBlockActionId || blockingHistory">
+                            <i class="pi pi-pencil"></i>
+                        </button>
+                        <button type="button" [title]="block.active ? 'Desactivar bloqueo' : 'Activar bloqueo'"
+                            (click)="toggleHistoryBlock(block)" [disabled]="!!historyBlockActionId || blockingHistory">
+                            <i *ngIf="historyBlockActionId !== block.id" [class]="block.active ? 'pi pi-pause' : 'pi pi-play'"></i>
+                            <i *ngIf="historyBlockActionId === block.id" class="pi pi-spin pi-spinner"></i>
+                        </button>
+                        <button type="button" class="is-danger" title="Eliminar bloqueo"
+                            (click)="confirmDeleteHistoryBlock(block)" [disabled]="!!historyBlockActionId || blockingHistory">
+                            <i class="pi pi-trash"></i>
+                        </button>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button pButton type="button" label="Cerrar" class="p-button-text"
+            (click)="closeHistoryBlockDialogs()" [disabled]="blockingHistory || !!historyBlockActionId"></button>
+        <button pButton type="button" [label]="editingHistoryBlockId ? 'Guardar cambios' : 'Bloquear historial'"
+            [icon]="editingHistoryBlockId ? 'pi pi-save' : 'pi pi-eye-slash'"
+            class="p-button-danger" (click)="blockHistoryRange()" [loading]="blockingHistory"
+            [disabled]="!canBlockSelectedHistoryRange() || !!historyBlockActionId"></button>
+    </ng-template>
 </p-dialog>
 
 <p-dialog [(visible)]="warehouseModalVisible" [style]="{width: '800px'}"
