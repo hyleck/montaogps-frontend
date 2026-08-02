@@ -163,6 +163,52 @@
                                     </div>
                                 </div>
 
+                                <section *ngIf="getUserTransferHistory().length"
+                                    class="user-transfer-history">
+                                    <header class="user-transfer-history__header">
+                                        <span class="user-transfer-history__icon">
+                                            <i class="pi pi-directions-alt"></i>
+                                        </span>
+                                        <div>
+                                            <strong>Historial de transferencias</strong>
+                                            <small>Recorrido permanente de esta cuenta.</small>
+                                        </div>
+                                        <span class="user-transfer-history__count">
+                                            {{ getUserTransferHistory().length }}
+                                        </span>
+                                    </header>
+
+                                    <article *ngFor="let transfer of getUserTransferHistory()"
+                                        class="user-transfer-history__entry">
+                                        <span class="user-transfer-history__marker">
+                                            <i class="pi pi-arrow-right-arrow-left"></i>
+                                        </span>
+                                        <div class="user-transfer-history__content">
+                                            <div class="user-transfer-history__accounts">
+                                                <div>
+                                                    <small>Cuenta anterior</small>
+                                                    <strong>{{ getUserTransferAccountLabel(transfer, 'from') }}</strong>
+                                                    <span *ngIf="getUserTransferAccountEmail(transfer, 'from')">
+                                                        {{ getUserTransferAccountEmail(transfer, 'from') }}
+                                                    </span>
+                                                </div>
+                                                <i class="pi pi-arrow-right"></i>
+                                                <div>
+                                                    <small>Cuenta destino</small>
+                                                    <strong>{{ getUserTransferAccountLabel(transfer, 'to') }}</strong>
+                                                    <span *ngIf="getUserTransferAccountEmail(transfer, 'to')">
+                                                        {{ getUserTransferAccountEmail(transfer, 'to') }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <footer>
+                                                <span><i class="pi pi-calendar"></i>{{ formatPersonalizedCallDate(transfer.transferred_at) }}</span>
+                                                <span><i class="pi pi-user"></i>Realizada por {{ getUserTransferActorLabel(transfer) }}</span>
+                                            </footer>
+                                        </div>
+                                    </article>
+                                </section>
+
                                 <div class="user-form__actions">
                                     <button type="submit">
                                         <i class="pi pi-save"></i>

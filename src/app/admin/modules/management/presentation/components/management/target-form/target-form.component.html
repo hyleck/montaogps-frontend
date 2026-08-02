@@ -322,6 +322,55 @@
                                         </ng-template>
                                     </ng-template>
 
+                                    <section *ngIf="getTargetTransferHistory().length"
+                                        class="target-transfer-history">
+                                        <header class="target-transfer-history__header">
+                                            <span class="target-transfer-history__icon">
+                                                <i class="pi pi-directions-alt"></i>
+                                            </span>
+                                            <div>
+                                                <strong>Historial de transferencias</strong>
+                                                <small>Recorrido permanente del objetivo entre cuentas.</small>
+                                            </div>
+                                            <span class="target-transfer-history__count">
+                                                {{ getTargetTransferHistory().length }}
+                                            </span>
+                                        </header>
+
+                                        <div class="target-transfer-history__timeline">
+                                            <article *ngFor="let transfer of getTargetTransferHistory(); let last = last"
+                                                class="target-transfer-history__entry"
+                                                [class.target-transfer-history__entry--last]="last">
+                                                <span class="target-transfer-history__marker">
+                                                    <i class="pi pi-arrow-right-arrow-left"></i>
+                                                </span>
+                                                <div class="target-transfer-history__content">
+                                                    <div class="target-transfer-history__accounts">
+                                                        <div>
+                                                            <small>Cuenta anterior</small>
+                                                            <strong>{{ getTransferAccountLabel(transfer, 'from') }}</strong>
+                                                            <span *ngIf="getTransferAccountEmail(transfer, 'from')">
+                                                                {{ getTransferAccountEmail(transfer, 'from') }}
+                                                            </span>
+                                                        </div>
+                                                        <i class="pi pi-arrow-right"></i>
+                                                        <div>
+                                                            <small>Cuenta destino</small>
+                                                            <strong>{{ getTransferAccountLabel(transfer, 'to') }}</strong>
+                                                            <span *ngIf="getTransferAccountEmail(transfer, 'to')">
+                                                                {{ getTransferAccountEmail(transfer, 'to') }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <footer>
+                                                        <span><i class="pi pi-calendar"></i>{{ formatDateTime(transfer.transferred_at + '') }}</span>
+                                                        <span><i class="pi pi-user"></i>Realizada por {{ getTransferActorLabel(transfer) }}</span>
+                                                    </footer>
+                                                </div>
+                                            </article>
+                                        </div>
+                                    </section>
+
                                     <div class="target-form__actions">
                                         <button type="submit" [disabled]="isLoading">
                                             <i class="pi"

@@ -99,6 +99,22 @@ export interface User {
   }>;
   idSessions?: Array<{ date: string; device: string }>;
   interaction_progress?: { listId: string; completed_objectives: string[] }[];
+  transfer_history?: UserTransferHistoryEntry[];
+}
+
+export interface UserTransferHistoryEntry {
+  _id?: string;
+  from_parent_id: string;
+  from_parent_name?: string;
+  from_parent_email?: string;
+  to_parent_id: string;
+  to_parent_name?: string;
+  to_parent_email?: string;
+  transferred_by_user_id?: string;
+  transferred_by_name?: string;
+  transferred_by_email?: string;
+  source?: string;
+  transferred_at: string | Date;
 }
 
 export interface UserSettings {

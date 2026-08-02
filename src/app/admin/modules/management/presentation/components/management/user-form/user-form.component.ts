@@ -1,7 +1,7 @@
 import { Component, OnInit, Output, EventEmitter, Input, SimpleChanges, OnChanges, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { UserRole, Privilege, PrivilegeAction } from '@core/interfaces/user-role.interface';
-import { ExtendedUser, UserSettings } from '@core/interfaces/user.interface';
+import { ExtendedUser, UserSettings, UserTransferHistoryEntry } from '@core/interfaces/user.interface';
 import { TranslateService } from '@ngx-translate/core';
 
 import { UserRolesService } from '@core/services/user-roles.service';
@@ -437,6 +437,49 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             hour: 'numeric',
             minute: '2-digit'
         });
+    }
+
+    getUserTransferHistory(): UserTransferHistoryEntry[] {
+        const history = Array.isArray(this.user?.transfer_history)
+            ? this.user.transfer_history
+            : [];
+        return [...history].sort((first, second) => (
+            new Date(second.transferred_at).getTime()
+            - new Date(first.transferred_at).getTime()
+        ));
+    }
+
+    getUserTransferAccountLabel(
+        entry: UserTransferHistoryEntry,
+        side: 'from' | 'to'
+    ): string {
+        const name = String(
+            side === 'from' ? entry.from_parent_name : entry.to_parent_name
+        ).trim();
+        const email = String(
+            side === 'from' ? entry.from_parent_email : entry.to_parent_email
+        ).trim();
+        const id = String(
+            side === 'from' ? entry.from_parent_id : entry.to_parent_id
+        ).trim();
+        return name || email || (id ? `Cuenta ${id}` : 'Sin cuenta superior');
+    }
+
+    getUserTransferAccountEmail(
+        entry: UserTransferHistoryEntry,
+        side: 'from' | 'to'
+    ): string {
+        return String(
+            side === 'from' ? entry.from_parent_email : entry.to_parent_email
+        ).trim();
+    }
+
+    getUserTransferActorLabel(entry: UserTransferHistoryEntry): string {
+        return String(
+            entry.transferred_by_name
+            || entry.transferred_by_email
+            || 'Sistema'
+        ).trim();
     }
 
     formatPersonalizedCallDuration(seconds?: number): string {

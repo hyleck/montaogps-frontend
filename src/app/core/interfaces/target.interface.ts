@@ -5,6 +5,21 @@ export interface TraccarInfo {
   [key: string]: any; // Para otras propiedades que pueda tener traccarInfo
 }
 
+export interface TargetTransferHistoryEntry {
+  _id?: string;
+  from_user_id: string;
+  from_user_name?: string;
+  from_user_email?: string;
+  to_user_id: string;
+  to_user_name?: string;
+  to_user_email?: string;
+  transferred_by_user_id?: string;
+  transferred_by_name?: string;
+  transferred_by_email?: string;
+  source?: string;
+  transferred_at: string | Date;
+}
+
 export interface Target {
   _id: string;
   name: string;
@@ -52,6 +67,7 @@ export interface Target {
     steps: { label: string, icon: string, description: string, status: 'pending' | 'running' | 'success' | 'error' }[];
     logs: { message: string, type: 'info' | 'success' | 'error' | 'warn', time: Date | string }[];
   };
+  transfer_history?: TargetTransferHistoryEntry[];
 }
 
 export interface CreateTargetDto {
@@ -232,6 +248,7 @@ export interface TargetDevice {
     steps: { label: string, icon: string, description: string, status: 'pending' | 'running' | 'success' | 'error' }[];
     logs: { message: string, type: 'info' | 'success' | 'error' | 'warn', time: Date | string }[];
   };
+  transfer_history?: TargetTransferHistoryEntry[];
 }
 
 // Interfaces para el historial de rutas

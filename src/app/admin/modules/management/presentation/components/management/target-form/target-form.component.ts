@@ -23,7 +23,7 @@ import { ColorsService } from 'src/app/core/services/colors.service';
 import { TargetsService } from 'src/app/core/services/targets.service';
 import { PlansService } from 'src/app/core/services/plans.service';
 import { ServersService } from 'src/app/core/services/servers.service';
-import { CreateTargetDto, Target, UpdateTargetDto, TargetDevice, CreateProcessDto, ProcessResponse } from 'src/app/core/interfaces/target.interface';
+import { CreateTargetDto, Target, UpdateTargetDto, TargetDevice, CreateProcessDto, ProcessResponse, TargetTransferHistoryEntry } from 'src/app/core/interfaces/target.interface';
 import { Plan, PlanPrice, ExtendedPlanPrice } from 'src/app/core/interfaces/plan.interface';
 import { Server } from 'src/app/core/interfaces/server.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
@@ -5984,6 +5984,51 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             hour: '2-digit',
             minute: '2-digit'
         });
+    }
+
+    getTargetTransferHistory(): TargetTransferHistoryEntry[] {
+        const history = Array.isArray(this.target?.transfer_history)
+            ? this.target.transfer_history
+            : [];
+        return [...history].sort((first, second) => (
+            new Date(second.transferred_at).getTime()
+            - new Date(first.transferred_at).getTime()
+        ));
+    }
+
+    getTransferAccountLabel(
+        entry: TargetTransferHistoryEntry,
+        side: 'from' | 'to'
+    ): string {
+        const name = String(
+            side === 'from' ? entry.from_user_name : entry.to_user_name
+        ).trim();
+        const email = String(
+            side === 'from' ? entry.from_user_email : entry.to_user_email
+        ).trim();
+        const id = String(
+            side === 'from' ? entry.from_user_id : entry.to_user_id
+        ).trim();
+        return name || email || (id ? `Cuenta ${id}` : 'Cuenta no disponible');
+    }
+
+    getTransferAccountEmail(
+        entry: TargetTransferHistoryEntry,
+        side: 'from' | 'to'
+    ): string {
+        return String(
+            side === 'from' ? entry.from_user_email : entry.to_user_email
+        ).trim();
+    }
+
+    getTransferActorLabel(entry: TargetTransferHistoryEntry): string {
+        return String(
+            entry.transferred_by_name
+            || entry.transferred_by_email
+            || (entry.source === 'solicitud' ? 'Proceso de solicitud' : '')
+            || (entry.source === 'registration_link' ? 'Registro de cuenta' : '')
+            || 'Sistema'
+        ).trim();
     }
 
     // Método para alternar la expansión de un proceso

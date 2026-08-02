@@ -767,3 +767,123 @@
         padding-top: 1rem;
     }
 }
+
+.user-transfer-history {
+    background: var(--managementColorCardBackground);
+    border: 1px solid var(--managementColorBorderInput);
+    border-radius: 18px;
+    margin-top: 1.5rem;
+    overflow: hidden;
+}
+
+.user-transfer-history__header {
+    align-items: center;
+    border-bottom: 1px solid var(--managementColorBorderInput);
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: auto 1fr auto;
+    padding: 1rem 1.15rem;
+}
+
+.user-transfer-history__header > div,
+.user-transfer-history__accounts > div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.user-transfer-history__header strong,
+.user-transfer-history__accounts strong {
+    color: var(--managementColorTextUser);
+}
+
+.user-transfer-history__header small,
+.user-transfer-history__accounts small,
+.user-transfer-history__accounts span,
+.user-transfer-history__content footer {
+    color: #6b7280;
+}
+
+.user-transfer-history__icon,
+.user-transfer-history__marker {
+    align-items: center;
+    background: rgba(255, 75, 83, 0.12);
+    border-radius: 12px;
+    color: var(--globalColorPrimaryInmutable);
+    display: inline-flex;
+    justify-content: center;
+}
+
+.user-transfer-history__icon {
+    height: 42px;
+    width: 42px;
+}
+
+.user-transfer-history__count {
+    background: rgba(255, 75, 83, 0.12);
+    border-radius: 999px;
+    color: var(--globalColorPrimaryInmutable);
+    font-weight: 800;
+    padding: 0.3rem 0.65rem;
+}
+
+.user-transfer-history__entry {
+    align-items: flex-start;
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: auto 1fr;
+    padding: 1rem 1.15rem;
+}
+
+.user-transfer-history__entry + .user-transfer-history__entry {
+    border-top: 1px solid var(--managementColorBorderInput);
+}
+
+.user-transfer-history__marker {
+    height: 34px;
+    margin-top: 0.1rem;
+    width: 34px;
+}
+
+.user-transfer-history__accounts {
+    align-items: center;
+    display: grid;
+    gap: 0.9rem;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.user-transfer-history__accounts strong,
+.user-transfer-history__accounts span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-transfer-history__accounts > i {
+    color: var(--globalColorPrimaryInmutable);
+}
+
+.user-transfer-history__content footer {
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    gap: 0.65rem 1rem;
+    margin-top: 0.75rem;
+}
+
+.user-transfer-history__content footer span {
+    align-items: center;
+    display: inline-flex;
+    gap: 0.35rem;
+}
+
+@media (max-width: 640px) {
+    .user-transfer-history__accounts {
+        align-items: flex-start;
+        grid-template-columns: 1fr;
+    }
+
+    .user-transfer-history__accounts > i {
+        transform: rotate(90deg);
+    }
+}

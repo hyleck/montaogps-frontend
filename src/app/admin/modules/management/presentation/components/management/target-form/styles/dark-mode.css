@@ -22,6 +22,40 @@
     box-shadow: 0 0 0 2px var(--globalColorInputBorderAccent);
 }
 
+:host-context(.app-dark) .target-transfer-history {
+    border-color: #3a4454;
+    background: #1a202b;
+}
+
+:host-context(.app-dark) .target-transfer-history__header {
+    border-color: #343d4b;
+}
+
+:host-context(.app-dark) .target-transfer-history__header strong,
+:host-context(.app-dark) .target-transfer-history__accounts strong {
+    color: #f1f5f9;
+}
+
+:host-context(.app-dark) .target-transfer-history__header small,
+:host-context(.app-dark) .target-transfer-history__content small,
+:host-context(.app-dark) .target-transfer-history__content span,
+:host-context(.app-dark) .target-transfer-history__content footer {
+    color: #a8b3c4;
+}
+
+:host-context(.app-dark) .target-transfer-history__marker {
+    border-color: rgba(248, 113, 113, 0.34);
+    background: #252d39;
+}
+
+:host-context(.app-dark) .target-transfer-history__entry:not(.target-transfer-history__entry--last)::before {
+    background: #3a4454;
+}
+
+:host-context(.app-dark) .target-transfer-history__content footer {
+    border-color: #3a4454;
+}
+
 :host-context(.app-dark) .process__form {
     background-color: var(--globalColorPrimaryDarkStart);
 }

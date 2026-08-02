@@ -81,3 +81,25 @@
     background: rgba(248, 113, 113, 0.14);
     border-color: rgba(248, 113, 113, 0.28);
 }
+
+:host-context(.app-dark) .user-transfer-history {
+    background: #1f2631;
+    border-color: #3a4556;
+}
+
+:host-context(.app-dark) .user-transfer-history__header,
+:host-context(.app-dark) .user-transfer-history__entry + .user-transfer-history__entry {
+    border-color: #3a4556;
+}
+
+:host-context(.app-dark) .user-transfer-history__header strong,
+:host-context(.app-dark) .user-transfer-history__accounts strong {
+    color: #f4f7fb;
+}
+
+:host-context(.app-dark) .user-transfer-history__header small,
+:host-context(.app-dark) .user-transfer-history__accounts small,
+:host-context(.app-dark) .user-transfer-history__accounts span,
+:host-context(.app-dark) .user-transfer-history__content footer {
+    color: #a8b3c4;
+}
