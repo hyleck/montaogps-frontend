@@ -253,6 +253,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   sendingMessage: boolean = false;
   sendingEsterReply: boolean = false;
   sendingConversationReminder: boolean = false;
+  openingSharedContactPhone: string = '';
   replyingTo: ChatMessage | null = null;
   readonly messageReactionOptions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
   reactionPickerMessageId: number | null = null;
@@ -3669,6 +3670,152 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   getSharedContactWhatsAppUrl(phone: { phone?: string; wa_id?: string } | null | undefined): string {
     const normalized = String(phone?.wa_id || phone?.phone || '').replace(/\D/g, '');
     return normalized ? `https://wa.me/${normalized}` : '';
+  }
+
+  isOpeningSharedContactConversation(
+    phone: { phone?: string; wa_id?: string } | null | undefined,
+  ): boolean {
+    return this.openingSharedContactPhone === this.normalizeSharedContactPhone(
+      phone?.wa_id || phone?.phone,
+    );
+  }
+
+  startSharedContactConversation(
+    contact: WhatsAppSharedContact,
+    phone: { phone?: string; wa_id?: string },
+  ): void {
+    const rawPhone = this.getSharedContactPhone(phone);
+    const normalizedPhone = this.normalizeSharedContactPhone(rawPhone);
+    if (!normalizedPhone) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Número no disponible',
+        detail: 'Este contacto no tiene un número válido para WhatsApp.',
+      });
+      return;
+    }
+    if (this.openingSharedContactPhone) return;
+
+    this.openingSharedContactPhone = normalizedPhone;
+    this.whatsappApi.ensureConversation({
+      phone: rawPhone,
+      contact_name: String(contact?.name || 'Contacto compartido').trim(),
+      claim_if_unassigned: true,
+    }).pipe(
+      finalize(() => {
+        this.openingSharedContactPhone = '';
+      }),
+    ).subscribe({
+      next: response => {
+        const ensured = response?.conversation;
+        if (!response?.success || !ensured?.id) {
+          this.showSharedContactConversationError(
+            response?.error || 'No se pudo preparar la conversación.',
+          );
+          return;
+        }
+
+        const ensuredPhone = String(ensured.phone || rawPhone).trim();
+        const existingConversation = this.conversations.find(conversation => (
+          conversation.id === Number(ensured.id)
+          || this.normalizeSharedContactPhone(conversation.contact?.phone)
+            === this.normalizeSharedContactPhone(ensuredPhone)
+        ));
+        const conversation = existingConversation || this.buildSharedContactConversation(
+          contact,
+          ensured,
+        );
+
+        conversation.assignee_id = ensured.assignee_id ?? conversation.assignee_id ?? null;
+        conversation.contact.name = String(
+          ensured.contact_name || contact?.name || conversation.contact.name,
+        ).trim();
+        conversation.contact.phone = ensuredPhone;
+
+        if (!existingConversation) {
+          conversation.assignee_name = this.isConversationAssignedToMe(conversation)
+            ? this.currentUserName
+            : conversation.assignee_name;
+          this.conversations = this.sortConversations([
+            conversation,
+            ...this.conversations,
+          ]);
+          this.conversationsFingerprint = this.getConversationsFingerprint(
+            this.conversations,
+          );
+          this.filterConversations();
+        }
+
+        this.selectConversation(conversation);
+        if (this.isConversationAssignedToMe(conversation)) {
+          setTimeout(() => {
+            if (
+              this.selectedConversation?.id === conversation.id
+              && this.isOutside24hWindow(conversation)
+            ) {
+              this.openTemplateModal();
+            }
+          });
+        } else if (conversation.assignee_id) {
+          this.messageService.add({
+            severity: 'info',
+            summary: 'Conversación abierta',
+            detail: 'Este contacto ya está siendo atendido por otro empleado.',
+          });
+        }
+      },
+      error: error => {
+        this.showSharedContactConversationError(
+          error?.error?.error
+          || error?.error?.message
+          || 'No se pudo abrir la conversación.',
+        );
+      },
+    });
+  }
+
+  private normalizeSharedContactPhone(value: unknown): string {
+    let phone = String(value || '').replace(/\D/g, '');
+    if (/^[2-9]\d{2}[2-9]\d{6}$/.test(phone)) {
+      phone = `1${phone}`;
+    }
+    return phone;
+  }
+
+  private buildSharedContactConversation(
+    contact: WhatsAppSharedContact,
+    ensured: {
+      id: number;
+      phone: string;
+      contact_name: string;
+      assignee_id?: string | null;
+    },
+  ): ChatConversation {
+    return {
+      id: Number(ensured.id),
+      status: 'open',
+      contact: {
+        id: ensured.phone,
+        name: ensured.contact_name || contact?.name || 'Contacto compartido',
+        phone: ensured.phone,
+        email: contact?.emails?.[0]?.email || '',
+        avatar: '',
+      },
+      last_message: '',
+      last_message_time: null,
+      unread_count: 0,
+      inbox_id: this.userInboxId,
+      assignee_id: ensured.assignee_id ?? null,
+      assignee_name: '',
+    };
+  }
+
+  private showSharedContactConversationError(detail: string): void {
+    this.messageService.add({
+      severity: 'error',
+      summary: 'No se pudo iniciar la conversación',
+      detail,
+    });
   }
 
   async copySharedContactPhone(phone: { phone?: string; wa_id?: string }): Promise<void> {

@@ -82,6 +82,32 @@ export class WhatsAppApiService {
         });
     }
 
+    ensureConversation(payload: {
+        phone: string;
+        contact_name?: string;
+        claim_if_unassigned?: boolean;
+    }): Observable<{
+        success: boolean;
+        error?: string;
+        conversation?: {
+            id: number;
+            phone: string;
+            contact_name: string;
+            assignee_id?: string | null;
+        };
+    }> {
+        return this.http.post<{
+            success: boolean;
+            error?: string;
+            conversation?: {
+                id: number;
+                phone: string;
+                contact_name: string;
+                assignee_id?: string | null;
+            };
+        }>(`${this.apiUrl}/conversation-ensure`, payload);
+    }
+
     sendEmployeeEsterReply(
         conversationId: number,
     ): Observable<EmployeeEsterReplyResponse> {

@@ -382,6 +382,14 @@
                                         <strong>{{ getSharedContactPhone(phone) }}</strong>
                                     </span>
                                     <span class="comm-shared-contact__actions">
+                                        <button type="button" class="comm-shared-contact__start"
+                                            [disabled]="!!openingSharedContactPhone"
+                                            (click)="startSharedContactConversation(contact, phone)"
+                                            title="Iniciar conversación en Comunicación">
+                                            <i class="pi"
+                                                [ngClass]="isOpeningSharedContactConversation(phone) ? 'pi-spinner pi-spin' : 'pi-comments'"></i>
+                                            <span>{{ isOpeningSharedContactConversation(phone) ? 'Abriendo' : 'Conversar' }}</span>
+                                        </button>
                                         <button type="button" (click)="copySharedContactPhone(phone)" title="Copiar número">
                                             <i class="pi pi-copy"></i>
                                         </button>
