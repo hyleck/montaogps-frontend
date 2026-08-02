@@ -461,7 +461,15 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
                 latitude: historyResponse.location.latitude,
                 longitude: historyResponse.location.longitude,
                 fixTime: historyResponse.location.fixTime,
-                deviceTime: historyResponse.location.deviceTime
+                deviceTime: historyResponse.location.deviceTime,
+                serverTime: historyResponse.location.serverTime,
+                speed: historyResponse.location.speed,
+                course: historyResponse.location.course,
+                address: historyResponse.location.address,
+                valid: historyResponse.location.valid,
+                source: historyResponse.location.source,
+                historical: historyResponse.location.historical === true,
+                cacheGeneratedAt: historyResponse.location.cacheGeneratedAt
               };
             }
           } else {
@@ -817,7 +825,8 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   get currentSpeedDisplay(): string {
-    const speed = this.selectedTarget?.traccarInfo?.geolocation?.speed;
+    const speed = this.selectedTarget?.traccarInfo?.geolocation?.speed
+      ?? this.selectedTarget?.historicalLocation?.speed;
     if (speed === undefined || speed === null) {
       return this.translate.instant('maps.notAvailable');
     }
@@ -838,6 +847,10 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     return Number.isNaN(date.getTime())
       ? this.translate.instant('maps.notAvailable')
       : date.toLocaleString();
+  }
+
+  get isShowingHistoricalLocation(): boolean {
+    return this.selectedTarget?.historicalLocation?.historical === true;
   }
 
   get simDisplay(): string {

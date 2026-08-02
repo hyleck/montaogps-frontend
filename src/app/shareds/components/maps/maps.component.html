@@ -232,7 +232,9 @@
             <span class="chip-value">{{ stopTimeInfoDisplay }}</span>
         </div>
         <div class="info-chip time" *ngIf="statusClass !== 'online'">
-            <span class="chip-label">{{ 'maps.lastUpdate' | translate }}</span>
+            <span class="chip-label">
+                {{ isShowingHistoricalLocation ? 'Última ubicación conocida' : ('maps.lastUpdate' | translate) }}
+            </span>
             <span class="chip-value">
                 {{ lastUpdateDisplay }}
                 <span class="offline-duration-inline">
