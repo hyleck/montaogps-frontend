@@ -321,14 +321,19 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   hasRenouncedAssistance(user: User | null | undefined): boolean {
-    if (user?.no_assistance === true) {
-      return true;
+    const acceptance = user?.noDocumentsAcceptance;
+    const documentType = String(acceptance?.document_type || '').toLowerCase();
+    const title = String(acceptance?.title || '');
+
+    if (documentType === 'vehicle' || /certificaci[oó]n de veh[ií]culos/i.test(title)) {
+      return false;
     }
 
-    const acceptance = user?.noDocumentsAcceptance;
-    return user?.noDocuments === true && (
-      acceptance?.document_type === 'identity' ||
-      /verificaci[oó]n de identidad/i.test(acceptance?.title || '')
+    return user?.no_assistance === true || (
+      user?.noDocuments === true && (
+        documentType === 'identity' ||
+        /verificaci[oó]n de identidad/i.test(title)
+      )
     );
   }
 

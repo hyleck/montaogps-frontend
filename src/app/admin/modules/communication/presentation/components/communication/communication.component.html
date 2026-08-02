@@ -363,7 +363,64 @@
                                 </a>
                             </div>
                         </ng-container>
-                        <div *ngIf="msg.text && !hasAudioAttachment(msg)" class="comm-message__text"
+                        <div *ngIf="msg.contacts?.length" class="comm-shared-contacts">
+                            <article *ngFor="let contact of msg.contacts" class="comm-shared-contact">
+                                <header class="comm-shared-contact__header">
+                                    <span class="comm-shared-contact__avatar">{{ getSharedContactInitials(contact) }}</span>
+                                    <span class="comm-shared-contact__identity">
+                                        <strong>{{ contact.name || 'Contacto compartido' }}</strong>
+                                        <small *ngIf="contact.organization?.company || contact.organization?.title">
+                                            {{ contact.organization?.title }}{{ contact.organization?.title && contact.organization?.company ? ' · ' : '' }}{{ contact.organization?.company }}
+                                        </small>
+                                    </span>
+                                </header>
+
+                                <div *ngFor="let phone of contact.phones" class="comm-shared-contact__row">
+                                    <i class="pi pi-phone"></i>
+                                    <span>
+                                        <small *ngIf="phone.type">{{ phone.type }}</small>
+                                        <strong>{{ getSharedContactPhone(phone) }}</strong>
+                                    </span>
+                                    <span class="comm-shared-contact__actions">
+                                        <button type="button" (click)="copySharedContactPhone(phone)" title="Copiar número">
+                                            <i class="pi pi-copy"></i>
+                                        </button>
+                                        <a *ngIf="getSharedContactWhatsAppUrl(phone) as whatsappUrl" [href]="whatsappUrl"
+                                            target="_blank" rel="noopener" title="Abrir en WhatsApp">
+                                            <i class="pi pi-whatsapp"></i>
+                                        </a>
+                                    </span>
+                                </div>
+
+                                <a *ngFor="let email of contact.emails" [href]="'mailto:' + email.email"
+                                    class="comm-shared-contact__row comm-shared-contact__row--link">
+                                    <i class="pi pi-envelope"></i>
+                                    <span>
+                                        <small *ngIf="email.type">{{ email.type }}</small>
+                                        <strong>{{ email.email }}</strong>
+                                    </span>
+                                </a>
+
+                                <div *ngFor="let address of contact.addresses" class="comm-shared-contact__row">
+                                    <i class="pi pi-map-marker"></i>
+                                    <span>
+                                        <small *ngIf="address.type">{{ address.type }}</small>
+                                        <strong>{{ address.address }}</strong>
+                                    </span>
+                                </div>
+                            </article>
+                        </div>
+                        <div *ngIf="msg.type === 'contacts' && !msg.contacts?.length"
+                            class="comm-shared-contact comm-shared-contact--legacy">
+                            <span class="comm-shared-contact__avatar">
+                                <i class="pi pi-address-book"></i>
+                            </span>
+                            <span class="comm-shared-contact__identity">
+                                <strong>Contacto compartido</strong>
+                                <small>Este contacto se recibió antes de guardar sus datos. Solicita que lo reenvíen.</small>
+                            </span>
+                        </div>
+                        <div *ngIf="msg.text && !msg.contacts?.length && !hasAudioAttachment(msg)" class="comm-message__text"
                             [innerHTML]="msg.parsedHtml || msg.text"></div>
                         <div *ngIf="getAudioTranscript(msg) as transcript" class="comm-audio-transcription">
                             <div class="comm-audio-transcription__label">

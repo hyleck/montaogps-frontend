@@ -71,6 +71,7 @@ interface ChatConversation {
 interface ChatMessage {
   id?: number;
   from: 'me' | 'incoming' | 'system';
+  type?: string;
   text?: string;
   transcription?: string;
   parsedHtml?: string;
@@ -91,6 +92,17 @@ interface ChatMessage {
   safeRealtimeUrl?: SafeResourceUrl;
   googleMapsUrl?: string;
   wazeUrl?: string;
+  contacts?: WhatsAppSharedContact[];
+}
+
+interface WhatsAppSharedContact {
+  name: string;
+  first_name?: string;
+  last_name?: string;
+  phones?: Array<{ phone?: string; wa_id?: string; type?: string }>;
+  emails?: Array<{ email?: string; type?: string }>;
+  addresses?: Array<{ address?: string; type?: string }>;
+  organization?: { company?: string; department?: string; title?: string };
 }
 
 interface MailAddress {
@@ -3355,11 +3367,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       const mapped: ChatMessage = {
         id: msg.id,
         from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
-        text: msg.content,
+        type: msg.type || 'text',
+        text: msg.type === 'contacts'
+          ? ''
+          : msg.content,
         transcription: msg.transcription,
         parsedHtml: this.parseMessageContent(msg.content),
         time: new Date(msg.created_at * 1000),
         attachments: msg.attachments || [],
+        contacts: Array.isArray(msg.contacts) ? msg.contacts : [],
         reaction: msg.reaction?.emoji
           ? {
               emoji: msg.reaction.emoji,
@@ -3620,6 +3636,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   getReplyPreviewText(msg: ChatMessage | ChatMessage['replyTo'] | null | undefined): string {
+    if ('contacts' in (msg || {}) && (msg as ChatMessage)?.contacts?.length) {
+      const contacts = (msg as ChatMessage).contacts || [];
+      return contacts.length === 1
+        ? `Contacto: ${contacts[0].name}`
+        : `${contacts.length} contactos compartidos`;
+    }
     const text = String(msg?.text || '').trim();
     if (text && !this.isTechnicalStickerLabel(text)) return text;
     const attachment = msg?.attachments?.[0];
@@ -3629,6 +3651,44 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (attachment.file_type === 'video') return 'Video';
     if (attachment.file_type === 'audio') return 'Nota de voz';
     return attachment.file_name || 'Documento';
+  }
+
+  getSharedContactInitials(contact: WhatsAppSharedContact): string {
+    return String(contact?.name || 'Contacto')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(part => part.charAt(0).toUpperCase())
+      .join('') || 'C';
+  }
+
+  getSharedContactPhone(phone: { phone?: string; wa_id?: string } | null | undefined): string {
+    return String(phone?.phone || phone?.wa_id || '').trim();
+  }
+
+  getSharedContactWhatsAppUrl(phone: { phone?: string; wa_id?: string } | null | undefined): string {
+    const normalized = String(phone?.wa_id || phone?.phone || '').replace(/\D/g, '');
+    return normalized ? `https://wa.me/${normalized}` : '';
+  }
+
+  async copySharedContactPhone(phone: { phone?: string; wa_id?: string }): Promise<void> {
+    const value = this.getSharedContactPhone(phone);
+    if (!value) return;
+
+    try {
+      await navigator.clipboard.writeText(value);
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Número copiado',
+        detail: value,
+      });
+    } catch {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'No se pudo copiar',
+        detail: 'Copia el número manualmente.',
+      });
+    }
   }
 
   hasAudioAttachment(msg: ChatMessage | null | undefined): boolean {
