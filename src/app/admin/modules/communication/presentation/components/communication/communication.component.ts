@@ -93,6 +93,16 @@ interface ChatMessage {
   googleMapsUrl?: string;
   wazeUrl?: string;
   contacts?: WhatsAppSharedContact[];
+  unsupported?: {
+    kind: 'poll' | 'unknown';
+    subtype?: string;
+    provider_type?: string;
+    errors?: Array<{
+      code?: number;
+      title?: string;
+      details?: string;
+    }>;
+  };
   senderName?: string;
 }
 
@@ -3120,6 +3130,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   getCleanPreview(text: string | undefined): string {
     if (!text) return 'Sin mensajes';
     if (this.isTechnicalStickerLabel(text)) return 'Sticker';
+    if (/^\[Mensaje de WhatsApp tipo (?:unsupported|unknown)\]$/i.test(text.trim())) {
+      return 'Encuesta o mensaje no compatible';
+    }
 
     let clean = text;
     const match = text.match(/^>\s*([^\n]+)(?:\n([\s\S]*))?$/);
@@ -3387,7 +3400,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         id: msg.id,
         from: msg.from === 'incoming' ? 'incoming' as const : 'me' as const,
         type: msg.type || 'text',
-        text: msg.type === 'contacts'
+        text: msg.type === 'contacts' || ['unsupported', 'unknown'].includes(msg.type)
           ? ''
           : msg.content,
         transcription: msg.transcription,
@@ -3395,6 +3408,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         time: new Date(msg.created_at * 1000),
         attachments: msg.attachments || [],
         contacts: Array.isArray(msg.contacts) ? msg.contacts : [],
+        unsupported: msg.unsupported || (
+          ['unsupported', 'unknown'].includes(msg.type)
+            ? { kind: 'unknown' as const }
+            : undefined
+        ),
         reaction: msg.reaction?.emoji
           ? {
               emoji: msg.reaction.emoji,

@@ -428,7 +428,21 @@
                                 <small>Este contacto se recibió antes de guardar sus datos. Solicita que lo reenvíen.</small>
                             </span>
                         </div>
-                        <div *ngIf="msg.text && !msg.contacts?.length && !hasAudioAttachment(msg)" class="comm-message__text"
+                        <div *ngIf="msg.unsupported" class="comm-unsupported-message">
+                            <span class="comm-unsupported-message__icon">
+                                <i class="pi" [ngClass]="msg.unsupported.kind === 'poll' ? 'pi-chart-bar' : 'pi-exclamation-circle'"></i>
+                            </span>
+                            <span class="comm-unsupported-message__content">
+                                <strong>{{ msg.unsupported.kind === 'poll' ? 'Encuesta de WhatsApp' : 'Encuesta o mensaje no compatible' }}</strong>
+                                <small>
+                                    {{ msg.unsupported.kind === 'poll'
+                                        ? 'WhatsApp no comparte las preguntas ni las opciones de encuestas nativas mediante su API.'
+                                        : 'WhatsApp no entregó el contenido de este mensaje a la API. Puede tratarse de una encuesta u otro formato no compatible.' }}
+                                </small>
+                                <small class="comm-unsupported-message__help">Pide al cliente que lo envíe como texto o captura de pantalla.</small>
+                            </span>
+                        </div>
+                        <div *ngIf="msg.text && !msg.contacts?.length && !msg.unsupported && !hasAudioAttachment(msg)" class="comm-message__text"
                             [innerHTML]="msg.parsedHtml || msg.text"></div>
                         <div *ngIf="getAudioTranscript(msg) as transcript" class="comm-audio-transcription">
                             <div class="comm-audio-transcription__label">

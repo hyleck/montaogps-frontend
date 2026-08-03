@@ -3235,6 +3235,51 @@
     letter-spacing: 0.01em;
 }
 
+.comm-unsupported-message {
+    width: min(360px, 72vw);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid rgba(251, 191, 36, 0.28);
+    border-radius: 14px;
+    background: rgba(251, 191, 36, 0.09);
+}
+
+.comm-unsupported-message__icon {
+    width: 40px;
+    height: 40px;
+    flex: 0 0 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: rgba(251, 191, 36, 0.16);
+    color: #fbbf24;
+    font-size: 1.05rem;
+}
+
+.comm-unsupported-message__content {
+    min-width: 0;
+    display: grid;
+    gap: 0.25rem;
+}
+
+.comm-unsupported-message__content strong {
+    color: #f8fafc;
+    font-size: 0.86rem;
+}
+
+.comm-unsupported-message__content small {
+    color: #cbd5e1;
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
+.comm-unsupported-message__content .comm-unsupported-message__help {
+    color: #fbbf24;
+    font-weight: 700;
+}
+
 .comm-shared-contacts {
     display: grid;
     gap: 0.65rem;
@@ -4634,6 +4679,17 @@
 :host-context(.app-light) .comm-chat__empty-content h3 { color: #000000; }
 :host-context(.app-light) .comm-message__bubble { background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
 :host-context(.app-light) .comm-message__text { color: #000000; }
+:host-context(.app-light) .comm-unsupported-message {
+    border-color: #fcd34d;
+    background: #fffbeb;
+}
+:host-context(.app-light) .comm-unsupported-message__icon {
+    background: #fef3c7;
+    color: #b45309;
+}
+:host-context(.app-light) .comm-unsupported-message__content strong { color: #78350f; }
+:host-context(.app-light) .comm-unsupported-message__content small { color: #92400e; }
+:host-context(.app-light) .comm-unsupported-message__content .comm-unsupported-message__help { color: #b45309; }
 :host-context(.app-light) .comm-shared-contact {
     border-color: #dbe3ee;
     background: #f8fafc;
