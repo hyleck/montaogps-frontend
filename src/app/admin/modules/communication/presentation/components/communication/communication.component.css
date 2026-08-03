@@ -5653,6 +5653,245 @@
 
 .ester-feedback__notice i { color: #8b5cf6; margin-top: 2px; }
 
+.ester-learning {
+  display: grid;
+  gap: 18px;
+  padding: 4px 0 2px;
+}
+
+.ester-learning__visual {
+  align-items: center;
+  background:
+    radial-gradient(circle at center, color-mix(in srgb, #8b5cf6 18%, transparent), transparent 45%),
+    color-mix(in srgb, #8b5cf6 7%, var(--globalColorInputBackground, #f8fafc));
+  border: 1px solid color-mix(in srgb, #8b5cf6 24%, var(--globalColorBorderInput, #dbe2ea));
+  border-radius: 20px;
+  display: flex;
+  height: 180px;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.ester-learning__core {
+  align-items: center;
+  background: linear-gradient(135deg, #6d28d9, #a855f7);
+  border: 4px solid color-mix(in srgb, #c4b5fd 55%, var(--globalColorCardBackground, #fff));
+  border-radius: 50%;
+  box-shadow: 0 0 0 10px color-mix(in srgb, #8b5cf6 12%, transparent), 0 12px 30px rgba(91, 33, 182, .32);
+  color: #fff;
+  display: flex;
+  height: 76px;
+  justify-content: center;
+  position: relative;
+  width: 76px;
+  z-index: 3;
+}
+
+.ester-learning__core > .pi {
+  animation: esterLearningSpark 1.2s ease-in-out infinite;
+  font-size: 27px;
+  position: relative;
+  z-index: 3;
+}
+
+.ester-learning--complete .ester-learning__core {
+  background: linear-gradient(135deg, #059669, #34d399);
+  border-color: color-mix(in srgb, #6ee7b7 55%, var(--globalColorCardBackground, #fff));
+  box-shadow: 0 0 0 10px color-mix(in srgb, #10b981 12%, transparent), 0 12px 30px rgba(5, 150, 105, .3);
+}
+
+.ester-learning--complete .ester-learning__core > .pi { animation: esterLearningComplete .55s ease both; }
+
+.ester-learning__pulse {
+  animation: esterLearningPulse 1.8s ease-out infinite;
+  border: 2px solid #a78bfa;
+  border-radius: 50%;
+  inset: -15px;
+  position: absolute;
+}
+
+.ester-learning--complete .ester-learning__pulse { border-color: #34d399; }
+
+.ester-learning__orbit {
+  animation: esterLearningOrbit 3.2s linear infinite;
+  border: 1px dashed color-mix(in srgb, #a78bfa 62%, transparent);
+  border-radius: 50%;
+  inset: -30px;
+  position: absolute;
+}
+
+.ester-learning__orbit--two {
+  animation-direction: reverse;
+  animation-duration: 4.4s;
+  inset: -45px;
+}
+
+.ester-learning__orbit i {
+  background: #c4b5fd;
+  border-radius: 50%;
+  box-shadow: 0 0 9px #8b5cf6;
+  height: 7px;
+  left: 50%;
+  position: absolute;
+  top: -4px;
+  width: 7px;
+}
+
+.ester-learning__conversation {
+  display: grid;
+  gap: 8px;
+  position: absolute;
+  top: 42px;
+  width: 112px;
+}
+
+.ester-learning__conversation--left { left: 24px; }
+.ester-learning__conversation--right { right: 24px; top: 65px; }
+
+.ester-learning__conversation span {
+  animation: esterConversationRead 2.4s ease-in-out infinite;
+  background: var(--globalColorCardBackground, #fff);
+  border: 1px solid color-mix(in srgb, #8b5cf6 20%, var(--globalColorBorderInput, #dbe2ea));
+  border-radius: 10px 10px 10px 3px;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, .08);
+  display: block;
+  height: 18px;
+  width: 88%;
+}
+
+.ester-learning__conversation--right span {
+  animation-delay: .35s;
+  border-radius: 10px 10px 3px 10px;
+  justify-self: end;
+}
+
+.ester-learning__conversation span:nth-child(2) { animation-delay: .55s; width: 72%; }
+.ester-learning__conversation span:nth-child(3) { animation-delay: 1.05s; width: 58%; }
+
+.ester-learning__rule-sheet {
+  background: var(--globalColorCardBackground, #fff);
+  border: 1px solid color-mix(in srgb, #8b5cf6 40%, var(--globalColorBorderInput, #dbe2ea));
+  border-radius: 12px;
+  box-shadow: 0 9px 24px rgba(91, 33, 182, .2);
+  display: grid;
+  gap: 7px;
+  opacity: 0;
+  padding: 13px;
+  position: absolute;
+  right: 34px;
+  top: 50%;
+  transform: translate(22px, -50%) scale(.84);
+  transition: opacity .5s ease, transform .5s ease;
+  width: 106px;
+}
+
+.ester-learning__rule-sheet--visible {
+  animation: esterRuleWriting 1.4s ease-in-out infinite alternate;
+  opacity: 1;
+  transform: translate(0, -50%) scale(1);
+}
+
+.ester-learning__rule-sheet > i { color: #8b5cf6; font-size: 19px; margin-bottom: 2px; }
+.ester-learning__rule-sheet > span { background: color-mix(in srgb, #8b5cf6 25%, transparent); border-radius: 999px; height: 5px; width: 100%; }
+.ester-learning__rule-sheet > span:nth-of-type(2) { width: 78%; }
+.ester-learning__rule-sheet > span:nth-of-type(3) { width: 56%; }
+
+.ester-learning__status { text-align: center; }
+.ester-learning__status > span {
+  color: #8b5cf6;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.ester-learning__status h3 { color: var(--globalColorTextInput, #172033); font-size: 19px; margin: 5px 0 4px; }
+.ester-learning__status p { color: var(--globalColorTextMuted, #64748b); font-size: 13px; line-height: 1.45; margin: 0 auto; max-width: 470px; }
+
+.ester-learning__steps {
+  display: grid;
+  gap: 9px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ester-learning__steps li {
+  align-items: center;
+  background: var(--globalColorInputBackground, #f8fafc);
+  border: 1px solid var(--globalColorBorderInput, #dbe2ea);
+  border-radius: 13px;
+  color: var(--globalColorTextMuted, #64748b);
+  display: flex;
+  gap: 12px;
+  opacity: .56;
+  padding: 11px 13px;
+  transition: border-color .28s ease, background .28s ease, opacity .28s ease, transform .28s ease;
+}
+
+.ester-learning__steps li > i {
+  align-items: center;
+  background: color-mix(in srgb, var(--globalColorTextMuted, #64748b) 12%, transparent);
+  border-radius: 10px;
+  display: flex;
+  flex: 0 0 34px;
+  height: 34px;
+  justify-content: center;
+}
+
+.ester-learning__steps li span { display: grid; gap: 2px; }
+.ester-learning__steps li b { color: inherit; font-size: 13px; }
+.ester-learning__steps li small { font-size: 11px; line-height: 1.35; }
+
+.ester-learning__steps .ester-learning__step--active {
+  animation: esterActiveStep 1.5s ease-in-out infinite;
+  background: color-mix(in srgb, #8b5cf6 12%, var(--globalColorInputBackground, #f8fafc));
+  border-color: #8b5cf6;
+  color: color-mix(in srgb, #8b5cf6 62%, var(--globalColorTextInput, #172033));
+  opacity: 1;
+  transform: translateX(4px);
+}
+
+.ester-learning__steps .ester-learning__step--done {
+  background: color-mix(in srgb, #10b981 9%, var(--globalColorInputBackground, #f8fafc));
+  border-color: color-mix(in srgb, #10b981 45%, var(--globalColorBorderInput, #dbe2ea));
+  color: #059669;
+  opacity: .88;
+}
+
+.ester-learning__result {
+  animation: esterResultReveal .65s cubic-bezier(.2, .9, .3, 1) both;
+  background: color-mix(in srgb, #10b981 8%, var(--globalColorInputBackground, #f8fafc));
+  border: 1px solid color-mix(in srgb, #10b981 38%, var(--globalColorBorderInput, #dbe2ea));
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+
+.ester-learning__result-heading { align-items: center; display: flex; justify-content: space-between; }
+.ester-learning__result-heading span { color: #059669; font-size: 12px; font-weight: 850; }
+.ester-learning__result-heading b { background: color-mix(in srgb, #10b981 13%, transparent); border-radius: 999px; color: #059669; font-size: 11px; padding: 4px 8px; }
+.ester-learning__result h3 { color: var(--globalColorTextInput, #172033); font-size: 17px; margin: 12px 0 6px; }
+.ester-learning__result p { color: var(--globalColorTextInput, #172033); font-size: 13px; line-height: 1.5; margin: 0; }
+.ester-learning__result > small { border-top: 1px solid color-mix(in srgb, #10b981 24%, transparent); color: var(--globalColorTextMuted, #64748b); display: block; line-height: 1.4; margin-top: 11px; padding-top: 10px; }
+
+@keyframes esterLearningOrbit { to { transform: rotate(360deg); } }
+@keyframes esterLearningPulse { 0% { opacity: .72; transform: scale(.72); } 100% { opacity: 0; transform: scale(1.35); } }
+@keyframes esterLearningSpark { 0%, 100% { opacity: .72; transform: rotate(-7deg) scale(.92); } 50% { opacity: 1; transform: rotate(7deg) scale(1.08); } }
+@keyframes esterLearningComplete { from { opacity: 0; transform: scale(.45) rotate(-20deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+@keyframes esterConversationRead { 0%, 100% { opacity: .42; transform: translateY(0) scale(.96); } 48% { opacity: 1; transform: translateY(-3px) scale(1); } }
+@keyframes esterRuleWriting { from { box-shadow: 0 9px 24px rgba(91, 33, 182, .12); } to { box-shadow: 0 9px 30px rgba(91, 33, 182, .32); } }
+@keyframes esterActiveStep { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, #8b5cf6 0%, transparent); } 50% { box-shadow: 0 0 0 4px color-mix(in srgb, #8b5cf6 10%, transparent); } }
+@keyframes esterResultReveal { from { opacity: 0; transform: translateY(14px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (max-width: 560px) {
+  .ester-learning__visual { height: 158px; }
+  .ester-learning__conversation { width: 78px; }
+  .ester-learning__conversation--left { left: 12px; }
+  .ester-learning__conversation--right { right: 12px; }
+  .ester-learning__rule-sheet { right: 15px; width: 76px; }
+  .ester-learning__steps li { padding: 10px; }
+}
+
 .ester-feedback__cancel,
 .ester-feedback__save {
   border-radius: 11px;

@@ -1296,44 +1296,108 @@
             <span><i class="pi pi-sparkles"></i></span>
             <div>
                 <strong>Feedback para Ester</strong>
-                <small>Solo los usuarios root pueden optimizar este aprendizaje.</small>
+                <small>Háblale directamente a Ester y dile qué debió hacer diferente.</small>
             </div>
         </div>
     </ng-template>
 
-    <section class="ester-feedback">
+    <section class="ester-feedback" *ngIf="!submittingEsterFeedback && !esterLearningRulePreview">
         <div class="ester-feedback__message" *ngIf="selectedEsterFeedbackMessage as feedbackMessage">
             <span>Respuesta evaluada</span>
             <p>{{ feedbackMessage.text }}</p>
         </div>
         <label class="ester-feedback__field">
-            <span>Qué debió aprender Ester?</span>
+            <span>Qué debiste hacer diferente, Ester?</span>
             <textarea
                 [(ngModel)]="esterFeedbackText"
                 rows="6"
                 maxlength="4000"
                 [disabled]="submittingEsterFeedback"
-                placeholder="Ejemplo: Si el cliente confirma que el vehículo lleva varios días bajo techo, Ester debe sugerirle dar una vuelta al vehículo antes de pasar al siguiente paso."></textarea>
+                placeholder="Ejemplo: Debiste sugerirle al cliente que diera una vuelta al vehículo después de confirmar que llevaba varios días bajo techo, antes de pasar al siguiente paso."></textarea>
         </label>
         <div class="ester-feedback__notice">
             <i class="pi pi-lock"></i>
-            <span>Ester analizará el contexto de la conversación, combinará este feedback con aprendizajes similares y actualizará su base prioritaria protegida.</span>
+            <span>Escribe el feedback en segunda persona, usando frases como “Debiste responder...” o “No debiste indicar...”. Ester analizará la conversación y actualizará su base prioritaria protegida.</span>
         </div>
     </section>
 
+    <section class="ester-learning"
+        *ngIf="submittingEsterFeedback || esterLearningRulePreview"
+        [class.ester-learning--complete]="!!esterLearningRulePreview">
+        <div class="ester-learning__visual" aria-hidden="true">
+            <div class="ester-learning__conversation ester-learning__conversation--left">
+                <span></span><span></span><span></span>
+            </div>
+            <div class="ester-learning__conversation ester-learning__conversation--right">
+                <span></span><span></span>
+            </div>
+            <div class="ester-learning__core">
+                <span class="ester-learning__orbit ester-learning__orbit--one"><i></i></span>
+                <span class="ester-learning__orbit ester-learning__orbit--two"><i></i></span>
+                <span class="ester-learning__pulse"></span>
+                <i class="pi" [class.pi-sparkles]="!esterLearningRulePreview" [class.pi-check]="!!esterLearningRulePreview"></i>
+            </div>
+            <div class="ester-learning__rule-sheet" [class.ester-learning__rule-sheet--visible]="esterLearningStage >= 3">
+                <i class="pi pi-file-edit"></i>
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+
+        <div class="ester-learning__status" *ngIf="!esterLearningRulePreview">
+            <span>Ester está aprendiendo</span>
+            <h3>
+                {{ esterLearningStage === 1 ? 'Leyendo toda la conversación...' :
+                   esterLearningStage === 2 ? 'Identificando qué debió mejorar...' :
+                   'Generando su propia regla...' }}
+            </h3>
+            <p>No cierres esta ventana mientras Ester convierte tu feedback en un aprendizaje reutilizable.</p>
+        </div>
+
+        <ol class="ester-learning__steps" *ngIf="!esterLearningRulePreview">
+            <li [class.ester-learning__step--active]="esterLearningStage === 1" [class.ester-learning__step--done]="esterLearningStage > 1">
+                <i class="pi" [class.pi-comments]="esterLearningStage <= 1" [class.pi-check]="esterLearningStage > 1"></i>
+                <span><b>Analizando la conversación</b><small>Comprende lo que ocurrió antes y después de la respuesta.</small></span>
+            </li>
+            <li [class.ester-learning__step--active]="esterLearningStage === 2" [class.ester-learning__step--done]="esterLearningStage > 2">
+                <i class="pi" [class.pi-search]="esterLearningStage <= 2" [class.pi-check]="esterLearningStage > 2"></i>
+                <span><b>Interpretando tu feedback</b><small>Detecta el comportamiento exacto que debe cambiar.</small></span>
+            </li>
+            <li [class.ester-learning__step--active]="esterLearningStage >= 3">
+                <i class="pi pi-sparkles"></i>
+                <span><b>Creando la regla</b><small>Redacta un aprendizaje general para futuras conversaciones.</small></span>
+            </li>
+        </ol>
+
+        <article class="ester-learning__result" *ngIf="esterLearningRulePreview as learnedRule">
+            <div class="ester-learning__result-heading">
+                <span><i class="pi pi-check-circle"></i> Aprendizaje completado</span>
+                <b>v{{ learnedRule.version }}</b>
+            </div>
+            <h3>{{ learnedRule.title }}</h3>
+            <p>{{ learnedRule.content }}</p>
+            <small *ngIf="learnedRule.changeSummary">{{ learnedRule.changeSummary }}</small>
+        </article>
+    </section>
+
     <ng-template pTemplate="footer">
-        <button type="button" class="ester-feedback__cancel"
-            [disabled]="submittingEsterFeedback" (click)="closeEsterFeedback()">
-            Cancelar
-        </button>
-        <button type="button" class="ester-feedback__save"
-            [disabled]="submittingEsterFeedback || esterFeedbackText.trim().length < 10"
-            (click)="submitEsterFeedback()">
-            <i class="pi"
-                [class.pi-sparkles]="!submittingEsterFeedback"
-                [class.pi-spin]="submittingEsterFeedback"
-                [class.pi-spinner]="submittingEsterFeedback"></i>
-            {{ submittingEsterFeedback ? 'Ester está aprendiendo...' : 'Optimizar a Ester' }}
+        <ng-container *ngIf="!esterLearningRulePreview">
+            <button type="button" class="ester-feedback__cancel"
+                [disabled]="submittingEsterFeedback" (click)="closeEsterFeedback()">
+                Cancelar
+            </button>
+            <button type="button" class="ester-feedback__save"
+                [disabled]="submittingEsterFeedback || esterFeedbackText.trim().length < 10"
+                (click)="submitEsterFeedback()">
+                <i class="pi"
+                    [class.pi-sparkles]="!submittingEsterFeedback"
+                    [class.pi-spin]="submittingEsterFeedback"
+                    [class.pi-spinner]="submittingEsterFeedback"></i>
+                {{ submittingEsterFeedback ? 'Ester está aprendiendo...' : 'Optimizar a Ester' }}
+            </button>
+        </ng-container>
+        <button *ngIf="esterLearningRulePreview" type="button" class="ester-feedback__save" (click)="closeEsterFeedback()">
+            <i class="pi pi-check"></i>
+            Listo
         </button>
     </ng-template>
 </p-dialog>

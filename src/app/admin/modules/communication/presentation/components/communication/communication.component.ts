@@ -22,7 +22,7 @@ import {
 import { EsterService } from '@core/services/ester.service';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { environment } from '../../../../../../../environments/environment';
-import { finalize, Subscription, timeout } from 'rxjs';
+import { finalize, forkJoin, Subscription, timeout, timer } from 'rxjs';
 import {
   buildAgentSignatureLabel,
   compactAgentSignatureLabel,
@@ -258,6 +258,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   selectedEsterFeedbackMessage: ChatMessage | null = null;
   esterFeedbackText = '';
   submittingEsterFeedback = false;
+  esterLearningStage = 0;
+  esterLearningRulePreview: {
+    title: string;
+    content: string;
+    version: number;
+    changeSummary?: string;
+  } | null = null;
+  private esterLearningTimers: number[] = [];
   sendingConversationReminder: boolean = false;
   openingSharedContactPhone: string = '';
   replyingTo: ChatMessage | null = null;
@@ -510,6 +518,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.cancelVoiceRecording();
     this.internalChatMutedSubscription?.unsubscribe();
     this.resetPlayableAudio();
+    this.clearEsterLearningTimers();
   }
 
   // ============================
@@ -3422,8 +3431,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
   openEsterFeedback(message: ChatMessage): void {
     if (!this.isRootUser || !this.isEsterMessage(message)) return;
+    this.clearEsterLearningTimers();
     this.selectedEsterFeedbackMessage = message;
     this.esterFeedbackText = '';
+    this.esterLearningStage = 0;
+    this.esterLearningRulePreview = null;
     this.showEsterFeedbackModal = true;
   }
 
@@ -3432,6 +3444,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.showEsterFeedbackModal = false;
     this.selectedEsterFeedbackMessage = null;
     this.esterFeedbackText = '';
+    this.esterLearningStage = 0;
+    this.esterLearningRulePreview = null;
+    this.clearEsterLearningTimers();
   }
 
   submitEsterFeedback(): void {
@@ -3448,24 +3463,39 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
 
     this.submittingEsterFeedback = true;
-    this.esterService.submitMessageFeedback({
-      conversationId,
-      messageId,
-      feedback,
-    }).pipe(finalize(() => {
-      this.submittingEsterFeedback = false;
-    })).subscribe({
-      next: result => {
+    this.esterLearningRulePreview = null;
+    this.startEsterLearningAnimation();
+    forkJoin({
+      result: this.esterService.submitMessageFeedback({
+        conversationId,
+        messageId,
+        feedback,
+      }),
+      minimumAnimation: timer(3800),
+    }).subscribe({
+      next: ({ result }) => {
+        this.clearEsterLearningTimers();
+        this.submittingEsterFeedback = false;
+        this.esterLearningStage = 4;
+        this.esterLearningRulePreview = {
+          title: result.rule.title,
+          content: result.rule.content,
+          version: result.rule.version,
+          changeSummary: result.rule.change_summary,
+        };
         this.messageService.add({
           severity: 'success',
           summary: result.updated ? 'Aprendizaje optimizado' : 'Nuevo aprendizaje',
           detail: `${result.rule.title} · v${result.rule.version}`,
         });
-        this.showEsterFeedbackModal = false;
-        this.selectedEsterFeedbackMessage = null;
-        this.esterFeedbackText = '';
+        this.esterLearningTimers.push(window.setTimeout(() => {
+          this.closeEsterFeedback();
+        }, 2400));
       },
       error: error => {
+        this.clearEsterLearningTimers();
+        this.submittingEsterFeedback = false;
+        this.esterLearningStage = 0;
         this.messageService.add({
           severity: 'error',
           summary: 'Ester no pudo aprender el feedback',
@@ -3473,6 +3503,20 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         });
       },
     });
+  }
+
+  private startEsterLearningAnimation(): void {
+    this.clearEsterLearningTimers();
+    this.esterLearningStage = 1;
+    this.esterLearningTimers.push(
+      window.setTimeout(() => this.esterLearningStage = 2, 1050),
+      window.setTimeout(() => this.esterLearningStage = 3, 2250),
+    );
+  }
+
+  private clearEsterLearningTimers(): void {
+    this.esterLearningTimers.forEach(timerId => window.clearTimeout(timerId));
+    this.esterLearningTimers = [];
   }
 
   private focusReferencedMessage(
