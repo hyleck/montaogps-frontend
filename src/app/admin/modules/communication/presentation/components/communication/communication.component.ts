@@ -93,6 +93,7 @@ interface ChatMessage {
   googleMapsUrl?: string;
   wazeUrl?: string;
   contacts?: WhatsAppSharedContact[];
+  senderName?: string;
 }
 
 interface WhatsAppSharedContact {
@@ -252,6 +253,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   chatInput: string = '';
   sendingMessage: boolean = false;
   sendingEsterReply: boolean = false;
+  isRootUser = false;
+  showEsterFeedbackModal = false;
+  selectedEsterFeedbackMessage: ChatMessage | null = null;
+  esterFeedbackText = '';
+  submittingEsterFeedback = false;
   sendingConversationReminder: boolean = false;
   openingSharedContactPhone: string = '';
   replyingTo: ChatMessage | null = null;
@@ -518,6 +524,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     }
     this.currentUserId = currentUser.id;
     this.currentUserEmail = currentUser.email || '';
+    this.isRootUser = currentUser.root === true
+      || String(currentUser.root) === 'true';
     this.hasEmailInbox = true;
     this.noInbox = false;
     this.userService.getById(currentUser.id).subscribe({
@@ -3385,6 +3393,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
               from: msg.reaction.from || 'me',
             }
           : undefined,
+        senderName: String(msg.sender || ''),
       };
 
       this.enrichWithAppUrls(mapped);
@@ -3402,6 +3411,67 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       }
 
       return mapped;
+    });
+  }
+
+  isEsterMessage(message: ChatMessage): boolean {
+    if (message.from !== 'me' || !message.id) return false;
+    return /ester/i.test(String(message.senderName || ''))
+      || /^>\s*Ester Assistant\b/i.test(String(message.text || '').trim());
+  }
+
+  openEsterFeedback(message: ChatMessage): void {
+    if (!this.isRootUser || !this.isEsterMessage(message)) return;
+    this.selectedEsterFeedbackMessage = message;
+    this.esterFeedbackText = '';
+    this.showEsterFeedbackModal = true;
+  }
+
+  closeEsterFeedback(): void {
+    if (this.submittingEsterFeedback) return;
+    this.showEsterFeedbackModal = false;
+    this.selectedEsterFeedbackMessage = null;
+    this.esterFeedbackText = '';
+  }
+
+  submitEsterFeedback(): void {
+    const conversationId = Number(this.selectedConversation?.id || 0);
+    const messageId = Number(this.selectedEsterFeedbackMessage?.id || 0);
+    const feedback = this.esterFeedbackText.replace(/\s+/g, ' ').trim();
+    if (!conversationId || !messageId || feedback.length < 10) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Feedback incompleto',
+        detail: 'Explica con claridad qué debió hacer Ester.',
+      });
+      return;
+    }
+
+    this.submittingEsterFeedback = true;
+    this.esterService.submitMessageFeedback({
+      conversationId,
+      messageId,
+      feedback,
+    }).pipe(finalize(() => {
+      this.submittingEsterFeedback = false;
+    })).subscribe({
+      next: result => {
+        this.messageService.add({
+          severity: 'success',
+          summary: result.updated ? 'Aprendizaje optimizado' : 'Nuevo aprendizaje',
+          detail: `${result.rule.title} · v${result.rule.version}`,
+        });
+        this.showEsterFeedbackModal = false;
+        this.selectedEsterFeedbackMessage = null;
+        this.esterFeedbackText = '';
+      },
+      error: error => {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Ester no pudo aprender el feedback',
+          detail: error?.error?.message || 'Inténtalo nuevamente.',
+        });
+      },
     });
   }
 

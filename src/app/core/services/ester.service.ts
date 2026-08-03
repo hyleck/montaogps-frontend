@@ -100,6 +100,41 @@ export interface EsterCommunicationStatus {
   whatsappAutoReplyActive: boolean;
 }
 
+export interface EsterSelfLearningRule {
+  _id: string;
+  title: string;
+  category: string;
+  content: string;
+  when_to_apply: string;
+  avoid: string;
+  change_summary?: string;
+  active: boolean;
+  version: number;
+  source_conversation_id?: number | null;
+  source_message_id?: number | null;
+  feedback_history?: Array<{
+    feedback: string;
+    conversation_id: number;
+    message_id: number;
+    submitted_by: string;
+    applied_at: string;
+    change_summary?: string;
+  }>;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface EsterFeedbackPayload {
+  conversationId: number;
+  messageId: number;
+  feedback: string;
+}
+
+export interface EsterFeedbackResult {
+  updated: boolean;
+  rule: EsterSelfLearningRule;
+}
+
 @Injectable({ providedIn: 'root' })
 export class EsterService {
   private readonly apiUrl = `${environment.apiUrl}/ester/knowledge`;
@@ -180,6 +215,21 @@ export class EsterService {
   ): Observable<EsterSupervisorSettings> {
     return this.http.patch<EsterSupervisorSettings>(
       `${environment.apiUrl}/ester/supervisor`,
+      payload,
+    );
+  }
+
+  getSelfLearningRules(): Observable<EsterSelfLearningRule[]> {
+    return this.http.get<EsterSelfLearningRule[]>(
+      `${environment.apiUrl}/ester/self-learning`,
+    );
+  }
+
+  submitMessageFeedback(
+    payload: EsterFeedbackPayload,
+  ): Observable<EsterFeedbackResult> {
+    return this.http.post<EsterFeedbackResult>(
+      `${environment.apiUrl}/ester/self-learning/feedback`,
       payload,
     );
   }

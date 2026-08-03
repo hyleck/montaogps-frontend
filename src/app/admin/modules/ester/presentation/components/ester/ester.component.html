@@ -39,6 +39,15 @@
     </button>
     <button
       type="button"
+      [class.ester__view--active]="activeView === 'self-learning'"
+      (click)="setActiveView('self-learning')"
+    >
+      <i class="pi pi-sparkles"></i>
+      Aprendizaje de Ester
+      <span class="ester__view-count"><i class="pi pi-lock"></i></span>
+    </button>
+    <button
+      type="button"
       [class.ester__view--active]="activeView === 'supervisor'"
       (click)="setActiveView('supervisor')"
     >
@@ -214,6 +223,70 @@
     </div>
   </section>
   </ng-container>
+
+  <section *ngIf="activeView === 'self-learning'" class="self-learning">
+    <header class="self-learning__hero">
+      <span class="self-learning__hero-icon"><i class="pi pi-sparkles"></i></span>
+      <div>
+        <div class="self-learning__title-line">
+          <h2>Base prioritaria auto-optimizada</h2>
+          <span><i class="pi pi-lock"></i> Solo Ester modifica</span>
+        </div>
+        <p>
+          Cada feedback root se analiza junto con la conversación. Ester crea una regla nueva o mejora una existente, conserva el historial y la aplica antes que el conocimiento complementario. El Supervisor también usa estas reglas para validar y corregir cada respuesta antes de enviarla.
+        </p>
+      </div>
+      <button type="button" class="self-learning__refresh" (click)="loadSelfLearningRules()" [disabled]="selfLearningLoading">
+        <i class="pi" [class.pi-refresh]="!selfLearningLoading" [class.pi-spin]="selfLearningLoading" [class.pi-spinner]="selfLearningLoading"></i>
+        Actualizar
+      </button>
+    </header>
+
+    <div class="self-learning__flow" aria-label="Flujo del aprendizaje de Ester">
+      <article><i class="pi pi-comments"></i><span><b>1. Feedback root</b><small>Parte de un mensaje real de Ester</small></span></article>
+      <i class="pi pi-arrow-right"></i>
+      <article><i class="pi pi-search"></i><span><b>2. Analiza contexto</b><small>Lee la conversación y reglas similares</small></span></article>
+      <i class="pi pi-arrow-right"></i>
+      <article><i class="pi pi-shield"></i><span><b>3. Se aplica y supervisa</b><small>Ester responde y el Supervisor valida la regla</small></span></article>
+    </div>
+
+    <div *ngIf="selfLearningLoading" class="ester__state">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Cargando aprendizajes de Ester...</span>
+    </div>
+
+    <div *ngIf="!selfLearningLoading && !selfLearningRules.length" class="ester__state ester__state--empty">
+      <span class="ester__empty-icon"><i class="pi pi-sparkles"></i></span>
+      <h3>Ester todavía no ha recibido feedback</h3>
+      <p>En Comunicación, los usuarios root verán el botón Feedback debajo de cada respuesta de Ester.</p>
+    </div>
+
+    <div *ngIf="!selfLearningLoading && selfLearningRules.length" class="self-learning__grid">
+      <article *ngFor="let rule of selfLearningRules; trackBy: trackSelfLearningRule" class="self-learning-card">
+        <header>
+          <span class="self-learning-card__category">{{ rule.category || 'Aprendizaje' }}</span>
+          <span class="self-learning-card__version">v{{ rule.version }}</span>
+        </header>
+        <h3>{{ rule.title }}</h3>
+        <div class="self-learning-card__context" *ngIf="rule.when_to_apply">
+          <b>Cuándo se aplica</b>
+          <p>{{ rule.when_to_apply }}</p>
+        </div>
+        <div class="self-learning-card__rule">
+          <b>Regla optimizada</b>
+          <p>{{ rule.content }}</p>
+        </div>
+        <div class="self-learning-card__avoid" *ngIf="rule.avoid">
+          <b>Debe evitar</b>
+          <p>{{ rule.avoid }}</p>
+        </div>
+        <footer>
+          <span><i class="pi pi-history"></i> {{ rule.feedback_history?.length || 1 }} feedback{{ (rule.feedback_history?.length || 1) === 1 ? '' : 's' }}</span>
+          <span *ngIf="rule.updatedAt">Actualizada {{ rule.updatedAt | date:'dd/MM/yyyy, h:mm a' }}</span>
+        </footer>
+      </article>
+    </div>
+  </section>
 
   <section *ngIf="activeView === 'skills'" class="skills">
     <header class="skills__header">

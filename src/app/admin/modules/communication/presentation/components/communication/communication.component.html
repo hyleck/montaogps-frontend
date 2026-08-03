@@ -469,6 +469,14 @@
                             </div>
                         </a>
                         <div class="comm-message__time">{{ msg.time | date:'HH:mm' }}</div>
+                        <button *ngIf="isRootUser && isEsterMessage(msg)"
+                            type="button"
+                            class="comm-message__feedback"
+                            (click)="openEsterFeedback(msg)"
+                            title="Dar feedback a Ester">
+                            <i class="pi pi-comment"></i>
+                            Feedback
+                        </button>
                         <span *ngIf="msg.reaction?.emoji"
                             class="comm-message__reaction"
                             [title]="'Reacción de ' + (msg.reaction?.sender || 'Ester Assistant')">
@@ -1271,6 +1279,62 @@
     <ng-template pTemplate="footer">
         <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text p-button-secondary p-button-sm mr-2" (click)="showExpirationModal = false"></button>
         <button pButton pRipple label="Generar y Enviar" icon="pi pi-send" class="p-button-sm" (click)="sendRealtimeLinkAuto()"></button>
+    </ng-template>
+</p-dialog>
+
+<p-dialog
+    [(visible)]="showEsterFeedbackModal"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [closable]="!submittingEsterFeedback"
+    [style]="{ width: 'min(620px, 94vw)' }"
+    styleClass="ester-feedback-dialog"
+    (onHide)="closeEsterFeedback()">
+    <ng-template pTemplate="header">
+        <div class="ester-feedback__header">
+            <span><i class="pi pi-sparkles"></i></span>
+            <div>
+                <strong>Feedback para Ester</strong>
+                <small>Solo los usuarios root pueden optimizar este aprendizaje.</small>
+            </div>
+        </div>
+    </ng-template>
+
+    <section class="ester-feedback">
+        <div class="ester-feedback__message" *ngIf="selectedEsterFeedbackMessage as feedbackMessage">
+            <span>Respuesta evaluada</span>
+            <p>{{ feedbackMessage.text }}</p>
+        </div>
+        <label class="ester-feedback__field">
+            <span>Qué debió aprender Ester?</span>
+            <textarea
+                [(ngModel)]="esterFeedbackText"
+                rows="6"
+                maxlength="4000"
+                [disabled]="submittingEsterFeedback"
+                placeholder="Ejemplo: Si el cliente confirma que el vehículo lleva varios días bajo techo, Ester debe sugerirle dar una vuelta al vehículo antes de pasar al siguiente paso."></textarea>
+        </label>
+        <div class="ester-feedback__notice">
+            <i class="pi pi-lock"></i>
+            <span>Ester analizará el contexto de la conversación, combinará este feedback con aprendizajes similares y actualizará su base prioritaria protegida.</span>
+        </div>
+    </section>
+
+    <ng-template pTemplate="footer">
+        <button type="button" class="ester-feedback__cancel"
+            [disabled]="submittingEsterFeedback" (click)="closeEsterFeedback()">
+            Cancelar
+        </button>
+        <button type="button" class="ester-feedback__save"
+            [disabled]="submittingEsterFeedback || esterFeedbackText.trim().length < 10"
+            (click)="submitEsterFeedback()">
+            <i class="pi"
+                [class.pi-sparkles]="!submittingEsterFeedback"
+                [class.pi-spin]="submittingEsterFeedback"
+                [class.pi-spinner]="submittingEsterFeedback"></i>
+            {{ submittingEsterFeedback ? 'Ester está aprendiendo...' : 'Optimizar a Ester' }}
+        </button>
     </ng-template>
 </p-dialog>
 

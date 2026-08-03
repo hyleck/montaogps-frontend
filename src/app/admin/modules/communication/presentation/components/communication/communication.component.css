@@ -5492,3 +5492,190 @@
     display: none;
   }
 }
+
+.comm-message__feedback {
+  align-items: center;
+  background: #f5f3ff;
+  border: 1px solid #c4b5fd;
+  border-radius: 999px;
+  color: #6d28d9;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 800;
+  gap: 5px;
+  margin: 8px 0 0 10px;
+  padding: 4px 9px;
+  transition: background .18s ease, transform .18s ease;
+}
+
+.comm-message__feedback:hover {
+  background: #ede9fe;
+  border-color: #a78bfa;
+  transform: translateY(-1px);
+}
+
+:host-context(.app-dark) .comm-message__feedback {
+  background: color-mix(in srgb, var(--globalColorCardBackground, #333333) 78%, #7c3aed 22%);
+  border-color: color-mix(in srgb, var(--globalColorBorderDark, #565656) 58%, #a78bfa 42%);
+  color: #ede9fe;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+:host-context(.app-dark) .comm-message__feedback:hover {
+  background: color-mix(in srgb, var(--globalColorCardBackground, #333333) 66%, #7c3aed 34%);
+  border-color: #c4b5fd;
+  color: #ffffff;
+}
+
+::ng-deep .ester-feedback-dialog {
+  background: var(--globalColorCardBackground, #fffafa);
+  border: 1px solid var(--globalColorCardBorderLight, #ffd4d4);
+  color: var(--globalColorTextInput, #172033);
+  overflow: hidden;
+}
+
+::ng-deep .ester-feedback-dialog .p-dialog-header,
+::ng-deep .ester-feedback-dialog .p-dialog-content,
+::ng-deep .ester-feedback-dialog .p-dialog-footer {
+  background: var(--globalColorCardBackground, #fffafa);
+  color: var(--globalColorTextInput, #172033);
+}
+
+::ng-deep .ester-feedback-dialog .p-dialog-header {
+  border-bottom: 1px solid var(--globalColorCardBorderLight, #ffd4d4);
+}
+
+::ng-deep .ester-feedback-dialog .p-dialog-footer {
+  border-top: 1px solid var(--globalColorCardBorderLight, #ffd4d4);
+}
+
+::ng-deep .ester-feedback-dialog .p-dialog-header-close {
+  color: var(--globalColorTextMuted, #64748b);
+}
+
+::ng-deep .ester-feedback-dialog .p-dialog-header-close:hover {
+  background: var(--globalColorInputBackground, #fff);
+  color: var(--globalColorTextInput, #172033);
+}
+
+.ester-feedback__header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.ester-feedback__header > span {
+  align-items: center;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border-radius: 14px;
+  color: #fff;
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.ester-feedback__header div { display: grid; gap: 3px; }
+.ester-feedback__header strong { font-size: 17px; }
+.ester-feedback__header small { color: var(--globalColorTextMuted, #64748b); }
+
+.ester-feedback {
+  display: grid;
+  gap: 18px;
+  padding-top: 4px;
+}
+
+.ester-feedback__message {
+  background: color-mix(in srgb, #8b5cf6 10%, var(--globalColorInputBackground, #f8fafc));
+  border-left: 4px solid #8b5cf6;
+  border-radius: 12px;
+  padding: 13px 15px;
+}
+
+.ester-feedback__message span,
+.ester-feedback__field > span {
+  color: var(--globalColorTextMuted, #64748b);
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+
+.ester-feedback__message p {
+  display: -webkit-box;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  max-height: 88px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.ester-feedback__field textarea {
+  background: var(--globalColorInputBackground, #f8fafc);
+  border: 1px solid var(--globalColorBorderInput, #dbe2ea);
+  border-radius: 14px;
+  color: var(--globalColorTextInput, #172033);
+  font: inherit;
+  line-height: 1.5;
+  min-height: 142px;
+  padding: 14px 16px;
+  resize: vertical;
+  width: 100%;
+}
+
+.ester-feedback__field textarea::placeholder {
+  color: var(--globalColorTextMuted, #64748b);
+  opacity: .82;
+}
+
+.ester-feedback__field textarea:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #8b5cf6 16%, transparent);
+  outline: none;
+}
+
+.ester-feedback__notice {
+  align-items: flex-start;
+  background: color-mix(in srgb, #8b5cf6 12%, var(--globalColorCardBackground, transparent));
+  border: 1px solid color-mix(in srgb, #8b5cf6 28%, var(--globalColorBorderDark, transparent));
+  border-radius: 12px;
+  color: var(--globalColorTextMuted, #64748b);
+  display: flex;
+  font-size: 13px;
+  gap: 9px;
+  line-height: 1.45;
+  padding: 12px 14px;
+}
+
+.ester-feedback__notice i { color: #8b5cf6; margin-top: 2px; }
+
+.ester-feedback__cancel,
+.ester-feedback__save {
+  border-radius: 11px;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 10px 16px;
+}
+
+.ester-feedback__cancel {
+  background: var(--globalColorInputBackground, transparent);
+  border: 1px solid var(--globalColorBorderInput, #dbe2ea);
+  color: var(--globalColorTextInput, #64748b);
+}
+
+.ester-feedback__save {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border: 0;
+  color: #fff;
+  margin-left: 8px;
+}
+
+.ester-feedback__save:disabled,
+.ester-feedback__cancel:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}

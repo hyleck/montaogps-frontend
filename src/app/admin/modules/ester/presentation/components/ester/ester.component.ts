@@ -13,6 +13,7 @@ import {
   EsterKnowledgeMediaUpload,
   EsterKnowledgePayload,
   EsterService,
+  EsterSelfLearningRule,
   EsterSkill,
   EsterSupervisorSettings,
   EsterWorkflowNode,
@@ -35,6 +36,7 @@ interface EsterKnowledgeForm {
 
 type EsterView =
   | 'knowledge'
+  | 'self-learning'
   | 'skills'
   | 'supervisor'
   | 'workflow';
@@ -47,6 +49,8 @@ type EsterView =
 })
 export class EsterComponent implements OnInit, OnDestroy {
   entries: EsterKnowledgeEntry[] = [];
+  selfLearningRules: EsterSelfLearningRule[] = [];
+  selfLearningLoading = true;
   loading = true;
   saving = false;
   editorVisible = false;
@@ -88,6 +92,7 @@ export class EsterComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadEntries();
+    this.loadSelfLearningRules();
     this.loadSkills();
     this.loadSupervisorSettings();
   }
@@ -151,6 +156,7 @@ export class EsterComponent implements OnInit, OnDestroy {
   get activeViewTitle(): string {
     const titles = {
       knowledge: 'Base de conocimiento',
+      'self-learning': 'Aprendizaje prioritario',
       skills: 'Habilidades',
       supervisor: 'Supervisor',
       workflow: 'Flujo de trabajo',
@@ -162,6 +168,8 @@ export class EsterComponent implements OnInit, OnDestroy {
     const descriptions = {
       knowledge:
         'Administra la información que Ester utiliza al responder a los clientes.',
+      'self-learning':
+        'Consulta las reglas que Ester optimiza automáticamente a partir del feedback root.',
       skills:
         'Controla las capacidades incorporadas en el código de Ester.',
       supervisor:
@@ -286,6 +294,27 @@ export class EsterComponent implements OnInit, OnDestroy {
         );
       },
     });
+  }
+
+  loadSelfLearningRules(): void {
+    this.selfLearningLoading = true;
+    this.esterService.getSelfLearningRules().subscribe({
+      next: rules => {
+        this.selfLearningRules = rules || [];
+        this.selfLearningLoading = false;
+      },
+      error: () => {
+        this.selfLearningLoading = false;
+        this.notify(
+          'error',
+          'No se pudo cargar el aprendizaje prioritario de Ester.',
+        );
+      },
+    });
+  }
+
+  trackSelfLearningRule(_: number, rule: EsterSelfLearningRule): string {
+    return rule._id;
   }
 
   loadSkills(): void {
