@@ -51,6 +51,12 @@ export interface InstallationDetail {
         online_confirmed_at?: string | Date;
     };
     images?: string[];
+    installation_evidence?: Array<{
+        field?: string;
+        label?: string;
+        url: string;
+        uploaded_at?: string | Date;
+    }>;
     audio?: string;
     final_device_status?: string;
     final_device_online?: boolean;
@@ -163,6 +169,11 @@ export interface VapiCallDetails {
     error?: string;
 }
 
+export interface SolicitudInstallationDeviceDetails {
+    device: any | null;
+    imei: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class SolicitudesService {
     private readonly apiUrl = `${environment.apiUrl}/solicitudes`;
@@ -189,6 +200,15 @@ export class SolicitudesService {
 
     getById(id: string): Observable<Solicitud> {
         return this.http.get<Solicitud>(`${this.apiUrl}/${id}`);
+    }
+
+    getInstallationDeviceDetails(
+        solicitudId: string,
+        installationIndex: number,
+    ): Observable<SolicitudInstallationDeviceDetails> {
+        return this.http.get<SolicitudInstallationDeviceDetails>(
+            `${this.apiUrl}/${encodeURIComponent(solicitudId)}/installations/${installationIndex}/device-details`,
+        );
     }
 
     checkTechnicianScheduleConflict(

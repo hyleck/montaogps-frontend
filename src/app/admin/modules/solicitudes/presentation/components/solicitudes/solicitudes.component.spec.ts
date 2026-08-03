@@ -231,6 +231,64 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.getProcessActivationSteps()[0].label).toBe('Validar SIM');
     });
 
+    it('loads installation photos through the request details endpoint without device-module access', async () => {
+        const { component, solicitudesService, targetsService } = createComponent();
+        (solicitudesService as any).getInstallationDeviceDetails = jasmine
+            .createSpy('getInstallationDeviceDetails')
+            .and.returnValue(of({
+                imei: 'INSTALL-IMEI',
+                device: {
+                    placa_img: { url: 'https://files.example/plate.jpg' },
+                    vehiculo_exterior_antes_img: { url: 'https://files.example/exterior.jpg' },
+                },
+            }));
+        const installation = {
+            process_type: 'instalacion',
+            device_imei: 'INSTALL-IMEI',
+        };
+        const solicitud: Solicitud = {
+            _id: 'request-id',
+            type: 'instalacion',
+            status: 'completada',
+            installations: [installation],
+        };
+
+        component.openKanbanProcessDetails(solicitud, installation, 0);
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect((solicitudesService as any).getInstallationDeviceDetails)
+            .toHaveBeenCalledOnceWith('request-id', 0);
+        expect(targetsService.getTargetByImei).not.toHaveBeenCalled();
+        expect(component.getAllProcessEvidence()).toEqual([
+            jasmine.objectContaining({ label: 'Foto de la placa', url: 'https://files.example/plate.jpg' }),
+            jasmine.objectContaining({ label: 'Exterior del vehículo antes', url: 'https://files.example/exterior.jpg' }),
+        ]);
+    });
+
+    it('keeps a persisted installation evidence snapshot and removes duplicate URLs', () => {
+        const { component } = createComponent();
+        const installation = {
+            process_type: 'instalacion',
+            images: ['https://files.example/diagnosis.jpg'],
+            installation_evidence: [
+                { label: 'Foto del chasis', url: 'https://files.example/chassis.jpg' },
+                { label: 'Duplicada', url: 'https://files.example/chassis.jpg' },
+            ],
+        };
+
+        expect(component.getAllProcessEvidence(installation)).toEqual([
+            jasmine.objectContaining({
+                label: 'Evidencia del diagnóstico 1',
+                url: 'https://files.example/diagnosis.jpg',
+            }),
+            jasmine.objectContaining({
+                label: 'Foto del chasis',
+                url: 'https://files.example/chassis.jpg',
+            }),
+        ]);
+    });
+
     it('orders the complete technician work as a readable step-by-step timeline', () => {
         const { component } = createComponent();
         component.processDetailsDevice = {
@@ -313,8 +371,30 @@ describe('SolicitudesComponent scheduled date editing', () => {
     it('labels final GPS states without replacing missing historical data with the current state', () => {
         const { component } = createComponent();
 
-        expect(component.getInstallationFinalDeviceStatusLabel({ final_device_online: true })).toBe('En línea al finalizar');
-        expect(component.getInstallationFinalDeviceStatusLabel({ final_device_online: false })).toBe('Fuera de línea al finalizar');
+        const checkedAt = '2026-08-03T12:00:00.000Z';
+        expect(component.getInstallationFinalDeviceStatusLabel({
+            final_device_status: 'online',
+            final_device_online: true,
+            final_device_status_at: checkedAt,
+        })).toBe('En línea al finalizar');
+        expect(component.getInstallationFinalDeviceStatusLabel({
+            final_device_status: 'offline',
+            final_device_online: false,
+            final_device_status_at: checkedAt,
+        })).toBe('Fuera de línea al finalizar');
+        expect(component.getInstallationFinalDeviceStatusLabel({
+            final_device_online: false,
+            final_device_status_at: checkedAt,
+        })).toBe('');
+        expect(component.getInstallationFinalDeviceStatusLabel({
+            final_device_status: 'unknown',
+            final_device_online: false,
+            final_device_status_at: checkedAt,
+        })).toBe('');
+        expect(component.getInstallationFinalDeviceStatusLabel({
+            final_device_status: 'offline',
+            final_device_online: false,
+        })).toBe('');
         expect(component.getInstallationFinalDeviceStatusLabel({ completed: true })).toBe('');
         expect(component.hasInstallationFinalDeviceStatus({ completed: true })).toBeFalse();
     });

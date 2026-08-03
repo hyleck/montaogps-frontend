@@ -3294,15 +3294,32 @@ async initLocationMap(): Promise<void> {
         this.processDetailsDeviceError = '';
 
         const imei = this.getProcessDetailsDeviceImei(solicitud, installation, index);
+        const solicitudId = String(solicitud?._id || '').trim();
+        const getInstallationDeviceDetails = (this.solicitudesService as any)?.getInstallationDeviceDetails;
         const getTargetByImei = (this.targetsService as any)?.getTargetByImei;
-        if (!imei || typeof getTargetByImei !== 'function') {
+        if ((!solicitudId || typeof getInstallationDeviceDetails !== 'function')
+            && (!imei || typeof getTargetByImei !== 'function')) {
             this.processDetailsDeviceLoading = false;
             return;
         }
 
         this.processDetailsDeviceLoading = true;
         try {
-            const device = await getTargetByImei.call(this.targetsService, imei);
+            let device: any = null;
+            if (solicitudId && typeof getInstallationDeviceDetails === 'function') {
+                try {
+                    const response = await firstValueFrom(
+                        getInstallationDeviceDetails.call(this.solicitudesService, solicitudId, index),
+                    );
+                    device = (response as any)?.device || null;
+                } catch {
+                    // Compatibility fallback while frontend and backend deployments overlap.
+                }
+            }
+
+            if (!device && imei && typeof getTargetByImei === 'function') {
+                device = await getTargetByImei.call(this.targetsService, imei);
+            }
             if (requestId !== this.processDetailsDeviceRequestId) return;
             this.processDetailsDevice = device;
         } catch {
@@ -3358,6 +3375,54 @@ async initLocationMap(): Promise<void> {
                 uploadedAt: evidence?.uploaded_at,
             }];
         });
+    }
+
+    getPersistedInstallationEvidence(
+        installation: InstallationDetail | null = this.processDetailsInstallation,
+    ): ProcessDeviceEvidence[] {
+        const evidence = Array.isArray(installation?.installation_evidence)
+            ? installation.installation_evidence
+            : [];
+
+        return evidence.flatMap(item => {
+            const url = String(item?.url || '').trim();
+            if (!url) return [];
+            return [{
+                label: String(item?.label || 'Fotografía de la instalación').trim(),
+                url,
+                uploadedAt: item?.uploaded_at,
+            }];
+        });
+    }
+
+    getAllProcessEvidence(
+        installation: InstallationDetail | null = this.processDetailsInstallation,
+    ): ProcessDeviceEvidence[] {
+        const diagnosisEvidence = (installation?.images || []).flatMap((image, evidenceIndex) => {
+            const url = typeof image === 'string' ? image.trim() : '';
+            return url ? [{ label: `Evidencia del diagnóstico ${evidenceIndex + 1}`, url }] : [];
+        });
+        const evidence = [
+            ...diagnosisEvidence,
+            ...this.getPersistedInstallationEvidence(installation),
+            ...this.getProcessDeviceEvidence(),
+        ];
+        const seen = new Set<string>();
+        return evidence.filter(item => {
+            const key = item.url.trim();
+            if (!key || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }
+
+    isInstallationEvidenceProcess(
+        solicitud: Solicitud,
+        installation: InstallationDetail,
+    ): boolean {
+        return ['instalacion', 'reinstalacion'].includes(
+            this.getProcessTypeForSolicitud(solicitud, installation),
+        );
     }
 
     getProcessActivationSteps(device: any = this.processDetailsDevice): ProcessActivationStep[] {
@@ -3422,15 +3487,26 @@ async initLocationMap(): Promise<void> {
     }
 
     getInstallationFinalDeviceState(installation?: InstallationDetail | null): 'online' | 'offline' | 'unknown' {
-        if (installation?.final_device_online === true) return 'online';
-        if (installation?.final_device_online === false) return 'offline';
-
         const rawStatus = String(installation?.final_device_status || '').trim().toLowerCase();
-        if (rawStatus) {
-            return ['online', 'señal débil', 'localizado'].includes(rawStatus) ? 'online' : 'offline';
-        }
+        const checkedAt = installation?.final_device_status_at
+            ? new Date(installation.final_device_status_at)
+            : null;
+        const hasValidCheckedAt = Boolean(checkedAt && !Number.isNaN(checkedAt.getTime()));
 
-        if (installation?.checkup_recovery?.online_confirmed === true) return 'online';
+        if (hasValidCheckedAt && rawStatus === 'offline') return 'offline';
+        if (hasValidCheckedAt && (
+            installation?.final_device_online === true
+            || ['online', 'señal débil', 'localizado'].includes(rawStatus)
+        )) return 'online';
+
+        const recoveryConfirmedAt = installation?.checkup_recovery?.online_confirmed_at
+            ? new Date(installation.checkup_recovery.online_confirmed_at)
+            : null;
+        if (
+            installation?.checkup_recovery?.online_confirmed === true
+            && recoveryConfirmedAt
+            && !Number.isNaN(recoveryConfirmedAt.getTime())
+        ) return 'online';
         return 'unknown';
     }
 
@@ -3473,7 +3549,7 @@ async initLocationMap(): Promise<void> {
         const technician = this.getTechnicianDisplayName(solicitud);
         const gpsChange = this.getGpsChangeInstallation(solicitud, installation, index);
         const recovery = installation.checkup_recovery;
-        const deviceEvidence = this.getProcessDeviceEvidence();
+        const deviceEvidence = this.getAllProcessEvidence(installation);
         const activationSteps = this.getProcessActivationSteps();
         const activationLogs = this.getProcessActivationLogs();
 
@@ -3682,24 +3758,17 @@ async initLocationMap(): Promise<void> {
             });
         }
 
-        if (deviceEvidence.length || installation.images?.length || installation.audio) {
+        if (deviceEvidence.length || installation.audio) {
             add({
                 title: 'Adjuntó las evidencias del trabajo',
                 description: 'Dejó fotografías y archivos que respaldan lo realizado.',
                 icon: 'pi-paperclip',
                 state: 'info',
                 details: details(
-                    ['Fotos del diagnóstico', installation.images?.length ? `${installation.images.length}` : ''],
-                    ['Evidencias del dispositivo', deviceEvidence.length ? `${deviceEvidence.length}` : ''],
+                    ['Fotografías y evidencias', deviceEvidence.length ? `${deviceEvidence.length}` : ''],
                     ['Nota de voz', installation.audio ? 'Adjunta' : ''],
                 ),
-                evidence: [
-                    ...(installation.images || []).map((url, evidenceIndex) => ({
-                        label: `Evidencia del diagnóstico ${evidenceIndex + 1}`,
-                        url,
-                    })),
-                    ...deviceEvidence,
-                ],
+                evidence: deviceEvidence,
                 audio: installation.audio,
             });
         }
@@ -3726,8 +3795,12 @@ async initLocationMap(): Promise<void> {
                     && this.hasInstallationFinalDeviceStatus(installation)
                     ? this.getInstallationFinalDeviceStatusLabel(installation)
                     : ''],
-                ['Estado reportado por el GPS', installation.final_device_status],
-                ['Hora de la comprobación final', this.formatProcessTimelineDate(installation.final_device_status_at)],
+                ['Estado reportado por el GPS', this.hasInstallationFinalDeviceStatus(installation)
+                    ? installation.final_device_status
+                    : ''],
+                ['Hora de la comprobación final', this.hasInstallationFinalDeviceStatus(installation)
+                    ? this.formatProcessTimelineDate(installation.final_device_status_at)
+                    : ''],
                 ['Motivo de cancelación', installation.cancelled || solicitud.status === 'cancelada' || solicitud.status === 'rechazada'
                     ? (solicitud.cancellation_reason || installation.installation_details)
                     : ''],

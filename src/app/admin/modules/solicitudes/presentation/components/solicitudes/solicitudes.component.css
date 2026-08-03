@@ -3509,6 +3509,351 @@ html.app-dark .sol-process-device-warning {
     color: #fbbf24;
 }
 
+.sol-process-main-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sol-process-evidence-count {
+    margin-left: auto;
+    padding: 0.24rem 0.48rem;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.11);
+    color: #6366f1;
+    font-size: 0.6rem;
+    font-weight: 850;
+}
+
+.sol-process-evidence-gallery {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.sol-process-evidence-inline-state,
+.sol-process-evidence-empty {
+    display: flex;
+    align-items: center;
+    gap: 0.72rem;
+    min-height: 78px;
+    padding: 0.85rem;
+    border: 1px dashed var(--managementFieldsBorder);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--managementColorCardBackground) 72%, transparent);
+    color: var(--managementColorTextUser);
+}
+
+.sol-process-evidence-inline-state {
+    font-size: 0.68rem;
+    font-weight: 750;
+}
+
+.sol-process-evidence-inline-state > i,
+.sol-process-evidence-empty > i {
+    display: grid;
+    flex: 0 0 38px;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.13);
+    color: #6366f1;
+}
+
+.sol-process-evidence-empty > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.16rem;
+}
+
+.sol-process-evidence-empty strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.7rem;
+}
+
+.sol-process-evidence-empty span {
+    font-size: 0.62rem;
+    line-height: 1.45;
+    opacity: 0.72;
+}
+
+.sol-process-evidence-photo {
+    position: relative;
+    display: flex;
+    overflow: hidden;
+    min-width: 0;
+    flex-direction: column;
+    border: 1px solid var(--managementFieldsBorder);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--managementColorCardBackground) 70%, var(--managementColorBackgroundUser));
+    color: var(--managementColorTitleUser);
+    text-decoration: none;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.sol-process-evidence-photo:hover {
+    border-color: rgba(99, 102, 241, 0.52);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    transform: translateY(-2px);
+}
+
+.sol-process-evidence-photo > img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: color-mix(in srgb, var(--managementFieldsBorder) 45%, transparent);
+    object-fit: cover;
+}
+
+.sol-process-evidence-photo > span {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.18rem;
+    padding: 0.58rem 0.65rem;
+}
+
+.sol-process-evidence-photo strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.67rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.sol-process-evidence-photo small {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    color: #6366f1;
+    font-size: 0.56rem;
+    font-weight: 750;
+    line-height: 1.35;
+}
+
+.sol-process-evidence-audio {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--managementFieldsBorder);
+}
+
+.sol-process-evidence-audio > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--managementColorTitleUser);
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.sol-process-evidence-audio > span i {
+    color: #6366f1;
+}
+
+.sol-process-evidence-audio audio {
+    width: min(100%, 360px);
+    height: 36px;
+}
+
+.sol-process-activation-disclosure {
+    overflow: hidden;
+    border: 1px solid rgba(16, 185, 129, 0.34);
+    border-radius: 14px;
+    background: var(--managementColorBackgroundUser);
+}
+
+.sol-process-activation-disclosure > summary {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.72rem;
+    padding: 0.78rem 0.9rem;
+    background: rgba(16, 185, 129, 0.07);
+    cursor: pointer;
+    list-style: none;
+    transition: background 0.16s ease;
+}
+
+.sol-process-activation-disclosure > summary:hover {
+    background: rgba(16, 185, 129, 0.13);
+}
+
+.sol-process-activation-disclosure > summary::-webkit-details-marker {
+    display: none;
+}
+
+.sol-process-activation-disclosure__icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+}
+
+.sol-process-activation-disclosure__copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.sol-process-activation-disclosure__copy strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.78rem;
+}
+
+.sol-process-activation-disclosure__copy small {
+    color: #059669;
+    font-size: 0.61rem;
+    font-weight: 750;
+}
+
+html.app-dark .sol-process-activation-disclosure__copy small {
+    color: #34d399;
+}
+
+.sol-process-activation-disclosure__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    padding: 0.45rem 0.62rem;
+    border-radius: 9px;
+    background: #10b981;
+    color: #fff;
+    font-size: 0.63rem;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.sol-process-activation-disclosure__action > i {
+    font-size: 0.62rem;
+    transition: transform 0.18s ease;
+}
+
+.sol-process-activation-disclosure__when-open {
+    display: none;
+}
+
+.sol-process-activation-disclosure[open] .sol-process-activation-disclosure__when-closed {
+    display: none;
+}
+
+.sol-process-activation-disclosure[open] .sol-process-activation-disclosure__when-open {
+    display: inline;
+}
+
+.sol-process-activation-disclosure[open] .sol-process-activation-disclosure__action > i {
+    transform: rotate(180deg);
+}
+
+.sol-process-activation-disclosure__body {
+    padding: 0.85rem;
+    border-top: 1px solid var(--managementFieldsBorder);
+}
+
+.sol-process-log {
+    overflow: hidden;
+    border: 1px solid rgba(99, 102, 241, 0.32);
+    border-radius: 14px;
+    background: var(--managementColorBackgroundUser);
+}
+
+.sol-process-log > summary {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.72rem;
+    padding: 0.78rem 0.9rem;
+    background: rgba(99, 102, 241, 0.07);
+    color: var(--managementColorTitleUser);
+    cursor: pointer;
+    list-style: none;
+    transition: background 0.16s ease;
+}
+
+.sol-process-log > summary:hover {
+    background: rgba(99, 102, 241, 0.13);
+}
+
+.sol-process-log > summary::-webkit-details-marker {
+    display: none;
+}
+
+.sol-process-log__icon {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: rgba(99, 102, 241, 0.15);
+    color: #6366f1;
+}
+
+.sol-process-log__copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+
+.sol-process-log__copy strong {
+    color: var(--managementColorTitleUser);
+    font-size: 0.78rem;
+}
+
+.sol-process-log__copy small {
+    color: var(--managementColorTextUser);
+    font-size: 0.61rem;
+    opacity: 0.66;
+}
+
+.sol-process-log__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.42rem;
+    padding: 0.45rem 0.62rem;
+    border-radius: 9px;
+    background: #6366f1;
+    color: #fff;
+    font-size: 0.63rem;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.sol-process-log__action > i {
+    font-size: 0.62rem;
+    transition: transform 0.18s ease;
+}
+
+.sol-process-log__when-open {
+    display: none;
+}
+
+.sol-process-log[open] .sol-process-log__when-closed {
+    display: none;
+}
+
+.sol-process-log[open] .sol-process-log__when-open {
+    display: inline;
+}
+
+.sol-process-log[open] .sol-process-log__action > i {
+    transform: rotate(180deg);
+}
+
+.sol-process-log__body {
+    padding: 1rem;
+    border-top: 1px solid var(--managementFieldsBorder);
+}
+
 .sol-process-timeline-card {
     padding: 1rem;
     border: 1px solid var(--managementFieldsBorder);
@@ -3982,10 +4327,56 @@ html.app-dark .sol-process-device-warning {
         grid-template-columns: 1fr;
     }
 
+    .sol-process-evidence-gallery {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sol-process-evidence-audio {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .sol-process-evidence-audio audio {
+        width: 100%;
+    }
+
+    .sol-process-log > summary {
+        grid-template-columns: 38px minmax(0, 1fr);
+        padding: 0.72rem;
+    }
+
+    .sol-process-activation-disclosure > summary {
+        grid-template-columns: 38px minmax(0, 1fr);
+        padding: 0.72rem;
+    }
+
+    .sol-process-log__icon,
+    .sol-process-activation-disclosure__icon {
+        width: 38px;
+        height: 38px;
+    }
+
+    .sol-process-log__action,
+    .sol-process-activation-disclosure__action {
+        grid-column: 1 / -1;
+        justify-content: center;
+    }
+
+    .sol-process-log__body,
+    .sol-process-activation-disclosure__body {
+        padding: 0.72rem;
+    }
+
     .sol-process-location-map-shell,
     .sol-process-location-map {
         height: 360px;
         min-height: 360px;
+    }
+}
+
+@media (max-width: 460px) {
+    .sol-process-evidence-gallery {
+        grid-template-columns: 1fr;
     }
 }
 

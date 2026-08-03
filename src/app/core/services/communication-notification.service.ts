@@ -27,6 +27,7 @@ interface ConversationNotificationState {
   fingerprint: string;
   unreadCount: number;
   lastMessageFingerprint: string;
+  esterAssigned: boolean;
 }
 
 export interface CommunicationFloatingMessage {
@@ -222,7 +223,12 @@ export class CommunicationNotificationService implements OnDestroy {
         conversation.last_message_type ?? '',
       ].join('|');
 
-      nextState.set(id, { fingerprint, unreadCount, lastMessageFingerprint });
+      nextState.set(id, {
+        fingerprint,
+        unreadCount,
+        lastMessageFingerprint,
+        esterAssigned: !conversation.assignee_id,
+      });
 
       if (!this.initialized) continue;
 
@@ -346,6 +352,29 @@ export class CommunicationNotificationService implements OnDestroy {
     this.internalPendingCount = 0;
     this.internalPendingCountSubject.next(0);
     this.emitTotalPendingCount();
+  }
+
+  markWhatsAppConversationRead(conversationId: number): void {
+    const normalizedConversationId = Number(conversationId || 0);
+    const currentState = this.conversationState.get(normalizedConversationId);
+    if (!normalizedConversationId || !currentState || currentState.unreadCount <= 0) {
+      return;
+    }
+
+    const readCount = currentState.unreadCount;
+    this.conversationState.set(normalizedConversationId, {
+      ...currentState,
+      unreadCount: 0,
+      fingerprint: currentState.fingerprint.replace(/\|[^|]*$/, '|0'),
+    });
+    this.whatsappPendingCount = Math.max(0, this.whatsappPendingCount - readCount);
+    this.emitTotalPendingCount();
+
+    if (currentState.esterAssigned) {
+      this.esterPendingCountSubject.next(
+        Math.max(0, this.esterPendingCountSubject.value - readCount),
+      );
+    }
   }
 
   syncInternalPendingCount(count: number): void {

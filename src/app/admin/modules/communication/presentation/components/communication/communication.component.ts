@@ -1595,7 +1595,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   selectConversation(conv: ChatConversation, navigate: boolean = true): void {
     this.stopConversationPresenceSession();
     this.stopChatPolling();
-    conv.unread_count = 0; // Clear indicator instantly mimicking visual read receipts
+    this.communicationNotifications.markWhatsAppConversationRead(conv.id);
+    conv.unread_count = 0;
     this.resetPlayableAudio();
     this.selectedConversation = conv;
     if (navigate) {

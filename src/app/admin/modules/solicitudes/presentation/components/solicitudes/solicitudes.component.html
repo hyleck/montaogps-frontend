@@ -1191,84 +1191,21 @@
                     </span>
                 </header>
 
-                <section class="sol-process-timeline-card">
-                    <div class="sol-process-timeline-card__header">
-                        <div>
-                            <span>Bitácora del técnico</span>
-                            <h3>Trabajo realizado paso a paso</h3>
-                            <p>El orden representa el flujo del trabajo. Solo mostramos una hora cuando quedó registrada por el sistema.</p>
-                        </div>
-                        <i class="pi pi-list-check"></i>
-                    </div>
-
-                    <ol class="sol-process-timeline">
-                        <li *ngFor="let step of processDetailsTimeline; let stepIndex = index"
-                            class="sol-process-timeline__item"
-                            [attr.data-state]="step.state">
-                            <div class="sol-process-timeline__rail">
-                                <span>{{ stepIndex + 1 }}</span>
-                            </div>
-                            <article class="sol-process-timeline__content">
-                                <header>
-                                    <div class="sol-process-timeline__title">
-                                        <span class="sol-process-timeline__icon"><i class="pi" [ngClass]="step.icon"></i></span>
-                                        <div>
-                                            <small>Paso {{ stepIndex + 1 }}</small>
-                                            <h4>{{ step.title }}</h4>
-                                        </div>
-                                    </div>
-                                    <time *ngIf="step.timestamp">{{ step.timestamp | date: 'dd/MM/yyyy, h:mm a' }}</time>
-                                </header>
-                                <p>{{ step.description }}</p>
-
-                                <dl class="sol-process-timeline__details" *ngIf="step.details.length">
-                                    <div *ngFor="let detail of step.details">
-                                        <dt>{{ detail.label }}</dt>
-                                        <dd>{{ detail.value }}</dd>
-                                    </div>
-                                </dl>
-
-                                <button *ngIf="step.showLocationAction" type="button"
-                                    class="sol-process-map-button"
-                                    (click)="openProcessLocationMap(sol, installation)">
-                                    <i class="pi pi-map-marker"></i>
-                                    Ver en el mapa
-                                </button>
-
-                                <div class="sol-process-timeline__evidence" *ngIf="step.evidence?.length">
-                                    <a *ngFor="let evidence of step.evidence"
-                                        [href]="evidence.url" target="_blank" rel="noopener">
-                                        <i class="pi pi-image"></i>
-                                        <span>{{ evidence.label }}</span>
-                                        <small *ngIf="evidence.uploadedAt">{{ evidence.uploadedAt | date: 'dd/MM/yyyy, h:mm a' }}</small>
-                                    </a>
-                                </div>
-                                <audio *ngIf="step.audio" controls [src]="step.audio" class="sol-process-timeline__audio"></audio>
-                            </article>
-                        </li>
-                    </ol>
-                </section>
-
                 <section class="sol-info-card sol-info-card--full" *ngIf="processDetailsDeviceLoading">
                     <div class="sol-process-device-loading">
                         <i class="pi pi-spin pi-spinner"></i>
-                        <span>Completando la bitácora con la activación y las evidencias del dispositivo...</span>
+                        <span>Cargando la activación y las fotografías guardadas en el dispositivo...</span>
                     </div>
                 </section>
 
                 <section class="sol-info-card sol-info-card--full" *ngIf="!processDetailsDeviceLoading && processDetailsDeviceError">
                     <div class="sol-process-device-warning">
                         <i class="pi pi-info-circle"></i>
-                        <span>{{ processDetailsDeviceError }} La bitácora muestra los datos guardados en la solicitud.</span>
+                        <span>{{ processDetailsDeviceError }} Los demás detalles guardados en la solicitud continúan disponibles.</span>
                     </div>
                 </section>
 
-                <details class="sol-process-technical-details">
-                    <summary>
-                        <span><i class="pi pi-database"></i> Ver ficha técnica consolidada</span>
-                        <i class="pi pi-chevron-down"></i>
-                    </summary>
-                    <div class="sol-process-technical-details__body">
+                <div class="sol-process-main-details">
                 <div class="sol-closed-info__grid">
                     <section class="sol-info-card">
                         <div class="sol-info-card__title">
@@ -1283,6 +1220,14 @@
                             <div>
                                 <dt>Estado de solicitud</dt>
                                 <dd>{{ statusLabels[sol.status] || sol.status }}</dd>
+                            </div>
+                            <div *ngIf="sol.createdAt">
+                                <dt>Creada</dt>
+                                <dd>{{ sol.createdAt | date: 'dd/MM/yyyy, h:mm a' }}</dd>
+                            </div>
+                            <div *ngIf="getSolicitudCreatorName(sol)">
+                                <dt>Creada por</dt>
+                                <dd>{{ getSolicitudCreatorName(sol) }}</dd>
                             </div>
                             <div *ngIf="installation.scheduled_date || sol.scheduled_date">
                                 <dt>Programado</dt>
@@ -1509,51 +1454,162 @@
                     </dl>
                 </section>
 
-                <section class="sol-info-card sol-info-card--full"
+                <details class="sol-process-activation-disclosure"
                     *ngIf="!processDetailsDeviceLoading && getProcessActivationStatusLabel()">
-                    <div class="sol-info-card__title">
-                        <i class="pi pi-bolt"></i>
-                        <h3>Activación del GPS</h3>
+                    <summary>
+                        <span class="sol-process-activation-disclosure__icon"><i class="pi pi-bolt"></i></span>
+                        <span class="sol-process-activation-disclosure__copy">
+                            <strong>Proceso de activación</strong>
+                            <small>{{ getProcessActivationStatusLabel() }}</small>
+                        </span>
+                        <span class="sol-process-activation-disclosure__action">
+                            <span class="sol-process-activation-disclosure__when-closed">Ver activación</span>
+                            <span class="sol-process-activation-disclosure__when-open">Ocultar activación</span>
+                            <i class="pi pi-chevron-down"></i>
+                        </span>
+                    </summary>
+                    <div class="sol-process-activation-disclosure__body">
+                        <dl class="sol-info-list sol-info-list--two-columns">
+                            <div><dt>Resultado</dt><dd>{{ getProcessActivationStatusLabel() }}</dd></div>
+                            <div *ngIf="processDetailsDevice?.activation_status?.completedAt">
+                                <dt>Finalizada</dt><dd>{{ processDetailsDevice.activation_status.completedAt | date: 'dd/MM/yyyy, h:mm a' }}</dd>
+                            </div>
+                            <div *ngFor="let step of getProcessActivationSteps()">
+                                <dt>{{ step.label }}</dt>
+                                <dd>{{ step.status === 'success' ? 'Completado' : (step.status === 'error' ? 'Con error' : (step.status === 'running' ? 'En proceso' : 'Pendiente')) }}</dd>
+                            </div>
+                        </dl>
+                        <div class="sol-vehicle-card__notes" style="margin: 1rem 0 0;" *ngIf="getProcessActivationLogs().length">
+                            <div *ngFor="let log of getProcessActivationLogs()">
+                                <span>
+                                    Registro de activación
+                                    <ng-container *ngIf="log.time"> · {{ log.time | date: 'dd/MM/yyyy, h:mm a' }}</ng-container>
+                                </span>
+                                <p>{{ log.message }}</p>
+                            </div>
+                        </div>
                     </div>
-                    <dl class="sol-info-list sol-info-list--two-columns">
-                        <div><dt>Resultado</dt><dd>{{ getProcessActivationStatusLabel() }}</dd></div>
-                        <div *ngIf="processDetailsDevice?.activation_status?.completedAt">
-                            <dt>Finalizada</dt><dd>{{ processDetailsDevice.activation_status.completedAt | date: 'dd/MM/yyyy, h:mm a' }}</dd>
-                        </div>
-                        <div *ngFor="let step of getProcessActivationSteps()">
-                            <dt>{{ step.label }}</dt>
-                            <dd>{{ step.status === 'success' ? 'Completado' : (step.status === 'error' ? 'Con error' : (step.status === 'running' ? 'En proceso' : 'Pendiente')) }}</dd>
-                        </div>
-                    </dl>
-                    <div class="sol-vehicle-card__notes" style="margin-top: 1rem;" *ngIf="getProcessActivationLogs().length">
-                        <div *ngFor="let log of getProcessActivationLogs()">
-                            <span>
-                                Registro de activación
-                                <ng-container *ngIf="log.time"> · {{ log.time | date: 'dd/MM/yyyy, h:mm a' }}</ng-container>
+                </details>
+
+                <ng-container *ngIf="getAllProcessEvidence(installation) as processEvidence">
+                    <section class="sol-info-card sol-info-card--full sol-process-evidence-card"
+                        *ngIf="isInstallationEvidenceProcess(sol, installation) || processEvidence.length || installation.audio">
+                        <div class="sol-info-card__title">
+                            <i class="pi pi-images"></i>
+                            <h3>Fotografías de la instalación</h3>
+                            <span class="sol-process-evidence-count" *ngIf="processEvidence.length">
+                                {{ processEvidence.length }} foto(s)
                             </span>
-                            <p>{{ log.message }}</p>
                         </div>
-                    </div>
-                </section>
 
-                <section class="sol-info-card sol-info-card--full" *ngIf="installation.images?.length || installation.audio || getProcessDeviceEvidence().length">
-                    <div class="sol-info-card__title">
-                        <i class="pi pi-paperclip"></i>
-                        <h3>Evidencias</h3>
-                    </div>
-                    <div class="sol-vehicle-card__evidence" style="padding: 0;">
-                        <a *ngFor="let image of installation.images; let evidenceIndex = index"
-                            [href]="image" target="_blank" rel="noopener" class="sol-evidence-chip">
-                            <i class="pi pi-image"></i>Evidencia del diagnóstico {{ evidenceIndex + 1 }}
-                        </a>
-                        <a *ngFor="let evidence of getProcessDeviceEvidence()"
-                            [href]="evidence.url" target="_blank" rel="noopener" class="sol-evidence-chip">
-                            <i class="pi pi-image"></i>{{ evidence.label }}
-                        </a>
-                        <audio *ngIf="installation.audio" controls [src]="installation.audio" style="width: min(100%, 360px); height: 36px;"></audio>
-                    </div>
-                </section>
+                        <div class="sol-process-evidence-inline-state"
+                            *ngIf="processDetailsDeviceLoading && !processEvidence.length">
+                            <i class="pi pi-spin pi-spinner"></i>
+                            <span>Buscando las fotografías guardadas durante la instalación...</span>
+                        </div>
 
+                        <div class="sol-process-evidence-gallery" *ngIf="processEvidence.length">
+                            <a *ngFor="let evidence of processEvidence"
+                                [href]="evidence.url" target="_blank" rel="noopener" class="sol-process-evidence-photo">
+                                <img [src]="evidence.url" [alt]="evidence.label" loading="lazy">
+                                <span>
+                                    <strong>{{ evidence.label }}</strong>
+                                    <small *ngIf="evidence.uploadedAt; else processEvidenceLink">
+                                        {{ evidence.uploadedAt | date: 'dd/MM/yyyy, h:mm a' }}
+                                    </small>
+                                    <ng-template #processEvidenceLink>
+                                        <small><i class="pi pi-external-link"></i> Ver foto completa</small>
+                                    </ng-template>
+                                </span>
+                            </a>
+                        </div>
+
+                        <div class="sol-process-evidence-empty"
+                            *ngIf="!processDetailsDeviceLoading && !processEvidence.length">
+                            <i class="pi pi-image"></i>
+                            <div>
+                                <strong>No se adjuntaron fotografías en esta instalación</strong>
+                                <span>Las fotos solo aparecen cuando el técnico las subió durante el proceso.</span>
+                            </div>
+                        </div>
+
+                        <div class="sol-process-evidence-audio" *ngIf="installation.audio">
+                            <span><i class="pi pi-volume-up"></i> Nota de voz del técnico</span>
+                            <audio controls [src]="installation.audio"></audio>
+                        </div>
+                    </section>
+                </ng-container>
+
+                </div>
+
+                <details class="sol-process-log">
+                    <summary>
+                        <span class="sol-process-log__icon"><i class="pi pi-list-check"></i></span>
+                        <span class="sol-process-log__copy">
+                            <strong>Bitácora del técnico</strong>
+                            <small>{{ processDetailsTimeline.length }} pasos registrados</small>
+                        </span>
+                        <span class="sol-process-log__action">
+                            <span class="sol-process-log__when-closed">Ver bitácora</span>
+                            <span class="sol-process-log__when-open">Ocultar bitácora</span>
+                            <i class="pi pi-chevron-down"></i>
+                        </span>
+                    </summary>
+                    <div class="sol-process-log__body">
+                        <div class="sol-process-timeline-card__header">
+                            <div>
+                                <span>Trabajo realizado paso a paso</span>
+                                <h3>Recorrido completo del proceso</h3>
+                                <p>El orden representa el flujo del trabajo. Solo mostramos una hora cuando quedó registrada por el sistema.</p>
+                            </div>
+                        </div>
+
+                        <ol class="sol-process-timeline">
+                            <li *ngFor="let step of processDetailsTimeline; let stepIndex = index"
+                                class="sol-process-timeline__item"
+                                [attr.data-state]="step.state">
+                                <div class="sol-process-timeline__rail">
+                                    <span>{{ stepIndex + 1 }}</span>
+                                </div>
+                                <article class="sol-process-timeline__content">
+                                    <header>
+                                        <div class="sol-process-timeline__title">
+                                            <span class="sol-process-timeline__icon"><i class="pi" [ngClass]="step.icon"></i></span>
+                                            <div>
+                                                <small>Paso {{ stepIndex + 1 }}</small>
+                                                <h4>{{ step.title }}</h4>
+                                            </div>
+                                        </div>
+                                        <time *ngIf="step.timestamp">{{ step.timestamp | date: 'dd/MM/yyyy, h:mm a' }}</time>
+                                    </header>
+                                    <p>{{ step.description }}</p>
+
+                                    <dl class="sol-process-timeline__details" *ngIf="step.details.length">
+                                        <div *ngFor="let detail of step.details">
+                                            <dt>{{ detail.label }}</dt>
+                                            <dd>{{ detail.value }}</dd>
+                                        </div>
+                                    </dl>
+
+                                    <button *ngIf="step.showLocationAction" type="button"
+                                        class="sol-process-map-button"
+                                        (click)="openProcessLocationMap(sol, installation)">
+                                        <i class="pi pi-map-marker"></i>
+                                        Ver en el mapa
+                                    </button>
+
+                                    <div class="sol-process-timeline__evidence" *ngIf="step.evidence?.length">
+                                        <a *ngFor="let evidence of step.evidence"
+                                            [href]="evidence.url" target="_blank" rel="noopener">
+                                            <i class="pi pi-image"></i>
+                                            <span>{{ evidence.label }}</span>
+                                            <small *ngIf="evidence.uploadedAt">{{ evidence.uploadedAt | date: 'dd/MM/yyyy, h:mm a' }}</small>
+                                        </a>
+                                    </div>
+                                    <audio *ngIf="step.audio" controls [src]="step.audio" class="sol-process-timeline__audio"></audio>
+                                </article>
+                            </li>
+                        </ol>
                     </div>
                 </details>
             </ng-container>
