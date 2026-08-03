@@ -48,7 +48,7 @@ export interface Target {
   engine_shutdown?: string | null;
   installation_details?: string;
   status: 'active' | 'inactive' | null;
-  plan?: string | null;
+  server_id?: string | null;
   user_id?: string;
   created_at?: string;
   updated_at?: string;
@@ -104,7 +104,6 @@ export interface CreateTargetDto {
   cancelDescription?: string;
   delete: boolean;
   index: string;
-  plan?: string | null;
   creator_id: string;
   parent_id: string;
   user_id?: string;
@@ -144,19 +143,7 @@ export interface UpdateTargetDto {
   canceled?: boolean;
   delete?: boolean;
   index?: string;
-  plan?: string | {
-    id_plan: string;
-    selected_price: {
-      id: string;
-      amount: number;
-      payment_period: string | number;
-    }
-  } | null;
-  selectedPrice?: {
-    id: string;
-    amount: number;
-    payment_period: string | number;
-  } | null;
+  server_id?: string | null;
   creator_id?: string;
   parent_id?: string;
   user_id?: string;
@@ -206,20 +193,7 @@ export interface TargetDevice {
   index: string;
   parent_id: string;
   user_id?: string;
-  plan: string | {
-    id_plan: string;
-    selected_price: {
-      id: string;
-      amount: number;
-      payment_period: string | number;
-    }
-  } | null;
-  // Propiedades para el estado del formulario o compatibilidad
-  selectedPrice?: {
-    id: string;
-    amount: number;
-    payment_period: string | number;
-  } | null;
+  server_id?: string | null;
   // Campos de compatibilidad con versión anterior
   imei?: string;
   api_id?: string | null;

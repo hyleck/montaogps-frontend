@@ -8,20 +8,6 @@
     <div class="filter-section">
         <div class="filter-controls">
             <div class="filter-field">
-                <label for="planFilter">Filtrar por Plan:</label>
-                <select
-                    id="planFilter"
-                    [(ngModel)]="selectedPlan"
-                    (change)="onPlanFilterChange()"
-                    class="form-input"
-                >
-                    <option value="">Todos los planes</option>
-                    <option *ngFor="let plan of plans" [value]="plan._id">
-                        {{ plan.plan_name }}
-                    </option>
-                </select>
-            </div>
-            <div class="filter-field">
                 <label for="limitFilter">Límite de dispositivos:</label>
                 <input
                     type="number"
@@ -77,8 +63,6 @@
                 <th>SIM</th>
                 <th>Protocolo</th>
                 <th>Tipo</th>
-                <th>Plan</th>
-                <th>Servidor</th>
                 <th>Estado</th>
             </tr>
         </ng-template>
@@ -90,8 +74,6 @@
                 <td>{{ device.sim_card_number || 'N/A' }}</td>
                 <td>{{ device.protocol?.name || 'N/A' }}</td>
                 <td>{{ device.type || 'N/A' }}</td>
-                <td>{{ device.plan?.name || 'Sin plan' }}</td>
-                <td>{{ device.plan?.server_ip || 'N/A' }}</td>
                 <td>
                     <span [class]="'status-' + (device.status ? 'active' : 'inactive')">
                         {{ device.status ? 'Activo' : 'Inactivo' }}
@@ -102,7 +84,7 @@
 
         <ng-template pTemplate="emptymessage">
             <tr>
-                <td colspan="8" class="text-center">No hay dispositivos disponibles</td>
+                <td colspan="6" class="text-center">No hay dispositivos disponibles</td>
             </tr>
         </ng-template>
     </p-table>
@@ -131,7 +113,6 @@
                         class="form-input"
                     >
                         <option value="">Seleccionar tipo de proceso</option>
-                        <option value="plan_change">Cambio de plan</option>
                         <option value="gps_model_change">Cambio de modelo de GPS</option>
                         <option value="technician_change">Cambio de técnico</option>
                         <option value="renewal">Renovación</option>
@@ -146,60 +127,6 @@
                         <div class="target-form__grid process-grid">
                             <!-- Columna Izquierda - Campos de formulario -->
                             <div class="target-form__column process-fields-column">
-                                <!-- Plan Change Fields -->
-                                <div *ngIf="selectedProcessType === 'plan_change'">
-                                    <div class="target-form__field">
-                                        <label for="new_plan">{{ translateKey('management.targetForm.newPlan') }} <span class="required-label">(Requerido)</span></label>
-                                        <select
-                                            [(ngModel)]="processForm.newPlan"
-                                            name="new_plan"
-                                            id="new_plan"
-                                            (change)="onProcessPlanChange()"
-                                            class="form-input"
-                                        >
-                                            <option [ngValue]="''">{{ translateKey('management.targetForm.selectPlan') }}</option>
-                                            <option *ngFor="let plan of plans" [value]="plan._id">
-                                                {{ plan.plan_name }}
-                                            </option>
-                                        </select>
-                                    </div>
-
-                                    <!-- Price selector for plan change -->
-                                    <div class="target-form__field" *ngIf="processForm.newPlan">
-                                        <label for="new_price">
-                                            {{ translateKey('management.targetForm.newPrice') }} <span class="required-label">(Requerido)</span>
-                                        </label>
-                                        <div class="price-input-container">
-                                            <select
-                                                [(ngModel)]="processForm.newPrice"
-                                                name="new_price"
-                                                id="new_price"
-                                                [compareWith]="comparePrices"
-                                                (ngModelChange)="onProcessPriceChange()"
-                                                class="form-input"
-                                            >
-                                                <option [ngValue]="null">{{ translateKey('management.targetForm.selectPriceOption') }}</option>
-                                                <option *ngFor="let price of availablePricesForProcess" [ngValue]="price">
-                                                    <ng-container *ngIf="isPriceCustomized(price); else normalPrice">
-                                                        {{price.amount}} - {{ translateKey('settings.plans.' + price.payment_period) }} ({{ translateKey('management.targetForm.customized') }})
-                                                    </ng-container>
-                                                    <ng-template #normalPrice>
-                                                        {{price.amount}} - {{ translateKey('settings.plans.' + price.payment_period) }}
-                                                    </ng-template>
-                                                </option>
-                                            </select>
-                                            <div class="price-actions" *ngIf="processForm.newPlan && processForm.newPrice">
-                                                <i class="pi pi-pencil edit-price-icon" (click)="startProcessCustomPriceEdit()"></i>
-                                                <i *ngIf="isPriceCustomized(processForm.newPrice)"
-                                                   class="pi pi-eye original-price-eye"
-                                                   pTooltip="Precio original: {{ getOriginalPriceAmount(processForm.newPrice) }}"
-                                                   tooltipPosition="top">
-                                                </i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
                                 <!-- GPS Model Change Fields -->
                                 <div *ngIf="selectedProcessType === 'gps_model_change'">
                                     <div class="target-form__field">
@@ -274,7 +201,6 @@
                 <h4>Resumen de ejecución:</h4>
                 <ul>
                     <li><strong>Dispositivos afectados:</strong> {{ devices.length }}</li>
-                    <li><strong>Filtro aplicado:</strong> {{ getSelectedPlanName() }}</li>
                     <li><strong>Límite:</strong> {{ limit }} dispositivos</li>
                     <li><strong>Tipo de proceso:</strong> {{ getProcessTypeName() }}</li>
                 </ul>
@@ -323,7 +249,6 @@
                 <h4>Resumen de envío:</h4>
                 <ul>
                     <li><strong>Dispositivos afectados:</strong> {{ devices.length }}</li>
-                    <li><strong>Filtro aplicado:</strong> {{ getSelectedPlanName() }}</li>
                     <li><strong>Límite:</strong> {{ limit }} dispositivos</li>
                 </ul>
             </div>
@@ -355,4 +280,3 @@
         </ng-template>
     </p-dialog>
 </div>
-

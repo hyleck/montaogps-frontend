@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
 import { MessageService, MenuItem } from 'primeng/api';
 import { MasivoService } from '@core/services/masivo.service';
-import { PlansService } from '@core/services/plans.service';
 
 @Component({
   selector: 'app-masivo',
@@ -17,9 +16,6 @@ export class MasivoComponent implements OnInit {
   filteredDevices: any[] = [];
   selectedDevices: any[] = [];
   results: any[] = [];
-  selectedPlan: string = '';
-
-  planOptions: any[] = [];
 
   isLoadingDevices: boolean = false;
   isProcessing: boolean = false;
@@ -39,42 +35,12 @@ export class MasivoComponent implements OnInit {
 
   constructor(
     private masivoService: MasivoService,
-    private plansService: PlansService,
     private dialogService: DialogService,
     private messageService: MessageService
   ) {}
 
   ngOnInit() {
-    this.loadDevices(); // Load devices first, then plans will be loaded after
-  }
-
-  private loadPlans() {
-    console.log('Loading all plans (like in settings module)');
-
-    this.plansService.getAllPlans().subscribe({
-      next: (plans: any[]) => {
-        console.log('All plans from API:', plans.length);
-
-        // Show ALL plans, just like in the settings module
-        this.planOptions = [
-          { label: 'Todos los planes', value: '' },
-          ...plans.map(plan => ({
-            label: plan.plan_name,
-            value: plan._id
-          }))
-        ];
-
-        console.log('Plan options loaded:', this.planOptions.length - 1, 'plans available');
-      },
-      error: (error: any) => {
-        console.error('Error loading plans:', error);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'No se pudieron cargar los planes'
-        });
-      }
-    });
+    this.loadDevices();
   }
 
   private loadDevices(filters?: { search?: string; planId?: string }) {
@@ -87,11 +53,6 @@ export class MasivoComponent implements OnInit {
         this.filteredDevices = devices; // Backend already filtered
         console.log('Loaded devices:', devices.length, filters ? `with filters: ${JSON.stringify(filters)}` : 'without filters');
 
-        // Now load plans after devices are loaded (only if no filters applied)
-        if (!filters) {
-          console.log('Calling loadPlans after devices loaded');
-          this.loadPlans();
-        }
       },
       error: (error: any) => {
         this.isLoadingDevices = false;
@@ -103,22 +64,6 @@ export class MasivoComponent implements OnInit {
         });
       }
     });
-  }
-
-  onPlanFilterChange() {
-    console.log('Plan filter changed:', this.selectedPlan);
-    this.applyFilters();
-  }
-
-  applyFilters() {
-    const filters: { planId?: string } = {};
-
-    if (this.selectedPlan) {
-      filters.planId = this.selectedPlan;
-    }
-
-    console.log('Applying filters:', filters);
-    this.loadDevices(filters);
   }
 
   enviarSms() {
@@ -180,10 +125,6 @@ export class MasivoComponent implements OnInit {
     });
 
     console.log('Registrar proceso para dispositivos:', this.selectedDevices);
-  }
-
-  cambiarPlan() {
-    console.log('Cambiar Plan functionality');
   }
 
   actualizarIndices() {

@@ -410,7 +410,6 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
           targetImei: targetInfo.device_imei,
           targetPlate: targetInfo.plate,
           targetStatus: targetInfo.status,
-          targetPlan: targetInfo.plan,
           targetTraccarInfo: targetInfo.traccarInfo,
           targetCreatedAt: targetInfo.created_at,
           targetUpdatedAt: targetInfo.updated_at

@@ -19,7 +19,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     RolesFormDisplay: boolean = false;
     SystemSettingsDisplay: boolean = false;
     ServersSettingsDisplay: boolean = false;
-    PlansSettingsDisplay: boolean = false;
     ColorsSettingsDisplay: boolean = false;
     VehicleBrandsSettingsDisplay: boolean = false;
     VehicleModelsSettingsDisplay: boolean = false;
@@ -61,17 +60,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
                 titleKey: 'settings.cards.servers.title',
                 descriptionKey: 'settings.cards.servers.description',
                 action: () => this.ServersSettingsDisplay = true
-            },
-            {
-                icon: 'pi pi-list',
-                titleKey: 'settings.cards.plans.title',
-                descriptionKey: 'settings.cards.plans.description',
-                action: () => {
-                    const pass = prompt('Ingrese la contraseña para acceder:');
-                    if (pass === 'admin123') {
-                        this.PlansSettingsDisplay = true;
-                    }
-                }
             },
             {
                 titleKey: 'settings.colors.title',
@@ -165,14 +153,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.startHistorialesStatusMonitoring();
     }
 
-    // Método para verificar si tiene algún permiso en plans
-    hasAnyPlanPermission(): boolean {
-        return this.authService.hasPrivilege('plans', 'create') ||
-            this.authService.hasPrivilege('plans', 'read') ||
-            this.authService.hasPrivilege('plans', 'update') ||
-            this.authService.hasPrivilege('plans', 'delete');
-    }
-
     // Método para verificar si tiene algún permiso en system
     hasAnySystemPermission(): boolean {
         return this.authService.hasPrivilege('system', 'create') ||
@@ -249,10 +229,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
             // Si es la tarjeta de roles, verificar permisos
             if (card.titleKey === 'settings.roles.title') {
                 return this.hasAnyRolePermission();
-            }
-            // Si es la tarjeta de plans, verificar permisos
-            if (card.titleKey === 'settings.cards.plans.title') {
-                return this.hasAnyPlanPermission();
             }
             // Si es la tarjeta de system, verificar permisos
             if (card.titleKey === 'settings.system.title') {

@@ -1035,7 +1035,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
       name: deviceData.name || '',
       target_brand_id: deviceData.brand || '',
       target_model_id: deviceData.model || '',
-      plan: deviceData.plan || '',
       expiration_date: deviceData.expiration_date || '',
       mechanic_id: deviceData.technician_id || '',
       installation_details: deviceData.installation_details || '',

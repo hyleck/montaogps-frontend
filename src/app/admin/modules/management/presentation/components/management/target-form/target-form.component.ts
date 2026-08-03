@@ -7,25 +7,19 @@ import {
     TARGET_FORM_STYLES,
     TARGET_FORM_TRANSLATIONS,
     INSTALLATION_LOCATIONS,
-    FALLBACK_PLANS,
     FALLBACK_GPS_MODELS,
     FIELDS_TO_PRESERVE,
     YEARS_CONFIG,
-    CUSTOM_PRICE_CONFIG,
     SelectOption,
-    SmsMessage,
-    CustomPrice
+    SmsMessage
 } from './constants/target-form.constants';
 import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import { CloudComponent } from 'src/app/shareds/components/cloud/cloud.component';
 import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.service';
 import { ColorsService } from 'src/app/core/services/colors.service';
 import { TargetsService } from 'src/app/core/services/targets.service';
-import { PlansService } from 'src/app/core/services/plans.service';
 import { ServersService } from 'src/app/core/services/servers.service';
 import { CreateTargetDto, Target, UpdateTargetDto, TargetDevice, CreateProcessDto, ProcessResponse, TargetTransferHistoryEntry } from 'src/app/core/interfaces/target.interface';
-import { Plan, PlanPrice, ExtendedPlanPrice } from 'src/app/core/interfaces/plan.interface';
-import { Server } from 'src/app/core/interfaces/server.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { Protocol } from 'src/app/core/interfaces/protocol.interface';
 import { AuthService } from 'src/app/core/services/auth.service';
@@ -107,16 +101,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     @Output() vehicleVerified = new EventEmitter<TargetDevice>();
     @Output() activationEvent = new EventEmitter<{ targetId: string, type: 'started' | 'progress' | 'completed' | 'error', activation_status?: any }>();
 
-    // Flag para mostrar/ocultar la edición personalizada de precio
-    isCustomPriceEditing = false;
-    customPrice: CustomPrice = { id: '', amount: 0, payment_period: CUSTOM_PRICE_CONFIG.DEFAULT_PAYMENT_PERIOD };
-
-    // Precio original del plan, antes de cualquier personalización
-    originalPlanPrice: { id: string; amount: number; payment_period: string } | null = null;
-
-    // Flag para controlar la visibilidad del diálogo modal
-    displayPriceDialog = false;
-
     // Claves de traducción importadas desde constantes
     translations = TARGET_FORM_TRANSLATIONS;
 
@@ -183,18 +167,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     availableLocations: SelectOption[] = [];
     availableColors: SelectOption[] = [];
     availableSimCardTypes: SelectOption[] = SIM_CARD_TYPES;
-    availablePlans: SelectOption[] = [];
-    availablePrices: ExtendedPlanPrice[] = [];
     filteredColors: SelectOption[] = [];
     availableTechnicians: SelectOption[] = [];
     availableTags: Tag[] = [];
     renewalYearOptions: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
-
-    // Planes específicos para procesos (separados del formulario principal)
-    availablePlansForProcess: SelectOption[] = [];
-
-    // Precios específicos para procesos (separados del formulario principal)
-    availablePricesForProcess: ExtendedPlanPrice[] = [];
 
     // Bandera para evitar recálculo automático de fecha de expiración
     skipExpirationDateRecalculation: boolean = false;
@@ -232,8 +208,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         type: '',
         registrationDate: this.getTodayInputDate(),
         description: '',
-        newPlan: '',
-        newPrice: null,
         newInstallationDate: '',
         newExpirationDate: '',
         newRenewalDate: '',
@@ -253,7 +227,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         'installation': 2, // Modificación de fecha de instalación
         'expiration': 3, // Modificación de fecha de expiración
         'renewal': 4, // Renovación de servicio
-        'plan_change': 5, // Cambio de plan
         'technician_change': 8, // Modificar técnico
         'gps_change': 9, // Cambio de GPS
         'installation_details_change': 10, // Modificar detalles de instalación
@@ -271,14 +244,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     isLoadingProcesses: boolean = false;
     displayProcessesDialog: boolean = false;
     expandedProcessIndex: number | null = null;
-    // Personalización de precio para CAMBIO DE PLAN (proceso)
-    displayProcessPriceDialog = false;
-    processCustomPrice: { id: string; amount: number; payment_period: string } = {
-        id: CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX + new Date().getTime(),
-        amount: 0,
-        payment_period: CUSTOM_PRICE_CONFIG.DEFAULT_PAYMENT_PERIOD
-    };
-    processOriginalPlanPrice: { id: string; amount: number; payment_period: string } | null = null;
     selectedProtocol: Protocol | null = null;
     pendingGpsModel: string = ''; // GPS model a asignar después de cargar protocolos
 
@@ -1305,7 +1270,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         private vehicleBrandsService: VehicleBrandsService,
         private colorsService: ColorsService,
         private targetsService: TargetsService,
-        private plansService: PlansService,
         private serversService: ServersService,
         private protocolsService: ProtocolsService,
         private managementService: ManagementService,
@@ -1375,9 +1339,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             index: '',
             parent_id: '',
             user_id: '',
-            plan: '',
             connection_priority: 'normal',
-            selectedPrice: null
         };
     }
 
@@ -1469,22 +1431,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Usar constantes para ubicaciones y tipos de SIM
             this.availableLocations = [...INSTALLATION_LOCATIONS];
             this.availableSimCardTypes = [...SIM_CARD_TYPES];
-
-            // Cargar planes desde el servicio
-            this.plansService.getAllPlans().subscribe({
-                next: (plans: Plan[]) => {
-                    this.availablePlans = plans.map(plan => ({
-                        label: plan.plan_name,
-                        value: plan._id
-                    })).sort((a, b) => a.label.localeCompare(b.label));
-                    // Plan assignment is now handled by the backend
-                },
-                error: (error) => {
-                    console.error('Error al cargar planes:', error);
-                    // Usar fallback de constantes
-                    this.availablePlans = [...FALLBACK_PLANS];
-                }
-            });
 
             // Cargar técnicos desde el servicio
             this.userService.getTechnicians().pipe(takeUntil(this.destroy$)).subscribe({
@@ -1757,94 +1703,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
         });
 
-        const plansPromise = new Promise<void>((resolve) => {
-            if (this.target.plan && typeof this.target.plan === 'object') {
-                if ('id_plan' in this.target.plan && this.target.plan.id_plan) {
-                    const originalPlan = this.target.plan;
-                    if (originalPlan.selected_price) {
-                        this.target.selectedPrice = {
-                            id: originalPlan.selected_price.id,
-                            amount: originalPlan.selected_price.amount,
-                            payment_period: originalPlan.selected_price.payment_period
-                        };
-                    }
-                    this.target.plan = this.extractIdValue(originalPlan.id_plan);
-
-                    this.plansService.getPlanById(this.target.plan).subscribe({
-                        next: (plan: Plan) => {
-                            const currentSelectedPrice = this.target.selectedPrice ? { ...this.target.selectedPrice } : null;
-                            this.availablePrices = plan.prices.map(price => ({
-                                id: price.id,
-                                amount: price.amount,
-                                payment_period: typeof price.payment_period === 'string' ?
-                                    price.payment_period :
-                                    this.mapPeriodToString(price.payment_period)
-                            }));
-
-                            if (currentSelectedPrice) {
-                                const matchedPrice = this.availablePrices.find(price => price.id === currentSelectedPrice.id);
-                                if (matchedPrice) {
-                                    if (currentSelectedPrice.amount !== matchedPrice.amount) {
-                                        const customPrice = {
-                                            ...matchedPrice,
-                                            amount: currentSelectedPrice.amount,
-                                            originalAmount: matchedPrice.amount
-                                        };
-                                        const priceIndex = this.availablePrices.findIndex(p => p.id === matchedPrice.id);
-                                        if (priceIndex >= 0) {
-                                            this.availablePrices[priceIndex] = customPrice;
-                                        }
-                                        this.target.selectedPrice = customPrice;
-                                    } else {
-                                        this.target.selectedPrice = matchedPrice;
-                                    }
-                                } else {
-                                    const customPrice = {
-                                        ...currentSelectedPrice,
-                                        originalAmount: 0
-                                    };
-                                    this.availablePrices = [customPrice, ...this.availablePrices];
-                                    this.target.selectedPrice = customPrice;
-                                }
-                            }
-                            resolve();
-                        },
-                        error: (error) => {
-                            console.error('Error al cargar el plan:', error);
-                            resolve();
-                        }
-                    });
-                } else {
-                    resolve();
-                }
-            } else if (this.target.plan && typeof this.target.plan === 'string') {
-                this.plansService.getPlanById(this.target.plan).subscribe({
-                    next: (plan: Plan) => {
-                        this.availablePrices = plan.prices.map(price => ({
-                            id: price.id,
-                            amount: price.amount,
-                            payment_period: typeof price.payment_period === 'string' ?
-                                price.payment_period :
-                                this.mapPeriodToString(price.payment_period)
-                        }));
-
-                        if (this.availablePrices.length > 0 && !this.target.selectedPrice) {
-                            this.target.selectedPrice = this.availablePrices[0];
-                        }
-                        resolve();
-                    },
-                    error: (error) => {
-                        console.error('Error al cargar precios del plan:', error);
-                        resolve();
-                    }
-                });
-            } else {
-                if (!this.target.plan) {
-                    this.target.plan = '';
-                }
-                resolve();
-            }
-        });
+        const plansPromise = Promise.resolve();
 
         await modelsPromise;
 
@@ -1857,16 +1716,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         // Verificar si se debe auto-enviar el formulario
         this.checkAndAutoSubmit();
-
-        // Si el plan original del target es diferente al plan actualizado, 
-        // actualizar la fecha de expiración SOLO si no hay fecha de expiración establecida
-        // o si estamos en modo creación (no edición)
-        if (this.target.plan && (!this.target.expiration_date || !this.isEditMode)) {
-            console.log('🔍 DEBUG setupEditTarget: Recalculando fecha de expiración - isEditMode:', this.isEditMode, 'expiration_date:', this.target.expiration_date);
-            this.updateExpirationDate();
-        } else if (this.target.plan && this.isEditMode && this.target.expiration_date) {
-            console.log('🔍 DEBUG setupEditTarget: Saltando recálculo automático en modo edición - fecha ya establecida:', this.target.expiration_date);
-        }
 
         // Asignar el GPS model después de que los protocolos se hayan cargado
         // Si ya están cargados, asignar inmediatamente, si no, se asignará en el callback de protocolos
@@ -1898,8 +1747,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }, 500);
         }
 
-        // Cargar datos del servidor asociado al plan del target
-        this.loadServerDataFromPlan();
 
         // Cargar lista de procesos del target actual
         this.loadProcessesList(false);
@@ -2147,90 +1994,21 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return value._id || value.id || value.value || value.$oid || '';
     }
 
-    private getTargetPlanId(): string {
-        const plan = this.target?.plan as any;
-        if (!plan) return '';
-        if (typeof plan === 'string') return plan;
-        if (plan.id_plan) return this.extractIdValue(plan.id_plan);
-        return this.extractIdValue(plan);
-    }
-
-    /**
-     * Obtiene la IP del servidor asociado al plan del target
-     * @returns Promise que resuelve con la IP del servidor o null si no se encuentra
-     */
-    private async getServerIpFromPlan(): Promise<string | null> {
-        // Verificar que el target tenga un plan asignado
-        if (!this.target.plan) {
-            return null;
-        }
-
-        const planId = this.getTargetPlanId();
-
-        if (!planId) {
+    /** Obtiene la IP del servidor asignado directamente al target. */
+    private async getAssignedServerIp(): Promise<string | null> {
+        const serverId = this.extractIdValue(this.target.server_id);
+        if (!serverId) {
             return null;
         }
 
         try {
-            // Obtener datos del plan
-            const plan = await this.plansService.getPlanById(planId).toPromise();
-
-            if (!plan || !plan.server_id) {
-                return null;
-            }
-
-            // Obtener datos del servidor
-            const server = await this.serversService.getServerById(plan.server_id).toPromise();
+            const server = await this.serversService.getServerById(serverId).toPromise();
 
             return server?.ip || null;
         } catch (error) {
             console.error('❌ Error al obtener IP del servidor:', error);
             return null;
         }
-    }
-
-    /**
-     * Carga los datos del servidor asociado al plan del target
-     * Muestra la información del plan y servidor en consola
-     */
-    private loadServerDataFromPlan(): void {
-        // Verificar que el target tenga un plan asignado
-        if (!this.target.plan) {
-            return;
-        }
-
-        const planId = this.getTargetPlanId();
-
-        if (!planId) {
-            return;
-        }
-
-
-        // Obtener datos del plan
-        this.plansService.getPlanById(planId)
-            .pipe(takeUntil(this.destroy$))
-            .subscribe({
-                next: (plan: Plan) => {
-
-
-                    // Obtener datos del servidor
-                    if (plan.server_id) {
-                        this.serversService.getServerById(plan.server_id)
-                            .pipe(takeUntil(this.destroy$))
-                            .subscribe({
-                                next: (server: Server) => {
-
-                                },
-                                error: (error) => {
-                                    console.error('❌ Error al cargar datos del servidor:', error);
-                                }
-                            });
-                    }
-                },
-                error: (error) => {
-                    console.error('❌ Error al cargar datos del plan:', error);
-                }
-            });
     }
 
     private resetForm() {
@@ -2521,32 +2299,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // Obtener valores por defecto
         const defaultValues = this.getDefaultValues();
 
-        // Estructurar el plan en el formato requerido
-        if (targetData.plan && targetData.selectedPrice) {
-            // Cuando hay un precio personalizado, conservamos el ID original
-            // y solo modificamos el monto
-            targetData.plan = {
-                id_plan: targetData.plan,
-                selected_price: {
-                    id: targetData.selectedPrice.id,
-                    amount: targetData.selectedPrice.amount,
-                    payment_period: typeof targetData.selectedPrice.payment_period === 'string' ?
-                        targetData.selectedPrice.payment_period :
-                        this.mapPeriodToString(targetData.selectedPrice.payment_period)
-                }
-            };
-
-            // Debug para verificar la estructura del plan en el envío
-            // console.log('Estructura del plan a enviar:', {
-            //     id_plan: targetData.plan.id_plan,
-            //     precio_id: targetData.plan.selected_price.id,
-            //     monto: targetData.plan.selected_price.amount,
-            //     periodo: targetData.plan.selected_price.payment_period
-            // });
-        } else {
-            targetData.plan = null;
-        }
-
         // Convertir el array de contactos a string si es necesario
         if (Array.isArray(targetData.contacts)) {
             targetData.contacts = targetData.contacts.join(',');
@@ -2586,6 +2338,8 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
         // Eliminar propiedades que no deben enviarse al backend
         delete targetData.selectedPrice;
+        delete targetData.plan;
+        delete targetData.server_id;
         delete targetData.instalaciones_adicionales;
 
 
@@ -2617,7 +2371,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
                 // Reemplazar {{server}} si existe
                 if (processedCommand.includes('{{server}}')) {
-                    const serverIp = await this.getServerIpFromPlan();
+                    const serverIp = await this.getAssignedServerIp();
                     if (serverIp) {
                         processedCommand = processedCommand.replace(/\{\{server\}\}/g, serverIp);
                     }
@@ -2653,27 +2407,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     severity: 'error',
                     summary: this.translate('management.targetForm.validationError'),
                     detail: this.translate('management.targetForm.deviceInfoMissing')
-                });
-                return false;
-            }
-        }
-
-        // Validación de plan y precio solo en modo edición (en creación se auto-asignan)
-        if (this.isEditMode) {
-            if (!this.target.plan) {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.translate('management.targetForm.validationError'),
-                    detail: this.translate('management.targetForm.planRequired')
-                });
-                return false;
-            }
-
-            if (!this.target.selectedPrice) {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: this.translate('management.targetForm.validationError'),
-                    detail: this.translate('management.targetForm.priceRequired')
                 });
                 return false;
             }
@@ -2909,7 +2642,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
             // Verificar si el mensaje contiene {{server}} y reemplazarlo por la IP del servidor
             if (processedMessage.includes('{{server}}')) {
-                const serverIp = await this.getServerIpFromPlan();
+                const serverIp = await this.getAssignedServerIp();
 
                 if (serverIp) {
                     processedMessage = processedMessage.replace(/\{\{server\}\}/g, serverIp);
@@ -3397,287 +3130,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
     }
 
-    // Método para mapear periodos de string a número
-    private mapPeriodToNumber(period: string): number {
-        const periodMap: Record<string, number> = {
-            'monthly': 30,
-            'quarterly': 90,
-            'yearly': 365
-        };
-        return periodMap[period] || 30; // Por defecto mensual si el periodo no es reconocido
-    }
-
-    // Método para calcular la fecha de expiración basada en el período de pago
-    private updateExpirationDate(): void {
-        console.log('🔍 DEBUG updateExpirationDate: LLAMADO - skipFlag:', this.skipExpirationDateRecalculation);
-        console.log('🔍 DEBUG updateExpirationDate: Fecha actual antes del recálculo:', this.target.expiration_date);
-
-        // Si la bandera está activada, no recalcular automáticamente
-        if (this.skipExpirationDateRecalculation) {
-            console.log('🔍 DEBUG: Saltando recálculo automático de fecha de expiración');
-            return;
-        }
-
-        if (this.target.selectedPrice && this.target.selectedPrice.payment_period) {
-            // Obtener los días del período de pago
-            const periodInDays = this.mapPeriodToNumber(this.target.selectedPrice.payment_period.toString());
-
-            // Usar la fecha de activación/instalación como base si existe, o la fecha actual
-            let baseDate = new Date();
-            if (this.target.activation_date) {
-                baseDate = this.parseLocalDate(this.target.activation_date);
-            } else if (this.target.installation_date) {
-                baseDate = this.parseLocalDate(this.target.installation_date);
-            }
-
-            // Calcular la fecha de expiración sumando los días del período
-            const expirationDate = new Date(baseDate);
-            expirationDate.setDate(expirationDate.getDate() + periodInDays);
-
-            // Formatear la fecha de expiración para el input HTML
-            const formattedDate = this.formatDateToInput(expirationDate.toISOString());
-            console.log('🔍 DEBUG updateExpirationDate: Nueva fecha calculada:', formattedDate);
-            this.target.expiration_date = formattedDate;
-
-        }
-    }
-
-    async onPlanChange() {
-        if (this.target.plan && typeof this.target.plan === 'string' && this.target.plan !== '') {
-            try {
-                // Guardar el precio seleccionado actual para restaurarlo si es necesario
-                const currentSelectedPrice = this.target.selectedPrice;
-
-                // Resetear el precio seleccionado temporalmente
-                this.target.selectedPrice = null;
-
-                // Cargar el plan completo con sus precios
-                this.plansService.getPlanById(this.target.plan).subscribe({
-                    next: (plan: Plan) => {
-                        // Asegurar que los períodos de pago sean strings
-                        this.availablePrices = plan.prices.map(price => {
-                            return {
-                                id: price.id,
-                                amount: price.amount,
-                                payment_period: typeof price.payment_period === 'string' ?
-                                    price.payment_period :
-                                    this.mapPeriodToString(price.payment_period)
-                            };
-                        });
-
-                        // Restaurar el precio seleccionado si existe y coincide con uno de los precios disponibles
-                        if (currentSelectedPrice) {
-                            const matchedPrice = this.availablePrices.find(price =>
-                                price.id === currentSelectedPrice.id
-                            );
-
-                            if (matchedPrice) {
-                                this.target.selectedPrice = matchedPrice;
-                                // Actualizar fecha de expiración según el período de pago
-                                this.updateExpirationDate();
-                            }
-                        }
-                    },
-                    error: (error) => {
-                        console.error('Error al cargar los precios del plan:', error);
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: 'Error',
-                            detail: 'No se pudieron cargar los precios del plan'
-                        });
-                        this.availablePrices = [];
-                    }
-                });
-            } catch (error) {
-                console.error('Error al cambiar de plan:', error);
-                this.availablePrices = [];
-            }
-        } else {
-            // Si no hay plan seleccionado, vaciar los precios
-            this.availablePrices = [];
-            this.target.selectedPrice = null;
-        }
-    }
-
-    // Método para manejar el cambio de precio seleccionado
-    onPriceChange(): void {
-        // Actualizar la fecha de expiración basada en el período de pago
-        this.updateExpirationDate();
-    }
-
-    // Método para comparar objetos de precio (usado en select compareWith)
-    comparePrices(price1: any, price2: any): boolean {
-        return price1 && price2 ? price1.id === price2.id : price1 === price2;
-    }
-
-    // Método para mapear periodos de número a string
-    mapPeriodToString(period: string | number): string {
-        if (typeof period === 'string') {
-            return period;
-        }
-
-        const periodMap: Record<number, string> = {
-            30: 'monthly',
-            90: 'quarterly',
-            365: 'yearly'
-        };
-
-        return periodMap[period as number] || 'monthly';
-    }
-
-    // Método para iniciar la edición personalizada de precio
-    startCustomPriceEdit(): void {
-        // Si ya hay un precio seleccionado, tomamos sus valores como base
-        if (this.target.selectedPrice && this.target.plan) {
-            // console.log('Iniciando edición de precio con ID:', this.target.selectedPrice.id);
-
-            // Guardar el precio actual para edición
-            this.customPrice = {
-                id: this.target.selectedPrice.id,
-                amount: this.target.selectedPrice.amount,
-                payment_period: this.target.selectedPrice.payment_period as string
-            };
-
-            // Cargar los precios originales del plan directamente desde el servicio
-            // para asegurarnos de tener los valores originales, no los personalizados
-            this.plansService.getPlanById(this.target.plan as string).subscribe({
-                next: (plan: Plan) => {
-                    // Buscar el precio original por ID
-                    const planOriginalPrice = plan.prices.find(price => price.id === this.target.selectedPrice?.id);
-
-                    if (planOriginalPrice) {
-                        // console.log('Precio original encontrado en plan:', planOriginalPrice);
-
-                        // Guardar el precio original para mostrarlo en el modal
-                        this.originalPlanPrice = {
-                            id: planOriginalPrice.id,
-                            amount: planOriginalPrice.amount,
-                            payment_period: typeof planOriginalPrice.payment_period === 'string' ?
-                                planOriginalPrice.payment_period :
-                                this.mapPeriodToString(planOriginalPrice.payment_period)
-                        };
-                    } else {
-                        // console.log('No se encontró el precio original en el plan');
-                        this.originalPlanPrice = null;
-                    }
-                },
-                error: (error) => {
-                    console.error('Error al cargar el plan para obtener el precio original:', error);
-                    this.originalPlanPrice = null;
-                }
-            });
-
-            // console.log('Custom price configurado:', this.customPrice);
-        } else {
-            // Iniciar con valores por defecto
-            this.customPrice = {
-                id: CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX + new Date().getTime(),
-                amount: 0,
-                payment_period: CUSTOM_PRICE_CONFIG.DEFAULT_PAYMENT_PERIOD
-            };
-            this.originalPlanPrice = null;
-        }
-
-        // Mostrar el diálogo modal
-        this.displayPriceDialog = true;
-    }
-
-    // Método para verificar si un precio está personalizado (tiene un monto diferente al original)
-    isPriceCustomized(price: any): boolean {
-        // Si el precio tiene un originalAmount definido, es personalizado
-        if (price && price.originalAmount !== undefined && price.originalAmount !== price.amount && price.originalAmount > 0) {
-            return true;
-        }
-
-        // Si no tiene originalAmount, buscamos el original en la lista para comparar
-        const originalPrice = this.availablePrices.find(p => p.id === price?.id && p !== price);
-        return originalPrice !== undefined && originalPrice.amount !== price.amount;
-    }
-
-    // Método para obtener el monto original de un precio
-    getOriginalPriceAmount(price: any): number | undefined {
-        // Si el precio tiene originalAmount definido, usarlo
-        if (price && price.originalAmount !== undefined && price.originalAmount > 0) {
-            return price.originalAmount;
-        }
-
-        // Si no, buscar el precio original en la lista
-        if (price && price.id) {
-            const originalPrice = this.availablePrices.find(p => p.id === price.id && p !== price);
-            if (originalPrice) {
-                return originalPrice.amount;
-            }
-        }
-
-        // Si no se encuentra, devolver undefined
-        return undefined;
-    }
-
-    // Método para obtener el monto original de un precio por su ID
-    getOriginalPriceAmountForId(priceId: string): number | undefined {
-        // Buscar el precio original en la lista de precios disponibles
-        const originalPrice = this.availablePrices.find(p => p.id === priceId);
-        if (originalPrice) {
-            return originalPrice.amount;
-        }
-        return undefined;
-    }
-
-    // Método para aplicar el precio personalizado
-    applyCustomPrice(): void {
-        if (this.customPrice.amount <= 0) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: this.translate('management.targetForm.invalidPrice')
-            });
-            return;
-        }
-
-        // Crear un nuevo precio personalizado
-        const customPriceObj = {
-            id: this.customPrice.id, // Mantener el ID original
-            amount: this.customPrice.amount,
-            payment_period: this.customPrice.payment_period,
-            originalAmount: this.getOriginalPriceAmountForId(this.customPrice.id) // Guardar el monto original
-        };
-
-        // Añadir/actualizar el precio personalizado en la lista
-        const existingIndex = this.availablePrices.findIndex(p => p.id === customPriceObj.id);
-        if (existingIndex >= 0) {
-            // Guardar el monto original si no existe
-            if (!this.availablePrices[existingIndex].originalAmount) {
-                customPriceObj.originalAmount = this.availablePrices[existingIndex].amount;
-            }
-            // Actualizar el precio existente
-            this.availablePrices[existingIndex] = customPriceObj;
-        } else {
-            // Añadir el precio personalizado al inicio de la lista para que aparezca primero
-            this.availablePrices = [customPriceObj, ...this.availablePrices.filter(p => !p.id.startsWith(CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX))];
-        }
-
-        // Seleccionar el precio personalizado
-        this.target.selectedPrice = customPriceObj;
-
-        // Actualizar la fecha de expiración
-        this.updateExpirationDate();
-
-        // Cerrar el diálogo modal
-        this.displayPriceDialog = false;
-
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Éxito',
-            detail: this.translate('management.targetForm.customPriceApplied')
-        });
-    }
-
-    // Método para cancelar la edición personalizada
-    cancelCustomPrice(): void {
-        // Cerrar el diálogo modal
-        this.displayPriceDialog = false;
-    }
-
     // Métodos para manejar comandos SMS dinámicos
     updateSmsCommands(): void {
         let gpsModelId = this.target.type;
@@ -3948,7 +3400,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         }
 
         if (/\{\{\s*server\s*\}\}/i.test(resolvedValue)) {
-            const serverIp = await this.getServerIpFromPlan();
+            const serverIp = await this.getAssignedServerIp();
             resolvedValue = resolvedValue.replace(/\{\{\s*server\s*\}\}/gi, serverIp || 'Sin servidor');
         }
 
@@ -4192,27 +3644,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 return;
             }
 
-            // Validaciones específicas para cambio de plan
-            if (this.processForm.type === 'plan_change') {
-                if (!this.processForm.newPlan) {
-                    this.messageService.add({
-                        severity: 'warn',
-                        summary: 'Campo requerido',
-                        detail: 'Debe seleccionar un nuevo plan'
-                    });
-                    return;
-                }
-
-                if (!this.processForm.newPrice) {
-                    this.messageService.add({
-                        severity: 'warn',
-                        summary: 'Campo requerido',
-                        detail: 'Debe seleccionar un precio para el nuevo plan'
-                    });
-                    return;
-                }
-            }
-
             // Validaciones específicas para cambio de fecha de instalación
             if (this.processForm.type === 'installation') {
                 if (!this.processForm.newInstallationDate) {
@@ -4385,16 +3816,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             const userName = currentUser?.name || currentUser?.email || 'Usuario';
             const targetName = this.target.name || this.target.device_imei || 'dispositivo';
             let autoDetails = '';
-            if (this.processForm.type === 'plan_change') {
-                const newPlanObj = this.availablePlansForProcess.find(p => p.value === this.processForm.newPlan);
-                const newPlanName = newPlanObj?.label || 'nuevo plan';
-                const currentPlanId = typeof this.target.plan === 'string' ? this.target.plan : (this.target.plan as any)?.id_plan || '';
-                const currentPlanObj = this.availablePlansForProcess.find(p => p.value === currentPlanId);
-                const currentPlanName = currentPlanObj?.label || 'plan actual';
-                const reason = this.processForm.description?.trim() ? ` por la siguiente razón: ${this.processForm.description.trim()}` : '';
-                autoDetails = `El usuario ${userName} ha cambiado el plan del dispositivo ${targetName} de ${currentPlanName} a ${newPlanName}${reason}.`;
-            }
-
             if (this.processForm.type === 'installation') {
                 const currentInstallationDate = this.target.activation_date || 'no definida';
                 const newInstallationDate = this.processForm.newInstallationDate;
@@ -4520,135 +3941,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Enviar el proceso al servidor
             const response = await this.targetsService.createProcess(processData);
 
-            // Si es un cambio de plan, actualizar el target con el nuevo plan
-            if (this.processForm.type === 'plan_change') {
-                try {
-                    // Preparar datos completos del target para la actualización
-                    const updateData: UpdateTargetDto = {
-                        name: this.target.name,
-                        device_imei: this.target.device_imei,
-                        type: this.target.type,
-                        sim_card_number: this.target.sim_card_number,
-                        sim_company: this.target.sim_company,
-                        description: this.target.description,
-                        target_plate_number: this.target.target_plate_number,
-                        contacts: Array.isArray(this.target.contacts) ? this.target.contacts.join(',') : this.target.contacts,
-                        target_year: this.target.target_year,
-                        installation_location: this.target.installation_location,
-                        target_brand_id: this.target.target_brand_id,
-                        target_model_id: this.target.target_model_id,
-                        target_color: this.target.target_color,
-                        target_chassis_number: this.target.target_chassis_number,
-                        activation_date: this.target.activation_date,
-                        expiration_date: this.target.expiration_date,
-                        last_change_date: new Date(),
-                        gps_model: this.target.gps_model,
-                        ignition_sensor: this.target.ignition_sensor,
-                        shutdown_control: this.target.shutdown_control,
-                        engine_shutdown: this.target.engine_shutdown,
-                        installation_details: this.target.installation_details,
-                        status: this.target.status == 'active',
-                        canceled: this.target.canceled,
-                        delete: this.target['delete'],
-                        index: this.target.index,
-                        // Estructurar el plan como objeto según requiere el backend
-                        plan: {
-                            id_plan: this.processForm.newPlan,
-                            selected_price: {
-                                id: (this.processForm.newPrice as any)?.id || '',
-                                amount: (this.processForm.newPrice as any)?.amount || 0,
-                                payment_period: (this.processForm.newPrice as any)?.payment_period || ''
-                            }
-                        },
-                        selectedPrice: this.processForm.newPrice as any,
-                        creator_id: this.target.creator_id,
-                        parent_id: this.target.parent_id,
-                        user_id: this.target.user_id
-                    };
-
-                    await this.targetsService.updateTarget(this.target._id, updateData);
-
-                    // Actualizar el objeto target local y UI principal
-                    this.target.plan = this.processForm.newPlan;
-                    this.target.selectedPrice = this.processForm.newPrice as any;
-
-                    // Refrescar precios del plan en el formulario real y recalcular expiración
-                    if (typeof this.target.plan === 'string' && this.target.plan) {
-                        const currentSelectedFromProcess: any = this.processForm.newPrice;
-                        this.plansService.getPlanById(this.target.plan)
-                            .pipe(takeUntil(this.destroy$))
-                            .subscribe({
-                                next: (plan: Plan) => {
-                                    this.availablePrices = plan.prices.map(price => ({
-                                        id: price.id,
-                                        amount: price.amount,
-                                        payment_period: typeof price.payment_period === 'string' ? price.payment_period : this.mapPeriodToString(price.payment_period)
-                                    }));
-
-                                    // Alinear el objeto seleccionado con la lista refrescada preservando el monto personalizado
-                                    const matched = this.availablePrices.find(p => p.id === currentSelectedFromProcess?.id);
-                                    if (matched) {
-                                        if (currentSelectedFromProcess && currentSelectedFromProcess.amount !== matched.amount) {
-                                            const custom = {
-                                                ...matched,
-                                                amount: currentSelectedFromProcess.amount,
-                                                originalAmount: matched.amount
-                                            } as any;
-                                            // Reemplazar en la lista para reflejar el personalizado
-                                            const idx = this.availablePrices.findIndex(p => p.id === matched.id);
-                                            if (idx >= 0) {
-                                                (this.availablePrices as any)[idx] = custom;
-                                            }
-                                            this.target.selectedPrice = custom;
-                                        } else {
-                                            this.target.selectedPrice = matched as any;
-                                        }
-                                    } else if (currentSelectedFromProcess) {
-                                        // No existe en plan (caso custom puro), insertarlo al inicio
-                                        const custom = {
-                                            id: currentSelectedFromProcess.id,
-                                            amount: currentSelectedFromProcess.amount,
-                                            payment_period: currentSelectedFromProcess.payment_period,
-                                            originalAmount: 0
-                                        } as any;
-                                        this.availablePrices = [custom as any, ...this.availablePrices];
-                                        this.target.selectedPrice = custom;
-                                    }
-                                    this.updateExpirationDate();
-                                },
-                                error: () => {
-                                    this.updateExpirationDate();
-                                }
-                            });
-                    } else {
-                        this.updateExpirationDate();
-                    }
-
-                    this.messageService.add({
-                        severity: 'success',
-                        summary: 'Plan actualizado',
-                        detail: 'El plan del target ha sido actualizado exitosamente'
-                    });
-                } catch (updateError) {
-                    console.error('Error al actualizar el plan del target:', updateError);
-                    this.messageService.add({
-                        severity: 'warn',
-                        summary: 'Proceso creado con advertencia',
-                        detail: 'El proceso fue registrado pero no se pudo actualizar el plan del target'
-                    });
-
-                    // Aun si falla el backend, reflejar en el formulario local para continuidad visual
-                    this.target.plan = this.processForm.newPlan;
-                    this.target.selectedPrice = this.processForm.newPrice as any;
-                    this.updateExpirationDate();
-                }
-            }
-
             // Si es un cambio de fecha de instalación, actualizar el target
             if (this.processForm.type === 'installation') {
                 try {
-                    console.log('🔍 DEBUG: Plan antes de actualizar fecha:', this.target.plan);
-                    console.log('🔍 DEBUG: Precio antes de actualizar fecha:', this.target.selectedPrice);
 
                     // Preparar datos para actualizar solo la fecha de instalación
                     const updateData: UpdateTargetDto = {
@@ -4679,17 +3974,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         canceled: this.target.canceled,
                         delete: this.target['delete'],
                         index: this.target.index,
-                        // Estructurar el plan como objeto según requiere el backend (preservar plan y precio existentes)
-                        plan: this.target.plan && typeof this.target.plan === 'object' ?
-                            this.target.plan :
-                            (this.target.plan && this.target.selectedPrice ? {
-                                id_plan: this.target.plan,
-                                selected_price: {
-                                    id: (this.target.selectedPrice as any)?.id || '',
-                                    amount: (this.target.selectedPrice as any)?.amount || 0,
-                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
-                                }
-                            } : this.target.plan),
                         creator_id: this.target.creator_id,
                         parent_id: this.target.parent_id,
                         user_id: this.target.user_id
@@ -4725,8 +4009,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Si es un cambio de fecha de expiración, actualizar el target
             if (this.processForm.type === 'expiration') {
                 try {
-                    console.log('🔍 DEBUG: Plan antes de actualizar fecha de expiración:', this.target.plan);
-                    console.log('🔍 DEBUG: Precio antes de actualizar fecha de expiración:', this.target.selectedPrice);
 
                     // Preparar datos para actualizar solo la fecha de expiración
                     const updateData: UpdateTargetDto = {
@@ -4758,16 +4040,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Estructurar el plan como objeto según requiere el backend (preservar plan y precio existentes)
-                        plan: this.target.plan && typeof this.target.plan === 'object' ?
-                            this.target.plan :
-                            (this.target.plan && this.target.selectedPrice ? {
-                                id_plan: this.target.plan,
-                                selected_price: {
-                                    id: (this.target.selectedPrice as any)?.id || '',
-                                    amount: (this.target.selectedPrice as any)?.amount || 0,
-                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
-                                }
-                            } : this.target.plan),
                         creator_id: this.target.creator_id,
                         parent_id: this.target.parent_id,
                         user_id: this.target.user_id
@@ -4817,8 +4089,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Si es una renovación de servicio, actualizar el target
             if (this.processForm.type === 'renewal') {
                 try {
-                    console.log('🔍 DEBUG: Plan antes de renovar servicio:', this.target.plan);
-                    console.log('🔍 DEBUG: Precio antes de renovar servicio:', this.target.selectedPrice);
 
                     // Preparar datos para actualizar solo la fecha de expiración (renovación)
                     const updateData: UpdateTargetDto = {
@@ -4850,16 +4120,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Estructurar el plan como objeto según requiere el backend (preservar plan y precio existentes)
-                        plan: this.target.plan && typeof this.target.plan === 'object' ?
-                            this.target.plan :
-                            (this.target.plan && this.target.selectedPrice ? {
-                                id_plan: this.target.plan,
-                                selected_price: {
-                                    id: (this.target.selectedPrice as any)?.id || '',
-                                    amount: (this.target.selectedPrice as any)?.amount || 0,
-                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
-                                }
-                            } : this.target.plan),
                         creator_id: this.target.creator_id,
                         parent_id: this.target.parent_id,
                         user_id: this.target.user_id
@@ -4942,16 +4202,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ?
-                            this.target.plan :
-                            (this.target.plan && this.target.selectedPrice ? {
-                                id_plan: this.target.plan,
-                                selected_price: {
-                                    id: (this.target.selectedPrice as any)?.id || '',
-                                    amount: (this.target.selectedPrice as any)?.amount || 0,
-                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
-                                }
-                            } : this.target.plan),
                         creator_id: this.target.creator_id,
                         parent_id: this.target.parent_id,
                         user_id: this.target.user_id
@@ -5016,16 +4266,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ?
-                            this.target.plan :
-                            (this.target.plan && this.target.selectedPrice ? {
-                                id_plan: this.target.plan,
-                                selected_price: {
-                                    id: (this.target.selectedPrice as any)?.id || '',
-                                    amount: (this.target.selectedPrice as any)?.amount || 0,
-                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
-                                }
-                            } : this.target.plan),
                         creator_id: this.target.creator_id,
                         parent_id: this.target.parent_id,
                         user_id: this.target.user_id
@@ -5092,16 +4332,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ?
-                            this.target.plan :
-                            (this.target.plan && this.target.selectedPrice ? {
-                                id_plan: this.target.plan,
-                                selected_price: {
-                                    id: (this.target.selectedPrice as any)?.id || '',
-                                    amount: (this.target.selectedPrice as any)?.amount || 0,
-                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
-                                }
-                            } : this.target.plan),
                         creator_id: this.target.creator_id,
                         parent_id: this.target.parent_id,
                         user_id: this.target.user_id
@@ -5164,16 +4394,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ?
-                            this.target.plan :
-                            (this.target.plan && this.target.selectedPrice ? {
-                                id_plan: this.target.plan,
-                                selected_price: {
-                                    id: (this.target.selectedPrice as any)?.id || '',
-                                    amount: (this.target.selectedPrice as any)?.amount || 0,
-                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
-                                }
-                            } : this.target.plan),
                         creator_id: this.target.creator_id,
                         parent_id: this.target.parent_id,
                         user_id: this.target.user_id
@@ -5236,16 +4456,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ?
-                            this.target.plan :
-                            (this.target.plan && this.target.selectedPrice ? {
-                                id_plan: this.target.plan,
-                                selected_price: {
-                                    id: (this.target.selectedPrice as any)?.id || '',
-                                    amount: (this.target.selectedPrice as any)?.amount || 0,
-                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
-                                }
-                            } : this.target.plan),
                         creator_id: this.target.creator_id,
                         parent_id: this.target.parent_id,
                         user_id: this.target.user_id
@@ -5308,16 +4518,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ?
-                            this.target.plan :
-                            (this.target.plan && this.target.selectedPrice ? {
-                                id_plan: this.target.plan,
-                                selected_price: {
-                                    id: (this.target.selectedPrice as any)?.id || '',
-                                    amount: (this.target.selectedPrice as any)?.amount || 0,
-                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
-                                }
-                            } : this.target.plan),
                         creator_id: this.target.creator_id,
                         parent_id: this.target.parent_id,
                         user_id: this.target.user_id
@@ -5382,16 +4582,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ?
-                            this.target.plan :
-                            (this.target.plan && this.target.selectedPrice ? {
-                                id_plan: this.target.plan,
-                                selected_price: {
-                                    id: (this.target.selectedPrice as any)?.id || '',
-                                    amount: (this.target.selectedPrice as any)?.amount || 0,
-                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
-                                }
-                            } : this.target.plan),
                         creator_id: this.target.creator_id,
                         parent_id: this.target.parent_id,
                         user_id: this.target.user_id
@@ -5454,16 +4644,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                         delete: this.target['delete'],
                         index: this.target.index,
                         // Preservar plan y precio existentes
-                        plan: this.target.plan && typeof this.target.plan === 'object' ?
-                            this.target.plan :
-                            (this.target.plan && this.target.selectedPrice ? {
-                                id_plan: this.target.plan,
-                                selected_price: {
-                                    id: (this.target.selectedPrice as any)?.id || '',
-                                    amount: (this.target.selectedPrice as any)?.amount || 0,
-                                    payment_period: (this.target.selectedPrice as any)?.payment_period || ''
-                                }
-                            } : this.target.plan),
                         creator_id: this.target.creator_id,
                         parent_id: this.target.parent_id,
                         user_id: this.target.user_id
@@ -5525,8 +4705,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             type: '',
             registrationDate: this.getTodayInputDate(),
             description: '',
-            newPlan: '',
-            newPrice: null,
             newInstallationDate: '',
             newExpirationDate: '',
             newRenewalDate: '',
@@ -5542,96 +4720,9 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         };
     }
 
-    // Método para cargar todos los planes disponibles (sin filtros de servidor)
-    async loadFilteredPlansForProcess(): Promise<void> {
-        try {
-            // Obtener todos los planes sin filtrar por servidor
-            this.plansService.getAllPlans().subscribe({
-                next: (allPlans: Plan[]) => {
-                    // Mostrar todos los planes disponibles sin restricciones
-                    this.availablePlansForProcess = allPlans.map(plan => ({
-                        label: plan.plan_name,
-                        value: plan._id
-                    })).sort((a, b) => a.label.localeCompare(b.label));
-                },
-                error: (error) => {
-                    console.error('Error al cargar todos los planes:', error);
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Error',
-                        detail: 'No se pudieron cargar los planes disponibles'
-                    });
-                }
-            });
-        } catch (error) {
-            console.error('Error en loadFilteredPlansForProcess:', error);
-        }
-    }
-
-    // Método para manejar el cambio de plan en el proceso
-    async onProcessPlanChange() {
-        if (this.processForm.newPlan && typeof this.processForm.newPlan === 'string' && this.processForm.newPlan !== '') {
-            try {
-                // Resetear el precio seleccionado temporalmente
-                this.processForm.newPrice = null;
-
-                // Cargar el plan completo con sus precios
-                this.plansService.getPlanById(this.processForm.newPlan).subscribe({
-                    next: (plan: Plan) => {
-                        // Asegurar que los períodos de pago sean strings
-                        this.availablePricesForProcess = plan.prices.map(price => {
-                            return {
-                                id: price.id,
-                                amount: price.amount,
-                                payment_period: typeof price.payment_period === 'string' ?
-                                    price.payment_period :
-                                    this.mapPeriodToString(price.payment_period)
-                            };
-                        });
-                        // Reset de personalización al cambiar de plan
-                        this.processCustomPrice = {
-                            id: CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX + new Date().getTime(),
-                            amount: 0,
-                            payment_period: CUSTOM_PRICE_CONFIG.DEFAULT_PAYMENT_PERIOD
-                        };
-                        this.processOriginalPlanPrice = null;
-                    },
-                    error: (error) => {
-                        console.error('Error al cargar los precios del plan para el proceso:', error);
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: 'Error',
-                            detail: 'No se pudieron cargar los precios del plan'
-                        });
-                        this.availablePricesForProcess = [];
-                    }
-                });
-            } catch (error) {
-                console.error('Error al cambiar de plan en el proceso:', error);
-                this.availablePricesForProcess = [];
-            }
-        } else {
-            // Si no hay plan seleccionado, vaciar los precios
-            this.availablePricesForProcess = [];
-            this.processForm.newPrice = null;
-        }
-    }
-
     // Método para manejar el cambio de tipo de proceso
     onProcessTypeChange(): void {
         console.log('🔍 DEBUG: Cambio de tipo de proceso a:', this.processForm.type);
-        console.log('🔍 DEBUG: Precio del target ANTES del cambio:', this.target.selectedPrice);
-
-        // Solo cargar planes filtrados si es cambio de plan, sin limpiar nada más
-        if (this.processForm.type === 'plan_change') {
-            this.loadFilteredPlansForProcess();
-        } else {
-            // Limpiar campos específicos del cambio de plan cuando no es plan_change
-            this.processForm.newPlan = '';
-            this.processForm.newPrice = null;
-            this.availablePricesForProcess = []; // Solo limpiar precios de procesos, no del formulario principal
-            this.availablePlansForProcess = [];
-        }
 
         // Limpiar campos específicos de cambio de fechas cuando se cambia el tipo
         if (this.processForm.type !== 'installation') {
@@ -5773,7 +4864,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             }
         }
 
-        console.log('🔍 DEBUG: Precio del target DESPUÉS del cambio:', this.target.selectedPrice);
     }
 
     onRenewalYearsChange(): void {
@@ -5788,103 +4878,6 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         baseDate.setFullYear(baseDate.getFullYear() + years);
 
         this.processForm.newRenewalDate = this.formatDateToInput(baseDate.toISOString());
-    }
-
-    // Método para manejar el cambio de precio en el proceso
-    onProcessPriceChange(): void {
-        // Validar que se haya seleccionado un precio válido
-        if (this.processForm.newPrice) {
-            console.log('Precio seleccionado para el proceso:', this.processForm.newPrice);
-        }
-    }
-
-    // ========= Personalización de precio en CAMBIO DE PLAN ========= //
-    startProcessCustomPriceEdit(): void {
-        if (this.processForm.newPrice && this.processForm.newPlan) {
-            // Tomar valores base del precio seleccionado actualmente
-            this.processCustomPrice = {
-                id: (this.processForm.newPrice as any).id,
-                amount: (this.processForm.newPrice as any).amount,
-                payment_period: (this.processForm.newPrice as any).payment_period
-            };
-
-            // Cargar precio original desde el plan seleccionado para mostrar en modal
-            this.plansService.getPlanById(this.processForm.newPlan).subscribe({
-                next: (plan: Plan) => {
-                    const original = plan.prices.find(p => p.id === (this.processForm.newPrice as any)?.id);
-                    if (original) {
-                        this.processOriginalPlanPrice = {
-                            id: original.id,
-                            amount: original.amount,
-                            payment_period: typeof original.payment_period === 'string' ?
-                                original.payment_period : this.mapPeriodToString(original.payment_period)
-                        };
-                    } else {
-                        this.processOriginalPlanPrice = null;
-                    }
-                },
-                error: () => {
-                    this.processOriginalPlanPrice = null;
-                }
-            });
-        } else {
-            // Si no hay precio seleccionado aún, iniciar con valores por defecto
-            this.processCustomPrice = {
-                id: CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX + new Date().getTime(),
-                amount: 0,
-                payment_period: CUSTOM_PRICE_CONFIG.DEFAULT_PAYMENT_PERIOD
-            };
-            this.processOriginalPlanPrice = null;
-        }
-
-        this.displayProcessPriceDialog = true;
-    }
-
-    applyProcessCustomPrice(): void {
-        if (!this.processCustomPrice || this.processCustomPrice.amount <= 0) {
-            this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: this.translate('management.targetForm.invalidPrice')
-            });
-            return;
-        }
-
-        // Crear objeto de precio personalizado conservando el id
-        const customPriceObj: any = {
-            id: this.processCustomPrice.id,
-            amount: this.processCustomPrice.amount,
-            payment_period: this.processCustomPrice.payment_period,
-            originalAmount: this.processOriginalPlanPrice?.amount ?? (this.processForm.newPrice as any)?.originalAmount ?? 0
-        };
-
-        // Reemplazar/insertar en lista de precios actual del proceso (availablePricesForProcess en contexto del nuevo plan)
-        const existingIndex = this.availablePricesForProcess.findIndex(p => p.id === customPriceObj.id);
-        if (existingIndex >= 0) {
-            if (!(this.availablePricesForProcess[existingIndex] as any).originalAmount && this.processOriginalPlanPrice) {
-                customPriceObj.originalAmount = this.processOriginalPlanPrice.amount;
-            }
-            this.availablePricesForProcess[existingIndex] = customPriceObj;
-        } else {
-            // Insertar al inicio para mayor visibilidad; evita duplicar otros custom existentes
-            this.availablePricesForProcess = [customPriceObj, ...this.availablePricesForProcess.filter(p => !(p as any).id?.startsWith(CUSTOM_PRICE_CONFIG.CUSTOM_PREFIX))];
-        }
-
-        // Seleccionar el precio personalizado en el formulario de proceso
-        this.processForm.newPrice = customPriceObj;
-
-        // Cerrar modal
-        this.displayProcessPriceDialog = false;
-
-        this.messageService.add({
-            severity: 'success',
-            summary: 'Éxito',
-            detail: this.translate('management.targetForm.customPriceApplied')
-        });
-    }
-
-    cancelProcessCustomPrice(): void {
-        this.displayProcessPriceDialog = false;
     }
 
     // Método para cargar la lista de procesos del target actual

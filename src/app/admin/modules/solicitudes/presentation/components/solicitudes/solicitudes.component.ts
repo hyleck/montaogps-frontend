@@ -18,12 +18,10 @@ import { ColorsService } from '../../../../../../core/services/colors.service';
 import { UserLatestLocation, UserService } from '../../../../../../core/services/user.service';
 import { TargetsService } from '../../../../../../core/services/targets.service';
 import { ProtocolsService } from '../../../../../../core/services/protocols.service';
-import { PlansService } from '../../../../../../core/services/plans.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { InventoryItem, InventoryService } from '../../../../../../core/services/inventory.service';
 import { User } from '../../../../../../core/interfaces/user.interface';
 import { Protocol } from '../../../../../../core/interfaces/protocol.interface';
-import { Plan } from '../../../../../../core/interfaces/plan.interface';
 import { SIM_CARD_TYPES } from '../../../../../../core/constants/sim-card-types.constant';
 import {
     DEVICE_CANCELLATION_REASONS,
@@ -587,7 +585,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     installing = false;
     solicitudToInstall: Solicitud | null = null;
     availableProtocols: Protocol[] = [];
-    availablePlans: Plan[] = [];
     simCardTypes = SIM_CARD_TYPES;
     installationLocations = INSTALLATION_LOCATIONS;
     installData = {
@@ -595,8 +592,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         type: '',
         activation_date: '',
         expiration_date: '',
-        plan_id: '',
-        plan_price_id: '',
         device_imei: '',
         sim_card_number: '',
         sim_company: '',
@@ -615,7 +610,6 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         private userService: UserService,
         private targetsService: TargetsService,
         private protocolsService: ProtocolsService,
-        private plansService: PlansService,
         private inventoryService: InventoryService,
         private authService: AuthService,
         private messageService: MessageService,
@@ -6240,8 +6234,6 @@ async initLocationMap(): Promise<void> {
             type: '',
             activation_date: today.toISOString().split('T')[0],
             expiration_date: oneYearLater.toISOString().split('T')[0],
-            plan_id: '',
-            plan_price_id: '',
             device_imei: solicitud.installations?.[0]?.device_imei || '',
             sim_card_number: solicitud.installations?.[0]?.sim_card_number || '',
             sim_company: solicitud.installations?.[0]?.sim_company || '',
@@ -6263,26 +6255,11 @@ async initLocationMap(): Promise<void> {
             }).catch(() => { });
         }
 
-        // Load protocols and plans
+        // Load protocols
         this.protocolsService.getAllProtocols().subscribe({
             next: (protocols) => this.availableProtocols = protocols,
             error: () => console.error('Error loading protocols')
         });
-        this.plansService.getAllPlans().subscribe({
-            next: (plans) => {
-                this.availablePlans = plans;
-                // Auto-assign a random plan and its first price
-                if (plans.length > 0) {
-                    const randomPlan = plans[Math.floor(Math.random() * plans.length)];
-                    this.installData.plan_id = randomPlan._id;
-                    if (randomPlan.prices && randomPlan.prices.length > 0) {
-                        this.installData.plan_price_id = randomPlan.prices[0].id;
-                    }
-                }
-            },
-            error: () => console.error('Error loading plans')
-        });
-
         // Resolve user name if user_id exists
         if (solicitud.user_id) {
             this.userService.getById(solicitud.user_id).subscribe({
@@ -6322,12 +6299,6 @@ async initLocationMap(): Promise<void> {
         });
     }
 
-    getSelectedPlanPrices(): any[] {
-        if (!this.installData.plan_id) return [];
-        const plan = this.availablePlans.find(p => p._id === this.installData.plan_id);
-        return plan?.prices || [];
-    }
-
     async installDevice(): Promise<void> {
         // Validate required fields
         if (!this.installData.name || !this.installData.type || !this.installData.activation_date
@@ -6355,10 +6326,6 @@ async initLocationMap(): Promise<void> {
         this.installing = true;
         const sol = this.solicitudToInstall!;
         const currentUser = this.authService.getCurrentUser();
-
-        // Find selected plan and price
-        const selectedPlan = this.availablePlans.find(p => p._id === this.installData.plan_id);
-        const selectedPrice = selectedPlan?.prices?.find(pr => pr.id === this.installData.plan_price_id);
 
         // Resolve brand/model/color: solicitudes from Montao Rent may have names instead of IDs
         const isObjectId = (val: string) => /^[0-9a-fA-F]{24}$/.test(val);
@@ -6423,14 +6390,6 @@ async initLocationMap(): Promise<void> {
             index: this.installData.parent_id,
             parent_id: this.installData.parent_id,
             creator_id: currentUser?.id || '',
-            plan: {
-                id_plan: this.installData.plan_id,
-                selected_price: selectedPrice ? {
-                    id: selectedPrice.id,
-                    amount: selectedPrice.amount,
-                    payment_period: String(selectedPrice.payment_period)
-                } : undefined
-            },
             description: sol.description || ''
         };
 

@@ -25,7 +25,6 @@ export const TARGET_FORM_TRANSLATIONS = {
   technician: 'management.targetForm.technician',
   save: 'management.targetForm.save',
   cancel: 'management.targetForm.cancel',
-  plan: 'management.targetForm.plan',
   // SMS-related translations
   sms: 'management.targetForm.sms',
   smsCommands: 'management.targetForm.smsCommands',
@@ -66,4 +65,4 @@ export const TARGET_FORM_TRANSLATIONS = {
   newGpsImei: 'management.targetForm.newGpsImei',
   newGpsModel: 'management.targetForm.newGpsModel',
   newInstallationDetails: 'management.targetForm.newInstallationDetails'
-} as const; 
+} as const;

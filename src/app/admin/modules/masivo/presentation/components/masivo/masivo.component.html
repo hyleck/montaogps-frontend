@@ -3,20 +3,6 @@
 
   <!-- Controls Section -->
   <div class="controls-section">
-    <div class="filters-section">
-       <div class="plan-filter-section">
-        <select
-          [(ngModel)]="selectedPlan"
-          (ngModelChange)="onPlanFilterChange()"
-          class="plan-filter native-select">
-          <option value="">Filtrar por plan</option>
-          <option *ngFor="let plan of planOptions.slice(1)" [value]="plan.value">
-            {{ plan.label }}
-          </option>
-        </select>
-      </div>
-    </div>
-
     <div class="actions-section">
       <p-splitButton
         label="Ejecutar..."
@@ -50,7 +36,6 @@
           <th>Nombre</th>
           <th>IMEI</th>
           <th>SIM Card</th>
-          <th>Plan</th>
           <th>Protocolo</th>
           <th>Primer Comando</th>
           <th>Estado</th>
@@ -65,7 +50,6 @@
           <td>{{ device.name }}</td>
           <td>{{ device.device_imei }}</td>
           <td>{{ device.sim_card_number || 'Sin SIM' }}</td>
-          <td>{{ device.plan?.id_plan?.plan_name || 'Sin plan' }}</td>
           <td>{{ device.protocol?.name || 'Sin protocolo' }}</td>
           <td>
             <span [title]="device.protocol?.firstCommand || 'N/A'">
@@ -82,7 +66,7 @@
 
       <ng-template pTemplate="emptymessage">
         <tr>
-          <td colspan="8" class="text-center">
+          <td colspan="7" class="text-center">
             {{ isLoadingDevices ? 'Cargando dispositivos...' : 'No se encontraron dispositivos' }}
           </td>
         </tr>

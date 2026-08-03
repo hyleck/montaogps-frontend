@@ -41,16 +41,7 @@ export interface DeviceDto {
     _id: string;
     name: string;
   };
-  plan?: {
-    id_plan: string;
-    name?: string;
-    server_ip?: string;
-    selected_price: {
-      payment_period: string;
-      amount: number;
-      id: string;
-    };
-  };
+  server_id?: string;
   installation_description?: string;
   traccarInfo?: any;
 }
@@ -64,11 +55,8 @@ export class MacroService {
 
   constructor(private http: HttpClient) { }
 
-  getDevices(plan?: string, limit?: number, commandIndex?: number): Observable<DeviceDto[]> {
+  getDevices(limit?: number, commandIndex?: number): Observable<DeviceDto[]> {
     const params: any = {};
-    if (plan && plan.trim() !== '') {
-      params.plan = plan;
-    }
     if (limit && limit > 0) {
       params.limit = limit.toString();
     }

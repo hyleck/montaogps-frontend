@@ -10,8 +10,6 @@ import { Protocol } from 'src/app/core/interfaces/protocol.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { TargetsService } from 'src/app/core/services/targets.service';
 import { CreateProcessDto, ProcessResponse, TargetDevice } from 'src/app/core/interfaces/target.interface';
-import { PlansService } from 'src/app/core/services/plans.service';
-import { Plan } from 'src/app/core/interfaces/plan.interface';
 import { User } from 'src/app/core/interfaces/user.interface';
 import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import { MessageService } from 'primeng/api';
@@ -757,7 +755,6 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     private userService: UserService,
     private protocolsService: ProtocolsService,
     private targetsService: TargetsService,
-    private plansService: PlansService,
     private messageService: MessageService,
     private authService: AuthService,
     private translate: TranslateService
@@ -979,7 +976,6 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   massiveProcessGroups: { route: any[], devices: any[] }[] = [];
 
   // Data for Form
-  availablePlans: any[] = [];
   availableTechnicians: any[] = [];
   availableSimCardTypes: any[] = [];
 
@@ -989,7 +985,6 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     registrationDate: new Date().toISOString().substring(0, 10),
     description: '',
     // Dynamic fields
-    newPlan: '',
     newPrice: 0, // Not used in massive but kept for compatibility
     newInstallationDate: '',
     newExpirationDate: '',
@@ -1006,7 +1001,6 @@ export class MonitoringComponent implements OnInit, OnDestroy {
     'installation': 2,
     'expiration': 3,
     'renewal': 4,
-    'plan_change': 5,
     'technician_change': 8,
     'installation_details_change': 10,
     'sim_type_change': 15
@@ -1151,7 +1145,6 @@ export class MonitoringComponent implements OnInit, OnDestroy {
       type: '',
       registrationDate: new Date().toISOString().substring(0, 10),
       description: '',
-      newPlan: '',
       newPrice: 0,
       newInstallationDate: '',
       newExpirationDate: '',
@@ -1168,17 +1161,6 @@ export class MonitoringComponent implements OnInit, OnDestroy {
   }
 
   loadMassiveProcessData(): void {
-    // Load Plans
-    this.plansService.getAllPlans().subscribe({
-      next: (plans: Plan[]) => {
-        this.availablePlans = plans.map(plan => ({
-          label: plan.plan_name,
-          value: plan._id
-        })).sort((a, b) => a.label.localeCompare(b.label));
-      },
-      error: (error) => console.error('Error loading plans:', error)
-    });
-
     // Load Technicians
     this.userService.getTechnicians().subscribe({
       next: (technicians: User[]) => {
@@ -1309,10 +1291,6 @@ export class MonitoringComponent implements OnInit, OnDestroy {
               throw new Error(`No se pudo procesar la fecha de expiración actual del dispositivo: ${device.expiration_date}`);
             }
             break;
-          case 'plan_change':
-            const planName = this.availablePlans.find(p => p.value === this.processForm.newPlan)?.label || 'Desconocido';
-            details = `Cambio de plan a ${planName}.`;
-            break;
           case 'technician_change':
             const techName = this.availableTechnicians.find(t => t.value === this.processForm.newTechnician)?.label || 'Desconocido';
             details = `Cambio de técnico asignado a ${techName}.`;
@@ -1364,10 +1342,7 @@ export class MonitoringComponent implements OnInit, OnDestroy {
         };
 
         // Assign specific fields based on type and update local state
-        if (this.processForm.type === 'plan_change') {
-          await this.targetsService.updateTarget(device._id!, { plan: this.processForm.newPlan });
-          device.plan = this.processForm.newPlan;
-        } else if (this.processForm.type === 'technician_change') {
+        if (this.processForm.type === 'technician_change') {
           await this.targetsService.updateTarget(device._id!, { mechanic_id: this.processForm.newTechnician });
           device.mechanic_id = this.processForm.newTechnician;
         } else if (this.processForm.type === 'expiration') {

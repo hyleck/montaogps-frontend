@@ -33,7 +33,6 @@ export class UserRolesSettingsComponent implements OnInit {
     'colors',
     'canceled',
     'system',
-    'plans',
     'servers',
     'protocols',
     'inventory'
@@ -55,7 +54,6 @@ export class UserRolesSettingsComponent implements OnInit {
     'colors': 'settings.roles_settings.modules.colors',
     'canceled': 'settings.roles_settings.modules.canceled',
     'system': 'settings.roles_settings.modules.system',
-    'plans': 'settings.roles_settings.modules.plans',
     'servers': 'settings.roles_settings.modules.servers',
     'protocols': 'settings.roles_settings.modules.protocols',
     'inventory': 'settings.roles_settings.modules.inventory'
@@ -76,7 +74,6 @@ export class UserRolesSettingsComponent implements OnInit {
     colors: 'pi pi-palette',
     canceled: 'pi pi-ban',
     system: 'pi pi-cog',
-    plans: 'pi pi-list',
     servers: 'pi pi-server',
     protocols: 'pi pi-shield',
     inventory: 'pi pi-database'

@@ -32,14 +32,6 @@ export const SIM_CARD_TYPES = [
   { label: 'Global-M2', value: 'global-m2' }
 ] as const;
 
-// Planes de fallback (cuando no se pueden cargar desde el servicio)
-export const FALLBACK_PLANS = [
-  { label: 'Básico', value: 'basico' },
-  { label: 'Estándar', value: 'estandar' },
-  { label: 'Premium', value: 'premium' },
-  { label: 'Empresarial', value: 'empresarial' }
-] as const;
-
 // Modelos GPS de fallback (cuando no se pueden cargar protocolos)
 export const FALLBACK_GPS_MODELS = [
   { label: 'Modelo A', value: 'modelo_a' },

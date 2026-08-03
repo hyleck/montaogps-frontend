@@ -10,8 +10,6 @@ import {
   Warehouse,
   Conduce,
 } from 'src/app/core/services/inventory.service';
-import { PlansService } from 'src/app/core/services/plans.service';
-import { Plan } from 'src/app/core/interfaces/plan.interface';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { UserService } from 'src/app/core/services/user.service';
@@ -83,8 +81,6 @@ export class InventoryComponent implements OnInit {
     { label: 'DataOn', value: 'dataon' },
     { label: 'EM', value: 'em' }
   ];
-  installationPlanId = '';
-  availablePlans: any[] = [];
   isEditDeviceMode = false;
 
   // View Toggle
@@ -136,7 +132,6 @@ export class InventoryComponent implements OnInit {
 
   constructor(
     private inventoryService: InventoryService,
-    private plansService: PlansService,
     private protocolsService: ProtocolsService,
     private messageService: MessageService,
     private confirmationService: ConfirmationService,
@@ -162,7 +157,6 @@ export class InventoryComponent implements OnInit {
 
     this.loadProtocols();
     this.loadPackages();
-    this.loadPlans();
     this.loadWarehouses();
   }
 
@@ -215,20 +209,6 @@ export class InventoryComponent implements OnInit {
           detail: 'Error al cargar paquetes',
         });
       },
-    });
-  }
-
-  loadPlans(): void {
-    this.plansService.getAllPlans().subscribe({
-      next: (plans: Plan[]) => {
-        this.availablePlans = plans.map(plan => ({
-          label: plan.plan_name,
-          value: plan._id
-        })).sort((a, b) => a.label.localeCompare(b.label));
-      },
-      error: (error) => {
-        console.error('Error loading plans', error);
-      }
     });
   }
 
@@ -1023,7 +1003,6 @@ export class InventoryComponent implements OnInit {
     this.deviceToInstall = device;
     this.installationEmail = '';
     this.installationSimType = '';
-    this.installationPlanId = '';
     this.installDialogVisible = true;
   }
 
@@ -1055,7 +1034,6 @@ export class InventoryComponent implements OnInit {
           name: `EN_ESPERA-${this.deviceToInstall!.IMEI || this.deviceToInstall!.imei || ''}`,
           brand: '6945e94df8034f4089c27394',
           model: '6945e987f8034f4089c2739e',
-          plan: this.installationPlanId || '68e23db7015d99b2bd1b25c2',
           expiration_date: new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString(),
           technician_id: '',
           installation_details: 'EN_ESPERA',
@@ -1092,7 +1070,6 @@ export class InventoryComponent implements OnInit {
     this.deviceToInstall = null;
     this.installationEmail = '';
     this.installationSimType = '';
-    this.installationPlanId = '';
   }
 
   // --- Simcards Methods ---

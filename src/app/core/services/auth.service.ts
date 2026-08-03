@@ -223,7 +223,6 @@ export class AuthService {
       'roles',
       'system',
       'protocols',
-      'plans',
       'servers',
       'colors',
       'brands',

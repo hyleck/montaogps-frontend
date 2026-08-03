@@ -47,7 +47,6 @@ export const AVAILABLE_MODULES: ModuleOption[] = [
     { value: 'colors', label: 'management.userForm.modules.colors' },
     { value: 'canceled', label: 'management.userForm.modules.canceled' },
     { value: 'system', label: 'management.userForm.modules.system' },
-    { value: 'plans', label: 'management.userForm.modules.plans' },
     { value: 'servers', label: 'management.userForm.modules.servers' },
     { value: 'protocols', label: 'management.userForm.modules.protocols' },
     { value: 'inventory', label: 'management.userForm.modules.inventory' }
@@ -68,7 +67,6 @@ export const MODULE_ICONS: { [key: string]: string } = {
     colors: 'pi pi-palette',
     canceled: 'pi pi-ban',
     system: 'pi pi-server',
-    plans: 'pi pi-dollar',
     servers: 'pi pi-database',
     protocols: 'pi pi-shield',
     inventory: 'pi pi-database'

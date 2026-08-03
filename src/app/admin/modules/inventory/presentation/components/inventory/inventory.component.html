@@ -205,7 +205,7 @@
             <label for="packageTitle" class="font-bold">Título del paquete</label>
             <input type="text" pInputText id="packageTitle" [ngModel]="selectedPackage?.title"
               (ngModelChange)="selectedPackage && (selectedPackage.title = $event)" required autofocus
-              placeholder="Ej. Plan Mensual" class="w-full" style="width: 100%" />
+              placeholder="Ej. Paquete mensual" class="w-full" style="width: 100%" />
             <small class="p-error" *ngIf="!selectedPackage?.title" style="display: block; margin-top: 5px;">El título
               es
               requerido.</small>

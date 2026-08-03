@@ -9,8 +9,6 @@ import { TranslateService } from '@ngx-translate/core';
 import { SelectionService } from '../../../../core/services/selection.service';
 import { TargetsService } from '../../../../core/services/targets.service';
 import { Target, CreateProcessDto, UpdateTargetDto } from '../../../../core/interfaces/target.interface';
-import { PlansService } from '../../../../core/services/plans.service';
-import { Plan } from '../../../../core/interfaces/plan.interface';
 import { UserService } from '../../../../core/services/user.service';
 import { User } from '../../../../core/interfaces/user.interface';
 import { SystemService } from '../../../../core/services/system.service';
@@ -103,9 +101,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
   hasMoreCanceledTargets: boolean = true;
   loadingMoreCanceledTargets: boolean = false;
   lastLoadedParentId: string | null = null;
-
-  // Para los planes
-  plans: Plan[] = [];
 
   // Búsqueda de objetivos cancelados
   canceledSearchTerm: string = '';
@@ -616,7 +611,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
     public translate: TranslateService,
     private selectionService: SelectionService,
     private targetsService: TargetsService,
-    private plansService: PlansService,
     private userService: UserService,
     private confirmationService: ConfirmationService,
     private messageService: MessageService,
@@ -710,9 +704,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
     ).subscribe(() => {
       this.updateCanceledButtonVisibility();
     });
-
-    // Cargar planes para mostrar nombres en lugar de IDs
-    this.loadPlans();
 
     // Verificar visibilidad inicial del botón cancelados y cargar targets si es necesario
     this.updateCanceledButtonVisibility();
@@ -3567,75 +3558,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.selectedTargetDetails = null;
     this.targetProcesses = [];
     this.loadingTargetProcesses = false;
-  }
-
-  /**
-   * Carga la lista de planes para mostrar nombres en lugar de IDs
-   */
-  private loadPlans() {
-    this.plansService.getAllPlans().subscribe({
-      next: (plans: Plan[]) => {
-        this.plans = plans;
-        console.log('✅ Planes cargados para el navbar:', this.plans.length);
-      },
-      error: (error) => {
-        console.error('❌ Error al cargar planes en navbar:', error);
-        this.plans = [];
-      }
-    });
-  }
-
-  /**
-   * Busca un plan por ID y retorna su nombre
-   */
-  private getPlanNameById(planId: string): string {
-    const plan = this.plans.find(p => p._id === planId);
-    return plan ? plan.plan_name : planId; // Si no encuentra el plan, muestra el ID
-  }
-
-  /**
-   * Obtiene el texto de visualización del plan
-   */
-  getPlanDisplayText(plan: any): string {
-    if (!plan) return 'No asignado';
-
-    if (typeof plan === 'string') {
-      // Si es un string, podría ser un ID, intentar buscar el nombre
-      return this.getPlanNameById(plan);
-    }
-
-    if (typeof plan === 'object' && plan.id_plan) {
-      // Si es un objeto con id_plan, buscar el nombre del plan
-      const planName = this.getPlanNameById(plan.id_plan);
-      let displayText = planName;
-
-      if (plan.selected_price) {
-        displayText += ` - $${plan.selected_price.amount}`;
-        if (plan.selected_price.payment_period) {
-          displayText += ` (${plan.selected_price.payment_period})`;
-        }
-      }
-      return displayText;
-    }
-
-    return JSON.stringify(plan);
-  }
-
-  /**
-   * Obtiene el texto de visualización del precio
-   */
-  getPriceDisplayText(price: any): string {
-    if (!price) return 'No asignado';
-
-    if (typeof price === 'object' && price.amount) {
-      let displayText = price.amount.toString();
-      if (price.payment_period) {
-        displayText += ` (${price.payment_period})`;
-      }
-      return displayText;
-    }
-
-    return JSON.stringify(price);
   }
 
   /**
