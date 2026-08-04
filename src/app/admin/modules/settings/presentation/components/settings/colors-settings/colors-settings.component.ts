@@ -3,6 +3,7 @@ import { ColorsService } from 'src/app/core/services/colors.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
 import { AuthService } from '@core/services/auth.service';
+import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 
 interface Color {
   _id?: string;
@@ -71,7 +72,7 @@ export class ColorsSettingsComponent implements OnInit {
       this.colors = await this.colorsService.getAllColors();
     } catch (error) {
       console.error('Error al cargar los colores:', error);
-      this.showErrorMessage('error_loading');
+      this.showErrorMessage(getApiErrorMessage(error, 'error_loading'));
     } finally {
       this.loading = false;
     }
@@ -187,7 +188,7 @@ export class ColorsSettingsComponent implements OnInit {
           await this.loadColors();
         } catch (error) {
           console.error('Error al eliminar el color:', error);
-          this.showErrorMessage('error_delete');
+          this.showErrorMessage(getApiErrorMessage(error, 'error_delete'));
         } finally {
           this.loading = false;
         }

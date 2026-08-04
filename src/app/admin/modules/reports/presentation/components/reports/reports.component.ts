@@ -13,6 +13,7 @@ import { ReportsMapInfoPanelData, ReportsMapInfoPanelItem } from '../../../../..
 import { firstValueFrom } from 'rxjs';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 export interface ReportFilter {
   reportType: string;
@@ -371,7 +372,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudieron cargar los dispositivos'
+          detail: getApiErrorMessage(error, 'No se pudieron cargar los dispositivos')
         });
       } finally {
         this.loading = false;
@@ -774,7 +775,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Error al generar el reporte. Intente nuevamente.'
+          detail: getApiErrorMessage(error, 'Error al generar el reporte. Intente nuevamente.')
         });
       } finally {
         this.generatingReport = false;

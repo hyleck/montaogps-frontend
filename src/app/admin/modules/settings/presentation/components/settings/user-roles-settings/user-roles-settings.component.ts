@@ -4,6 +4,7 @@ import { UserRolesService } from '@core/services/user-roles.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
 import { AuthService } from '@core/services/auth.service';
+import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-user-roles-settings',
@@ -161,7 +162,7 @@ export class UserRolesSettingsComponent implements OnInit {
       },
       error: (error: unknown) => {
         console.error('Error loading roles:', error);
-        this.showErrorMessage('error_create');
+        this.showErrorMessage(getApiErrorMessage(error, 'error_create'));
       }
     });
   }
@@ -203,7 +204,7 @@ export class UserRolesSettingsComponent implements OnInit {
         },
         error: (error: unknown) => {
           console.error('Error updating role:', error);
-          this.showErrorMessage('error_update');
+          this.showErrorMessage(getApiErrorMessage(error, 'error_update'));
         }
       });
     } else {
@@ -222,7 +223,7 @@ export class UserRolesSettingsComponent implements OnInit {
         },
         error: (error: unknown) => {
           console.error('Error creating role:', error);
-          this.showErrorMessage('error_create');
+          this.showErrorMessage(getApiErrorMessage(error, 'error_create'));
         }
       });
     }
@@ -288,7 +289,7 @@ export class UserRolesSettingsComponent implements OnInit {
           },
           error: (error: unknown) => {
             console.error('Error deleting role:', error);
-            this.showErrorMessage('error_delete');
+            this.showErrorMessage(getApiErrorMessage(error, 'error_delete'));
           }
         });
       }

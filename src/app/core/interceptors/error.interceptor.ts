@@ -1,5 +1,6 @@
 import { HttpErrorResponse, HttpHandlerFn, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
+import { getApiErrorMessage } from '../utils/api-error.util';
 
 export const errorInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
@@ -7,6 +8,12 @@ export const errorInterceptor: HttpInterceptorFn = (
 ) => {
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
+      const detail = getApiErrorMessage(
+        error,
+        `La solicitud ${req.method} ${req.urlWithParams} falló`,
+      );
+      console.error(`[HTTP ${error.status || 'sin respuesta'}] ${req.method} ${req.urlWithParams}: ${detail}`);
+
       if (error.status === 401) {
         // Verificar si es un error JWT específico (código 1017)
         if (error.error?.code === 1017) {
@@ -23,7 +30,7 @@ export const errorInterceptor: HttpInterceptorFn = (
           window.location.href = '/login';
 
           // Mostrar mensaje específico para JWT
-          console.error('Token JWT expirado o inválido:', error.error.message);
+          console.error('Token JWT expirado o inválido:', detail);
         }
       }
 

@@ -819,7 +819,8 @@
       <div style="padding-top: 1.5rem;">
         <div class="field">
           <label for="shippingWarehouse" class="font-bold block mb-2">Seleccione Almacén de Destino</label>
-          <select id="shippingWarehouse" [(ngModel)]="shippingDestinationWarehouse" class="form-input w-full"
+          <select id="shippingWarehouse" [ngModel]="shippingDestinationWarehouse"
+            (ngModelChange)="onShippingDestinationChange($event)" class="form-input w-full"
             style="box-sizing: border-box;">
             <option [ngValue]="null">Seleccionar almacén...</option>
             <option *ngFor="let w of warehouses" [value]="w._id">
@@ -892,7 +893,8 @@
       <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text"
         (click)="hideShippingDialog()"></button>
       <button pButton pRipple label="Confirmar Conduce" icon="pi pi-check" class="p-button-primary"
-        [disabled]="!shippingDestinationWarehouse || (shippingDevices.length === 0 && shippingSimcards.length === 0)"
+        [loading]="isCreatingConduce"
+        [disabled]="isCreatingConduce || !shippingDestinationWarehouse || (shippingDevices.length === 0 && shippingSimcards.length === 0)"
         (click)="confirmConduce()"></button>
     </ng-template>
   </p-dialog>

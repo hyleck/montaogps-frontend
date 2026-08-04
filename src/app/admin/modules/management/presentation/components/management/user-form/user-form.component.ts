@@ -52,6 +52,7 @@ import {
     COMPANY_TYPES,
     CompanyTypeOption
 } from './constants/user-form.constants';
+import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 
 @Component({
     selector: 'app-user-form',
@@ -548,9 +549,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 this.availableCampaigns = lists;
                 this.loadingCampaigns = false;
             },
-            error: () => {
+            error: (error) => {
                 this.loadingCampaigns = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar las campañas disponibles' });
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudieron cargar las campañas disponibles') });
             }
         });
     }
@@ -577,9 +578,9 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 this.showCampaignModal = false;
                 this.messageService.add({ severity: 'success', summary: 'Añadido', detail: `El usuario fue añadido a la campaña "${this.selectedCampaign!.name}"` });
             },
-            error: () => {
+            error: (error) => {
                 this.addingToCampaign = false;
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo añadir el usuario a la campaña' });
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo añadir el usuario a la campaña') });
             }
         });
     }
@@ -1134,7 +1135,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                     this.messageService.add({
                         severity: 'error',
                         summary: 'No se pudo generar',
-                        detail: error?.error?.message || 'Intenta nuevamente.',
+                        detail: getApiErrorMessage(error, 'No se pudo generar el enlace de verificación de identidad'),
                         life: 3500
                     });
                 }
@@ -1487,7 +1488,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                     this.messageService.add({
                         severity: 'error',
                         summary: this.translate.instant('management.userForm.error'),
-                        detail: 'Error al cerrar la sesión del usuario.',
+                        detail: getApiErrorMessage(error, 'Error al cerrar la sesión del usuario.'),
                         life: 3000
                     });
                     console.error('Error al cerrar sesión:', error);
@@ -2702,12 +2703,16 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                         this.waFreeText = '';
                         this.messageService.add({ severity: 'success', summary: 'Enviado', detail: 'Mensaje WhatsApp enviado.' });
                     } else {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo enviar el mensaje.' });
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: getApiErrorMessage(res, 'No se pudo enviar el mensaje'),
+                        });
                     }
                 },
-                error: () => {
+                error: (error) => {
                     this.sendingWa = false;
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Error de red al enviar mensaje.' });
+                    this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'Error de red al enviar mensaje.') });
                 }
             });
         } else {
@@ -2726,12 +2731,16 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                         this.waFreeText = '';
                         this.messageService.add({ severity: 'success', summary: 'Enviado', detail: 'Mensaje WhatsApp enviado.' });
                     } else {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo enviar el mensaje.' });
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: getApiErrorMessage(res, 'No se pudo enviar el mensaje'),
+                        });
                     }
                 },
-                error: () => {
+                error: (error) => {
                     this.sendingWa = false;
-                    this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Error de red al enviar mensaje.' });
+                    this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'Error de red al enviar mensaje.') });
                 }
             });
         }

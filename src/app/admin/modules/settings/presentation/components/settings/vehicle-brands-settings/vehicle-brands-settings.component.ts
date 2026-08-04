@@ -3,6 +3,7 @@ import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.servi
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
 import { AuthService } from '@core/services/auth.service';
+import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 
 interface Brand {
   _id?: string;
@@ -76,7 +77,7 @@ export class VehicleBrandsSettingsComponent implements OnInit {
       this.brands.sort((a, b) => a.nombre.localeCompare(b.nombre));
     } catch (error) {
       console.error('Error al cargar las marcas:', error);
-      this.showErrorMessage('error_loading_brands');
+      this.showErrorMessage(getApiErrorMessage(error, 'error_loading_brands'));
     } finally {
       this.loading = false;
     }
@@ -173,7 +174,7 @@ export class VehicleBrandsSettingsComponent implements OnInit {
                   await this.loadBrands();
                 } catch (error) {
                   console.error('Error al eliminar la marca:', error);
-                  this.showErrorMessage('error_delete');
+                  this.showErrorMessage(getApiErrorMessage(error, 'error_delete'));
                 } finally {
                   this.loading = false;
                 }

@@ -24,6 +24,7 @@ import { MapAlertComponent } from '../map-alert/map-alert.component';
 import { FirebaseNotificationsService, NotificationLog } from '../../../../core/services/firebase-notifications.service';
 import { SupportService } from '../../../../core/services/support.service';
 import { CreateTicketDto } from '../../../../core/interfaces/support.interface';
+import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 
 interface RealtimeGeneratedTargetLink {
   target_id: string;
@@ -347,7 +348,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('common.error'),
-        detail: 'Error al actualizar la alerta'
+        detail: getApiErrorMessage(error, 'Error al actualizar la alerta')
       });
     } finally {
       this.savingPerimeterAlert = false;
@@ -489,7 +490,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudieron cargar las notificaciones'
+          detail: getApiErrorMessage(error, 'No se pudieron cargar las notificaciones')
         });
       }
     });
@@ -591,7 +592,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudo crear el ticket de soporte'
+          detail: getApiErrorMessage(err, 'No se pudo crear el ticket de soporte')
         });
         this.savingTicket = false;
       }
@@ -1318,7 +1319,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('common.error'),
-        detail: 'Error al cargar las alertas de perímetro'
+        detail: getApiErrorMessage(error, 'Error al cargar las alertas de perímetro')
       });
     } finally {
       this.loadingPerimeterAlerts = false;
@@ -1368,7 +1369,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('common.error'),
-        detail: 'Error al cambiar el estado de la alerta'
+        detail: getApiErrorMessage(error, 'Error al cambiar el estado de la alerta')
       });
     } finally {
       this.togglingPerimeterAlertId = null;
@@ -1402,7 +1403,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
           this.messageService.add({
             severity: 'error',
             summary: this.translate.instant('common.error'),
-            detail: 'Error al eliminar la alerta'
+            detail: getApiErrorMessage(error, 'Error al eliminar la alerta')
           });
         }
       }
@@ -1474,7 +1475,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('common.error'),
-        detail: 'Error al cargar las alertas de encendido'
+        detail: getApiErrorMessage(error, 'Error al cargar las alertas de encendido')
       });
     } finally {
       this.loadingIgnitionAlerts = false;
@@ -1608,7 +1609,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('common.error'),
-        detail: 'Error al crear la alerta de movimiento'
+        detail: getApiErrorMessage(error, 'Error al crear la alerta de movimiento')
       });
     } finally {
       this.creatingMovementAlert = false;
@@ -1628,7 +1629,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('common.error'),
-        detail: 'Error al cargar las alertas de movimiento'
+        detail: getApiErrorMessage(error, 'Error al cargar las alertas de movimiento')
       });
     } finally {
       this.loadingMovementAlerts = false;
@@ -1672,7 +1673,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('common.error'),
-        detail: 'Error al actualizar el estado de la alerta'
+        detail: getApiErrorMessage(error, 'Error al actualizar el estado de la alerta')
       });
     } finally {
       this.togglingMovementAlertId = null;
@@ -1699,7 +1700,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
           this.messageService.add({
             severity: 'error',
             summary: this.translate.instant('common.error'),
-            detail: 'Error al eliminar la alerta'
+            detail: getApiErrorMessage(error, 'Error al eliminar la alerta')
           });
         } finally {
           this.deletingMovementAlertId = null;
@@ -1727,7 +1728,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('common.error'),
-        detail: 'Error al cambiar el estado de la alerta'
+        detail: getApiErrorMessage(error, 'Error al cambiar el estado de la alerta')
       });
     } finally {
       this.togglingIgnitionAlertId = null;
@@ -1758,7 +1759,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
           this.messageService.add({
             severity: 'error',
             summary: this.translate.instant('common.error'),
-            detail: 'Error al eliminar la alerta'
+            detail: getApiErrorMessage(error, 'Error al eliminar la alerta')
           });
         } finally {
           this.deletingIgnitionAlertId = null;
@@ -2485,7 +2486,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudieron generar los links en tiempo real.'
+        detail: getApiErrorMessage(error, 'No se pudieron generar los links en tiempo real.')
       });
     } finally {
       this.generatingRealtimeLink = false;
@@ -2515,7 +2516,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'warn',
         summary: 'Link generado',
-        detail: 'No se pudo copiar automáticamente. Puedes copiarlo manualmente.'
+        detail: getApiErrorMessage(error, 'No se pudo copiar automáticamente. Puedes copiarlo manualmente.')
       });
     }
   }
@@ -2607,7 +2608,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'warn',
         summary: 'Advertencia',
-        detail: 'No se pudieron cargar los emails compartidos actuales'
+        detail: getApiErrorMessage(error, 'No se pudieron cargar los emails compartidos actuales')
       });
     } finally {
       this.loadingSharedEmails = false;
@@ -2791,7 +2792,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       } else if (error.status === 400) {
         this.transferEmailError = 'Formato de correo electrónico inválido';
       } else {
-        this.transferEmailError = 'Error al buscar el usuario. Intente nuevamente.';
+        this.transferEmailError = getApiErrorMessage(error, 'No se pudo buscar el usuario para la transferencia');
       }
     } finally {
       this.searchingUser = false;
@@ -3260,7 +3261,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({ severity: 'success', summary: 'Exportado', detail: `${targets.length} dispositivos exportados` });
     } catch (error) {
       console.error('Error exportando Excel:', error);
-      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo exportar el archivo' });
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo exportar el archivo') });
     }
   }
 
@@ -3335,7 +3336,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Error al procesar la restauración'
+        detail: getApiErrorMessage(error, 'Error al procesar la restauración')
       });
     }
   }
@@ -3403,7 +3404,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Error al procesar la eliminación'
+        detail: getApiErrorMessage(error, 'Error al procesar la eliminación')
       });
     }
   }
@@ -3864,7 +3865,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudieron cargar las alertas de conexión'
+        detail: getApiErrorMessage(error, 'No se pudieron cargar las alertas de conexión')
       });
     } finally {
       this.loadingConnectionAlerts = false;
@@ -3920,7 +3921,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo actualizar el estado de la alerta'
+        detail: getApiErrorMessage(error, 'No se pudo actualizar el estado de la alerta')
       });
     } finally {
       this.togglingConnectionAlertId = null;
@@ -3943,7 +3944,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo eliminar la alerta'
+        detail: getApiErrorMessage(error, 'No se pudo eliminar la alerta')
       });
     } finally {
       this.deletingConnectionAlertId = null;

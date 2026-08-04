@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { PrimengModule } from '../shareds/libraries/primeng/primeng.module';
 import { PublicVehicleVerificationInfo, TargetsService } from '../core/services/targets.service';
+import { getApiErrorMessage } from '../core/utils/api-error.util';
 
 @Component({
   selector: 'app-public-vehicle-verification',
@@ -136,7 +137,7 @@ export class PublicVehicleVerificationComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'No se pudo verificar',
-        detail: error?.error?.message || 'Intenta nuevamente.',
+        detail: getApiErrorMessage(error, 'No se pudo finalizar la verificación del vehículo'),
         life: 3600
       });
     } finally {

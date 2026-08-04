@@ -20,6 +20,7 @@ import {
   EsterWorkflowRun,
   EsterWorkflowStatus,
 } from '@core/services/ester.service';
+import { getApiErrorMessage } from '@core/utils/api-error.util';
 
 interface EsterKnowledgeForm {
   title: string;
@@ -286,11 +287,11 @@ export class EsterComponent implements OnInit, OnDestroy {
         this.entries = entries || [];
         this.loading = false;
       },
-      error: () => {
+      error: (error) => {
         this.loading = false;
         this.notify(
           'error',
-          'No se pudo cargar la base de conocimiento de Ester.',
+          getApiErrorMessage(error, 'No se pudo cargar la base de conocimiento de Ester'),
         );
       },
     });
@@ -303,11 +304,11 @@ export class EsterComponent implements OnInit, OnDestroy {
         this.selfLearningRules = rules || [];
         this.selfLearningLoading = false;
       },
-      error: () => {
+      error: (error) => {
         this.selfLearningLoading = false;
         this.notify(
           'error',
-          'No se pudo cargar el aprendizaje prioritario de Ester.',
+          getApiErrorMessage(error, 'No se pudo cargar el aprendizaje prioritario de Ester'),
         );
       },
     });
@@ -324,11 +325,11 @@ export class EsterComponent implements OnInit, OnDestroy {
         this.skills = skills || [];
         this.skillsLoading = false;
       },
-      error: () => {
+      error: (error) => {
         this.skillsLoading = false;
         this.notify(
           'error',
-          'No se pudieron cargar las habilidades de Ester.',
+          getApiErrorMessage(error, 'No se pudieron cargar las habilidades de Ester'),
         );
       },
     });
@@ -345,11 +346,11 @@ export class EsterComponent implements OnInit, OnDestroy {
         };
         this.supervisorLoading = false;
       },
-      error: () => {
+      error: (error) => {
         this.supervisorLoading = false;
         this.notify(
           'error',
-          'No se pudo cargar la configuración del supervisor.',
+          getApiErrorMessage(error, 'No se pudo cargar la configuración del supervisor'),
         );
       },
     });
@@ -379,11 +380,11 @@ export class EsterComponent implements OnInit, OnDestroy {
               : 'Supervisor desactivado.',
           );
         },
-        error: () => {
+        error: (error) => {
           this.supervisorSaving = false;
           this.notify(
             'error',
-            'No se pudo guardar la configuración del supervisor.',
+            getApiErrorMessage(error, 'No se pudo guardar la configuración del supervisor'),
           );
         },
       });
@@ -412,11 +413,11 @@ export class EsterComponent implements OnInit, OnDestroy {
               : `${updated.name} fue desactivada.`,
           );
         },
-        error: () => {
+        error: (error) => {
           this.updatingSkillIds.delete(skill.id);
           this.notify(
             'error',
-            'No se pudo cambiar el estado de la habilidad.',
+            getApiErrorMessage(error, 'No se pudo cambiar el estado de la habilidad'),
           );
         },
       });
@@ -576,9 +577,9 @@ export class EsterComponent implements OnInit, OnDestroy {
             : 'Conocimiento agregado a Ester.',
         );
       },
-      error: () => {
+      error: (error) => {
         this.saving = false;
-        this.notify('error', 'No se pudo guardar el conocimiento.');
+        this.notify('error', getApiErrorMessage(error, 'No se pudo guardar el conocimiento'));
       },
     });
   }
@@ -598,8 +599,8 @@ export class EsterComponent implements OnInit, OnDestroy {
               : 'Información desactivada para las respuestas.',
           );
         },
-        error: () => {
-          this.notify('error', 'No se pudo cambiar el estado.');
+        error: (error) => {
+          this.notify('error', getApiErrorMessage(error, 'No se pudo cambiar el estado del conocimiento'));
         },
       });
   }
@@ -617,9 +618,9 @@ export class EsterComponent implements OnInit, OnDestroy {
         this.deletingId = '';
         this.notify('success', 'Conocimiento eliminado.');
       },
-      error: () => {
+      error: (error) => {
         this.deletingId = '';
-        this.notify('error', 'No se pudo eliminar el conocimiento.');
+        this.notify('error', getApiErrorMessage(error, 'No se pudo eliminar el conocimiento'));
       },
     });
   }

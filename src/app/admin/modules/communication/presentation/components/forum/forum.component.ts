@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ForumService, ForumCategory, ForumTopic, ForumPost } from '../../../../../../core/services/forum.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-forum',
@@ -104,7 +105,7 @@ export class ForumComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         this.loadingCategories = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar las categorías' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(err, 'No se pudieron cargar las categorías') });
       }
     });
   }
@@ -123,7 +124,7 @@ export class ForumComponent implements OnInit, OnDestroy {
         this.loadCategories();
       },
       error: (err: any) => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Ocurrió un problema creando la categoría' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(err, 'Ocurrió un problema creando la categoría') });
       }
     });
   }
@@ -162,7 +163,7 @@ export class ForumComponent implements OnInit, OnDestroy {
         this.goToThread(topic); // Auto navigate to topic
       },
       error: (err: any) => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Ocurrió un problema creando el tema' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(err, 'Ocurrió un problema creando el tema') });
       }
     });
   }
@@ -206,7 +207,7 @@ export class ForumComponent implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         this.submittingReply = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo publicar la respuesta' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(err, 'No se pudo publicar la respuesta') });
       }
     });
   }
@@ -256,7 +257,7 @@ export class ForumComponent implements OnInit, OnDestroy {
             this.loadCategories();
           },
           error: (err: any) => {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar' });
+            this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(err, 'No se pudo eliminar') });
           }
         });
       }

@@ -7,6 +7,7 @@ import {
   MonitorSession,
 } from '../../models/monitor-ia.models';
 import { MonitorIaApiService } from '../../services/monitor-ia-api.service';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-monitor-ia',
@@ -204,7 +205,7 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
           });
         },
         error: (error) =>
-          this.showError(error, 'No se pudo cancelar el escaneo.'),
+          this.showError(error, getApiErrorMessage(error, 'No se pudo cancelar el escaneo.')),
       });
   }
 
@@ -269,7 +270,7 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
           this.startPolling();
         },
         error: (error) =>
-          this.showError(error, 'No se pudo iniciar la Fase 1.'),
+          this.showError(error, getApiErrorMessage(error, 'No se pudo iniciar la Fase 1.')),
       });
   }
 
@@ -300,7 +301,7 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
               error?.error?.message ||
               'No se pudo enviar la prueba a Willis.',
           };
-          this.showError(error, 'No se pudo enviar la prueba a Willis.');
+          this.showError(error, getApiErrorMessage(error, 'No se pudo enviar la prueba a Willis.'));
         },
       });
   }
@@ -320,7 +321,7 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
           }
         },
         error: (error) =>
-          this.showError(error, 'No se pudo cargar Monitor IA.'),
+          this.showError(error, getApiErrorMessage(error, 'No se pudo cargar Monitor IA.')),
       });
   }
 
@@ -361,7 +362,7 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
         }
       },
       error: (error) =>
-        this.showError(error, 'No se pudo actualizar el escaneo.'),
+        this.showError(error, getApiErrorMessage(error, 'No se pudo actualizar el escaneo.')),
     });
   }
 
@@ -378,7 +379,7 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
           this.recordsTotal = response.total || 0;
         },
         error: (error) =>
-          this.showError(error, 'No se pudieron cargar los resultados.'),
+          this.showError(error, getApiErrorMessage(error, 'No se pudieron cargar los resultados.')),
       });
   }
 
@@ -402,7 +403,7 @@ export class MonitorIaComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           if (requestId !== this.clientSearchRequestId) return;
-          this.showError(error, 'No se pudieron cargar los clientes.');
+          this.showError(error, getApiErrorMessage(error, 'No se pudieron cargar los clientes.'));
         },
       });
   }

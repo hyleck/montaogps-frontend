@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { finalize } from 'rxjs/operators';
 import { AnomaliesResponse, AnomalyCategory, AnomalyItem, AnomalySeverity, AnomaliesService } from '../../services/anomalies.service';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 interface SummaryCard {
   label: string;
@@ -51,9 +52,9 @@ export class AnomaliesComponent implements OnInit {
       .pipe(finalize(() => this.loading = false))
       .subscribe({
         next: (response) => this.response = response,
-        error: () => {
+        error: (error) => {
           this.response = null;
-          this.errorMessage = 'No se pudieron cargar las anomalías del sistema.';
+          this.errorMessage = getApiErrorMessage(error, 'No se pudieron cargar las anomalías del sistema');
         }
       });
   }

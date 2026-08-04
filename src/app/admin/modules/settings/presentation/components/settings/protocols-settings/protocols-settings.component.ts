@@ -4,6 +4,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { ProtocolsService } from '@core/services/protocols.service';
 import { AuthService } from '@core/services/auth.service';
 import { Protocol, CreateProtocolDto, UpdateProtocolDto, ProtocolCommand } from '@core/interfaces/protocol.interface';
+import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-protocols-settings',
@@ -81,7 +82,7 @@ export class ProtocolsSettingsComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading protocols:', error);
-        this.showErrorMessage('error_loading');
+        this.showErrorMessage(getApiErrorMessage(error, 'error_loading'));
         this.loading = false;
       }
     });
@@ -144,7 +145,7 @@ export class ProtocolsSettingsComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error deleting protocol:', error);
-            this.showErrorMessage('error_delete');
+            this.showErrorMessage(getApiErrorMessage(error, 'error_delete'));
           }
         });
       }
@@ -198,7 +199,7 @@ export class ProtocolsSettingsComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error updating protocol:', error);
-          this.showErrorMessage('error_update');
+          this.showErrorMessage(getApiErrorMessage(error, 'error_update'));
         }
       });
     } else {
@@ -221,7 +222,7 @@ export class ProtocolsSettingsComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error creating protocol:', error);
-          this.showErrorMessage('error_create');
+          this.showErrorMessage(getApiErrorMessage(error, 'error_create'));
         }
       });
     }

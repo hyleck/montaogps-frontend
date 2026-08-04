@@ -4,6 +4,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { ServersService } from '@core/services/servers.service';
 import { AuthService } from '@core/services/auth.service';
 import { Server, CreateServerDto, UpdateServerDto } from '@core/interfaces/server.interface';
+import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-servers-settings',
@@ -76,7 +77,7 @@ export class ServersSettingsComponent implements OnInit {
       },
       error: (error) => {
         console.error('Error loading servers:', error);
-        this.showErrorMessage('error_loading');
+        this.showErrorMessage(getApiErrorMessage(error, 'error_loading'));
         this.loading = false;
       }
     });
@@ -126,7 +127,7 @@ export class ServersSettingsComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error updating server:', error);
-          this.showErrorMessage('error_update');
+          this.showErrorMessage(getApiErrorMessage(error, 'error_update'));
         }
       });
     } else {
@@ -150,7 +151,7 @@ export class ServersSettingsComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error creating server:', error);
-          this.showErrorMessage('error_create');
+          this.showErrorMessage(getApiErrorMessage(error, 'error_create'));
         }
       });
     }
@@ -204,7 +205,7 @@ export class ServersSettingsComponent implements OnInit {
           },
           error: (error) => {
             console.error('Error deleting server:', error);
-            this.showErrorMessage('error_delete');
+            this.showErrorMessage(getApiErrorMessage(error, 'error_delete'));
           }
         });
       }

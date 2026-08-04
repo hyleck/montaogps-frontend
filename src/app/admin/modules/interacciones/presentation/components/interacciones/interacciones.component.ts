@@ -15,6 +15,7 @@ import { SystemService } from '@core/services/system.service';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-interacciones',
@@ -301,9 +302,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           }
         }
       },
-      error: () => {
+      error: (error) => {
         this.loadingLists = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar las listas' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudieron cargar las listas') });
       }
     });
   }
@@ -597,7 +598,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
         this.messageService.add({ severity: 'success', summary: 'Eliminada', detail: `Lista "${list.name}" eliminada` });
         this.loadLists();
       },
-      error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar la lista' })
+      error: (error) => this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo eliminar la lista') })
     });
   }
 
@@ -827,12 +828,12 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           this.selectedExecutionDetails = details;
           this.loadingExecutionDetails = false;
         },
-        error: () => {
+        error: (error) => {
           this.loadingExecutionDetails = false;
           this.messageService.add({
             severity: 'error',
             summary: 'No se pudo cargar el detalle',
-            detail: 'Actualiza la ejecución e inténtalo nuevamente.'
+            detail: getApiErrorMessage(error, 'Actualiza la ejecución e inténtalo nuevamente.')
           });
         }
       });
@@ -1150,7 +1151,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       this.interaccionesService.toggleExternalInteractionProgress(this.selectedList._id, user._id, objectiveId, isChecked)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar el progreso' })
+          error: (error) => this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo guardar el progreso') })
         });
     } else {
       // Optimistic UI Update against User tracking logic
@@ -1166,7 +1167,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       this.userService.toggleInteractionProgress(user._id, this.selectedList._id, objectiveId, isChecked)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar el progreso' })
+          error: (error) => this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo guardar el progreso') })
         });
     }
 
@@ -1682,7 +1683,7 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         item._savingObservation = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar la observación' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(err, 'No se pudo guardar la observación') });
       }
     });
   }
@@ -1719,9 +1720,9 @@ export class InteraccionesComponent implements OnInit, OnDestroy {
           observation: ''
         });
       },
-      error: () => {
+      error: (error) => {
         this.savingManualInteraction = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar la interacción manual' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo guardar la interacción manual') });
       }
     });
   }

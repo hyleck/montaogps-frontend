@@ -3,6 +3,7 @@ import { SupportService } from '@core/services/support.service';
 import { Ticket, CreateTicketDto } from '@core/interfaces/support.interface';
 import { MessageService } from 'primeng/api';
 import { AuthService } from '@core/services/auth.service';
+import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 
 @Component({
     selector: 'app-support-settings',
@@ -57,8 +58,8 @@ export class SupportSettingsComponent implements OnInit {
                 this.tickets = data;
                 this.loading = false;
             },
-            error: () => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los tickets' });
+            error: (error) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudieron cargar los tickets') });
                 this.loading = false;
             }
         });
@@ -90,8 +91,8 @@ export class SupportSettingsComponent implements OnInit {
                 this.displayDialog = false;
                 this.loadTickets();
             },
-            error: () => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo crear el ticket' });
+            error: (error) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo crear el ticket') });
             }
         });
     }
@@ -126,8 +127,8 @@ export class SupportSettingsComponent implements OnInit {
             next: () => {
                 this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Estado del ticket actualizado correctamente' });
             },
-            error: () => {
-                this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar el estado del ticket' });
+            error: (error) => {
+                this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo actualizar el estado del ticket') });
             }
         });
     }

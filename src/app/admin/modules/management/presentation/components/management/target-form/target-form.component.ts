@@ -34,6 +34,7 @@ import { FormsService } from 'src/app/core/services/forms.service';
 import { Form } from 'src/app/core/interfaces/form.interface';
 import { InventoryService } from 'src/app/core/services/inventory.service';
 import { environment } from 'src/environments/environment';
+import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 
 
 
@@ -347,7 +348,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'No se pudieron cargar los formularios'
+                    detail: getApiErrorMessage(error, 'No se pudieron cargar los formularios')
                 });
                 this.isLoadingForms = false;
             }
@@ -391,7 +392,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'No se pudieron guardar los formularios'
+                    detail: getApiErrorMessage(err, 'No se pudieron guardar los formularios')
                 });
                 this.isLoadingForms = false;
             }
@@ -755,7 +756,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             // Automatically restart the activation process
             this.startActivation();
         } catch (error) {
-            this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo reiniciar la activación' });
+            this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo reiniciar la activación') });
         }
     }
 
@@ -994,7 +995,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'error',
                 summary: 'No se pudo generar',
-                detail: error?.error?.message || error?.message || 'Intenta nuevamente.'
+                detail: getApiErrorMessage(error, 'No se pudo generar el enlace de verificación del vehículo')
             });
         } finally {
             this.isGeneratingRegistrationLink = false;
@@ -1462,7 +1463,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudieron cargar algunos datos. Por favor, recargue la página.'
+                detail: getApiErrorMessage(error, 'No se pudieron cargar algunos datos. Por favor, recargue la página.')
             });
         }
     }
@@ -2740,26 +2741,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     private getErrorMessage(error: any): string {
-        if (error?.error?.message) {
-            return error.error.message;
-        }
-        if (error?.message) {
-            return error.message;
-        }
-        if (typeof error === 'string') {
-            return error;
-        }
-        if (error?.status) {
-            switch (error.status) {
-                case 400: return 'Datos de SMS inválidos';
-                case 401: return 'No autorizado para enviar SMS';
-                case 403: return 'Acceso denegado al servicio SMS';
-                case 404: return 'Servicio SMS no encontrado';
-                case 500: return 'Error interno del servidor SMS';
-                default: return `Error del servidor (${error.status})`;
-            }
-        }
-        return 'Error desconocido al enviar SMS';
+        return getApiErrorMessage(error, 'El proveedor de SMS no confirmó el envío');
     }
 
     async loadSmsMessages(): Promise<void> {
@@ -2830,7 +2812,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudieron cargar los mensajes SMS'
+                detail: getApiErrorMessage(error, 'No se pudieron cargar los mensajes SMS')
             });
         } finally {
             if (showInitialLoader) {
@@ -3286,7 +3268,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudo copiar el comando'
+                detail: getApiErrorMessage(error, 'No se pudo copiar el comando')
             });
         }
     }
@@ -3997,7 +3979,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo actualizar la fecha de instalación del target'
+                        detail: getApiErrorMessage(error, 'No se pudo actualizar la fecha de instalación del target')
                     });
 
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
@@ -4070,7 +4052,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo actualizar la fecha de expiración del target'
+                        detail: getApiErrorMessage(error, 'No se pudo actualizar la fecha de expiración del target')
                     });
 
                     // Activar bandera para evitar recálculo automático
@@ -4150,7 +4132,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo renovar el servicio del target'
+                        detail: getApiErrorMessage(error, 'No se pudo renovar el servicio del target')
                     });
 
                     // Activar bandera para evitar recálculo automático
@@ -4224,7 +4206,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo actualizar el técnico. El proceso se registró correctamente.'
+                        detail: getApiErrorMessage(error, 'No se pudo actualizar el técnico. El proceso se registró correctamente.')
                     });
 
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
@@ -4289,7 +4271,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo actualizar el GPS. El proceso se registró correctamente.'
+                        detail: getApiErrorMessage(error, 'No se pudo actualizar el GPS. El proceso se registró correctamente.')
                     });
 
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
@@ -4353,7 +4335,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudieron actualizar los detalles de instalación. El proceso se registró correctamente.'
+                        detail: getApiErrorMessage(error, 'No se pudieron actualizar los detalles de instalación. El proceso se registró correctamente.')
                     });
 
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
@@ -4415,7 +4397,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo actualizar el modelo de GPS. El proceso se registró correctamente.'
+                        detail: getApiErrorMessage(error, 'No se pudo actualizar el modelo de GPS. El proceso se registró correctamente.')
                     });
 
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
@@ -4477,7 +4459,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo actualizar el IMEI / GPS ID. El proceso se registró correctamente.'
+                        detail: getApiErrorMessage(error, 'No se pudo actualizar el IMEI / GPS ID. El proceso se registró correctamente.')
                     });
 
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
@@ -4540,7 +4522,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo actualizar la SIM card. El proceso se registró correctamente.'
+                        detail: getApiErrorMessage(error, 'No se pudo actualizar la SIM card. El proceso se registró correctamente.')
                     });
 
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
@@ -4603,7 +4585,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo actualizar el número de SIM. El proceso se registró correctamente.'
+                        detail: getApiErrorMessage(error, 'No se pudo actualizar el número de SIM. El proceso se registró correctamente.')
                     });
 
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
@@ -4665,7 +4647,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                     this.messageService.add({
                         severity: 'error',
                         summary: 'Error',
-                        detail: 'No se pudo actualizar el tipo de SIM. El proceso se registró correctamente.'
+                        detail: getApiErrorMessage(error, 'No se pudo actualizar el tipo de SIM. El proceso se registró correctamente.')
                     });
 
                     // Aun si falla el backend, reflejar en el formulario local para continuidad visual
@@ -4694,7 +4676,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudo registrar el proceso. Intente nuevamente.'
+                detail: getApiErrorMessage(error, 'No se pudo registrar el proceso. Intente nuevamente.')
             });
         }
     }
@@ -4911,7 +4893,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'No se pudieron cargar los procesos del dispositivo'
+                    detail: getApiErrorMessage(error, 'No se pudieron cargar los procesos del dispositivo')
                 });
             }
         } finally {
@@ -5188,7 +5170,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudieron cargar los comandos del dispositivo'
+                detail: getApiErrorMessage(error, 'No se pudieron cargar los comandos del dispositivo')
             });
             this.deviceCommands = [];
         } finally {
@@ -5242,7 +5224,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudo crear el comando'
+                detail: getApiErrorMessage(error, 'No se pudo crear el comando')
             });
         } finally {
             this.isCreatingCommand = false;
@@ -5347,7 +5329,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
             this.messageService.add({
                 severity: 'error',
                 summary: 'Error al enviar comando',
-                detail: 'No se pudo enviar el comando al dispositivo. Intente nuevamente.'
+                detail: getApiErrorMessage(error, 'No se pudo enviar el comando al dispositivo. Intente nuevamente.')
             });
         } finally {
             this.isSendingCommand = false;

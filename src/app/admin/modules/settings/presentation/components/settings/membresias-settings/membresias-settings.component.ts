@@ -14,6 +14,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { MembresiasService } from '@core/services/membresias.service';
 import { Membresia, Oferta } from '@core/interfaces/membresia.interface';
+import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 
 @Component({
     selector: 'app-membresias-settings',
@@ -117,7 +118,7 @@ export class MembresiasSettingsComponent implements OnInit {
                             this.messageService.add({
                                 severity: 'error',
                                 summary: 'Error',
-                                detail: 'No se pudo eliminar la membresía'
+                                detail: getApiErrorMessage(err, 'No se pudo eliminar la membresía')
                             });
                         }
                     });
@@ -156,7 +157,7 @@ export class MembresiasSettingsComponent implements OnInit {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'No se pudo actualizar la membresía'
+                            detail: getApiErrorMessage(err, 'No se pudo actualizar la membresía')
                         });
                     }
                 });
@@ -178,7 +179,7 @@ export class MembresiasSettingsComponent implements OnInit {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'No se pudo crear la membresía'
+                            detail: getApiErrorMessage(err, 'No se pudo crear la membresía')
                         });
                     }
                 });

@@ -4,6 +4,7 @@ import { MessageService } from 'primeng/api';
 import { User } from '../../../../../../core/interfaces';
 import { ProcessService } from '../../../../../../core/services/process.service';
 import { PROCESS_TYPE_LABELS } from '../../../../processes/presentation/services/processes.service';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-empleados',
@@ -118,7 +119,7 @@ export class EmpleadosComponent implements OnInit {
       },
       error: (err) => {
         console.error('Error al cargar empleados:', err);
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los empleados' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(err, 'No se pudieron cargar los empleados') });
         this.loading = false;
       }
     });
@@ -236,7 +237,7 @@ export class EmpleadosComponent implements OnInit {
       error: (err) => {
         console.error('Error al actualizar el departamento:', err);
         this.savingDepartment = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar el departamento' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(err, 'No se pudo actualizar el departamento') });
       }
     });
   }

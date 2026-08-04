@@ -14,6 +14,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
 import { ToolbarModule } from 'primeng/toolbar';
 import { TextareaModule } from 'primeng/textarea';
+import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 
 @Component({
     selector: 'app-tags-settings',
@@ -97,7 +98,7 @@ export class TagsSettingsComponent implements OnInit {
                             this.messageService.add({
                                 severity: 'error',
                                 summary: 'Error',
-                                detail: 'Error deleting tag'
+                                detail: getApiErrorMessage(error, 'Error deleting tag')
                             });
                         }
                     });
@@ -136,7 +137,7 @@ export class TagsSettingsComponent implements OnInit {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error updating tag'
+                            detail: getApiErrorMessage(error, 'Error updating tag')
                         });
                     }
                 });
@@ -158,7 +159,7 @@ export class TagsSettingsComponent implements OnInit {
                         this.messageService.add({
                             severity: 'error',
                             summary: 'Error',
-                            detail: 'Error creating tag'
+                            detail: getApiErrorMessage(error, 'Error creating tag')
                         });
                     }
                 });

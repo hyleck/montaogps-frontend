@@ -31,6 +31,7 @@ import { INSTALLATION_LOCATIONS } from '../../../../management/presentation/comp
 import { SystemService } from '../../../../../../core/services/system.service';
 import { MapUtils } from '../../../../../../shareds/helpers/map.helper';
 import * as maplibregl from 'maplibre-gl';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 interface SelectOption {
     label: string;
     value: string;
@@ -913,7 +914,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             }
             void this.loadModelNamesForTable();
             this.resolveUserNames();
-        } catch {
+        } catch (error) {
             if (loadSequence !== this.solicitudesLoadSequence) {
                 return;
             }
@@ -921,7 +922,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'Error',
-                    detail: 'No se pudieron cargar las solicitudes'
+                    detail: getApiErrorMessage(error, 'No se pudieron cargar las solicitudes')
                 });
             }
         } finally {
@@ -2350,14 +2351,14 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             if (requestId !== this.clientSearchRequestId) return;
             this.clientSearchResults = response.users || [];
             this.clientSearchTotal = response.totalCount || 0;
-        } catch {
+        } catch (error) {
             if (requestId !== this.clientSearchRequestId) return;
             this.clientSearchResults = [];
             this.clientSearchTotal = 0;
             this.messageService.add({
                 severity: 'error',
                 summary: 'No se pudieron cargar los clientes',
-                detail: 'Verifica tu conexión e inténtalo nuevamente.'
+                detail: getApiErrorMessage(error, 'Verifica tu conexión e inténtalo nuevamente.')
             });
         } finally {
             if (requestId === this.clientSearchRequestId) {
@@ -2480,7 +2481,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             this.existingNewClientUser = matchingUser;
             this.newClientLookupAttempted = true;
             return matchingUser;
-        } catch {
+        } catch (error) {
             if (requestId !== this.newClientLookupRequestId) return null;
             this.existingNewClientUser = null;
             this.newClientLookupAttempted = false;
@@ -2488,7 +2489,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 this.messageService.add({
                     severity: 'error',
                     summary: 'No se pudo verificar el WhatsApp',
-                    detail: 'No se guardó como cliente nuevo. Verifica tu conexión e inténtalo nuevamente.'
+                    detail: getApiErrorMessage(error, 'No se guardó como cliente nuevo. Verifica tu conexión e inténtalo nuevamente.')
                 });
             }
             return undefined;
@@ -4731,8 +4732,8 @@ async initLocationMap(): Promise<void> {
                         this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Solicitud eliminada' });
                         this.loadSolicitudes(false);
                     },
-                    error: () => {
-                        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo eliminar' });
+                    error: (error) => {
+                        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo eliminar') });
                     }
                 });
             }
@@ -6038,7 +6039,7 @@ async initLocationMap(): Promise<void> {
             this.messageService.add({
                 severity: 'error',
                 summary: 'No se pudo generar el archivo',
-                detail: 'Ocurrió un error al generar el reporte de solicitudes. Inténtalo nuevamente.',
+                detail: getApiErrorMessage(error, 'Ocurrió un error al generar el reporte de solicitudes. Inténtalo nuevamente.'),
             });
         } finally {
             this.exportingSolicitudesFormat = null;

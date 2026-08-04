@@ -7,6 +7,7 @@ import {
   FunnelSession,
 } from '../../models/monitor-ia.models';
 import { MonitorIaApiService } from '../../services/monitor-ia-api.service';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-monitor-ia-funnel',
@@ -209,7 +210,7 @@ export class MonitorIaFunnelComponent implements OnInit, OnDestroy {
           this.loadSession();
         },
         error: (error) =>
-          this.showError(error, 'No se pudo iniciar el embudo.'),
+          this.showError(error, getApiErrorMessage(error, 'No se pudo iniciar el embudo.')),
       });
   }
 
@@ -225,7 +226,7 @@ export class MonitorIaFunnelComponent implements OnInit, OnDestroy {
         this.loadSession();
       },
       error: (error) =>
-        this.showError(error, 'No se pudo iniciar la re-verificación.'),
+        this.showError(error, getApiErrorMessage(error, 'No se pudo iniciar la re-verificación.')),
     });
   }
 
@@ -244,7 +245,7 @@ export class MonitorIaFunnelComponent implements OnInit, OnDestroy {
           }
         },
         error: (error) =>
-          this.showError(error, 'No se pudo cargar el embudo.'),
+          this.showError(error, getApiErrorMessage(error, 'No se pudo cargar el embudo.')),
       });
   }
 
@@ -264,7 +265,7 @@ export class MonitorIaFunnelComponent implements OnInit, OnDestroy {
           this.total = response.total || 0;
         },
         error: (error) =>
-          this.showError(error, 'No se pudieron cargar los dispositivos.'),
+          this.showError(error, getApiErrorMessage(error, 'No se pudieron cargar los dispositivos.')),
       });
   }
 

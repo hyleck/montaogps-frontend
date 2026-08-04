@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
+import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-sso-login',
@@ -45,12 +46,12 @@ export class SsoLoginComponent implements OnInit {
 
       this.authService.completeSsoLogin(token, parsedUser, sessionDate).subscribe({
         next: () => void this.router.navigate(['/admin/management', 'u', userId], { replaceUrl: true }),
-        error: () => {
-          this.errorMessage = 'No se pudieron cargar los permisos del usuario.';
+        error: (error) => {
+          this.errorMessage = getApiErrorMessage(error, 'No se pudieron cargar los permisos del usuario');
         }
       });
-    } catch {
-      this.errorMessage = 'No se pudo leer el usuario de la sesión.';
+    } catch (error) {
+      this.errorMessage = getApiErrorMessage(error, 'No se pudo leer el usuario de la sesión');
     }
   }
 }

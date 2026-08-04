@@ -3,6 +3,7 @@ import { VehicleBrandsService } from 'src/app/core/services/vehicle-brands.servi
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
 import { AuthService } from '@core/services/auth.service';
+import { getApiErrorMessage } from '../../../../../../../core/utils/api-error.util';
 
 interface VehicleType {
   _id?: string;
@@ -87,7 +88,7 @@ export class VehicleModelsSettingsComponent implements OnInit {
       this.vehicleTypes = await this.vehicleBrandsService.getAllTypes();
     } catch (error) {
       console.error('Error al cargar los tipos de vehículos:', error);
-      this.showErrorMessage('error_loading_types');
+      this.showErrorMessage(getApiErrorMessage(error, 'error_loading_types'));
     } finally {
       this.loading = false;
     }
@@ -101,7 +102,7 @@ export class VehicleModelsSettingsComponent implements OnInit {
       this.brands.sort((a, b) => a.nombre.localeCompare(b.nombre));
     } catch (error) {
       console.error('Error al cargar las marcas:', error);
-      this.showErrorMessage('error_loading_brands');
+      this.showErrorMessage(getApiErrorMessage(error, 'error_loading_brands'));
     } finally {
       this.loading = false;
     }
@@ -119,7 +120,7 @@ export class VehicleModelsSettingsComponent implements OnInit {
       this.models.sort((a, b) => a.nombre.localeCompare(b.nombre));
     } catch (error) {
       console.error('Error al cargar los modelos:', error);
-      this.showErrorMessage('error_loading_models');
+      this.showErrorMessage(getApiErrorMessage(error, 'error_loading_models'));
     } finally {
       this.loading = false;
     }
@@ -259,7 +260,7 @@ export class VehicleModelsSettingsComponent implements OnInit {
                   await this.loadModels(this.currentBrandFilter);
                 } catch (error) {
                   console.error('Error al eliminar el modelo:', error);
-                  this.showErrorMessage('error_delete');
+                  this.showErrorMessage(getApiErrorMessage(error, 'error_delete'));
                 } finally {
                   this.loading = false;
                 }

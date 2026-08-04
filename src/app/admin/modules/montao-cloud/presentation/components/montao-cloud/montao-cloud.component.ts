@@ -5,6 +5,7 @@ import { FilesService, FileData, CreateFileDto, UpdateFileDto } from '../../../.
 import { FoldersService, FolderData, CreateFolderDto, UpdateFolderDto } from '../../../../../../core/services/folders.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
 import { Subject, takeUntil } from 'rxjs';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-montao-cloud',
@@ -172,7 +173,7 @@ export class MontaoCloudComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to create folder'
+        detail: getApiErrorMessage(error, 'Failed to create folder')
       });
     }
   }
@@ -221,7 +222,7 @@ export class MontaoCloudComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to upload files'
+        detail: getApiErrorMessage(error, 'Failed to upload files')
       });
     }
   }
@@ -256,7 +257,7 @@ export class MontaoCloudComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to delete folder'
+        detail: getApiErrorMessage(error, 'Failed to delete folder')
       });
     }
   }
@@ -290,7 +291,7 @@ export class MontaoCloudComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Failed to delete file'
+        detail: getApiErrorMessage(error, 'Failed to delete file')
       });
     }
   }

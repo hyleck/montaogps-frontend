@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { MessageService } from 'primeng/api';
+import { getApiErrorMessage } from '../core/utils/api-error.util';
 import { UserService, PublicRegistrationInfo } from '../core/services/user.service';
 import { PrimengModule } from '../shareds/libraries/primeng/primeng.module';
 
@@ -244,7 +245,7 @@ export class PublicRegistrationComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo registrar',
-          detail: error?.error?.message || 'Verifica los datos e intenta de nuevo.'
+          detail: getApiErrorMessage(error, 'No se pudo registrar la cuenta')
         });
       }
     });

@@ -44,6 +44,7 @@ import {
   sanitizeManagementLocationSubject,
 } from './location-subject-privacy';
 import * as maplibregl from 'maplibre-gl';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-management',
@@ -872,7 +873,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Error al procesar la eliminación'
+        detail: getApiErrorMessage(error, 'Error al procesar la eliminación')
       });
     }
   }
@@ -1263,7 +1264,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
       }
 
       if (!parentId) {
-        this.messageService.add({ severity: 'warn', summary: 'Advertencia', detail: 'No se pudo determinar el contexto para crear el acceso directo' });
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Usuario no identificado',
+          detail: 'El objetivo no contiene parent_id, parentId ni user_id y tampoco hay un usuario seleccionado.',
+        });
         return;
       }
 
@@ -1369,7 +1374,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         console.error('Error loading tags:', err);
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar las etiquetas' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(err, 'No se pudieron cargar las etiquetas') });
         this.loadingTags = false;
       }
     });
@@ -1401,7 +1406,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.tagDialogVisible = false;
     } catch (error: any) {
       console.error('Error saving tag:', error);
-      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo actualizar la etiqueta' });
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo actualizar la etiqueta') });
     }
   }
 
@@ -1568,7 +1573,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'No se pudo crear el link',
-        detail: error?.error?.message || error?.message || 'Intenta nuevamente o usa el metodo manual.'
+        detail: getApiErrorMessage(error, 'No se pudo crear el enlace de registro; puede usar el método manual')
       });
     } finally {
       this.creatingRegistrationLink = false;
@@ -2736,7 +2741,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudieron obtener los datos del dispositivo',
+        detail: getApiErrorMessage(error, 'No se pudieron obtener los datos del dispositivo'),
         life: 3000
       });
     }
@@ -3361,7 +3366,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.messageService.add({
             severity: 'error',
             summary: 'Error de búsqueda',
-            detail: 'No se pudieron buscar los usuarios',
+            detail: getApiErrorMessage(error, 'No se pudieron buscar los usuarios'),
             life: 3000
           });
         }
@@ -3448,7 +3453,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.messageService.add({
             severity: 'error',
             summary: 'Error de búsqueda',
-            detail: 'No se pudieron buscar los dispositivos',
+            detail: getApiErrorMessage(error, 'No se pudieron buscar los dispositivos'),
             life: 3000
           });
         }
@@ -3779,11 +3784,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
         });
         this.router.navigate(['/admin/solicitudes']);
       },
-      error: () => {
+      error: (error) => {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudo crear la solicitud'
+          detail: getApiErrorMessage(error, 'No se pudo crear la solicitud')
         });
       }
     });
@@ -3853,7 +3858,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
       return { timeText, dateText };
     } catch (error) {
       console.error('Error calculando tiempo offline:', error);
-      return { timeText: 'Error calculando tiempo', dateText: 'Error en fecha' };
+      const detail = error instanceof Error ? error.message : String(error);
+      return {
+        timeText: `No se pudo calcular el tiempo: ${detail}`,
+        dateText: 'La fecha de la última ubicación no es válida',
+      };
     }
   }
 
@@ -4044,7 +4053,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: this.translate.instant('management.error'),
-        detail: 'Error al cargar usuarios'
+        detail: getApiErrorMessage(error, 'Error al cargar usuarios')
       });
       this.uiService.setLoading(false);
     }
@@ -4162,7 +4171,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudieron cargar todos los dispositivos para seleccionarlos'
+        detail: getApiErrorMessage(error, 'No se pudieron cargar todos los dispositivos para seleccionarlos')
       });
     } finally {
       this.selectingAllTargets = false;
@@ -4238,7 +4247,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudieron cargar más dispositivos'
+        detail: getApiErrorMessage(error, 'No se pudieron cargar más dispositivos')
       });
     } finally {
       this.loadingMoreTargets = false;
@@ -4301,7 +4310,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudieron cargar más usuarios'
+        detail: getApiErrorMessage(error, 'No se pudieron cargar más usuarios')
       });
     } finally {
       this.loadingMoreUsers = false;
@@ -5207,7 +5216,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Hubo un error del sistema durante el proceso de suspensión masiva.',
+        detail: getApiErrorMessage(globalErr, 'Hubo un error del sistema durante el proceso de suspensión masiva.'),
         life: 5000
       });
     }
@@ -5282,7 +5291,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       } else if (error.status === 400) {
         this.transferEmailError = 'Formato de correo electrónico inválido';
       } else {
-        this.transferEmailError = 'Error al buscar el usuario. Intente nuevamente.';
+        this.transferEmailError = getApiErrorMessage(error, 'No se pudo buscar el usuario para la transferencia');
       }
     } finally {
       this.searchingUserForTransfer = false;
@@ -5353,7 +5362,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo completar la transferencia masiva.',
+        detail: getApiErrorMessage(globalErr, 'No se pudo completar la transferencia masiva.'),
         life: 5000
       });
     } finally {
@@ -5497,7 +5506,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Error inesperado durante la suspensión masiva.',
+        detail: getApiErrorMessage(globalErr, 'Error inesperado durante la suspensión masiva.'),
         life: 5000
       });
     }
@@ -5609,7 +5618,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Hubo un error del sistema durante el proceso de cancelación masiva.',
+        detail: getApiErrorMessage(globalErr, 'Hubo un error del sistema durante el proceso de cancelación masiva.'),
         life: 5000
       });
     } finally {
@@ -5761,7 +5770,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       },
       error: (err) => {
         this.sendingChat = false;
-        this.chatMessages.push({ from: 'system', text: '✗ Error de conexión', time: new Date() });
+        this.chatMessages.push({ from: 'system', text: getApiErrorMessage(err, '✗ Error de conexión'), time: new Date() });
         this.scrollChatToBottom();
       }
     });

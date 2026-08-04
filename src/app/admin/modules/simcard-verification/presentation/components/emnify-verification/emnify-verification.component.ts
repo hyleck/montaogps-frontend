@@ -4,6 +4,7 @@ import {
   SimcardsValidationTempService,
 } from 'src/app/core/services/simcards-validation-temp.service';
 import * as XLSX from 'xlsx-js-style';
+import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 
 @Component({
   selector: 'app-emnify-verification',
@@ -49,8 +50,8 @@ export class EmnifyVerificationComponent implements OnInit {
         this.applyLocalFilters(page);
         this.loading = false;
       },
-      error: () => {
-        this.errorMessage = 'No se pudo consultar Emnify en tiempo real.';
+      error: (error) => {
+        this.errorMessage = getApiErrorMessage(error, 'No se pudo consultar Emnify en tiempo real');
         this.loading = false;
       }
     });

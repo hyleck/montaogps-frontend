@@ -15,6 +15,7 @@ import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import { MessageService } from 'primeng/api';
 import * as ExcelJS from 'exceljs';
 import { MonitoringLocationFilterChange } from '../monitoring-map/monitoring-map.component';
+import { getApiErrorMessage } from 'src/app/core/utils/api-error.util';
 
 @Component({
   selector: 'app-monitoring',
@@ -1385,21 +1386,22 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
       } catch (error: any) {
         console.error(`Error processing device ${device.name}:`, error);
+        const errorDetail = getApiErrorMessage(error, `No se pudo renovar el dispositivo ${device.name}`);
         this.massiveProcessResults.failed++;
-        this.massiveProcessResults.errors.push({ device: device.name, error: error.message || 'Unknown error' });
+        this.massiveProcessResults.errors.push({ device: device.name, error: errorDetail });
 
         // Update progress list with error status
         const currentIndex = this.renewalProgressList.findIndex(item => item.deviceName === device.name && item.status === 'processing');
         if (currentIndex !== -1) {
           this.renewalProgressList[currentIndex].status = 'error';
-          this.renewalProgressList[currentIndex].error = error.message || 'Error desconocido';
+          this.renewalProgressList[currentIndex].error = errorDetail;
         }
 
         // Show error toast
         this.messageService.add({
           severity: 'error',
           summary: 'Error en Renovación',
-          detail: `${device.name}: ${error.message || 'Error desconocido'}`,
+          detail: errorDetail,
           life: 5000
         });
       }

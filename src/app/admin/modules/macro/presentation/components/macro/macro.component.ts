@@ -7,6 +7,7 @@ import { MacroService, DeviceDto } from 'src/app/core/services/macro.service';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { UserService } from 'src/app/core/services/user.service';
 import { environment } from 'src/environments/environment';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-macro',
@@ -64,9 +65,9 @@ export class MacroComponent implements OnInit {
         this.devices = devices;
         this.loading = false;
       },
-      error: () => {
+      error: (error) => {
         this.loading = false;
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los dispositivos' });
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudieron cargar los dispositivos') });
       },
     });
   }
@@ -128,8 +129,8 @@ export class MacroComponent implements OnInit {
         this.messageService.add({ severity: 'success', summary: 'SMS enviado', detail: response.message });
         this.closeSmsDialog();
       },
-      error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error al enviar SMS', detail: 'No se pudo completar el envío de SMS.' });
+      error: (error) => {
+        this.messageService.add({ severity: 'error', summary: 'Error al enviar SMS', detail: getApiErrorMessage(error, 'No se pudo completar el envío de SMS.') });
         this.closeSmsDialog();
       },
     });

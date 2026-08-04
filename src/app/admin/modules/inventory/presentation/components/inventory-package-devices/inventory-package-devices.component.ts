@@ -20,6 +20,7 @@ import { UserService } from 'src/app/core/services/user.service';
 import { StatusService } from 'src/app/shareds/services/status.service';
 import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import { Table } from 'primeng/table';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-inventory-package-devices',
@@ -169,7 +170,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
         this.loading = false;
         this.isLoadingMore = false;
       },
-      error: () => {
+      error: (error) => {
         if (resetPage) {
           this.packageDevices = [];
         }
@@ -178,7 +179,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Error al cargar dispositivos del paquete',
+          detail: getApiErrorMessage(error, 'Error al cargar dispositivos del paquete'),
         });
       },
     });
@@ -344,17 +345,10 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
-        let errorMessage = 'No se pudo guardar el dispositivo';
-        if (err.error?.message) {
-          errorMessage = Array.isArray(err.error.message)
-            ? err.error.message.join(', ')
-            : err.error.message;
-        }
-
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: errorMessage,
+          detail: getApiErrorMessage(err, 'No se pudo guardar el dispositivo'),
         });
       },
     });
@@ -388,11 +382,11 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
                 this.loadPackageDevices(this.currentPackageId);
               }
             },
-            error: () => {
+            error: (error) => {
               this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudo eliminar el dispositivo',
+                detail: getApiErrorMessage(error, 'No se pudo eliminar el dispositivo'),
               });
             },
           });
@@ -485,13 +479,13 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
           this.isSearchingPackage = false;
           this.isLoadingMore = false;
         },
-        error: () => {
+        error: (error) => {
           this.isSearchingPackage = false;
           this.isLoadingMore = false;
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: 'Error al buscar dispositivos del paquete',
+            detail: getApiErrorMessage(error, 'Error al buscar dispositivos del paquete'),
           });
         },
       });
@@ -584,13 +578,18 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     if (!this.deviceToInstall) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo procesar la instalación. Intente nuevamente.',
+        summary: 'Dispositivo no seleccionado',
+        detail: 'La instalación no puede iniciar porque no hay un dispositivo seleccionado en el formulario.',
       });
       return;
     }
 
     if (!this.deviceToInstall._id) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Dispositivo inválido',
+        detail: 'El dispositivo seleccionado no tiene _id y no puede enviarse al backend para instalarlo.',
+      });
       return;
     }
 
@@ -726,11 +725,11 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
         device.storage_id = newStorageId;
         device.storageDate = updatedDevice.storageDate;
       },
-      error: () => {
+      error: (error) => {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudo asignar el almacén'
+          detail: getApiErrorMessage(error, 'No se pudo asignar el almacén')
         });
         // Revert change if needed or reload
       }

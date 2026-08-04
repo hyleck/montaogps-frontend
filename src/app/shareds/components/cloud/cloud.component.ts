@@ -5,6 +5,7 @@ import { CloudService, CloudFile, CloudFolder } from '../../../core/services/clo
 import { NotesService, Note } from '../../../core/services/notes.service';
 import { MessageService, ConfirmationService } from 'primeng/api';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { getApiErrorMessage } from '../../../core/utils/api-error.util';
 
 interface CloudItem {
   id: string;
@@ -120,7 +121,7 @@ export class CloudComponent implements OnInit {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudieron cargar los contenidos del cloud'
+        detail: getApiErrorMessage(error, 'No se pudieron cargar los contenidos del cloud')
       });
       this.isLoading = false;
     });
@@ -236,7 +237,7 @@ export class CloudComponent implements OnInit {
                 this.messageService.add({
                   severity: 'error',
                   summary: 'Error',
-                  detail: 'No se pudo eliminar el archivo'
+                  detail: getApiErrorMessage(error, 'No se pudo eliminar el archivo')
                 });
               }
             });
@@ -255,7 +256,7 @@ export class CloudComponent implements OnInit {
                 this.messageService.add({
                   severity: 'error',
                   summary: 'Error',
-                  detail: 'No se pudo eliminar la nota'
+                  detail: getApiErrorMessage(error, 'No se pudo eliminar la nota')
                 });
               }
             });
@@ -326,7 +327,7 @@ export class CloudComponent implements OnInit {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: 'No se pudo guardar la nota'
+            detail: getApiErrorMessage(error, 'No se pudo guardar la nota')
           });
         }
       });
@@ -368,7 +369,7 @@ export class CloudComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudo actualizar la nota'
+          detail: getApiErrorMessage(error, 'No se pudo actualizar la nota')
         });
       }
     });

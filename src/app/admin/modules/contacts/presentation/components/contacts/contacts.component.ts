@@ -1,5 +1,6 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { ContactsService, Contact, CreateContactDto } from '../../../../../../core/services/contacts.service';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-contacts',
@@ -68,7 +69,7 @@ export class ContactsComponent implements OnChanges {
       },
       error: (err) => {
         console.error('Error loading contacts', err);
-        this.error = 'No se pudieron cargar los contactos';
+        this.error = getApiErrorMessage(err, 'No se pudieron cargar los contactos');
         this.loading = false;
       }
     });
@@ -107,7 +108,7 @@ export class ContactsComponent implements OnChanges {
         },
         error: (err) => {
           console.error('Error updating contact', err);
-          this.error = 'No se pudo actualizar el contacto';
+          this.error = getApiErrorMessage(err, 'No se pudo actualizar el contacto');
           this.saving = false;
         }
       });
@@ -121,7 +122,7 @@ export class ContactsComponent implements OnChanges {
         },
         error: (err) => {
           console.error('Error saving contact', err);
-          this.error = 'No se pudo guardar el contacto';
+          this.error = getApiErrorMessage(err, 'No se pudo guardar el contacto');
           this.saving = false;
         }
       });
@@ -139,7 +140,7 @@ export class ContactsComponent implements OnChanges {
       },
       error: (err) => {
         console.error('Error deleting contact', err);
-        this.error = 'No se pudo eliminar el contacto';
+        this.error = getApiErrorMessage(err, 'No se pudo eliminar el contacto');
       }
     });
   }

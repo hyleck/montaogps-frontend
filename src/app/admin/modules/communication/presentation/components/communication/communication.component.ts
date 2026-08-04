@@ -27,6 +27,7 @@ import {
   buildAgentSignatureLabel,
   compactAgentSignatureLabel,
 } from './agent-signature';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 interface ChatConversation {
   id: number;
@@ -692,7 +693,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     })
       .then(async response => {
         if (!response.ok) {
-          const payload = await response.json().catch(() => ({ message: 'No se pudo configurar el buzon' }));
+          const payload = await response.json().catch((error) => ({ message: getApiErrorMessage(error, 'No se pudo configurar el buzon') }));
           throw new Error(payload.message || 'No se pudo configurar el buzon');
         }
         return response.json();
@@ -741,7 +742,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           throw new Error('La sesion expiro. Inicia sesion de nuevo.');
         }
         if (!response.ok) {
-          const payload = await response.json().catch(() => ({ message: 'No se pudo cargar el buzon' }));
+          const payload = await response.json().catch((error) => ({ message: getApiErrorMessage(error, 'No se pudo cargar el buzon') }));
           throw new Error(payload.message || 'No se pudo cargar el buzon');
         }
         return response.json();
@@ -803,7 +804,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     })
       .then(async response => {
         if (!response.ok) {
-          const payload = await response.json().catch(() => ({ message: 'No se pudieron cargar los correos' }));
+          const payload = await response.json().catch((error) => ({ message: getApiErrorMessage(error, 'No se pudieron cargar los correos') }));
           throw new Error(payload.message || 'No se pudieron cargar los correos');
         }
         return response.json();
@@ -835,7 +836,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     })
       .then(async response => {
         if (!response.ok) {
-          const payload = await response.json().catch(() => ({ message: 'No se pudo abrir el correo' }));
+          const payload = await response.json().catch((error) => ({ message: getApiErrorMessage(error, 'No se pudo abrir el correo') }));
           throw new Error(payload.message || 'No se pudo abrir el correo');
         }
         return response.json();
@@ -921,7 +922,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     })
       .then(async response => {
         if (!response.ok) {
-          const payload = await response.json().catch(() => ({ message: 'No se pudo marcar el correo' }));
+          const payload = await response.json().catch((error) => ({ message: getApiErrorMessage(error, 'No se pudo marcar el correo') }));
           throw new Error(payload.message || 'No se pudo marcar el correo');
         }
       })
@@ -1327,12 +1328,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
            });
         }
       },
-      error: () => {
+      error: (error) => {
         this.isTransferring = false;
         this.messageService.add({
           severity: 'error',
           summary: 'Error de conexión',
-          detail: 'No se pudo transferir la conversación. Inténtalo nuevamente.',
+          detail: getApiErrorMessage(error, 'No se pudo transferir la conversación. Inténtalo nuevamente.'),
         });
       }
     });
@@ -1445,7 +1446,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     })
       .then(async response => {
         if (!response.ok) {
-          const payload = await response.json().catch(() => ({ message: 'No se pudo enviar el correo' }));
+          const payload = await response.json().catch((error) => ({ message: getApiErrorMessage(error, 'No se pudo enviar el correo') }));
           throw new Error(payload.message || 'No se pudo enviar el correo');
         }
       })
@@ -2320,8 +2321,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
                this.scrollToBottom();
                this.pendingRealtimeTarget = null;
              },
-             error: () => {
-               this.messages.push({ from: 'system', text: '✗ Error de conexión', time: new Date() });
+             error: (error) => {
+               this.messages.push({ from: 'system', text: getApiErrorMessage(error, '✗ Error de conexión'), time: new Date() });
                this.scrollToBottom();
                this.pendingRealtimeTarget = null;
              }
@@ -2356,8 +2357,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
              }
              this.scrollToBottom();
          },
-         error: () => {
-             this.messages.push({ from: 'system', text: '✗ Error de conexión', time: new Date() });
+         error: (error) => {
+             this.messages.push({ from: 'system', text: getApiErrorMessage(error, '✗ Error de conexión'), time: new Date() });
              this.scrollToBottom();
          }
       });
@@ -2466,7 +2467,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (detail.isExternal) {
         if (!detail.externalContactId) return;
         this.interaccionesService.toggleExternalInteractionProgress(detail.listId, detail.externalContactId, objectiveId, completed).subscribe({
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar avance.' })
+            error: (error) => this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo guardar avance.') })
         });
     } else {
         if (!this.gpsUser) return;
@@ -2482,7 +2483,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         if (!completed) listProgress.completed_objectives = listProgress.completed_objectives.filter((id: string) => id !== objectiveId);
 
         this.userService.toggleInteractionProgress(this.gpsUser._id, detail.listId, objectiveId, completed).subscribe({
-            error: () => this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo guardar avance.' })
+            error: (error) => this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo guardar avance.') })
         });
     }
   }
@@ -2873,7 +2874,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo enviar',
-          detail: error?.error?.message || 'Intenta nuevamente.'
+          detail: getApiErrorMessage(error, 'No se pudo enviar el mensaje al grupo')
         });
       }
     });
@@ -3014,8 +3015,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         }
         this.messageService.add({ severity: 'error', summary: 'No se pudo guardar', detail: res?.error || 'Intenta con otra imagen' });
       },
-      error: () => {
-        this.messageService.add({ severity: 'error', summary: 'No se pudo guardar', detail: 'Error de conexión al guardar el sticker' });
+      error: (error) => {
+        this.messageService.add({ severity: 'error', summary: 'No se pudo guardar', detail: getApiErrorMessage(error, 'Error de conexión al guardar el sticker') });
       }
     });
   }
@@ -3333,7 +3334,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       error: (error) => {
         if (requestId !== this.activeMessagesRequestId || this.selectedConversation?.id !== conversationId) return;
         console.error('[Communication] Error loading conversation messages:', error);
-        this.messagesLoadError = 'No se pudieron cargar los mensajes. Intenta actualizar.';
+        this.messagesLoadError = getApiErrorMessage(error, 'No se pudieron cargar los mensajes');
         this.loadingMessages = false;
         this.startChatPolling();
       }
@@ -3376,17 +3377,16 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             severity: 'error',
             summary: 'Ester no pudo responder',
             detail:
-              response?.error
-              || 'Intenta nuevamente en unos segundos.',
+              getApiErrorMessage(response, 'Ester no confirmó el envío de la respuesta'),
           });
         },
-        error: () => {
+        error: (error) => {
           this.sendingEsterReply = false;
           if (this.selectedConversation?.id !== conversationId) return;
           this.messageService.add({
             severity: 'error',
             summary: 'Ester no pudo responder',
-            detail: 'Intenta nuevamente en unos segundos.',
+            detail: getApiErrorMessage(error, 'No se pudo solicitar la respuesta de Ester'),
           });
         },
       });
@@ -3766,9 +3766,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.scrollToBottom();
         this.refocusInput();
       },
-      error: () => {
+      error: (error) => {
         this.sendingMessage = false;
-        this.messages.push({ from: 'system', text: '✗ Error de conexión', time: new Date() });
+        this.messages.push({ from: 'system', text: getApiErrorMessage(error, '✗ Error de conexión'), time: new Date() });
         this.scrollToBottom();
         this.refocusInput();
       }
@@ -4133,11 +4133,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           detail: res?.error || 'Intenta con otra imagen'
         });
       },
-      error: () => {
+      error: (error) => {
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo guardar',
-          detail: 'Error de conexión al guardar el sticker'
+          detail: getApiErrorMessage(error, 'Error de conexión al guardar el sticker')
         });
       }
     });
@@ -4182,11 +4182,11 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           detail: res?.error || 'Intenta con otra imagen'
         });
       },
-      error: () => {
+      error: (error) => {
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo crear',
-          detail: 'Error de conexión al subir la imagen'
+          detail: getApiErrorMessage(error, 'Error de conexión al subir la imagen')
         });
       }
     });
@@ -4354,12 +4354,12 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           detail: res?.error || 'WhatsApp no aceptó el sticker'
         });
       },
-      error: () => {
+      error: (error) => {
         this.sendingStickerId = null;
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo enviar',
-          detail: 'Error de conexión al enviar el sticker'
+          detail: getApiErrorMessage(error, 'Error de conexión al enviar el sticker')
         });
       }
     });
@@ -4385,15 +4385,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo borrar',
-          detail: res?.error || 'Intenta nuevamente'
+          detail: getApiErrorMessage(res, 'El servidor no confirmó la eliminación del sticker')
         });
       },
-      error: () => {
+      error: (error) => {
         this.deletingStickerId = null;
         this.messageService.add({
           severity: 'error',
           summary: 'No se pudo borrar',
-          detail: 'Error de conexión al borrar el sticker'
+          detail: getApiErrorMessage(error, 'Error de conexión al borrar el sticker')
         });
       }
     });
@@ -4469,9 +4469,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         }
         this.scrollToBottom();
       },
-      error: () => {
+      error: (error) => {
         this.sendingMessage = false;
-        this.messages.push({ from: 'system', text: '✗ Error de conexión', time: new Date() });
+        this.messages.push({ from: 'system', text: getApiErrorMessage(error, '✗ Error de conexión'), time: new Date() });
         this.scrollToBottom();
       }
     });
@@ -4630,9 +4630,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         }
         this.scrollToBottom();
       },
-      error: () => {
+      error: (error) => {
         this.sendingMessage = false;
-        this.messages.push({ from: 'system', text: '✗ Error de conexión', time: new Date() });
+        this.messages.push({ from: 'system', text: getApiErrorMessage(error, '✗ Error de conexión'), time: new Date() });
         this.scrollToBottom();
       }
     });
@@ -4677,11 +4677,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           this.startConversationPresenceSession();
           this.messageService.add({severity:'success', summary:'Control Tomado', detail:'Te has asignado esta conversación. Ester Assistant está desactivado para este flujo.'});
         } else {
-          this.messageService.add({severity:'error', summary:'Error', detail:'No se pudo asignar el chat.'});
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: getApiErrorMessage(res, 'No se pudo asignar el chat'),
+          });
         }
       },
-      error: () => {
-        this.messageService.add({severity:'error', summary:'Error', detail:'Problema en la red al asignar.'});
+      error: (error) => {
+        this.messageService.add({severity:'error', summary:'Error', detail:getApiErrorMessage(error, 'Problema en la red al asignar.')});
       }
     });
   }
@@ -4833,9 +4837,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           this.messageService.add({severity:'error', summary:'Error', detail:'Hubo un inconveniente al emitir la plantilla en Meta.'});
         }
       },
-      error: () => {
+      error: (error) => {
         this.sendingTemplate = false;
-        this.messageService.add({severity:'error', summary:'Error en Red', detail:'No se pudo conectar con el servidor para emitir plantilla.'});
+        this.messageService.add({severity:'error', summary:'Error en Red', detail:getApiErrorMessage(error, 'No se pudo conectar con el servidor para emitir plantilla.')});
       }
     });
   }

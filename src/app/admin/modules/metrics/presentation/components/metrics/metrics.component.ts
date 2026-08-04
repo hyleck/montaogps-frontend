@@ -10,6 +10,7 @@ import { ClientVerificationMetrics, UserService } from '../../../../../../core/s
 import { TargetsService, VehicleDataCompletenessMetrics, VehicleVerificationMetrics } from '../../../../../../core/services/targets.service';
 import { MonitoringService } from '../../../../../../core/services/monitoring.service';
 import { AuthService } from '../../../../../../core/services/auth.service';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 interface MetricCard {
   label: string;
@@ -146,12 +147,12 @@ export class MetricsComponent implements OnInit {
           this.metricCards = this.buildMetricCards(processes);
           this.saveMetricsCache();
         },
-        error: () => {
+        error: (error) => {
           if (preserveVisibleMetrics) {
             return;
           }
 
-          this.errorMessage = 'No se pudieron cargar las métricas de procesos.';
+          this.errorMessage = getApiErrorMessage(error, 'No se pudieron cargar las métricas de procesos');
           this.metricCards = [];
           this.clientVerification = this.emptyClientVerification();
           this.vehicleVerification = this.emptyVehicleVerification();

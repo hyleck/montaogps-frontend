@@ -18,6 +18,7 @@ import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatConduceSimcardCode } from './conduce-simcard-code.util';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-inventory',
@@ -104,6 +105,8 @@ export class InventoryComponent implements OnInit {
   shippingSimcards: any[] = [];
   shippingDeviceInput: string = '';
   shippingSimcardInput: string = '';
+  shippingRequestId: string = '';
+  isCreatingConduce = false;
   assignPackageDialogVisible = false;
   isNewDeviceInShipping = false;
   deviceToAssignPackage: InventoryItem | any | null = null;
@@ -200,13 +203,13 @@ export class InventoryComponent implements OnInit {
         this.packages = packages || [];
         this.loading = false;
       },
-      error: () => {
+      error: (error) => {
         this.packages = [];
         this.loading = false;
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Error al cargar paquetes',
+          detail: getApiErrorMessage(error, 'Error al cargar paquetes'),
         });
       },
     });
@@ -282,11 +285,11 @@ export class InventoryComponent implements OnInit {
         this.hidePackageDialog();
         this.loadPackages();
       },
-      error: () => {
+      error: (error) => {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudo guardar el paquete',
+          detail: getApiErrorMessage(error, 'No se pudo guardar el paquete'),
         });
       },
     });
@@ -317,11 +320,11 @@ export class InventoryComponent implements OnInit {
               });
               this.loadPackages();
             },
-            error: () => {
+            error: (error) => {
               this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudo eliminar el paquete',
+                detail: getApiErrorMessage(error, 'No se pudo eliminar el paquete'),
               });
             },
           });
@@ -385,7 +388,7 @@ export class InventoryComponent implements OnInit {
         this.isLoadingMore = false;
         if (onComplete) onComplete();
       },
-      error: () => {
+      error: (error) => {
         if (resetPage) {
           this.allDevicesSearchResults = [];
           this.showingSearchResults = false;
@@ -396,7 +399,7 @@ export class InventoryComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Error al buscar dispositivos',
+          detail: getApiErrorMessage(error, 'Error al buscar dispositivos'),
         });
       },
     });
@@ -439,7 +442,7 @@ export class InventoryComponent implements OnInit {
       this.messageService.add({
         severity: 'warn',
         summary: 'Sin paquete',
-        detail: 'No se pudo identificar el paquete del dispositivo seleccionado',
+        detail: 'El dispositivo seleccionado no tiene package ni package._id asignado.',
       });
       return;
     }
@@ -558,12 +561,12 @@ export class InventoryComponent implements OnInit {
           this.loadingWarehouses = false;
           this.updateWarehouseStats(data, true);
         },
-        error: () => {
+        error: (error) => {
           this.loadingWarehouses = false;
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: 'Error al cargar almacenes'
+            detail: getApiErrorMessage(error, 'Error al cargar almacenes')
           });
         }
       });
@@ -669,11 +672,11 @@ export class InventoryComponent implements OnInit {
         this.selectedWarehouse = null;
         this.selectedWarehouseAccessUsers = [];
       },
-      error: () => {
+      error: (error) => {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudo guardar el almacén'
+          detail: getApiErrorMessage(error, 'No se pudo guardar el almacén')
         });
       }
     });
@@ -694,11 +697,11 @@ export class InventoryComponent implements OnInit {
             });
             this.loadWarehouses();
           },
-          error: () => {
+          error: (error) => {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
-              detail: 'No se pudo eliminar el almacén'
+              detail: getApiErrorMessage(error, 'No se pudo eliminar el almacén')
             });
           }
         });
@@ -755,12 +758,12 @@ export class InventoryComponent implements OnInit {
         this.warehouseUserSearchResults = response.users || [];
         this.isSearchingWarehouseUsers = false;
       },
-      error: () => {
+      error: (error) => {
         this.isSearchingWarehouseUsers = false;
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudo buscar usuarios'
+          detail: getApiErrorMessage(error, 'No se pudo buscar usuarios')
         });
       }
     });
@@ -904,14 +907,10 @@ export class InventoryComponent implements OnInit {
         }
       },
       error: (err) => {
-        let errorMessage = 'No se pudo guardar el dispositivo';
-        if (err.error?.message) {
-          errorMessage = Array.isArray(err.error.message) ? err.error.message.join(', ') : err.error.message;
-        }
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: errorMessage,
+          detail: getApiErrorMessage(err, 'No se pudo guardar el dispositivo'),
         });
       },
     });
@@ -946,11 +945,11 @@ export class InventoryComponent implements OnInit {
                 this.searchAllInventory();
               }
             },
-            error: () => {
+            error: (error) => {
               this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudo eliminar el dispositivo',
+                detail: getApiErrorMessage(error, 'No se pudo eliminar el dispositivo'),
               });
             },
           });
@@ -1108,7 +1107,7 @@ export class InventoryComponent implements OnInit {
         this.isSearchingSimcards = false;
         this.simcardIsLoadingMore = false;
       },
-      error: () => {
+      error: (error) => {
         if (resetPage) {
           this.simcardsList = [];
         }
@@ -1117,7 +1116,7 @@ export class InventoryComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'Error al buscar simcards',
+          detail: getApiErrorMessage(error, 'Error al buscar simcards'),
         });
       },
     });
@@ -1251,14 +1250,10 @@ export class InventoryComponent implements OnInit {
         this.searchAllSimcards(true);
       },
       error: (err) => {
-        let errorMessage = 'No se pudo guardar la simcard';
-        if (err.error?.message) {
-          errorMessage = Array.isArray(err.error.message) ? err.error.message.join(', ') : err.error.message;
-        }
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: errorMessage,
+          detail: getApiErrorMessage(err, 'No se pudo guardar la simcard'),
         });
       },
     });
@@ -1289,11 +1284,11 @@ export class InventoryComponent implements OnInit {
               });
               this.searchAllSimcards(true);
             },
-            error: () => {
+            error: (error) => {
               this.messageService.add({
                 severity: 'error',
                 summary: 'Error',
-                detail: 'No se pudo eliminar la Simcard',
+                detail: getApiErrorMessage(error, 'No se pudo eliminar la Simcard'),
               });
             },
           });
@@ -1344,8 +1339,8 @@ export class InventoryComponent implements OnInit {
         this.totalConducesRecords = response.total;
         this.isLoadingConduces = false;
       },
-      error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron cargar los conduces.' });
+      error: (error) => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudieron cargar los conduces.') });
         this.isLoadingConduces = false;
       }
     });
@@ -1580,6 +1575,7 @@ export class InventoryComponent implements OnInit {
   }
 
   openShippingModal(): void {
+    this.shippingRequestId = this.createConduceRequestId();
     this.shippingDialogVisible = true;
   }
 
@@ -1591,19 +1587,56 @@ export class InventoryComponent implements OnInit {
     this.shippingSimcards = [];
     this.shippingDeviceInput = '';
     this.shippingSimcardInput = '';
+    this.shippingRequestId = '';
+    this.isCreatingConduce = false;
+  }
+
+  onShippingDestinationChange(destinationId: string | null): void {
+    this.shippingDestinationWarehouse = destinationId || null;
+    if (!this.shippingDestinationWarehouse) return;
+
+    const previousDeviceCount = this.shippingDevices.length;
+    const previousSimcardCount = this.shippingSimcards.length;
+    this.shippingDevices = this.shippingDevices.filter(
+      item => !this.isAlreadyAtShippingDestination(item),
+    );
+    this.shippingSimcards = this.shippingSimcards.filter(
+      item => !this.isAlreadyAtShippingDestination(item),
+    );
+
+    const removed = (previousDeviceCount - this.shippingDevices.length)
+      + (previousSimcardCount - this.shippingSimcards.length);
+    if (removed) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Artículos retirados',
+        detail: `${removed} artículo(s) ya pertenecían al almacén destino y fueron retirados del conduce.`,
+      });
+    }
   }
 
   addShippingDevice(): void {
     const imei = this.shippingDeviceInput.trim();
-    if (!imei || this.shippingDevices.includes(imei)) return;
+    if (!imei || this.shippingDevices.some(d => (d.IMEI === imei || d.imei === imei))) return;
 
     this.inventoryService.searchAllDevices(imei).subscribe({
       next: (response) => {
         const device = response.data?.find(d => (d.IMEI === imei || d.imei === imei));
         if (!device) {
-          this.isNewDeviceInShipping = true;
-          this.deviceToAssignPackage = { imei: imei, IMEI: imei };
-          this.assignPackageDialogVisible = true;
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'No encontrado',
+            detail: `El dispositivo ${imei} no existe en inventario. Debe registrarlo desde Dispositivos antes de crear el conduce.`,
+          });
+          return;
+        }
+
+        if (this.isAlreadyAtShippingDestination(device)) {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Traslado no permitido',
+            detail: `El dispositivo ${imei} ya pertenece al almacén destino.`,
+          });
           return;
         }
 
@@ -1622,8 +1655,8 @@ export class InventoryComponent implements OnInit {
           }
         }
       },
-      error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Error al buscar el dispositivo.' });
+      error: (error) => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'Error al buscar el dispositivo.') });
       }
     });
   }
@@ -1684,8 +1717,8 @@ export class InventoryComponent implements OnInit {
           }
           this.hideAssignPackageDialog();
         },
-        error: () => {
-          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo registrar el dispositivo.' });
+        error: (error) => {
+          this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo registrar el dispositivo.') });
         }
       });
     } else {
@@ -1701,8 +1734,8 @@ export class InventoryComponent implements OnInit {
           }
           this.hideAssignPackageDialog();
         },
-        error: () => {
-          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo asignar el paquete.' });
+        error: (error) => {
+          this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo asignar el paquete.') });
         }
       });
     }
@@ -1714,18 +1747,27 @@ export class InventoryComponent implements OnInit {
 
   addShippingSimcard(): void {
     const iccid = this.shippingSimcardInput.trim();
-    if (!iccid || this.shippingSimcards.includes(iccid)) return;
+    if (!iccid || this.shippingSimcards.some(s => s.iccid === iccid)) return;
 
     this.inventoryService.searchAllSimcards(iccid).subscribe({
       next: (response) => {
         const simcard = response.data?.find(s => s.iccid === iccid);
 
         if (!simcard) {
-          this.isNewSimcardInShipping = true;
-          this.simcardToAssignPackage = { iccid: iccid };
-          this.selectedCompanyToAssignSimcard = 'nacionales';
-          this.selectedApnToAssignSimcard = '';
-          this.assignPackageDialogSimcardVisible = true;
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'No encontrada',
+            detail: `La simcard ${iccid} no existe en inventario. Debe registrarla desde Simcards antes de crear el conduce.`,
+          });
+          return;
+        }
+
+        if (this.isAlreadyAtShippingDestination(simcard)) {
+          this.messageService.add({
+            severity: 'warn',
+            summary: 'Traslado no permitido',
+            detail: `La simcard ${iccid} ya pertenece al almacén destino.`,
+          });
           return;
         }
 
@@ -1736,8 +1778,8 @@ export class InventoryComponent implements OnInit {
           this.messageService.add({ severity: 'success', summary: 'Agregado', detail: `Simcard ${iccid} preparada para envío.` });
         }
       },
-      error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Error al buscar el simcard.' });
+      error: (error) => {
+        this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'Error al buscar el simcard.') });
       }
     });
   }
@@ -1775,8 +1817,8 @@ export class InventoryComponent implements OnInit {
           }
           this.hideAssignPackageSimcardDialog();
         },
-        error: () => {
-          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo registrar la simcard.' });
+        error: (error) => {
+          this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo registrar la simcard.') });
         }
       });
     } else {
@@ -1792,8 +1834,8 @@ export class InventoryComponent implements OnInit {
           }
           this.hideAssignPackageSimcardDialog();
         },
-        error: () => {
-          this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudo asignar el paquete a la simcard.' });
+        error: (error) => {
+          this.messageService.add({ severity: 'error', summary: 'Error', detail: getApiErrorMessage(error, 'No se pudo asignar el paquete a la simcard.') });
         }
       });
     }
@@ -1814,38 +1856,64 @@ export class InventoryComponent implements OnInit {
       return;
     }
 
-    // Since our shipping arrays are currently arrays of strings (IMEI and ICCID),
-    // we need to resolve them to their ObjectIds to send to the backend.
-    // For simplicity given the current arrays, we'll map them by looking them up in our search caches,
-    // or we'll dispatch a request if needed. Actually, `allDevicesSearchResults` and `simcardsList`
-    // don't always contain the newly added items. It's better to modify the add functions 
-    // to store the `_id` as well. But right now we'll do the backend call with what we have.
-    // Actually, I'll modify the arrays to store objects { id: string, name: string } later if needed.
-    // Wait, let's just use `shippingDevices` and `shippingSimcards` directly in the backend `ConduceService` using a lookup by IMEI/ICCID?
-    // No, DTO requires MongoId. I need to store the ObjectIds in the array.
+    const invalidDevices = this.shippingDevices.filter(item => this.isAlreadyAtShippingDestination(item));
+    const invalidSimcards = this.shippingSimcards.filter(item => this.isAlreadyAtShippingDestination(item));
+    if (invalidDevices.length || invalidSimcards.length) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Traslado no permitido',
+        detail: 'El conduce contiene artículos que ya pertenecen al almacén destino. Retírelos antes de continuar.',
+      });
+      return;
+    }
 
-    // Let's refactor `shippingDevices` and `shippingSimcards` to hold the objects we already fetched in `addShippingDevice` and `addShippingSimcard`.
     const payload: any = {
       destination_warehouse: this.shippingDestinationWarehouse,
+      request_id: this.shippingRequestId || this.createConduceRequestId(),
       description: this.shippingDescription,
       devices: this.shippingDevices.map((d: any) => d._id).filter((id: any) => id),
       simcards: this.shippingSimcards.map((s: any) => s._id).filter((id: any) => id)
     };
 
     if (payload.devices.length === 0 && payload.simcards.length === 0) {
-      this.messageService.add({ severity: 'error', summary: 'Error', detail: 'No se pudieron recuperar los IDs de los dispositivos/simcards. Asegurese de que tengan un _id válido.' });
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Artículos inválidos',
+        detail: 'Todos los dispositivos y simcards seleccionados carecen de _id; vuelva a buscarlos en inventario antes de crear el conduce.',
+      });
       return;
     }
 
+    this.isCreatingConduce = true;
     this.inventoryService.createConduce(payload).subscribe({
       next: () => {
+        this.isCreatingConduce = false;
         this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Conduce creado correctamente.' });
         this.hideShippingDialog();
         this.loadConduces(); // Refresh the list if it's open, or just in background
       },
-      error: () => {
-        this.messageService.add({ severity: 'error', summary: 'Error', detail: 'Ocurrió un error al crear el conduce.' });
+      error: (error) => {
+        this.isCreatingConduce = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo crear el conduce',
+          detail: getApiErrorMessage(error, 'No se pudo crear el conduce'),
+        });
       }
     });
+  }
+
+  private isAlreadyAtShippingDestination(item: any): boolean {
+    if (!this.shippingDestinationWarehouse) return false;
+    const storage = item?.storage_id;
+    const storageId = typeof storage === 'object' ? storage?._id : storage;
+    return String(storageId || '') === String(this.shippingDestinationWarehouse);
+  }
+
+  private createConduceRequestId(): string {
+    if (typeof globalThis.crypto?.randomUUID === 'function') {
+      return globalThis.crypto.randomUUID();
+    }
+    return `conduce-${Date.now()}-${Math.random().toString(36).slice(2)}`;
   }
 }

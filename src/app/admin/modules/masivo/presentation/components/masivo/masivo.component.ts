@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { DialogService } from 'primeng/dynamicdialog';
 import { MessageService, MenuItem } from 'primeng/api';
 import { MasivoService } from '@core/services/masivo.service';
+import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
   selector: 'app-masivo',
@@ -60,7 +61,7 @@ export class MasivoComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudieron cargar los dispositivos'
+          detail: getApiErrorMessage(error, 'No se pudieron cargar los dispositivos')
         });
       }
     });
@@ -102,7 +103,7 @@ export class MasivoComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudieron enviar los SMS masivos'
+          detail: getApiErrorMessage(error, 'No se pudieron enviar los SMS masivos')
         });
       }
     });

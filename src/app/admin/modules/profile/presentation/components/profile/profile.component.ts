@@ -20,6 +20,7 @@ import { AuthService } from '@core/services/auth.service';
 import { UserService } from '@core/services/user.service';
 import { CloudService } from '@core/services/cloud.service';
 import { ToastModule } from 'primeng/toast';
+import { getApiErrorMessage } from '@core/utils/api-error.util';
 
 @Component({
     selector: 'app-profile',
@@ -452,7 +453,7 @@ export class ProfileComponent implements OnInit {
             },
             error: (error) => {
                 console.error('Error al actualizar la contraseña:', error);
-                this.showPasswordUpdateErrorMessage();
+                this.showPasswordUpdateErrorMessage(error);
             }
         });
     }
@@ -521,11 +522,11 @@ export class ProfileComponent implements OnInit {
         });
     }
 
-    private showPasswordUpdateErrorMessage() {
+    private showPasswordUpdateErrorMessage(error: unknown) {
         this.messageService.add({
             severity: 'error',
             summary: this.translate.instant('Error al actualizar'),
-            detail: this.translate.instant('Ha ocurrido un error al actualizar tu contraseña')
+            detail: getApiErrorMessage(error, this.translate.instant('No se pudo actualizar la contraseña'))
         });
     }
 
