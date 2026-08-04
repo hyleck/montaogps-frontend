@@ -42,6 +42,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       { label: '', path: '/admin/empleados', icon: 'pi pi-id-card', badge: 0 },
       { label: '', path: '/admin/inventory', icon: 'pi pi-database', badge: 0 },
       { label: '', path: '/admin/solicitudes', icon: 'pi pi-clipboard', badge: 0 },
+      { label: 'Comprobantes', path: '/admin/comprobantes', icon: 'pi pi-receipt', badge: 0 },
       { label: '', path: '/admin/monitoring', icon: 'pi pi-eye', badge: 0 },
       { label: '', path: '/admin/server-costs', icon: 'pi pi-wallet', badge: 0 },
       { label: '', path: '/admin/communication', icon: 'pi pi-comments', badge: 0 },
@@ -194,6 +195,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.setPrincipalLabel('/admin/empleados', 'Empleados');
     this.setPrincipalLabel('/admin/inventory', this.translate.instant('sidebar.inventory'));
     this.setPrincipalLabel('/admin/solicitudes', 'Solicitudes');
+    this.setPrincipalLabel('/admin/comprobantes', 'Comprobantes');
     this.setPrincipalLabel('/admin/monitoring', this.translate.instant('sidebar.monitoring'));
     this.setPrincipalLabel('/admin/server-costs', this.translate.instant('sidebar.serverCosts'));
     this.setPrincipalLabel('/admin/communication', 'Comunicación');
@@ -275,7 +277,9 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   // Getter para verificar si el usuario es root
   get isRootUser(): boolean {
-    return this.currentUser?.root === true;
+    const value = this.currentUser?.root;
+    return value === true
+      || ['true', '1'].includes(String(value || '').toLowerCase());
   }
 
   get canAccessMonitoring(): boolean {
@@ -311,6 +315,9 @@ export class SidebarComponent implements OnInit, OnDestroy {
         return this.isRootUser;
       }
       if (item.path === '/admin/server-costs') {
+        return this.isRootUser;
+      }
+      if (item.path === '/admin/comprobantes') {
         return this.isRootUser;
       }
       if (item.path === '/admin/ester') {

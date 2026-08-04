@@ -19,10 +19,10 @@ import {
   InternalChatMessage,
   InternalChatService,
 } from '@core/services/internal-chat.service';
-import { EsterService } from '@core/services/ester.service';
+import { EsterMessageFeedback, EsterService } from '@core/services/ester.service';
 import { ConfirmationService, MessageService, MenuItem } from 'primeng/api';
 import { environment } from '../../../../../../../environments/environment';
-import { finalize, forkJoin, Subscription, timeout, timer } from 'rxjs';
+import { catchError, finalize, forkJoin, of, Subscription, timeout, timer } from 'rxjs';
 import {
   buildAgentSignatureLabel,
   compactAgentSignatureLabel,
@@ -104,6 +104,7 @@ interface ChatMessage {
     }>;
   };
   senderName?: string;
+  esterFeedback?: EsterMessageFeedback;
 }
 
 interface WhatsAppSharedContact {
@@ -276,6 +277,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     changeSummary?: string;
   } | null = null;
   private esterLearningTimers: number[] = [];
+  private esterFeedbackByMessageId = new Map<number, EsterMessageFeedback>();
   sendingConversationReminder: boolean = false;
   openingSharedContactPhone: string = '';
   replyingTo: ChatMessage | null = null;
@@ -453,6 +455,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   canClearInternalMessages: boolean = false;
   clearingInternalGroupId: string | null = null;
   showInternalGroupMenu: boolean = false;
+  internalGroupSearchTerm: string = '';
+  internalGroupChatOpen: boolean = false;
   internalChatInput: string = '';
   loadingInternalMessages: boolean = false;
   sendingInternalMessage: boolean = false;
@@ -465,6 +469,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   showInternalEmojiPicker: boolean = false;
   readonly internalEmojiOptions: string[] = ['😀', '😂', '😊', '😍', '👍', '🙏', '👏', '🔥', '✅', '🚗', '📍', '⚠️', '🛠️', '📞', '❤️', '💪'];
   private internalChatMutedSubscription?: Subscription;
+  private loadInternalChatAfterGroups: boolean = false;
 
   ngOnInit(): void {
     this.updateAttachmentMenu();
@@ -488,7 +493,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       if (tab === 'chat' || tab === 'grupo') {
         this.activeTab = tab;
         if (tab === 'grupo') {
-          this.loadInternalGroups();
+          this.selectedInternalGroupId = 'admin';
+          this.internalGroupChatOpen = true;
+          this.loadInternalGroups(true);
         } else {
           this.stopActiveEmployeesPolling();
         }
@@ -506,6 +513,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       this.pendingFocusedMessageId = messageId > 0 ? messageId : null;
       const requestedGroupId = String(params.get('groupId') || '').trim();
       if (requestedGroupId) {
+        this.internalGroupChatOpen = true;
         const changed = this.selectedInternalGroupId !== requestedGroupId;
         this.selectedInternalGroupId = requestedGroupId;
         if (changed && this.activeTab === 'grupo' && this.internalGroups.length) {
@@ -513,6 +521,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           this.internalMessages = [];
           this.stopInternalChatPolling();
           this.loadInternalChat();
+        } else if (this.activeTab === 'grupo' && !this.internalGroups.length) {
+          this.loadInternalGroups(true);
         }
       }
     });
@@ -594,7 +604,16 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     if (tab === 'grupo') {
       this.stopConversationPresenceSession();
       this.stopChatPolling();
-      this.loadInternalGroups();
+      const changedGroup = this.selectedInternalGroupId !== 'admin';
+      this.selectedInternalGroupId = 'admin';
+      this.internalGroupChatOpen = true;
+      this.stopInternalChatPolling();
+      this.stopActiveEmployeesPolling();
+      if (changedGroup) {
+        this.internalMessages = [];
+        this.internalChatInput = '';
+      }
+      this.loadInternalGroups(true);
     } else {
       this.stopInternalChatPolling();
       this.stopActiveEmployeesPolling();
@@ -2554,6 +2573,34 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     return this.selectedInternalGroup?.name || 'Montao GPS';
   }
 
+  get filteredInternalGroups(): InternalChatGroup[] {
+    const search = this.normalizeSearchText(this.internalGroupSearchTerm);
+    if (!search) return this.internalGroups;
+
+    return this.internalGroups.filter((group) => {
+      const searchable = [
+        group.name,
+        group.type === 'admin'
+          ? 'empleados administrativos'
+          : 'técnico empleados administrativos instalaciones',
+        group.technician?.name,
+        group.technician?.lastName,
+        group.technician?.email,
+      ]
+        .filter(Boolean)
+        .join(' ');
+      return this.normalizeSearchText(searchable).includes(search);
+    });
+  }
+
+  private normalizeSearchText(value: unknown): string {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim()
+      .toLowerCase();
+  }
+
   get totalInternalUnreadCount(): number {
     if (this.internalChatMuted) return 0;
     return this.internalGroups.reduce(
@@ -2570,11 +2617,17 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   loadInternalGroups(loadSelectedChat = true, force = false): void {
+    if (loadSelectedChat) {
+      this.loadInternalChatAfterGroups = true;
+    }
     if (this.loadingInternalGroups) return;
 
     if (this.internalGroups.length && !force) {
       this.ensureSelectedInternalGroup();
-      if (loadSelectedChat) this.loadInternalChat();
+      if (this.loadInternalChatAfterGroups && this.internalGroupChatOpen) {
+        this.loadInternalChatAfterGroups = false;
+        this.loadInternalChat();
+      }
       return;
     }
 
@@ -2586,10 +2639,14 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         this.canClearInternalMessages = response?.canClearMessages === true;
         this.ensureSelectedInternalGroup();
         this.syncInternalUnreadCount();
-        if (loadSelectedChat) this.loadInternalChat();
+        if (this.loadInternalChatAfterGroups && this.internalGroupChatOpen) {
+          this.loadInternalChatAfterGroups = false;
+          this.loadInternalChat();
+        }
       },
       error: (error) => {
         this.loadingInternalGroups = false;
+        this.loadInternalChatAfterGroups = false;
         this.internalChatError =
           error?.error?.message || 'No se pudieron cargar los grupos.';
       },
@@ -2601,6 +2658,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
 
     this.showInternalGroupMenu = false;
     this.activeTab = 'grupo';
+    this.internalGroupChatOpen = true;
     const changed = this.selectedInternalGroupId !== group.id;
     this.selectedInternalGroupId = group.id;
     this.setInternalGroupUnreadCount(group.id, 0);
@@ -2613,6 +2671,15 @@ export class CommunicationComponent implements OnInit, OnDestroy {
       queryParams: { groupId: group.id },
     });
     this.loadInternalChat();
+  }
+
+  showInternalGroupList(): void {
+    this.internalGroupChatOpen = false;
+    this.stopInternalChatPolling();
+    this.stopActiveEmployeesPolling();
+    this.showInternalEmojiPicker = false;
+    this.showStickerPicker = false;
+    this.router.navigate(['/admin/communication', 'grupo']);
   }
 
   confirmClearInternalGroup(
@@ -3231,9 +3298,21 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.loadingOlderMessages = false;
     this.hasOlderMessages = true;
     this.messagesLoadError = '';
-    this.whatsappApi.getConversationMessages(conversationId, this.messagesPageSize).pipe(timeout(20000)).subscribe({
-      next: (res: any) => {
+    forkJoin({
+      messagesResponse: this.whatsappApi
+        .getConversationMessages(conversationId, this.messagesPageSize)
+        .pipe(timeout(20000)),
+      feedback: this.isRootUser
+        ? this.esterService.getConversationFeedback(conversationId).pipe(
+            catchError(() => of([] as EsterMessageFeedback[])),
+          )
+        : of([] as EsterMessageFeedback[]),
+    }).subscribe({
+      next: ({ messagesResponse: res, feedback }) => {
         if (requestId !== this.activeMessagesRequestId || this.selectedConversation?.id !== conversationId) return;
+        this.esterFeedbackByMessageId = new Map(
+          feedback.map(entry => [Number(entry.message_id), entry]),
+        );
         this.loadingMessages = false;
         if (res.success && res.messages?.length) {
           this.messages = this.mapApiMessages(res.messages);
@@ -3421,6 +3500,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
             }
           : undefined,
         senderName: String(msg.sender || ''),
+        esterFeedback: this.esterFeedbackByMessageId.get(Number(msg.id)),
       };
 
       this.enrichWithAppUrls(mapped);
@@ -3448,7 +3528,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
   }
 
   openEsterFeedback(message: ChatMessage): void {
-    if (!this.isRootUser || !this.isEsterMessage(message)) return;
+    if (!this.isRootUser || !this.isEsterMessage(message) || message.esterFeedback) return;
     this.clearEsterLearningTimers();
     this.selectedEsterFeedbackMessage = message;
     this.esterFeedbackText = '';
@@ -3501,6 +3581,9 @@ export class CommunicationComponent implements OnInit, OnDestroy {
           version: result.rule.version,
           changeSummary: result.rule.change_summary,
         };
+        const evaluatedMessage = this.messages.find(message => message.id === messageId);
+        if (evaluatedMessage) evaluatedMessage.esterFeedback = result.feedback;
+        this.esterFeedbackByMessageId.set(messageId, result.feedback);
         this.messageService.add({
           severity: 'success',
           summary: result.updated ? 'Aprendizaje optimizado' : 'Nuevo aprendizaje',

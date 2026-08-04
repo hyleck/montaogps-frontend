@@ -113,7 +113,7 @@
                 <ng-template pTemplate="body" let-server>
                     <tr>
                         <td>{{server.name}}</td>
-                        <td>{{server.device_limit}}</td>
+                        <td>{{ server.device_count ?? '—' }} / {{ server.device_limit }}</td>
                         <td>
                             <span class="server-status" [ngClass]="{'status-maintenance': server.maintenance, 'status-active': !server.maintenance}">
                                 {{ (server.maintenance ? 'settings.servers.status_maintenance' : 'settings.servers.status_active') | translate }}

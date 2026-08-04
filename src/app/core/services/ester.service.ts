@@ -133,6 +133,15 @@ export interface EsterFeedbackPayload {
 export interface EsterFeedbackResult {
   updated: boolean;
   rule: EsterSelfLearningRule;
+  feedback: EsterMessageFeedback;
+}
+
+export interface EsterMessageFeedback {
+  conversation_id: number;
+  message_id: number;
+  feedback: string;
+  submitted_by: string;
+  applied_at: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -231,6 +240,14 @@ export class EsterService {
     return this.http.post<EsterFeedbackResult>(
       `${environment.apiUrl}/ester/self-learning/feedback`,
       payload,
+    );
+  }
+
+  getConversationFeedback(
+    conversationId: number,
+  ): Observable<EsterMessageFeedback[]> {
+    return this.http.get<EsterMessageFeedback[]>(
+      `${environment.apiUrl}/ester/self-learning/feedback/conversation/${conversationId}`,
     );
   }
 }

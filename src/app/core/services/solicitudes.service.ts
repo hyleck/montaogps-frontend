@@ -67,6 +67,17 @@ export interface InstallationDetail {
     cancelled?: boolean;
 }
 
+export interface SolicitudReassignment {
+    reason?: string;
+    previous_mechanic_id?: string;
+    mechanic_id?: string;
+    previous_scheduled_date?: string | Date;
+    scheduled_date?: string | Date;
+    reassigned_at?: string | Date;
+    reassigned_by_id?: string;
+    reassigned_by_name?: string;
+}
+
 export interface Solicitud {
     _id?: string;
     type: string;
@@ -99,6 +110,12 @@ export interface Solicitud {
     scheduled_date?: string | Date;
     confirmation_permission?: string;
     completed_date?: string;
+    reassigned?: boolean;
+    reassignment_reason?: string;
+    reassigned_at?: string | Date;
+    reassigned_by_id?: string;
+    reassigned_by_name?: string;
+    reassignment_history?: SolicitudReassignment[];
     created_by_id?: string;
     created_by_name?: string;
     user_id?: string;
@@ -180,11 +197,13 @@ export class SolicitudesService {
 
     constructor(private http: HttpClient) { }
 
-    getAll(filters?: { type?: string; status?: string; search?: string; page?: number; limit?: number }): Observable<{ data: Solicitud[]; total: number }> {
+    getAll(filters?: { type?: string; status?: string; search?: string; sort_by?: 'status_scheduled'; sort_order?: 'asc' | 'desc'; page?: number; limit?: number }): Observable<{ data: Solicitud[]; total: number }> {
         let params = new HttpParams();
         if (filters?.type) params = params.set('type', filters.type);
         if (filters?.status) params = params.set('status', filters.status);
         if (filters?.search) params = params.set('search', filters.search);
+        if (filters?.sort_by) params = params.set('sort_by', filters.sort_by);
+        if (filters?.sort_order) params = params.set('sort_order', filters.sort_order);
         if (filters?.page) params = params.set('page', filters.page.toString());
         if (filters?.limit) params = params.set('limit', filters.limit.toString());
         return this.http.get<{ data: Solicitud[]; total: number }>(this.apiUrl, { params });
@@ -253,6 +272,13 @@ export class SolicitudesService {
 
     update(id: string, solicitud: Partial<Solicitud>): Observable<Solicitud> {
         return this.http.patch<Solicitud>(`${this.apiUrl}/${id}`, solicitud);
+    }
+
+    reassign(
+        id: string,
+        input: { mechanic_id: string; scheduled_date: string; reason: string },
+    ): Observable<Solicitud> {
+        return this.http.post<Solicitud>(`${this.apiUrl}/${id}/reassign`, input);
     }
 
     verifyAvailability(id: string): Observable<Solicitud> {

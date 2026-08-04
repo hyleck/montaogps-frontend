@@ -7,6 +7,7 @@ export interface Server {
   token: string;
   months_of_storage: number;
   device_limit: number;
+  device_count?: number | null;
   maintenance: boolean;
 }
 

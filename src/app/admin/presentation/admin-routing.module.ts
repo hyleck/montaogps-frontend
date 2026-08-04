@@ -72,6 +72,12 @@ const routes: Routes = [
         loadChildren: () => import('../modules/ester/presentation/ester.module').then(m => m.EsterModule)
       },
       {
+        path: 'comprobantes',
+        canMatch: [RootGuard],
+        canActivate: [RootGuard],
+        loadChildren: () => import('../modules/comprobantes/presentation/comprobantes.module').then(m => m.ComprobantesModule)
+      },
+      {
         path: 'processes',
         loadChildren: () => import('../modules/processes/presentation/processes.module').then(m => m.ProcessesModule)
       },

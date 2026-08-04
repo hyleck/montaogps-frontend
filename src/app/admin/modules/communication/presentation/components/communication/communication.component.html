@@ -4,73 +4,18 @@
         <button class="comm-tabs__btn" [class.comm-tabs__btn--active]="activeTab === 'chat'" (click)="navigateToTab('chat')">
             <i class="pi pi-comments"></i> Chat
         </button>
-        <div class="comm-tabs__groups">
-            <button class="comm-tabs__btn"
-                [class.comm-tabs__btn--active]="activeTab === 'grupo'"
-                type="button"
-                (click)="toggleInternalGroupMenu()"
-                aria-haspopup="menu"
-                [attr.aria-expanded]="showInternalGroupMenu">
-                <i class="pi pi-users"></i>
-                Grupos
-                <span *ngIf="totalInternalUnreadCount > 0"
-                    class="comm-tabs__unread-badge"
-                    aria-label="Mensajes nuevos en grupos">
-                    {{ totalInternalUnreadCount > 99 ? '99+' : totalInternalUnreadCount }}
-                </span>
-                <i class="pi pi-chevron-down comm-tabs__chevron"></i>
-            </button>
-            <div *ngIf="showInternalGroupMenu" class="comm-groups-menu" role="menu">
-                <div *ngIf="loadingInternalGroups && internalGroups.length === 0"
-                    class="comm-groups-menu__state">
-                    <i class="pi pi-spin pi-spinner"></i>
-                    Cargando grupos...
-                </div>
-                <div *ngFor="let group of internalGroups"
-                    class="comm-groups-menu__row">
-                    <button type="button"
-                        role="menuitem"
-                        class="comm-groups-menu__item"
-                        [class.comm-groups-menu__item--active]="group.id === selectedInternalGroupId"
-                        (click)="selectInternalGroup(group)">
-                        <span class="comm-groups-menu__avatar"
-                            [class.comm-groups-menu__avatar--admin]="group.type === 'admin'">
-                            <img *ngIf="group.technician?.photo" [src]="group.technician?.photo"
-                                [alt]="group.name" />
-                            <i *ngIf="!group.technician?.photo"
-                                class="pi"
-                                [ngClass]="group.type === 'admin' ? 'pi-building' : 'pi-wrench'"></i>
-                        </span>
-                        <span>
-                            <strong>{{ group.name }}</strong>
-                            <small>{{ group.type === 'admin' ? 'Empleados administrativos' : 'Técnico y empleados administrativos' }}</small>
-                        </span>
-                        <span class="comm-groups-menu__meta">
-                            <span *ngIf="(group.unreadCount || 0) > 0"
-                                class="comm-groups-menu__badge"
-                                [attr.aria-label]="group.unreadCount + ' mensajes nuevos'">
-                                {{ (group.unreadCount || 0) > 99 ? '99+' : group.unreadCount }}
-                            </span>
-                            <i *ngIf="group.id === selectedInternalGroupId" class="pi pi-check"></i>
-                        </span>
-                    </button>
-                    <button *ngIf="canClearInternalMessages"
-                        type="button"
-                        class="comm-groups-menu__clean"
-                        [disabled]="!!clearingInternalGroupId"
-                        [attr.aria-label]="'Limpiar conversación ' + group.name"
-                        [title]="'Limpiar ' + group.name"
-                        (click)="confirmClearInternalGroup(group, $event)">
-                        <i class="pi"
-                            [ngClass]="clearingInternalGroupId === group.id ? 'pi-spin pi-spinner' : 'pi-eraser'"></i>
-                    </button>
-                </div>
-                <div *ngIf="!loadingInternalGroups && internalGroups.length === 0"
-                    class="comm-groups-menu__state">
-                    No hay grupos disponibles.
-                </div>
-            </div>
-        </div>
+        <button class="comm-tabs__btn"
+            [class.comm-tabs__btn--active]="activeTab === 'grupo'"
+            type="button"
+            (click)="navigateToTab('grupo')">
+            <i class="pi pi-users"></i>
+            Grupos
+            <span *ngIf="totalInternalUnreadCount > 0"
+                class="comm-tabs__unread-badge"
+                aria-label="Mensajes nuevos en grupos">
+                {{ totalInternalUnreadCount > 99 ? '99+' : totalInternalUnreadCount }}
+            </span>
+        </button>
     </div>
 
     <!-- No Inbox State -->
@@ -483,7 +428,7 @@
                             </div>
                         </a>
                         <div class="comm-message__time">{{ msg.time | date:'HH:mm' }}</div>
-                        <button *ngIf="isRootUser && isEsterMessage(msg)"
+                        <button *ngIf="isRootUser && isEsterMessage(msg) && !msg.esterFeedback"
                             type="button"
                             class="comm-message__feedback"
                             (click)="openEsterFeedback(msg)"
@@ -491,6 +436,12 @@
                             <i class="pi pi-comment"></i>
                             Feedback
                         </button>
+                        <div *ngIf="isRootUser && isEsterMessage(msg) && msg.esterFeedback as savedFeedback"
+                            class="comm-message__feedback-saved"
+                            title="Este mensaje ya recibió feedback">
+                            <i class="pi pi-check-circle"></i>
+                            <span><strong>Feedback dado:</strong> {{ savedFeedback.feedback }}</span>
+                        </div>
                         <span *ngIf="msg.reaction?.emoji"
                             class="comm-message__reaction"
                             [title]="'Reacción de ' + (msg.reaction?.sender || 'Ester Assistant')">
@@ -810,10 +761,119 @@
     </div>
 
     <!-- ====== GRUPOS INTERNOS ====== -->
-    <div *ngIf="activeTab === 'grupo' && !noInbox" class="comm-internal">
-        <section class="comm-internal__panel">
+    <div *ngIf="activeTab === 'grupo' && !noInbox" class="comm-chat-row comm-groups-layout">
+        <aside class="comm-sidebar comm-groups-sidebar"
+            [class.comm-sidebar--hidden]="internalGroupChatOpen">
+            <div class="comm-sidebar__header">
+                <h2>Grupos</h2>
+                <button type="button"
+                    class="comm-group-list-refresh"
+                    [disabled]="loadingInternalGroups"
+                    title="Actualizar grupos"
+                    aria-label="Actualizar grupos"
+                    (click)="loadInternalGroups(false, true)">
+                    <i class="pi" [ngClass]="loadingInternalGroups ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>
+                </button>
+            </div>
+
+            <div class="comm-sidebar__search">
+                <div class="comm-search-box">
+                    <i class="pi pi-search"></i>
+                    <input type="text"
+                        [(ngModel)]="internalGroupSearchTerm"
+                        placeholder="Buscar grupo..."
+                        aria-label="Buscar grupo" />
+                </div>
+            </div>
+
+            <div class="comm-sidebar__contacts">
+                <div *ngIf="loadingInternalGroups && internalGroups.length === 0"
+                    class="comm-conversation-skeletons">
+                    <div *ngFor="let item of [1,2,3,4,5,6]" class="comm-contact comm-contact--skeleton">
+                        <div class="comm-skeleton comm-skeleton--avatar"></div>
+                        <div class="comm-contact__info">
+                            <div class="comm-contact__top">
+                                <div class="comm-skeleton comm-skeleton--name"></div>
+                            </div>
+                            <div class="comm-skeleton comm-skeleton--message"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div *ngIf="!loadingInternalGroups && filteredInternalGroups.length === 0"
+                    class="comm-empty">
+                    <i class="pi pi-users"></i>
+                    <span>{{ internalGroupSearchTerm ? 'No se encontraron grupos' : 'No hay grupos disponibles' }}</span>
+                </div>
+
+                <div *ngFor="let group of filteredInternalGroups"
+                    class="comm-contact comm-group-contact"
+                    role="button"
+                    tabindex="0"
+                    [hidden]="loadingInternalGroups && internalGroups.length === 0"
+                    [class.comm-contact--active]="internalGroupChatOpen && group.id === selectedInternalGroupId"
+                    (click)="selectInternalGroup(group)"
+                    (keydown.enter)="selectInternalGroup(group)"
+                    (keydown.space)="$event.preventDefault(); selectInternalGroup(group)">
+                    <div class="comm-contact__avatar comm-group-contact__avatar"
+                        [class.comm-group-contact__avatar--admin]="group.type === 'admin'">
+                        <img *ngIf="getUsableAvatarUrl(group.technician?.photo) as avatarUrl"
+                            [src]="avatarUrl"
+                            (error)="onAvatarImageError(avatarUrl)"
+                            [alt]="group.name" />
+                        <i *ngIf="!getUsableAvatarUrl(group.technician?.photo)"
+                            class="pi"
+                            [ngClass]="group.type === 'admin' ? 'pi-building' : 'pi-wrench'"></i>
+                    </div>
+                    <div class="comm-contact__info">
+                        <div class="comm-contact__top">
+                            <div class="comm-contact__name">{{ group.name }}</div>
+                        </div>
+                        <div class="comm-contact__bottom">
+                            <div class="comm-contact__last-msg">
+                                {{ group.type === 'admin'
+                                    ? 'Empleados administrativos'
+                                    : 'Técnico y empleados administrativos' }}
+                            </div>
+                            <div class="comm-group-contact__actions">
+                                <span *ngIf="(group.unreadCount || 0) > 0"
+                                    class="comm-contact__badge"
+                                    [attr.aria-label]="group.unreadCount + ' mensajes nuevos'">
+                                    {{ (group.unreadCount || 0) > 99 ? '99+' : group.unreadCount }}
+                                </span>
+                                <button *ngIf="canClearInternalMessages"
+                                    type="button"
+                                    class="comm-group-contact__clean"
+                                    [disabled]="!!clearingInternalGroupId"
+                                    [attr.aria-label]="'Limpiar conversación ' + group.name"
+                                    [title]="'Limpiar ' + group.name"
+                                    (click)="confirmClearInternalGroup(group, $event)">
+                                    <i class="pi"
+                                        [ngClass]="clearingInternalGroupId === group.id ? 'pi-spin pi-spinner' : 'pi-eraser'"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <div class="comm-internal" [class.comm-internal--visible]="internalGroupChatOpen">
+            <div *ngIf="!internalGroupChatOpen" class="comm-chat__empty">
+                <div class="comm-chat__empty-content">
+                    <i class="pi pi-users"></i>
+                    <h3>Grupos</h3>
+                    <p>Selecciona un grupo para abrir la conversación</p>
+                </div>
+            </div>
+
+        <section *ngIf="internalGroupChatOpen" class="comm-internal__panel">
             <header class="comm-internal__header">
                 <div class="comm-internal__title">
+                    <button class="comm-back-btn" type="button" (click)="showInternalGroupList()"
+                        aria-label="Volver al listado de grupos">
+                        <i class="pi pi-arrow-left"></i>
+                    </button>
                     <span class="comm-internal__icon">
                         <i class="pi pi-users"></i>
                     </span>
@@ -1025,6 +1085,7 @@
                 </button>
             </form>
         </section>
+    </div>
     </div>
 
     <p-dialog [(visible)]="showActiveEmployeesDialog" header="Empleados activos" [modal]="true"

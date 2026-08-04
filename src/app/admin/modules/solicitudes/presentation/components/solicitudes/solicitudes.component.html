@@ -446,6 +446,10 @@
                     </span>
                     <div class="sol-card-tags">
                         <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
+                        <span class="sol-reassigned-badge" *ngIf="isSolicitudReassigned(sol)"
+                            [pTooltip]="getSolicitudReassignmentTooltip(sol)" tooltipPosition="top">
+                            <i class="pi pi-clock"></i> Reasignada
+                        </span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="isPendingAcceptanceLoading(sol) ? 'pi pi-spin pi-spinner' : getStatusIcon(sol.status)"></i>
                             {{ statusLabels[sol.status] || sol.status }}
@@ -499,9 +503,9 @@
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
                     <div class="sol-kanban-actions">
-                        <button *ngIf="isInstallationFlow(sol.type) && sol.status !== 'completada'" pButton pRipple
-                            icon="pi pi-wrench" class="p-button-rounded p-button-sm p-button-outlined"
-                            (click)="openInstallDialog(sol)" [pTooltip]="getInstallActionLabel(sol)" tooltipPosition="top"></button>
+                        <button *ngIf="canReassignSolicitud(sol)" pButton pRipple icon="pi pi-clock"
+                            class="p-button-rounded p-button-text p-button-info" (click)="openReassignmentDialog(sol, $event)"
+                            pTooltip="Reasignar técnico y horario" tooltipPosition="top"></button>
                         <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
@@ -538,6 +542,10 @@
                     </span>
                     <div class="sol-card-tags">
                         <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
+                        <span class="sol-reassigned-badge" *ngIf="isSolicitudReassigned(sol)"
+                            [pTooltip]="getSolicitudReassignmentTooltip(sol)" tooltipPosition="top">
+                            <i class="pi pi-clock"></i> Reasignada
+                        </span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
@@ -586,9 +594,9 @@
                 <div class="sol-kanban-footer" (click)="$event.stopPropagation()">
                     <span style="font-size: 0.75rem; color: var(--text-color-secondary);">{{ sol.createdAt | date: 'dd/MM, HH:mm' }}</span>
                     <div class="sol-kanban-actions">
-                        <button *ngIf="isInstallationFlow(sol.type) && sol.status !== 'completada'" pButton pRipple
-                            icon="pi pi-wrench" class="p-button-rounded p-button-sm p-button-outlined"
-                            (click)="openInstallDialog(sol)" [pTooltip]="getInstallActionLabel(sol)" tooltipPosition="top"></button>
+                        <button *ngIf="canReassignSolicitud(sol)" pButton pRipple icon="pi pi-clock"
+                            class="p-button-rounded p-button-text p-button-info" (click)="openReassignmentDialog(sol, $event)"
+                            pTooltip="Reasignar técnico y horario" tooltipPosition="top"></button>
                         <button *ngIf="sol.status !== 'completada' && sol.status !== 'cancelada'" pButton pRipple icon="pi pi-ban"
                             class="p-button-rounded p-button-text p-button-warning" (click)="cancelSolicitud(sol)"
                             pTooltip="Cancelar" tooltipPosition="top"></button>
@@ -624,6 +632,10 @@
                     </span>
                     <div class="sol-card-tags">
                         <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
+                        <span class="sol-reassigned-badge" *ngIf="isSolicitudReassigned(sol)"
+                            [pTooltip]="getSolicitudReassignmentTooltip(sol)" tooltipPosition="top">
+                            <i class="pi pi-clock"></i> Reasignada
+                        </span>
                         <span class="sol-status" [attr.data-status]="sol.status" *ngIf="!isTechnicianUnavailable(sol)">
                             <i [class]="getStatusIcon(sol.status)"></i> {{ statusLabels[sol.status] || sol.status }}
                         </span>
@@ -710,6 +722,10 @@
 
                 <div class="sol-closed-process">
                     <span class="sol-tag" [attr.data-type]="sol.type">{{ typeLabels[sol.type] || sol.type }}</span>
+                    <span class="sol-reassigned-badge" *ngIf="isSolicitudReassigned(sol)"
+                        [pTooltip]="getSolicitudReassignmentTooltip(sol)" tooltipPosition="top">
+                        <i class="pi pi-clock"></i> Reasignada
+                    </span>
                     <span *ngIf="sol.installations && sol.installations.length > 1" class="sol-closed-count">
                         {{ sol.installations.length }} procesos
                     </span>
@@ -815,10 +831,11 @@
             <i class="pi" [ngClass]="isAvailabilityCallLoading(selectedTechnicianSolicitud) ? 'pi-spin pi-spinner' : 'pi-volume-up'"></i>
             Escuchar llamada
         </button>
-        <button *ngIf="!isTechnicianAccepted(selectedTechnicianSolicitud)" type="button" class="sol-btn sol-btn-save" [disabled]="isAvailabilityLoading(selectedTechnicianSolicitud)"
+        <button *ngIf="!isTechnicianAccepted(selectedTechnicianSolicitud)" type="button" class="sol-btn sol-btn-save" [disabled]="isAvailabilityLoading(selectedTechnicianSolicitud) || !isTechnicianCallWindowOpen()"
+            [title]="isTechnicianCallWindowOpen() ? 'Verificar disponibilidad' : 'Disponible de 8:00 a. m. a 7:00 p. m.'"
             (click)="verifyTechnicianAvailability()">
             <i class="pi" [ngClass]="isAvailabilityLoading(selectedTechnicianSolicitud) ? 'pi-spin pi-spinner' : 'pi-phone'"></i>
-            Verificar disponibilidad
+            {{ isTechnicianCallWindowOpen() ? 'Verificar disponibilidad' : 'Fuera de horario (8 a. m. - 7 p. m.)' }}
         </button>
         <button *ngIf="isTechnicianAccepted(selectedTechnicianSolicitud)" type="button" class="sol-btn sol-btn-save"
             (click)="openTechnicianLocationDialog()">
@@ -2121,6 +2138,8 @@
                                     <button
                                         type="button"
                                         class="sol-client-picker__button sol-client-picker__button--select"
+                                        [disabled]="isSelectedSolicitudAssignmentLocked()"
+                                        [title]="isSelectedSolicitudAssignmentLocked() ? 'La solicitud ya fue aceptada' : ''"
                                         (click)="openTechnicianSelection()">
                                         <i class="pi pi-users"></i>
                                         {{ selectedSolicitud.mechanic_id ? 'Cambiar técnico' : 'Seleccionar técnico' }}
@@ -2128,7 +2147,8 @@
                                     <button
                                         type="button"
                                         class="sol-client-picker__button sol-technician-picker__clear"
-                                        [disabled]="!selectedSolicitud.mechanic_id"
+                                        [disabled]="isSelectedSolicitudAssignmentLocked() || !selectedSolicitud.mechanic_id"
+                                        [title]="isSelectedSolicitudAssignmentLocked() ? 'La solicitud ya fue aceptada' : ''"
                                         (click)="clearSolicitudTechnician()">
                                         <i class="pi pi-user-minus"></i>
                                         Sin asignar
@@ -2178,9 +2198,16 @@
                                 type="datetime-local"
                                 [(ngModel)]="selectedSolicitud.scheduled_date"
                                 [class.sol-field-invalid]="technicianScheduleConflict"
+                                [disabled]="isSelectedSolicitudAssignmentLocked()"
+                                [title]="isSelectedSolicitudAssignmentLocked() ? 'La solicitud ya fue aceptada' : ''"
                                 step="600" (change)="normalizeSolicitudScheduledDateInput()" />
                         </div>
                     </div>
+
+                    <small class="sol-technician-schedule-status" *ngIf="isSelectedSolicitudAssignmentLocked()">
+                        <i class="pi pi-lock"></i>
+                        El técnico, la fecha y la hora quedaron bloqueados al aceptar la solicitud.
+                    </small>
 
                     <div
                         class="sol-technician-schedule-status sol-technician-schedule-status--checking"
@@ -2238,6 +2265,7 @@
                                     type="button"
                                     class="sol-technician-recommendation__apply"
                                     *ngIf="!isRecommendedTechnicianSelected"
+                                    [disabled]="isSelectedSolicitudAssignmentLocked()"
                                     (click)="applyTechnicianRecommendation()">
                                     <i class="pi pi-user-plus"></i>
                                     Asignar
@@ -2332,7 +2360,7 @@
     </ng-template>
     <ng-template pTemplate="footer">
         <button type="button" class="sol-btn sol-btn-cancel" (click)="hideDialog()">
-            <i class="pi pi-times"></i> Cancelar
+            <i class="pi pi-times"></i> Cerrar formulario
         </button>
         <button
             type="button"
@@ -2732,6 +2760,72 @@
     </div>
 </p-dialog>
 
+<p-dialog [(visible)]="reassignmentDialogVisible"
+    [modal]="true"
+    [draggable]="false"
+    [resizable]="false"
+    [style]="{width: '620px'}"
+    [breakpoints]="{'680px': '94vw'}"
+    styleClass="app-dark-dialog sol-reassignment-dialog"
+    header="Reasignar solicitud"
+    (onHide)="closeReassignmentDialog()">
+    <div class="sol-reassignment-form" *ngIf="reassignmentSolicitud as solicitud">
+        <div class="sol-reassignment-summary">
+            <i class="pi pi-clock"></i>
+            <div>
+                <small>Solicitud de {{ typeLabels[solicitud.type] || solicitud.type }}</small>
+                <strong>{{ getClientDisplayName(solicitud) || 'Sin cliente' }}</strong>
+                <span>La nueva asignación deberá ser aceptada nuevamente por el técnico.</span>
+            </div>
+        </div>
+
+        <div class="sol-form-row sol-form-row-2">
+            <div class="sol-form-field">
+                <label for="reassignment-technician">Nuevo técnico *</label>
+                <select id="reassignment-technician" [(ngModel)]="reassignmentMechanicId"
+                    [disabled]="reassignmentSaving">
+                    <option value="" disabled>Seleccionar técnico</option>
+                    <option *ngFor="let technician of availableTechnicians"
+                        [value]="getTechnicianSelectionId(technician)">
+                        {{ getTechnicianName(technician) }}
+                    </option>
+                </select>
+            </div>
+            <div class="sol-form-field">
+                <label for="reassignment-scheduled-date">Nueva fecha y hora *</label>
+                <input id="reassignment-scheduled-date" type="datetime-local"
+                    [(ngModel)]="reassignmentScheduledDate" step="600"
+                    [disabled]="reassignmentSaving" />
+            </div>
+        </div>
+
+        <div class="sol-form-field">
+            <label for="reassignment-reason">Descripción del motivo *</label>
+            <textarea id="reassignment-reason" [(ngModel)]="reassignmentReason"
+                rows="4" maxlength="500" [disabled]="reassignmentSaving"
+                placeholder="Explique por qué es necesario cambiar el técnico o el horario"></textarea>
+            <small class="sol-reassignment-counter">{{ reassignmentReason.length }}/500</small>
+        </div>
+
+        <div class="sol-reassignment-error" *ngIf="reassignmentError" role="alert">
+            <i class="pi pi-exclamation-triangle"></i>
+            {{ reassignmentError }}
+        </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+        <button type="button" class="sol-btn sol-btn-cancel"
+            [disabled]="reassignmentSaving" (click)="closeReassignmentDialog()">
+            <i class="pi pi-times"></i> Cancelar
+        </button>
+        <button type="button" class="sol-btn sol-btn-save"
+            [disabled]="reassignmentSaving" (click)="saveSolicitudReassignment()">
+            <i class="pi" [ngClass]="reassignmentSaving ? 'pi-spin pi-spinner' : 'pi-clock'"></i>
+            {{ reassignmentSaving ? 'Reasignando...' : 'Reasignar' }}
+        </button>
+    </ng-template>
+</p-dialog>
+
 <p-dialog [(visible)]="technicianSelectionDialogVisible"
     [modal]="true"
     [draggable]="false"
@@ -2912,7 +3006,7 @@
     [resizable]="false"
     [closable]="!cancellingSolicitud"
     [closeOnEscape]="!cancellingSolicitud"
-    [style]="{width: '540px'}"
+    [style]="{width: '780px'}"
     [breakpoints]="{'640px': '94vw'}"
     styleClass="app-dark-dialog sol-cancellation-dialog"
     (onHide)="resetSolicitudCancellation()">
@@ -2957,6 +3051,60 @@
                 {{ cancellationReason.length }}/500
             </small>
         </div>
+
+        <div class="sol-cancellation__decision">
+            <div class="sol-cancellation__decision-heading">
+                <strong>¿Qué desea hacer después?</strong>
+                <span>Las opciones para crear otra solicitud abrirán el formulario después de cancelar esta.</span>
+            </div>
+
+            <div class="sol-cancellation__choices">
+                <button type="button"
+                    class="sol-cancellation__choice sol-cancellation__choice--cancel"
+                    [disabled]="cancellingSolicitud"
+                    (click)="confirmSolicitudCancellation('cancel')">
+                    <span class="sol-cancellation__choice-icon">
+                        <i class="pi"
+                            [ngClass]="cancellingSolicitud && cancellationAction === 'cancel' ? 'pi-spin pi-spinner' : 'pi-ban'"
+                            aria-hidden="true"></i>
+                    </span>
+                    <span>
+                        <strong>{{ cancellingSolicitud && cancellationAction === 'cancel' ? 'Cancelando...' : 'Cancelar solamente' }}</strong>
+                        <small>Cierra esta solicitud sin abrir otra.</small>
+                    </span>
+                </button>
+
+                <button type="button"
+                    class="sol-cancellation__choice sol-cancellation__choice--new"
+                    [disabled]="cancellingSolicitud"
+                    (click)="confirmSolicitudCancellation('new')">
+                    <span class="sol-cancellation__choice-icon">
+                        <i class="pi"
+                            [ngClass]="cancellingSolicitud && cancellationAction === 'new' ? 'pi-spin pi-spinner' : 'pi-file-plus'"
+                            aria-hidden="true"></i>
+                    </span>
+                    <span>
+                        <strong>{{ cancellingSolicitud && cancellationAction === 'new' ? 'Cancelando...' : 'Cancelar y crear uno nuevo' }}</strong>
+                        <small>Abre un formulario nuevo en blanco.</small>
+                    </span>
+                </button>
+
+                <button type="button"
+                    class="sol-cancellation__choice sol-cancellation__choice--duplicate"
+                    [disabled]="cancellingSolicitud"
+                    (click)="confirmSolicitudCancellation('duplicate')">
+                    <span class="sol-cancellation__choice-icon">
+                        <i class="pi"
+                            [ngClass]="cancellingSolicitud && cancellationAction === 'duplicate' ? 'pi-spin pi-spinner' : 'pi-copy'"
+                            aria-hidden="true"></i>
+                    </span>
+                    <span>
+                        <strong>{{ cancellingSolicitud && cancellationAction === 'duplicate' ? 'Cancelando...' : 'Cancelar y crear uno nuevo con los mismos datos' }}</strong>
+                        <small>Copia cliente, vehículos, ubicación, técnico y horario.</small>
+                    </span>
+                </button>
+            </div>
+        </div>
     </div>
 
     <ng-template pTemplate="footer">
@@ -2966,14 +3114,6 @@
                 (click)="closeSolicitudCancellation()">
                 <i class="pi pi-times" aria-hidden="true"></i>
                 Volver
-            </button>
-            <button type="button" class="sol-btn sol-cancellation__approve"
-                [disabled]="cancellingSolicitud"
-                (click)="confirmSolicitudCancellation()">
-                <i class="pi"
-                    [ngClass]="cancellingSolicitud ? 'pi-spin pi-spinner' : 'pi-ban'"
-                    aria-hidden="true"></i>
-                {{ cancellingSolicitud ? 'Cancelando...' : 'Cancelar solicitud' }}
             </button>
         </div>
     </ng-template>

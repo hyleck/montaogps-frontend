@@ -19,6 +19,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
                 })),
             create: jasmine.createSpy('create').and.returnValue(of({})),
             update: jasmine.createSpy('update').and.returnValue(of({})),
+            reassign: jasmine.createSpy('reassign').and.returnValue(of({})),
             delete: jasmine.createSpy('delete').and.returnValue(of(void 0)),
         };
         const messageService = {
@@ -52,7 +53,6 @@ describe('SolicitudesComponent scheduled date editing', () => {
             {} as any,
             userService as any,
             targetsService as any,
-            {} as any,
             {} as any,
             {} as any,
             authService as any,
@@ -97,6 +97,89 @@ describe('SolicitudesComponent scheduled date editing', () => {
         const savedSolicitud = solicitudesService.update.calls.mostRecent().args[1] as Solicitud;
         expect(savedSolicitud.scheduled_date).toBe('');
         expect(savedSolicitud.installations?.[0]?.scheduled_date).toBeUndefined();
+    });
+
+    it('keeps the technician and schedule immutable after the request was accepted', async () => {
+        const { component, solicitudesService, messageService } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'accepted-request-id',
+            type: 'instalacion',
+            status: 'aceptada',
+            technician_response: 'aceptada',
+            mechanic_id: 'technician-1',
+            scheduled_date: '2026-08-04T10:07:00.000Z',
+            installations: [{ scheduled_date: '2026-08-04T10:07:00.000Z' }],
+        };
+
+        await component.editSolicitud(solicitud);
+
+        expect(component.isSelectedSolicitudAssignmentLocked()).toBeTrue();
+        component.openTechnicianSelection();
+        expect(component.technicianSelectionDialogVisible).toBeFalse();
+        expect(messageService.add).toHaveBeenCalledWith(
+            jasmine.objectContaining({ summary: 'Asignación confirmada' }),
+        );
+        component.technicianRecommendation = {
+            technician_id: 'technician-3',
+            technician_name: 'Técnico recomendado',
+            distance_km: 1,
+            reason: 'Disponible',
+        };
+        component.applyTechnicianRecommendation();
+        expect(component.selectedSolicitud?.mechanic_id).toBe('technician-1');
+
+        component.selectedSolicitud!.mechanic_id = 'technician-2';
+        component.selectedSolicitud!.scheduled_date = '2026-08-04T12:00';
+        component.selectedSolicitud!.installations![0].scheduled_date = '2026-08-04T12:00';
+
+        await component.saveSolicitud();
+
+        const savedSolicitud = solicitudesService.update.calls.mostRecent().args[1] as Solicitud;
+        expect(savedSolicitud.mechanic_id).toBe('technician-1');
+        expect(savedSolicitud.scheduled_date).toBe('2026-08-04T10:07:00.000Z');
+        expect(savedSolicitud.installations?.[0]?.scheduled_date)
+            .toBe('2026-08-04T10:07:00.000Z');
+    });
+
+    it('reassigns through the dedicated modal only when a reason is provided', async () => {
+        const { component, solicitudesService, messageService } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'accepted-request-id',
+            type: 'instalacion',
+            status: 'aceptada',
+            technician_response: 'aceptada',
+            mechanic_id: 'technician-1',
+            scheduled_date: '2026-08-04T10:00',
+            installations: [{ scheduled_date: '2026-08-04T10:00' }],
+        };
+
+        component.openReassignmentDialog(solicitud);
+
+        expect(component.reassignmentDialogVisible).toBeTrue();
+        expect(component.reassignmentMechanicId).toBe('technician-1');
+        component.reassignmentMechanicId = 'technician-2';
+        component.reassignmentScheduledDate = '2026-08-04T12:30';
+
+        await component.saveSolicitudReassignment();
+
+        expect(solicitudesService.reassign).not.toHaveBeenCalled();
+        expect(component.reassignmentError).toContain('al menos 5 caracteres');
+
+        component.reassignmentReason = 'El técnico original no estará disponible.';
+        await component.saveSolicitudReassignment();
+
+        expect(solicitudesService.reassign).toHaveBeenCalledWith(
+            'accepted-request-id',
+            {
+                mechanic_id: 'technician-2',
+                scheduled_date: '2026-08-04T12:30',
+                reason: 'El técnico original no estará disponible.',
+            },
+        );
+        expect(component.reassignmentDialogVisible).toBeFalse();
+        expect(messageService.add).toHaveBeenCalledWith(
+            jasmine.objectContaining({ summary: 'Solicitud reasignada' }),
+        );
     });
 
     it('matches the GPS change detail to the chequeo installation by previous IMEI', () => {
@@ -1121,6 +1204,86 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.loadSolicitudes).toHaveBeenCalledWith(false);
     });
 
+    it('opens a blank request form after cancelling when that option is selected', () => {
+        const { component } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'request-cancel-new',
+            type: 'chequeo',
+            status: 'en_progreso',
+            client_name: 'Cliente anterior',
+            installations: [{ plate: 'A123456' }],
+        };
+
+        component.cancelSolicitud(solicitud);
+        component.cancellationReason = 'El cliente solicitó otra visita.';
+        component.confirmSolicitudCancellation('new');
+
+        expect(component.dialogVisible).toBeTrue();
+        expect(component.isEditMode).toBeFalse();
+        expect(component.selectedSolicitud).toEqual(
+            jasmine.objectContaining({
+                type: 'instalacion',
+                status: 'pendiente',
+                client_name: '',
+            }),
+        );
+        expect(component.selectedSolicitud?._id).toBeUndefined();
+    });
+
+    it('opens a clean duplicate after cancelling and keeps the request input data', () => {
+        const { component } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'request-cancel-duplicate',
+            type: 'chequeo',
+            status: 'en_progreso',
+            technician_response: 'aceptada',
+            cancellation_reason: 'Motivo anterior',
+            client_name: 'Cliente duplicado',
+            client_phone: '8095550101',
+            mechanic_id: 'technician-1',
+            scheduled_date: '2026-08-05T10:30:00.000Z',
+            description: 'Revisar el GPS del vehículo.',
+            quantity: 1,
+            installations: [{
+                plate: 'A123456',
+                device_imei: '123456789012345',
+                scheduled_date: '2026-08-05T10:30:00.000Z',
+                diagnosis: 'Diagnóstico de la solicitud anterior',
+                completed: true,
+                images: ['https://example.com/evidence.jpg'],
+            }],
+        };
+
+        component.cancelSolicitud(solicitud);
+        component.cancellationReason = 'Se necesita generar una solicitud sustituta.';
+        component.confirmSolicitudCancellation('duplicate');
+
+        expect(component.dialogVisible).toBeTrue();
+        expect(component.isEditMode).toBeFalse();
+        expect(component.selectedSolicitud).toEqual(
+            jasmine.objectContaining({
+                type: 'chequeo',
+                status: 'pendiente',
+                client_name: 'Cliente duplicado',
+                client_phone: '8095550101',
+                mechanic_id: 'technician-1',
+                description: 'Revisar el GPS del vehículo.',
+            }),
+        );
+        expect(component.selectedSolicitud?._id).toBeUndefined();
+        expect(component.selectedSolicitud?.technician_response).toBeUndefined();
+        expect(component.selectedSolicitud?.cancellation_reason).toBeUndefined();
+        expect(component.selectedSolicitud?.installations?.[0]).toEqual(
+            jasmine.objectContaining({
+                plate: 'A123456',
+                device_imei: '123456789012345',
+            }),
+        );
+        expect(component.selectedSolicitud?.installations?.[0].diagnosis).toBeUndefined();
+        expect(component.selectedSolicitud?.installations?.[0].completed).toBeUndefined();
+        expect(component.selectedSolicitud?.installations?.[0].images).toBeUndefined();
+    });
+
     it('closes only administrative rejections and keeps technician rejections pending', () => {
         const { component } = createComponent();
         const technicianRejection: Solicitud = {
@@ -1315,8 +1478,8 @@ describe('SolicitudesComponent scheduled date editing', () => {
             'request-4',
         ]);
         expect(component.completadas.map(item => item._id)).toEqual([
-            'request-2',
             'request-4',
+            'request-2',
         ]);
     });
 
@@ -1644,5 +1807,35 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(component.processDetailsDialogVisible).toBeFalse();
         expect(component.processDetailsSolicitud).toBeNull();
         expect(component.processDetailsInstallation).toBeNull();
+    });
+
+    it('only enables availability calls from 8:00 a. m. until before 7:00 p. m. in Santo Domingo', () => {
+        const { component } = createComponent();
+
+        expect(component.isTechnicianCallWindowOpen(new Date('2026-08-04T11:59:59.000Z'))).toBeFalse();
+        expect(component.isTechnicianCallWindowOpen(new Date('2026-08-04T12:00:00.000Z'))).toBeTrue();
+        expect(component.isTechnicianCallWindowOpen(new Date('2026-08-04T22:59:59.000Z'))).toBeTrue();
+        expect(component.isTechnicianCallWindowOpen(new Date('2026-08-04T23:00:00.000Z'))).toBeFalse();
+    });
+
+    it('prioritizes Kanban requests by status and orders each status by scheduled date', () => {
+        const { component } = createComponent();
+        component.solicitudes = [
+            { _id: 'pending-later', type: 'instalacion', status: 'pendiente', scheduled_date: '2026-08-06T15:00' },
+            { _id: 'progress-later', type: 'instalacion', status: 'en_progreso', scheduled_date: '2026-08-05T12:30' },
+            { _id: 'pending-child-schedule', type: 'instalacion', status: 'pendiente', installations: [{ scheduled_date: '2026-08-06T09:15' }] },
+            { _id: 'progress-earlier', type: 'instalacion', status: 'en_progreso', scheduled_date: '2026-08-05T08:00' },
+            { _id: 'pending-unscheduled', type: 'instalacion', status: 'pendiente' },
+        ];
+
+        expect(component.enProgreso.map(item => item._id)).toEqual([
+            'progress-earlier',
+            'progress-later',
+        ]);
+        expect(component.pendientes.map(item => item._id)).toEqual([
+            'pending-child-schedule',
+            'pending-later',
+            'pending-unscheduled',
+        ]);
     });
 });

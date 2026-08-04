@@ -1724,16 +1724,12 @@ export class MonitoringComponent implements OnInit, OnDestroy {
               filteredDevices = filteredDevices.filter(device => this.isDeviceInitialState(device));
               break;
             case 'initial-or-offline':
-              filteredDevices = filteredDevices.filter(device => !this.isDeviceOnline(device));
+              filteredDevices = filteredDevices.filter(device =>
+                this.isDeviceInitialState(device) || this.isDeviceOffline(device)
+              );
               break;
             case 'offline':
-              filteredDevices = filteredDevices.filter(device =>
-                !this.isDeviceOnline(device) &&
-                !this.isDeviceWeakSignal(device) &&
-                !this.isDeviceLocalizado(device) &&
-                !this.isDeviceNoLocalizado(device) &&
-                !this.isDeviceInitialState(device)
-              );
+              filteredDevices = filteredDevices.filter(device => this.isDeviceOffline(device));
               break;
           }
         }
@@ -2067,6 +2063,14 @@ export class MonitoringComponent implements OnInit, OnDestroy {
 
   isDeviceNoLocalizado(device: any): boolean {
     return device?.traccarInfo?.status === 'No localizado';
+  }
+
+  isDeviceOffline(device: any): boolean {
+    return !this.isDeviceOnline(device) &&
+      !this.isDeviceWeakSignal(device) &&
+      !this.isDeviceLocalizado(device) &&
+      !this.isDeviceNoLocalizado(device) &&
+      !this.isDeviceInitialState(device);
   }
 
   private shouldLimitProtocolFilterToTags(): boolean {

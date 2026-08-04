@@ -471,7 +471,7 @@
                                                             class="button button--primary-flat" title="Editar objetivo"
                                                             *ngIf="canUpdateDevices()"> <i
                                                                 class="pi pi-pen-to-square"></i> </button>
-                                                        <button *ngIf="canUpdateDevices()"
+                                                        <button *ngIf="isCurrentUserRoot && canUpdateDevices()"
                                                             (click)="openHistoryBlockPassword(target, $event)"
                                                             class="button button--primary-flat-icon history-privacy-button"
                                                             title="Bloquear un rango del historial">
@@ -1041,7 +1041,7 @@
                                                         (click)="showTargetForm(target)" title="Editar objetivo"
                                                         *ngIf="canUpdateDevices()"> <i class="pi pi-pen-to-square"></i>
                                                     </button>
-                                                    <button *ngIf="canUpdateDevices()"
+                                                    <button *ngIf="isCurrentUserRoot && canUpdateDevices()"
                                                         class="button button--primary-flat-icon history-privacy-button"
                                                         title="Bloquear un rango del historial"
                                                         (click)="openHistoryBlockPassword(target, $event)">
@@ -1171,7 +1171,7 @@
                                                         <button class="button button--primary-flat" (click)="showTargetForm(linkedTarget)" [title]="first ? 'Editar principal' : 'Editar vinculado'" *ngIf="canUpdateDevices()">
                                                             <i [class]="first ? 'pi pi-pen-to-square' : 'pi pi-link'"></i>
                                                         </button>
-                                                        <button *ngIf="canUpdateDevices()"
+                                                        <button *ngIf="isCurrentUserRoot && canUpdateDevices()"
                                                             class="button button--primary-flat-icon history-privacy-button"
                                                             title="Bloquear un rango del historial"
                                                             (click)="openHistoryBlockPassword(linkedTarget, $event)">

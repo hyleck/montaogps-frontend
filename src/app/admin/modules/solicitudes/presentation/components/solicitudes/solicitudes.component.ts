@@ -53,6 +53,7 @@ interface AvailabilityTranscriptMessage {
 type SolicitudLocationConfigTarget = 'root' | 'installation';
 type SolicitudLocationConfigMethod = 'search' | 'coordinates' | 'link';
 type SolicitudExportFormat = 'pdf' | 'excel';
+type SolicitudCancellationAction = 'cancel' | 'new' | 'duplicate';
 
 interface SolicitudLocationSuggestion {
     description: string;
@@ -303,6 +304,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     selectedSolicitud: Solicitud | null = null;
     private selectedSolicitudOriginalStatus = '';
+    private selectedSolicitudAssignmentSnapshot: {
+        accepted: boolean;
+        mechanicId?: string;
+        scheduledDate?: string | Date;
+        installationScheduledDates: Array<string | Date | undefined>;
+    } | null = null;
     dialogVisible = false;
     closedInfoDialogVisible = false;
     closedSolicitud: Solicitud | null = null;
@@ -331,6 +338,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     cancellationReason = '';
     cancellationReasonSubmitted = false;
     cancellingSolicitud = false;
+    cancellationAction: SolicitudCancellationAction | null = null;
     installationModalVisible = false;
     editingInstallationIndex: number = 0;
     existingGpsTargetByInstallation: Record<number, any> = {};
@@ -378,6 +386,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     private solicitudesLoadSequence = 0;
     private readonly realtimeRefreshMs = 5000;
     private realtimeRefreshTimer?: ReturnType<typeof setInterval>;
+    private readonly technicianCallHourFormatter = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'America/Santo_Domingo',
+        hour: '2-digit',
+        hourCycle: 'h23'
+    });
     private realtimeStateVersion = '';
     private realtimeStateInFlight = false;
     private solicitudStatusSnapshot = new Map<string, string>();
@@ -385,6 +398,13 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     solicitudStartedToast: SolicitudStartedToast | null = null;
     technicianDialogVisible = false;
     selectedTechnicianSolicitud: Solicitud | null = null;
+    reassignmentDialogVisible = false;
+    reassignmentSolicitud: Solicitud | null = null;
+    reassignmentMechanicId = '';
+    reassignmentScheduledDate = '';
+    reassignmentReason = '';
+    reassignmentSaving = false;
+    reassignmentError = '';
     private readonly failedTechnicianPhotos = new Set<string>();
     verifyingAvailabilityId = '';
     availabilityCallLoadingId = '';
@@ -855,6 +875,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                     type: this.filterType || undefined,
                     status: this.filterStatus || undefined,
                     search: this.searchQuery || undefined,
+                    sort_by: 'status_scheduled',
+                    sort_order: 'asc',
                     page,
                     limit: this.solicitudesPageSize
                 }));
@@ -1018,19 +1040,24 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         });
     }
 
-    async openNew(status: string = 'pendiente'): Promise<void> {
+    async openNew(
+        status: string = 'pendiente',
+        duplicateFrom?: Solicitud,
+    ): Promise<void> {
         if (this.initialDataPromise) await this.initialDataPromise;
-        
-        this.selectedSolicitud = {
-            client_name: '',
-            client_phone: '',
-            client_email: '',
-            quantity: 1,
-            scheduled_date: this.getCurrentDateTimeLocalValue(),
-            installations: [{}],
-            type: 'instalacion',
-            status: status
-        } as Solicitud;
+
+        this.selectedSolicitud = duplicateFrom
+            ? this.buildSolicitudDuplicate(duplicateFrom, status)
+            : {
+                client_name: '',
+                client_phone: '',
+                client_email: '',
+                quantity: 1,
+                scheduled_date: this.getCurrentDateTimeLocalValue(),
+                installations: [{}],
+                type: 'instalacion',
+                status: status
+            } as Solicitud;
         this.availableModels = [];
         this.availableMunicipalities = [];
         this.availableSectors = [];
@@ -1038,6 +1065,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         this.filteredColors = [...this.availableColors];
         this.isEditMode = false;
         this.selectedSolicitudOriginalStatus = '';
+        this.selectedSolicitudAssignmentSnapshot = null;
         this.deinstallationReasonError = false;
         this.resetTechnicianScheduleValidation();
         this.resetTechnicianRecommendation();
@@ -1048,13 +1076,76 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         
         this.rootLocationMap = null;
         this.locationMap = null;
-        this.rootGoogleMapsLink = '';
+        this.rootGoogleMapsLink = this.selectedSolicitud.google_maps_url
+            || this.selectedSolicitud.installations?.[0]?.google_maps_url
+            || '';
         this.selectedClient = null;
         this.closeClientDialogs();
         this.closeTechnicianSelection();
 
         this.dialogVisible = true;
         void this.refreshTechnicianRecommendation();
+    }
+
+    private buildSolicitudDuplicate(
+        source: Solicitud,
+        status: string,
+    ): Solicitud {
+        const installations = (source.installations || []).map(installation => {
+            const {
+                checkup_recovery: _checkupRecovery,
+                images: _images,
+                installation_evidence: _installationEvidence,
+                audio: _audio,
+                final_device_status: _finalDeviceStatus,
+                final_device_online: _finalDeviceOnline,
+                final_device_status_at: _finalDeviceStatusAt,
+                completed: _completed,
+                cancelled: _cancelled,
+                diagnosis: _diagnosis,
+                resolution_type: _resolutionType,
+                connection_status: _connectionStatus,
+                ...duplicatedInstallation
+            } = installation;
+
+            return {
+                ...duplicatedInstallation,
+                scheduled_date: this.toDateTimeLocalValue(
+                    installation.scheduled_date || source.scheduled_date,
+                ) || undefined,
+            };
+        });
+        const scheduledDate = this.toDateTimeLocalValue(
+            source.scheduled_date
+            || installations.find(installation => installation.scheduled_date)?.scheduled_date,
+        ) || this.getCurrentDateTimeLocalValue();
+
+        return {
+            type: source.type,
+            status,
+            quantity: source.quantity || Math.max(installations.length, 1),
+            installations: installations.length ? installations : [{}],
+            client_name: source.client_name,
+            client_phone: source.client_phone,
+            client_email: source.client_email,
+            client_id: source.client_id,
+            description: source.description,
+            notes: source.notes,
+            deinstallation_reason: source.deinstallation_reason,
+            contacts: source.contacts,
+            referido: source.referido,
+            province: source.province,
+            municipality: source.municipality,
+            sector: source.sector,
+            latitude: source.latitude,
+            longitude: source.longitude,
+            google_maps_url: source.google_maps_url,
+            location_address: source.location_address,
+            mechanic_id: source.mechanic_id,
+            scheduled_date: scheduledDate,
+            confirmation_permission: source.confirmation_permission,
+            id_rent: source.id_rent,
+        };
     }
 
     onTypeChange(): void {
@@ -1178,10 +1269,42 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         return this.isSolicitudClosed(currentSolicitud);
     }
 
+    isSelectedSolicitudAssignmentLocked(): boolean {
+        return this.selectedSolicitudAssignmentSnapshot?.accepted === true;
+    }
+
     isSolicitudClosed(solicitud: Solicitud | null | undefined): boolean {
         return solicitud?.status === 'completada'
             || solicitud?.status === 'cancelada'
             || this.isAdministrativeRejection(solicitud);
+    }
+
+    canReassignSolicitud(solicitud: Solicitud | null | undefined): boolean {
+        return Boolean(
+            solicitud?._id
+            && ['pendiente', 'aceptada', 'en_progreso'].includes(solicitud.status),
+        );
+    }
+
+    isSolicitudReassigned(solicitud: Solicitud | null | undefined): boolean {
+        return solicitud?.reassigned === true
+            || Boolean(solicitud?.reassignment_history?.length);
+    }
+
+    getSolicitudReassignmentTooltip(
+        solicitud: Solicitud | null | undefined,
+    ): string {
+        const latest = solicitud?.reassignment_history?.[
+            (solicitud.reassignment_history?.length || 1) - 1
+        ];
+        const reason = String(
+            latest?.reason || solicitud?.reassignment_reason || '',
+        ).trim();
+        const actor = String(
+            latest?.reassigned_by_name || solicitud?.reassigned_by_name || '',
+        ).trim();
+        if (!reason) return 'Solicitud reasignada';
+        return actor ? `${reason} · Por ${actor}` : reason;
     }
 
     isAdministrativeRejection(solicitud: Solicitud | null | undefined): boolean {
@@ -2139,6 +2262,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     openTechnicianSelection(): void {
+        if (this.isSelectedSolicitudAssignmentLocked()) {
+            this.showSelectedSolicitudAssignmentLockedFeedback();
+            return;
+        }
         this.technicianSearchQuery = '';
         this.technicianSelectionDialogVisible = true;
     }
@@ -2150,6 +2277,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     selectSolicitudTechnician(technician: User): void {
         if (!this.selectedSolicitud) return;
+        if (this.isSelectedSolicitudAssignmentLocked()) {
+            this.showSelectedSolicitudAssignmentLockedFeedback();
+            this.closeTechnicianSelection();
+            return;
+        }
         const technicianId = String(
             technician._id || (technician as any).id || '',
         ).trim();
@@ -2162,6 +2294,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     clearSolicitudTechnician(): void {
         if (!this.selectedSolicitud) return;
+        if (this.isSelectedSolicitudAssignmentLocked()) {
+            this.showSelectedSolicitudAssignmentLockedFeedback();
+            this.closeTechnicianSelection();
+            return;
+        }
         this.selectedSolicitud.mechanic_id = undefined;
         this.closeTechnicianSelection();
         this.onSelectedTechnicianChange();
@@ -3199,6 +3336,15 @@ async initLocationMap(): Promise<void> {
         this.closeClientDialogs();
         this.closeTechnicianSelection();
         this.selectedSolicitudOriginalStatus = solicitud.status;
+        this.selectedSolicitudAssignmentSnapshot = {
+            accepted: solicitud.technician_response === 'aceptada'
+                || solicitud.status === 'aceptada',
+            mechanicId: solicitud.mechanic_id,
+            scheduledDate: solicitud.scheduled_date,
+            installationScheduledDates: solicitud.installations?.map(
+                installation => installation.scheduled_date,
+            ) || [],
+        };
         this.resetTechnicianScheduleValidation();
         this.resetTechnicianRecommendation();
         this.rootGoogleMapsLink = this.selectedSolicitud.google_maps_url
@@ -4125,8 +4271,13 @@ async initLocationMap(): Promise<void> {
 
         }
 
-        this.syncSolicitudScheduledDate();
-        if (!await this.validateSelectedTechnicianSchedule(true)) {
+        if (!this.isSelectedSolicitudAssignmentLocked()) {
+            this.syncSolicitudScheduledDate();
+        }
+        if (
+            !this.isSelectedSolicitudAssignmentLocked()
+            && !await this.validateSelectedTechnicianSchedule(true)
+        ) {
             this.showRootDetailsData = true;
             return;
         }
@@ -4149,7 +4300,13 @@ async initLocationMap(): Promise<void> {
         if (!this.selectedSolicitud) return;
 
         if (this.isEditMode && this.selectedSolicitud._id) {
-            const solicitudPayload = { ...this.selectedSolicitud };
+            const solicitudPayload: Solicitud = {
+                ...this.selectedSolicitud,
+                installations: this.selectedSolicitud.installations?.map(
+                    installation => ({ ...installation }),
+                ),
+            };
+            this.restoreLockedSolicitudAssignment(solicitudPayload);
             delete solicitudPayload.gps_change;
             this.solicitudesService.update(this.selectedSolicitud._id, solicitudPayload).subscribe({
                 next: () => {
@@ -4191,6 +4348,10 @@ async initLocationMap(): Promise<void> {
 
     normalizeSolicitudScheduledDateInput(): void {
         if (!this.selectedSolicitud) return;
+        if (this.isSelectedSolicitudAssignmentLocked()) {
+            this.showSelectedSolicitudAssignmentLockedFeedback();
+            return;
+        }
         this.selectedSolicitud.scheduled_date = this.toDateTimeLocalValue(
             this.selectedSolicitud.scheduled_date
         );
@@ -4199,6 +4360,10 @@ async initLocationMap(): Promise<void> {
     }
 
     onSelectedTechnicianChange(): void {
+        if (this.isSelectedSolicitudAssignmentLocked()) {
+            this.showSelectedSolicitudAssignmentLockedFeedback();
+            return;
+        }
         void this.validateSelectedTechnicianSchedule();
     }
 
@@ -4365,6 +4530,10 @@ async initLocationMap(): Promise<void> {
 
     applyTechnicianRecommendation(): void {
         if (!this.selectedSolicitud || !this.technicianRecommendation) return;
+        if (this.isSelectedSolicitudAssignmentLocked()) {
+            this.showSelectedSolicitudAssignmentLockedFeedback();
+            return;
+        }
         this.selectedSolicitud.mechanic_id =
             this.technicianRecommendation.technician_id;
         void this.validateSelectedTechnicianSchedule();
@@ -4398,6 +4567,34 @@ async initLocationMap(): Promise<void> {
         this.technicianRecommendationLoading = false;
         this.technicianRecommendation = null;
         this.technicianRecommendationMessage = '';
+    }
+
+    private showSelectedSolicitudAssignmentLockedFeedback(): void {
+        this.messageService.add({
+            severity: 'info',
+            summary: 'Asignación confirmada',
+            detail: 'El técnico, la fecha y la hora no se pueden cambiar después de aceptar la solicitud.',
+        });
+    }
+
+    private restoreLockedSolicitudAssignment(payload: Solicitud): void {
+        const snapshot = this.selectedSolicitudAssignmentSnapshot;
+        if (!snapshot?.accepted) return;
+
+        payload.mechanic_id = snapshot.mechanicId;
+        payload.scheduled_date = snapshot.scheduledDate;
+        payload.installations = payload.installations?.map(
+            (installation, index) => {
+                const restoredInstallation = { ...installation };
+                const scheduledDate = snapshot.installationScheduledDates[index];
+                if (scheduledDate === undefined) {
+                    delete restoredInstallation.scheduled_date;
+                } else {
+                    restoredInstallation.scheduled_date = scheduledDate;
+                }
+                return restoredInstallation;
+            },
+        );
     }
 
     private syncSolicitudScheduledDate(): void {
@@ -4551,10 +4748,13 @@ async initLocationMap(): Promise<void> {
         this.cancellationSolicitud = solicitud;
         this.cancellationReason = '';
         this.cancellationReasonSubmitted = false;
+        this.cancellationAction = null;
         this.cancellationDialogVisible = true;
     }
 
-    confirmSolicitudCancellation(): void {
+    confirmSolicitudCancellation(
+        action: SolicitudCancellationAction = 'cancel',
+    ): void {
         const solicitud = this.cancellationSolicitud;
         const reason = String(this.cancellationReason || '').trim();
         this.cancellationReasonSubmitted = true;
@@ -4562,6 +4762,7 @@ async initLocationMap(): Promise<void> {
         if (!solicitud?._id || !reason || this.cancellingSolicitud) return;
 
         this.cancellingSolicitud = true;
+        this.cancellationAction = action;
         this.solicitudesService.update(solicitud._id, {
             status: 'rechazada',
             cancellation_reason: reason
@@ -4576,9 +4777,15 @@ async initLocationMap(): Promise<void> {
                 this.cancellationDialogVisible = false;
                 this.resetSolicitudCancellation();
                 this.loadSolicitudes(false);
+                if (action === 'new') {
+                    void this.openNew('pendiente');
+                } else if (action === 'duplicate') {
+                    void this.openNew('pendiente', solicitud);
+                }
             },
             error: (error) => {
                 this.cancellingSolicitud = false;
+                this.cancellationAction = null;
                 this.messageService.add({
                     severity: 'error',
                     summary: 'No se pudo cancelar',
@@ -4600,6 +4807,7 @@ async initLocationMap(): Promise<void> {
         this.cancellationSolicitud = null;
         this.cancellationReason = '';
         this.cancellationReasonSubmitted = false;
+        this.cancellationAction = null;
     }
 
     private showClosedSolicitudLockedFeedback(): void {
@@ -4648,11 +4856,89 @@ async initLocationMap(): Promise<void> {
         action();
     }
 
+    openReassignmentDialog(solicitud: Solicitud, event?: Event): void {
+        event?.stopPropagation();
+        if (!this.canReassignSolicitud(solicitud)) {
+            this.messageService.add({
+                severity: 'info',
+                summary: 'No se puede reasignar',
+                detail: 'La solicitud ya está finalizada o cerrada.',
+            });
+            return;
+        }
+
+        this.reassignmentSolicitud = solicitud;
+        this.reassignmentMechanicId = String(solicitud.mechanic_id || '').trim();
+        this.reassignmentScheduledDate = this.toDateTimeLocalValue(
+            solicitud.scheduled_date
+            || solicitud.installations?.find(
+                installation => installation.scheduled_date,
+            )?.scheduled_date
+            || this.getCurrentDateTimeLocalValue(),
+        );
+        this.reassignmentReason = '';
+        this.reassignmentError = '';
+        this.reassignmentDialogVisible = true;
+    }
+
+    closeReassignmentDialog(): void {
+        if (this.reassignmentSaving) return;
+        this.reassignmentDialogVisible = false;
+        this.reassignmentSolicitud = null;
+        this.reassignmentMechanicId = '';
+        this.reassignmentScheduledDate = '';
+        this.reassignmentReason = '';
+        this.reassignmentError = '';
+    }
+
+    async saveSolicitudReassignment(): Promise<void> {
+        const solicitudId = String(this.reassignmentSolicitud?._id || '').trim();
+        const mechanicId = String(this.reassignmentMechanicId || '').trim();
+        const scheduledDate = this.toDateTimeLocalValue(
+            this.reassignmentScheduledDate,
+        );
+        const reason = String(this.reassignmentReason || '').trim();
+        this.reassignmentError = '';
+
+        if (!solicitudId || !mechanicId || !scheduledDate) {
+            this.reassignmentError = 'Debe seleccionar el técnico, la fecha y la hora.';
+            return;
+        }
+        if (reason.length < 5) {
+            this.reassignmentError = 'Describa el motivo de la reasignación con al menos 5 caracteres.';
+            return;
+        }
+
+        this.reassignmentSaving = true;
+        try {
+            await firstValueFrom(
+                this.solicitudesService.reassign(solicitudId, {
+                    mechanic_id: mechanicId,
+                    scheduled_date: scheduledDate,
+                    reason,
+                }),
+            );
+            this.messageService.add({
+                severity: 'success',
+                summary: 'Solicitud reasignada',
+                detail: 'Se actualizó el técnico y la programación, y se guardó el motivo.',
+            });
+            this.reassignmentSaving = false;
+            this.closeReassignmentDialog();
+            this.loadSolicitudes(false);
+        } catch (error: any) {
+            this.reassignmentSaving = false;
+            this.reassignmentError = error?.error?.message
+                || 'No se pudo reasignar la solicitud.';
+        }
+    }
+
     hideDialog(): void {
         this.dialogVisible = false;
         this.closeTechnicianSelection();
         this.selectedSolicitud = null;
         this.selectedSolicitudOriginalStatus = '';
+        this.selectedSolicitudAssignmentSnapshot = null;
         this.deinstallationReasonError = false;
         this.resetTechnicianScheduleValidation();
         this.resetTechnicianRecommendation();
@@ -4991,6 +5277,15 @@ async initLocationMap(): Promise<void> {
         const solicitud = this.selectedTechnicianSolicitud;
         if (!solicitud?._id) return;
 
+        if (!this.isTechnicianCallWindowOpen()) {
+            this.messageService.add({
+                severity: 'warn',
+                summary: 'Fuera del horario de llamadas',
+                detail: 'Las llamadas de disponibilidad solo se permiten de 8:00 a. m. a 7:00 p. m.'
+            });
+            return;
+        }
+
         const previousResponse = solicitud.technician_response;
         this.verifyingAvailabilityId = solicitud._id;
         solicitud.technician_response = 'verificando';
@@ -5015,6 +5310,14 @@ async initLocationMap(): Promise<void> {
                 this.messageService.add({ severity: 'error', summary: 'No se pudo llamar', detail });
             }
         });
+    }
+
+    isTechnicianCallWindowOpen(date: Date = new Date()): boolean {
+        const hourPart = this.technicianCallHourFormatter
+            .formatToParts(date)
+            .find(part => part.type === 'hour');
+        const hour = Number(hourPart?.value);
+        return Number.isFinite(hour) && hour >= 8 && hour < 19;
     }
 
     hasAvailabilityCall(solicitud: Solicitud | null): boolean {
@@ -5207,11 +5510,29 @@ async initLocationMap(): Promise<void> {
 
     private sortSolicitudesForDisplay(items: Solicitud[]): Solicitud[] {
         return [...items].sort((a, b) => {
-            const aUnavailable = this.isTechnicianUnavailable(a) ? 1 : 0;
-            const bUnavailable = this.isTechnicianUnavailable(b) ? 1 : 0;
-            if (aUnavailable !== bUnavailable) return bUnavailable - aUnavailable;
+            const priorityDifference = this.getSolicitudDisplayPriority(a.status)
+                - this.getSolicitudDisplayPriority(b.status);
+            if (priorityDifference) return priorityDifference;
+
+            const leftTime = this.getSolicitudScheduledDateTime(a)?.getTime()
+                ?? Number.POSITIVE_INFINITY;
+            const rightTime = this.getSolicitudScheduledDateTime(b)?.getTime()
+                ?? Number.POSITIVE_INFINITY;
+            if (leftTime !== rightTime) return leftTime - rightTime;
+
             return (a.order || 0) - (b.order || 0);
         });
+    }
+
+    private getSolicitudDisplayPriority(status?: string): number {
+        switch (String(status || '').toLowerCase()) {
+            case 'en_progreso': return 0;
+            case 'aceptada': return 1;
+            case 'pendiente': return 2;
+            case 'por_confirmar':
+            case 'completada': return 4;
+            default: return 3;
+        }
     }
 
     get filteredSolicitudes(): Solicitud[] {
@@ -6434,7 +6755,18 @@ async initLocationMap(): Promise<void> {
     }
 
     private getSolicitudScheduledDateTime(sol: Solicitud): Date | null {
-        const rawDate = sol.scheduled_date || sol.installations?.[0]?.scheduled_date;
+        const dates = [
+            sol.scheduled_date,
+            ...(sol.installations || []).map(installation => installation.scheduled_date),
+        ]
+            .map(rawDate => this.parseSolicitudScheduledDateTime(rawDate))
+            .filter((date): date is Date => !!date);
+
+        if (!dates.length) return null;
+        return new Date(Math.min(...dates.map(date => date.getTime())));
+    }
+
+    private parseSolicitudScheduledDateTime(rawDate?: string | Date): Date | null {
         if (!rawDate) return null;
 
         if (rawDate instanceof Date) {

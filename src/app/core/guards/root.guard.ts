@@ -22,7 +22,11 @@ export class RootGuard implements CanActivate, CanMatch {
   private allowRootOnly(): boolean {
     const currentUser = this.authService.getCurrentUser();
 
-    if (currentUser && currentUser.root === true) {
+    const rootValue = currentUser?.root;
+    const isRoot = rootValue === true
+      || ['true', '1'].includes(String(rootValue || '').toLowerCase());
+
+    if (currentUser && isRoot) {
       return true;
     }
 

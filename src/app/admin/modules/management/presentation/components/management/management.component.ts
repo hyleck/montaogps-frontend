@@ -223,6 +223,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private hasMoreUsers: boolean = true;
   private loadingMoreUsers: boolean = false;
   private totalUsersCount: number = 0;
+  private userRouteLoadRequestId: number = 0;
+  private usersListLoadRequestId: number = 0;
 
   // Getters para el template
   get isLoadingMoreTargets(): boolean {
@@ -1813,6 +1815,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
   openHistoryBlockPassword(target: any, event?: Event): void {
     event?.stopPropagation();
+    if (!this.isCurrentUserRoot) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Acceso restringido',
+        detail: 'Solo los usuarios root pueden bloquear rangos del historial.'
+      });
+      return;
+    }
     if (!this.canUpdateDevices()) {
       this.messageService.add({
         severity: 'error',
@@ -3637,12 +3647,18 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private loadUserFromParams(userId: string): void {
+    const requestId = ++this.userRouteLoadRequestId;
     this.managementService.loadUserData(userId)
       .then(user => {
+        if (requestId !== this.userRouteLoadRequestId || user._id !== userId) {
+          return;
+        }
         this.handleUserLoaded(user);
       })
       .catch(() => {
-        this.uiService.setLoading(false);
+        if (requestId === this.userRouteLoadRequestId) {
+          this.uiService.setLoading(false);
+        }
       });
   }
 
@@ -3914,6 +3930,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private async loadUsersForUser(userId: string, resetPagination: boolean = true): Promise<void> {
+    const requestId = ++this.usersListLoadRequestId;
     // Validar permisos antes de cargar usuarios
     if (!this.canReadUsers()) {
       this.messageService.add({
@@ -3955,6 +3972,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.userService.getSharedUsers().toPromise()
         ]);
 
+        if (requestId !== this.usersListLoadRequestId || this.selectedUser?._id !== userId) {
+          return;
+        }
+
         if (usersResponse) {
           // Unir las dos listas, eliminando duplicados por ID
           const allUsers = [...(usersResponse.users || [])];
@@ -3967,10 +3988,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
           });
 
           // Agregar usuarios a la lista existente
-          this.users = [
+          this.users = this.deduplicateUsers([
             ...this.users,
             ...this.sanitizeManagementUsers(allUsers),
-          ];
+          ]);
           this.totalUsersCount = usersResponse.totalCount;
 
           // Verificar si hay más usuarios disponibles
@@ -3992,12 +4013,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.usersPageSize
         ).toPromise();
 
+        if (requestId !== this.usersListLoadRequestId || this.selectedUser?._id !== userId) {
+          return;
+        }
+
         if (usersResponse) {
           // Agregar usuarios a la lista existente
-          this.users = [
+          this.users = this.deduplicateUsers([
             ...this.users,
             ...this.sanitizeManagementUsers(usersResponse.users),
-          ];
+          ]);
           this.totalUsersCount = usersResponse.totalCount;
 
           // Verificar si hay más usuarios disponibles
@@ -4230,6 +4255,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
     console.log(`[SCROLL INFINITO USUARIOS] 🚀 Cargando más usuarios - offset: ${this.currentUsersOffset}, hasMore: ${this.hasMoreUsers}`);
 
     this.loadingMoreUsers = true;
+    const userId = this.selectedUser._id;
+    const requestId = this.usersListLoadRequestId;
     try {
       let response;
       if (this.isSearchingUsers && this.searchUsersTerm.trim() !== '') {
@@ -4249,11 +4276,15 @@ export class ManagementComponent implements OnInit, OnDestroy {
         ).toPromise();
       }
 
+      if (requestId !== this.usersListLoadRequestId || this.selectedUser?._id !== userId) {
+        return;
+      }
+
       if (response) {
-        this.users = [
+        this.users = this.deduplicateUsers([
           ...this.users,
           ...this.sanitizeManagementUsers(response.users),
-        ];
+        ]);
         this.totalUsersCount = response.totalCount;
         this.hasMoreUsers = this.users.length < this.totalUsersCount;
         this.currentUsersOffset += this.usersPageSize;
@@ -4275,6 +4306,20 @@ export class ManagementComponent implements OnInit, OnDestroy {
     } finally {
       this.loadingMoreUsers = false;
     }
+  }
+
+  private deduplicateUsers(users: User[]): User[] {
+    const seenIds = new Set<string>();
+
+    return users.filter(user => {
+      const userId = String(user?._id || '').trim();
+      if (!userId || seenIds.has(userId)) {
+        return false;
+      }
+
+      seenIds.add(userId);
+      return true;
+    });
   }
 
   // Método para subir el scroll después de cargar nuevos targets

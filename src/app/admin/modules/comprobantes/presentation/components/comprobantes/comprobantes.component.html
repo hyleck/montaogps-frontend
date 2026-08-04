@@ -1,0 +1,80 @@
+<main class="receipts-page">
+  <header class="page-header">
+    <div>
+      <span class="eyebrow">ADMINISTRACIÓN DE GASTOS</span>
+      <h1>Comprobantes</h1>
+      <p>Comprobantes subidos por empleados y técnicos internos, digitalizados y organizados por fecha y categoría.</p>
+    </div>
+    <div class="header-badge"><i class="pi pi-sparkles"></i><span>Digitalización con IA</span></div>
+  </header>
+
+  <section class="stats-grid">
+    <article><span>Total encontrados</span><strong>{{ total }}</strong><i class="pi pi-receipt"></i></article>
+    <article><span>Digitalizados en esta página</span><strong>{{ digitizedCount }}</strong><i class="pi pi-check-circle"></i></article>
+    <article><span>Requieren atención</span><strong>{{ reviewCount }}</strong><i class="pi pi-exclamation-circle"></i></article>
+    <article><span>Categorías visibles</span><strong>{{ visibleCategoryCount }}</strong><i class="pi pi-tags"></i></article>
+  </section>
+
+  <section class="filters-card">
+    <label class="search-field"><span>Buscar</span><div><i class="pi pi-search"></i><input [(ngModel)]="search" (keyup.enter)="applyFilters()" placeholder="Empleado, comercio, NCF o RNC"></div></label>
+    <label><span>Categoría</span><select [(ngModel)]="accountingCategory"><option value="">Todas</option><option *ngFor="let item of categories" [value]="item">{{ categoryLabel(item) }}</option></select></label>
+    <label><span>Estado IA</span><select [(ngModel)]="status"><option value="">Todos</option><option value="completed">Digitalizado</option><option value="needs_review">Requiere revisión</option><option value="failed">Error de IA</option><option value="pending">Digitalizando</option></select></label>
+    <label><span>Desde</span><input type="date" [(ngModel)]="dateFrom"></label>
+    <label><span>Hasta</span><input type="date" [(ngModel)]="dateTo"></label>
+    <div class="filter-actions"><button type="button" class="clear-btn" (click)="clearFilters()">Limpiar</button><button type="button" class="apply-btn" (click)="applyFilters()"><i class="pi pi-filter"></i> Aplicar</button></div>
+  </section>
+
+  <div class="error-banner" *ngIf="error"><i class="pi pi-exclamation-triangle"></i><span>{{ error }}</span><button type="button" (click)="error = ''">×</button></div>
+  <div class="loading-state" *ngIf="loading"><span class="loader"></span><strong>Cargando comprobantes…</strong></div>
+  <div class="empty-state" *ngIf="!loading && receipts.length === 0"><i class="pi pi-receipt"></i><h2>No hay comprobantes</h2><p>No encontramos registros con los filtros seleccionados.</p></div>
+
+  <section class="date-group" *ngFor="let group of dateGroups">
+    <div class="date-heading"><div><i class="pi pi-calendar"></i><h2>{{ group.label }}</h2></div><span>{{ group.count }} {{ group.count === 1 ? 'comprobante' : 'comprobantes' }}</span></div>
+
+    <div class="category-group" *ngFor="let categoryGroup of group.categories">
+      <div class="category-heading"><span><i class="pi pi-tag"></i>{{ categoryGroup.label }}</span><em>{{ categoryGroup.items.length }}</em></div>
+      <div class="receipt-grid">
+        <article class="receipt-card" *ngFor="let receipt of categoryGroup.items" (click)="openReceipt(receipt)">
+          <div class="receipt-image"><img [src]="receipt.image_url" alt="Comprobante de {{ receipt.employee_name }}"><span class="status-pill" [attr.data-status]="receipt.processing_status">{{ statusLabel(receipt.processing_status) }}</span></div>
+          <div class="receipt-body">
+            <div class="merchant-row"><div><small>COMERCIO</small><h3>{{ receipt.merchant_name || 'No detectado' }}</h3></div><strong>{{ displayAmount(receipt) }}</strong></div>
+            <p>{{ receipt.description || receipt.raw_text || 'Sin descripción digitalizada' }}</p>
+            <dl>
+              <div><dt>Empleado</dt><dd>{{ receipt.employee_name }}</dd></div>
+              <div><dt>Fecha</dt><dd>{{ displayReceiptDate(receipt) }}</dd></div>
+              <div *ngIf="receipt.ncf"><dt>NCF</dt><dd>{{ receipt.ncf }}</dd></div>
+              <div *ngIf="receipt.tax_id"><dt>RNC</dt><dd>{{ receipt.tax_id }}</dd></div>
+            </dl>
+            <button type="button" class="retry-btn" *ngIf="receipt.processing_status === 'failed' || receipt.processing_status === 'needs_review'" (click)="reprocess(receipt, $event)" [disabled]="!!reprocessingId"><i class="pi" [ngClass]="reprocessingId === receipt._id ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>{{ reprocessingId === receipt._id ? 'Procesando…' : 'Reintentar IA' }}</button>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <nav class="pagination" *ngIf="!loading && totalPages > 1"><button type="button" (click)="changePage(page - 1)" [disabled]="page === 1"><i class="pi pi-chevron-left"></i> Anterior</button><span>Página <strong>{{ page }}</strong> de {{ totalPages }}</span><button type="button" (click)="changePage(page + 1)" [disabled]="page === totalPages">Siguiente <i class="pi pi-chevron-right"></i></button></nav>
+</main>
+
+<div class="receipt-modal" *ngIf="selectedReceipt" (click)="closeReceipt()">
+  <section class="modal-card" (click)="$event.stopPropagation()">
+    <button type="button" class="modal-close" (click)="closeReceipt()" aria-label="Cerrar">×</button>
+    <div class="modal-image"><img [src]="selectedReceipt.image_url" alt="Comprobante ampliado"></div>
+    <div class="modal-content">
+      <div class="modal-title"><div><span>{{ categoryLabel(selectedReceipt.accounting_category) }}</span><h2>{{ selectedReceipt.merchant_name || 'Comercio no detectado' }}</h2></div><strong>{{ displayAmount(selectedReceipt) }}</strong></div>
+      <div class="detail-grid">
+        <div><small>Empleado</small><strong>{{ selectedReceipt.employee_name }}</strong><span>{{ selectedReceipt.employee_email || 'Sin correo' }}</span></div>
+        <div><small>Fecha del gasto</small><strong>{{ displayReceiptDate(selectedReceipt, true) }}</strong></div>
+        <div><small>NCF</small><strong>{{ selectedReceipt.ncf || 'No detectado' }}</strong></div>
+        <div><small>RNC</small><strong>{{ selectedReceipt.tax_id || 'No detectado' }}</strong></div>
+        <div><small>Subtotal</small><strong>{{ selectedReceipt.subtotal == null ? 'No detectado' : (selectedReceipt.subtotal | number:'1.2-2') }}</strong></div>
+        <div><small>ITBIS</small><strong>{{ selectedReceipt.tax_amount == null ? 'No detectado' : (selectedReceipt.tax_amount | number:'1.2-2') }}</strong></div>
+        <div><small>Método de pago</small><strong>{{ selectedReceipt.payment_method || 'No detectado' }}</strong></div>
+        <div><small>Tipo detectado por IA</small><strong>{{ detectedCategoryLabel(selectedReceipt.category) }}</strong></div>
+        <div><small>Confianza IA</small><strong>{{ selectedReceipt.ai_confidence == null ? 'No disponible' : ((selectedReceipt.ai_confidence * 100) | number:'1.0-0') + '%' }}</strong></div>
+      </div>
+      <div class="raw-text"><small>DATOS DIGITALIZADOS</small><p>{{ selectedReceipt.raw_text || selectedReceipt.description || 'La IA no pudo extraer texto.' }}</p></div>
+      <div class="processing-error" *ngIf="selectedReceipt.processing_error"><i class="pi pi-exclamation-triangle"></i><span>{{ selectedReceipt.processing_error }}</span></div>
+      <button type="button" class="modal-retry" *ngIf="selectedReceipt.processing_status === 'failed' || selectedReceipt.processing_status === 'needs_review'" (click)="reprocess(selectedReceipt)" [disabled]="!!reprocessingId"><i class="pi" [ngClass]="reprocessingId ? 'pi-spin pi-spinner' : 'pi-refresh'"></i>{{ reprocessingId ? 'Digitalizando…' : 'Reintentar digitalización' }}</button>
+    </div>
+  </section>
+</div>
