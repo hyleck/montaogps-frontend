@@ -464,6 +464,11 @@ export class InventoryComponent implements OnInit {
     return 'N/A';
   }
 
+  get selectedGlobalWarehouseName(): string | null {
+    if (!this.globalSearchStorageId) return null;
+    return this.warehouses.find((warehouse) => warehouse._id === this.globalSearchStorageId)?.name || null;
+  }
+
   getProtocolLabel(protocolData: any): string {
     if (protocolData && typeof protocolData === 'object' && protocolData.name) {
       return protocolData.name;
@@ -526,6 +531,10 @@ export class InventoryComponent implements OnInit {
 
   get regularWarehouses(): Warehouse[] {
     return this.filteredWarehouses.filter(w => (w.stock || 0) >= (w.min_quantity || 0));
+  }
+
+  get orderedWarehouses(): Warehouse[] {
+    return [...this.attentionWarehouses, ...this.regularWarehouses];
   }
 
   private normalizeWarehouseSearch(value: any): string {
@@ -833,6 +842,7 @@ export class InventoryComponent implements OnInit {
       _id: device._id,
       imei: device.IMEI || device.imei || '',
       sim: device.SIM || device.sim || '',
+      idsim: device.IDSIM || device.idsim || '',
       protocol: typeof device.Protocol === 'object' ? device.Protocol._id : device.Protocol || device.protocol || '',
       package: typeof device.package === 'object' ? device.package._id : device.package,
       storage_id: device.storage_id || null, // Map storage_id
@@ -884,6 +894,7 @@ export class InventoryComponent implements OnInit {
     const devicePayload: any = {
       IMEI: (this.selectedDevice.imei || '').trim(),
       SIM: (this.selectedDevice.sim || '').trim(),
+      IDSIM: (this.selectedDevice.idsim || '').trim(),
       Protocol: this.selectedDevice.protocol,
       package: this.selectedDevice.package,
       storage_id: this.selectedDevice.storage_id || null,
@@ -1145,6 +1156,10 @@ export class InventoryComponent implements OnInit {
     this.simcardSearchStatus = '';
     this.simcardSearchCompany = '';
     this.searchAllSimcards(true);
+  }
+
+  getSimcardCompanyLabel(company?: string): string {
+    return this.availableSimCardTypes.find((type) => type.value === company)?.label || company || 'Otros';
   }
 
   onSimcardCompanyChange(company: string): void {

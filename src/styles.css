@@ -2679,3 +2679,55 @@ html.app-dark .bulk-process-dialog .bulk-process__footer .button--flat-negative:
 html.app-dark .bulk-process-dialog .bulk-process__targets {
   scrollbar-color: #4a5363 #171b22;
 }
+
+/* Alert center dialogs live under body, outside the navbar component tree. */
+.p-dialog.alerts-hub-dialog,
+.p-dialog.alert-config-dialog {
+  overflow: hidden;
+  border: 1px solid var(--alertsColorBorder);
+  border-radius: 16px;
+  background: var(--alertsColorSurface);
+  box-shadow: 0 24px 64px var(--alertsColorShadow);
+}
+
+.alerts-hub-dialog .p-dialog-header,
+.alert-config-dialog .p-dialog-header {
+  min-height: 58px;
+  padding: 0.9rem 1.2rem;
+  border-bottom: 1px solid var(--alertsColorBorder);
+  background: var(--alertsColorSurface);
+}
+
+.alerts-hub-dialog .p-dialog-title,
+.alert-config-dialog .p-dialog-title {
+  color: var(--alertsColorText);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.alerts-hub-dialog .p-dialog-header-close,
+.alert-config-dialog .p-dialog-header-close {
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--alertsColorMuted);
+}
+
+.alerts-hub-dialog .p-dialog-header-close:hover,
+.alert-config-dialog .p-dialog-header-close:hover {
+  border-color: var(--alertsColorBorder);
+  background: var(--alertsColorSurfaceMuted);
+  color: var(--alertsColorText);
+}
+
+.alerts-hub-dialog .p-dialog-content {
+  padding: 0;
+  background: var(--alertsColorCanvas);
+}
+
+.alert-config-dialog .p-dialog-content {
+  padding: 1rem 1.1rem 1.15rem;
+  background: var(--alertsColorCanvas);
+}

@@ -20,6 +20,7 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
     vertexMarkers: any[] = [];
     manualCoordinates: Array<{ lat: number; lng: number }> = [];
     isManualDrawing = false;
+    isRadiusPlacement = false;
     private lastVertexClick: { lat: number; lng: number; at: number } | null = null;
 
     map: any;
@@ -183,6 +184,39 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
         });
     }
 
+    startRadiusPlacement(radiusMeters: number = 150): void {
+        if (!this.map || this.provider !== 'google') return;
+
+        const safeRadius = Math.min(10000, Math.max(50, Number(radiusMeters) || 150));
+        this.removeCurrentPolygon();
+        this.disableManualDrawing();
+        this.isRadiusPlacement = true;
+        this.map.setOptions?.({ draggableCursor: 'crosshair' });
+        this.drawingClickListener = google.maps.event.addListener(this.map, 'click', (event: any) => {
+            if (!event?.latLng) return;
+            this.setCircularPerimeter(event.latLng.lat(), event.latLng.lng(), safeRadius);
+            this.disableManualDrawing();
+        });
+    }
+
+    setCircularPerimeter(lat: number, lng: number, radiusMeters: number = 150): void {
+        if (!this.map || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+        const safeRadius = Math.min(10000, Math.max(50, Number(radiusMeters) || 150));
+        const earthRadiusMeters = 6378137;
+        const latitudeRadians = lat * Math.PI / 180;
+        const coordinates = Array.from({ length: 48 }, (_, index) => {
+            const bearing = (index / 48) * Math.PI * 2;
+            const deltaLat = (safeRadius / earthRadiusMeters) * Math.sin(bearing);
+            const deltaLng = (safeRadius / (earthRadiusMeters * Math.cos(latitudeRadians))) * Math.cos(bearing);
+            return {
+                lat: lat + deltaLat * 180 / Math.PI,
+                lng: lng + deltaLng * 180 / Math.PI,
+            };
+        });
+        this.setPerimeter(coordinates);
+    }
+
     finishDrawing(): void {
         this.disableManualDrawing();
     }
@@ -241,6 +275,7 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
             this.drawingClickListener = null;
         }
         this.isManualDrawing = false;
+        this.isRadiusPlacement = false;
         this.map?.setOptions?.({ draggableCursor: null });
     }
 

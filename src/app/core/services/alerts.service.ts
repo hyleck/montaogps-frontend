@@ -20,6 +20,11 @@ export interface CreateAlertDto {
   connectionAlertType?: 'online' | 'offline';
   message?: string;
   oneNotificationEveryFiveHours?: boolean;
+  presetKey?: string;
+  presetName?: string;
+  scheduleStart?: string;
+  scheduleEnd?: string;
+  scheduleTimezone?: string;
 }
 
 export interface AlertUserTopic {

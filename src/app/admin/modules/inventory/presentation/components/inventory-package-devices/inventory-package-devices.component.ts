@@ -19,7 +19,6 @@ import { ProtocolsService } from 'src/app/core/services/protocols.service';
 import { UserService } from 'src/app/core/services/user.service';
 import { StatusService } from 'src/app/shareds/services/status.service';
 import { SIM_CARD_TYPES } from 'src/app/core/constants/sim-card-types.constant';
-import { Table } from 'primeng/table';
 import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util';
 
 @Component({
@@ -31,7 +30,6 @@ import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util'
 })
 export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   @ViewChild('imeiInput') imeiInput!: ElementRef;
-  @ViewChild('deviceTable') deviceTable!: Table;
 
   items: MenuItem[] = [{ label: 'Inventario' }];
   home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
@@ -49,6 +47,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   packageSearchQuery = '';
   packageSearchStatus: string = '';
   isSearchingPackage = false;
+  packageFiltersVisible = false;
 
   // Pagination
   currentPage = 1;
@@ -123,6 +122,15 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
 
   canDeleteInventory(): boolean {
     return this.authService.hasPrivilege('inventory', 'delete');
+  }
+
+  get activePackageFiltersCount(): number {
+    return [this.packageSearchQuery, this.selectedWarehouseFilter, this.packageSearchStatus]
+      .filter(Boolean).length;
+  }
+
+  togglePackageFilters(): void {
+    this.packageFiltersVisible = !this.packageFiltersVisible;
   }
 
 
@@ -207,6 +215,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     this.selectedDevice = {
       imei: '',
       sim: '',
+      idsim: '',
       protocol: '',
       package: this.currentPackageId,
       packageId: this.currentPackageId,
@@ -231,6 +240,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
       _id: device._id,
       imei: device.IMEI || device.imei || '',
       sim: device.SIM || device.sim || '',
+      idsim: device.IDSIM || device.idsim || '',
       protocol:
         typeof device.Protocol === 'object'
           ? device.Protocol._id
@@ -302,6 +312,7 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
     const devicePayload: any = {
       IMEI: (this.selectedDevice.imei || '').trim(),
       SIM: (this.selectedDevice.sim || '').trim(),
+      IDSIM: (this.selectedDevice.idsim || '').trim(),
       Protocol: this.selectedDevice.protocol || '',
       package: this.currentPackageId,
       storage_id: this.selectedDevice.storage_id || null,

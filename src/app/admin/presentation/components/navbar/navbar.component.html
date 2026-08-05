@@ -276,15 +276,29 @@
 }
 
 @defer (when alertsDialogVisible) {
-<p-dialog header="{{ 'navbar.alertsHubDialogTitle' | translate }}" [(visible)]="alertsDialogVisible" [modal]="true"
+<p-dialog header="Crear una alerta" [(visible)]="alertsDialogVisible" [modal]="true"
     [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
-    [style]="{width: '1040px', maxWidth: '96vw'}" styleClass="alerts-hub-dialog">
+    [style]="{width: '1180px', maxWidth: '96vw'}" styleClass="alerts-hub-dialog">
     <section class="alerts-hub">
         <header class="alerts-hub__intro">
-            <div>
-                <span class="alerts-hub__eyebrow">{{ 'navbar.alertsHubEyebrow' | translate }}</span>
-                <h2>{{ 'navbar.alertsHubTitle' | translate }}</h2>
-                <p>{{ 'navbar.alertsHubSubtitle' | translate }}</p>
+            <div class="alerts-hub__headline">
+                <span class="alerts-hub__eyebrow" aria-label="Alertas inteligentes" title="Alertas inteligentes">
+                    <i class="pi pi-sparkles"></i>
+                </span>
+                <div class="alerts-hub__title-copy">
+                    <h2>¿Qué quieres cuidar hoy?</h2>
+                    <p>Elige una situación cotidiana y configuramos las reglas por ti.</p>
+                </div>
+                <div class="alerts-hub__stats" role="tablist" aria-label="Disponibilidad de alertas">
+                    <button type="button" role="tab" [attr.aria-selected]="alertPresetView === 'available'"
+                        [class.active]="alertPresetView === 'available'" (click)="selectAlertPresetView('available')">
+                        <strong>{{ readyAlertPresetCount }}</strong> disponibles
+                    </button>
+                    <button type="button" role="tab" class="premium" [attr.aria-selected]="alertPresetView === 'premium'"
+                        [class.active]="alertPresetView === 'premium'" (click)="selectAlertPresetView('premium')">
+                        <i class="pi pi-crown"></i><strong>{{ premiumAlertPresetCount }}</strong> Premium
+                    </button>
+                </div>
             </div>
 
             <div class="alerts-hub__selection" [class.alerts-hub__selection--empty]="!currentSelectedTargets.length">
@@ -293,7 +307,7 @@
                     <strong>{{ currentSelectedTargets.length }}</strong>
                 </div>
                 <div class="alerts-hub__selection-copy">
-                    <span>{{ 'navbar.alertsHubSelectedDevices' | translate }}</span>
+                    <span>{{ currentSelectedTargets.length === 1 ? 'Vehículo seleccionado' : 'Vehículos seleccionados' }}</span>
                     <div class="alerts-hub__target-chips" *ngIf="currentSelectedTargets.length">
                         <span *ngFor="let target of currentSelectedTargets.slice(0, 3)">
                             {{ target.name || target.device_imei }}
@@ -303,104 +317,221 @@
                         </span>
                     </div>
                     <small *ngIf="!currentSelectedTargets.length">
-                        {{ 'navbar.alertsHubSelectDevices' | translate }}
+                        Selecciona uno o varios dispositivos en el mapa
                     </small>
                 </div>
             </div>
+
+            <div class="alerts-hub__tools">
+                <label class="alerts-hub__search">
+                    <i class="pi pi-search"></i>
+                    <input type="search" [(ngModel)]="alertPresetSearch"
+                        placeholder="Buscar alertas..." aria-label="Buscar tipos de alertas">
+                    <button *ngIf="alertPresetSearch" type="button" (click)="alertPresetSearch = ''" aria-label="Limpiar búsqueda">
+                        <i class="pi pi-times"></i>
+                    </button>
+                </label>
+                <span class="alerts-hub__result-count" [title]="filteredAlertPresets.length + ' resultados'">
+                    {{ filteredAlertPresets.length }}
+                </span>
+            </div>
         </header>
 
-        <div class="alerts-hub__grid">
-            <button *ngFor="let option of alertsOptions" type="button" class="alert-type-card"
-                [ngClass]="['alert-type-card--' + option.tone, isAlertOptionDisabled(option) ? 'alert-type-card--disabled' : '']"
-                [disabled]="isAlertOptionDisabled(option)" (click)="openAlertOption(option)"
-                [attr.aria-label]="(option.labelKey | translate) + '. ' + (option.descriptionKey | translate)">
+        <section class="alerts-hub__manual alerts-hub__manual--top">
+            <div>
+                <span><i class="pi pi-sliders-h"></i> ¿Prefieres crear tu propia regla?</span>
+                <small>Abre la configuración técnica y define cada detalle manualmente.</small>
+            </div>
+            <div class="alerts-hub__manual-options">
+                <button *ngFor="let option of manualAlertOptions" type="button" (click)="openManualAlertOption(option)"
+                    [title]="option.description">
+                    <i [class]="option.icon"></i>
+                    <span>{{ option.label }}</span>
+                </button>
+            </div>
+        </section>
+
+        <nav class="alerts-hub__categories" aria-label="Categorías de alertas">
+            <button *ngFor="let category of alertPresetCategories" type="button"
+                [class.active]="alertPresetCategory === category.key"
+                (click)="selectAlertPresetCategory(category.key)">
+                <i [class]="category.icon"></i>
+                <span>{{ category.label }}</span>
+            </button>
+        </nav>
+
+        <div class="alerts-hub__grid" *ngIf="filteredAlertPresets.length; else noAlertPresetResults">
+            <button *ngFor="let preset of filteredAlertPresets" type="button" class="alert-type-card"
+                [ngClass]="['alert-type-card--' + preset.tone, preset.availability !== 'ready' ? 'alert-type-card--premium' : '']"
+                (click)="openAlertPreset(preset)"
+                [attr.aria-label]="preset.name + '. ' + preset.description">
                 <span class="alert-type-card__glow"></span>
                 <div class="alert-type-card__topline">
                     <span class="alert-type-card__icon">
-                        <i [class]="option.icon"></i>
+                        <i [class]="preset.icon"></i>
                     </span>
-                    <span class="alert-type-card__status" *ngIf="option.type === 'ignition' && !allSelectedTargetsHaveIgnitionSensor">
-                        {{ 'navbar.alertsHubSensorUnavailable' | translate }}
-                    </span>
+                    <span class="alert-type-card__badge" *ngIf="preset.badge">{{ preset.badge }}</span>
                 </div>
 
                 <div class="alert-type-card__body">
-                    <h3>{{ option.labelKey | translate }}</h3>
-                    <p>{{ option.descriptionKey | translate }}</p>
+                    <h3>{{ preset.name }}</h3>
+                    <p>{{ preset.description }}</p>
+                </div>
+
+                <div class="alert-type-card__availability"
+                    [class.alert-type-card__availability--ready]="preset.availability === 'ready'"
+                    [class.alert-type-card__availability--premium]="preset.availability !== 'ready'">
+                    <i [class]="preset.availability === 'ready' ? 'pi pi-check-circle' : 'pi pi-crown'"></i>
+                    <span>{{ getAlertPresetAvailabilityLabel(preset) }}</span>
                 </div>
 
                 <div class="alert-type-card__footer">
-                    <span>{{ 'navbar.alertsHubConfigure' | translate }}</span>
+                    <span>{{ preset.availability === 'ready' ? 'Configurar' : 'Premium' }}</span>
                     <i class="pi pi-arrow-right"></i>
                 </div>
             </button>
         </div>
+
+        <ng-template #noAlertPresetResults>
+            <div class="alerts-hub__empty">
+                <i class="pi pi-search"></i>
+                <h3>No encontramos esa alerta</h3>
+                <p>Prueba con otra palabra o cambia de categoría.</p>
+                <button type="button" (click)="alertPresetSearch = ''; alertPresetCategory = 'all'">Ver todas</button>
+            </div>
+        </ng-template>
+
     </section>
 </p-dialog>
 }
 
+<ng-template #alertPresetIntro>
+    <div class="alert-config__navigation">
+        <button type="button" (click)="backToAlertCatalog()">
+            <i class="pi pi-arrow-left"></i>
+            Todos los tipos de alertas
+        </button>
+    </div>
+    <section class="alert-config__hero" *ngIf="activeAlertPreset as preset">
+        <span class="alert-config__hero-icon" [ngClass]="'alert-config__hero-icon--' + preset.tone">
+            <i [class]="preset.icon"></i>
+        </span>
+        <div>
+            <span class="alert-config__eyebrow">Configuración inteligente</span>
+            <h3>{{ preset.name }}</h3>
+            <p>{{ activeAlertPresetDescription }}</p>
+        </div>
+        <span class="alert-config__vehicle-count">
+            <i class="pi pi-car"></i>
+            {{ currentSelectedTargets.length }}
+        </span>
+    </section>
+    <section class="alert-config__behavior" *ngIf="activeAlertPreset">
+        <span class="alert-config__behavior-icon"><i class="pi pi-bell"></i></span>
+        <div>
+            <span>Así funcionará</span>
+            <strong>{{ activeAlertBehaviorSummary }}</strong>
+        </div>
+    </section>
+    <section class="alert-config__schedule" *ngIf="activeAlertUsesSchedule">
+        <div class="alert-config__schedule-heading">
+            <span><i class="pi pi-clock"></i> Horario de vigilancia</span>
+            <small>Solo se evalúa durante este horario.</small>
+        </div>
+        <label>
+            <span>Desde</span>
+            <input type="time" [(ngModel)]="alertScheduleStart">
+        </label>
+        <i class="pi pi-arrow-right"></i>
+        <label>
+            <span>Hasta</span>
+            <input type="time" [(ngModel)]="alertScheduleEnd">
+        </label>
+    </section>
+</ng-template>
+
 @defer (when speedAlertDialogVisible) {
-<p-dialog header="{{ 'navbar.alertOptionSpeed' | translate }}" [(visible)]="speedAlertDialogVisible" [modal]="true"
+<p-dialog [header]="activeAlertDialogTitle" [(visible)]="speedAlertDialogVisible" [modal]="true"
     [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
-    [style]="{width: '420px', maxWidth: '90vw'}">
+    [style]="{width: '540px', maxWidth: '94vw'}" styleClass="alert-config-dialog">
     <div class="speed-alert-modal-content">
+        <ng-container *ngTemplateOutlet="alertPresetIntro"></ng-container>
         <form class="speed-alert-form" (ngSubmit)="createSpeedAlert()" #speedAlertForm="ngForm">
-            <div class="form-field">
-                <label for="maxSpeedInput">{{ 'navbar.maxSpeedLabel' | translate }}</label>
-                <div class="input-with-unit">
-                    <input id="maxSpeedInput" type="number" min="1" step="1" required [(ngModel)]="maxSpeedValue"
-                        name="maxSpeedValue" class="custom-input" placeholder="0" />
-                    <span class="unit">km/h</span>
+            <section class="alert-config__primary">
+                <div class="alert-config__section-heading">
+                    <span>Velocidad máxima</span>
+                    <small>Recibirás una alerta al superar este límite.</small>
                 </div>
-            </div>
-            <div class="form-field">
-                <label for="notificationEmailInput">{{ 'navbar.notifyEmailLabel' | translate }}</label>
-                <div class="email-input-row">
-                    <input id="notificationEmailInput" type="email" name="notificationEmail" class="custom-input"
-                        [placeholder]="'navbar.notifyEmailPlaceholder' | translate" [(ngModel)]="notificationEmail"
-                        (ngModelChange)="onNotificationEmailChange()" [disabled]="!!notificationEmailUserId" />
-
-                    <button type="button" class="speed-verify-button" (click)="verifyNotificationEmail()"
-                        [disabled]="!notificationEmail || verifyingNotificationEmail || !!notificationEmailUserId"
-                        [ngClass]="{'speed-verified': !!notificationEmailUserId}">
-                        <i *ngIf="verifyingNotificationEmail" class="pi pi-spin pi-spinner"></i>
-                        <i *ngIf="!verifyingNotificationEmail && !!notificationEmailUserId" class="pi pi-check"></i>
-                        <span *ngIf="!verifyingNotificationEmail && !notificationEmailUserId">{{ 'navbar.verify' |
-                            translate }}</span>
-                        <span *ngIf="!verifyingNotificationEmail && !!notificationEmailUserId">{{
-                            'navbar.verified' |
-                            translate }}</span>
-                    </button>
-
-                    <button *ngIf="notificationEmailUserId" type="button" class="clear-btn"
-                        (click)="notificationEmailUserId = null; notificationEmail = ''">
-                        <i class="pi pi-times"></i>
-                    </button>
+                <div class="form-field alert-config__featured-field">
+                    <div class="input-with-unit">
+                        <input id="maxSpeedInput" aria-label="Velocidad máxima" type="number" min="1" step="1"
+                            required [(ngModel)]="maxSpeedValue" name="maxSpeedValue" class="custom-input"
+                            placeholder="0" />
+                        <span class="unit">km/h</span>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="form-field">
-                <label for="speedAlertMessage">Mensaje personalizado (opcional)</label>
-                <input id="speedAlertMessage" type="text" name="speedAlertMessage" class="custom-input"
-                    placeholder="Ej: Exceso de velocidad detectado" [(ngModel)]="speedAlertMessage"
-                    maxlength="240" style="width: 100%;" />
-            </div>
-
-            <button type="button" class="alert-cooldown-toggle" [class.active]="speedAlertFiveHourLimit"
-                [attr.aria-pressed]="speedAlertFiveHourLimit"
-                (click)="speedAlertFiveHourLimit = !speedAlertFiveHourLimit">
-                <i [class]="speedAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
-                <span>Enviar máximo 1 vez cada 5 horas</span>
+            <button type="button" class="alert-config__advanced-toggle" [class.active]="alertAdvancedOptionsVisible"
+                [attr.aria-expanded]="alertAdvancedOptionsVisible" (click)="toggleAlertAdvancedOptions()">
+                <span><i class="pi pi-sliders-h"></i> Opciones avanzadas</span>
+                <i [class]="alertAdvancedOptionsVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
             </button>
+
+            <section class="alert-config__advanced" *ngIf="alertAdvancedOptionsVisible">
+                <div class="form-field">
+                    <label for="notificationEmailInput">{{ 'navbar.notifyEmailLabel' | translate }}</label>
+                    <div class="email-input-row">
+                        <input id="notificationEmailInput" type="email" name="notificationEmail" class="custom-input"
+                            [placeholder]="'navbar.notifyEmailPlaceholder' | translate" [(ngModel)]="notificationEmail"
+                            (ngModelChange)="onNotificationEmailChange()" [disabled]="!!notificationEmailUserId" />
+
+                        <button type="button" class="speed-verify-button" (click)="verifyNotificationEmail()"
+                            [disabled]="!notificationEmail || verifyingNotificationEmail || !!notificationEmailUserId"
+                            [ngClass]="{'speed-verified': !!notificationEmailUserId}">
+                            <i *ngIf="verifyingNotificationEmail" class="pi pi-spin pi-spinner"></i>
+                            <i *ngIf="!verifyingNotificationEmail && !!notificationEmailUserId" class="pi pi-check"></i>
+                            <span *ngIf="!verifyingNotificationEmail && !notificationEmailUserId">{{ 'navbar.verify' |
+                                translate }}</span>
+                            <span *ngIf="!verifyingNotificationEmail && !!notificationEmailUserId">{{
+                                'navbar.verified' | translate }}</span>
+                        </button>
+
+                        <button *ngIf="notificationEmailUserId" type="button" class="clear-btn"
+                            (click)="notificationEmailUserId = null; notificationEmail = ''">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="speedAlertMessage">Mensaje personalizado</label>
+                    <input id="speedAlertMessage" type="text" name="speedAlertMessage" class="custom-input"
+                        placeholder="Ej: Exceso de velocidad detectado" [(ngModel)]="speedAlertMessage"
+                        maxlength="240" />
+                </div>
+
+                <button type="button" class="alert-cooldown-toggle" [class.active]="speedAlertFiveHourLimit"
+                    [attr.aria-pressed]="speedAlertFiveHourLimit"
+                    (click)="speedAlertFiveHourLimit = !speedAlertFiveHourLimit">
+                    <i [class]="speedAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
+                    <span>Enviar máximo 1 vez cada 5 horas</span>
+                </button>
+            </section>
 
             <button type="submit" class="create-alert-btn" [disabled]="speedAlertForm.invalid || creatingAlert">
                 <i *ngIf="creatingAlert" class="pi pi-spin pi-spinner"></i>
-                <span *ngIf="!creatingAlert">{{ 'navbar.createAlert' | translate }}</span>
+                <span *ngIf="!creatingAlert">Activar {{ activeAlertPreset?.name || 'alerta de velocidad' }}</span>
                 <span *ngIf="creatingAlert">{{ 'navbar.creating' | translate }}</span>
             </button>
         </form>
 
-        <div class="speed-alerts-history">
+        <button type="button" class="alert-config__history-toggle" [attr.aria-expanded]="alertHistoryVisible"
+            (click)="toggleAlertHistory()">
+            <span><i class="pi pi-history"></i> Alertas creadas <b>{{ visibleSpeedAlerts.length }}</b></span>
+            <i [class]="alertHistoryVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+        </button>
+        <div class="speed-alerts-history" *ngIf="alertHistoryVisible">
             <h4>
                 {{ 'navbar.speedAlertsTitle' | translate }}
             </h4>
@@ -414,7 +545,7 @@
                         <div class="alert-header">
                             <span class="alert-trigger">
                                 <i class="pi pi-gauge"></i>
-                                {{ alert.config?.['maxSpeed'] ?? '-' }} km/h
+                                {{ alert.config?.['presetName'] || 'Velocidad' }} · {{ alert.config?.['maxSpeed'] ?? '-' }} km/h
                             </span>
                             <span class="alert-status" [class.active]="alert.status === 'active'">
                                 {{ alert.status === 'active' ? 'Activa' : 'Inactiva' }}
@@ -472,12 +603,13 @@
 
 <!-- Modal de Alerta de Encendido -->
 @defer (when ignitionAlertDialogVisible) {
-<p-dialog header="Alerta de Encendido" [(visible)]="ignitionAlertDialogVisible" [modal]="true" [dismissableMask]="true"
+<p-dialog [header]="activeAlertDialogTitle" [(visible)]="ignitionAlertDialogVisible" [modal]="true" [dismissableMask]="true"
     [closeOnEscape]="true" [draggable]="false" appendTo="body" [style]="{width: '420px', maxWidth: '90vw'}"
-    (onShow)="loadIgnitionAlerts()">
+    styleClass="alert-config-dialog" (onShow)="loadIgnitionAlerts()">
     <div class="ignition-alert-modal-content">
+        <ng-container *ngTemplateOutlet="alertPresetIntro"></ng-container>
         <form class="ignition-alert-form" (ngSubmit)="createIgnitionAlert()" #ignitionAlertForm="ngForm">
-            <div class="form-field">
+            <div class="form-field" *ngIf="!activeAlertPreset">
                 <label for="ignitionTrigger">¿Cuándo notificar?</label>
                 <div class="input-with-unit">
                     <select id="ignitionTrigger" [(ngModel)]="ignitionTrigger" name="ignitionTrigger">
@@ -487,55 +619,68 @@
                 </div>
             </div>
 
-            <div class="form-field">
-                <label for="ignitionNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
-                <div class="email-input-row">
-                    <input id="ignitionNotificationEmail" type="email" name="ignitionNotificationEmail"
-                        class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
-                        [(ngModel)]="ignitionNotificationEmail" (ngModelChange)="onIgnitionNotificationEmailChange()"
-                        [disabled]="!!ignitionNotificationEmailUserId" />
-
-                    <button type="button" class="speed-verify-button" (click)="verifyIgnitionNotificationEmail()"
-                        [disabled]="!ignitionNotificationEmail || verifyingIgnitionNotificationEmail || !!ignitionNotificationEmailUserId"
-                        [ngClass]="{'speed-verified': !!ignitionNotificationEmailUserId}">
-                        <i *ngIf="verifyingIgnitionNotificationEmail" class="pi pi-spin pi-spinner"></i>
-                        <i *ngIf="!verifyingIgnitionNotificationEmail && !!ignitionNotificationEmailUserId"
-                            class="pi pi-check"></i>
-                        <span *ngIf="!verifyingIgnitionNotificationEmail && !ignitionNotificationEmailUserId">{{
-                            'navbar.verify' | translate }}</span>
-                        <span *ngIf="!verifyingIgnitionNotificationEmail && !!ignitionNotificationEmailUserId">{{
-                            'navbar.verified' | translate }}</span>
-                    </button>
-
-                    <button *ngIf="ignitionNotificationEmailUserId" type="button" class="clear-btn"
-                        (click)="ignitionNotificationEmailUserId = null; ignitionNotificationEmail = ''">
-                        <i class="pi pi-times"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="form-field">
-                <label for="ignitionAlertMessage">Mensaje personalizado (opcional)</label>
-                <input id="ignitionAlertMessage" type="text" name="ignitionAlertMessage" class="custom-input"
-                    [placeholder]="ignitionTrigger === 'on' ? 'Ej: El motor se ha encendido' : 'Ej: El motor se ha apagado'"
-                    [(ngModel)]="ignitionAlertMessage" maxlength="240" style="width: 100%;" />
-            </div>
-
-            <button type="button" class="alert-cooldown-toggle" [class.active]="ignitionAlertFiveHourLimit"
-                [attr.aria-pressed]="ignitionAlertFiveHourLimit"
-                (click)="ignitionAlertFiveHourLimit = !ignitionAlertFiveHourLimit">
-                <i [class]="ignitionAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
-                <span>Enviar máximo 1 vez cada 5 horas</span>
+            <button type="button" class="alert-config__advanced-toggle" [class.active]="alertAdvancedOptionsVisible"
+                [attr.aria-expanded]="alertAdvancedOptionsVisible" (click)="toggleAlertAdvancedOptions()">
+                <span><i class="pi pi-sliders-h"></i> Opciones avanzadas</span>
+                <i [class]="alertAdvancedOptionsVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
             </button>
+
+            <section class="alert-config__advanced" *ngIf="alertAdvancedOptionsVisible">
+                <div class="form-field">
+                    <label for="ignitionNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
+                    <div class="email-input-row">
+                        <input id="ignitionNotificationEmail" type="email" name="ignitionNotificationEmail"
+                            class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
+                            [(ngModel)]="ignitionNotificationEmail" (ngModelChange)="onIgnitionNotificationEmailChange()"
+                            [disabled]="!!ignitionNotificationEmailUserId" />
+
+                        <button type="button" class="speed-verify-button" (click)="verifyIgnitionNotificationEmail()"
+                            [disabled]="!ignitionNotificationEmail || verifyingIgnitionNotificationEmail || !!ignitionNotificationEmailUserId"
+                            [ngClass]="{'speed-verified': !!ignitionNotificationEmailUserId}">
+                            <i *ngIf="verifyingIgnitionNotificationEmail" class="pi pi-spin pi-spinner"></i>
+                            <i *ngIf="!verifyingIgnitionNotificationEmail && !!ignitionNotificationEmailUserId"
+                                class="pi pi-check"></i>
+                            <span *ngIf="!verifyingIgnitionNotificationEmail && !ignitionNotificationEmailUserId">{{
+                                'navbar.verify' | translate }}</span>
+                            <span *ngIf="!verifyingIgnitionNotificationEmail && !!ignitionNotificationEmailUserId">{{
+                                'navbar.verified' | translate }}</span>
+                        </button>
+
+                        <button *ngIf="ignitionNotificationEmailUserId" type="button" class="clear-btn"
+                            (click)="ignitionNotificationEmailUserId = null; ignitionNotificationEmail = ''">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="ignitionAlertMessage">Mensaje personalizado</label>
+                    <input id="ignitionAlertMessage" type="text" name="ignitionAlertMessage" class="custom-input"
+                        [placeholder]="ignitionTrigger === 'on' ? 'Ej: El motor se ha encendido' : 'Ej: El motor se ha apagado'"
+                        [(ngModel)]="ignitionAlertMessage" maxlength="240" />
+                </div>
+
+                <button type="button" class="alert-cooldown-toggle" [class.active]="ignitionAlertFiveHourLimit"
+                    [attr.aria-pressed]="ignitionAlertFiveHourLimit"
+                    (click)="ignitionAlertFiveHourLimit = !ignitionAlertFiveHourLimit">
+                    <i [class]="ignitionAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
+                    <span>Enviar máximo 1 vez cada 5 horas</span>
+                </button>
+            </section>
 
             <button type="submit" class="create-alert-btn" [disabled]="creatingIgnitionAlert">
                 <i *ngIf="creatingIgnitionAlert" class="pi pi-spin pi-spinner"></i>
-                <span *ngIf="!creatingIgnitionAlert">{{ 'navbar.createAlert' | translate }}</span>
+                <span *ngIf="!creatingIgnitionAlert">Activar {{ activeAlertPreset?.name || 'alerta de encendido' }}</span>
                 <span *ngIf="creatingIgnitionAlert">{{ 'navbar.creating' | translate }}</span>
             </button>
         </form>
 
-        <div class="ignition-alerts-history">
+        <button type="button" class="alert-config__history-toggle" [attr.aria-expanded]="alertHistoryVisible"
+            (click)="toggleAlertHistory()">
+            <span><i class="pi pi-history"></i> Alertas creadas <b>{{ visibleIgnitionAlerts.length }}</b></span>
+            <i [class]="alertHistoryVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+        </button>
+        <div class="ignition-alerts-history" *ngIf="alertHistoryVisible">
             <h4>Alertas de encendido</h4>
             <div *ngIf="loadingIgnitionAlerts" class="ignition-alerts-loading">
                 <i class="pi pi-spin pi-spinner"></i>
@@ -547,7 +692,7 @@
                         <div class="alert-header">
                             <span class="alert-trigger">
                                 <i class="pi pi-power-off"></i>
-                                {{ alert.config?.['ignitionTrigger'] === 'on' ? 'Encendido' : 'Apagado' }}
+                                {{ alert.config?.['presetName'] || (alert.config?.['ignitionTrigger'] === 'on' ? 'Encendido' : 'Apagado') }}
                             </span>
                             <span class="alert-status" [class.active]="alert.status === 'active'">
                                 {{ alert.status === 'active' ? 'Activa' : 'Inactiva' }}
@@ -605,12 +750,21 @@
 }
 
 @defer (when perimeterAlertDialogVisible) {
-<p-dialog header="{{ 'navbar.alertOptionPerimeter' | translate }}" [(visible)]="perimeterAlertDialogVisible"
+<p-dialog [header]="activeAlertDialogTitle" [(visible)]="perimeterAlertDialogVisible"
     [modal]="true" [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
-    [style]="{width: '900px', maxWidth: '95vw'}" (onShow)="loadPerimeterAlerts()">
-    <div class="perimeter-alert-modal-content">
+    [style]="{width: '980px', maxWidth: '95vw'}" styleClass="alert-config-dialog" (onShow)="onPerimeterDialogShow()">
+    <div class="perimeter-alert-dialog-content">
+        <div class="perimeter-alert-config-intro">
+            <ng-container *ngTemplateOutlet="alertPresetIntro"></ng-container>
+        </div>
+        <button type="button" class="alert-config__history-toggle" [attr.aria-expanded]="alertHistoryVisible"
+            (click)="toggleAlertHistory()">
+            <span><i class="pi pi-history"></i> Alertas creadas <b>{{ visiblePerimeterAlerts.length }}</b></span>
+            <i [class]="alertHistoryVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+        </button>
+        <div class="perimeter-alert-modal-content">
         <!-- Columna izquierda: Lista de alertas -->
-        <div class="perimeter-alerts-list">
+        <div class="perimeter-alerts-list" *ngIf="alertHistoryVisible">
             <h4>Alertas activas</h4>
 
             <div *ngIf="loadingPerimeterAlerts" class="perimeter-alerts-loading">
@@ -629,7 +783,7 @@
                     <div class="alert-header">
                         <span class="alert-trigger">
                             <i [class]="alert.config?.['trigger'] === 'enter' ? 'pi pi-sign-in' : 'pi pi-sign-out'"></i>
-                            {{ alert.config?.['trigger'] === 'enter' ? 'Entrada' : 'Salida' }}
+                            {{ alert.config?.['presetName'] || (alert.config?.['trigger'] === 'enter' ? 'Entrada' : 'Salida') }}
                         </span>
                         <span class="alert-status" [class.active]="alert.status === 'active'">
                             {{ alert.status === 'active' ? 'Activa' : 'Inactiva' }}
@@ -710,11 +864,25 @@
 
         <!-- Columna derecha: Mapa y formulario -->
         <div class="perimeter-map-form">
+            <section class="alert-config__radius" *ngIf="activeAlertPreset">
+                <div>
+                    <strong><i class="pi pi-map-marker"></i> Marca la ubicación</strong>
+                    <small>Ajusta el radio y luego haz clic en el centro del lugar en el mapa.</small>
+                </div>
+                <label>
+                    <input type="number" min="50" max="10000" step="50" [(ngModel)]="perimeterRadiusMeters">
+                    <span>metros</span>
+                </label>
+                <button type="button" (click)="startCircularPerimeter()">
+                    <i class="pi pi-circle"></i>
+                    Marcar en el mapa
+                </button>
+            </section>
             <app-map-alert provider="google" [theme]="currentTheme === 'dark' ? 'dark' : 'light'"
                 [targets]="currentSelectedTargets"></app-map-alert>
 
             <form class="perimeter-form-fields" (ngSubmit)="createPerimeterAlert()" #perimeterAlertForm="ngForm">
-                <div class="form-field">
+                <div class="form-field" *ngIf="!activeAlertPreset">
                     <label for="perimeterNotificationTrigger">¿Cuándo notificar?</label>
                     <div class="input-with-unit"
                         style="border: 1px solid var(--globalColorBorderInput, #e5e7eb); background-color: var(--globalColorInputBackground, transparent);">
@@ -727,47 +895,57 @@
                     </div>
                 </div>
 
-                <div class="form-field">
-                    <label for="perimeterNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
-                    <div class="email-input-row">
-                        <input id="perimeterNotificationEmail" type="email" name="perimeterNotificationEmail"
-                            class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
-                            [(ngModel)]="perimeterNotificationEmail"
-                            (ngModelChange)="onPerimeterNotificationEmailChange()"
-                            [disabled]="!!perimeterNotificationEmailUserId" />
+                <button type="button" class="alert-config__advanced-toggle"
+                    [class.active]="alertAdvancedOptionsVisible" [attr.aria-expanded]="alertAdvancedOptionsVisible"
+                    (click)="toggleAlertAdvancedOptions()">
+                    <span><i class="pi pi-sliders-h"></i> Opciones avanzadas</span>
+                    <i [class]="alertAdvancedOptionsVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+                </button>
 
-                        <button type="button" class="speed-verify-button" (click)="verifyPerimeterNotificationEmail()"
-                            [disabled]="!perimeterNotificationEmail || verifyingPerimeterNotificationEmail || !!perimeterNotificationEmailUserId"
-                            [ngClass]="{'speed-verified': !!perimeterNotificationEmailUserId}">
-                            <i *ngIf="verifyingPerimeterNotificationEmail" class="pi pi-spin pi-spinner"></i>
-                            <i *ngIf="!verifyingPerimeterNotificationEmail && !!perimeterNotificationEmailUserId"
-                                class="pi pi-check"></i>
-                            <span *ngIf="!verifyingPerimeterNotificationEmail && !perimeterNotificationEmailUserId">{{
-                                'navbar.verify' | translate }}</span>
-                            <span *ngIf="!verifyingPerimeterNotificationEmail && !!perimeterNotificationEmailUserId">{{
-                                'navbar.verified' | translate }}</span>
-                        </button>
+                <section class="alert-config__advanced" *ngIf="alertAdvancedOptionsVisible">
+                    <div class="form-field">
+                        <label for="perimeterNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
+                        <div class="email-input-row">
+                            <input id="perimeterNotificationEmail" type="email" name="perimeterNotificationEmail"
+                                class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
+                                [(ngModel)]="perimeterNotificationEmail"
+                                (ngModelChange)="onPerimeterNotificationEmailChange()"
+                                [disabled]="!!perimeterNotificationEmailUserId" />
 
-                        <button *ngIf="perimeterNotificationEmailUserId" type="button" class="clear-btn"
-                            (click)="perimeterNotificationEmailUserId = null; perimeterNotificationEmail = ''">
-                            <i class="pi pi-times"></i>
-                        </button>
+                            <button type="button" class="speed-verify-button"
+                                (click)="verifyPerimeterNotificationEmail()"
+                                [disabled]="!perimeterNotificationEmail || verifyingPerimeterNotificationEmail || !!perimeterNotificationEmailUserId"
+                                [ngClass]="{'speed-verified': !!perimeterNotificationEmailUserId}">
+                                <i *ngIf="verifyingPerimeterNotificationEmail" class="pi pi-spin pi-spinner"></i>
+                                <i *ngIf="!verifyingPerimeterNotificationEmail && !!perimeterNotificationEmailUserId"
+                                    class="pi pi-check"></i>
+                                <span *ngIf="!verifyingPerimeterNotificationEmail && !perimeterNotificationEmailUserId">{{
+                                    'navbar.verify' | translate }}</span>
+                                <span *ngIf="!verifyingPerimeterNotificationEmail && !!perimeterNotificationEmailUserId">{{
+                                    'navbar.verified' | translate }}</span>
+                            </button>
+
+                            <button *ngIf="perimeterNotificationEmailUserId" type="button" class="clear-btn"
+                                (click)="perimeterNotificationEmailUserId = null; perimeterNotificationEmail = ''">
+                                <i class="pi pi-times"></i>
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="form-field">
-                    <label for="perimeterNotificationMessage">Mensaje personalizado (opcional)</label>
-                    <input id="perimeterNotificationMessage" type="text" name="perimeterNotificationMessage"
-                        class="custom-input"
-                        [placeholder]="perimeterNotificationTrigger === 'enter' ? 'Ej: Ha llegado a su casa' : 'Ej: Ha salido de su casa'"
-                        [(ngModel)]="perimeterNotificationMessage" maxlength="240" style="width: 100%;" />
-                </div>
+                    <div class="form-field">
+                        <label for="perimeterNotificationMessage">Mensaje personalizado</label>
+                        <input id="perimeterNotificationMessage" type="text" name="perimeterNotificationMessage"
+                            class="custom-input"
+                            [placeholder]="perimeterNotificationTrigger === 'enter' ? 'Ej: Ha llegado a su casa' : 'Ej: Ha salido de su casa'"
+                            [(ngModel)]="perimeterNotificationMessage" maxlength="240" />
+                    </div>
+                </section>
 
                 <!-- Botón de Crear Alerta (solo si NO está en modo edición) -->
                 <button *ngIf="!editingPerimeterAlertId" type="submit" class="create-alert-btn"
                     [disabled]="creatingPerimeterAlert">
                     <i *ngIf="creatingPerimeterAlert" class="pi pi-spin pi-spinner"></i>
-                    <span *ngIf="!creatingPerimeterAlert">{{ 'navbar.createAlert' | translate }}</span>
+                    <span *ngIf="!creatingPerimeterAlert">Activar {{ activeAlertPreset?.name || 'alerta de perímetro' }}</span>
                     <span *ngIf="creatingPerimeterAlert">{{ 'navbar.creating' | translate }}</span>
                 </button>
 
@@ -780,6 +958,7 @@
                     <span *ngIf="savingPerimeterAlert">Guardando...</span>
                 </button>
             </form>
+        </div>
         </div>
     </div>
 </p-dialog>
@@ -1646,53 +1825,74 @@
 
 <!-- Modal de Alerta de Movimiento -->
 @defer (when movementAlertDialogVisible) {
-<p-dialog header="Alerta de Movimiento" [(visible)]="movementAlertDialogVisible" [modal]="true" [dismissableMask]="true"
+<p-dialog [header]="activeAlertDialogTitle" [(visible)]="movementAlertDialogVisible" [modal]="true" [dismissableMask]="true"
     [closeOnEscape]="true" [draggable]="false" appendTo="body" [style]="{width: '420px', maxWidth: '90vw'}"
-    (onShow)="loadMovementAlerts()">
+    styleClass="alert-config-dialog" (onShow)="loadMovementAlerts()">
     <div class="ignition-alert-modal-content">
+        <ng-container *ngTemplateOutlet="alertPresetIntro"></ng-container>
         <form class="ignition-alert-form" (ngSubmit)="createMovementAlert()" #movementAlertForm="ngForm">
-            <div class="form-field">
-                <label for="movementNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
-                <div class="email-input-row">
-                    <input id="movementNotificationEmail" type="email" name="movementNotificationEmail"
-                        class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
-                        [(ngModel)]="movementNotificationEmail" (ngModelChange)="onMovementNotificationEmailChange()"
-                        [disabled]="!!movementNotificationEmailUserId" />
-
-                    <button type="button" class="speed-verify-button" (click)="verifyMovementNotificationEmail()"
-                        [disabled]="!movementNotificationEmail || verifyingMovementNotificationEmail || !!movementNotificationEmailUserId"
-                        [ngClass]="{'speed-verified': !!movementNotificationEmailUserId}">
-                        <i *ngIf="verifyingMovementNotificationEmail" class="pi pi-spin pi-spinner"></i>
-                        <i *ngIf="!verifyingMovementNotificationEmail && !!movementNotificationEmailUserId"
-                            class="pi pi-check"></i>
-                        <span *ngIf="!verifyingMovementNotificationEmail && !movementNotificationEmailUserId">{{
-                            'navbar.verify' | translate }}</span>
-                        <span *ngIf="!verifyingMovementNotificationEmail && !!movementNotificationEmailUserId">{{
-                            'navbar.verified' | translate }}</span>
-                    </button>
-
-                    <button *ngIf="movementNotificationEmailUserId" type="button" class="clear-btn"
-                        (click)="movementNotificationEmailUserId = null; movementNotificationEmail = ''">
-                        <i class="pi pi-times"></i>
-                    </button>
+            <section class="alert-config__primary" *ngIf="!activeAlertPreset">
+                <div class="alert-config__section-heading">
+                    <span>Detección de movimiento</span>
+                    <small>La alerta se enviará cuando el vehículo comience a moverse.</small>
                 </div>
-            </div>
+            </section>
 
-            <div class="form-field">
-                <label for="movementAlertMessage">Mensaje personalizado (opcional)</label>
-                <input id="movementAlertMessage" type="text" name="movementAlertMessage" class="custom-input"
-                    placeholder="Ej: El dispositivo se ha movido" [(ngModel)]="movementAlertMessage"
-                    maxlength="240" style="width: 100%;" />
-            </div>
+            <button type="button" class="alert-config__advanced-toggle" [class.active]="alertAdvancedOptionsVisible"
+                [attr.aria-expanded]="alertAdvancedOptionsVisible" (click)="toggleAlertAdvancedOptions()">
+                <span><i class="pi pi-sliders-h"></i> Opciones avanzadas</span>
+                <i [class]="alertAdvancedOptionsVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+            </button>
+
+            <section class="alert-config__advanced" *ngIf="alertAdvancedOptionsVisible">
+                <div class="form-field">
+                    <label for="movementNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
+                    <div class="email-input-row">
+                        <input id="movementNotificationEmail" type="email" name="movementNotificationEmail"
+                            class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
+                            [(ngModel)]="movementNotificationEmail" (ngModelChange)="onMovementNotificationEmailChange()"
+                            [disabled]="!!movementNotificationEmailUserId" />
+
+                        <button type="button" class="speed-verify-button" (click)="verifyMovementNotificationEmail()"
+                            [disabled]="!movementNotificationEmail || verifyingMovementNotificationEmail || !!movementNotificationEmailUserId"
+                            [ngClass]="{'speed-verified': !!movementNotificationEmailUserId}">
+                            <i *ngIf="verifyingMovementNotificationEmail" class="pi pi-spin pi-spinner"></i>
+                            <i *ngIf="!verifyingMovementNotificationEmail && !!movementNotificationEmailUserId"
+                                class="pi pi-check"></i>
+                            <span *ngIf="!verifyingMovementNotificationEmail && !movementNotificationEmailUserId">{{
+                                'navbar.verify' | translate }}</span>
+                            <span *ngIf="!verifyingMovementNotificationEmail && !!movementNotificationEmailUserId">{{
+                                'navbar.verified' | translate }}</span>
+                        </button>
+
+                        <button *ngIf="movementNotificationEmailUserId" type="button" class="clear-btn"
+                            (click)="movementNotificationEmailUserId = null; movementNotificationEmail = ''">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="movementAlertMessage">Mensaje personalizado</label>
+                    <input id="movementAlertMessage" type="text" name="movementAlertMessage" class="custom-input"
+                        placeholder="Ej: El dispositivo se ha movido" [(ngModel)]="movementAlertMessage"
+                        maxlength="240" />
+                </div>
+            </section>
 
             <button type="submit" class="create-alert-btn" [disabled]="creatingMovementAlert">
                 <i *ngIf="creatingMovementAlert" class="pi pi-spin pi-spinner"></i>
-                <span *ngIf="!creatingMovementAlert">{{ 'navbar.createAlert' | translate }}</span>
+                <span *ngIf="!creatingMovementAlert">Activar {{ activeAlertPreset?.name || 'alerta de movimiento' }}</span>
                 <span *ngIf="creatingMovementAlert">{{ 'navbar.creating' | translate }}</span>
             </button>
         </form>
 
-        <div class="ignition-alerts-history">
+        <button type="button" class="alert-config__history-toggle" [attr.aria-expanded]="alertHistoryVisible"
+            (click)="toggleAlertHistory()">
+            <span><i class="pi pi-history"></i> Alertas creadas <b>{{ visibleMovementAlerts.length }}</b></span>
+            <i [class]="alertHistoryVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+        </button>
+        <div class="ignition-alerts-history" *ngIf="alertHistoryVisible">
             <h4>Configuraciones de alertas</h4>
 
             <div *ngIf="loadingMovementAlerts" class="ignition-alerts-loading">
@@ -1712,7 +1912,7 @@
                     <div class="alert-header">
                         <span class="alert-trigger">
                             <i class="pi pi-arrows-alt"></i>
-                            Movimiento
+                            {{ alert.config?.['presetName'] || 'Movimiento' }}
                         </span>
                         <span class="alert-status" [class.active]="alert.status === 'active'">
                             {{ alert.status === 'active' ? 'Activa' : 'Inactiva' }}
@@ -1763,12 +1963,13 @@
 
 <!-- Modal de Alerta de Conexión -->
 @defer (when connectionAlertDialogVisible) {
-<p-dialog header="Alerta de Conexión" [(visible)]="connectionAlertDialogVisible" [modal]="true" [dismissableMask]="true"
+<p-dialog [header]="activeAlertDialogTitle" [(visible)]="connectionAlertDialogVisible" [modal]="true" [dismissableMask]="true"
     [closeOnEscape]="true" [draggable]="false" appendTo="body" [style]="{width: '420px', maxWidth: '90vw'}"
-    (onShow)="loadConnectionAlerts()">
+    styleClass="alert-config-dialog" (onShow)="loadConnectionAlerts()">
     <div class="ignition-alert-modal-content">
+        <ng-container *ngTemplateOutlet="alertPresetIntro"></ng-container>
         <form class="ignition-alert-form" (ngSubmit)="createConnectionAlert()" #connectionAlertForm="ngForm">
-            <div class="form-field">
+            <div class="form-field" *ngIf="!activeAlertPreset">
                 <label for="connectionAlertType">¿Cuándo notificar?</label>
                 <div class="input-with-unit">
                     <select id="connectionAlertType" [(ngModel)]="connectionAlertType" name="connectionAlertType">
@@ -1778,56 +1979,69 @@
                 </div>
             </div>
 
-            <div class="form-field">
-                <label for="connectionNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
-                <div class="email-input-row">
-                    <input id="connectionNotificationEmail" type="email" name="connectionNotificationEmail"
-                        class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
-                        [(ngModel)]="connectionNotificationEmail"
-                        (ngModelChange)="onConnectionNotificationEmailChange()"
-                        [disabled]="!!connectionNotificationEmailUserId" />
-
-                    <button type="button" class="speed-verify-button" (click)="verifyConnectionNotificationEmail()"
-                        [disabled]="!connectionNotificationEmail || verifyingConnectionNotificationEmail || !!connectionNotificationEmailUserId"
-                        [ngClass]="{'speed-verified': !!connectionNotificationEmailUserId}">
-                        <i *ngIf="verifyingConnectionNotificationEmail" class="pi pi-spin pi-spinner"></i>
-                        <i *ngIf="!verifyingConnectionNotificationEmail && !!connectionNotificationEmailUserId"
-                            class="pi pi-check"></i>
-                        <span *ngIf="!verifyingConnectionNotificationEmail && !connectionNotificationEmailUserId">{{
-                            'navbar.verify' | translate }}</span>
-                        <span *ngIf="!verifyingConnectionNotificationEmail && !!connectionNotificationEmailUserId">{{
-                            'navbar.verified' | translate }}</span>
-                    </button>
-
-                    <button *ngIf="connectionNotificationEmailUserId" type="button" class="clear-btn"
-                        (click)="connectionNotificationEmailUserId = null; connectionNotificationEmail = ''">
-                        <i class="pi pi-times"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="form-field">
-                <label for="connectionAlertMessage">Mensaje personalizado (opcional)</label>
-                <input id="connectionAlertMessage" type="text" name="connectionAlertMessage" class="custom-input"
-                    [placeholder]="connectionAlertType === 'online' ? 'Ej: El dispositivo está en línea' : 'Ej: El dispositivo está fuera de línea'"
-                    [(ngModel)]="connectionAlertMessage" maxlength="240" style="width: 100%;" />
-            </div>
-
-            <button type="button" class="alert-cooldown-toggle" [class.active]="connectionAlertFiveHourLimit"
-                [attr.aria-pressed]="connectionAlertFiveHourLimit"
-                (click)="connectionAlertFiveHourLimit = !connectionAlertFiveHourLimit">
-                <i [class]="connectionAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
-                <span>Enviar máximo 1 vez cada 5 horas</span>
+            <button type="button" class="alert-config__advanced-toggle" [class.active]="alertAdvancedOptionsVisible"
+                [attr.aria-expanded]="alertAdvancedOptionsVisible" (click)="toggleAlertAdvancedOptions()">
+                <span><i class="pi pi-sliders-h"></i> Opciones avanzadas</span>
+                <i [class]="alertAdvancedOptionsVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
             </button>
+
+            <section class="alert-config__advanced" *ngIf="alertAdvancedOptionsVisible">
+                <div class="form-field">
+                    <label for="connectionNotificationEmail">{{ 'navbar.notifyEmailLabel' | translate }}</label>
+                    <div class="email-input-row">
+                        <input id="connectionNotificationEmail" type="email" name="connectionNotificationEmail"
+                            class="custom-input" [placeholder]="'navbar.notifyEmailPlaceholder' | translate"
+                            [(ngModel)]="connectionNotificationEmail"
+                            (ngModelChange)="onConnectionNotificationEmailChange()"
+                            [disabled]="!!connectionNotificationEmailUserId" />
+
+                        <button type="button" class="speed-verify-button" (click)="verifyConnectionNotificationEmail()"
+                            [disabled]="!connectionNotificationEmail || verifyingConnectionNotificationEmail || !!connectionNotificationEmailUserId"
+                            [ngClass]="{'speed-verified': !!connectionNotificationEmailUserId}">
+                            <i *ngIf="verifyingConnectionNotificationEmail" class="pi pi-spin pi-spinner"></i>
+                            <i *ngIf="!verifyingConnectionNotificationEmail && !!connectionNotificationEmailUserId"
+                                class="pi pi-check"></i>
+                            <span *ngIf="!verifyingConnectionNotificationEmail && !connectionNotificationEmailUserId">{{
+                                'navbar.verify' | translate }}</span>
+                            <span *ngIf="!verifyingConnectionNotificationEmail && !!connectionNotificationEmailUserId">{{
+                                'navbar.verified' | translate }}</span>
+                        </button>
+
+                        <button *ngIf="connectionNotificationEmailUserId" type="button" class="clear-btn"
+                            (click)="connectionNotificationEmailUserId = null; connectionNotificationEmail = ''">
+                            <i class="pi pi-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="connectionAlertMessage">Mensaje personalizado</label>
+                    <input id="connectionAlertMessage" type="text" name="connectionAlertMessage" class="custom-input"
+                        [placeholder]="connectionAlertType === 'online' ? 'Ej: El dispositivo está en línea' : 'Ej: El dispositivo está fuera de línea'"
+                        [(ngModel)]="connectionAlertMessage" maxlength="240" />
+                </div>
+
+                <button type="button" class="alert-cooldown-toggle" [class.active]="connectionAlertFiveHourLimit"
+                    [attr.aria-pressed]="connectionAlertFiveHourLimit"
+                    (click)="connectionAlertFiveHourLimit = !connectionAlertFiveHourLimit">
+                    <i [class]="connectionAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
+                    <span>Enviar máximo 1 vez cada 5 horas</span>
+                </button>
+            </section>
 
             <button type="submit" class="create-alert-btn" [disabled]="creatingConnectionAlert">
                 <i *ngIf="creatingConnectionAlert" class="pi pi-spin pi-spinner"></i>
-                <span *ngIf="!creatingConnectionAlert">{{ 'navbar.createAlert' | translate }}</span>
+                <span *ngIf="!creatingConnectionAlert">Activar {{ activeAlertPreset?.name || 'alerta de conexión' }}</span>
                 <span *ngIf="creatingConnectionAlert">{{ 'navbar.creating' | translate }}</span>
             </button>
         </form>
 
-        <div class="ignition-alerts-history">
+        <button type="button" class="alert-config__history-toggle" [attr.aria-expanded]="alertHistoryVisible"
+            (click)="toggleAlertHistory()">
+            <span><i class="pi pi-history"></i> Alertas creadas <b>{{ visibleConnectionAlerts.length }}</b></span>
+            <i [class]="alertHistoryVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+        </button>
+        <div class="ignition-alerts-history" *ngIf="alertHistoryVisible">
             <h4>Alertas de conexión</h4>
             <div *ngIf="loadingConnectionAlerts" class="ignition-alerts-loading">
                 <i class="pi pi-spin pi-spinner"></i>
@@ -1839,8 +2053,8 @@
                         <div class="alert-header">
                             <span class="alert-trigger">
                                 <i class="pi pi-wifi"></i>
-                                {{ alert.config?.['connectionAlertType'] === 'online' ? 'En línea' :
-                                (alert.config?.['connectionAlertType'] === 'offline' ? 'Fuera de línea' : 'Ambos') }}
+                                {{ alert.config?.['presetName'] || (alert.config?.['connectionAlertType'] === 'online' ? 'En línea' :
+                                (alert.config?.['connectionAlertType'] === 'offline' ? 'Fuera de línea' : 'Ambos')) }}
                             </span>
                             <span class="alert-status" [class.active]="alert.status === 'active'">
                                 {{ alert.status === 'active' ? 'Activa' : 'Inactiva' }}

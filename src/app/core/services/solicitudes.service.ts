@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 
 export interface InstallationDetail {
     process_type?: string;
+    device_type?: 'gps' | 'mtag_a' | 'mtag_p';
     deinstallation_reason?: string;
     brand?: string;
     model?: string;

@@ -12,6 +12,8 @@ export interface InventoryItem {
   // Backend fields (uppercase/capitalized)
   IMEI?: string;
   SIM?: string;
+  IDSIM?: string;
+  idsim?: string;
   sim_company?: string;
   Protocol?: string | any; // Can be string ID or Protocol object
   package?: string | any; // Reference to the package (can be string ID or Package object)

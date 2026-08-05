@@ -11,126 +11,195 @@
 </div>
 
 <div class="inventory-container" *ngIf="canReadInventory()">
-  <div class="devices-view">
-    <div class="devices-header">
-      <button pButton pRipple label="Volver a paquetes" icon="pi pi-arrow-left" class="p-button-text"
-        (click)="goBackToPackages()"></button>
-      <h2>Dispositivos del paquete</h2>
-    </div>
-
-    <div class="package-search-section">
-      <div class="search-container">
-        <div class="search-field">
-          <label for="packageSearch">Buscar en este paquete</label>
-          <form (ngSubmit)="searchPackageDevices()" class="search-form">
-            <div class="search-input-group">
-              <p-dropdown [options]="warehouses" [(ngModel)]="selectedWarehouseFilter" name="warehouseFilter"
-                optionLabel="name" optionValue="_id" placeholder="Todos los almacenes" [showClear]="true"
-                [style]="{'width':'200px', 'margin-right': '0.5rem'}" [disabled]="isSearchingPackage"
-                (onChange)="searchPackageDevices()" appendTo="body"></p-dropdown>
-
-              <p-dropdown
-                [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
-                [(ngModel)]="packageSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
-                placeholder="Estado" [style]="{'width':'150px', 'margin-right': '0.5rem'}" appendTo="body"
-                [disabled]="isSearchingPackage" (onChange)="searchPackageDevices()">
-              </p-dropdown>
-
-              <input type="text" id="packageSearch" [(ngModel)]="packageSearchQuery" name="packageSearch"
-                placeholder="Buscar por IMEI o SIM..." class="form-input search-input"
-                [disabled]="isSearchingPackage" />
-              <button type="submit" class="search-button" [disabled]="isSearchingPackage">
-                <i class="pi pi-search" *ngIf="!isSearchingPackage"></i>
-                <i class="pi pi-spin pi-spinner" *ngIf="isSearchingPackage"></i>
-              </button>
-              <button type="button" class="clear-button" (click)="clearPackageSearch()" *ngIf="packageSearchQuery">
-                <i class="pi pi-times"></i>
-              </button>
-            </div>
-          </form>
+  <div class="devices-view package-devices-view">
+    <header class="package-devices-header">
+      <div class="package-devices-header__main">
+        <button type="button" class="package-back-button" (click)="goBackToPackages()">
+          <i class="pi pi-arrow-left"></i>
+          <span>Volver a paquetes</span>
+        </button>
+        <div class="package-devices-heading">
+          <span>Contenido del paquete</span>
+          <h1>Dispositivos</h1>
         </div>
       </div>
-    </div>
 
-    <p-toolbar styleClass="mb-4 gap-2">
-      <ng-template pTemplate="left">
-        <button pButton pRipple label="Agregar Dispositivo" icon="pi pi-plus" class="p-button-success"
-          (click)="openNewDevice()" *ngIf="canCreateInventory()"></button>
+      <div class="package-devices-header__actions">
+        <span class="package-devices-total">
+          <strong>{{ totalItems }}</strong>
+          {{ totalItems === 1 ? 'dispositivo' : 'dispositivos' }}
+        </span>
+        <button type="button" class="package-filter-toggle"
+          [class.package-filter-toggle--active]="packageFiltersVisible || activePackageFiltersCount > 0"
+          [attr.aria-expanded]="packageFiltersVisible" aria-controls="package-device-filters"
+          (click)="togglePackageFilters()">
+          <i class="pi pi-filter"></i>
+          <span>Filtros</span>
+          <b *ngIf="activePackageFiltersCount > 0">{{ activePackageFiltersCount }}</b>
+          <i [class]="packageFiltersVisible ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+        </button>
+        <button type="button" class="package-add-button" (click)="openNewDevice()"
+          *ngIf="canCreateInventory()">
+          <i class="pi pi-plus"></i>
+          <span>Agregar dispositivo</span>
+        </button>
         <div *ngIf="!canCreateInventory()" class="no-create-permission">
-          <i class="pi pi-lock" style="opacity: 0.5;"></i>
-          <span style="font-size: 0.875rem; opacity: 0.6;">
-            {{ 'inventory.no_create_permission' | translate }}
-          </span>
+          <i class="pi pi-lock"></i>
+          <span>{{ 'inventory.no_create_permission' | translate }}</span>
         </div>
-      </ng-template>
-    </p-toolbar>
+      </div>
+    </header>
 
-    <div class="table-scroll-wrapper" style="max-height: 60vh; overflow-y: auto;" (scroll)="onScroll($event)">
-      <p-table #deviceTable [value]="packageDevices" [scrollable]="true" [virtualScroll]="false"
-        styleClass="p-datatable-sm p-datatable-gridlines">
-      <ng-template pTemplate="header">
-        <tr>
-          <th colspan="7" class="total-count-header">
-            Total Resultados: {{ totalItems }}
-          </th>
-        </tr>
-        <tr>
-          <th>{{ 'inventory.device.imei' | translate }}</th>
-          <th>{{ 'inventory.device.sim' | translate }}</th>
-          <th>{{ 'inventory.device.protocol' | translate }}</th>
-          <th>{{ 'inventory.device.warehouse' | translate }}</th>
-          <th>{{ 'inventory.device.storageDate' | translate }}</th>
-          <th>{{ 'inventory.device.actions' | translate }}</th>
-        </tr>
-      </ng-template>
+    <section id="package-device-filters" class="package-filter-panel" *ngIf="packageFiltersVisible">
+      <div class="package-filter-panel__intro">
+        <span class="package-filter-panel__icon"><i class="pi pi-filter"></i></span>
+        <div>
+          <strong>Filtrar dispositivos</strong>
+          <small>Busca por IMEI, SIM, almacén o estado.</small>
+        </div>
+      </div>
 
-      <ng-template pTemplate="body" let-device>
-        <tr>
-          <td class="imei-cell">
-            <i *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device)" class="pi pi-check-circle installed-icon" title="Instalado"></i>
-            <i *ngIf="isDeviceInActivation(device)" class="pi pi-sync activation-icon" title="En proceso de instalación"></i>
-            <span>{{ device.IMEI || device.imei || 'N/A' }}</span>
-            <span *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device)" class="installed-label">
-              (Instalado)
-            </span>
-            <span *ngIf="isDeviceInActivation(device)" class="activation-label">
-              (En proceso de instalación)
-            </span>
-          </td>
-          <td>{{ isDeviceAirtag(device) ? '—' : (device.SIM || device.sim || 'N/A') }}</td>
-          <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
-          <td>
-            <p-dropdown [options]="warehouses" [(ngModel)]="device.storage_id" optionLabel="name" optionValue="_id"
-              placeholder="Sin almacén" [showClear]="true" [style]="{'width':'100%', 'min-width': '150px'}"
-              appendTo="body" (onChange)="updateDeviceStorage(device, $event.value)"
-              [disabled]="!canUpdateInventory()"></p-dropdown>
-          </td>
-          <td>{{ (device.storageDate | date: 'dd/MM/yyyy HH:mm') || 'N/A' }}</td>
-          <td class="device-actions">
-            <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success mr-2"
-              (click)="editDevice(device)" pTooltip="Editar" *ngIf="canUpdateInventory()"></button>
-            <button pButton pRipple icon="pi pi-send" class="p-button-rounded p-button-info mr-2"
-              (click)="installDevice(device)" pTooltip="Instalar"
-              *ngIf="canUpdateInventory() && !isDeviceInstalled(device)"></button>
-            <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-danger"
-              (click)="deleteDevice(device)" pTooltip="Eliminar" *ngIf="canDeleteInventory()"></button>
-            <div *ngIf="!canUpdateInventory() && !canDeleteInventory()" class="no-actions-permission">
-              <i class="pi pi-lock" style="opacity: 0.5; font-size: 0.75rem;"></i>
-              <span style="font-size: 0.75rem; opacity: 0.6;">
-                {{ 'inventory.no_actions_permission' | translate }}
-              </span>
-            </div>
-          </td>
-        </tr>
-      </ng-template>
+      <form (ngSubmit)="searchPackageDevices()" class="package-filter-form">
+        <label class="package-filter-field">
+          <span>Almacén</span>
+          <p-dropdown [options]="warehouses" [(ngModel)]="selectedWarehouseFilter" name="warehouseFilter"
+            optionLabel="name" optionValue="_id" placeholder="Todos los almacenes" [showClear]="true"
+            [disabled]="isSearchingPackage" (onChange)="searchPackageDevices()" appendTo="body"
+            styleClass="package-filter-dropdown"></p-dropdown>
+        </label>
 
-      <ng-template pTemplate="emptymessage">
-        <tr>
-          <td colspan="5" class="text-center">No hay dispositivos en este paquete</td>
-        </tr>
-      </ng-template>
-    </p-table>
-    </div>
+        <label class="package-filter-field">
+          <span>Estado</span>
+          <p-dropdown
+            [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
+            [(ngModel)]="packageSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
+            placeholder="Todos" appendTo="body" [disabled]="isSearchingPackage"
+            (onChange)="searchPackageDevices()" styleClass="package-filter-dropdown">
+          </p-dropdown>
+        </label>
+
+        <label class="package-filter-field package-filter-field--search" for="packageSearch">
+          <span>IMEI o SIM</span>
+          <span class="package-search-input">
+            <i class="pi pi-search"></i>
+            <input type="text" id="packageSearch" [(ngModel)]="packageSearchQuery" name="packageSearch"
+              placeholder="Escribe un IMEI o número SIM" [disabled]="isSearchingPackage" />
+          </span>
+        </label>
+
+        <div class="package-filter-actions">
+          <button type="submit" class="package-search-button" [disabled]="isSearchingPackage">
+            <i class="pi pi-search" *ngIf="!isSearchingPackage"></i>
+            <i class="pi pi-spin pi-spinner" *ngIf="isSearchingPackage"></i>
+            <span>{{ isSearchingPackage ? 'Buscando' : 'Buscar' }}</span>
+          </button>
+          <button type="button" class="package-clear-button" (click)="clearPackageSearch()"
+            *ngIf="packageSearchQuery || selectedWarehouseFilter || packageSearchStatus">
+            <i class="pi pi-times"></i>
+            <span>Limpiar</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="package-device-list">
+      <div class="package-device-list__header">
+        <div>
+          <h2>Listado del paquete</h2>
+          <span>{{ packageDevices.length }} de {{ totalItems }} cargados</span>
+        </div>
+        <span *ngIf="packageSearchQuery || selectedWarehouseFilter || packageSearchStatus"
+          class="package-device-list__filtered">
+          <i class="pi pi-filter-fill"></i>
+          Filtros activos
+        </span>
+      </div>
+
+      <div class="package-table-scroll" (scroll)="onScroll($event)">
+        <table class="package-devices-table">
+          <thead>
+            <tr>
+              <th>IMEI y estado</th>
+              <th>SIM</th>
+              <th>ID SIM</th>
+              <th>Protocolo</th>
+              <th>Almacén</th>
+              <th>Fecha de ingreso</th>
+              <th class="package-devices-table__actions-heading">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let device of packageDevices"
+              [class.package-device-row--activation]="isDeviceInActivation(device)">
+              <td>
+                <div class="package-device-identity">
+                  <strong>{{ device.IMEI || device.imei || 'N/A' }}</strong>
+                  <span class="package-device-status package-device-status--installed"
+                    *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device)">
+                    <i class="pi pi-check-circle"></i> Instalado
+                  </span>
+                  <span class="package-device-status package-device-status--activation"
+                    *ngIf="isDeviceInActivation(device)">
+                    <i class="pi pi-sync pi-spin"></i> En instalación
+                  </span>
+                  <span class="package-device-status package-device-status--available"
+                    *ngIf="!isDeviceInstalled(device) && !isDeviceInActivation(device)">
+                    <i class="pi pi-circle-fill"></i> Disponible
+                  </span>
+                </div>
+              </td>
+              <td><span class="package-device-code">{{ isDeviceAirtag(device) ? '—' : (device.SIM || device.sim || 'N/A') }}</span></td>
+              <td><span class="package-device-code">{{ isDeviceAirtag(device) ? '—' : (device.IDSIM || device.idsim || 'N/A') }}</span></td>
+              <td><span class="package-protocol-badge">{{ getProtocolLabel(device.Protocol || device.protocol) }}</span></td>
+              <td class="package-device-warehouse">
+                <p-dropdown [options]="warehouses" [(ngModel)]="device.storage_id" optionLabel="name" optionValue="_id"
+                  placeholder="Sin almacén" [showClear]="true" appendTo="body"
+                  (onChange)="updateDeviceStorage(device, $event.value)" [disabled]="!canUpdateInventory()"
+                  styleClass="package-row-dropdown"></p-dropdown>
+              </td>
+              <td>
+                <time class="package-device-date" *ngIf="device.storageDate; else noStorageDate">
+                  <strong>{{ device.storageDate | date: 'dd/MM/yyyy' }}</strong>
+                  <small>{{ device.storageDate | date: 'HH:mm' }}</small>
+                </time>
+                <ng-template #noStorageDate><span class="package-device-empty">Sin fecha</span></ng-template>
+              </td>
+              <td>
+                <div class="package-device-actions">
+                  <button type="button" class="package-row-action" (click)="editDevice(device)"
+                    pTooltip="Editar" aria-label="Editar dispositivo" *ngIf="canUpdateInventory()">
+                    <i class="pi pi-pencil"></i>
+                  </button>
+                  <button type="button" class="package-row-action package-row-action--install"
+                    (click)="installDevice(device)" pTooltip="Instalar" aria-label="Instalar dispositivo"
+                    *ngIf="canUpdateInventory() && !isDeviceInstalled(device)">
+                    <i class="pi pi-send"></i>
+                  </button>
+                  <button type="button" class="package-row-action package-row-action--delete"
+                    (click)="deleteDevice(device)" pTooltip="Eliminar" aria-label="Eliminar dispositivo"
+                    *ngIf="canDeleteInventory()">
+                    <i class="pi pi-trash"></i>
+                  </button>
+                  <div *ngIf="!canUpdateInventory() && !canDeleteInventory()" class="no-actions-permission">
+                    <i class="pi pi-lock"></i>
+                    <span>{{ 'inventory.no_actions_permission' | translate }}</span>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="!loading && packageDevices.length === 0">
+              <td colspan="7">
+                <div class="package-devices-empty">
+                  <span><i class="pi pi-box"></i></span>
+                  <strong>No hay dispositivos en este paquete</strong>
+                  <small>Prueba cambiando los filtros o agrega un nuevo dispositivo.</small>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
     <div *ngIf="isLoadingMore" class="loading-more-container text-center p-2 mt-3">
       <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
@@ -138,8 +207,10 @@
     </div>
 
     <div *ngIf="!isLoadingMore && !loading && packageDevices.length < totalItems" class="text-center mt-3 mb-3">
-      <button pButton pRipple label="Cargar más ({{packageDevices.length}} de {{totalItems}})"
-        class="p-button-outlined p-button-secondary" (click)="loadMoreDevices()"></button>
+      <button type="button" class="package-load-more" (click)="loadMoreDevices()">
+        <i class="pi pi-chevron-down"></i>
+        <span>Cargar más ({{packageDevices.length}} de {{totalItems}})</span>
+      </button>
     </div>
   </div>
 
@@ -163,6 +234,12 @@
         <label for="deviceSim">SIM</label>
         <input type="text" id="deviceSim" [(ngModel)]="selectedDevice.sim" name="sim" class="form-input"
           placeholder="Ingrese el SIM (opcional)" />
+      </div>
+
+      <div class="field" *ngIf="selectedDevice && !isDeviceAirtag(selectedDevice)">
+        <label for="deviceIdsim">ID SIM</label>
+        <input type="text" id="deviceIdsim" [(ngModel)]="selectedDevice.idsim" name="idsim" class="form-input"
+          placeholder="Ingrese el ID SIM (opcional)" />
       </div>
 
       <div class="field" *ngIf="selectedDevice">
@@ -203,6 +280,7 @@
       <h4>Dispositivo a instalar:</h4>
       <p><strong>IMEI:</strong> {{ deviceToInstall.IMEI || deviceToInstall.imei || 'N/A' }}</p>
       <p *ngIf="!isDeviceAirtag(deviceToInstall)"><strong>SIM:</strong> {{ deviceToInstall.SIM || deviceToInstall.sim || 'N/A' }}</p>
+      <p *ngIf="!isDeviceAirtag(deviceToInstall)"><strong>ID SIM:</strong> {{ deviceToInstall.IDSIM || deviceToInstall.idsim || 'N/A' }}</p>
       <p>
         <strong>Protocolo:</strong>
         {{ getProtocolLabel(deviceToInstall.Protocol || deviceToInstall.protocol) }}

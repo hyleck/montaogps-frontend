@@ -3,6 +3,9 @@
         <button type="button" class="map-tool-btn" [class.active]="isManualDrawing" [attr.aria-pressed]="isManualDrawing" (click)="startDrawing()" title="Dibujar perímetro" aria-label="Dibujar perímetro">
             <i class="pi pi-pencil"></i>
         </button>
+        <button type="button" class="map-tool-btn" [class.active]="isRadiusPlacement" [attr.aria-pressed]="isRadiusPlacement" (click)="startRadiusPlacement(150)" title="Crear zona circular" aria-label="Crear zona circular">
+            <i class="pi pi-circle"></i>
+        </button>
         <button type="button" class="map-tool-btn" (click)="finishDrawing()" title="Finalizar perímetro" aria-label="Finalizar perímetro">
             <i class="pi pi-check"></i>
         </button>

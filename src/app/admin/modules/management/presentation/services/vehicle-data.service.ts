@@ -40,6 +40,10 @@ export class VehicleDataService {
   private vehicleBrands: VehicleBrand[] = [];
   private vehicleModels: VehicleModel[] = [];
   private isDataLoaded: boolean = false;
+  private baseDataPromise: Promise<void> | null = null;
+  private readonly loadedModelBrandIds = new Set<string>();
+  private readonly modelLoadPromises = new Map<string, Promise<void>>();
+  private readonly modelLoadConcurrency = 4;
 
   // AI cache image map: key = "brand|model|year|color", value = { url, thumbnailUrl }
   private aiCacheImages: Map<string, { url: string; thumbnailUrl: string }> = new Map();
@@ -58,49 +62,104 @@ export class VehicleDataService {
   }
 
   /**
-   * Carga todos los datos de vehículos (tipos, marcas, modelos)
+   * Carga el catálogo base y solamente los modelos de las marcas requeridas.
+   * Evita descargar el catálogo completo al entrar a Management.
    */
-  async loadVehicleData(): Promise<void> {
-    try {
-      
-      // Cargar tipos de vehículos y marcas en paralelo
-      const [types, brands] = await Promise.all([
-        this.vehicleBrandsService.getAllTypes(),
-        this.vehicleBrandsService.getAllBrands()
-      ]);
-      
-      this.vehicleTypes = types || [];
-      this.vehicleBrands = brands || [];
+  async loadVehicleData(brandIds: string[] = []): Promise<void> {
+    await this.loadBaseVehicleData();
+    await this.loadModelsForBrands(brandIds);
+  }
 
-      // Load colors for hex→name mapping
-      try {
-        const colors = await this.colorsService.getAllColors();
-        if (colors && Array.isArray(colors)) {
-          colors.forEach((c: any) => {
-            if (c.hex && c.nombre) {
-              this.colorHexToName.set(c.hex.toUpperCase(), c.nombre);
+  private async loadBaseVehicleData(): Promise<void> {
+    if (this.isDataLoaded) return;
+
+    if (!this.baseDataPromise) {
+      this.baseDataPromise = (async () => {
+        const colorsPromise = this.colorsService.getAllColors().catch((error) => {
+          console.error('Error loading colors:', error);
+          return [];
+        });
+
+        const [types, brands, colors] = await Promise.all([
+          this.vehicleBrandsService.getAllTypes(),
+          this.vehicleBrandsService.getAllBrands(),
+          colorsPromise,
+        ]);
+
+        this.vehicleTypes = Array.isArray(types) ? types : [];
+        this.vehicleBrands = Array.isArray(brands) ? brands : [];
+        this.colorHexToName.clear();
+
+        if (Array.isArray(colors)) {
+          colors.forEach((color: any) => {
+            if (color?.hex && color?.nombre) {
+              this.colorHexToName.set(color.hex.toUpperCase(), color.nombre);
             }
           });
         }
-      } catch (colorErr) {
-        console.error('Error loading colors:', colorErr);
-      }
-      
-      // Cargar modelos para cada marca en paralelo
-      if (this.vehicleBrands.length > 0) {
-        const modelPromises = this.vehicleBrands.map(brand =>
-          this.vehicleBrandsService.getAllModelsByBrand(brand._id).catch(() => [])
-        );
-        const modelResults = await Promise.all(modelPromises);
-        this.vehicleModels = modelResults.flat().filter(m => m && m._id);
-      }
-      
-      this.isDataLoaded = true;
-      
-    } catch (error) {
-      console.error('❌ Error al cargar datos de vehículos:', error);
-      this.isDataLoaded = false;
+
+        this.isDataLoaded = true;
+      })()
+        .catch((error) => {
+          this.isDataLoaded = false;
+          console.error('❌ Error al cargar datos base de vehículos:', error);
+          throw error;
+        })
+        .finally(() => {
+          this.baseDataPromise = null;
+        });
     }
+
+    await this.baseDataPromise;
+  }
+
+  private async loadModelsForBrands(brandIds: string[]): Promise<void> {
+    const pendingBrandIds = Array.from(new Set(
+      (brandIds || []).filter((brandId): brandId is string => !!brandId)
+    )).filter(brandId => !this.loadedModelBrandIds.has(brandId));
+
+    if (pendingBrandIds.length === 0) return;
+
+    let nextIndex = 0;
+    const worker = async (): Promise<void> => {
+      while (nextIndex < pendingBrandIds.length) {
+        const brandId = pendingBrandIds[nextIndex++];
+        await this.loadModelsForBrand(brandId);
+      }
+    };
+
+    const workerCount = Math.min(this.modelLoadConcurrency, pendingBrandIds.length);
+    await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  }
+
+  private async loadModelsForBrand(brandId: string): Promise<void> {
+    if (this.loadedModelBrandIds.has(brandId)) return;
+
+    const activeRequest = this.modelLoadPromises.get(brandId);
+    if (activeRequest) {
+      await activeRequest;
+      return;
+    }
+
+    const request = this.vehicleBrandsService.getAllModelsByBrand(brandId)
+      .then((models: VehicleModel[]) => {
+        const mergedModels = new Map(this.vehicleModels.map(model => [model._id, model]));
+        (Array.isArray(models) ? models : [])
+          .filter(model => model?._id)
+          .forEach(model => mergedModels.set(model._id, model));
+
+        this.vehicleModels = Array.from(mergedModels.values());
+        this.loadedModelBrandIds.add(brandId);
+      })
+      .catch((error) => {
+        console.error(`Error loading models for brand ${brandId}:`, error);
+      })
+      .finally(() => {
+        this.modelLoadPromises.delete(brandId);
+      });
+
+    this.modelLoadPromises.set(brandId, request);
+    await request;
   }
 
   /**
@@ -270,7 +329,7 @@ export class VehicleDataService {
    * Fuerza la recarga de los datos
    */
   async reloadData(): Promise<void> {
-    this.isDataLoaded = false;
+    this.clearCache();
     await this.loadVehicleData();
   }
 
@@ -279,7 +338,13 @@ export class VehicleDataService {
    */
   async loadAICacheForTargets(targets: any[]): Promise<Map<string, { url: string; thumbnailUrl: string }>> {
     const results = new Map<string, { url: string; thumbnailUrl: string }>();
-    if (!this.isDataLoaded || !targets?.length) return results;
+    if (!targets?.length) return results;
+
+    const requiredBrandIds = targets
+      .map(target => (target.originalTarget || target)?.target_brand_id)
+      .filter((brandId): brandId is string => !!brandId);
+
+    await this.loadVehicleData(requiredBrandIds);
 
     // Group targets by unique brand+model+year+color, skipping those that already have an image
     const comboToTargets = new Map<string, { brand: string; model: string; year: string; color: string; targetIds: string[] }>();
@@ -374,6 +439,10 @@ export class VehicleDataService {
     this.vehicleTypes = [];
     this.vehicleBrands = [];
     this.vehicleModels = [];
+    this.colorHexToName.clear();
+    this.loadedModelBrandIds.clear();
+    this.modelLoadPromises.clear();
+    this.baseDataPromise = null;
     this.isDataLoaded = false;
   }
-} 
+}

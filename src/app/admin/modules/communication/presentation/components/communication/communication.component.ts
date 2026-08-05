@@ -1666,7 +1666,7 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     this.gpsUser = null;
     this.startConversationPresenceSession();
     this.loadMessages();
-    this.loadGpsUser(conv.contact.phone);
+    this.loadGpsUser(conv.contact.phone, conv.contact.user_id);
     if (navigate) {
       this.location.go(`/admin/communication/chat/${conv.id}`);
     }
@@ -1705,13 +1705,22 @@ export class CommunicationComponent implements OnInit, OnDestroy {
     });
   }
 
-  private loadGpsUser(phone: string): void {
-    if (!phone) return;
+  private loadGpsUser(phone: string, userId?: string | null): void {
+    const normalizedUserId = String(userId || '').trim();
+    if (!normalizedUserId && !phone) return;
+
+    const conversationId = this.selectedConversation?.id;
+    const userLookup$ = normalizedUserId
+      ? this.userService.getById(normalizedUserId).pipe(
+          catchError(() => phone ? this.userService.getByPhone(phone) : of({})),
+        )
+      : this.userService.getByPhone(phone);
+
     this.userChecklistsDetails = [];
     this.userTargets = [];
-    this.userService.getByPhone(phone).subscribe({
+    userLookup$.subscribe({
       next: async (user: any) => {
-        console.log('[Contact Panel] by-phone response:', user);
+        if (this.selectedConversation?.id !== conversationId) return;
         this.gpsUser = user?._id ? user : null;
         this.calculateUserChecklistsDetails(phone);
         
@@ -1722,7 +1731,8 @@ export class CommunicationComponent implements OnInit, OnDestroy {
         }
       },
       error: (err: any) => {
-        console.error('[Contact Panel] by-phone error:', err);
+        if (this.selectedConversation?.id !== conversationId) return;
+        console.error('[Contact Panel] user lookup error:', err);
         this.gpsUser = null;
         this.calculateUserChecklistsDetails(phone);
       }

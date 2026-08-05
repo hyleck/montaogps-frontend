@@ -25,6 +25,13 @@ import { FirebaseNotificationsService, NotificationLog } from '../../../../core/
 import { SupportService } from '../../../../core/services/support.service';
 import { CreateTicketDto } from '../../../../core/interfaces/support.interface';
 import { getApiErrorMessage } from '../../../../core/utils/api-error.util';
+import {
+  ALERT_PRESET_CATEGORIES,
+  ALERT_PRESETS,
+  AlertEngine,
+  AlertPresetCard,
+  AlertPresetCategory,
+} from './alert-presets.catalog';
 
 interface RealtimeGeneratedTargetLink {
   target_id: string;
@@ -64,19 +71,11 @@ interface BulkProcessChange {
   details: string;
 }
 
-type AlertOptionType =
-  | 'speed'
-  | 'perimeter'
-  | 'ignition'
-  | 'movement'
-  | 'connection';
-
-interface AlertOptionCard {
-  type: AlertOptionType;
-  labelKey: string;
-  descriptionKey: string;
+interface ManualAlertOption {
+  type: AlertEngine;
+  label: string;
+  description: string;
   icon: string;
-  tone: AlertOptionType;
 }
 
 @Component({
@@ -246,43 +245,24 @@ export class NavbarComponent implements OnInit, OnDestroy {
   alertsDialogVisible: boolean = false;
   speedAlertDialogVisible: boolean = false;
   perimeterAlertDialogVisible: boolean = false;
-  alertsOptions: AlertOptionCard[] = [
-    {
-      type: 'speed',
-      labelKey: 'navbar.alertOptionSpeed',
-      descriptionKey: 'navbar.alertOptionSpeedDescription',
-      icon: 'pi pi-gauge',
-      tone: 'speed'
-    },
-    {
-      type: 'perimeter',
-      labelKey: 'navbar.alertOptionPerimeter',
-      descriptionKey: 'navbar.alertOptionPerimeterDescription',
-      icon: 'pi pi-map-marker',
-      tone: 'perimeter'
-    },
-    {
-      type: 'ignition',
-      labelKey: 'navbar.alertOptionIgnition',
-      descriptionKey: 'navbar.alertOptionIgnitionDescription',
-      icon: 'pi pi-power-off',
-      tone: 'ignition'
-    },
-    {
-      type: 'movement',
-      labelKey: 'navbar.alertOptionMovement',
-      descriptionKey: 'navbar.alertOptionMovementDescription',
-      icon: 'pi pi-arrows-alt',
-      tone: 'movement'
-    },
-    {
-      type: 'connection',
-      labelKey: 'navbar.alertOptionConnection',
-      descriptionKey: 'navbar.alertOptionConnectionDescription',
-      icon: 'pi pi-wifi',
-      tone: 'connection'
-    }
+  readonly alertPresetCategories = ALERT_PRESET_CATEGORIES;
+  readonly alertPresets = ALERT_PRESETS;
+  readonly manualAlertOptions: ManualAlertOption[] = [
+    { type: 'speed', label: 'Velocidad personalizada', description: 'Define un límite exacto en km/h.', icon: 'pi pi-gauge' },
+    { type: 'perimeter', label: 'Zona personalizada', description: 'Dibuja un perímetro de entrada o salida.', icon: 'pi pi-map-marker' },
+    { type: 'ignition', label: 'Encendido personalizado', description: 'Elige si avisar al encender o apagar.', icon: 'pi pi-power-off' },
+    { type: 'movement', label: 'Movimiento personalizado', description: 'Avisa al detectar movimiento.', icon: 'pi pi-arrows-alt' },
+    { type: 'connection', label: 'Conexión personalizada', description: 'Avisa al conectar o desconectar el GPS.', icon: 'pi pi-wifi' },
   ];
+  alertPresetCategory: 'all' | AlertPresetCategory = 'all';
+  alertPresetView: 'available' | 'premium' = 'available';
+  alertPresetSearch = '';
+  activeAlertPreset: AlertPresetCard | null = null;
+  alertScheduleStart = '';
+  alertScheduleEnd = '';
+  perimeterRadiusMeters = 150;
+  alertAdvancedOptionsVisible = false;
+  alertHistoryVisible = false;
   currentSelectedTargets: Target[] = [];
   maxSpeedValue: number | null = null;
   creatingAlert: boolean = false;
@@ -929,21 +909,167 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   openAlertsModal(): void {
+    this.alertPresetView = 'available';
     this.alertsDialogVisible = true;
   }
 
-  isAlertOptionDisabled(option: AlertOptionCard): boolean {
-    return (
-      this.currentSelectedTargets.length === 0 ||
-      (option.type === 'ignition' && !this.allSelectedTargetsHaveIgnitionSensor)
-    );
+  get filteredAlertPresets(): AlertPresetCard[] {
+    const term = this.normalizeAlertPresetText(this.alertPresetSearch);
+    return this.alertPresets.filter((preset) => {
+      const matchesView = this.alertPresetView === 'available'
+        ? preset.availability === 'ready'
+        : preset.availability !== 'ready';
+      if (!matchesView) return false;
+      const matchesCategory =
+        this.alertPresetCategory === 'all' || preset.category === this.alertPresetCategory;
+      if (!matchesCategory) return false;
+      if (!term) return true;
+      return this.normalizeAlertPresetText(
+        `${preset.name} ${preset.description} ${this.getAlertPresetAvailabilityLabel(preset)}`,
+      ).includes(term);
+    });
   }
 
-  openAlertOption(option: AlertOptionCard): void {
-    if (this.isAlertOptionDisabled(option)) return;
+  get readyAlertPresetCount(): number {
+    return this.alertPresets.filter((preset) => preset.availability === 'ready').length;
+  }
 
+  get premiumAlertPresetCount(): number {
+    return this.alertPresets.length - this.readyAlertPresetCount;
+  }
+
+  get activeAlertDialogTitle(): string {
+    return this.activeAlertPreset?.name || 'Configurar alerta';
+  }
+
+  get activeAlertPresetDescription(): string {
+    return this.activeAlertPreset?.description || 'Personaliza esta alerta para los dispositivos seleccionados.';
+  }
+
+  get activeAlertUsesSchedule(): boolean {
+    return this.activeAlertPreset?.usesSchedule === true;
+  }
+
+  get activeAlertPresetMetadata(): Partial<CreateAlertDto> {
+    if (!this.activeAlertPreset) return {};
+    const metadata: Partial<CreateAlertDto> = {
+      presetKey: this.activeAlertPreset.key,
+      presetName: this.activeAlertPreset.name,
+    };
+    if (this.activeAlertUsesSchedule && this.alertScheduleStart && this.alertScheduleEnd) {
+      metadata.scheduleStart = this.alertScheduleStart;
+      metadata.scheduleEnd = this.alertScheduleEnd;
+      metadata.scheduleTimezone =
+        Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santo_Domingo';
+    }
+    return metadata;
+  }
+
+  get activeAlertEngine(): AlertEngine | null {
+    return this.activeAlertPreset?.engine || null;
+  }
+
+  get activeAlertBehaviorSummary(): string {
+    switch (this.activeAlertEngine) {
+      case 'speed':
+        return this.maxSpeedValue
+          ? `Te avisaremos cuando supere ${this.maxSpeedValue} km/h.`
+          : 'Define la velocidad máxima permitida.';
+      case 'perimeter':
+        return this.perimeterNotificationTrigger === 'exit'
+          ? `Te avisaremos cuando salga del radio de ${this.perimeterRadiusMeters} metros.`
+          : `Te avisaremos cuando entre al radio de ${this.perimeterRadiusMeters} metros.`;
+      case 'ignition':
+        return this.ignitionTrigger === 'off'
+          ? 'Te avisaremos cuando el motor se apague.'
+          : 'Te avisaremos cuando el motor se encienda.';
+      case 'movement':
+        return 'Te avisaremos una vez cuando el vehículo comience a moverse.';
+      case 'connection':
+        return this.connectionAlertType === 'offline'
+          ? 'Te avisaremos cuando el GPS pierda la conexión.'
+          : 'Te avisaremos cuando el GPS vuelva a estar en línea.';
+      default:
+        return 'Personaliza la regla y crea la alerta.';
+    }
+  }
+
+  selectAlertPresetCategory(category: 'all' | AlertPresetCategory): void {
+    this.alertPresetCategory = category;
+  }
+
+  selectAlertPresetView(view: 'available' | 'premium'): void {
+    this.alertPresetView = view;
+  }
+
+  getAlertPresetAvailabilityLabel(preset: AlertPresetCard): string {
+    return preset.availability === 'ready' ? 'Disponible ahora' : 'Premium';
+  }
+
+  getAlertPresetDisabledReason(preset: AlertPresetCard): string | null {
+    if (preset.availability !== 'ready') {
+      return 'Esta alerta forma parte del catálogo Premium y todavía no está disponible en tu plan.';
+    }
+    if (!this.currentSelectedTargets.length) {
+      return 'Selecciona al menos un dispositivo para configurarla.';
+    }
+    if (preset.requiresIgnition && !this.allSelectedTargetsHaveIgnitionSensor) {
+      return 'Todos los dispositivos seleccionados deben tener sensor de ignición.';
+    }
+    return null;
+  }
+
+  openAlertPreset(preset: AlertPresetCard): void {
+    const disabledReason = this.getAlertPresetDisabledReason(preset);
+    if (disabledReason) {
+      this.messageService.add({
+        severity: preset.availability === 'ready' ? 'warn' : 'info',
+        summary: preset.name,
+        detail: disabledReason,
+      });
+      return;
+    }
+
+    if (!preset.engine) return;
+
+    this.activeAlertPreset = preset;
+    this.alertAdvancedOptionsVisible = false;
+    this.alertHistoryVisible = false;
+    this.alertScheduleStart = preset.scheduleStart || '';
+    this.alertScheduleEnd = preset.scheduleEnd || '';
+    this.perimeterRadiusMeters = preset.defaultRadius || 150;
+    this.applyAlertPresetDefaults(preset);
+    this.openAlertEngine(preset.engine);
+  }
+
+  openManualAlertOption(option: ManualAlertOption): void {
+    if (!this.currentSelectedTargets.length) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Selecciona un dispositivo',
+        detail: 'Debes seleccionar al menos un dispositivo antes de configurar una alerta.',
+      });
+      return;
+    }
+    if (option.type === 'ignition' && !this.allSelectedTargetsHaveIgnitionSensor) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Sensor no disponible',
+        detail: 'Todos los dispositivos seleccionados deben tener sensor de ignición.',
+      });
+      return;
+    }
+    this.activeAlertPreset = null;
+    this.alertAdvancedOptionsVisible = true;
+    this.alertHistoryVisible = false;
+    this.alertScheduleStart = '';
+    this.alertScheduleEnd = '';
+    this.openAlertEngine(option.type);
+  }
+
+  private openAlertEngine(engine: AlertEngine): void {
     this.alertsDialogVisible = false;
-    switch (option.type) {
+    switch (engine) {
       case 'speed':
         this.openSpeedAlertModal();
         break;
@@ -960,6 +1086,76 @@ export class NavbarComponent implements OnInit, OnDestroy {
         this.openConnectionAlertModal();
         break;
     }
+  }
+
+  private applyAlertPresetDefaults(preset: AlertPresetCard): void {
+    if (preset.engine === 'speed') {
+      this.maxSpeedValue = preset.defaultSpeed || null;
+      this.speedAlertMessage = preset.defaultMessage || '';
+    }
+    if (preset.engine === 'perimeter') {
+      this.perimeterNotificationTrigger = preset.perimeterTrigger || 'enter';
+      this.perimeterNotificationMessage = preset.defaultMessage || '';
+    }
+    if (preset.engine === 'ignition') {
+      this.ignitionTrigger = preset.key === 'trip-ended' ? 'off' : 'on';
+      this.ignitionAlertMessage = preset.defaultMessage || '';
+    }
+    if (preset.engine === 'movement') {
+      this.movementAlertMessage = preset.defaultMessage || '';
+    }
+    if (preset.engine === 'connection') {
+      this.connectionAlertType = preset.key === 'gps-disconnected' || preset.key === 'offline-working'
+        ? 'offline'
+        : 'online';
+      this.connectionAlertMessage = preset.defaultMessage || '';
+    }
+  }
+
+  backToAlertCatalog(): void {
+    this.speedAlertDialogVisible = false;
+    this.perimeterAlertDialogVisible = false;
+    this.ignitionAlertDialogVisible = false;
+    this.movementAlertDialogVisible = false;
+    this.connectionAlertDialogVisible = false;
+    this.alertAdvancedOptionsVisible = false;
+    this.alertHistoryVisible = false;
+    setTimeout(() => this.alertsDialogVisible = true);
+  }
+
+  toggleAlertAdvancedOptions(): void {
+    this.alertAdvancedOptionsVisible = !this.alertAdvancedOptionsVisible;
+  }
+
+  toggleAlertHistory(): void {
+    this.alertHistoryVisible = !this.alertHistoryVisible;
+  }
+
+  startCircularPerimeter(): void {
+    this.mapAlertComponent?.startRadiusPlacement(this.perimeterRadiusMeters);
+  }
+
+  onPerimeterDialogShow(): void {
+    void this.loadPerimeterAlerts();
+  }
+
+  private normalizeAlertPresetText(value: string): string {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+  }
+
+  private ensureAlertScheduleValid(): boolean {
+    if (!this.activeAlertUsesSchedule) return true;
+    if (this.alertScheduleStart && this.alertScheduleEnd) return true;
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Horario incompleto',
+      detail: 'Selecciona la hora de inicio y la hora de fin de esta alerta.',
+    });
+    return false;
   }
 
   openSpeedAlertModal(): void {
@@ -1070,6 +1266,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     const targetIds = this.getSelectedAlertTargetIds();
     if (!this.ensureAlertTargetsSelected(targetIds)) return;
+    if (!this.ensureAlertScheduleValid()) return;
 
     if (this.notificationEmail?.trim() && !this.notificationEmailUserId) {
       this.messageService.add({
@@ -1086,7 +1283,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       targetIds,
       userTopic: this.notificationEmailUserId || undefined,
       message: this.speedAlertMessage?.trim() || undefined,
-      oneNotificationEveryFiveHours: this.speedAlertFiveHourLimit
+      oneNotificationEveryFiveHours: this.speedAlertFiveHourLimit,
+      ...this.activeAlertPresetMetadata,
     };
 
     this.creatingAlert = true;
@@ -1323,6 +1521,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     const targetIds = this.getSelectedAlertTargetIds();
     if (!this.ensureAlertTargetsSelected(targetIds)) return;
+    if (!this.ensureAlertScheduleValid()) return;
 
     const payload: CreateAlertDto = {
       type: 'perimeter',
@@ -1330,7 +1529,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       trigger: this.perimeterNotificationTrigger as 'enter' | 'exit',
       targetIds,
       userTopic: this.perimeterNotificationEmailUserId || undefined,
-      message: this.perimeterNotificationMessage?.trim() || undefined
+      message: this.perimeterNotificationMessage?.trim() || undefined,
+      ...this.activeAlertPresetMetadata,
     };
 
     this.creatingPerimeterAlert = true;
@@ -1497,6 +1697,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     const targetIds = this.getSelectedAlertTargetIds();
     if (!this.ensureAlertTargetsSelected(targetIds)) return;
+    if (!this.ensureAlertScheduleValid()) return;
 
     this.creatingIgnitionAlert = true;
 
@@ -1507,7 +1708,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
         targetIds,
         userTopic: this.ignitionNotificationEmailUserId || undefined,
         message: this.ignitionAlertMessage?.trim() || undefined,
-        oneNotificationEveryFiveHours: this.ignitionAlertFiveHourLimit
+        oneNotificationEveryFiveHours: this.ignitionAlertFiveHourLimit,
+        ...this.activeAlertPresetMetadata,
       };
 
       await firstValueFrom(this.alertsService.createAlert(payload));
@@ -1658,6 +1860,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     const targetIds = this.getSelectedAlertTargetIds();
     if (!this.ensureAlertTargetsSelected(targetIds)) return;
+    if (!this.ensureAlertScheduleValid()) return;
 
     this.creatingMovementAlert = true;
     try {
@@ -1666,7 +1869,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
         targetIds,
         userTopic: this.movementNotificationEmailUserId,
         email: this.movementNotificationEmail,
-        message: this.movementAlertMessage?.trim() || undefined
+        message: this.movementAlertMessage?.trim() || undefined,
+        ...this.activeAlertPresetMetadata,
       };
 
       await firstValueFrom(this.alertsService.createAlert(alertData));
@@ -3850,6 +4054,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   async createConnectionAlert(): Promise<void> {
     const targetIds = this.getSelectedAlertTargetIds();
     if (!this.ensureAlertTargetsSelected(targetIds)) return;
+    if (!this.ensureAlertScheduleValid()) return;
 
     if (this.connectionNotificationEmail?.trim() && !this.connectionNotificationEmailUserId) {
       this.messageService.add({
@@ -3867,7 +4072,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       userTopic: this.connectionNotificationEmailUserId || undefined,
       email: this.connectionNotificationEmail || undefined,
       message: this.connectionAlertMessage?.trim() || undefined,
-      oneNotificationEveryFiveHours: this.connectionAlertFiveHourLimit
+      oneNotificationEveryFiveHours: this.connectionAlertFiveHourLimit,
+      ...this.activeAlertPresetMetadata,
     };
 
     this.creatingConnectionAlert = true;

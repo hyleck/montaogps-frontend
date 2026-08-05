@@ -99,6 +99,26 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(savedSolicitud.installations?.[0]?.scheduled_date).toBeUndefined();
     });
 
+    it('defaults legacy processes to GPS and preserves a selected MTAG type', async () => {
+        const { component, solicitudesService } = createComponent();
+        const solicitud: Solicitud = {
+            _id: 'request-device-type',
+            type: 'instalacion',
+            status: 'pendiente',
+            installations: [{}],
+        };
+
+        await component.editSolicitud(solicitud);
+        expect(component.selectedSolicitud?.installations?.[0].device_type).toBe('gps');
+
+        component.selectedSolicitud!.installations![0].device_type = 'mtag_a';
+        await component.saveSolicitud();
+
+        const savedSolicitud = solicitudesService.update.calls.mostRecent().args[1] as Solicitud;
+        expect(savedSolicitud.installations?.[0].device_type).toBe('mtag_a');
+        expect(component.getProcessDeviceTypeLabel(savedSolicitud.installations?.[0])).toBe('MTAG-A');
+    });
+
     it('keeps the technician and schedule immutable after the request was accepted', async () => {
         const { component, solicitudesService, messageService } = createComponent();
         const solicitud: Solicitud = {

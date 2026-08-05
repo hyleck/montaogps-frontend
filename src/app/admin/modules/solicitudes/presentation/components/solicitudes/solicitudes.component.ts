@@ -551,6 +551,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     readonly mixedProcessOptions = this.typeOptions.filter(option =>
         ['instalacion', 'reinstalacion', 'desinstalacion', 'chequeo', 'cambio'].includes(option.value)
     );
+    readonly processDeviceTypeOptions = [
+        { label: 'GPS', value: 'gps' },
+        { label: 'MTAG-A', value: 'mtag_a' },
+        { label: 'MTAG-P', value: 'mtag_p' },
+    ];
     readonly deinstallationReasons = DEVICE_CANCELLATION_REASONS;
 
     getEntityName(plural: boolean = false): string {
@@ -1055,7 +1060,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 client_email: '',
                 quantity: 1,
                 scheduled_date: this.getCurrentDateTimeLocalValue(),
-                installations: [{}],
+                installations: [{ device_type: 'gps' }],
                 type: 'instalacion',
                 status: status
             } as Solicitud;
@@ -1073,7 +1078,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         
         this.showRootLocationData = false;
         this.showRootDetailsData = false;
-        this.showInstallationsCards = false;
+        this.showInstallationsCards = true;
         
         this.rootLocationMap = null;
         this.locationMap = null;
@@ -1111,6 +1116,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
             return {
                 ...duplicatedInstallation,
+                device_type: installation.device_type || 'gps',
                 scheduled_date: this.toDateTimeLocalValue(
                     installation.scheduled_date || source.scheduled_date,
                 ) || undefined,
@@ -1125,7 +1131,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             type: source.type,
             status,
             quantity: source.quantity || Math.max(installations.length, 1),
-            installations: installations.length ? installations : [{}],
+            installations: installations.length
+                ? installations
+                : [{ device_type: 'gps' }],
             client_name: source.client_name,
             client_phone: source.client_phone,
             client_email: source.client_email,
@@ -1231,7 +1239,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         index: number,
     ): string {
         if (solicitud.type !== 'mixta') {
-            return installation.plate || `Vehículo #${index + 1}`;
+            return installation.plate
+                || `${this.getProcessDeviceTypeLabel(installation)} #${index + 1}`;
         }
         const processType = this.getProcessTypeForSolicitud(solicitud, installation);
         return `${this.typeLabels[processType] || 'Proceso'} #${index + 1}`;
@@ -1245,6 +1254,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     getInstallationEntityName(installation?: InstallationDetail | null): string {
         const type = this.getInstallationProcessType(installation);
         return this.typeLabels[type] || 'Proceso';
+    }
+
+    getProcessDeviceTypeLabel(installation?: InstallationDetail | null): string {
+        const deviceType = installation?.device_type || 'gps';
+        return this.processDeviceTypeOptions.find(option => option.value === deviceType)?.label
+            || 'GPS';
     }
 
     onInstallationProcessTypeChange(installation: InstallationDetail): void {
@@ -1334,8 +1349,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                     ? {
                         ...this.getPrimarySolicitudLocationDefaults(),
                         process_type: 'instalacion',
+                        device_type: 'gps',
                     }
-                    : this.getPrimarySolicitudLocationDefaults()
+                    : {
+                        ...this.getPrimarySolicitudLocationDefaults(),
+                        device_type: 'gps',
+                    }
             );
         }
         if (this.selectedSolicitud.installations.length > qty) {
@@ -3332,7 +3351,15 @@ async initLocationMap(): Promise<void> {
         this.rootAvailableMunicipalities = [];
         this.rootAvailableSectors = [];
         
-        this.selectedSolicitud = { ...solicitud, installations: solicitud.installations ? solicitud.installations.map(i => ({ ...i })) : [] };
+        this.selectedSolicitud = {
+            ...solicitud,
+            installations: solicitud.installations
+                ? solicitud.installations.map(installation => ({
+                    ...installation,
+                    device_type: installation.device_type || 'gps',
+                }))
+                : [],
+        };
         this.selectedClient = null;
         this.closeClientDialogs();
         this.closeTechnicianSelection();
@@ -3358,7 +3385,7 @@ async initLocationMap(): Promise<void> {
         
         const qty = this.selectedSolicitud.quantity || 1;
         while (this.selectedSolicitud.installations!.length < qty) {
-            this.selectedSolicitud.installations!.push({});
+            this.selectedSolicitud.installations!.push({ device_type: 'gps' });
         }
         this.isEditMode = true;
         
@@ -4232,6 +4259,22 @@ async initLocationMap(): Promise<void> {
                 severity: 'error',
                 summary: 'Tipo requerido',
                 detail: 'Debe seleccionar el tipo de cada proceso de la solicitud mixta.'
+            });
+            this.showInstallationsCards = true;
+            return;
+        }
+
+        if (
+            this.selectedSolicitud.installations?.some(installation =>
+                !this.processDeviceTypeOptions.some(option =>
+                    option.value === installation.device_type
+                )
+            )
+        ) {
+            this.messageService.add({
+                severity: 'error',
+                summary: 'Dispositivo requerido',
+                detail: 'Debe seleccionar si cada proceso corresponde a un GPS, MTAG-A o MTAG-P.'
             });
             this.showInstallationsCards = true;
             return;

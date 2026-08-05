@@ -475,6 +475,7 @@
                             <span class="sol-process-summary">
                                 <span class="sol-process-name">
                                     {{ getKanbanProcessLabel(sol, inst, i) }}
+                                    <span class="sol-process-device-badge">{{ getProcessDeviceTypeLabel(inst) }}</span>
                                     <span *ngIf="sol.type === 'mixta' && inst.plate" style="opacity: 0.7; font-size: 0.75rem;">(Placa: {{ inst.plate }})</span>
                                     <span *ngIf="inst.device_imei" style="opacity: 0.7; font-size: 0.75rem;">(IMEI: {{ inst.device_imei }})</span>
                                 </span>
@@ -1859,6 +1860,7 @@
                         <div>
                             <span>{{ typeLabels[getProcessTypeForSolicitud(sol, installation)] || 'Proceso' }} {{ index + 1 }}</span>
                             <strong>{{ installation.plate || getSolicitudPrimaryDeviceLabel(sol) }}</strong>
+                            <small class="sol-process-device-badge">{{ getProcessDeviceTypeLabel(installation) }}</small>
                         </div>
                         <span class="sol-vehicle-card__state"
                             [class.is-cancelled]="installation.cancelled"
@@ -2318,6 +2320,20 @@
                                         {{ install.cancelled ? 'Cancelada' : (install.completed ? 'Realizada' : 'Pendiente') }}
                                     </span>
                                 </div>
+                                <div class="sol-process-device-fields" (click)="$event.stopPropagation()">
+                                    <label>
+                                        <span>Dispositivo del proceso</span>
+                                        <select
+                                            [(ngModel)]="install.device_type"
+                                            [disabled]="isSelectedSolicitudFinalized()"
+                                            required>
+                                            <option value="" disabled>Seleccionar dispositivo</option>
+                                            <option *ngFor="let option of processDeviceTypeOptions" [value]="option.value">
+                                                {{ option.label }}
+                                            </option>
+                                        </select>
+                                    </label>
+                                </div>
                                 <div class="sol-mixed-process-fields" *ngIf="selectedSolicitud.type === 'mixta'" (click)="$event.stopPropagation()">
                                     <label>
                                         <span>Tipo de proceso</span>
@@ -2346,7 +2362,7 @@
                                         </select>
                                     </label>
                                 </div>
-                                <p>Vehículo, ubicación y dispositivo</p>
+                                <p>Equipo, ubicación y detalles del proceso</p>
                             </div>
                             <div class="sol-install-card-arrow">
                                 <i class="pi pi-chevron-right"></i>

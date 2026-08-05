@@ -708,7 +708,7 @@
                 <!-- Device count -->
                 <div class="comm-contact-panel__field" *ngIf="gpsUser">
                     <i class="pi pi-map"></i>
-                    <span>{{ gpsUser.device_count || 0 }} GPS en su cuenta</span>
+                    <span>{{ getGpsUserDeviceCount() }} GPS en su cuenta</span>
                 </div>
                 <!-- Affiliation -->
                 <div class="comm-contact-panel__field" *ngIf="gpsUser?.affiliation_type_id">

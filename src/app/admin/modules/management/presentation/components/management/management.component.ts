@@ -898,7 +898,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.setupSubscriptions();
     this.setupSelectionWatcher();
     this.setupRouting();
-    this.loadInitialData();
     this.checkUserInbox();
     // Nota: El status polling ahora está integrado en el polling principal de 10s
 
@@ -3238,6 +3237,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private async populateDeviceImagesFromCache(targetsList: any[]): Promise<void> {
     try {
       const cacheHits = await this.vehicleDataService.loadAICacheForTargets(targetsList);
+      // El catálogo de las marcas visibles ya está disponible para nombres e imágenes.
+      this.cdr.detectChanges();
       if (cacheHits.size === 0) return;
 
       // Save images to devices in parallel
@@ -3511,11 +3512,6 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
 
     return currentUser.id === this.selectedUser._id;
-  }
-
-  private async loadInitialData(): Promise<void> {
-    // Cargar datos de vehículos en segundo plano
-    await this.vehicleDataService.loadVehicleData();
   }
 
   private cleanupSubscriptions(): void {

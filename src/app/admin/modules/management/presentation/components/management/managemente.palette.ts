@@ -15,6 +15,20 @@ export const managementPalette = {
         managementColorBorderDisabled: '#e0e0e0',
         managementColorTextDisabled: '#999999',
         managementColorBadgeBackground: '#ec4343',
+
+        // Centro de alertas: superficies neutras y acento funcional
+        alertsColorCanvas: '#f5f6f8',
+        alertsColorSurface: '#ffffff',
+        alertsColorSurfaceMuted: '#f8f9fb',
+        alertsColorBorder: '#dde1e7',
+        alertsColorBorderStrong: '#c9ced8',
+        alertsColorText: '#20242c',
+        alertsColorMuted: '#68707d',
+        alertsColorAccent: '#b93d3d',
+        alertsColorAccentSoft: '#f8eeee',
+        alertsColorSuccess: '#257a45',
+        alertsColorWarning: '#9a6700',
+        alertsColorShadow: 'rgba(15, 23, 42, 0.12)',
         
         // Colores para usuarios compartidos (primario rojo)
         managementSharedUserBackground: '#fefefe',
@@ -66,6 +80,20 @@ export const managementPalette = {
          managementColorBorderDisabled: '#3d3d3d',
          managementColorTextDisabled: '#6c6c6c',
          managementColorBadgeBackground: '#d63838',
+
+         // Centro de alertas: equivalente sobrio para modo oscuro
+         alertsColorCanvas: '#151719',
+         alertsColorSurface: '#1e2023',
+         alertsColorSurfaceMuted: '#25282d',
+         alertsColorBorder: '#343840',
+         alertsColorBorderStrong: '#474c56',
+         alertsColorText: '#f4f4f5',
+         alertsColorMuted: '#a5abb5',
+         alertsColorAccent: '#ef6b6b',
+         alertsColorAccentSoft: 'rgba(239, 107, 107, 0.12)',
+         alertsColorSuccess: '#62c486',
+         alertsColorWarning: '#e5ad55',
+         alertsColorShadow: 'rgba(0, 0, 0, 0.45)',
          
          // Colores para usuarios compartidos (dark theme - primario rojo)
          managementSharedUserBackground: '#2d1818',

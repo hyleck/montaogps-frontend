@@ -11,67 +11,77 @@
 </div>
 
 <div class="inventory-container" *ngIf="canReadInventory()">
-  <!-- View Switcher Tabs + Actions -->
-  <div class="view-tabs">
-    <div style="display: flex; gap: 15px;">
-      <button pButton pRipple type="button" label="Dispositivos & Paquetes" icon="pi pi-box" class="p-button-rounded"
-        [ngClass]="{'p-button-outlined p-button-secondary': currentView !== 'devices', 'p-button-danger': currentView === 'devices'}"
-        (click)="switchView('devices')">
+  <div class="inventory-commandbar">
+    <div class="inventory-view-switch" role="tablist" aria-label="Vista del inventario">
+      <button type="button" class="inventory-tab" [class.inventory-tab--active]="currentView === 'devices'"
+        [attr.aria-selected]="currentView === 'devices'" role="tab" (click)="switchView('devices')">
+        <i class="pi pi-box"></i>
+        <span>Equipos y paquetes</span>
       </button>
-      <button pButton pRipple type="button" label="Simcards" icon="pi pi-credit-card" class="p-button-rounded"
-        [ngClass]="{'p-button-outlined p-button-secondary': currentView !== 'simcards', 'p-button-danger': currentView === 'simcards'}"
-        (click)="switchView('simcards')">
+      <button type="button" class="inventory-tab" [class.inventory-tab--active]="currentView === 'simcards'"
+        [attr.aria-selected]="currentView === 'simcards'" role="tab" (click)="switchView('simcards')">
+        <i class="pi pi-credit-card"></i>
+        <span>SIM cards</span>
       </button>
     </div>
 
-    <div class="flex align-items-center" style="gap: 15px;">
-      <i *ngIf="lowStockCount > 0 && !loadingWarehouses" class="pi pi-arrow-right text-red-500 mr-1 blink-arrow"
-        style="font-size: 1.5rem; font-weight: bold;"></i>
-      <p-button label="Almacenes" [icon]="lowStockCount > 0 ? 'pi pi-exclamation-triangle' : 'pi pi-building'"
-        [outlined]="true" [severity]="lowStockCount > 0 ? 'danger' : 'secondary'" (click)="openWarehouses()"
-        [badge]="lowStockCount > 0 ? lowStockCount.toString() : undefined" badgeClass="p-badge-danger"
-        [loading]="loadingWarehouses"></p-button>
-
-      <p-button label="Conduces" icon="pi pi-inbox" [outlined]="true" severity="info" [style]="{'margin-left': '10px'}"
-        (click)="openConducesList()"></p-button>
-
-      <button *ngIf="currentView === 'devices' && canCreateInventory()" pButton pRipple label="Nuevo Paquete"
-        icon="pi pi-plus" class="p-button-success" style="margin-left: 10px;" (click)="openNewPackage()"></button>
-
-      <button *ngIf="currentView === 'simcards' && canCreateInventory()" pButton pRipple label="Nueva Simcard"
-        icon="pi pi-plus" class="p-button-success" style="margin-left: 10px;" (click)="openNewSimcard()"></button>
+    <div class="inventory-actions">
+      <button type="button" class="inventory-tool-button" [class.inventory-tool-button--warning]="lowStockCount > 0"
+        (click)="openWarehouses()" [disabled]="loadingWarehouses">
+        <i [class]="loadingWarehouses ? 'pi pi-spin pi-spinner' : (lowStockCount > 0 ? 'pi pi-exclamation-triangle' : 'pi pi-building')"></i>
+        <span>Almacenes</span>
+        <b *ngIf="lowStockCount > 0">{{ lowStockCount }}</b>
+      </button>
+      <button type="button" class="inventory-tool-button" (click)="openConducesList()">
+        <i class="pi pi-send"></i>
+        <span>Conduces</span>
+      </button>
+      <button *ngIf="currentView === 'devices' && canCreateInventory()" type="button"
+        class="inventory-primary-button" (click)="openNewPackage()">
+        <i class="pi pi-plus"></i>
+        <span>Nuevo paquete</span>
+      </button>
+      <button *ngIf="currentView === 'simcards' && canCreateInventory()" type="button"
+        class="inventory-primary-button" (click)="openNewSimcard()">
+        <i class="pi pi-plus"></i>
+        <span>Nueva SIM card</span>
+      </button>
     </div>
   </div>
 
   <div class="global-search-section">
     <!-- Search Section: Dispositivos -->
     <div class="search-container" style="flex: 1;" *ngIf="currentView === 'devices'">
-      <div class="search-field">
+      <div class="search-field inventory-search-field">
         <label for="globalSearch">Buscar en todos los inventarios</label>
         <form (ngSubmit)="searchAllInventory()" class="search-form">
           <div class="search-input-group">
-            <input type="text" id="globalSearch" [(ngModel)]="globalSearchQuery" name="globalSearch"
-              placeholder="Buscar por IMEI o SIM..." class="form-input search-input" [disabled]="isSearchingGlobal" />
+            <div class="inventory-search-box">
+              <i class="pi pi-search"></i>
+              <input type="text" id="globalSearch" [(ngModel)]="globalSearchQuery" name="globalSearch"
+                placeholder="IMEI, número SIM o ID SIM" class="form-input search-input" [disabled]="isSearchingGlobal" />
+              <button type="button" class="inventory-inline-clear" (click)="clearGlobalSearch()"
+                *ngIf="globalSearchQuery || showingSearchResults" aria-label="Limpiar búsqueda">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
 
             <p-dropdown [options]="warehouses" [(ngModel)]="globalSearchStorageId" optionLabel="name" optionValue="_id"
-              name="warehouseFilter" placeholder="Filtrar por almacén" [showClear]="true" [style]="{'width':'200px'}"
+              name="warehouseFilter" placeholder="Todos los almacenes" [showClear]="true" styleClass="inventory-dropdown"
+              [style]="{'width':'100%'}"
               appendTo="body" [disabled]="isSearchingGlobal" (onChange)="searchAllInventory()">
             </p-dropdown>
 
             <p-dropdown
               [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
               [(ngModel)]="globalSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
-              placeholder="Estado" [style]="{'width':'150px'}" appendTo="body" [disabled]="isSearchingGlobal"
+              placeholder="Todos los estados" styleClass="inventory-dropdown" [style]="{'width':'100%'}" appendTo="body" [disabled]="isSearchingGlobal"
               (onChange)="searchAllInventory()">
             </p-dropdown>
 
             <button type="submit" class="search-button" [disabled]="isSearchingGlobal">
-              <i class="pi pi-search" *ngIf="!isSearchingGlobal"></i>
+              <i class="pi pi-search" *ngIf="!isSearchingGlobal"></i><span *ngIf="!isSearchingGlobal">Buscar</span>
               <i class="pi pi-spin pi-spinner" *ngIf="isSearchingGlobal"></i>
-            </button>
-            <button type="button" class="clear-button" (click)="clearGlobalSearch()"
-              *ngIf="globalSearchQuery || showingSearchResults">
-              <i class="pi pi-times"></i>
             </button>
           </div>
         </form>
@@ -80,39 +90,43 @@
 
     <!-- Search Section: Simcards -->
     <div class="search-container" style="flex: 1;" *ngIf="currentView === 'simcards'">
-      <div class="search-field">
-        <label for="simcardSearch">Buscar Simcards</label>
+      <div class="search-field inventory-search-field">
+        <label for="simcardSearch">Buscar SIM cards</label>
         <form (ngSubmit)="searchAllSimcards()" class="search-form">
-          <div class="search-input-group" style="display: flex; gap: 0.5rem; align-items: center;">
-            <input type="text" id="simcardSearch" [(ngModel)]="simcardSearchQuery" name="simcardSearch"
-              placeholder="Buscar por ICCID o ID SIM..." class="form-input" [disabled]="isSearchingSimcards"
-              style="width: 250px;" />
+          <div class="search-input-group search-input-group--simcards">
+            <div class="inventory-search-box">
+              <i class="pi pi-search"></i>
+              <input type="text" id="simcardSearch" [(ngModel)]="simcardSearchQuery" name="simcardSearch"
+                placeholder="Número, ICCID o ID SIM" class="form-input search-input" [disabled]="isSearchingSimcards" />
+              <button type="button" class="inventory-inline-clear" (click)="clearSimcardSearch()"
+                *ngIf="simcardSearchQuery || simcardSearchStorageId || simcardSearchStatus || simcardSearchCompany"
+                aria-label="Limpiar filtros de SIM cards">
+                <i class="pi pi-times"></i>
+              </button>
+            </div>
 
             <p-dropdown [options]="warehouses" [(ngModel)]="simcardSearchStorageId" optionLabel="name" optionValue="_id"
-              name="warehouseFilter" placeholder="Filtrar por almacén" [showClear]="true" [style]="{'width':'200px'}"
+              name="warehouseFilter" placeholder="Todos los almacenes" [showClear]="true" styleClass="inventory-dropdown"
+              [style]="{'width':'100%'}"
               appendTo="body" [disabled]="isSearchingSimcards" (onChange)="searchAllSimcards()">
             </p-dropdown>
 
             <p-dropdown
               [options]="[{label: 'Todas', value: ''}, {label: 'Instaladas', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
               [(ngModel)]="simcardSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
-              placeholder="Estado" [style]="{'width':'150px'}" appendTo="body" [disabled]="isSearchingSimcards"
+              placeholder="Todos los estados" styleClass="inventory-dropdown" [style]="{'width':'100%'}" appendTo="body" [disabled]="isSearchingSimcards"
               (onChange)="searchAllSimcards()">
             </p-dropdown>
 
             <p-dropdown [options]="[{label: 'Todas las compañías', value: ''}].concat(availableSimCardTypes)"
               [(ngModel)]="simcardSearchCompany" name="companyFilter" optionLabel="label" optionValue="value"
-              placeholder="Compañía" [style]="{'width':'230px'}" appendTo="body" [disabled]="isSearchingSimcards"
+              placeholder="Todas las compañías" styleClass="inventory-dropdown" [style]="{'width':'100%'}" appendTo="body" [disabled]="isSearchingSimcards"
               (onChange)="searchAllSimcards()">
             </p-dropdown>
 
             <button type="submit" class="search-button" [disabled]="isSearchingSimcards">
-              <i class="pi pi-search" *ngIf="!isSearchingSimcards"></i>
+              <i class="pi pi-search" *ngIf="!isSearchingSimcards"></i><span *ngIf="!isSearchingSimcards">Buscar</span>
               <i class="pi pi-spin pi-spinner" *ngIf="isSearchingSimcards"></i>
-            </button>
-            <button type="button" class="clear-button" (click)="clearSimcardSearch()"
-              *ngIf="simcardSearchQuery || simcardsList.length > 0">
-              <i class="pi pi-times"></i>
             </button>
           </div>
         </form>
@@ -123,71 +137,136 @@
   <!-- VIEWS FOR DEVICES -->
   <ng-container *ngIf="currentView === 'devices'">
     <div *ngIf="showingSearchResults" class="search-results-section">
-      <h3>Resultados de búsqueda ({{ totalItems }} dispositivos)</h3>
+      <header class="inventory-results-header">
+        <div class="inventory-results-heading">
+          <span class="inventory-results-heading__icon"><i class="pi pi-box"></i></span>
+          <div>
+            <span>Consulta de inventario</span>
+            <h2>Dispositivos encontrados</h2>
+          </div>
+        </div>
+        <div class="inventory-results-summary">
+          <span class="inventory-results-warehouse" *ngIf="selectedGlobalWarehouseName">
+            <i class="pi pi-building"></i>
+            {{ selectedGlobalWarehouseName }}
+          </span>
+          <span class="inventory-results-count">
+            <strong>{{ totalItems }}</strong>
+            {{ totalItems === 1 ? 'dispositivo' : 'dispositivos' }}
+            <small>{{ allDevicesSearchResults.length }} cargados</small>
+          </span>
+        </div>
+      </header>
+
       <div class="search-results-table" (scroll)="onSearchResultsScroll($event)">
         <table class="devices-table">
           <thead>
             <tr>
-              <th>IMEI</th>
-              <th>SIM</th>
+              <th>Dispositivo</th>
+              <th>SIM / ID SIM</th>
               <th>{{ 'inventory.device.protocol' | translate }}</th>
               <th>Paquete</th>
               <th>{{ 'inventory.device.warehouse' | translate }}</th>
               <th>{{ 'inventory.device.storageDate' | translate }}</th>
-              <th>{{ 'inventory.device.actions' | translate }}</th>
+              <th>Estado</th>
+              <th class="devices-table__actions-heading">{{ 'inventory.device.actions' | translate }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let device of allDevicesSearchResults">
-              <td class="imei-cell">
-                <i *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device)" class="pi pi-check-circle installed-icon" title="Instalado"></i>
-                <i *ngIf="isDeviceInActivation(device)" class="pi pi-sync activation-icon" title="En proceso de instalación"></i>
-                <span>{{ device.IMEI || device.imei || 'N/A' }}</span>
-                <span *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device)" class="installed-label">
-                  (Instalado)
-                </span>
-                <span *ngIf="isDeviceInActivation(device)" class="activation-label">
-                  (En proceso de instalación)
+            <tr *ngFor="let device of allDevicesSearchResults"
+              [class.inventory-result-row--activation]="isDeviceInActivation(device)">
+              <td>
+                <div class="inventory-result-device">
+                  <span class="inventory-result-device__icon"><i class="pi pi-map-marker"></i></span>
+                  <div>
+                    <strong>{{ device.IMEI || device.imei || 'Sin IMEI' }}</strong>
+                    <small>IMEI</small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="inventory-result-sim" *ngIf="!isDeviceAirtag(device); else airtagSimNotApplicable">
+                  <span><small>SIM</small><strong>{{ device.SIM || device.sim || 'Sin número' }}</strong></span>
+                  <span><small>ID SIM</small><strong>{{ device.IDSIM || device.idsim || 'Sin ID' }}</strong></span>
+                </div>
+                <ng-template #airtagSimNotApplicable>
+                  <span class="inventory-result-empty">No aplica</span>
+                </ng-template>
+              </td>
+              <td><span class="inventory-result-protocol">{{ getProtocolLabel(device.Protocol || device.protocol) }}</span></td>
+              <td>
+                <span class="inventory-result-package" [title]="getPackageTitle(device)">
+                  <i class="pi pi-box"></i>
+                  {{ getPackageTitle(device) }}
                 </span>
               </td>
-              <td>{{ isDeviceAirtag(device) ? '—' : (device.SIM || device.sim || 'N/A') }}</td>
-              <td>{{ getProtocolLabel(device.Protocol || device.protocol) }}</td>
-              <td>{{ getPackageTitle(device) }}</td>
-              <td>{{ getWarehouseName(device) }}</td>
-              <td>{{ (device.storageDate | date: 'dd/MM/yyyy HH:mm') || 'N/A' }}</td>
               <td>
-                <div class="device-actions flex gap-2">
-                  <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success p-button-text"
-                    (click)="editDevice(device)" pTooltip="Editar" tooltipPosition="top"
-                    *ngIf="canUpdateInventory()"></button>
-                  <button pButton pRipple icon="pi pi-send" class="p-button-rounded p-button-info p-button-text"
+                <span class="inventory-result-warehouse" [title]="getWarehouseName(device)">
+                  <i class="pi pi-building"></i>
+                  {{ getWarehouseName(device) }}
+                </span>
+              </td>
+              <td>
+                <time class="inventory-result-date" *ngIf="device.storageDate; else noInventoryResultDate">
+                  <strong>{{ device.storageDate | date: 'dd/MM/yyyy' }}</strong>
+                  <small>{{ device.storageDate | date: 'HH:mm' }}</small>
+                </time>
+                <ng-template #noInventoryResultDate><span class="inventory-result-empty">Sin fecha</span></ng-template>
+              </td>
+              <td>
+                <span class="inventory-result-status inventory-result-status--activation"
+                  *ngIf="isDeviceInActivation(device)">
+                  <i class="pi pi-sync pi-spin"></i> En instalación
+                </span>
+                <span class="inventory-result-status inventory-result-status--installed"
+                  *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device)">
+                  <i class="pi pi-check-circle"></i> Instalado
+                </span>
+                <span class="inventory-result-status inventory-result-status--available"
+                  *ngIf="!isDeviceInstalled(device) && !isDeviceInActivation(device)">
+                  <i class="pi pi-circle-fill"></i> Disponible
+                </span>
+              </td>
+              <td class="devices-table__actions-cell">
+                <div class="inventory-result-actions">
+                  <button type="button" class="inventory-result-action" (click)="editDevice(device)"
+                    pTooltip="Editar" tooltipPosition="top" aria-label="Editar dispositivo"
+                    *ngIf="canUpdateInventory()"><i class="pi pi-pencil"></i></button>
+                  <button type="button" class="inventory-result-action inventory-result-action--install"
                     (click)="installDevice(device)" pTooltip="Instalar" tooltipPosition="top"
-                    *ngIf="canUpdateInventory() && !isDeviceInstalled(device)"></button>
-                  <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning p-button-text"
+                    aria-label="Instalar dispositivo"
+                    *ngIf="canUpdateInventory() && !isDeviceInstalled(device)"><i class="pi pi-send"></i></button>
+                  <button type="button" class="inventory-result-action inventory-result-action--delete"
                     (click)="deleteDevice(device)" pTooltip="Eliminar" tooltipPosition="top"
-                    *ngIf="canDeleteInventory()"></button>
-                  <button pButton pRipple icon="pi pi-arrow-right-arrow-left"
-                    class="p-button-rounded p-button-secondary p-button-text" (click)="navigateToDevicePackage(device)"
-                    pTooltip="Ver paquete" tooltipPosition="top"></button>
+                    aria-label="Eliminar dispositivo"
+                    *ngIf="canDeleteInventory()"><i class="pi pi-trash"></i></button>
+                  <button type="button" class="inventory-result-action" (click)="navigateToDevicePackage(device)"
+                    pTooltip="Ver paquete" tooltipPosition="top" aria-label="Ver paquete">
+                    <i class="pi pi-arrow-right-arrow-left"></i>
+                  </button>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
 
-        <div *ngIf="isLoadingMore" class="loading-more-container mt-3 text-center">
-          <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-          <span class="block mt-2">Cargando más resultados...</span>
+        <div *ngIf="isLoadingMore" class="inventory-results-loading">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Cargando más resultados...</span>
         </div>
 
         <div *ngIf="!isLoadingMore && !isSearchingGlobal && allDevicesSearchResults.length < totalItems"
-          class="text-center mt-3 mb-3">
-          <button pButton pRipple label="Cargar más ({{allDevicesSearchResults.length}} de {{totalItems}})"
-            class="p-button-outlined" (click)="loadMoreDevices()"></button>
+          class="inventory-results-more">
+          <button type="button" (click)="loadMoreDevices()">
+            <i class="pi pi-plus"></i>
+            Cargar más ({{ allDevicesSearchResults.length }} de {{ totalItems }})
+          </button>
         </div>
 
-        <div *ngIf="allDevicesSearchResults.length === 0 && !isLoadingMore" class="no-results text-center mt-3">
-          No se encontraron dispositivos con esa búsqueda
+        <div *ngIf="allDevicesSearchResults.length === 0 && !isLoadingMore" class="inventory-results-empty">
+          <span><i class="pi pi-search"></i></span>
+          <strong>No se encontraron dispositivos</strong>
+          <small>Prueba cambiando el almacén, el estado o el texto de búsqueda.</small>
         </div>
       </div>
     </div>
@@ -247,46 +326,69 @@
 
 
       <div class="packages-list-section">
+        <div class="packages-section-header">
+          <div>
+            <span class="packages-section-kicker">Paquetes registrados</span>
+            <h2>Entradas de inventario</h2>
+          </div>
+          <span class="packages-total">{{ packages.length }} paquete{{ packages.length === 1 ? '' : 's' }}</span>
+        </div>
+
         <div class="packages-grid">
-          <div *ngFor="let package of packages" class="package-card" (click)="viewPackageDevices(package)">
+          <article *ngFor="let package of packages" class="package-card" (click)="viewPackageDevices(package)">
             <div class="package-card-header">
-              <h3>{{ package.title }}</h3>
+              <div class="package-card-type">
+                <span class="package-card-icon"><i class="pi pi-box"></i></span>
+                <span>Paquete</span>
+              </div>
               <div class="package-actions">
                 <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-text p-button-sm"
                   (click)="editPackage(package); $event.stopPropagation()" pTooltip="Editar paquete"
+                  aria-label="Editar paquete"
                   *ngIf="canUpdateInventory()"></button>
                 <button pButton pRipple icon="pi pi-trash"
                   class="p-button-rounded p-button-text p-button-sm p-button-danger"
                   (click)="deletePackage(package); $event.stopPropagation()" pTooltip="Eliminar paquete"
+                  aria-label="Eliminar paquete"
                   *ngIf="canDeleteInventory()"></button>
               </div>
             </div>
 
             <div class="package-card-body">
+              <h3 [title]="package.title">{{ package.title }}</h3>
+              <p class="package-description" [class.package-description--empty]="!package.description">
+                {{ package.description || 'Sin descripción adicional' }}
+              </p>
+
               <div class="package-info">
                 <div class="info-item">
                   <i class="pi pi-calendar"></i>
-                  <span>{{ package.date | date: 'dd/MM/yyyy' }}</span>
+                  <span>
+                    <small>Fecha</small>
+                    <strong>{{ package.date | date: 'dd/MM/yyyy' }}</strong>
+                  </span>
                 </div>
                 <div class="info-item">
-                  <i class="pi pi-dollar"></i>
-                  <span>{{ package.price | currency: 'USD':'symbol':'1.2-2' }}</span>
-                </div>
-                <div class="info-item" *ngIf="package.devices?.length">
-                  <i class="pi pi-box"></i>
-                  <span>{{ package.devices?.length || 0 }} dispositivos</span>
+                  <i class="pi pi-wallet"></i>
+                  <span>
+                    <small>Valor</small>
+                    <strong>{{ package.price | currency: 'USD':'symbol':'1.2-2' }}</strong>
+                  </span>
                 </div>
               </div>
-              <p *ngIf="package.description" class="package-description">
-                {{ package.description }}
-              </p>
             </div>
-          </div>
+
+            <button type="button" class="package-card-footer"
+              (click)="viewPackageDevices(package); $event.stopPropagation()">
+              <span>Ver contenido</span>
+              <i class="pi pi-arrow-right"></i>
+            </button>
+          </article>
 
           <div class="empty-state" *ngIf="packages.length === 0 && !loading">
             <i class="pi pi-box"></i>
             <p>No hay paquetes registrados</p>
-            <small>Crea tu primer paquete usando el formulario de arriba</small>
+            <small>Crea tu primer paquete para comenzar a organizar el inventario.</small>
           </div>
         </div>
       </div>
@@ -295,10 +397,24 @@
 
   <!-- VIEWS FOR SIMCARDS -->
   <ng-container *ngIf="currentView === 'simcards'">
-    <div class="search-results-section">
-      <h3>Lista de Simcards ({{ simcardTotalItems }} registradas)</h3>
-      <div class="search-results-table" (scroll)="onSimcardResultsScroll($event)">
-        <table class="devices-table">
+    <section class="simcard-list-panel">
+      <header class="simcard-list-header">
+        <div class="simcard-list-heading">
+          <span class="simcard-list-icon"><i class="pi pi-credit-card"></i></span>
+          <div>
+            <span class="simcard-list-kicker">Inventario de SIM cards</span>
+            <h2>SIM cards registradas</h2>
+          </div>
+        </div>
+        <div class="simcard-list-count">
+          <strong>{{ simcardTotalItems }}</strong>
+          <span>{{ simcardTotalItems === 1 ? 'registro' : 'registros' }}</span>
+          <small>{{ simcardsList.length }} {{ simcardsList.length === 1 ? 'cargada' : 'cargadas' }}</small>
+        </div>
+      </header>
+
+      <div class="simcard-table-scroll" (scroll)="onSimcardResultsScroll($event)">
+        <table class="simcard-table">
           <thead>
             <tr>
               <th>ICCID</th>
@@ -306,72 +422,108 @@
               <th>ID SIM</th>
               <th>APN</th>
               <th>Almacén</th>
-              <th>Fecha Almacén</th>
+              <th>Fecha de ingreso</th>
               <th>Estado</th>
-              <th>Acciones</th>
+              <th class="simcard-table__actions-heading">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let simcard of simcardsList">
-              <td class="imei-cell">
-                <i *ngIf="simcard.installed" class="pi pi-check-circle installed-icon" title="Instalado"></i>
-                <span style="font-family: monospace; font-size: 1.1em;">{{ simcard.iccid }}</span>
+            <tr *ngFor="let simcard of simcardsList" [class.simcard-row--installed]="simcard.installed">
+              <td>
+                <div class="simcard-identity">
+                  <span class="simcard-identity__icon"><i class="pi pi-credit-card"></i></span>
+                  <div>
+                    <strong>{{ simcard.iccid || 'Sin ICCID' }}</strong>
+                    <small>ICCID</small>
+                  </div>
+                </div>
               </td>
               <td>
-                <span class="p-tag p-tag-info">{{ simcard.sim_company || 'Otros' }}</span>
-              </td>
-              <td>
-                <span *ngIf="simcard.sim_company === 'nacionales'" class="p-tag p-tag-warning">{{ simcard.idsim || 'N/A'
-                  }}</span>
-                <span *ngIf="simcard.sim_company !== 'nacionales'" style="color: rgba(255,255,255,0.3)">—</span>
-              </td>
-              <td>
-                <span class="p-tag p-tag-secondary">{{ simcard.apn_name || 'N/A' }}</span>
-              </td>
-              <td>{{ (simcard.storage_id && simcard.storage_id.name) ? simcard.storage_id.name : 'Sin Almacén' }}</td>
-              <td>{{ (simcard.storageDate | date: 'dd/MM/yyyy HH:mm') || 'N/A' }}</td>
-              <td>
-                <span [class]="'p-tag ' + (simcard.installed ? 'p-tag-danger' : 'p-tag-success')">
-                  {{ simcard.installed ? (simcard.device_imei ? 'Instalada en ' + simcard.device_imei : 'Instalada') :
-                  'Disponible' }}
+                <span class="simcard-company" [class.simcard-company--national]="simcard.sim_company === 'nacionales'">
+                  {{ getSimcardCompanyLabel(simcard.sim_company) }}
                 </span>
               </td>
               <td>
-                <div class="device-actions flex gap-2">
-                  <button pButton pRipple icon="pi pi-pencil" class="p-button-rounded p-button-success p-button-text"
-                    (click)="editSimcard(simcard)" pTooltip="Editar" tooltipPosition="top"
-                    *ngIf="canUpdateInventory()"></button>
-                  <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-warning p-button-text"
-                    (click)="deleteSimcard(simcard)" pTooltip="Eliminar" tooltipPosition="top"
-                    *ngIf="canDeleteInventory()"></button>
+                <span class="simcard-code" *ngIf="simcard.sim_company === 'nacionales'; else noSimId">
+                  {{ simcard.idsim || 'Sin ID SIM' }}
+                </span>
+                <ng-template #noSimId><span class="simcard-empty-value">No aplica</span></ng-template>
+              </td>
+              <td>
+                <span class="simcard-apn" *ngIf="simcard.apn_name; else noApn">{{ simcard.apn_name }}</span>
+                <ng-template #noApn><span class="simcard-empty-value">Sin APN</span></ng-template>
+              </td>
+              <td>
+                <span class="simcard-warehouse" *ngIf="simcard.storage_id?.name; else noSimWarehouse"
+                  [title]="simcard.storage_id.name">
+                  <i class="pi pi-building"></i>
+                  {{ simcard.storage_id.name }}
+                </span>
+                <ng-template #noSimWarehouse><span class="simcard-empty-value">Sin almacén</span></ng-template>
+              </td>
+              <td>
+                <time class="simcard-date" *ngIf="simcard.storageDate; else noSimDate">
+                  <strong>{{ simcard.storageDate | date: 'dd/MM/yyyy' }}</strong>
+                  <small>{{ simcard.storageDate | date: 'HH:mm' }}</small>
+                </time>
+                <ng-template #noSimDate><span class="simcard-empty-value">Sin fecha</span></ng-template>
+              </td>
+              <td>
+                <span class="simcard-status" [class.simcard-status--installed]="simcard.installed"
+                  [class.simcard-status--available]="!simcard.installed">
+                  <i [class]="simcard.installed ? 'pi pi-link' : 'pi pi-check-circle'"></i>
+                  <span>
+                    <strong>{{ simcard.installed ? 'Instalada' : 'Disponible' }}</strong>
+                    <small *ngIf="simcard.installed && simcard.device_imei">IMEI {{ simcard.device_imei }}</small>
+                  </span>
+                </span>
+              </td>
+              <td>
+                <div class="simcard-actions">
+                  <button type="button" class="simcard-action" (click)="editSimcard(simcard)"
+                    pTooltip="Editar" tooltipPosition="top" aria-label="Editar SIM card"
+                    *ngIf="canUpdateInventory()">
+                    <i class="pi pi-pencil"></i>
+                  </button>
+                  <button type="button" class="simcard-action simcard-action--delete" (click)="deleteSimcard(simcard)"
+                    pTooltip="Eliminar" tooltipPosition="top" aria-label="Eliminar SIM card"
+                    *ngIf="canDeleteInventory()">
+                    <i class="pi pi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr *ngIf="simcardsList.length === 0 && !simcardIsLoadingMore && !isSearchingSimcards">
+              <td colspan="8">
+                <div class="simcard-empty-state">
+                  <span><i class="pi pi-credit-card"></i></span>
+                  <strong>No se encontraron SIM cards</strong>
+                  <small>Prueba cambiando los filtros o registra una nueva SIM card.</small>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
 
-        <div *ngIf="simcardIsLoadingMore" class="loading-more-container mt-3 text-center">
+        <div *ngIf="simcardIsLoadingMore" class="simcard-loading-more">
           <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
-          <span class="block mt-2">Cargando más resultados...</span>
+          <span>Cargando más resultados...</span>
         </div>
 
-        <div *ngIf="!simcardIsLoadingMore && !isSearchingSimcards && simcardsList.length < simcardTotalItems"
-          class="text-center mt-3 mb-3">
-          <button pButton pRipple label="Cargar más ({{simcardsList.length}} de {{simcardTotalItems}})"
-            class="p-button-outlined" (click)="loadMoreSimcards()"></button>
-        </div>
-
-        <div *ngIf="simcardsList.length === 0 && !simcardIsLoadingMore && !isSearchingSimcards"
-          class="no-results text-center mt-3">
-          No se encontraron simcards.
-        </div>
-
-        <div *ngIf="isSearchingSimcards && simcardsList.length === 0" class="text-center mt-5 mb-5">
+        <div *ngIf="isSearchingSimcards && simcardsList.length === 0" class="simcard-initial-loading">
           <i class="pi pi-spin pi-spinner" style="font-size: 3rem; color: var(--globalColorPrimaryInmutable)"></i>
-          <span class="block mt-3" style="font-size: 1.1rem; color: rgba(255,255,255,0.6)">Cargando simcards...</span>
+          <span>Cargando SIM cards...</span>
         </div>
       </div>
-    </div>
+
+      <div *ngIf="!simcardIsLoadingMore && !isSearchingSimcards && simcardsList.length < simcardTotalItems"
+        class="simcard-load-more-wrap">
+        <button type="button" class="simcard-load-more" (click)="loadMoreSimcards()">
+          <i class="pi pi-chevron-down"></i>
+          <span>Cargar más ({{ simcardsList.length }} de {{ simcardTotalItems }})</span>
+        </button>
+      </div>
+    </section>
   </ng-container>
 
 
@@ -381,7 +533,7 @@
   </div>
 
   <!-- DIALOGO DE GESTIÓN DE ALMACENES -->
-  <p-dialog [(visible)]="warehouseDialogVisible" [style]="{width: '900px'}" header="Gestión de Almacenes" [modal]="true"
+  <p-dialog [(visible)]="warehouseDialogVisible" [style]="{width: '1180px', maxWidth: '96vw'}" header="Gestión de Almacenes" [modal]="true"
     styleClass="p-fluid app-dark-dialog">
     <ng-template pTemplate="content">
       <div class="card">
@@ -400,9 +552,6 @@
             (click)="openNewWarehouse()"></button>
         </div>
 
-        <!-- Tabla de almacenes -->
-        <!-- Grid de Tarjetas de Almacén -->
-        <!-- Grid de Tarjetas de Almacén -->
         <div *ngIf="warehouses && warehouses.length > 0; else noWarehouses">
           <div *ngIf="warehouseSearchQuery" class="warehouse-search-summary">
             {{ filteredWarehouses.length }} resultado{{ filteredWarehouses.length === 1 ? '' : 's' }} para
@@ -414,120 +563,86 @@
             <p>No hay almacenes que coincidan con la búsqueda.</p>
           </div>
 
-          <!-- Sección de Atención -->
-          <div *ngIf="attentionWarehouses.length > 0" class="mb-4">
-            <h3 class="text-red-500 flex align-items-center mb-2">
-              <i class="pi pi-exclamation-triangle mr-2"></i>
-              Almacenes que requieren atención ({{attentionWarehouses.length}})
-            </h3>
-            <div class="warehouse-grid">
-              <div class="warehouse-card attention" *ngFor="let warehouse of attentionWarehouses">
-                <!-- Card Content (Repetido - Idealmente refactorizar a componente, pero mantenemos inline por rapidez) -->
-                <div class="warehouse-header">
-                  <div class="warehouse-icon">
-                    <i class="pi pi-box"></i>
-                  </div>
-                  <h3 class="warehouse-title" [title]="warehouse.name">{{warehouse.name}}</h3>
-                </div>
-
-                <div class="warehouse-body">
-                  <p class="warehouse-desc" [title]="warehouse.description || 'Sin descripción'">
-                    {{warehouse.description || 'Sin descripción'}}
-                  </p>
-                  <p *ngIf="getWarehouseAccessUsers(warehouse).length" class="warehouse-desc" style="font-size: 0.8rem; color: #14b8a6; margin-top: 4px;">
-                    <i class="pi pi-users" style="margin-right: 4px;"></i>{{getWarehouseAccessUsersLabel(warehouse)}}
-                  </p>
-                  <div class="warehouse-metrics">
-                    <div class="metric-box">
-                      <span class="metric-label">Min. Req</span>
-                      <span class="metric-value">{{warehouse.min_quantity || 0}}</span>
-                    </div>
-                    <div class="metric-box metric-btn"
-                      [ngClass]="{'danger-outline': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}"
-                      (click)="filterByWarehouse(warehouse)">
-                      <span class="metric-label"
-                        [ngClass]="{'text-red-400': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}">Disponibles</span>
-                      <span class="metric-value font-bold text-xl"
-                        [ngClass]="{'text-red-500': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}">
-                        {{warehouse.stock || 0}}
+          <div *ngIf="filteredWarehouses.length > 0" class="warehouse-table-container">
+            <table class="warehouse-table">
+              <thead>
+                <tr>
+                  <th>Almacén</th>
+                  <th>Usuarios con acceso</th>
+                  <th class="warehouse-table__number">Mínimo</th>
+                  <th class="warehouse-table__number">Equipos</th>
+                  <th class="warehouse-table__number">SIM cards</th>
+                  <th>Estado</th>
+                  <th class="warehouse-table__actions">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let warehouse of orderedWarehouses"
+                  [class.warehouse-table__row--attention]="(warehouse.stock || 0) < (warehouse.min_quantity || 0)">
+                  <td>
+                    <div class="warehouse-table__identity">
+                      <span class="warehouse-table__icon"
+                        [class.warehouse-table__icon--attention]="(warehouse.stock || 0) < (warehouse.min_quantity || 0)">
+                        <i class="pi pi-box"></i>
+                      </span>
+                      <span class="warehouse-table__identity-copy">
+                        <strong [title]="warehouse.name">{{ warehouse.name }}</strong>
+                        <small [title]="warehouse.description || 'Sin descripción'">
+                          {{ warehouse.description || 'Sin descripción' }}
+                        </small>
                       </span>
                     </div>
-                    <div class="metric-box metric-btn" *ngIf="warehouse.simcard_stock !== undefined"
-                      (click)="filterSimcardsByWarehouse(warehouse)">
-                      <span class="metric-label" style="white-space: nowrap;">Simcards</span>
-                      <span class="metric-value font-bold text-xl">{{warehouse.simcard_stock || 0}}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="warehouse-footer" style="display: flex; justify-content: flex-end;">
-                  <div class="flex gap-1" style="flex-shrink: 0;">
+                  </td>
+                  <td>
+                    <span *ngIf="getWarehouseAccessUsers(warehouse).length; else noWarehouseUsers"
+                      class="warehouse-table__users" [title]="getWarehouseAccessUsersLabel(warehouse)">
+                      <i class="pi pi-users"></i>
+                      {{ getWarehouseAccessUsersLabel(warehouse) }}
+                    </span>
+                    <ng-template #noWarehouseUsers>
+                      <span class="warehouse-table__empty">Sin usuarios asignados</span>
+                    </ng-template>
+                  </td>
+                  <td class="warehouse-table__number">
+                    <span class="warehouse-table__minimum">{{ warehouse.min_quantity || 0 }}</span>
+                  </td>
+                  <td class="warehouse-table__number">
+                    <button type="button" class="warehouse-table__stock-button"
+                      [class.warehouse-table__stock-button--attention]="(warehouse.stock || 0) < (warehouse.min_quantity || 0)"
+                      (click)="filterByWarehouse(warehouse)" title="Ver equipos de este almacén">
+                      <strong>{{ warehouse.stock || 0 }}</strong>
+                      <small>Ver equipos</small>
+                    </button>
+                  </td>
+                  <td class="warehouse-table__number">
+                    <button type="button" class="warehouse-table__stock-button"
+                      [disabled]="warehouse.simcard_stock === undefined"
+                      (click)="warehouse.simcard_stock !== undefined && filterSimcardsByWarehouse(warehouse)"
+                      title="Ver SIM cards de este almacén">
+                      <strong>{{ warehouse.simcard_stock === undefined ? '—' : (warehouse.simcard_stock || 0) }}</strong>
+                      <small>{{ warehouse.simcard_stock === undefined ? 'Sin datos' : 'Ver SIM cards' }}</small>
+                    </button>
+                  </td>
+                  <td>
+                    <span class="warehouse-table__status"
+                      [class.warehouse-table__status--attention]="(warehouse.stock || 0) < (warehouse.min_quantity || 0)">
+                      <i class="pi"
+                        [ngClass]="(warehouse.stock || 0) < (warehouse.min_quantity || 0) ? 'pi-exclamation-triangle' : 'pi-check-circle'"></i>
+                      {{ (warehouse.stock || 0) < (warehouse.min_quantity || 0) ? 'Stock bajo' : 'Disponible' }}
+                    </span>
+                  </td>
+                  <td class="warehouse-table__actions">
                     <button pButton pRipple icon="pi pi-pencil"
                       class="p-button-rounded p-button-text p-button-secondary"
-                      (click)="editWarehouse(warehouse)"></button>
-                    <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-text p-button-secondary"
-                      (click)="deleteWarehouse(warehouse)"></button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                      (click)="editWarehouse(warehouse)" aria-label="Editar almacén" title="Editar"></button>
+                    <button pButton pRipple icon="pi pi-trash"
+                      class="p-button-rounded p-button-text p-button-danger"
+                      (click)="deleteWarehouse(warehouse)" aria-label="Eliminar almacén" title="Eliminar"></button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-
-          <!-- Sección Normal -->
-          <div *ngIf="regularWarehouses.length > 0">
-            <h3 class="text-gray-700 mb-2 mt-2" *ngIf="attentionWarehouses.length > 0">Mis Almacenes</h3>
-            <div class="warehouse-grid">
-              <div class="warehouse-card" *ngFor="let warehouse of regularWarehouses">
-                <div class="warehouse-header">
-                  <div class="warehouse-icon">
-                    <i class="pi pi-box"></i>
-                  </div>
-                  <h3 class="warehouse-title" [title]="warehouse.name">{{warehouse.name}}</h3>
-                </div>
-
-                <div class="warehouse-body">
-                  <p class="warehouse-desc" [title]="warehouse.description || 'Sin descripción'">
-                    {{warehouse.description || 'Sin descripción'}}
-                  </p>
-                  <p *ngIf="getWarehouseAccessUsers(warehouse).length" class="warehouse-desc" style="font-size: 0.8rem; color: #14b8a6; margin-top: 4px;">
-                    <i class="pi pi-users" style="margin-right: 4px;"></i>{{getWarehouseAccessUsersLabel(warehouse)}}
-                  </p>
-                  <div class="warehouse-metrics">
-                    <div class="metric-box">
-                      <span class="metric-label">Min. Req</span>
-                      <span class="metric-value">{{warehouse.min_quantity || 0}}</span>
-                    </div>
-                    <div class="metric-box metric-btn"
-                      [ngClass]="{'danger-outline': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}"
-                      (click)="filterByWarehouse(warehouse)">
-                      <span class="metric-label"
-                        [ngClass]="{'text-red-400': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}">Disponibles</span>
-                      <span class="metric-value font-bold text-xl"
-                        [ngClass]="{'text-red-500': (warehouse.stock || 0) < (warehouse.min_quantity || 0)}">
-                        {{warehouse.stock || 0}}
-                      </span>
-                    </div>
-                    <div class="metric-box metric-btn" *ngIf="warehouse.simcard_stock !== undefined"
-                      (click)="filterSimcardsByWarehouse(warehouse)">
-                      <span class="metric-label" style="white-space: nowrap;">Simcards</span>
-                      <span class="metric-value font-bold text-xl">{{warehouse.simcard_stock || 0}}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="warehouse-footer" style="display: flex; justify-content: flex-end;">
-                  <div class="flex gap-1" style="flex-shrink: 0;">
-                    <button pButton pRipple icon="pi pi-pencil"
-                      class="p-button-rounded p-button-text p-button-secondary"
-                      (click)="editWarehouse(warehouse)"></button>
-                    <button pButton pRipple icon="pi pi-trash" class="p-button-rounded p-button-text p-button-secondary"
-                      (click)="deleteWarehouse(warehouse)"></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
         </div>
 
         <ng-template #noWarehouses>
@@ -672,6 +787,12 @@
             placeholder="Ingrese el SIM (opcional)" />
         </div>
 
+        <div class="field" *ngIf="selectedDevice && !isDeviceAirtag(selectedDevice)">
+          <label for="deviceIdsim">ID SIM</label>
+          <input type="text" id="deviceIdsim" [(ngModel)]="selectedDevice.idsim" name="idsim" class="form-input"
+            placeholder="Ingrese el ID SIM (opcional)" />
+        </div>
+
         <div class="field" *ngIf="selectedDevice">
           <label for="deviceStorage">Almacén</label>
           <select id="deviceStorage" [(ngModel)]="selectedDevice.storage_id" name="storage_id" class="form-input">
@@ -709,6 +830,7 @@
         <h4>Dispositivo a instalar:</h4>
         <p><strong>IMEI:</strong> {{ deviceToInstall.IMEI || deviceToInstall.imei || 'N/A' }}</p>
         <p *ngIf="!isDeviceAirtag(deviceToInstall)"><strong>SIM:</strong> {{ deviceToInstall.SIM || deviceToInstall.sim || 'N/A' }}</p>
+        <p *ngIf="!isDeviceAirtag(deviceToInstall)"><strong>ID SIM:</strong> {{ deviceToInstall.IDSIM || deviceToInstall.idsim || 'N/A' }}</p>
         <p>
           <strong>Protocolo:</strong>
           {{ getProtocolLabel(deviceToInstall.Protocol || deviceToInstall.protocol) }}
@@ -989,59 +1111,109 @@
     </ng-template>
   </p-dialog>
   <!-- Conduces List Dialog -->
-  <p-dialog [(visible)]="conducesDialogVisible" [style]="{width: '800px'}" header="Historial de Conduces" [modal]="true"
-    styleClass="p-fluid app-dark-dialog" (onHide)="hideConducesDialog()">
+  <p-dialog [(visible)]="conducesDialogVisible" [style]="{width: '1120px', maxWidth: '96vw'}"
+    header="Historial de conduces" [modal]="true" styleClass="p-fluid app-dark-dialog conduces-history-dialog"
+    (onHide)="hideConducesDialog()">
     <ng-template pTemplate="content">
-      <div class="flex justify-content-end mb-3" style="padding-top: 1.5rem;">
-        <button pButton pRipple label="Nuevo Conduce" icon="pi pi-plus" class="p-button-success"
-          (click)="openShippingModal()"></button>
+      <div class="conduces-history-toolbar">
+        <div class="conduces-history-intro">
+          <span class="conduces-history-intro__icon"><i class="pi pi-send"></i></span>
+          <div>
+            <span>Movimientos de inventario</span>
+            <strong>{{ totalConducesRecords }} conduce{{ totalConducesRecords === 1 ? '' : 's' }} registrado{{ totalConducesRecords === 1 ? '' : 's' }}</strong>
+          </div>
+        </div>
+        <button type="button" class="conduces-new-button" (click)="openShippingModal()">
+          <i class="pi pi-plus"></i>
+          <span>Nuevo conduce</span>
+        </button>
       </div>
 
       <p-table [value]="conducesList" [loading]="isLoadingConduces" responsiveLayout="scroll" [paginator]="true"
         [lazy]="true" (onLazyLoad)="loadConducesLazy($event)" [rows]="10" [totalRecords]="totalConducesRecords"
-        styleClass="p-datatable-sm conduces-table">
+        [showCurrentPageReport]="true" currentPageReportTemplate="{first}-{last} de {totalRecords}"
+        styleClass="p-datatable-sm conduces-history-table">
         <ng-template pTemplate="header">
           <tr>
-            <th>Número</th>
+            <th>Conduce</th>
             <th>Fecha</th>
-            <th>Almacén Destino</th>
-            <th>Items</th>
+            <th>Almacén destino</th>
+            <th>Contenido</th>
             <th>Creado por</th>
             <th>Estado</th>
-            <th class="text-center">Acciones</th>
+            <th class="conduces-history-table__actions-heading">PDF</th>
           </tr>
         </ng-template>
         <ng-template pTemplate="body" let-conduce>
           <tr>
-            <td style="font-family: monospace; font-weight: bold;">{{ conduce.conduceNumber }}</td>
-            <td>{{ conduce.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
-            <td>{{ conduce.destination_warehouse?.name || 'N/A' }}</td>
-            <td style="cursor: pointer; transition: background-color 0.2s;" (click)="showConduceDetails(conduce)"
-              pTooltip="Ver detalles de los items">
-              <div class="flex flex-row gap-4 align-items-center">
-                <i *ngIf="conduce.devices?.length" class="pi pi-box text-blue-400" style="font-size: 1.5rem" pBadge
-                  [value]="conduce.devices?.length?.toString()" severity="info"></i>
-
-                <i *ngIf="conduce.simcards?.length" class="pi pi-credit-card text-orange-400" style="font-size: 1.5rem"
-                  pBadge [value]="conduce.simcards?.length?.toString()" severity="warn"></i>
+            <td>
+              <div class="conduce-number">
+                <span><i class="pi pi-file"></i></span>
+                <div>
+                  <strong>{{ conduce.conduceNumber || 'Sin número' }}</strong>
+                  <small>Traslado</small>
+                </div>
               </div>
             </td>
-            <td>{{ conduce.created_by?.name || '' }} {{ conduce.created_by?.last_name || '' }}</td>
             <td>
-              <span [class]="'p-tag ' + (conduce.status === 'completed' ? 'p-tag-success' : 'p-tag-warning')">
+              <time class="conduce-date" *ngIf="conduce.createdAt; else noConduceDate">
+                <strong>{{ conduce.createdAt | date: 'dd/MM/yyyy' }}</strong>
+                <small>{{ conduce.createdAt | date: 'HH:mm' }}</small>
+              </time>
+              <ng-template #noConduceDate><span class="conduce-empty-value">Sin fecha</span></ng-template>
+            </td>
+            <td>
+              <span class="conduce-destination" [title]="conduce.destination_warehouse?.name || 'Sin almacén'">
+                <i class="pi pi-building"></i>
+                <span>{{ conduce.destination_warehouse?.name || 'Sin almacén' }}</span>
+              </span>
+            </td>
+            <td>
+              <button type="button" class="conduce-content" (click)="showConduceDetails(conduce)"
+                pTooltip="Ver contenido del conduce" tooltipPosition="top">
+                <span class="conduce-content__item">
+                  <i class="pi pi-box"></i>
+                  <strong>{{ conduce.devices?.length || 0 }}</strong>
+                  <small>{{ (conduce.devices?.length || 0) === 1 ? 'equipo' : 'equipos' }}</small>
+                </span>
+                <span class="conduce-content__item conduce-content__item--simcards">
+                  <i class="pi pi-credit-card"></i>
+                  <strong>{{ conduce.simcards?.length || 0 }}</strong>
+                  <small>SIM</small>
+                </span>
+              </button>
+            </td>
+            <td>
+              <span class="conduce-creator">
+                <i class="pi pi-user"></i>
+                <span>{{ conduce.created_by?.name || 'Sistema' }} {{ conduce.created_by?.last_name || '' }}</span>
+              </span>
+            </td>
+            <td>
+              <span class="conduce-status" [class.conduce-status--completed]="conduce.status === 'completed'"
+                [class.conduce-status--pending]="conduce.status !== 'completed'">
+                <i [class]="conduce.status === 'completed' ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
                 {{ conduce.status === 'completed' ? 'Completado' : 'Pendiente' }}
               </span>
             </td>
-            <td class="text-center text-nowrap">
-              <button pButton pRipple icon="pi pi-file-pdf" class="p-button-danger p-button-text p-button-sm"
-                pTooltip="Exportar a PDF" (click)="generateConducePdf(conduce)"></button>
+            <td>
+              <div class="conduce-actions">
+                <button type="button" class="conduce-action conduce-action--pdf" (click)="generateConducePdf(conduce)"
+                  pTooltip="Exportar a PDF" tooltipPosition="top" aria-label="Exportar conduce a PDF">
+                  <i class="pi pi-file-pdf"></i>
+                </button>
+              </div>
             </td>
           </tr>
         </ng-template>
         <ng-template pTemplate="emptymessage">
           <tr>
-            <td colspan="7" class="text-center p-4">
-              Aún no hay conduces registrados.
+            <td colspan="7">
+              <div class="conduces-empty-state">
+                <span><i class="pi pi-send"></i></span>
+                <strong>Aún no hay conduces registrados</strong>
+                <small>Crea el primer conduce para registrar un movimiento de inventario.</small>
+              </div>
             </td>
           </tr>
         </ng-template>
