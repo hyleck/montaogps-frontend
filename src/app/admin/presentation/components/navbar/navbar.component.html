@@ -1733,10 +1733,10 @@
                     <div class="email-input-wrapper">
                         <input type="email" [(ngModel)]="newEmailInput" (keypress)="onEmailKeyPress($event)"
                             placeholder="ejemplo@correo.com" class="email-input" [class.error]="emailInputError"
-                            autocomplete="off">
+                            autocomplete="off" [disabled]="verifyingShareRecipient || autoSaving">
                         <button type="button" class="add-email-btn" (click)="addEmail()"
-                            [disabled]="!newEmailInput.trim()" title="Agregar correo">
-                            <i class="pi pi-plus"></i>
+                            [disabled]="!newEmailInput.trim() || verifyingShareRecipient || autoSaving" title="Agregar correo">
+                            <i class="pi" [ngClass]="verifyingShareRecipient ? 'pi-spin pi-spinner' : 'pi-plus'"></i>
                         </button>
                     </div>
 

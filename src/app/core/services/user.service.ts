@@ -177,6 +177,10 @@ export class UserService {
     return this.http.get<User>(`${this.apiUrl}/by-email?email=${encodeURIComponent(email)}`);
   }
 
+  getDeviceRecipientByEmail(email: string): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/device-recipient?email=${encodeURIComponent(email)}`);
+  }
+
   getByPhone(phone: string): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/by-phone`, { params: { phone } });
   }

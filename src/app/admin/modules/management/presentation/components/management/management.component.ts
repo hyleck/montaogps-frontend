@@ -5314,7 +5314,9 @@ export class ManagementComponent implements OnInit, OnDestroy {
 
     try {
       this.searchingUserForTransfer = true;
-      const user = await this.userService.getByEmail(email).toPromise();
+      const user = await lastValueFrom(
+        this.userService.getDeviceRecipientByEmail(email)
+      );
 
       if (!user) {
         this.transferEmailError = 'No se encontró ningún usuario con ese correo electrónico';

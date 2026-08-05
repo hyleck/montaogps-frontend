@@ -163,6 +163,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   targetsToShare: Target[] = [];
   emailInputError: string = '';
   loadingSharedEmails: boolean = false;
+  verifyingShareRecipient: boolean = false;
   autoSaving: boolean = false;
   realtimeLinkDialogVisible: boolean = false;
   realtimeExpirationTime: string = '24h';
@@ -2902,7 +2903,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
    * Agrega un email a la lista de emails compartidos y auto-guarda
    */
   async addEmail() {
-    const email = this.newEmailInput.trim();
+    if (this.verifyingShareRecipient) return;
+
+    const email = this.newEmailInput.trim().toLowerCase();
 
     // Limpiar error previo
     this.emailInputError = '';
@@ -2918,20 +2921,37 @@ export class NavbarComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.selectedEmails.includes(email)) {
+    if (this.selectedEmails.some(selectedEmail => selectedEmail.toLowerCase() === email)) {
       this.emailInputError = 'Este correo ya está en la lista';
       return;
     }
 
-    // Agregar email
-    this.selectedEmails.push(email);
-    this.newEmailInput = '';
+    try {
+      this.verifyingShareRecipient = true;
+      const recipient = await firstValueFrom(
+        this.userService.getDeviceRecipientByEmail(email)
+      );
+      const recipientEmail = String(recipient?.email || email).trim().toLowerCase();
 
-    console.log('➕ Email agregado:', email);
-    console.log('📧 Lista actual:', this.selectedEmails);
+      if (this.selectedEmails.some(selectedEmail => selectedEmail.toLowerCase() === recipientEmail)) {
+        this.emailInputError = 'Este correo ya está en la lista';
+        return;
+      }
 
-    // Auto-guardar cambios
-    await this.autoSaveEmailChanges();
+      this.selectedEmails.push(recipientEmail);
+      this.newEmailInput = '';
+
+      console.log('➕ Email agregado:', recipientEmail);
+      console.log('📧 Lista actual:', this.selectedEmails);
+
+      await this.autoSaveEmailChanges();
+    } catch (error: any) {
+      this.emailInputError = error?.status === 404
+        ? 'No existe un usuario registrado con ese correo electrónico'
+        : getApiErrorMessage(error, 'No se pudo verificar el usuario para compartir');
+    } finally {
+      this.verifyingShareRecipient = false;
+    }
   }
 
   /**
@@ -3021,6 +3041,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.newEmailInput = '';
     this.emailInputError = '';
     this.loadingSharedEmails = false;
+    this.verifyingShareRecipient = false;
     this.autoSaving = false;
   }
 
@@ -3049,7 +3070,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.searchingUser = true;
 
       // Buscar usuario por email usando endpoint específico
-      const user = await this.userService.getByEmail(email).toPromise();
+      const user = await firstValueFrom(
+        this.userService.getDeviceRecipientByEmail(email)
+      );
 
       if (!user) {
         this.transferEmailError = 'No se encontró ningún usuario con ese correo electrónico';

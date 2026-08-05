@@ -28,6 +28,8 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
     private locatedUserFeatures: any[] = [];
     private techniciansRequested = false;
     private locatedUsersRequested = false;
+    private fullmapUserId: string | null = null;
+    private readonly dashboardMapCacheMaxAgeMs = 24 * 60 * 60 * 1000;
     private readonly dominicanRepublicBounds: [[number, number], [number, number]] = [
         [-72.1, 17.45],
         [-68.2, 20.1],
@@ -61,14 +63,17 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
         this.isRoot = this.currentUser?.root === true;
         this.canSeeTechnicians = this.currentUser?.affiliation_type_id === 'empleado';
         this.isEmployee = this.canSeeTechnicians || this.isRoot;
+        this.fullmapUserId = this.isEmployee
+            ? '68a9ccf19bb280482272477f'
+            : String(this.currentUser?.id || '').trim();
+
+        this.restoreCachedFullmap();
+        this.requestLatestFullmap();
     }
 
     ngAfterViewInit() {
         console.log('[Dashboard] DOM montado. Llamando initializeMap()...');
-        // Garantizamos que el contenedor CSS esté completamente asimilado por el navegador
-        setTimeout(() => {
-            this.initializeMap();
-        }, 300);
+        this.initializeMap();
     }
 
     ngOnDestroy() {
@@ -111,7 +116,10 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
             this.map.addControl(new maplibregl.NavigationControl(), 'top-right');
             this.map.addControl(new maplibregl.FullscreenControl(), 'top-right');
 
-            this.map.on('load', () => {
+            let dashboardLayersInitialized = false;
+            const initializeDashboardLayers = () => {
+                if (dashboardLayersInitialized) return;
+                dashboardLayersInitialized = true;
                 this.mapLoaded = true;
                 this.setupMaplibreClusters();
                 this.setupLocatedUserLayers();
@@ -126,32 +134,69 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
                     this.pendingData = null;
                     this.pendingDataType = null;
                 }
+            };
 
-            });
-
-            // Condicionar según tipo de usuario
-            if (this.isEmployee) {
-                console.log(`[Dashboard] Identificado como Empleado. Solicitando Fullmap ligero específico: 68a9ccf19bb280482272477f`);
-                this.monitoringService.getLatestFullmap('68a9ccf19bb280482272477f').subscribe({
-                    next: (res) => {
-                        console.log('[Dashboard] 🗺️ Colección Fullmap cargada (Empleado):', res.data);
-                        this.plotFullmapMarkers(res.data);
-                    },
-                    error: (err) => console.error('[Dashboard] Error cargando Fullmap del empleado', err)
-                });
-            } else {
-                console.log(`[Dashboard] Identificado como Cliente. Solicitando Fullmap ligero para: ${this.currentUser.id}`);
-                this.monitoringService.getLatestFullmap(this.currentUser.id).subscribe({
-                    next: (res) => {
-                        console.log('[Dashboard] 🗺️ Colección Fullmap cargada directamente desde el Backend:', res.data);
-                        this.plotFullmapMarkers(res.data);
-                    },
-                    error: (err) => console.error('[Dashboard] Error cargando Fullmap del cliente', err)
-                });
-            }
+            this.map.once('style.load', initializeDashboardLayers);
+            this.map.once('load', initializeDashboardLayers);
         } catch(error) {
             console.error('Failed constructing map element:', error);
         }
+    }
+
+    private requestLatestFullmap(): void {
+        if (!this.fullmapUserId) return;
+
+        this.monitoringService.getLatestFullmap(this.fullmapUserId).subscribe({
+            next: (response) => {
+                const devices = Array.isArray(response?.data) ? response.data : [];
+                if (!devices.length) return;
+
+                this.plotFullmapMarkers(devices);
+                this.persistFullmapCache(devices);
+            },
+            error: (error) => console.error('[Dashboard] Error actualizando marcadores:', error),
+        });
+    }
+
+    private restoreCachedFullmap(): void {
+        if (!this.fullmapUserId) return;
+
+        try {
+            const rawCache = localStorage.getItem(this.dashboardMapCacheKey());
+            if (!rawCache) return;
+
+            const cache = JSON.parse(rawCache);
+            const cachedAt = Number(cache?.cachedAt || 0);
+            if (
+                !Array.isArray(cache?.data)
+                || !cache.data.length
+                || Date.now() - cachedAt > this.dashboardMapCacheMaxAgeMs
+            ) {
+                localStorage.removeItem(this.dashboardMapCacheKey());
+                return;
+            }
+
+            this.plotFullmapMarkers(cache.data);
+        } catch {
+            localStorage.removeItem(this.dashboardMapCacheKey());
+        }
+    }
+
+    private persistFullmapCache(devices: any[]): void {
+        if (!this.fullmapUserId || !devices.length) return;
+
+        try {
+            localStorage.setItem(this.dashboardMapCacheKey(), JSON.stringify({
+                cachedAt: Date.now(),
+                data: devices,
+            }));
+        } catch (error) {
+            console.warn('[Dashboard] No se pudo guardar el mapa localmente:', error);
+        }
+    }
+
+    private dashboardMapCacheKey(): string {
+        return `dashboard-fullmap:v2:${this.fullmapUserId}`;
     }
 
     private createPulsingDot(r: number, g: number, b: number): any {
