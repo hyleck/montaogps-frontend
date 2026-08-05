@@ -1,6 +1,6 @@
 import { ChangeDetectorRef, Component, ElementRef, OnDestroy, OnInit, ViewChild, ViewEncapsulation } from '@angular/core';
 import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { finalize, firstValueFrom, timeout } from 'rxjs';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -381,10 +381,14 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     showRootDetailsData = false;
     showInstallationsCards = false;
     loading = false;
+    solicitudesLoadError = '';
+    savingSolicitud = false;
     totalItems = 0;
     currentPage = 1;
     private readonly solicitudesPageSize = 500;
+    private readonly solicitudesLoadTimeoutMs = 20000;
     private solicitudesLoadSequence = 0;
+    private activeVisibleLoadSequence: number | null = null;
     private readonly realtimeRefreshMs = 5000;
     private realtimeRefreshTimer?: ReturnType<typeof setInterval>;
     private readonly technicianCallHourFormatter = new Intl.DateTimeFormat('en-GB', {
@@ -868,6 +872,8 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         const loadSequence = ++this.solicitudesLoadSequence;
         if (!silent) {
             this.loading = true;
+            this.solicitudesLoadError = '';
+            this.activeVisibleLoadSequence = loadSequence;
         }
 
         try {
@@ -877,15 +883,17 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             let total = 0;
 
             do {
-                const response = await firstValueFrom(this.solicitudesService.getAll({
-                    type: this.filterType || undefined,
-                    status: this.filterStatus || undefined,
-                    search: this.searchQuery || undefined,
-                    sort_by: 'status_scheduled',
-                    sort_order: 'asc',
-                    page,
-                    limit: this.solicitudesPageSize
-                }));
+                const response = await firstValueFrom(
+                    this.solicitudesService.getAll({
+                        type: this.filterType || undefined,
+                        status: this.filterStatus || undefined,
+                        search: this.searchQuery || undefined,
+                        sort_by: 'status_scheduled',
+                        sort_order: 'asc',
+                        page,
+                        limit: this.solicitudesPageSize
+                    }).pipe(timeout({ first: this.solicitudesLoadTimeoutMs })),
+                );
 
                 if (loadSequence !== this.solicitudesLoadSequence) {
                     return;
@@ -924,15 +932,21 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 return;
             }
             if (!silent) {
+                const loadError: any = error;
+                const detail = loadError?.name === 'TimeoutError'
+                    ? 'El servidor tardó demasiado en responder. Las solicitudes existentes siguen disponibles; puede reintentar la sincronización.'
+                    : getApiErrorMessage(loadError, 'No se pudieron cargar las solicitudes');
+                this.solicitudesLoadError = detail;
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error',
-                    detail: getApiErrorMessage(error, 'No se pudieron cargar las solicitudes')
+                    summary: 'No se pudo actualizar el listado',
+                    detail,
                 });
             }
         } finally {
-            if (loadSequence === this.solicitudesLoadSequence && !silent) {
+            if (!silent && this.activeVisibleLoadSequence === loadSequence) {
                 this.loading = false;
+                this.activeVisibleLoadSequence = null;
             }
         }
     }
@@ -4341,7 +4355,8 @@ async initLocationMap(): Promise<void> {
     }
 
     private persistSolicitud(): void {
-        if (!this.selectedSolicitud) return;
+        if (!this.selectedSolicitud || this.savingSolicitud) return;
+        this.savingSolicitud = true;
 
         if (this.isEditMode && this.selectedSolicitud._id) {
             const solicitudPayload: Solicitud = {
@@ -4352,11 +4367,14 @@ async initLocationMap(): Promise<void> {
             };
             this.restoreLockedSolicitudAssignment(solicitudPayload);
             delete solicitudPayload.gps_change;
-            this.solicitudesService.update(this.selectedSolicitud._id, solicitudPayload).subscribe({
-                next: () => {
+            this.solicitudesService.update(this.selectedSolicitud._id, solicitudPayload).pipe(
+                finalize(() => this.savingSolicitud = false),
+            ).subscribe({
+                next: (updated) => {
                     this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Solicitud actualizada' });
                     this.dialogVisible = false;
-                    this.loadSolicitudes(false);
+                    if (updated?._id) this.upsertSolicitud(updated);
+                    void this.loadSolicitudes(false, { silent: true });
                 },
                 error: (error) => {
                     this.messageService.add({
@@ -4367,11 +4385,17 @@ async initLocationMap(): Promise<void> {
                 }
             });
         } else {
-            this.solicitudesService.create(this.selectedSolicitud).subscribe({
-                next: () => {
+            this.solicitudesService.create(this.selectedSolicitud).pipe(
+                finalize(() => this.savingSolicitud = false),
+            ).subscribe({
+                next: (created) => {
                     this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Solicitud creada' });
                     this.dialogVisible = false;
-                    this.loadSolicitudes();
+                    if (created?._id) {
+                        this.upsertSolicitud(created);
+                        this.totalItems = Math.max(this.totalItems + 1, this.solicitudes.length);
+                    }
+                    void this.loadSolicitudes(false, { silent: true });
                 },
                 error: (error) => {
                     this.messageService.add({

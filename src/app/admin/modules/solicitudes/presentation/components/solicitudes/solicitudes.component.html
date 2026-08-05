@@ -414,12 +414,22 @@
 
 
     <!-- Loading -->
-    <div *ngIf="loading" class="sol-loading">
+    <div *ngIf="loading && solicitudes.length === 0" class="sol-loading">
         <p-progressSpinner></p-progressSpinner>
     </div>
 
+    <div *ngIf="solicitudesLoadError && !loading" class="sol-load-error" role="alert">
+        <div>
+            <i class="pi pi-exclamation-triangle"></i>
+            <span>{{ solicitudesLoadError }}</span>
+        </div>
+        <button type="button" (click)="loadSolicitudes(false)">
+            <i class="pi pi-refresh"></i> Reintentar
+        </button>
+    </div>
+
     <!-- Scrum / Kanban Board -->
-    <div class="sol-kanban-board" *ngIf="!loading">
+    <div class="sol-kanban-board" *ngIf="!loading || solicitudes.length > 0">
         
         <!-- Pendiente Column -->
         <div class="sol-kanban-column" (dragover)="onDragOver($event)" (drop)="onDrop($event, 'pendiente')" (dragleave)="onDragLeave($event)">
@@ -2375,15 +2385,16 @@
         </div>
     </ng-template>
     <ng-template pTemplate="footer">
-        <button type="button" class="sol-btn sol-btn-cancel" (click)="hideDialog()">
+        <button type="button" class="sol-btn sol-btn-cancel" (click)="hideDialog()" [disabled]="savingSolicitud">
             <i class="pi pi-times"></i> Cerrar formulario
         </button>
         <button
             type="button"
             class="sol-btn sol-btn-save"
             (click)="saveSolicitud()"
-            [disabled]="isSelectedSolicitudFinalized() || technicianScheduleChecking || !!technicianScheduleConflict">
-            <i class="pi pi-check"></i> Guardar
+            [disabled]="savingSolicitud || isSelectedSolicitudFinalized() || technicianScheduleChecking || !!technicianScheduleConflict">
+            <i [class]="savingSolicitud ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+            {{ savingSolicitud ? 'Guardando...' : 'Guardar' }}
         </button>
     </ng-template>
 </p-dialog>

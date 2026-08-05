@@ -19,8 +19,99 @@
     min-height: 0;
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: 50px calc(100% - 50px);
+    grid-template-rows: 50px minmax(0, 1fr);
     overflow: hidden;
+}
+
+.admin__content--support {
+    grid-template-rows: 42px 50px minmax(0, 1fr);
+}
+
+.support-session-banner {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 18px;
+    border-bottom: 1px solid #854d0e;
+    background: #2b2113;
+    color: #fde68a;
+    font-size: .78rem;
+}
+
+.support-session-banner__status,
+.support-session-banner__audit {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.support-session-banner__status {
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.support-session-banner__account {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #fef3c7;
+}
+
+.support-session-banner__audit {
+    margin-left: auto;
+    color: #fcd34d;
+}
+
+.support-session-banner button {
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 12px;
+    border: 1px solid #d97706;
+    border-radius: 7px;
+    background: #d97706;
+    color: #ffffff;
+    font: inherit;
+    font-weight: 750;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.support-session-banner button:disabled {
+    opacity: .6;
+    cursor: wait;
+}
+
+:host-context(.app-light) .support-session-banner {
+    border-bottom-color: #f59e0b;
+    background: #fffbeb;
+    color: #92400e;
+}
+
+:host-context(.app-light) .support-session-banner__account,
+:host-context(.app-light) .support-session-banner__audit {
+    color: #78350f;
+}
+
+@media (max-width: 780px) {
+    .support-session-banner__audit,
+    .support-session-banner__account span {
+        display: none;
+    }
+
+    .support-session-banner {
+        gap: 9px;
+        padding: 0 10px;
+    }
+
+    .support-session-banner button {
+        margin-left: auto;
+    }
 }
 
 .admin__body{

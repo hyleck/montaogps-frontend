@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap, switchMap, BehaviorSubject, of } from 'rxjs';
+import { Observable, tap, switchMap, BehaviorSubject, of, map, catchError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { jwtDecode } from 'jwt-decode';
 import { User, BasicUser } from '../interfaces/user.interface';
@@ -19,6 +19,7 @@ export class AuthService {
   private LOGIN_URL = environment.apiUrl + '/auth/login';
   private readonly TOKEN_KEY = 'authtoken';
   private readonly USER_KEY = 'user';
+  private readonly SUPPORT_SESSION_KEY = 'support_original_session';
 
   // BehaviorSubject para emitir cambios en el estado de autenticación
   private authStateSubject = new BehaviorSubject<boolean>(false);
@@ -250,6 +251,126 @@ export class AuthService {
     }
   }
 
+  startSupportImpersonation(targetUserId: string, reason: string): Observable<any> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser?.root || this.isSupportImpersonating()) {
+      throw new Error('Solo una sesión root normal puede iniciar el acceso de soporte.');
+    }
+
+    return this._httpClient.post<any>(
+      environment.apiUrl + '/auth/support/impersonate',
+      { targetUserId, reason: String(reason || '').trim() },
+    ).pipe(
+      switchMap(response => {
+        if (!response?.access_token || !response?.user?.id) {
+          throw new Error('El servidor no devolvió una sesión de soporte válida.');
+        }
+
+        // La consulta se hace todavía con la sesión root. Solo reemplazamos la
+        // sesión local cuando ya contamos con todos los datos del usuario destino.
+        return this.userService.getById(response.user.id).pipe(
+          map(userData => ({ response, userData })),
+        );
+      }),
+      tap(({ response, userData }) => {
+        const originalToken = this.getToken();
+        const originalUser = localStorage.getItem(this.USER_KEY);
+        if (!originalToken || !originalUser) {
+          throw new Error('No se encontró la sesión root que se debe conservar.');
+        }
+
+        sessionStorage.setItem(this.SUPPORT_SESSION_KEY, JSON.stringify({
+          token: originalToken,
+          user: originalUser,
+          sessionDate: localStorage.getItem('session_date'),
+          support: response.support_impersonation,
+        }));
+
+        this.statusService.clearState();
+        this.saveToken(response.access_token);
+        this.saveUser(response.user);
+        this.updateUserWithPrivileges(userData);
+        this.configureUserSettings(userData);
+        localStorage.setItem(
+          'session_date',
+          response.support_impersonation?.startedAt || new Date().toISOString(),
+        );
+      }),
+      map(({ response }) => response),
+    );
+  }
+
+  isSupportImpersonating(): boolean {
+    const token = this.getToken();
+    if (!token || !sessionStorage.getItem(this.SUPPORT_SESSION_KEY)) return false;
+
+    try {
+      return jwtDecode<any>(token)?.support_impersonation === true;
+    } catch {
+      return false;
+    }
+  }
+
+  getSupportImpersonationState(): any | null {
+    if (!this.isSupportImpersonating()) return null;
+
+    try {
+      const stored = JSON.parse(sessionStorage.getItem(this.SUPPORT_SESSION_KEY) || '{}');
+      return {
+        ...(stored.support || {}),
+        currentUser: this.getCurrentUser(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  endSupportImpersonation(): Observable<{ success: boolean; auditError?: any }> {
+    if (!this.isSupportImpersonating()) {
+      this.restoreOriginalSupportSession();
+      return of({ success: true });
+    }
+
+    return this._httpClient.post<any>(
+      environment.apiUrl + '/auth/support/impersonation/end',
+      {},
+    ).pipe(
+      map(() => ({ success: true })),
+      catchError(auditError => of({ success: false, auditError })),
+      tap(() => this.restoreOriginalSupportSession()),
+    );
+  }
+
+  private restoreOriginalSupportSession(): void {
+    const storedValue = sessionStorage.getItem(this.SUPPORT_SESSION_KEY);
+    sessionStorage.removeItem(this.SUPPORT_SESSION_KEY);
+    this.statusService.clearState();
+
+    if (!storedValue) {
+      this.clearStoredSession();
+      return;
+    }
+
+    try {
+      const stored = JSON.parse(storedValue);
+      if (!stored?.token || !stored?.user) {
+        throw new Error('La sesión original está incompleta.');
+      }
+
+      localStorage.setItem(this.TOKEN_KEY, stored.token);
+      localStorage.setItem(this.USER_KEY, stored.user);
+      if (stored.sessionDate) {
+        localStorage.setItem('session_date', stored.sessionDate);
+      } else {
+        localStorage.removeItem('session_date');
+      }
+      this.authStateSubject.next(true);
+    } catch (error) {
+      console.error('No fue posible restaurar la sesión de soporte:', error);
+      this.clearStoredSession();
+    }
+  }
+
   private isTokenExpired(token: string): boolean {
     const decodedToken = jwtDecode<TokenPayload>(token);
     const currentTime = Date.now() / 1000;
@@ -300,6 +421,7 @@ export class AuthService {
     const keepRememberedEmail = options.keepRememberedEmail ?? true;
     const rememberedEmail = localStorage.getItem('rememberedEmail');
     localStorage.clear();
+    sessionStorage.removeItem(this.SUPPORT_SESSION_KEY);
     this.statusService.clearState();
 
     if (options.clearSessionStorage) {

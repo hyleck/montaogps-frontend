@@ -201,6 +201,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // PROPIEDADES PARA PERMISOS DE ROOT
   // ====================================
   isCurrentUserRoot: boolean = false;
+  supportAccessDialogVisible: boolean = false;
+  supportAccessTarget: User | null = null;
+  supportAccessReason: string = '';
+  startingSupportAccess: boolean = false;
 
   // Estado específico de carga de targets
   private loadingTargets: boolean = false;
@@ -1133,6 +1137,58 @@ export class ManagementComponent implements OnInit, OnDestroy {
       console.error('No se pudo determinar el contenido inicial del usuario:', error);
       // Ante un fallo de consulta, mantenemos el comportamiento seguro anterior.
       this.managementService.setOp(currentOp, user._id);
+    }
+  }
+
+  canStartSupportAccess(user: User): boolean {
+    const currentUser = this.authService.getCurrentUser();
+    return this.isCurrentUserRoot
+      && !this.authService.isSupportImpersonating()
+      && !!user?._id
+      && user._id !== currentUser?.id;
+  }
+
+  openSupportAccess(user: User): void {
+    if (!this.canStartSupportAccess(user)) return;
+    this.supportAccessTarget = user;
+    this.supportAccessReason = '';
+    this.supportAccessDialogVisible = true;
+  }
+
+  closeSupportAccess(): void {
+    if (this.startingSupportAccess) return;
+    this.supportAccessDialogVisible = false;
+    this.supportAccessTarget = null;
+    this.supportAccessReason = '';
+  }
+
+  confirmSupportAccess(): void {
+    const targetId = this.supportAccessTarget?._id;
+    const reason = this.supportAccessReason.trim();
+    if (!targetId || reason.length < 10 || this.startingSupportAccess) return;
+
+    this.startingSupportAccess = true;
+    try {
+      this.authService.startSupportImpersonation(targetId, reason).subscribe({
+        next: () => {
+          window.location.assign('/admin/dashboard');
+        },
+        error: (error) => {
+          this.startingSupportAccess = false;
+          this.messageService.add({
+            severity: 'error',
+            summary: 'No se pudo iniciar el acceso de soporte',
+            detail: getApiErrorMessage(error, 'Verifique la cuenta e inténtelo nuevamente.'),
+          });
+        },
+      });
+    } catch (error) {
+      this.startingSupportAccess = false;
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Acceso no permitido',
+        detail: error instanceof Error ? error.message : 'No se pudo iniciar la sesión de soporte.',
+      });
     }
   }
 

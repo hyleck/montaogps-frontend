@@ -5,7 +5,24 @@
             <app-sidebar></app-sidebar>
 
         </div>
-        <div class="admin__content">
+        <div class="admin__content" [class.admin__content--support]="supportImpersonation">
+            <div *ngIf="supportImpersonation" class="support-session-banner">
+                <div class="support-session-banner__status">
+                    <i class="pi pi-eye"></i>
+                    <span>Modo soporte</span>
+                </div>
+                <div class="support-session-banner__account">
+                    Estás viendo <strong>{{ supportImpersonation.targetName || supportImpersonation.currentUser?.email }}</strong>
+                    <span *ngIf="supportImpersonation.targetEmail">· {{ supportImpersonation.targetEmail }}</span>
+                </div>
+                <div class="support-session-banner__audit">
+                    <i class="pi pi-shield"></i> Actividad registrada
+                </div>
+                <button type="button" (click)="endSupportAccess()" [disabled]="endingSupportImpersonation">
+                    <i [class]="endingSupportImpersonation ? 'pi pi-spin pi-spinner' : 'pi pi-undo'"></i>
+                    <span>{{ endingSupportImpersonation ? 'Volviendo...' : 'Volver a mi cuenta' }}</span>
+                </button>
+            </div>
             <div class="admin__navbar">
 
                 <app-navbar></app-navbar>

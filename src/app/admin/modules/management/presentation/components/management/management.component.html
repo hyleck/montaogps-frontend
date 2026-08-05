@@ -104,6 +104,12 @@
                         class="button button--flat" style="color: #14b8a6;">
                         <i class="pi pi-box"></i> Almacén ( {{ userWarehouse.stock || 0 }} )
                     </button>
+                    <button *ngIf="selectedUser && canStartSupportAccess(selectedUser)" type="button"
+                        (click)="openSupportAccess(selectedUser)"
+                        class="button button--flat management__support-entry management__support-entry--icon"
+                        title="Entrar como esta cuenta (soporte)" aria-label="Entrar por soporte">
+                        <i class="pi pi-key"></i>
+                    </button>
                 </div>
             </div>
             <div class="management__user-control-content">
@@ -190,6 +196,12 @@
                                     <div class="management__user-card-controls">
                                         <button (click)="enterUser(user)" class="button button--primary-flat"
                                             title="Entrar al usuario"> <i class="pi pi-sign-in "></i> </button>
+                                        <button *ngIf="canStartSupportAccess(user)" type="button"
+                                            (click)="openSupportAccess(user)"
+                                            class="button button--primary-flat management__support-access-button"
+                                            title="Entrar como esta cuenta (soporte)">
+                                            <i class="pi pi-key"></i>
+                                        </button>
                                         <button (click)="editUser(user)" class="button button--primary-flat"
                                             title="Editar usuario" *ngIf="canUpdateUsers()"> <i
                                                 class="pi pi-pencil"></i> </button>
@@ -634,11 +646,17 @@
                     </span>
                 </div>
                 <div class="management__user-actions"
-                    *ngIf="!loading && selectedUser && currentUserAffiliationTypeId === 'empleado' && canUpdateUsers() && !isSelectedUserCurrentUser">
-                    <button (click)="editUser(selectedUser!)" class="button button--primary-flat"
+                    *ngIf="!loading && selectedUser && currentUserAffiliationTypeId === 'empleado' && !isSelectedUserCurrentUser">
+                    <button *ngIf="canUpdateUsers()" (click)="editUser(selectedUser!)" class="button button--primary-flat"
                         title="Editar usuario">
                         <i class="pi pi-pencil"></i>
                         <span>Modificar</span>
+                    </button>
+                    <button *ngIf="canStartSupportAccess(selectedUser!)" type="button"
+                        (click)="openSupportAccess(selectedUser!)"
+                        class="button button--primary-flat management__support-entry management__support-entry--icon"
+                        title="Entrar como esta cuenta (soporte)" aria-label="Entrar por soporte">
+                        <i class="pi pi-key"></i>
                     </button>
                 </div>
 
@@ -747,6 +765,12 @@
                             <div class="management__user-card-controls">
                                 <button (click)="enterUser(user)" class="button button--primary-flat"
                                     title="Entrar al usuario"> <i class="pi pi-sign-in "></i> </button>
+                                <button *ngIf="canStartSupportAccess(user)" type="button"
+                                    (click)="openSupportAccess(user)"
+                                    class="button button--primary-flat management__support-access-button"
+                                    title="Entrar como esta cuenta (soporte)">
+                                    <i class="pi pi-key"></i>
+                                </button>
                                 <button (click)="editUser(user)" class="button button--primary-flat"
                                     title="Editar usuario" *ngIf="canUpdateUsers()"> <i class="pi pi-pencil"></i>
                                 </button>
@@ -1315,6 +1339,52 @@
 
 
 <div class="card flex justify-content-center">
+
+    <p-dialog [(visible)]="supportAccessDialogVisible" [modal]="true" [draggable]="false"
+        [resizable]="false" [closable]="!startingSupportAccess"
+        [style]="{ width: 'min(520px, calc(100vw - 28px))' }"
+        styleClass="support-access-dialog" (onHide)="closeSupportAccess()">
+        <ng-template pTemplate="header">
+            <div class="support-access-dialog__header">
+                <span class="support-access-dialog__icon"><i class="pi pi-key"></i></span>
+                <div>
+                    <strong>Acceso temporal de soporte</strong>
+                    <small>Sesión segura y auditada</small>
+                </div>
+            </div>
+        </ng-template>
+
+        <div class="support-access-dialog__body" *ngIf="supportAccessTarget">
+            <div class="support-access-dialog__target">
+                <span>Cuenta que abrirás</span>
+                <strong>{{ supportAccessTarget.name }} {{ supportAccessTarget.last_name }}</strong>
+                <small>{{ supportAccessTarget.email }}</small>
+            </div>
+
+            <div class="support-access-dialog__notice">
+                <i class="pi pi-shield"></i>
+                <span>El acceso durará 15 minutos, no cambia la contraseña y todas las acciones quedarán registradas a tu nombre.</span>
+            </div>
+
+            <label class="support-access-dialog__reason">
+                <span>Motivo del acceso <small>obligatorio</small></span>
+                <textarea [(ngModel)]="supportAccessReason" rows="4" maxlength="300"
+                    [disabled]="startingSupportAccess"
+                    placeholder="Ej.: revisar por qué no aparecen sus dispositivos en el mapa"></textarea>
+                <small>{{ supportAccessReason.trim().length }}/300 · mínimo 10 caracteres</small>
+            </label>
+        </div>
+
+        <ng-template pTemplate="footer">
+            <button type="button" class="support-access-dialog__cancel" (click)="closeSupportAccess()"
+                [disabled]="startingSupportAccess">Cerrar</button>
+            <button type="button" class="support-access-dialog__confirm" (click)="confirmSupportAccess()"
+                [disabled]="supportAccessReason.trim().length < 10 || startingSupportAccess">
+                <i [class]="startingSupportAccess ? 'pi pi-spin pi-spinner' : 'pi pi-sign-in'"></i>
+                <span>{{ startingSupportAccess ? 'Abriendo cuenta...' : 'Entrar por soporte' }}</span>
+            </button>
+        </ng-template>
+    </p-dialog>
 
     <p-dialog styleClass="target-form-dialog" [style]="{ width: '860px', maxWidth: '94vw' }" [modal]="true" [visible]="targetFormDisplay"
         (onHide)="onHideTargetForm()" (visibleChange)="!$event && onHideTargetForm()">

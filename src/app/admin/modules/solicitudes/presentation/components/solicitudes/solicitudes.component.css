@@ -1595,6 +1595,55 @@ app-solicitudes > .management__route {
     padding: 4rem;
 }
 
+.sol-load-error {
+    margin: 0.85rem 0;
+    padding: 0.8rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid rgba(220, 38, 38, 0.35);
+    border-radius: 10px;
+    background: rgba(220, 38, 38, 0.08);
+    color: var(--globalColorTextDark);
+    font-size: 0.82rem;
+}
+
+.sol-load-error > div,
+.sol-load-error button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.sol-load-error > div > i {
+    color: #dc2626;
+}
+
+.sol-load-error button {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 0 0.8rem;
+    border: 1px solid #dc2626;
+    border-radius: 7px;
+    background: transparent;
+    color: #dc2626;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+@media (max-width: 640px) {
+    .sol-load-error {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .sol-load-error button {
+        justify-content: center;
+    }
+}
+
 /* ============================================
    FORM (DIALOG)
    ============================================ */

@@ -86,7 +86,7 @@ export class AppComponent implements OnInit, OnDestroy {
       const user = this.authService.getCurrentUser();
       const sessionDate = localStorage.getItem('session_date');
 
-      if (user && user.id && sessionDate) {
+      if (user && user.id && sessionDate && !this.authService.isSupportImpersonating()) {
         this.http.get<{ valid: boolean }>(`${environment.apiUrl}/users/${user.id}/verify-session?session_date=${sessionDate}`)
           .subscribe({
             next: (res: { valid: boolean }) => {

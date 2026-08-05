@@ -1,6 +1,6 @@
 /// <reference types="google.maps" />
 
-import { of } from 'rxjs';
+import { of, Subject } from 'rxjs';
 import { DEVICE_CANCELLATION_REASONS } from '../../../../../../core/constants/device-cancellation-reasons.constant';
 import { Solicitud } from '../../../../../../core/services/solicitudes.service';
 import { SolicitudesComponent } from './solicitudes.component';
@@ -604,6 +604,32 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(savedSolicitud.scheduled_date).toBe('2026-07-28T15:40');
         expect(savedSolicitud.installations?.[0]?.scheduled_date).toBe('2026-07-28T15:40');
         expect(savedSolicitud.installations?.[1]?.scheduled_date).toBe('2026-07-28T17:10');
+    });
+
+    it('shows a newly created request immediately and refreshes without blocking the board', async () => {
+        const { component, solicitudesService } = createComponent();
+        const created: Solicitud = {
+            _id: 'new-request',
+            type: 'instalacion',
+            status: 'pendiente',
+            client_name: 'Cliente nuevo',
+            scheduled_date: '2026-07-28T15:40',
+            installations: [{ device_type: 'gps' }],
+        };
+        solicitudesService.create.and.returnValue(of(created));
+        component.selectedSolicitud = {
+            type: 'instalacion',
+            status: 'pendiente',
+            client_name: 'Cliente nuevo',
+            scheduled_date: '2026-07-28T15:40',
+            installations: [{ device_type: 'gps' }],
+        };
+
+        await component.saveSolicitud();
+
+        expect(component.solicitudes).toContain(created);
+        expect(component.savingSolicitud).toBeFalse();
+        expect(component.loadSolicitudes).toHaveBeenCalledWith(false, { silent: true });
     });
 
     it('shows the assigned process when the technician has another request less than one hour away', async () => {
@@ -1501,6 +1527,25 @@ describe('SolicitudesComponent scheduled date editing', () => {
             'request-4',
             'request-2',
         ]);
+    });
+
+    it('releases a visible loader even when a silent refresh supersedes it', async () => {
+        const { component, solicitudesService } = createComponent();
+        const visibleResponse = new Subject<{ data: Solicitud[]; total: number }>();
+        (component.loadSolicitudes as jasmine.Spy).and.callThrough();
+        solicitudesService.getAll.and.returnValues(
+            visibleResponse.asObservable(),
+            of({ data: [], total: 0 }),
+        );
+
+        const visibleLoad = component.loadSolicitudes();
+        expect(component.loading).toBeTrue();
+        await component.loadSolicitudes(false, { silent: true });
+        visibleResponse.next({ data: [], total: 0 });
+        visibleResponse.complete();
+        await visibleLoad;
+
+        expect(component.loading).toBeFalse();
     });
 
     it('does not hide requests for an invalid date range and clears all filters locally', () => {

@@ -7,6 +7,7 @@ import {
     FirebaseNotificationsService,
 } from '@core/services/firebase-notifications.service';
 import { CommunicationFloatingMessage, CommunicationNotificationService } from '@core/services/communication-notification.service';
+import { AuthService } from '@core/services/auth.service';
 
 @Component({
     selector: 'app-admin',
@@ -21,6 +22,8 @@ export class AdminComponent implements OnInit, OnDestroy {
     showConversationReminderModal: boolean = false;
     conversationReminder: ConversationReminderNotification | null = null;
     floatingMessage: CommunicationFloatingMessage | null = null;
+    supportImpersonation: any | null = null;
+    endingSupportImpersonation: boolean = false;
     private transferSub!: Subscription;
     private reminderSub!: Subscription;
     private floatingSub!: Subscription;
@@ -29,10 +32,12 @@ export class AdminComponent implements OnInit, OnDestroy {
     constructor(
         private firebaseNotifications: FirebaseNotificationsService,
         private communicationNotifications: CommunicationNotificationService,
+        private authService: AuthService,
         private router: Router
     ) {}
 
     ngOnInit(): void {
+        this.supportImpersonation = this.authService.getSupportImpersonationState();
         this.transferSub = this.firebaseNotifications.chatTransferReceived$.subscribe((data: any) => {
             if (data && data.conversationId) {
                 this.transferConversationId = data.conversationId;
@@ -151,5 +156,14 @@ export class AdminComponent implements OnInit, OnDestroy {
             .slice(0, 2)
             .map((part) => part.charAt(0).toUpperCase())
             .join('');
+    }
+
+    endSupportAccess(): void {
+        if (this.endingSupportImpersonation) return;
+        this.endingSupportImpersonation = true;
+        this.authService.endSupportImpersonation().subscribe({
+            next: () => window.location.assign('/admin/management'),
+            error: () => window.location.assign('/admin/management'),
+        });
     }
 }

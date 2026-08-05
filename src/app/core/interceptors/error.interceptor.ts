@@ -22,6 +22,27 @@ export const errorInterceptor: HttpInterceptorFn = (
             return throwError(() => error);
           }
 
+          const supportSession = sessionStorage.getItem('support_original_session');
+          if (supportSession) {
+            try {
+              const original = JSON.parse(supportSession);
+              if (original?.token && original?.user) {
+                localStorage.setItem('authtoken', original.token);
+                localStorage.setItem('user', original.user);
+                if (original.sessionDate) {
+                  localStorage.setItem('session_date', original.sessionDate);
+                } else {
+                  localStorage.removeItem('session_date');
+                }
+                sessionStorage.removeItem('support_original_session');
+                window.location.href = '/admin/management';
+                return throwError(() => error);
+              }
+            } catch (restoreError) {
+              console.error('No fue posible restaurar la sesión root de soporte:', restoreError);
+            }
+          }
+
           // Limpiar el token y redirigir al login
           localStorage.removeItem('authtoken');
           localStorage.removeItem('user');
