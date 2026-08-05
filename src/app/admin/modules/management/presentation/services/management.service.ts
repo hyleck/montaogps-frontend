@@ -27,69 +27,45 @@ export class ManagementService {
   setOp(op: string, userId?: string) {
     const previousOp = this.op;
     const previousUserId = this.currentUserId;
-    
-    this.op = op;
-    
-    if (userId) {
-      this.currentUserId = userId;
-    } else if (!this.currentUserId) {
-      const currentUser = this.authService.getCurrentUser();
-      if (currentUser) {
-        this.currentUserId = currentUser.id;
-      }
-    }
-    
-    // Solo navegar si cambió el usuario o es la primera vez que se establece la operación
-    const userChanged = previousUserId !== this.currentUserId;
-    const isFirstTime = !previousOp;
-    
-    if (userChanged || isFirstTime) {
-      
-      const searchTerms: { [key: string]: string | undefined } = {
-        u: this.searchUsersTerm,
-        t: this.searchTargetsTerm
-      };
-      const searchParam = searchTerms[op];
 
-      this.router.navigate(
-        ['admin/management', op, this.currentUserId],
-        { 
-          queryParams: { search: searchParam },
-          queryParamsHandling: 'merge' // Preservar otros query params como 'target'
-        }
-      ).then(() => {
-        this.setURLStatus();
-      });
-    } else {
-      
-      // Solo actualizar la URL sin navegar completamente
-      const searchTerms: { [key: string]: string | undefined } = {
-        u: this.searchUsersTerm,
-        t: this.searchTargetsTerm
-      };
-      const searchParam = searchTerms[op];
-      
-      this.router.navigate(
-        ['admin/management', op, this.currentUserId],
-        { 
-          queryParams: { search: searchParam },
-          queryParamsHandling: 'merge', // Preservar otros query params como 'target'
-          replaceUrl: true  // Reemplazar la URL actual sin agregar al historial
-        }
-      ).then(() => {
-        this.setURLStatus();
-      });
+    const normalizedOp = op === 't' ? 't' : 'u';
+    const currentUser = this.authService.getCurrentUser();
+    const nextUserId = String(
+      userId || this.currentUserId || currentUser?.id || (currentUser as any)?._id || ''
+    ).trim();
+    if (!nextUserId) {
+      this.router.navigate(['auth/login']);
+      return;
     }
+
+    this.op = normalizedOp;
+    this.currentUserId = nextUserId;
+    const userChanged = previousUserId !== nextUserId;
+    if (userChanged) this.selectedUser = undefined;
+
+    const searchParam = normalizedOp === 'u'
+      ? this.searchUsersTerm.trim()
+      : this.searchTargetsTerm.trim();
+    const currentQuery = this.router.parseUrl(this.router.url).queryParams;
+    const queryParams: Record<string, string> = {};
+    if (searchParam) queryParams['search'] = searchParam;
+    if (!userChanged && normalizedOp === 't' && currentQuery['target']) {
+      queryParams['target'] = currentQuery['target'];
+    }
+
+    this.router.navigate(
+      ['admin/management', normalizedOp, nextUserId],
+      {
+        queryParams,
+        replaceUrl: !userChanged && previousOp === normalizedOp,
+      }
+    ).then(() => this.setURLStatus());
   }
 
   setURLStatus() {
-    // Obtener query params actuales para preservarlos
-    const currentQueryParams = this.router.routerState.root.firstChild?.snapshot.queryParams || {};
-    
-    // Preparar los nuevos query params manteniendo los existentes
-    const newQueryParams: any = {
-      ...currentQueryParams // Preservar parámetros existentes como 'target'
-    };
+    if (!this.op || !this.currentUserId) return;
+    const currentQueryParams = this.router.parseUrl(this.router.url).queryParams || {};
+    const newQueryParams: any = { ...currentQueryParams };
     
     // Solo agregar search si tiene valor
     const searchTerm = this.op === 'u' ? this.searchUsersTerm : this.searchTargetsTerm;
@@ -138,43 +114,38 @@ export class ManagementService {
   }
 
   verifyURLStatus(params: any) {
-    const previousUserId = this.currentUserId;
-    
-    this.op = params['op'];
-    this.currentUserId = params['user'];
     const managementState: any = this.status.getState('management');
-    const currentUser = this.authService.getCurrentUser();
+    const op = params['op'];
+    const userId = params['user'];
 
-    if (!managementState) {
+    if (!op && !userId) {
+      const storedRoute = managementState?.url_route;
+      if (
+        Array.isArray(storedRoute) &&
+        ['u', 't'].includes(storedRoute[1]) &&
+        storedRoute[2]
+      ) {
+      this.router.navigate(
+          storedRoute,
+          {
+          queryParams: managementState.url_query_params,
+            replaceUrl: true,
+          }
+        );
+      } else {
       this.goDefaultRoute();
+      }
       return;
     }
 
-    const storedUserId = managementState.url_route?.[2];
-    if (!params['op'] && !params['user'] && storedUserId && currentUser?.id && storedUserId !== currentUser.id) {
+    if (!['u', 't'].includes(op) || !/^[a-f\d]{24}$/i.test(String(userId || ''))) {
       this.status.removeState('management');
       this.goDefaultRoute();
       return;
     }
 
-    if (managementState.url_route && managementState.url_route[1] && !params['op'] && !params['user']) {
-      this.router.navigate(
-        managementState.url_route,
-        { 
-          queryParams: managementState.url_query_params,
-          queryParamsHandling: 'merge' // Preservar otros query params como 'target'
-        }
-      );
-    } else if ((!managementState.url_route || !managementState.url_route[1]) && !params['op'] && !params['user']) {
-      this.goDefaultRoute();
-    }
-
-    // Solo cargar datos del usuario si cambió o no estaba cargado
-    if (this.currentUserId && (previousUserId !== this.currentUserId || !this.selectedUser)) {
-      this.loadUserData(this.currentUserId);
-    } else if (this.currentUserId) {
-    }
-
+    this.op = op;
+    this.currentUserId = userId;
     this.setURLStatus();
   }
 
@@ -189,25 +160,11 @@ export class ManagementService {
   }
 
   searchUser() {
-    this.router.navigate(
-      ['admin/management', this.op, this.currentUserId],
-      { 
-        queryParams: { search: this.searchUsersTerm },
-        queryParamsHandling: 'merge' // Preservar otros query params como 'target'
-      }
-    );
-    this.setURLStatus();
+    this.setOp('u', this.currentUserId);
   }
 
   searchTargets() {
-    this.router.navigate(
-      ['admin/management', this.op, this.currentUserId],
-      { 
-        queryParams: { search: this.searchTargetsTerm },
-        queryParamsHandling: 'merge' // Preservar otros query params como 'target'
-      }
-    );
-    this.setURLStatus();
+    this.setOp('t', this.currentUserId);
   }
 
   setCurrentUserId(userId: string) {

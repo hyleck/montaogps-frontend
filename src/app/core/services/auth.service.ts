@@ -56,12 +56,6 @@ export class AuthService {
 
     return this._httpClient.post<any>(this.LOGIN_URL, { email: normalizedEmail, password: normalizedPassword }).pipe(
       tap(response => {
-        // 🔍 DEBUG: Imprimir respuesta completa del login
-        console.log('🔍 DEBUG - RESPUESTA COMPLETA DEL LOGIN:', response);
-        if (response.user) {
-          console.log('🔍 DEBUG - USUARIO EN RESPUESTA DEL LOGIN:', response.user);
-        }
-
         if (response.access_token) {
           this.saveToken(response.access_token);
           if (response.session_date) {
@@ -78,8 +72,6 @@ export class AuthService {
           // Obtener datos completos solo para configuración inicial
           return this.userService.getById(response.user.id).pipe(
             tap(userData => {
-              // 🔍 DEBUG: Imprimir usuario completo como llega del backend
-              console.log('🔍 DEBUG - USUARIO COMPLETO DEL BACKEND:', userData);
               // Actualizar el usuario en localStorage con los privilegios completos
               this.updateUserWithPrivileges(userData);
               this.configureUserSettings(userData);
@@ -172,7 +164,6 @@ export class AuthService {
       };
 
       // 🔍 DEBUG: Imprimir información del usuario que se va a guardar
-      console.log('🔍 DEBUG - GUARDANDO USUARIO:', basicUserInfo);
 
       localStorage.setItem(this.USER_KEY, JSON.stringify(basicUserInfo));
     } catch (error) {
@@ -193,7 +184,6 @@ export class AuthService {
       // Si el usuario es root, generar todos los privilegios automáticamente
       if (currentUser.root === true) {
         privilegesToSave = this.generateAllPrivileges();
-        console.log('🔍 DEBUG - USUARIO ROOT DETECTADO - GENERANDO TODOS LOS PRIVILEGIOS:', privilegesToSave);
       }
 
       // Agregar los privilegios, affiliation_type_id y access_level_id al usuario existente
@@ -206,7 +196,6 @@ export class AuthService {
       };
 
       // 🔍 DEBUG: Imprimir usuario actualizado con privilegios
-      console.log('🔍 DEBUG - ACTUALIZANDO USUARIO CON PRIVILEGIOS:', updatedUser);
 
       // Guardar el usuario actualizado en localStorage
       localStorage.setItem(this.USER_KEY, JSON.stringify(updatedUser));

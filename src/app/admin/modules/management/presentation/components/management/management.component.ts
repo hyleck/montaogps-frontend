@@ -226,6 +226,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
   private totalUsersCount: number = 0;
   private userRouteLoadRequestId: number = 0;
   private usersListLoadRequestId: number = 0;
+  private targetsLoadRequestId: number = 0;
+  private userPathLoadRequestId: number = 0;
+  private warehouseLoadRequestId: number = 0;
+  private selectionWatcherIntervalId: ReturnType<typeof setInterval> | null = null;
 
   // Getters para el template
   get isLoadingMoreTargets(): boolean {
@@ -933,6 +937,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }
     if (this.vibrationIntervalId) {
       clearInterval(this.vibrationIntervalId);
+    }
+    if (this.selectionWatcherIntervalId) {
+      clearInterval(this.selectionWatcherIntervalId);
+      this.selectionWatcherIntervalId = null;
     }
     this.breadcrumbService.clear();
     this.stopPolling();
@@ -3333,6 +3341,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         debounceTime(300), // Esperar 300ms después de que el usuario deje de escribir
         // distinctUntilChanged() removed to allow re-triggering search with same term after user modifications
         switchMap(searchTerm => {
+          const requestedUserId = this.selectedUser?._id || '';
           if (searchTerm.trim() === '') {
             // Si no hay término de búsqueda, cargar usuarios normales con paginación
             this.isSearchingUsers = false;
@@ -3341,9 +3350,11 @@ export class ManagementComponent implements OnInit, OnDestroy {
               this.currentUsersOffset = 0;
               this.hasMoreUsers = true;
               this.users = [];
-              return this.userService.getAllWithPagination(this.selectedUser._id, 0, this.usersPageSize);
+              return this.userService
+                .getAllWithPagination(requestedUserId, 0, this.usersPageSize)
+                .pipe(map(response => ({ response, requestedUserId })));
             }
-            return from([{ users: [], totalCount: 0 }]);
+            return from([{ response: { users: [], totalCount: 0 }, requestedUserId }]);
           } else {
             // Realizar búsqueda con paginación
             this.isSearchingUsers = true;
@@ -3351,15 +3362,19 @@ export class ManagementComponent implements OnInit, OnDestroy {
             this.currentUsersOffset = 0;
             this.hasMoreUsers = true;
             this.users = [];
-            return this.userService.search(searchTerm, this.selectedUser?._id, 0, this.usersPageSize);
+            return this.userService
+              .search(searchTerm, requestedUserId, 0, this.usersPageSize)
+              .pipe(map(response => ({ response, requestedUserId })));
           }
         })
       ).subscribe({
-        next: (response) => {
+        next: ({ response, requestedUserId }) => {
+          if (this.selectedUser?._id !== requestedUserId) return;
           // Siempre recibimos un objeto con users y totalCount
           this.users = this.sanitizeManagementUsers(response.users);
           this.totalUsersCount = response.totalCount;
-          this.hasMoreUsers = this.users.length < this.totalUsersCount;
+          this.currentUsersOffset = response.users.length;
+          this.hasMoreUsers = this.currentUsersOffset < this.totalUsersCount;
         },
         error: (error) => {
           console.error('❌ Error en búsqueda de usuarios:', error);
@@ -3379,6 +3394,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
         debounceTime(300), // Esperar 300ms después de que el usuario deje de escribir
         // distinctUntilChanged() removed to allow re-triggering search with same term after target modifications
         switchMap(searchTerm => {
+          const requestedUserId = this.selectedUser?._id || '';
           if (searchTerm.trim() === '') {
             // Si no hay término de búsqueda, cargar targets normales con paginación
             this.isSearchingTargets = false;
@@ -3389,18 +3405,16 @@ export class ManagementComponent implements OnInit, OnDestroy {
               this.targets = [];
               const parentId = this.managementService.getCurrentUserId();
               return from(this.targetsService.getTargetsByUserId(
-                this.selectedUser._id,
+                requestedUserId,
                 parentId,
                 0,
                 this.pageSize,
                 this.filterStatus,
                 this.filterTag || undefined,
                 this.filterSimCompany || undefined
-              )).pipe(
-                switchMap(response => from([{ devices: response.devices, totalCount: response.totalCount }]))
-              );
+              )).pipe(map(response => ({ response, requestedUserId })));
             }
-            return from([{ devices: [], totalCount: 0 }]);
+            return from([{ response: { devices: [], totalCount: 0 }, requestedUserId }]);
           } else {
             // Realizar búsqueda con paginación
             this.isSearchingTargets = true;
@@ -3417,11 +3431,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
               this.filterStatus,
               this.filterTag || undefined,
               this.filterSimCompany || undefined
-            ));
+            )).pipe(map(response => ({ response, requestedUserId })));
           }
         })
       ).subscribe({
-        next: (response) => {
+        next: ({ response, requestedUserId }) => {
+          if (this.selectedUser?._id !== requestedUserId) return;
           // Siempre recibimos un objeto con devices y totalCount
           this.targets = response.devices || [];
 
@@ -3516,7 +3531,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Ya que PrimeNG no emite eventos específicos para cambios de selección
     let previousSelectionLength = 0;
 
-    setInterval(() => {
+    this.selectionWatcherIntervalId = setInterval(() => {
       const currentSelectionLength = this.targetsSelected?.length || 0;
 
       if (currentSelectionLength !== previousSelectionLength) {
@@ -3697,8 +3712,12 @@ export class ManagementComponent implements OnInit, OnDestroy {
     this.selectedTargetForMap = null;
     this.selectedTargetOwnerLocation = null;
 
-    // Limpiar input de búsqueda de usuarios al cambiar de usuario
-    this.searchUsersTerm = '';
+    const activeSearch = this.route.snapshot.queryParamMap.get('search') || '';
+    const activeOp = this.managementService.getOp();
+    this.searchUsersTerm = activeOp === 'u' ? activeSearch : '';
+    this.searchTargetsTerm = activeOp === 't' ? activeSearch : '';
+    this.initialSearchExecuted = false;
+    this.pendingInitialSearchTerm = this.searchTargetsTerm;
 
     this.loadUserPath(user._id);
     this.loadUsersForUser(user._id);
@@ -3711,6 +3730,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
   // ====================================
 
   private loadUserWarehouse(): void {
+    const requestId = ++this.warehouseLoadRequestId;
     if (!this.selectedUser?.email) {
       this.userWarehouse = null;
       return;
@@ -3726,9 +3746,14 @@ export class ManagementComponent implements OnInit, OnDestroy {
     // Refresh in background
     this.inventoryService.getWarehouses().subscribe({
       next: (warehouses) => {
+        if (
+          requestId !== this.warehouseLoadRequestId ||
+          this.selectedUser?.email !== email
+        ) return;
         this.userWarehouse = warehouses.find(w => w.assigned_user === email) || null;
       },
       error: () => {
+        if (requestId !== this.warehouseLoadRequestId) return;
         if (!this.userWarehouse) this.userWarehouse = null;
       }
     });
@@ -3867,11 +3892,17 @@ export class ManagementComponent implements OnInit, OnDestroy {
   }
 
   private loadUserPath(userId: string): void {
+    const requestId = ++this.userPathLoadRequestId;
     this.userService.getUserPath(userId).subscribe({
       next: (pathData) => {
+        if (
+          requestId !== this.userPathLoadRequestId ||
+          this.selectedUser?._id !== userId
+        ) return;
         this.breadcrumbService.updateFromUserPath(pathData, this.selectedUser);
       },
       error: (error) => {
+        if (requestId !== this.userPathLoadRequestId) return;
         console.error('Error al obtener ruta del usuario:', error);
         this.breadcrumbService.updateFromUserPath([], this.selectedUser);
       }
@@ -4004,8 +4035,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.totalUsersCount = usersResponse.totalCount;
 
           // Verificar si hay más usuarios disponibles
-          this.hasMoreUsers = usersResponse.users.length === this.usersPageSize;
-          this.currentUsersOffset += this.usersPageSize;
+          this.currentUsersOffset += usersResponse.users.length;
+          this.hasMoreUsers = this.currentUsersOffset < this.totalUsersCount;
 
           console.log(`[USUARIOS] ✅ Usuarios cargados exitosamente:`, {
             totalEnLista: this.users.length,
@@ -4035,8 +4066,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           this.totalUsersCount = usersResponse.totalCount;
 
           // Verificar si hay más usuarios disponibles
-          this.hasMoreUsers = usersResponse.users.length === this.usersPageSize;
-          this.currentUsersOffset += this.usersPageSize;
+          this.currentUsersOffset += usersResponse.users.length;
+          this.hasMoreUsers = this.currentUsersOffset < this.totalUsersCount;
 
           console.log(`[USUARIOS] ✅ Usuarios cargados exitosamente:`, {
             totalEnLista: this.users.length,
@@ -4295,8 +4326,8 @@ export class ManagementComponent implements OnInit, OnDestroy {
           ...this.sanitizeManagementUsers(response.users),
         ]);
         this.totalUsersCount = response.totalCount;
-        this.hasMoreUsers = this.users.length < this.totalUsersCount;
-        this.currentUsersOffset += this.usersPageSize;
+        this.currentUsersOffset += response.users.length;
+        this.hasMoreUsers = this.currentUsersOffset < this.totalUsersCount;
 
         console.log(`[SCROLL INFINITO USUARIOS] ✅ Cargados ${response.users.length} usuarios más. Total: ${this.users.length}/${this.totalUsersCount}`);
       }
@@ -4405,6 +4436,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
     }, 100);
   }
   private async loadTargetsForUser(userId: string, resetPagination: boolean = true) {
+    const requestId = ++this.targetsLoadRequestId;
     // Validar permisos antes de cargar targets/devices
     if (!this.canReadDevices()) {
       this.messageService.add({
@@ -4447,6 +4479,13 @@ export class ManagementComponent implements OnInit, OnDestroy {
       const sharedPromise = userEmail ? this.targetsService.getSharedTargets(userEmail) : Promise.resolve([]);
 
       const [targetsResponse, sharedTargets] = await Promise.all([targetsPromise, sharedPromise]);
+
+      if (
+        requestId !== this.targetsLoadRequestId ||
+        this.selectedUser?._id !== userId
+      ) {
+        return;
+      }
 
       // Filtrar targets compartidos manualmente (frontend) ya que la API de shared no soporta filtro por status aún
       let filteredSharedTargets = sharedTargets;
@@ -4550,6 +4589,7 @@ export class ManagementComponent implements OnInit, OnDestroy {
       this.initialSearchExecuted = true;
 
     } catch (error) {
+      if (requestId !== this.targetsLoadRequestId) return;
       console.error('❌ Error al cargar objetivos:', error);
 
       if (!this.selectedTargetForMap) {
@@ -4562,9 +4602,10 @@ export class ManagementComponent implements OnInit, OnDestroy {
         detail: this.translate.instant('management.targetsLoadError')
       });
     } finally {
-      // Desactivar estado de carga específico para targets
-      this.loadingTargets = false;
-      this.targetsLoadCompletedFlag = true;
+      if (requestId === this.targetsLoadRequestId) {
+        this.loadingTargets = false;
+        this.targetsLoadCompletedFlag = true;
+      }
     }
   }
 
