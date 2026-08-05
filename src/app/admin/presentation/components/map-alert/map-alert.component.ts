@@ -17,7 +17,6 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
     drawingManager: any;
     currentPolygon: any;
     drawingClickListener: any;
-    nativeClickHandler?: (event: MouseEvent) => void;
     vertexMarkers: any[] = [];
     manualCoordinates: Array<{ lat: number; lng: number }> = [];
     isManualDrawing = false;
@@ -36,14 +35,16 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
     }
 
     ngOnDestroy(): void {
-        if (this.currentPolygon) {
-            this.currentPolygon.setMap(null);
-        }
+        this.disableManualDrawing();
+        this.removeCurrentPolygon();
+        this.clearTargetMarkers();
         if (this.drawingManager) {
+            google.maps.event.clearInstanceListeners(this.drawingManager);
             this.drawingManager.setMap(null);
         }
-        this.disableManualDrawing();
-        this.clearVertexMarkers();
+        if (this.map) {
+            google.maps.event.clearInstanceListeners(this.map);
+        }
     }
 
     private initializeMap(): void {
@@ -68,7 +69,6 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
 
                 if (this.provider === 'google') {
                     this.updateMarkers();
-                    this.startDrawing(false);
                 }
             }).catch(err => {
                 console.error('Error loading map script:', err);
@@ -176,16 +176,11 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
         this.disableManualDrawing();
         this.isManualDrawing = true;
         this.map.setOptions?.({ draggableCursor: 'crosshair' });
-        this.nativeClickHandler = (event: MouseEvent) => {
-            const target = event.target as HTMLElement | null;
-            if (target?.closest('.map-toolbar')) return;
-
-            const latLng = this.getLatLngFromContainerClick(event);
-            if (latLng) {
-                this.addManualVertex(latLng);
+        this.drawingClickListener = google.maps.event.addListener(this.map, 'click', (event: any) => {
+            if (event?.latLng) {
+                this.addManualVertex(event.latLng);
             }
-        };
-        this.mapContainer.nativeElement.addEventListener('click', this.nativeClickHandler, true);
+        });
     }
 
     finishDrawing(): void {
@@ -245,37 +240,17 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
             google.maps.event.removeListener(this.drawingClickListener);
             this.drawingClickListener = null;
         }
-        if (this.nativeClickHandler && this.mapContainer?.nativeElement) {
-            this.mapContainer.nativeElement.removeEventListener('click', this.nativeClickHandler, true);
-            this.nativeClickHandler = undefined;
-        }
         this.isManualDrawing = false;
         this.map?.setOptions?.({ draggableCursor: null });
     }
 
-    private getLatLngFromContainerClick(event: MouseEvent): any | null {
-        if (!this.map || !this.mapContainer?.nativeElement) return null;
-
-        const rect = this.mapContainer.nativeElement.getBoundingClientRect();
-        const point = new google.maps.Point(event.clientX - rect.left, event.clientY - rect.top);
-        const projection = this.map.getProjection?.();
-        const bounds = this.map.getBounds?.();
-
-        if (!projection || !bounds) return null;
-
-        const topRight = projection.fromLatLngToPoint(bounds.getNorthEast());
-        const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest());
-        const scale = Math.pow(2, this.map.getZoom());
-        const worldPoint = new google.maps.Point(
-            bottomLeft.x + point.x / scale,
-            topRight.y + point.y / scale
-        );
-
-        return projection.fromPointToLatLng(worldPoint);
-    }
-
     private removeCurrentPolygon(): void {
         if (this.currentPolygon) {
+            const path = this.currentPolygon.getPath?.();
+            if (path) {
+                google.maps.event.clearInstanceListeners(path);
+            }
+            google.maps.event.clearInstanceListeners(this.currentPolygon);
             this.currentPolygon.setMap(null);
             this.currentPolygon = null;
         }
@@ -303,7 +278,10 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
     }
 
     private clearVertexMarkers(): void {
-        this.vertexMarkers.forEach(marker => marker.setMap(null));
+        this.vertexMarkers.forEach(marker => {
+            google.maps.event.clearInstanceListeners(marker);
+            marker.setMap(null);
+        });
         this.vertexMarkers = [];
     }
 
@@ -381,8 +359,7 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
 
     private async updateMarkers(): Promise<void> {
         // Limpiar marcadores existentes
-        this.markers.forEach(marker => marker.setMap(null));
-        this.markers = [];
+        this.clearTargetMarkers();
 
         if (!this.targets || this.targets.length === 0) return;
 
@@ -406,7 +383,9 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
                     hasValidTargets = true;
                     const position = new google.maps.LatLng(lat, lng);
                     const course = geo?.course ?? 0;
-                    const isOffline = (target?.traccarStatus || '').toLowerCase() !== 'online';
+                    const statusText = String(target?.traccarInfo?.status ?? target?.traccarStatus ?? 'desconocido');
+                    const isOnline = statusText.toLowerCase() === 'online';
+                    const isOffline = !isOnline;
 
                     let iconConfig: any;
 
@@ -439,14 +418,18 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
                         opacity: isOffline ? 0.65 : 1
                     });
                     
-                    const statusText = target.traccarStatus || 'desconocido';
-                    const isOnline = statusText.toLowerCase() === 'online';
+                    const rawSpeed = Number(geo?.speed);
+                    const speedText = Number.isFinite(rawSpeed)
+                        ? `${(rawSpeed * 1.852).toFixed(1)} km/h`
+                        : 'Sin datos';
+                    const safeName = this.escapeHtml(target?.name || 'Dispositivo');
+                    const safeStatus = this.escapeHtml(statusText);
                     const infoWindow = new google.maps.InfoWindow({
                         content: `
                           <div style="font-size: 11px; line-height: 1.2; color: #111; min-width: 160px; padding: 6px 8px;">
-                            <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${target.name || 'Target'}</div>
-                            <div style="margin-bottom: 2px;">Velocidad: 0 km/h</div>
-                            <div>Estado: ${statusText}</div>
+                            <div style="font-weight: 700; font-size: 11px; margin-bottom: 3px; color: ${isOnline ? '#16a34a' : '#111'};">${safeName}</div>
+                            <div style="margin-bottom: 2px;">Velocidad: ${speedText}</div>
+                            <div>Estado: ${safeStatus}</div>
                           </div>
                         `
                     });
@@ -469,6 +452,24 @@ export class MapAlertComponent implements OnInit, AfterViewInit, OnDestroy, OnCh
                 google.maps.event.removeListener(listener);
             });
         }
+    }
+
+    private clearTargetMarkers(): void {
+        this.markers.forEach(marker => {
+            google.maps.event.clearInstanceListeners(marker);
+            marker.setMap(null);
+        });
+        this.markers = [];
+    }
+
+    private escapeHtml(value: unknown): string {
+        return String(value ?? '').replace(/[&<>"']/g, character => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        })[character] ?? character);
     }
 
     getPolygonCoordinates(): Array<{ lat: number; lng: number }> | null {

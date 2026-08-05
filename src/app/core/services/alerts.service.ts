@@ -1,20 +1,24 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
-export type AlertType = 'speed' | 'perimeter' | 'power' | 'movement' | 'ignition' | 'connection';
+export type AlertType = 'speed' | 'perimeter' | 'movement' | 'ignition' | 'connection';
 
 export type AlertStatus = 'active' | 'inactive';
 
 export interface CreateAlertDto {
   type: AlertType;
   maxSpeed?: number;
-  targetIds?: string[];
+  targetIds: string[];
   userTopic?: string;
   email?: string;
+  coordinates?: Array<{ lat: number; lng: number }>;
+  trigger?: 'enter' | 'exit';
+  ignitionTrigger?: 'on' | 'off';
   connectionAlertType?: 'online' | 'offline';
+  message?: string;
   oneNotificationEveryFiveHours?: boolean;
 }
 
@@ -45,13 +49,19 @@ export class AlertsService {
 
   constructor(private http: HttpClient) { }
 
-  createAlert(payload: CreateAlertDto): Observable<any> {
-    return this.http.post(this.apiUrl, payload);
+  createAlert(payload: CreateAlertDto): Observable<AlertResponse> {
+    return this.http
+      .post<{ data: AlertResponse }>(this.apiUrl, payload)
+      .pipe(map((response) => response.data));
   }
 
-  getAlerts(): Observable<AlertResponse[]> {
+  getAlerts(targetIds: string[] = []): Observable<AlertResponse[]> {
+    let params = new HttpParams();
+    if (targetIds.length) {
+      params = params.set('targetIds', [...new Set(targetIds)].join(','));
+    }
     return this.http
-      .get<{ data: AlertResponse[] }>(this.apiUrl)
+      .get<{ data: AlertResponse[] }>(this.apiUrl, { params })
       .pipe(map((response) => response?.data ?? []));
   }
 
@@ -61,7 +71,14 @@ export class AlertsService {
       .pipe(map((response) => response.data));
   }
 
-  updateAlert(id: string, payload: { config?: Record<string, any>; targetIds?: string[] }): Observable<AlertResponse> {
+  updateAlert(
+    id: string,
+    payload: {
+      config?: Record<string, unknown>;
+      targetIds?: string[];
+      userTopic?: string;
+    },
+  ): Observable<AlertResponse> {
     return this.http
       .put<{ data: AlertResponse }>(`${this.apiUrl}/${id}`, payload)
       .pipe(map((response) => response.data));

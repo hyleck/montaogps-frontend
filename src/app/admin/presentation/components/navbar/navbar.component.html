@@ -276,49 +276,66 @@
 }
 
 @defer (when alertsDialogVisible) {
-<p-dialog header="{{ 'navbar.alerts' | translate }}" [(visible)]="alertsDialogVisible" [modal]="true"
+<p-dialog header="{{ 'navbar.alertsHubDialogTitle' | translate }}" [(visible)]="alertsDialogVisible" [modal]="true"
     [dismissableMask]="true" [closeOnEscape]="true" [draggable]="false" appendTo="body"
-    [style]="{width: '640px', maxWidth: '90vw'}" styleClass="alerts-dialog">
-    <div class="alerts-modal-content">
-        <div class="alerts-column">
-            <h4>{{ 'navbar.alertTypes' | translate }}</h4>
-            <div class="alerts-options">
-                <button *ngFor="let option of alertsOptions" class="button button--flat-negative alerts-option"
-                    type="button"
-                    [disabled]="(option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement' && option.labelKey !== 'navbar.alertOptionConnection') || (option.labelKey === 'navbar.alertOptionIgnition' && !allSelectedTargetsHaveIgnitionSensor)"
-                    [ngClass]="{'alerts-option--disabled': (option.labelKey !== 'navbar.alertOptionSpeed' && option.labelKey !== 'navbar.alertOptionPerimeter' && option.labelKey !== 'navbar.alertOptionIgnition' && option.labelKey !== 'navbar.alertOptionMovement' && option.labelKey !== 'navbar.alertOptionConnection') || (option.labelKey === 'navbar.alertOptionIgnition' && !allSelectedTargetsHaveIgnitionSensor)}"
-                    (click)="option.labelKey === 'navbar.alertOptionSpeed' ? openSpeedAlertModal() : (option.labelKey === 'navbar.alertOptionPerimeter' ? openPerimeterAlertModal() : (option.labelKey === 'navbar.alertOptionIgnition' ? openIgnitionAlertModal() : (option.labelKey === 'navbar.alertOptionMovement' ? openMovementAlertModal() : (option.labelKey === 'navbar.alertOptionConnection' ? openConnectionAlertModal() : null))))">
-                    >
-                    {{ option.labelKey | translate }}
-                </button>
+    [style]="{width: '1040px', maxWidth: '96vw'}" styleClass="alerts-hub-dialog">
+    <section class="alerts-hub">
+        <header class="alerts-hub__intro">
+            <div>
+                <span class="alerts-hub__eyebrow">{{ 'navbar.alertsHubEyebrow' | translate }}</span>
+                <h2>{{ 'navbar.alertsHubTitle' | translate }}</h2>
+                <p>{{ 'navbar.alertsHubSubtitle' | translate }}</p>
             </div>
-        </div>
-        <div class="alerts-column alerts-selected-column">
-            <h4>
-                {{ 'navbar.selectedTargets' | translate }}
-                ({{ currentSelectedTargets.length }})
-            </h4>
-            <div *ngIf="currentSelectedTargets.length; else noSelectedTargets" class="targets-list alerts-targets-list">
-                <div *ngFor="let target of currentSelectedTargets" class="target-item">
-                    <div class="target-info">
-                        <i class="pi pi-map-marker"></i>
-                        <div class="target-details">
-                            <span class="target-name">{{ target.name }}</span>
-                            <span class="target-imei" *ngIf="target.imei || target.device_imei">
-                                IMEI: {{ target.imei || target.device_imei }}
-                            </span>
-                        </div>
+
+            <div class="alerts-hub__selection" [class.alerts-hub__selection--empty]="!currentSelectedTargets.length">
+                <div class="alerts-hub__selection-count">
+                    <i class="pi pi-car"></i>
+                    <strong>{{ currentSelectedTargets.length }}</strong>
+                </div>
+                <div class="alerts-hub__selection-copy">
+                    <span>{{ 'navbar.alertsHubSelectedDevices' | translate }}</span>
+                    <div class="alerts-hub__target-chips" *ngIf="currentSelectedTargets.length">
+                        <span *ngFor="let target of currentSelectedTargets.slice(0, 3)">
+                            {{ target.name || target.device_imei }}
+                        </span>
+                        <span *ngIf="currentSelectedTargets.length > 3">
+                            +{{ currentSelectedTargets.length - 3 }}
+                        </span>
                     </div>
+                    <small *ngIf="!currentSelectedTargets.length">
+                        {{ 'navbar.alertsHubSelectDevices' | translate }}
+                    </small>
                 </div>
             </div>
-            <ng-template #noSelectedTargets>
-                <div class="no-targets-message">
-                    <i class="pi pi-info-circle"></i>
-                    <span>{{ 'navbar.noSelectedTargets' | translate }}</span>
+        </header>
+
+        <div class="alerts-hub__grid">
+            <button *ngFor="let option of alertsOptions" type="button" class="alert-type-card"
+                [ngClass]="['alert-type-card--' + option.tone, isAlertOptionDisabled(option) ? 'alert-type-card--disabled' : '']"
+                [disabled]="isAlertOptionDisabled(option)" (click)="openAlertOption(option)"
+                [attr.aria-label]="(option.labelKey | translate) + '. ' + (option.descriptionKey | translate)">
+                <span class="alert-type-card__glow"></span>
+                <div class="alert-type-card__topline">
+                    <span class="alert-type-card__icon">
+                        <i [class]="option.icon"></i>
+                    </span>
+                    <span class="alert-type-card__status" *ngIf="option.type === 'ignition' && !allSelectedTargetsHaveIgnitionSensor">
+                        {{ 'navbar.alertsHubSensorUnavailable' | translate }}
+                    </span>
                 </div>
-            </ng-template>
+
+                <div class="alert-type-card__body">
+                    <h3>{{ option.labelKey | translate }}</h3>
+                    <p>{{ option.descriptionKey | translate }}</p>
+                </div>
+
+                <div class="alert-type-card__footer">
+                    <span>{{ 'navbar.alertsHubConfigure' | translate }}</span>
+                    <i class="pi pi-arrow-right"></i>
+                </div>
+            </button>
         </div>
-    </div>
+    </section>
 </p-dialog>
 }
 
@@ -366,10 +383,11 @@
                 <label for="speedAlertMessage">Mensaje personalizado (opcional)</label>
                 <input id="speedAlertMessage" type="text" name="speedAlertMessage" class="custom-input"
                     placeholder="Ej: Exceso de velocidad detectado" [(ngModel)]="speedAlertMessage"
-                    style="width: 100%;" />
+                    maxlength="240" style="width: 100%;" />
             </div>
 
             <button type="button" class="alert-cooldown-toggle" [class.active]="speedAlertFiveHourLimit"
+                [attr.aria-pressed]="speedAlertFiveHourLimit"
                 (click)="speedAlertFiveHourLimit = !speedAlertFiveHourLimit">
                 <i [class]="speedAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
                 <span>Enviar máximo 1 vez cada 5 horas</span>
@@ -384,8 +402,7 @@
 
         <div class="speed-alerts-history">
             <h4>
-                {{ (currentSelectedTargets.length ? 'navbar.speedAlertsTitle' : 'navbar.speedAlertsGlobalTitle') |
-                translate }}
+                {{ 'navbar.speedAlertsTitle' | translate }}
             </h4>
             <div *ngIf="loadingSpeedAlerts" class="speed-alerts-loading">
                 <i class="pi pi-spin pi-spinner"></i>
@@ -501,10 +518,11 @@
                 <label for="ignitionAlertMessage">Mensaje personalizado (opcional)</label>
                 <input id="ignitionAlertMessage" type="text" name="ignitionAlertMessage" class="custom-input"
                     [placeholder]="ignitionTrigger === 'on' ? 'Ej: El motor se ha encendido' : 'Ej: El motor se ha apagado'"
-                    [(ngModel)]="ignitionAlertMessage" style="width: 100%;" />
+                    [(ngModel)]="ignitionAlertMessage" maxlength="240" style="width: 100%;" />
             </div>
 
             <button type="button" class="alert-cooldown-toggle" [class.active]="ignitionAlertFiveHourLimit"
+                [attr.aria-pressed]="ignitionAlertFiveHourLimit"
                 (click)="ignitionAlertFiveHourLimit = !ignitionAlertFiveHourLimit">
                 <i [class]="ignitionAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
                 <span>Enviar máximo 1 vez cada 5 horas</span>
@@ -692,7 +710,8 @@
 
         <!-- Columna derecha: Mapa y formulario -->
         <div class="perimeter-map-form">
-            <app-map-alert provider="google" theme="light" [targets]="currentSelectedTargets"></app-map-alert>
+            <app-map-alert provider="google" [theme]="currentTheme === 'dark' ? 'dark' : 'light'"
+                [targets]="currentSelectedTargets"></app-map-alert>
 
             <form class="perimeter-form-fields" (ngSubmit)="createPerimeterAlert()" #perimeterAlertForm="ngForm">
                 <div class="form-field">
@@ -741,7 +760,7 @@
                     <input id="perimeterNotificationMessage" type="text" name="perimeterNotificationMessage"
                         class="custom-input"
                         [placeholder]="perimeterNotificationTrigger === 'enter' ? 'Ej: Ha llegado a su casa' : 'Ej: Ha salido de su casa'"
-                        [(ngModel)]="perimeterNotificationMessage" style="width: 100%;" />
+                        [(ngModel)]="perimeterNotificationMessage" maxlength="240" style="width: 100%;" />
                 </div>
 
                 <!-- Botón de Crear Alerta (solo si NO está en modo edición) -->
@@ -1663,7 +1682,7 @@
                 <label for="movementAlertMessage">Mensaje personalizado (opcional)</label>
                 <input id="movementAlertMessage" type="text" name="movementAlertMessage" class="custom-input"
                     placeholder="Ej: El dispositivo se ha movido" [(ngModel)]="movementAlertMessage"
-                    style="width: 100%;" />
+                    maxlength="240" style="width: 100%;" />
             </div>
 
             <button type="submit" class="create-alert-btn" [disabled]="creatingMovementAlert">
@@ -1674,7 +1693,7 @@
         </form>
 
         <div class="ignition-alerts-history">
-            <h4>Historial de Alertas</h4>
+            <h4>Configuraciones de alertas</h4>
 
             <div *ngIf="loadingMovementAlerts" class="ignition-alerts-loading">
                 <i class="pi pi-spin pi-spinner"></i>
@@ -1791,10 +1810,11 @@
                 <label for="connectionAlertMessage">Mensaje personalizado (opcional)</label>
                 <input id="connectionAlertMessage" type="text" name="connectionAlertMessage" class="custom-input"
                     [placeholder]="connectionAlertType === 'online' ? 'Ej: El dispositivo está en línea' : 'Ej: El dispositivo está fuera de línea'"
-                    [(ngModel)]="connectionAlertMessage" style="width: 100%;" />
+                    [(ngModel)]="connectionAlertMessage" maxlength="240" style="width: 100%;" />
             </div>
 
             <button type="button" class="alert-cooldown-toggle" [class.active]="connectionAlertFiveHourLimit"
+                [attr.aria-pressed]="connectionAlertFiveHourLimit"
                 (click)="connectionAlertFiveHourLimit = !connectionAlertFiveHourLimit">
                 <i [class]="connectionAlertFiveHourLimit ? 'pi pi-check-circle' : 'pi pi-clock'"></i>
                 <span>Enviar máximo 1 vez cada 5 horas</span>

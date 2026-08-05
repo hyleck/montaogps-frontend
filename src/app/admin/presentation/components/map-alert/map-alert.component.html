@@ -1,12 +1,12 @@
 <div class="map-alert-shell">
     <div class="map-toolbar">
-        <button type="button" class="map-tool-btn" [class.active]="isManualDrawing" (click)="startDrawing()" title="Dibujar perímetro">
+        <button type="button" class="map-tool-btn" [class.active]="isManualDrawing" [attr.aria-pressed]="isManualDrawing" (click)="startDrawing()" title="Dibujar perímetro" aria-label="Dibujar perímetro">
             <i class="pi pi-pencil"></i>
         </button>
-        <button type="button" class="map-tool-btn" (click)="finishDrawing()" title="Finalizar perímetro">
+        <button type="button" class="map-tool-btn" (click)="finishDrawing()" title="Finalizar perímetro" aria-label="Finalizar perímetro">
             <i class="pi pi-check"></i>
         </button>
-        <button type="button" class="map-tool-btn danger" (click)="clearPerimeter()" title="Limpiar perímetro">
+        <button type="button" class="map-tool-btn danger" (click)="clearPerimeter()" title="Limpiar perímetro" aria-label="Limpiar perímetro">
             <i class="pi pi-trash"></i>
         </button>
     </div>

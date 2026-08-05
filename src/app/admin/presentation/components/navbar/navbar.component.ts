@@ -64,6 +64,21 @@ interface BulkProcessChange {
   details: string;
 }
 
+type AlertOptionType =
+  | 'speed'
+  | 'perimeter'
+  | 'ignition'
+  | 'movement'
+  | 'connection';
+
+interface AlertOptionCard {
+  type: AlertOptionType;
+  labelKey: string;
+  descriptionKey: string;
+  icon: string;
+  tone: AlertOptionType;
+}
+
 @Component({
   selector: 'app-navbar',
   templateUrl: './navbar.component.html',
@@ -231,12 +246,42 @@ export class NavbarComponent implements OnInit, OnDestroy {
   alertsDialogVisible: boolean = false;
   speedAlertDialogVisible: boolean = false;
   perimeterAlertDialogVisible: boolean = false;
-  alertsOptions: { labelKey: string }[] = [
-    { labelKey: 'navbar.alertOptionSpeed' },
-    { labelKey: 'navbar.alertOptionPerimeter' },
-    { labelKey: 'navbar.alertOptionIgnition' },
-    { labelKey: 'navbar.alertOptionMovement' },
-    { labelKey: 'navbar.alertOptionConnection' }
+  alertsOptions: AlertOptionCard[] = [
+    {
+      type: 'speed',
+      labelKey: 'navbar.alertOptionSpeed',
+      descriptionKey: 'navbar.alertOptionSpeedDescription',
+      icon: 'pi pi-gauge',
+      tone: 'speed'
+    },
+    {
+      type: 'perimeter',
+      labelKey: 'navbar.alertOptionPerimeter',
+      descriptionKey: 'navbar.alertOptionPerimeterDescription',
+      icon: 'pi pi-map-marker',
+      tone: 'perimeter'
+    },
+    {
+      type: 'ignition',
+      labelKey: 'navbar.alertOptionIgnition',
+      descriptionKey: 'navbar.alertOptionIgnitionDescription',
+      icon: 'pi pi-power-off',
+      tone: 'ignition'
+    },
+    {
+      type: 'movement',
+      labelKey: 'navbar.alertOptionMovement',
+      descriptionKey: 'navbar.alertOptionMovementDescription',
+      icon: 'pi pi-arrows-alt',
+      tone: 'movement'
+    },
+    {
+      type: 'connection',
+      labelKey: 'navbar.alertOptionConnection',
+      descriptionKey: 'navbar.alertOptionConnectionDescription',
+      icon: 'pi pi-wifi',
+      tone: 'connection'
+    }
   ];
   currentSelectedTargets: Target[] = [];
   maxSpeedValue: number | null = null;
@@ -281,6 +326,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     // Cargar el trigger (entrada/salida) desde la configuración de la alerta
     this.perimeterNotificationTrigger = alert.config?.['trigger'] || 'enter';
+    this.perimeterNotificationMessage = alert.config?.['message'] || '';
 
     // Cargar el email de notificación si existe
     const userTopic = alert.userTopic;
@@ -330,8 +376,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
         this.alertsService.updateAlert(this.editingPerimeterAlertId, {
           config: {
             coordinates: updatedCoordinates,
-            trigger: this.perimeterNotificationTrigger
-          }
+            trigger: this.perimeterNotificationTrigger,
+            message: this.perimeterNotificationMessage?.trim() || ''
+          },
+          userTopic: this.perimeterNotificationEmailUserId || undefined,
         })
       );
 
@@ -361,6 +409,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
   cancelPerimeterEdit(): void {
     this.editingPerimeterAlertId = null;
     this.editingPerimeterCoordinates = [];
+    this.perimeterNotificationMessage = '';
+    this.resetPerimeterNotificationEmail();
 
     // Limpiar el perímetro del mapa
     if (this.mapAlertComponent) {
@@ -683,6 +733,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.hasSelectedTargets = this.selectedTargetsCount > 0;
       this.updateMenuItems();
       this.filterSpeedAlertsForSelection();
+      this.filterVisiblePerimeterAlerts();
+      this.filterVisibleIgnitionAlerts();
+      this.filterVisibleMovementAlerts();
+      this.filterConnectionAlertsForSelection();
     });
 
     // Configurar debounce para búsqueda de objetivos cancelados
@@ -878,6 +932,36 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.alertsDialogVisible = true;
   }
 
+  isAlertOptionDisabled(option: AlertOptionCard): boolean {
+    return (
+      this.currentSelectedTargets.length === 0 ||
+      (option.type === 'ignition' && !this.allSelectedTargetsHaveIgnitionSensor)
+    );
+  }
+
+  openAlertOption(option: AlertOptionCard): void {
+    if (this.isAlertOptionDisabled(option)) return;
+
+    this.alertsDialogVisible = false;
+    switch (option.type) {
+      case 'speed':
+        this.openSpeedAlertModal();
+        break;
+      case 'perimeter':
+        this.openPerimeterAlertModal();
+        break;
+      case 'ignition':
+        this.openIgnitionAlertModal();
+        break;
+      case 'movement':
+        this.openMovementAlertModal();
+        break;
+      case 'connection':
+        this.openConnectionAlertModal();
+        break;
+    }
+  }
+
   openSpeedAlertModal(): void {
     this.loadSpeedAlerts();
     this.speedAlertDialogVisible = true;
@@ -984,25 +1068,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const targetIds = (this.currentSelectedTargets || [])
-      .map(target => target?._id || (target as any)?.id)
-      .filter((id): id is string => !!id);
-
-    if (!targetIds.length) {
-      const userIdFromUrl = this.getParentIdFromUrl();
-
-      if (!userIdFromUrl) {
-        this.messageService.add({
-          severity: 'warn',
-          summary: this.translate.instant('common.warning'),
-          detail: this.translate.instant('navbar.userIdRequired')
-        });
-        return;
-      }
-
-      const targetIdsForGlobalAlert = [userIdFromUrl];
-      targetIds.push(...targetIdsForGlobalAlert);
-    }
+    const targetIds = this.getSelectedAlertTargetIds();
+    if (!this.ensureAlertTargetsSelected(targetIds)) return;
 
     if (this.notificationEmail?.trim() && !this.notificationEmailUserId) {
       this.messageService.add({
@@ -1062,6 +1129,26 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.notificationEmail = '';
       this.notificationEmailUserId = null;
     }
+  }
+
+  private getSelectedAlertTargetIds(): string[] {
+    return [
+      ...new Set(
+        (this.currentSelectedTargets || [])
+          .map(target => String(target?._id || (target as any)?.id || '').trim())
+          .filter(Boolean)
+      )
+    ];
+  }
+
+  private ensureAlertTargetsSelected(targetIds = this.getSelectedAlertTargetIds()): boolean {
+    if (targetIds.length) return true;
+    this.messageService.add({
+      severity: 'warn',
+      summary: this.translate.instant('common.warning'),
+      detail: this.translate.instant('navbar.noDevicesSelected')
+    });
+    return false;
   }
 
   onPerimeterNotificationEmailChange(): void {
@@ -1234,27 +1321,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const targetIds = (this.currentSelectedTargets || [])
-      .map(target => target?._id || (target as any)?.id)
-      .filter((id): id is string => !!id);
+    const targetIds = this.getSelectedAlertTargetIds();
+    if (!this.ensureAlertTargetsSelected(targetIds)) return;
 
-    if (!targetIds.length) {
-      const userIdFromUrl = this.getParentIdFromUrl();
-      if (!userIdFromUrl) {
-        this.messageService.add({
-          severity: 'warn',
-          summary: this.translate.instant('common.warning'),
-          detail: this.translate.instant('navbar.userIdRequired')
-        });
-        return;
-      }
-      targetIds.push(userIdFromUrl);
-    }
-
-    const payload = {
-      type: 'perimeter' as const,
+    const payload: CreateAlertDto = {
+      type: 'perimeter',
       coordinates,
-      trigger: this.perimeterNotificationTrigger,
+      trigger: this.perimeterNotificationTrigger as 'enter' | 'exit',
       targetIds,
       userTopic: this.perimeterNotificationEmailUserId || undefined,
       message: this.perimeterNotificationMessage?.trim() || undefined
@@ -1307,7 +1380,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   async loadPerimeterAlerts(): Promise<void> {
     this.loadingPerimeterAlerts = true;
     try {
-      const allAlerts = await firstValueFrom(this.alertsService.getAlerts());
+      const allAlerts = await firstValueFrom(
+        this.alertsService.getAlerts(this.getSelectedAlertTargetIds())
+      );
 
       // Filtrar solo alertas de perímetro
       this.perimeterAlerts = allAlerts.filter(alert => alert.type === 'perimeter');
@@ -1332,7 +1407,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       .filter((id): id is string => !!id);
 
     if (!selectedIds.length) {
-      this.visiblePerimeterAlerts = this.perimeterAlerts;
+      this.visiblePerimeterAlerts = [];
       return;
     }
 
@@ -1420,16 +1495,15 @@ export class NavbarComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const targetIds = this.getSelectedAlertTargetIds();
+    if (!this.ensureAlertTargetsSelected(targetIds)) return;
+
     this.creatingIgnitionAlert = true;
 
     try {
-      const targetIds = this.currentSelectedTargets.length
-        ? this.currentSelectedTargets.map(t => t._id || (t as any).id).filter(id => !!id)
-        : this.currentUser?.id ? [this.currentUser.id] : [];
-
-      const payload: any = {
+      const payload: CreateAlertDto = {
         type: 'ignition',
-        ignitionTrigger: this.ignitionTrigger,
+        ignitionTrigger: this.ignitionTrigger as 'on' | 'off',
         targetIds,
         userTopic: this.ignitionNotificationEmailUserId || undefined,
         message: this.ignitionAlertMessage?.trim() || undefined,
@@ -1467,7 +1541,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   async loadIgnitionAlerts(): Promise<void> {
     this.loadingIgnitionAlerts = true;
     try {
-      const allAlerts = await firstValueFrom(this.alertsService.getAlerts());
+      const allAlerts = await firstValueFrom(
+        this.alertsService.getAlerts(this.getSelectedAlertTargetIds())
+      );
       this.ignitionAlerts = allAlerts.filter(alert => alert.type === 'ignition');
       this.filterVisibleIgnitionAlerts();
     } catch (error) {
@@ -1488,7 +1564,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       .filter((id): id is string => !!id);
 
     if (!selectedIds.length) {
-      this.visibleIgnitionAlerts = this.ignitionAlerts;
+      this.visibleIgnitionAlerts = [];
       return;
     }
 
@@ -1530,10 +1606,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     this.verifyingMovementNotificationEmail = true;
     try {
-      // Usar el mismo patrón que en alertas de perímetro/encendido
-      const users = await firstValueFrom(this.userService.getByEmail(this.movementNotificationEmail));
-      if (users && (users as any).length > 0) {
-        this.movementNotificationEmailUserId = (users as any)[0]._id;
+      const user = await firstValueFrom(
+        this.userService.getByEmail(this.movementNotificationEmail.trim())
+      );
+      const userId = user?._id || (user as any)?.id;
+      if (userId) {
+        this.movementNotificationEmailUserId = userId;
         this.messageService.add({
           severity: 'success',
           summary: this.translate.instant('common.success'),
@@ -1569,28 +1647,27 @@ export class NavbarComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!this.currentSelectedTargets || this.currentSelectedTargets.length === 0) {
+    if (!this.movementNotificationEmailUserId) {
       this.messageService.add({
         severity: 'warn',
         summary: this.translate.instant('common.warning'),
-        detail: this.translate.instant('navbar.noDevicesSelected')
+        detail: this.translate.instant('navbar.verifyEmailPending')
       });
       return;
     }
 
+    const targetIds = this.getSelectedAlertTargetIds();
+    if (!this.ensureAlertTargetsSelected(targetIds)) return;
+
     this.creatingMovementAlert = true;
     try {
-      const targetIds = this.currentSelectedTargets
-        .map(t => t?._id || (t as any)?.id)
-        .filter(id => !!id);
-
       const alertData: CreateAlertDto = {
         type: 'movement',
-        targetIds: targetIds,
+        targetIds,
         userTopic: this.movementNotificationEmailUserId,
         email: this.movementNotificationEmail,
         message: this.movementAlertMessage?.trim() || undefined
-      } as any;
+      };
 
       await firstValueFrom(this.alertsService.createAlert(alertData));
 
@@ -1621,7 +1698,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
     this.loadingMovementAlerts = true;
     try {
-      const alerts = await firstValueFrom(this.alertsService.getAlerts());
+      const alerts = await firstValueFrom(
+        this.alertsService.getAlerts(this.getSelectedAlertTargetIds())
+      );
       this.movementAlerts = alerts.filter(alert => alert.type === 'movement');
       this.filterVisibleMovementAlerts();
     } catch (error) {
@@ -1642,7 +1721,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       .filter((id): id is string => !!id);
 
     if (!selectedIds.length) {
-      this.visibleMovementAlerts = this.movementAlerts;
+      this.visibleMovementAlerts = [];
       return;
     }
 
@@ -1771,7 +1850,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private async loadSpeedAlerts(): Promise<void> {
     this.loadingSpeedAlerts = true;
     try {
-      const alerts = await firstValueFrom(this.alertsService.getAlerts());
+      const alerts = await firstValueFrom(
+        this.alertsService.getAlerts(this.getSelectedAlertTargetIds())
+      );
       this.speedAlerts = (alerts || []).filter(alert => alert.type === 'speed');
       this.filterSpeedAlertsForSelection();
     } catch (error) {
@@ -1798,20 +1879,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   private filterSpeedAlertsForSelection(): void {
-    const currentTargetIds = (this.currentSelectedTargets || [])
-      .map(target => target?._id || (target as any)?.id)
-      .filter((id): id is string => !!id);
-    const userIdFromUrl = this.getParentIdFromUrl();
+    const currentTargetIds = this.getSelectedAlertTargetIds();
 
     if (!currentTargetIds.length) {
-      if (!userIdFromUrl) {
-        this.visibleSpeedAlerts = [];
-        return;
-      }
-
-      this.visibleSpeedAlerts = (this.speedAlerts || []).filter(alert => {
-        return alert.targetIds.includes(userIdFromUrl);
-      });
+      this.visibleSpeedAlerts = [];
       return;
     }
 
@@ -1819,7 +1890,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       if (!alert.targetIds || alert.targetIds.length === 0) {
         return false;
       }
-      return currentTargetIds.every(targetId => alert.targetIds.includes(targetId));
+      return alert.targetIds.some(targetId => currentTargetIds.includes(targetId));
     });
   }
 
@@ -3699,7 +3770,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
         this.connectionNotificationEmailUserId = this.currentUser.id;
       }
     }
-    this.loadConnectionAlerts();
   }
 
   onConnectionNotificationEmailChange(): void {
@@ -3778,22 +3848,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   async createConnectionAlert(): Promise<void> {
-    const targetIds = (this.currentSelectedTargets || [])
-      .map(target => target?._id || (target as any)?.id)
-      .filter((id): id is string => !!id);
-
-    if (!targetIds.length) {
-      const userIdFromUrl = this.getParentIdFromUrl();
-      if (!userIdFromUrl) {
-        this.messageService.add({
-          severity: 'warn',
-          summary: this.translate.instant('common.warning'),
-          detail: this.translate.instant('navbar.userIdRequired')
-        });
-        return;
-      }
-      targetIds.push(userIdFromUrl);
-    }
+    const targetIds = this.getSelectedAlertTargetIds();
+    if (!this.ensureAlertTargetsSelected(targetIds)) return;
 
     if (this.connectionNotificationEmail?.trim() && !this.connectionNotificationEmailUserId) {
       this.messageService.add({
@@ -3857,7 +3913,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   async loadConnectionAlerts(): Promise<void> {
     this.loadingConnectionAlerts = true;
     try {
-      const allAlerts = await firstValueFrom(this.alertsService.getAlerts());
+      const allAlerts = await firstValueFrom(
+        this.alertsService.getAlerts(this.getSelectedAlertTargetIds())
+      );
       this.connectionAlerts = allAlerts.filter(alert => alert.type === 'connection');
       this.filterConnectionAlertsForSelection();
     } catch (error) {
@@ -3885,14 +3943,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
     );
 
     if (selectedIds.size === 0) {
-      const parentId = this.getParentIdFromUrl();
-      if (parentId) {
-        this.visibleConnectionAlerts = this.connectionAlerts.filter(alert =>
-          alert.targetIds && alert.targetIds.includes(parentId)
-        );
-      } else {
-        this.visibleConnectionAlerts = [];
-      }
+      this.visibleConnectionAlerts = [];
       return;
     }
 
