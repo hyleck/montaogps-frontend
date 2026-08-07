@@ -15,7 +15,18 @@ export interface Protocol {
   fixTimeOffsetMinutes?: number;
   timestampStrategy?: 'auto' | 'fix_then_server' | 'server';
   isAirtag?: boolean;
+  templateProtocolId?: string | { _id: string; name?: string };
   commands: ProtocolCommand[];
+}
+
+export interface CreateGpsModelFromTemplateDto {
+  name: string;
+  templateProtocolId: string;
+}
+
+export interface UpdateGpsModelFromTemplateDto {
+  name: string;
+  templateProtocolId?: string;
 }
 
 export interface CreateProtocolDto {

@@ -26,6 +26,11 @@
     </div>
 
     <div class="inventory-actions">
+      <button *ngIf="currentView === 'devices' && canReadGpsModels()" type="button"
+        class="inventory-tool-button" (click)="openGpsModels()">
+        <i class="pi pi-cog"></i>
+        <span>Modelos de GPS</span>
+      </button>
       <button type="button" class="inventory-tool-button" [class.inventory-tool-button--warning]="lowStockCount > 0"
         (click)="openWarehouses()" [disabled]="loadingWarehouses">
         <i [class]="loadingWarehouses ? 'pi pi-spin pi-spinner' : (lowStockCount > 0 ? 'pi pi-exclamation-triangle' : 'pi pi-building')"></i>
@@ -543,6 +548,129 @@
     <p-progressSpinner></p-progressSpinner>
     <p>Cargando...</p>
   </div>
+
+  <!-- MODELOS DE GPS: CRUD AMIGABLE BASADO EN PLANTILLAS -->
+  <p-dialog [(visible)]="gpsModelsDialogVisible" [modal]="true" [draggable]="false" [resizable]="false"
+    [style]="{width: '940px', maxWidth: '96vw'}" styleClass="app-dark-dialog gps-models-dialog"
+    (onHide)="cancelGpsModelForm()">
+    <ng-template pTemplate="header">
+      <div class="gps-models-dialog__heading">
+        <span class="gps-models-dialog__icon"><i class="pi pi-cog"></i></span>
+        <div>
+          <strong>Modelos de GPS</strong>
+          <small>Crea modelos utilizando una configuración que ya funciona.</small>
+        </div>
+      </div>
+    </ng-template>
+
+    <ng-template pTemplate="content">
+      <div class="gps-models-toolbar">
+        <div class="gps-models-search">
+          <i class="pi pi-search"></i>
+          <input type="search" [(ngModel)]="gpsModelSearchQuery" name="gpsModelSearchQuery"
+            placeholder="Buscar modelo o plantilla..." autocomplete="off" />
+          <button *ngIf="gpsModelSearchQuery" type="button" (click)="gpsModelSearchQuery = ''"
+            aria-label="Limpiar búsqueda"><i class="pi pi-times"></i></button>
+        </div>
+        <button *ngIf="canCreateGpsModels()" type="button" class="gps-models-new-button"
+          (click)="startCreateGpsModel()">
+          <i class="pi pi-plus"></i>
+          <span>Nuevo modelo</span>
+        </button>
+      </div>
+
+      <section *ngIf="gpsModelFormVisible" class="gps-model-editor">
+        <header>
+          <div>
+            <span>{{ selectedGpsModel ? 'Editar modelo' : 'Nuevo modelo de GPS' }}</span>
+            <strong>{{ selectedGpsModel ? selectedGpsModel.name : 'Usar una plantilla existente' }}</strong>
+          </div>
+          <button type="button" (click)="cancelGpsModelForm()" aria-label="Cerrar formulario">
+            <i class="pi pi-times"></i>
+          </button>
+        </header>
+
+        <div class="gps-model-editor__fields">
+          <label>
+            <span>Nombre del modelo</span>
+            <input type="text" [(ngModel)]="gpsModelForm.name" name="gpsModelName" maxlength="100"
+              placeholder="Ej. ET300 versión 2026" autocomplete="off" />
+          </label>
+
+          <label>
+            <span>Protocolo de referencia</span>
+            <select [(ngModel)]="gpsModelForm.templateProtocolId" name="gpsModelTemplate">
+              <option value="">
+                {{ selectedGpsModel ? 'Mantener la configuración actual' : 'Seleccionar protocolo base' }}
+              </option>
+              <option *ngFor="let template of gpsModelTemplateOptions" [value]="template._id">
+                {{ template.name }}
+              </option>
+            </select>
+          </label>
+        </div>
+
+        <div class="gps-model-template-preview" *ngIf="selectedGpsModelTemplate as template">
+          <span><i class="pi pi-clone"></i></span>
+          <div>
+            <small>Se utilizará el protocolo</small>
+            <strong>{{ template.name }}</strong>
+          </div>
+        </div>
+
+        <div class="gps-model-editor__actions">
+          <button type="button" class="gps-model-editor__cancel" (click)="cancelGpsModelForm()"
+            [disabled]="gpsModelSaving">Cerrar formulario</button>
+          <button type="button" class="gps-model-editor__save" (click)="saveGpsModel()"
+            [disabled]="gpsModelSaving">
+            <i [class]="gpsModelSaving ? 'pi pi-spin pi-spinner' : 'pi pi-check'"></i>
+            <span>{{ gpsModelSaving ? 'Guardando...' : (selectedGpsModel ? 'Guardar cambios' : 'Crear modelo') }}</span>
+          </button>
+        </div>
+      </section>
+
+      <div *ngIf="gpsModelsLoading" class="gps-models-loading">
+        <i class="pi pi-spin pi-spinner"></i>
+        <span>Cargando modelos...</span>
+      </div>
+
+      <div *ngIf="!gpsModelsLoading && filteredGpsModels.length" class="gps-models-list">
+        <article *ngFor="let model of filteredGpsModels" class="gps-model-row"
+          [class.gps-model-row--editing]="selectedGpsModel?._id === model._id">
+          <span class="gps-model-row__icon"><i [class]="model.isAirtag ? 'pi pi-wifi' : 'pi pi-map-marker'"></i></span>
+          <div class="gps-model-row__identity">
+            <strong>{{ model.name }}</strong>
+            <small>{{ getGpsModelKind(model) }}</small>
+          </div>
+          <div class="gps-model-row__template">
+            <small>Configuración</small>
+            <span><i class="pi pi-clone"></i> {{ getGpsModelTemplateName(model) }}</span>
+          </div>
+          <span class="gps-model-row__commands">
+            <strong>{{ model.commands.length || 0 }}</strong>
+            <small>comandos</small>
+          </span>
+          <div class="gps-model-row__actions">
+            <button *ngIf="canUpdateGpsModels()" type="button" (click)="editGpsModel(model)"
+              pTooltip="Editar modelo" tooltipPosition="top" aria-label="Editar modelo">
+              <i class="pi pi-pencil"></i>
+            </button>
+            <button *ngIf="canDeleteGpsModels()" type="button" class="gps-model-row__delete"
+              (click)="deleteGpsModel(model)" pTooltip="Eliminar modelo" tooltipPosition="top"
+              aria-label="Eliminar modelo">
+              <i class="pi pi-trash"></i>
+            </button>
+          </div>
+        </article>
+      </div>
+
+      <div *ngIf="!gpsModelsLoading && !filteredGpsModels.length" class="gps-models-empty">
+        <span><i class="pi pi-cog"></i></span>
+        <strong>{{ gpsModelSearchQuery ? 'No encontramos modelos' : 'Aún no hay modelos de GPS' }}</strong>
+        <small>{{ gpsModelSearchQuery ? 'Prueba utilizando otro nombre.' : 'Crea el primero utilizando un protocolo existente.' }}</small>
+      </div>
+    </ng-template>
+  </p-dialog>
 
   <!-- DIALOGO DE GESTIÓN DE ALMACENES -->
   <p-dialog [(visible)]="warehouseDialogVisible" [style]="{width: '1180px', maxWidth: '96vw'}" header="Gestión de Almacenes" [modal]="true"

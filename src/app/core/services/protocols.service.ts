@@ -2,7 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Protocol, CreateProtocolDto, UpdateProtocolDto } from '../interfaces/protocol.interface';
+import {
+  Protocol,
+  CreateProtocolDto,
+  UpdateProtocolDto,
+  CreateGpsModelFromTemplateDto,
+  UpdateGpsModelFromTemplateDto,
+} from '../interfaces/protocol.interface';
 
 @Injectable({
   providedIn: 'root'
@@ -38,6 +44,10 @@ export class ProtocolsService {
     return this.http.post<Protocol>(this.apiUrl, createProtocolDto);
   }
 
+  createGpsModelFromTemplate(dto: CreateGpsModelFromTemplateDto): Observable<Protocol> {
+    return this.http.post<Protocol>(`${this.apiUrl}/from-template`, dto);
+  }
+
   /**
    * Actualiza un protocolo existente
    * @param id ID del protocolo a actualizar
@@ -48,6 +58,10 @@ export class ProtocolsService {
     return this.http.patch<Protocol>(`${this.apiUrl}/${id}`, updateProtocolDto);
   }
 
+  updateGpsModelFromTemplate(id: string, dto: UpdateGpsModelFromTemplateDto): Observable<Protocol> {
+    return this.http.patch<Protocol>(`${this.apiUrl}/${id}/from-template`, dto);
+  }
+
   /**
    * Elimina un protocolo
    * @param id ID del protocolo a eliminar
@@ -56,4 +70,4 @@ export class ProtocolsService {
   deleteProtocol(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
-} 
+}

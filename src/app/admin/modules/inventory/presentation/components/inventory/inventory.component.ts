@@ -11,6 +11,7 @@ import {
   Conduce,
 } from 'src/app/core/services/inventory.service';
 import { ProtocolsService } from 'src/app/core/services/protocols.service';
+import { Protocol } from 'src/app/core/interfaces/protocol.interface';
 import { AuthService } from 'src/app/core/services/auth.service';
 import { UserService } from 'src/app/core/services/user.service';
 import { User } from 'src/app/core/interfaces/user.interface';
@@ -52,7 +53,18 @@ export class InventoryComponent implements OnInit {
   loading = true;
   loadingWarehouses = false;
   protocols: { label: string; value: string }[] = [];
-  loadedProtocols: any[] = [];
+  loadedProtocols: Protocol[] = [];
+
+  gpsModelsDialogVisible = false;
+  gpsModelFormVisible = false;
+  gpsModelsLoading = false;
+  gpsModelSaving = false;
+  gpsModelSearchQuery = '';
+  selectedGpsModel: Protocol | null = null;
+  gpsModelForm: { name: string; templateProtocolId: string } = {
+    name: '',
+    templateProtocolId: '',
+  };
 
   globalSearchQuery = '';
   globalSearchStorageId: string | null = null;
@@ -180,20 +192,227 @@ export class InventoryComponent implements OnInit {
     return this.authService.hasPrivilege('inventory', 'delete');
   }
 
+  canReadGpsModels(): boolean {
+    return this.authService.hasPrivilege('protocols', 'read');
+  }
+
+  canCreateGpsModels(): boolean {
+    return this.authService.hasPrivilege('protocols', 'create');
+  }
+
+  canUpdateGpsModels(): boolean {
+    return this.authService.hasPrivilege('protocols', 'update');
+  }
+
+  canDeleteGpsModels(): boolean {
+    return this.authService.hasPrivilege('protocols', 'delete');
+  }
+
   private loadProtocols(): void {
     this.protocolsService.getAllProtocols().subscribe({
-      next: (list: any[]) => {
-        this.loadedProtocols = list;
-        this.protocols = list.map((p) => ({
-          label: p.name || p.type || p._id,
-          value: p._id,
-        }));
-      },
+      next: (list: Protocol[]) => this.applyProtocols(list),
       error: () => {
         this.loadedProtocols = [];
         this.protocols = [];
       },
     });
+  }
+
+  openGpsModels(): void {
+    if (!this.canReadGpsModels()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Sin permiso',
+        detail: 'No tienes permiso para consultar los modelos de GPS.',
+      });
+      return;
+    }
+
+    this.gpsModelsDialogVisible = true;
+    this.gpsModelSearchQuery = '';
+    this.cancelGpsModelForm();
+    this.refreshGpsModels();
+  }
+
+  refreshGpsModels(): void {
+    this.gpsModelsLoading = true;
+    this.protocolsService.getAllProtocols().subscribe({
+      next: (list) => {
+        this.applyProtocols(list);
+        this.gpsModelsLoading = false;
+      },
+      error: (error) => {
+        this.gpsModelsLoading = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudieron cargar los modelos',
+          detail: getApiErrorMessage(error, 'No se pudieron consultar los modelos de GPS.'),
+        });
+      },
+    });
+  }
+
+  startCreateGpsModel(): void {
+    if (!this.canCreateGpsModels()) return;
+    this.selectedGpsModel = null;
+    this.gpsModelForm = { name: '', templateProtocolId: '' };
+    this.gpsModelFormVisible = true;
+  }
+
+  editGpsModel(model: Protocol): void {
+    if (!this.canUpdateGpsModels()) return;
+    this.selectedGpsModel = model;
+    this.gpsModelForm = {
+      name: model.name,
+      templateProtocolId: this.resolveTemplateProtocolId(model.templateProtocolId),
+    };
+    this.gpsModelFormVisible = true;
+  }
+
+  cancelGpsModelForm(): void {
+    this.gpsModelFormVisible = false;
+    this.selectedGpsModel = null;
+    this.gpsModelForm = { name: '', templateProtocolId: '' };
+    this.gpsModelSaving = false;
+  }
+
+  saveGpsModel(): void {
+    const name = this.gpsModelForm.name.trim();
+    if (!name) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Nombre requerido',
+        detail: 'Escribe el nombre del modelo GPS.',
+      });
+      return;
+    }
+    if (!this.selectedGpsModel && !this.gpsModelForm.templateProtocolId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Plantilla requerida',
+        detail: 'Selecciona el protocolo que servirá como plantilla.',
+      });
+      return;
+    }
+
+    this.gpsModelSaving = true;
+    const operation = this.selectedGpsModel
+      ? this.protocolsService.updateGpsModelFromTemplate(this.selectedGpsModel._id, {
+          name,
+          ...(this.gpsModelForm.templateProtocolId
+            ? { templateProtocolId: this.gpsModelForm.templateProtocolId }
+            : {}),
+        })
+      : this.protocolsService.createGpsModelFromTemplate({
+          name,
+          templateProtocolId: this.gpsModelForm.templateProtocolId,
+        });
+
+    operation.subscribe({
+      next: (savedModel) => {
+        this.messageService.add({
+          severity: 'success',
+          summary: this.selectedGpsModel ? 'Modelo actualizado' : 'Modelo creado',
+          detail: `${savedModel.name} está listo para usarse en inventario.`,
+        });
+        this.cancelGpsModelForm();
+        this.refreshGpsModels();
+      },
+      error: (error) => {
+        this.gpsModelSaving = false;
+        this.messageService.add({
+          severity: 'error',
+          summary: 'No se pudo guardar el modelo',
+          detail: getApiErrorMessage(error, 'No se pudo guardar el modelo GPS.'),
+        });
+      },
+    });
+  }
+
+  deleteGpsModel(model: Protocol): void {
+    if (!this.canDeleteGpsModels()) return;
+    this.confirmationService.confirm({
+      header: 'Eliminar modelo GPS',
+      message: `¿Seguro que deseas eliminar ${model.name}? Solo podrá eliminarse si no está asignado a ningún equipo.`,
+      icon: 'pi pi-exclamation-triangle',
+      acceptLabel: 'Eliminar',
+      rejectLabel: 'Cerrar',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.protocolsService.deleteProtocol(model._id).subscribe({
+          next: () => {
+            if (this.selectedGpsModel?._id === model._id) {
+              this.cancelGpsModelForm();
+            }
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Modelo eliminado',
+              detail: `${model.name} fue eliminado correctamente.`,
+            });
+            this.refreshGpsModels();
+          },
+          error: (error) => {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'No se puede eliminar',
+              detail: getApiErrorMessage(error, 'El modelo está siendo utilizado por equipos del sistema.'),
+            });
+          },
+        });
+      },
+    });
+  }
+
+  get filteredGpsModels(): Protocol[] {
+    const query = this.gpsModelSearchQuery.trim().toLowerCase();
+    if (!query) return this.loadedProtocols;
+    return this.loadedProtocols.filter((model) =>
+      [model.name, this.getGpsModelTemplateName(model)]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query)),
+    );
+  }
+
+  get gpsModelTemplateOptions(): Protocol[] {
+    return this.loadedProtocols.filter(
+      (model) => model._id !== this.selectedGpsModel?._id,
+    );
+  }
+
+  get selectedGpsModelTemplate(): Protocol | null {
+    return (
+      this.loadedProtocols.find(
+        (model) => model._id === this.gpsModelForm.templateProtocolId,
+      ) || null
+    );
+  }
+
+  getGpsModelTemplateName(model: Protocol): string {
+    const templateId = this.resolveTemplateProtocolId(model.templateProtocolId);
+    if (!templateId) return 'Configuración original';
+    return this.loadedProtocols.find((item) => item._id === templateId)?.name || 'Plantilla no disponible';
+  }
+
+  getGpsModelKind(model: Protocol): string {
+    if (!model.isAirtag) return 'GPS normal';
+    const normalizedName = model.name.toUpperCase();
+    if (normalizedName.includes('MTAG-P')) return 'MTAG-P';
+    if (normalizedName.includes('MTAG-A')) return 'MTAG-A';
+    return 'Localizador inteligente';
+  }
+
+  private applyProtocols(list: Protocol[]): void {
+    this.loadedProtocols = list || [];
+    this.protocols = this.loadedProtocols.map((protocol) => ({
+      label: protocol.name || protocol._id,
+      value: protocol._id,
+    }));
+  }
+
+  private resolveTemplateProtocolId(
+    template: Protocol['templateProtocolId'],
+  ): string {
+    return typeof template === 'object' ? template?._id || '' : template || '';
   }
 
   loadPackages(): void {
