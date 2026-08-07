@@ -31,6 +31,10 @@ const routes: Routes = [
         loadChildren: () => import('../modules/inventory/presentation/inventory.module').then(m => m.InventoryModule)
       },
       {
+        path: 'revision',
+        loadChildren: () => import('../modules/revision/presentation/revision.module').then(m => m.RevisionModule)
+      },
+      {
         path: 'macro',
         loadChildren: () => import('../modules/macro/presentation/macro.module').then(m => m.MacroModule)
       },

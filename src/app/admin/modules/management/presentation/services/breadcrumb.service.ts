@@ -5,6 +5,15 @@ import { ManagementService } from './management.service';
 export interface BreadcrumbItem {
   id: string;
   fullName: string;
+  profile_type_id?: string;
+}
+
+export interface BreadcrumbViewer {
+  id?: string;
+  _id?: string;
+  root?: boolean | string;
+  developer?: boolean | string;
+  affiliation_type_id?: string;
 }
 
 @Injectable({
@@ -20,7 +29,11 @@ export class BreadcrumbService {
   /**
    * Actualiza el breadcrumb desde los datos del path del usuario
    */
-  updateFromUserPath(pathData: BreadcrumbItem[], currentUser?: { name: string; last_name: string }): MenuItem[] {
+  updateFromUserPath(
+    pathData: BreadcrumbItem[],
+    currentUser?: { name: string; last_name: string },
+    viewer?: BreadcrumbViewer | null,
+  ): MenuItem[] {
     if (!pathData || !Array.isArray(pathData) || pathData.length === 0) {
       // Si no hay datos de path, usar solo el usuario actual
       if (currentUser) {
@@ -35,11 +48,12 @@ export class BreadcrumbService {
       return this.items;
     }
 
-    this.path = [...pathData];
+    const safePath = this.limitPathForViewer(pathData, viewer);
+    this.path = [...safePath];
 
     // Convertir los datos del path en elementos del breadcrumb
-    this.items = pathData.map((pathItem, index) => {
-      const isLast = index === pathData.length - 1;
+    this.items = safePath.map((pathItem, index) => {
+      const isLast = index === safePath.length - 1;
       
       return {
         label: pathItem.fullName,
@@ -53,6 +67,35 @@ export class BreadcrumbService {
     });
 
     return this.items;
+  }
+
+  private limitPathForViewer(
+    pathData: BreadcrumbItem[],
+    viewer?: BreadcrumbViewer | null,
+  ): BreadcrumbItem[] {
+    if (!viewer) return [...pathData];
+
+    const isSystemAdministrator =
+      viewer.root === true || String(viewer.root).toLowerCase() === 'true' ||
+      viewer.developer === true || String(viewer.developer).toLowerCase() === 'true';
+    if (isSystemAdministrator) return [...pathData];
+
+    const viewerId = String(viewer.id || viewer._id || '').trim();
+    const viewerIndex = pathData.findIndex((segment) => segment.id === viewerId);
+    if (viewerIndex >= 0) return pathData.slice(viewerIndex);
+
+    const affiliation = String(viewer.affiliation_type_id || '').toLowerCase();
+    if (affiliation === 'empleado' || affiliation === 'tecnico_empleado') {
+      let sharedIndex = -1;
+      pathData.forEach((segment, index) => {
+        if (String(segment.profile_type_id || '').toLowerCase() === 'compartido') {
+          sharedIndex = index;
+        }
+      });
+      if (sharedIndex >= 0) return pathData.slice(sharedIndex);
+    }
+
+    return [pathData[pathData.length - 1]];
   }
 
   /**

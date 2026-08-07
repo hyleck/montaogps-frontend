@@ -171,6 +171,16 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     filteredColors: SelectOption[] = [];
     availableTechnicians: SelectOption[] = [];
     availableTags: Tag[] = [];
+    readonly targetCategoryOptions: SelectOption[] = [
+        { value: 'unspecified', label: 'Sin especificar' },
+        { value: 'person', label: 'Persona' },
+        { value: 'vehicle', label: 'Vehículo' },
+        { value: 'pet', label: 'Mascota' },
+        { value: 'object', label: 'Objeto o pertenencia' },
+        { value: 'equipment', label: 'Equipo o herramienta' },
+        { value: 'bag', label: 'Bulto o equipaje' },
+        { value: 'bicycle', label: 'Bicicleta o movilidad' },
+    ];
     renewalYearOptions: number[] = Array.from({ length: 10 }, (_, i) => i + 1);
 
     // Bandera para evitar recálculo automático de fecha de expiración
@@ -1306,6 +1316,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         return {
             _id: '',
             name: '',
+            target_category: 'unspecified',
             device_imei: '',
             api_device_id: '',
             api_position_id: '',
@@ -1533,6 +1544,7 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // Para mantener compatibilidad con versiones anteriores,
         // Asegurar campos opcionales
         this.target.description = this.target.description || '';
+        this.target.target_category = this.target.target_category || 'unspecified';
         this.target.contacts = this.target.contacts || [];
         this.target.connection_priority = this.target.connection_priority || 'normal';
         this.target.device_imei = this.target.device_imei || '';
@@ -2271,6 +2283,18 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
         // Crear una copia del objeto target con los campos actuales
         const targetData: any = { ...this.target };
 
+        if (this.isTagTarget()) {
+            targetData.target_category = targetData.target_category || 'unspecified';
+            targetData.target_plate_number = '';
+            targetData.target_chassis_number = '';
+            targetData.target_brand_id = '';
+            targetData.target_model_id = '';
+            targetData.target_year = '';
+            targetData.target_color = '';
+            targetData.target_image = '';
+            targetData.target_image_thumbnail = '';
+        }
+
         // If vehicle data changed, clear image fields
         if (this.hasVehicleDataChanged()) {
             targetData.target_image = '';
@@ -2394,7 +2418,10 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     private validateForm(): boolean {
         // Validaciones según el tab activo
         if (this.activeTabIndex === 0) { // Tab de vehículo
-            if (!this.target.name || !this.target.target_plate_number) {
+            const missingTargetFields = this.isTagTarget()
+                ? !this.target.name?.trim() || !this.target.target_category
+                : !this.target.name || !this.target.target_plate_number;
+            if (missingTargetFields) {
                 this.messageService.add({
                     severity: 'error',
                     summary: this.translate('management.targetForm.validationError'),
@@ -3536,7 +3563,23 @@ export class TargetFormComponent implements OnInit, OnChanges, OnDestroy, AfterV
     }
 
     requiresSimCard(): boolean {
-        return !this.selectedProtocol?.isAirtag;
+        return !this.isTagTarget();
+    }
+
+    isTagTarget(): boolean {
+        const protocol = this.selectedProtocol
+            || this.resolveProtocolFromValue(this.target?.type)
+            || (this.target?.protocol as Protocol | undefined);
+        if (protocol?.isAirtag === true) return true;
+
+        const compactName = String(protocol?.name || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]/gi, '')
+            .toUpperCase();
+        return compactName === 'MTAGA'
+            || compactName === 'MTAGP'
+            || compactName.includes('AIRTAG');
     }
 
     // Método para obtener el nombre de visualización del tipo de SIM card

@@ -78,7 +78,7 @@
             </p-dropdown>
 
             <p-dropdown
-              [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
+              [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Disponibles', value: 'available'}, {label: 'En revisión / Averiados', value: 'inspection'}]"
               [(ngModel)]="globalSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
               placeholder="Todos los estados" styleClass="inventory-dropdown"
               panelStyleClass="inventory-filter-dropdown-panel" [style]="{'width':'100%'}" [disabled]="isSearchingGlobal"
@@ -182,7 +182,8 @@
           </thead>
           <tbody>
             <tr *ngFor="let device of allDevicesSearchResults"
-              [class.inventory-result-row--activation]="isDeviceInActivation(device)">
+              [class.inventory-result-row--activation]="isDeviceInActivation(device) && !isDeviceInspectionRequired(device)"
+              [class.inventory-result-row--inspection]="isDeviceInspectionRequired(device)">
               <td>
                 <div class="inventory-result-device">
                   <span class="inventory-result-device__icon"><i class="pi pi-map-marker"></i></span>
@@ -222,18 +223,29 @@
                 <ng-template #noInventoryResultDate><span class="inventory-result-empty">Sin fecha</span></ng-template>
               </td>
               <td>
+                <span class="inventory-result-status inventory-result-status--inspection"
+                  *ngIf="isDeviceInspectionRequired(device)"
+                  [pTooltip]="device.inspection_reason || 'El dispositivo fue marcado para revisión técnica.'"
+                  tooltipPosition="top">
+                  <i class="pi pi-wrench"></i> En revisión / Averiado
+                </span>
                 <span class="inventory-result-status inventory-result-status--activation"
-                  *ngIf="isDeviceInActivation(device)">
+                  *ngIf="isDeviceInActivation(device) && !isDeviceInspectionRequired(device)">
                   <i class="pi pi-sync pi-spin"></i> En instalación
                 </span>
                 <span class="inventory-result-status inventory-result-status--installed"
-                  *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device)">
+                  *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device) && !isDeviceInspectionRequired(device)">
                   <i class="pi pi-check-circle"></i> Instalado
                 </span>
                 <span class="inventory-result-status inventory-result-status--available"
-                  *ngIf="!isDeviceInstalled(device) && !isDeviceInActivation(device)">
+                  *ngIf="!isDeviceInstalled(device) && !isDeviceInActivation(device) && !isDeviceInspectionRequired(device)">
                   <i class="pi pi-circle-fill"></i> Disponible
                 </span>
+                <small class="inventory-result-inspection-reason"
+                  *ngIf="isDeviceInspectionRequired(device) && device.inspection_reason"
+                  [title]="device.inspection_reason">
+                  {{ device.inspection_reason }}
+                </small>
               </td>
               <td class="devices-table__actions-cell">
                 <div class="inventory-result-actions">
@@ -243,7 +255,7 @@
                   <button type="button" class="inventory-result-action inventory-result-action--install"
                     (click)="installDevice(device)" pTooltip="Instalar" tooltipPosition="top"
                     aria-label="Instalar dispositivo"
-                    *ngIf="canUpdateInventory() && !isDeviceInstalled(device)"><i class="pi pi-send"></i></button>
+                    *ngIf="canUpdateInventory() && !isDeviceInstalled(device) && !isDeviceInspectionRequired(device)"><i class="pi pi-send"></i></button>
                   <button type="button" class="inventory-result-action inventory-result-action--delete"
                     (click)="deleteDevice(device)" pTooltip="Eliminar" tooltipPosition="top"
                     aria-label="Eliminar dispositivo"
@@ -618,6 +630,31 @@
           </div>
         </div>
 
+        <section class="gps-model-image-editor">
+          <div class="gps-model-image-editor__preview">
+            <i class="pi pi-image"></i>
+            <img *ngIf="gpsModelImagePreview" [src]="gpsModelImagePreview"
+              alt="Vista previa del modelo GPS" (error)="hideBrokenGpsModelImage($event)" />
+          </div>
+          <div class="gps-model-image-editor__content">
+            <span>Imagen del modelo</span>
+            <strong>{{ gpsModelImageFile?.name || (gpsModelImagePreview ? 'Imagen actual' : 'Sin imagen') }}</strong>
+            <small>JPG, PNG o WEBP · máximo 5 MB</small>
+            <div class="gps-model-image-editor__actions">
+              <input #gpsModelImageInput type="file" accept="image/jpeg,image/png,image/webp"
+                (change)="onGpsModelImageSelected($event)" />
+              <button type="button" (click)="gpsModelImageInput.click()" [disabled]="gpsModelSaving">
+                <i class="pi pi-upload"></i>
+                <span>{{ gpsModelImagePreview ? 'Cambiar imagen' : 'Subir imagen' }}</span>
+              </button>
+              <button *ngIf="gpsModelImageFile" type="button" class="gps-model-image-editor__clear"
+                (click)="clearGpsModelSelectedImage()" [disabled]="gpsModelSaving">
+                Cancelar selección
+              </button>
+            </div>
+          </div>
+        </section>
+
         <div class="gps-model-editor__actions">
           <button type="button" class="gps-model-editor__cancel" (click)="cancelGpsModelForm()"
             [disabled]="gpsModelSaving">Cerrar formulario</button>
@@ -637,7 +674,11 @@
       <div *ngIf="!gpsModelsLoading && filteredGpsModels.length" class="gps-models-list">
         <article *ngFor="let model of filteredGpsModels" class="gps-model-row"
           [class.gps-model-row--editing]="selectedGpsModel?._id === model._id">
-          <span class="gps-model-row__icon"><i [class]="model.isAirtag ? 'pi pi-wifi' : 'pi pi-map-marker'"></i></span>
+          <span class="gps-model-row__icon">
+            <i [class]="model.isAirtag ? 'pi pi-wifi' : 'pi pi-map-marker'"></i>
+            <img *ngIf="model.img" [src]="model.img" [alt]="model.name"
+              (error)="hideBrokenGpsModelImage($event)" />
+          </span>
           <div class="gps-model-row__identity">
             <strong>{{ model.name }}</strong>
             <small>{{ getGpsModelKind(model) }}</small>

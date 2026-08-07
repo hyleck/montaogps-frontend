@@ -486,6 +486,11 @@ describe('SolicitudesComponent scheduled date editing', () => {
             final_device_status_at: checkedAt,
         })).toBe('Fuera de línea al finalizar');
         expect(component.getInstallationFinalDeviceStatusLabel({
+            final_device_status: 'No localizado',
+            final_device_online: false,
+            final_device_status_at: checkedAt,
+        })).toBe('No localizado al finalizar');
+        expect(component.getInstallationFinalDeviceStatusLabel({
             final_device_online: false,
             final_device_status_at: checkedAt,
         })).toBe('');
@@ -593,8 +598,8 @@ describe('SolicitudesComponent scheduled date editing', () => {
             quantity: 2,
             scheduled_date: '2026-07-28T15:44',
             installations: [
-                {},
-                { scheduled_date: '2026-07-28T17:13' },
+                { device_type: 'gps' },
+                { device_type: 'gps', scheduled_date: '2026-07-28T17:13' },
             ],
         };
 
@@ -683,7 +688,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
             status: 'pendiente',
             mechanic_id: 'technician-1',
             scheduled_date: '2026-07-30T10:00',
-            installations: [{}],
+            installations: [{ device_type: 'gps' }],
         };
 
         await component.saveSolicitud();
@@ -1120,7 +1125,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
             type: 'desinstalacion',
             status: 'pendiente',
             quantity: 1,
-            installations: [{ device_imei: '111111111111111' }],
+            installations: [{ device_type: 'gps', device_imei: '111111111111111' }],
         };
 
         await component.saveSolicitud();
@@ -1138,7 +1143,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
             status: 'pendiente',
             quantity: 1,
             deinstallation_reason: 'vehicle_sold',
-            installations: [{ device_imei: '111111111111111' }],
+            installations: [{ device_type: 'gps', device_imei: '111111111111111' }],
         };
 
         await component.saveSolicitud();
@@ -1172,7 +1177,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
             quantity: 1,
             client_name: 'Cliente prueba',
             deinstallation_reason: 'device_damaged',
-            installations: [{ device_imei: '111111111111111' }],
+            installations: [{ device_type: 'gps', device_imei: '111111111111111' }],
         };
 
         await component.saveSolicitud();
@@ -1189,7 +1194,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
             type: 'chequeo',
             status: 'completada',
             quantity: 1,
-            installations: [{ device_imei: '111111111111111' }],
+            installations: [{ device_type: 'gps', device_imei: '111111111111111' }],
         };
 
         await component.saveSolicitud();

@@ -19,11 +19,24 @@ export interface InventoryItem {
   package?: string | any; // Reference to the package (can be string ID or Package object)
   packageId?: string; // For frontend convenience, maps to 'package'
   user?: string; // Added field
-  storage_id?: string | null; // Added field for warehouse
+  storage_id?: string | any | null; // Added field for warehouse
   storageDate?: string; // Date when warehouse was assigned
   createdAt?: string;
   updatedAt?: string;
   installed?: boolean;
+  activation_mode?: boolean;
+  inspection_required?: boolean;
+  inspection_reason?: string;
+  inspection_requested_at?: string;
+  inspection_requested_by?: string;
+  inspection_solicitud_id?: string;
+}
+
+export interface InspectionRequiredResponse {
+  data: InventoryItem[];
+  total: number;
+  page: number;
+  lastPage: number;
 }
 
 export interface Package {
@@ -85,6 +98,7 @@ export class InventoryService {
   private readonly conducesUrl = `${environment.apiUrl}/inventory/conduces`;
 
   public lowStockCount$ = new BehaviorSubject<number>(0);
+  public inspectionRequiredCount$ = new BehaviorSubject<number>(0);
   public warehouses$ = new BehaviorSubject<Warehouse[]>([]);
 
   constructor(private http: HttpClient) { }
@@ -100,6 +114,24 @@ export class InventoryService {
 
   findOne(id: string): Observable<InventoryItem> {
     return this.http.get<InventoryItem>(`${this.apiUrl}/${id}`);
+  }
+
+  getInspectionRequired(query = '', page = 1, limit = 30): Observable<InspectionRequiredResponse> {
+    const normalizedQuery = String(query || '').trim();
+    const url = `${this.apiUrl}/inspection/required?q=${encodeURIComponent(normalizedQuery)}&page=${page}&limit=${limit}`;
+    return this.http.get<InspectionRequiredResponse>(url).pipe(
+      tap(response => {
+        if (!normalizedQuery) {
+          this.inspectionRequiredCount$.next(Number(response?.total || 0));
+        }
+      }),
+    );
+  }
+
+  checkInspectionRequired(): void {
+    this.getInspectionRequired('', 1, 1).subscribe({
+      error: () => this.inspectionRequiredCount$.next(0),
+    });
   }
 
   update(id: string, item: Partial<InventoryItem>): Observable<InventoryItem> {

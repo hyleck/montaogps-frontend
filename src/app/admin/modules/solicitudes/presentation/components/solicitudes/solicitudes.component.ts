@@ -3675,7 +3675,7 @@ async initLocationMap(): Promise<void> {
             : null;
         const hasValidCheckedAt = Boolean(checkedAt && !Number.isNaN(checkedAt.getTime()));
 
-        if (hasValidCheckedAt && rawStatus === 'offline') return 'offline';
+        if (hasValidCheckedAt && ['offline', 'fuera de línea', 'no localizado'].includes(rawStatus)) return 'offline';
         if (hasValidCheckedAt && (
             installation?.final_device_online === true
             || ['online', 'señal débil', 'localizado'].includes(rawStatus)
@@ -3695,7 +3695,12 @@ async initLocationMap(): Promise<void> {
     getInstallationFinalDeviceStatusLabel(installation?: InstallationDetail | null): string {
         const state = this.getInstallationFinalDeviceState(installation);
         if (state === 'online') return 'En línea al finalizar';
-        if (state === 'offline') return 'Fuera de línea al finalizar';
+        if (state === 'offline') {
+            const rawStatus = String(installation?.final_device_status || '').trim().toLowerCase();
+            return rawStatus === 'no localizado'
+                ? 'No localizado al finalizar'
+                : 'Fuera de línea al finalizar';
+        }
         return '';
     }
 

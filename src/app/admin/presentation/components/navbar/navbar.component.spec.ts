@@ -46,7 +46,6 @@ describe('NavbarComponent realtime links', () => {
       { instant: (key: string) => key } as any,
       selectionService as any,
       targetsService as any,
-      {} as any,
       {
         getById: () => of({}),
         getTechnicians: () => of([]),

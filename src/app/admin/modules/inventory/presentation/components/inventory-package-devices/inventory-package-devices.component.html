@@ -71,7 +71,7 @@
         <label class="package-filter-field">
           <span>Estado</span>
           <p-dropdown
-            [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
+            [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Disponibles', value: 'available'}, {label: 'En revisión / Averiados', value: 'inspection'}]"
             [(ngModel)]="packageSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
             placeholder="Todos" appendTo="body" [disabled]="isSearchingPackage"
             (onChange)="searchPackageDevices()" styleClass="package-filter-dropdown">
@@ -130,22 +130,33 @@
           </thead>
           <tbody>
             <tr *ngFor="let device of packageDevices"
-              [class.package-device-row--activation]="isDeviceInActivation(device)">
+              [class.package-device-row--activation]="isDeviceInActivation(device) && !isDeviceInspectionRequired(device)"
+              [class.package-device-row--inspection]="isDeviceInspectionRequired(device)">
               <td>
                 <div class="package-device-identity">
                   <strong>{{ device.IMEI || device.imei || 'N/A' }}</strong>
+                  <span class="package-device-status package-device-status--inspection"
+                    *ngIf="isDeviceInspectionRequired(device)"
+                    [pTooltip]="device.inspection_reason || 'El dispositivo fue marcado para revisión técnica.'">
+                    <i class="pi pi-wrench"></i> En revisión / Averiado
+                  </span>
                   <span class="package-device-status package-device-status--installed"
-                    *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device)">
+                    *ngIf="isDeviceInstalled(device) && !isDeviceInActivation(device) && !isDeviceInspectionRequired(device)">
                     <i class="pi pi-check-circle"></i> Instalado
                   </span>
                   <span class="package-device-status package-device-status--activation"
-                    *ngIf="isDeviceInActivation(device)">
+                    *ngIf="isDeviceInActivation(device) && !isDeviceInspectionRequired(device)">
                     <i class="pi pi-sync pi-spin"></i> En instalación
                   </span>
                   <span class="package-device-status package-device-status--available"
-                    *ngIf="!isDeviceInstalled(device) && !isDeviceInActivation(device)">
+                    *ngIf="!isDeviceInstalled(device) && !isDeviceInActivation(device) && !isDeviceInspectionRequired(device)">
                     <i class="pi pi-circle-fill"></i> Disponible
                   </span>
+                  <small class="package-device-inspection-reason"
+                    *ngIf="isDeviceInspectionRequired(device) && device.inspection_reason"
+                    [title]="device.inspection_reason">
+                    {{ device.inspection_reason }}
+                  </small>
                 </div>
               </td>
               <td><span class="package-device-code">{{ isDeviceAirtag(device) ? '—' : (device.SIM || device.sim || 'N/A') }}</span></td>
@@ -172,7 +183,7 @@
                   </button>
                   <button type="button" class="package-row-action package-row-action--install"
                     (click)="installDevice(device)" pTooltip="Instalar" aria-label="Instalar dispositivo"
-                    *ngIf="canUpdateInventory() && !isDeviceInstalled(device)">
+                    *ngIf="canUpdateInventory() && !isDeviceInstalled(device) && !isDeviceInspectionRequired(device)">
                     <i class="pi pi-send"></i>
                   </button>
                   <button type="button" class="package-row-action package-row-action--delete"

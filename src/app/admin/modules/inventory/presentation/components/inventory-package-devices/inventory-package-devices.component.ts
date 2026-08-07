@@ -535,6 +535,15 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
   }
 
   installDevice(device: InventoryItem): void {
+    if (this.isDeviceInspectionRequired(device)) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Dispositivo no disponible',
+        detail: 'Este equipo está en revisión o averiado y no puede asignarse a una instalación.',
+      });
+      return;
+    }
+
     if (!this.canUpdateInventory()) {
       this.messageService.add({
         severity: 'error',
@@ -686,6 +695,10 @@ export class InventoryPackageDevicesComponent implements OnInit, OnDestroy {
 
   isDeviceInstalled(device: InventoryItem): boolean {
     return !!device?.installed;
+  }
+
+  isDeviceInspectionRequired(device: InventoryItem): boolean {
+    return device?.inspection_required === true;
   }
 
   isDeviceInActivation(device: InventoryItem): boolean {

@@ -34,4 +34,49 @@ describe('BreadcrumbService', () => {
     service.navigateToParent();
     expect(managementService.setOp).not.toHaveBeenCalled();
   });
+
+  it('does not expose ancestors above the authenticated user', () => {
+    const items = service.updateFromUserPath([
+      { id: 'owner', fullName: 'Cuenta superior' },
+      { id: 'viewer', fullName: 'Usuario autenticado' },
+      { id: 'child', fullName: 'Cliente' },
+    ], undefined, { id: 'viewer' });
+
+    expect(items.map((item) => item.label)).toEqual([
+      'Usuario autenticado',
+      'Cliente',
+    ]);
+    service.navigateToParent();
+    expect(managementService.setOp).toHaveBeenCalledOnceWith('u', 'viewer');
+  });
+
+  it('starts an employee external route at its shared entry account', () => {
+    const items = service.updateFromUserPath([
+      { id: 'owner', fullName: 'Cuenta superior' },
+      {
+        id: 'shared',
+        fullName: 'Cuenta compartida',
+        profile_type_id: 'compartido',
+      },
+      { id: 'child', fullName: 'Cliente' },
+    ], undefined, {
+      id: 'employee',
+      affiliation_type_id: 'empleado',
+    });
+
+    expect(items.map((item) => item.label)).toEqual([
+      'Cuenta compartida',
+      'Cliente',
+    ]);
+  });
+
+  it('fails closed when the backend path has no authorized entry point', () => {
+    const items = service.updateFromUserPath([
+      { id: 'owner', fullName: 'Cuenta superior' },
+      { id: 'child', fullName: 'Cliente' },
+    ], undefined, { id: 'viewer', affiliation_type_id: 'cliente' });
+
+    expect(items.map((item) => item.label)).toEqual(['Cliente']);
+    expect(service.canNavigateBack()).toBeFalse();
+  });
 });

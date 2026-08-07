@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewEncapsulation, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewEncapsulation, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { MenuItem, MessageService, ConfirmationService } from 'primeng/api';
 import { TranslateService } from '@ngx-translate/core';
@@ -29,7 +29,7 @@ import { getApiErrorMessage } from '../../../../../../core/utils/api-error.util'
   standalone: false,
   encapsulation: ViewEncapsulation.None
 })
-export class InventoryComponent implements OnInit {
+export class InventoryComponent implements OnInit, OnDestroy {
   items: MenuItem[] = [{ label: 'Inventario' }];
   home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
@@ -61,6 +61,10 @@ export class InventoryComponent implements OnInit {
   gpsModelSaving = false;
   gpsModelSearchQuery = '';
   selectedGpsModel: Protocol | null = null;
+  gpsModelImageFile: File | null = null;
+  gpsModelImageObjectUrl = '';
+  readonly gpsModelImageMaxSize = 5 * 1024 * 1024;
+  readonly gpsModelImageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
   gpsModelForm: { name: string; templateProtocolId: string } = {
     name: '',
     templateProtocolId: '',
@@ -175,6 +179,10 @@ export class InventoryComponent implements OnInit {
     this.loadWarehouses();
   }
 
+  ngOnDestroy(): void {
+    this.resetGpsModelImageSelection();
+  }
+
   // Privilege helpers
   canCreateInventory(): boolean {
     return this.authService.hasPrivilege('inventory', 'create');
@@ -254,6 +262,7 @@ export class InventoryComponent implements OnInit {
 
   startCreateGpsModel(): void {
     if (!this.canCreateGpsModels()) return;
+    this.resetGpsModelImageSelection();
     this.selectedGpsModel = null;
     this.gpsModelForm = { name: '', templateProtocolId: '' };
     this.gpsModelFormVisible = true;
@@ -261,6 +270,7 @@ export class InventoryComponent implements OnInit {
 
   editGpsModel(model: Protocol): void {
     if (!this.canUpdateGpsModels()) return;
+    this.resetGpsModelImageSelection();
     this.selectedGpsModel = model;
     this.gpsModelForm = {
       name: model.name,
@@ -270,6 +280,7 @@ export class InventoryComponent implements OnInit {
   }
 
   cancelGpsModelForm(): void {
+    this.resetGpsModelImageSelection();
     this.gpsModelFormVisible = false;
     this.selectedGpsModel = null;
     this.gpsModelForm = { name: '', templateProtocolId: '' };
@@ -302,11 +313,11 @@ export class InventoryComponent implements OnInit {
           ...(this.gpsModelForm.templateProtocolId
             ? { templateProtocolId: this.gpsModelForm.templateProtocolId }
             : {}),
-        })
+        }, this.gpsModelImageFile || undefined)
       : this.protocolsService.createGpsModelFromTemplate({
           name,
           templateProtocolId: this.gpsModelForm.templateProtocolId,
-        });
+        }, this.gpsModelImageFile || undefined);
 
     operation.subscribe({
       next: (savedModel) => {
@@ -387,6 +398,52 @@ export class InventoryComponent implements OnInit {
     );
   }
 
+  get gpsModelImagePreview(): string {
+    return (
+      this.gpsModelImageObjectUrl ||
+      this.selectedGpsModelTemplate?.img ||
+      this.selectedGpsModel?.img ||
+      ''
+    );
+  }
+
+  onGpsModelImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!this.gpsModelImageMimeTypes.has(file.type)) {
+      input.value = '';
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Formato no permitido',
+        detail: 'Selecciona una imagen JPG, PNG o WEBP.',
+      });
+      return;
+    }
+    if (file.size > this.gpsModelImageMaxSize) {
+      input.value = '';
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Imagen demasiado grande',
+        detail: 'La imagen del modelo GPS no puede superar los 5 MB.',
+      });
+      return;
+    }
+
+    this.resetGpsModelImageSelection();
+    this.gpsModelImageFile = file;
+    this.gpsModelImageObjectUrl = URL.createObjectURL(file);
+  }
+
+  clearGpsModelSelectedImage(): void {
+    this.resetGpsModelImageSelection();
+  }
+
+  hideBrokenGpsModelImage(event: Event): void {
+    (event.target as HTMLImageElement).style.display = 'none';
+  }
+
   getGpsModelTemplateName(model: Protocol): string {
     const templateId = this.resolveTemplateProtocolId(model.templateProtocolId);
     if (!templateId) return 'Configuración original';
@@ -413,6 +470,14 @@ export class InventoryComponent implements OnInit {
     template: Protocol['templateProtocolId'],
   ): string {
     return typeof template === 'object' ? template?._id || '' : template || '';
+  }
+
+  private resetGpsModelImageSelection(): void {
+    if (this.gpsModelImageObjectUrl) {
+      URL.revokeObjectURL(this.gpsModelImageObjectUrl);
+    }
+    this.gpsModelImageObjectUrl = '';
+    this.gpsModelImageFile = null;
   }
 
   loadPackages(): void {
@@ -702,6 +767,10 @@ export class InventoryComponent implements OnInit {
 
   isDeviceInstalled(device: InventoryItem): boolean {
     return !!device?.installed;
+  }
+
+  isDeviceInspectionRequired(device: InventoryItem): boolean {
+    return device?.inspection_required === true;
   }
 
   isDeviceInActivation(device: InventoryItem): boolean {
@@ -1205,6 +1274,15 @@ export class InventoryComponent implements OnInit {
 
   // Installation Methods
   installDevice(device: InventoryItem): void {
+    if (this.isDeviceInspectionRequired(device)) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Dispositivo no disponible',
+        detail: 'Este equipo está en revisión o averiado y no puede asignarse a una instalación.',
+      });
+      return;
+    }
+
     if (device.installed) {
       this.messageService.add({
         severity: 'warn',

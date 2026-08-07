@@ -3951,12 +3951,20 @@ export class ManagementComponent implements OnInit, OnDestroy {
           requestId !== this.userPathLoadRequestId ||
           this.selectedUser?._id !== userId
         ) return;
-        this.breadcrumbService.updateFromUserPath(pathData, this.selectedUser);
+        this.breadcrumbService.updateFromUserPath(
+          pathData,
+          this.selectedUser,
+          this.authService.getCurrentUser(),
+        );
       },
       error: (error) => {
         if (requestId !== this.userPathLoadRequestId) return;
         console.error('Error al obtener ruta del usuario:', error);
-        this.breadcrumbService.updateFromUserPath([], this.selectedUser);
+        this.breadcrumbService.updateFromUserPath(
+          [],
+          this.selectedUser,
+          this.authService.getCurrentUser(),
+        );
       }
     });
   }

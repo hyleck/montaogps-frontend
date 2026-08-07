@@ -23,6 +23,7 @@ export interface TargetTransferHistoryEntry {
 export interface Target {
   _id: string;
   name: string;
+  target_category?: string;
   imei: string;
   device_imei: string;
   api_id?: string | null;
@@ -72,6 +73,7 @@ export interface Target {
 
 export interface CreateTargetDto {
   name: string;
+  target_category?: string;
   device_imei: string;
   api_device_id: string;
   api_position_id: string;
@@ -113,6 +115,7 @@ export interface CreateTargetDto {
 
 export interface UpdateTargetDto {
   name?: string;
+  target_category?: string;
   device_imei?: string;
   api_device_id?: string;
   api_position_id?: string;
@@ -157,6 +160,7 @@ export interface UpdateTargetDto {
 export interface TargetDevice {
   _id: string;
   name: string;
+  target_category?: string;
   device_imei: string;
   api_device_id: string;
   api_position_id: string;

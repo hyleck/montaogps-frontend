@@ -11,7 +11,7 @@ import {
 } from '../interfaces/protocol.interface';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ProtocolsService {
   private readonly apiUrl = `${environment.apiUrl}/protocols`;
@@ -44,8 +44,14 @@ export class ProtocolsService {
     return this.http.post<Protocol>(this.apiUrl, createProtocolDto);
   }
 
-  createGpsModelFromTemplate(dto: CreateGpsModelFromTemplateDto): Observable<Protocol> {
-    return this.http.post<Protocol>(`${this.apiUrl}/from-template`, dto);
+  createGpsModelFromTemplate(
+    dto: CreateGpsModelFromTemplateDto,
+    image?: File,
+  ): Observable<Protocol> {
+    return this.http.post<Protocol>(
+      `${this.apiUrl}/from-template`,
+      this.buildGpsModelFormData(dto, image),
+    );
   }
 
   /**
@@ -54,12 +60,22 @@ export class ProtocolsService {
    * @param updateProtocolDto Datos para actualizar el protocolo
    * @returns Observable con el protocolo actualizado
    */
-  updateProtocol(id: string, updateProtocolDto: UpdateProtocolDto): Observable<Protocol> {
+  updateProtocol(
+    id: string,
+    updateProtocolDto: UpdateProtocolDto,
+  ): Observable<Protocol> {
     return this.http.patch<Protocol>(`${this.apiUrl}/${id}`, updateProtocolDto);
   }
 
-  updateGpsModelFromTemplate(id: string, dto: UpdateGpsModelFromTemplateDto): Observable<Protocol> {
-    return this.http.patch<Protocol>(`${this.apiUrl}/${id}/from-template`, dto);
+  updateGpsModelFromTemplate(
+    id: string,
+    dto: UpdateGpsModelFromTemplateDto,
+    image?: File,
+  ): Observable<Protocol> {
+    return this.http.patch<Protocol>(
+      `${this.apiUrl}/${id}/from-template`,
+      this.buildGpsModelFormData(dto, image),
+    );
   }
 
   /**
@@ -69,5 +85,20 @@ export class ProtocolsService {
    */
   deleteProtocol(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  private buildGpsModelFormData(
+    dto: CreateGpsModelFromTemplateDto | UpdateGpsModelFromTemplateDto,
+    image?: File,
+  ): FormData {
+    const formData = new FormData();
+    formData.append('name', dto.name);
+    if (dto.templateProtocolId) {
+      formData.append('templateProtocolId', dto.templateProtocolId);
+    }
+    if (image) {
+      formData.append('image', image, image.name);
+    }
+    return formData;
   }
 }

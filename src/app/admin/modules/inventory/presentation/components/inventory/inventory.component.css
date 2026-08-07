@@ -351,6 +351,107 @@
   color: var(--globalColorTextLight, #8d96a8);
 }
 
+.gps-model-image-editor {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 0.85rem;
+  padding: 0.8rem;
+  border: 1px dashed var(--globalColorBorderDark, rgba(148, 163, 184, 0.32));
+  border-radius: 10px;
+  background: var(--managementColorBackgroundUser);
+}
+
+.gps-model-image-editor__preview {
+  position: relative;
+  display: grid;
+  width: 92px;
+  height: 72px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--globalColorBorderDark, rgba(148, 163, 184, 0.22));
+  border-radius: 9px;
+  background: rgba(236, 67, 67, 0.08);
+  color: var(--managementColorTitleUser, #ec4343);
+  font-size: 1.25rem;
+}
+
+.gps-model-image-editor__preview img,
+.gps-model-row__icon img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--managementColorCardBackground);
+}
+
+.gps-model-image-editor__content {
+  display: grid;
+  min-width: 0;
+  gap: 0.12rem;
+}
+
+.gps-model-image-editor__content > span {
+  color: var(--globalColorTextLight, #8d96a8);
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.gps-model-image-editor__content > strong {
+  overflow: hidden;
+  color: var(--managementColorTextUser);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gps-model-image-editor__content > small {
+  color: var(--globalColorTextLight, #8d96a8);
+  font-size: 0.7rem;
+}
+
+.gps-model-image-editor__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.45rem;
+}
+
+.gps-model-image-editor__actions input {
+  display: none;
+}
+
+.gps-model-image-editor__actions button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38rem;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(236, 67, 67, 0.35);
+  border-radius: 8px;
+  background: rgba(236, 67, 67, 0.08);
+  color: var(--managementColorTitleUser, #ec4343);
+  font: inherit;
+  font-size: 0.73rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.gps-model-image-editor__actions .gps-model-image-editor__clear {
+  border-color: var(--globalColorBorderDark, rgba(148, 163, 184, 0.25));
+  background: transparent;
+  color: var(--globalColorTextLight, #8d96a8);
+}
+
+.gps-model-image-editor__actions button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
 .gps-model-template-preview strong {
   color: var(--managementColorTextUser);
 }
@@ -423,6 +524,7 @@
 }
 
 .gps-model-row__icon {
+  position: relative;
   display: grid;
   width: 38px;
   height: 38px;
@@ -430,6 +532,7 @@
   border-radius: 9px;
   background: rgba(236, 67, 67, 0.1);
   color: var(--managementColorTitleUser, #ec4343);
+  overflow: hidden;
 }
 
 .gps-model-row__identity,
@@ -529,6 +632,20 @@
 
   .gps-model-editor__fields {
     grid-template-columns: 1fr;
+  }
+
+  .gps-model-image-editor {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .gps-model-image-editor__preview {
+    width: 72px;
+    height: 64px;
+  }
+
+  .gps-model-image-editor__actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .gps-model-row {
@@ -1674,6 +1791,19 @@ textarea.form-input {
   box-shadow: inset 3px 0 #f59e0b;
 }
 
+.inventory-result-row--inspection {
+  box-shadow: inset 4px 0 #ef4444;
+}
+
+.devices-table tbody .inventory-result-row--inspection td {
+  background: color-mix(in srgb, var(--managementColorCardBackground) 93%, #ef4444 7%);
+}
+
+.devices-table tbody .inventory-result-row--inspection:hover td,
+.devices-table tbody .inventory-result-row--inspection .devices-table__actions-cell {
+  background: color-mix(in srgb, var(--managementColorCardBackground) 89%, #ef4444 11%) !important;
+}
+
 .devices-table tbody tr:last-child td {
   border-bottom: none;
 }
@@ -1810,6 +1940,24 @@ textarea.form-input {
 .inventory-result-status--activation {
   background: rgba(245, 158, 11, 0.11);
   color: #d97706;
+}
+
+.inventory-result-status--inspection {
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.inventory-result-inspection-reason {
+  display: block;
+  max-width: 132px;
+  margin-top: 0.3rem;
+  overflow: hidden;
+  color: var(--inventory-muted-text);
+  font-size: 0.58rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .inventory-result-actions {
@@ -3296,6 +3444,15 @@ textarea.form-input {
   background: rgba(245, 158, 11, 0.035) !important;
 }
 
+.package-device-row--inspection {
+  box-shadow: inset 4px 0 #ef4444;
+  background: color-mix(in srgb, var(--managementColorBackgroundUser) 92%, #ef4444 8%) !important;
+}
+
+.package-devices-table tbody .package-device-row--inspection:hover {
+  background: color-mix(in srgb, var(--managementColorBackgroundUser) 88%, #ef4444 12%) !important;
+}
+
 .package-device-identity {
   display: flex;
   flex-direction: column;
@@ -3333,6 +3490,23 @@ textarea.form-input {
 .package-device-status--activation {
   background: rgba(245, 158, 11, 0.11);
   color: #f59e0b;
+}
+
+.package-device-status--inspection {
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.package-device-inspection-reason {
+  display: block;
+  max-width: 170px;
+  overflow: hidden;
+  color: var(--inventory-muted-text);
+  font-size: 0.58rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .package-device-status--available {

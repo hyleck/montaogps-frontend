@@ -28,6 +28,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   private hasInbox: boolean = false;
   private communicationBadgeSubscription?: Subscription;
   private communicationAttentionSubscription?: Subscription;
+  private inspectionCountSubscription?: Subscription;
 
   sidaberOptions = {
     favoriteTitle: '',
@@ -41,6 +42,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
       { label: '', path: '/admin/management/', icon: 'pi pi-book', badge: 0 },
       { label: '', path: '/admin/empleados', icon: 'pi pi-id-card', badge: 0 },
       { label: '', path: '/admin/inventory', icon: 'pi pi-database', badge: 0 },
+      { label: 'Revisión', path: '/admin/revision', icon: 'pi pi-wrench', badge: 0 },
       { label: '', path: '/admin/solicitudes', icon: 'pi pi-clipboard', badge: 0 },
       { label: 'Comprobantes', path: '/admin/comprobantes', icon: 'pi pi-receipt', badge: 0 },
       { label: '', path: '/admin/monitoring', icon: 'pi pi-eye', badge: 0 },
@@ -91,6 +93,12 @@ export class SidebarComponent implements OnInit, OnDestroy {
             inventoryItem.badge = count;
           }
         });
+        this.inventoryService.checkInspectionRequired();
+        this.inspectionCountSubscription = this.inventoryService.inspectionRequiredCount$.subscribe((count: number) => {
+          this.updatePrincipalBadge('/admin/revision', count);
+          this.updatePrincipalAttention('/admin/revision', count > 0);
+          this.cdr.detectChanges();
+        });
       }
     }, 0);
 
@@ -115,6 +123,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.communicationBadgeSubscription?.unsubscribe();
     this.communicationAttentionSubscription?.unsubscribe();
+    this.inspectionCountSubscription?.unsubscribe();
   }
 
   updateCurrentUser() {
@@ -194,6 +203,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     this.setPrincipalLabel('/admin/management/', this.translate.instant('sidebar.management'));
     this.setPrincipalLabel('/admin/empleados', 'Empleados');
     this.setPrincipalLabel('/admin/inventory', this.translate.instant('sidebar.inventory'));
+    this.setPrincipalLabel('/admin/revision', 'Revisión');
     this.setPrincipalLabel('/admin/solicitudes', 'Solicitudes');
     this.setPrincipalLabel('/admin/comprobantes', 'Comprobantes');
     this.setPrincipalLabel('/admin/monitoring', this.translate.instant('sidebar.monitoring'));
@@ -325,6 +335,9 @@ export class SidebarComponent implements OnInit, OnDestroy {
       }
       // Si es inventory, mostrar solo si es empleado o root
       if (item.path === '/admin/inventory') {
+        return this.isEmployeeUser || this.isRootUser;
+      }
+      if (item.path === '/admin/revision') {
         return this.isEmployeeUser || this.isRootUser;
       }
       // Ocultar simcard-verification si no es root

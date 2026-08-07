@@ -5,8 +5,8 @@
                 <p-tabView [activeIndex]="activeTabIndex" (activeIndexChange)="activeTabIndex = $event">
                     <p-tabPanel>
                         <ng-template pTemplate="header">
-                            <i class="tab-icon pi pi-car"></i>
-                            <span class="tab-text">{{ translate(translations.vehicleInfo) }}</span>
+                            <i class="tab-icon pi" [ngClass]="isTagTarget() ? 'pi-tag' : 'pi-car'"></i>
+                            <span class="tab-text">{{ isTagTarget() ? 'Información del objetivo' : translate(translations.vehicleInfo) }}</span>
                         </ng-template>
                         <div style="position: relative;">
                             <!-- Loading overlay for auto-submit -->
@@ -19,6 +19,55 @@
                                 <!-- Mensaje informativo eliminado -->
 
                                 <form class="target-form__form" (ngSubmit)="onSubmit()" ngNativeValidate>
+                                    <div *ngIf="isTagTarget()" class="target-form__grid">
+                                        <div class="target-form__column">
+                                            <div class="target-form__field">
+                                                <label for="tag-target-name">Nombre del objetivo <span class="required-label">(Requerido)</span></label>
+                                                <input
+                                                    [(ngModel)]="target.name"
+                                                    name="tag_target_name"
+                                                    id="tag-target-name"
+                                                    type="text"
+                                                    required
+                                                    placeholder="Ej: Mochila de trabajo, Juan, Bicicleta azul">
+                                            </div>
+
+                                            <div class="target-form__field">
+                                                <label for="target-category">Tipo de objetivo <span class="required-label">(Requerido)</span></label>
+                                                <select
+                                                    [(ngModel)]="target.target_category"
+                                                    name="target_category"
+                                                    id="target-category"
+                                                    required>
+                                                    <option *ngFor="let option of targetCategoryOptions" [value]="option.value">
+                                                        {{ option.label }}
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="target-form__column">
+                                            <div class="target-form__field">
+                                                <label for="tag-target-description">Descripción</label>
+                                                <input
+                                                    [(ngModel)]="target.description"
+                                                    name="tag_target_description"
+                                                    id="tag-target-description"
+                                                    type="text"
+                                                    placeholder="Referencia opcional para reconocer el objetivo">
+                                            </div>
+
+                                            <div class="target-form__field">
+                                                <label for="tag-target-status">Estado</label>
+                                                <select [(ngModel)]="target.status" name="tag_target_status" id="tag-target-status">
+                                                    <option value="active">Activo</option>
+                                                    <option value="inactive">Inactivo</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <ng-container *ngIf="!isTagTarget()">
                                     <ng-container *ngIf="!isLinkedVehicleMode(); else linkedVehicleInfoCard">
                                     <ng-container *ngIf="!isVehicleFormSkeletonVisible(); else vehicleFormSkeleton">
                                     <div class="target-form__grid">
@@ -183,6 +232,7 @@
 
                                         </div>
                                     </div>
+                                    </ng-container>
                                     </ng-container>
                                     </ng-container>
 
@@ -416,7 +466,7 @@
                                                 [readonly]="isEditMode" [disabled]="isEditMode">
                                         </div>
 
-                                        <div class="target-form__field" *ngIf="!selectedProtocol?.isAirtag">
+                                        <div class="target-form__field" *ngIf="!isTagTarget()">
                                             <label for="sim_company">{{ translate('management.targetForm.simCardType')
                                                 }}</label>
                                             <select [(ngModel)]="target.sim_company" name="sim_company" id="sim_company"
@@ -430,7 +480,7 @@
                                             </select>
                                         </div>
 
-                                        <div class="target-form__field" *ngIf="!selectedProtocol?.isAirtag">
+                                        <div class="target-form__field" *ngIf="!isTagTarget()">
                                             <label for="sim_card">{{ translate(translations.simCard) }} <span
                                                     class="required-label">(Requerido)</span></label>
                                             <input [(ngModel)]="target.sim_card_number" name="sim_card_number"
@@ -551,7 +601,7 @@
                                     <!-- Columna Derecha -->
                                     <div class="target-form__column">
                                         <ng-container
-                                            *ngIf="isEditMode && currentUserAffiliationTypeId === 'empleado' && !selectedProtocol?.isAirtag">
+                                            *ngIf="isEditMode && currentUserAffiliationTypeId === 'empleado' && !isTagTarget()">
                                             <div *ngIf="isDeviceOnlineLike(); else activationInlineControls"
                                                 class="target-form__field activation-inline-card operational-status-card"
                                                 style="border-color: rgba(34, 197, 94, 0.22);">
@@ -749,7 +799,7 @@
                                             </select>
                                         </div>
 
-                                        <div class="target-form__field" *ngIf="!selectedProtocol?.isAirtag">
+                                        <div class="target-form__field" *ngIf="!isTagTarget()">
                                             <label for="ignition_sensor">{{ translate(translations.ignitionSensor)
                                                 }}</label>
                                             <select [(ngModel)]="target.ignition_sensor" name="ignition_sensor"
@@ -763,7 +813,7 @@
                                             </select>
                                         </div>
 
-                                        <div class="target-form__field" *ngIf="!selectedProtocol?.isAirtag">
+                                        <div class="target-form__field" *ngIf="!isTagTarget()">
                                             <label for="shutdown_control">{{ translate(translations.shutdownControl)
                                                 }}</label>
                                             <select [(ngModel)]="target.engine_shutdown" name="engine_shutdown"
@@ -778,7 +828,7 @@
                                         </div>
 
                                         <!-- Texto condicional para gestión de comandos -->
-                                        <div *ngIf="target.engine_shutdown === 'yes' && !selectedProtocol?.isAirtag" class="target-form__field">
+                                        <div *ngIf="target.engine_shutdown === 'yes' && !isTagTarget()" class="target-form__field">
                                             <div class="command-management-link" (click)="openCommandManagementModal()">
                                                 <i class="pi pi-cog"></i>
                                                 Gestión de comandos
@@ -853,7 +903,7 @@
                                                     <option value="gps_model_change">{{
                                                         translate('management.targetForm.processTypeGpsModelChange') }}
                                                     </option>
-                                                    <option value="imei_change" *ngIf="!selectedProtocol?.isAirtag">{{
+                                                    <option value="imei_change" *ngIf="!isTagTarget()">{{
                                                         translate('management.targetForm.processTypeImeiChange') }}
                                                     </option>
 
@@ -863,10 +913,10 @@
                                                         }}</option>
 
                                                     <!-- Modificar datos de SIM -->
-                                                    <option value="sim_number_change" *ngIf="!selectedProtocol?.isAirtag">{{
+                                                    <option value="sim_number_change" *ngIf="!isTagTarget()">{{
                                                         translate('management.targetForm.processTypeSimNumberChange') }}
                                                     </option>
-                                                    <option value="sim_type_change" *ngIf="!selectedProtocol?.isAirtag">{{
+                                                    <option value="sim_type_change" *ngIf="!isTagTarget()">{{
                                                         translate('management.targetForm.processTypeSimTypeChange') }}
                                                     </option>
 
@@ -875,7 +925,7 @@
                                                     <option value="gps_change">{{
                                                         translate('management.targetForm.processTypeGpsChange') }}
                                                     </option>
-                                                    <option value="sim_change" *ngIf="!selectedProtocol?.isAirtag">{{
+                                                    <option value="sim_change" *ngIf="!isTagTarget()">{{
                                                         translate('management.targetForm.processTypeSimChange') }}
                                                     </option>
 
@@ -1112,7 +1162,7 @@
                         </div>
                     </p-tabPanel>
 
-                    <p-tabPanel *ngIf="showSmsSection && hasSimCardTypeSelected() && currentUserAffiliationTypeId === 'empleado' && !selectedProtocol?.isAirtag">
+                    <p-tabPanel *ngIf="showSmsSection && hasSimCardTypeSelected() && currentUserAffiliationTypeId === 'empleado' && !isTagTarget()">
                         <ng-template pTemplate="header">
                             <i class="tab-icon pi pi-comments"></i>
                             <span class="tab-text">{{ getSimCardDisplayName() }} SMS</span>
@@ -1140,7 +1190,7 @@
                             <!-- Layout de 2 columnas para desktop -->
                             <div class="sms-content">
                                 <!-- Columna izquierda: Comandos -->
-                                <div class="sms-commands-column" *ngIf="!selectedProtocol?.isAirtag">
+                                <div class="sms-commands-column" *ngIf="!isTagTarget()">
                                     <div class="quick-commands" *ngIf="availableCommands.length > 0">
                                         <div class="commands-header">
                                             <h4>{{ countdown > 0 ? countdown + ' segundos' :
