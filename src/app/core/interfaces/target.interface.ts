@@ -232,6 +232,13 @@ export interface RouteHistoryPosition {
   serverTime: string;
   deviceTime: string;
   fixTime: string;
+  eventTime: string;
+  receivedAt?: string;
+  rawServerTime?: string;
+  rawDeviceTime?: string;
+  rawFixTime?: string;
+  timeQuality?: 'fix' | 'server' | 'device' | 'unknown';
+  correctionAppliedMinutes?: number;
   latitude: number;
   longitude: number;
   altitude: number;

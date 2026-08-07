@@ -452,7 +452,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
           const historyResponse = await this.targetsService.getLatestLocationFromHistory(deviceImei);
 
           if (historyResponse.success && historyResponse.location) {
-            lastUpdate = historyResponse.location.deviceTime || historyResponse.location.fixTime;
+            lastUpdate = historyResponse.location.eventTime || historyResponse.location.fixTime || historyResponse.location.serverTime || historyResponse.location.deviceTime;
             console.log(`[OFFLINE DEBUG] Got location from history: ${lastUpdate}`);
 
             // Store historical location data for marker creation
@@ -463,6 +463,7 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
                 fixTime: historyResponse.location.fixTime,
                 deviceTime: historyResponse.location.deviceTime,
                 serverTime: historyResponse.location.serverTime,
+                eventTime: historyResponse.location.eventTime,
                 speed: historyResponse.location.speed,
                 course: historyResponse.location.course,
                 address: historyResponse.location.address,
@@ -702,10 +703,14 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
 
   private getLocationDateValue(target: any): string | Date | null {
     return (
-      target?.traccarInfo?.geolocation?.deviceTime ||
+      target?.traccarInfo?.geolocation?.eventTime ||
       target?.traccarInfo?.geolocation?.fixTime ||
-      target?.historicalLocation?.deviceTime ||
+      target?.traccarInfo?.geolocation?.serverTime ||
+      target?.traccarInfo?.geolocation?.deviceTime ||
+      target?.historicalLocation?.eventTime ||
       target?.historicalLocation?.fixTime ||
+      target?.historicalLocation?.serverTime ||
+      target?.historicalLocation?.deviceTime ||
       target?.historicalLocation?.timestamp ||
       target?.traccarInfo?.lastUpdate ||
       null
@@ -876,15 +881,11 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     try {
-      const now = new Date();
-      const from = new Date(now);
-      from.setHours(0, 0, 0, 0);
-      const to = new Date(now);
-      to.setHours(23, 59, 59, 999);
+      const { from, to } = this.getTodayRangeInAccountTimezone();
       const response = await this.targetsService.getDeviceDistance(
         this.selectedTarget._id,
-        from.toISOString(),
-        to.toISOString()
+        from,
+        to
       );
 
       const distanceKm =
@@ -899,6 +900,21 @@ export class MapsComponent implements OnInit, OnChanges, OnDestroy {
       console.error('❌ Error obteniendo distancia recorrida:', error);
       this.distanceDisplay = this.translate.instant('maps.notAvailable');
     }
+  }
+
+  private getTodayRangeInAccountTimezone(): { from: string; to: string } {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Santo_Domingo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(new Date());
+    const value = (type: string) => parts.find(part => part.type === type)?.value;
+    const date = `${value('year')}-${value('month')}-${value('day')}`;
+    return {
+      from: new Date(`${date}T00:00:00.000-04:00`).toISOString(),
+      to: new Date(`${date}T23:59:59.999-04:00`).toISOString()
+    };
   }
 
   private async createMarker(lat: number, lng: number): Promise<void> {

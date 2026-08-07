@@ -68,14 +68,15 @@
 
             <p-dropdown [options]="warehouses" [(ngModel)]="globalSearchStorageId" optionLabel="name" optionValue="_id"
               name="warehouseFilter" placeholder="Todos los almacenes" [showClear]="true" styleClass="inventory-dropdown"
-              [style]="{'width':'100%'}"
-              appendTo="body" [disabled]="isSearchingGlobal" (onChange)="searchAllInventory()">
+              panelStyleClass="inventory-filter-dropdown-panel" [style]="{'width':'100%'}"
+              [disabled]="isSearchingGlobal" (onChange)="searchAllInventory()">
             </p-dropdown>
 
             <p-dropdown
               [options]="[{label: 'Todos', value: ''}, {label: 'Instalados', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
               [(ngModel)]="globalSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
-              placeholder="Todos los estados" styleClass="inventory-dropdown" [style]="{'width':'100%'}" appendTo="body" [disabled]="isSearchingGlobal"
+              placeholder="Todos los estados" styleClass="inventory-dropdown"
+              panelStyleClass="inventory-filter-dropdown-panel" [style]="{'width':'100%'}" [disabled]="isSearchingGlobal"
               (onChange)="searchAllInventory()">
             </p-dropdown>
 
@@ -107,20 +108,22 @@
 
             <p-dropdown [options]="warehouses" [(ngModel)]="simcardSearchStorageId" optionLabel="name" optionValue="_id"
               name="warehouseFilter" placeholder="Todos los almacenes" [showClear]="true" styleClass="inventory-dropdown"
-              [style]="{'width':'100%'}"
-              appendTo="body" [disabled]="isSearchingSimcards" (onChange)="searchAllSimcards()">
+              panelStyleClass="inventory-filter-dropdown-panel" [style]="{'width':'100%'}"
+              [disabled]="isSearchingSimcards" (onChange)="searchAllSimcards()">
             </p-dropdown>
 
             <p-dropdown
               [options]="[{label: 'Todas', value: ''}, {label: 'Instaladas', value: 'installed'}, {label: 'Disponibles', value: 'available'}]"
               [(ngModel)]="simcardSearchStatus" name="statusFilter" optionLabel="label" optionValue="value"
-              placeholder="Todos los estados" styleClass="inventory-dropdown" [style]="{'width':'100%'}" appendTo="body" [disabled]="isSearchingSimcards"
+              placeholder="Todos los estados" styleClass="inventory-dropdown"
+              panelStyleClass="inventory-filter-dropdown-panel" [style]="{'width':'100%'}" [disabled]="isSearchingSimcards"
               (onChange)="searchAllSimcards()">
             </p-dropdown>
 
             <p-dropdown [options]="[{label: 'Todas las compañías', value: ''}].concat(availableSimCardTypes)"
               [(ngModel)]="simcardSearchCompany" name="companyFilter" optionLabel="label" optionValue="value"
-              placeholder="Todas las compañías" styleClass="inventory-dropdown" [style]="{'width':'100%'}" appendTo="body" [disabled]="isSearchingSimcards"
+              placeholder="Todas las compañías" styleClass="inventory-dropdown"
+              panelStyleClass="inventory-filter-dropdown-panel" [style]="{'width':'100%'}" [disabled]="isSearchingSimcards"
               (onChange)="searchAllSimcards()">
             </p-dropdown>
 
@@ -276,55 +279,6 @@
 
 
 
-      <!-- Package Form Dialog -->
-      <p-dialog [(visible)]="packageDialogVisible" [style]="{width: '500px'}" header="Detalles del Paquete"
-        [modal]="true" styleClass="p-fluid" (onHide)="hidePackageDialog()">
-        <ng-template pTemplate="content">
-          <div class="field mb-3">
-            <label for="packageTitle" class="font-bold">Título del paquete</label>
-            <input type="text" pInputText id="packageTitle" [ngModel]="selectedPackage?.title"
-              (ngModelChange)="selectedPackage && (selectedPackage.title = $event)" required autofocus
-              placeholder="Ej. Paquete mensual" class="w-full" style="width: 100%" />
-            <small class="p-error" *ngIf="!selectedPackage?.title" style="display: block; margin-top: 5px;">El título
-              es
-              requerido.</small>
-          </div>
-
-          <div class="form-row">
-            <div class="field">
-              <label for="packageDate" class="font-bold">Fecha</label>
-              <p-calendar id="packageDate" [ngModel]="selectedPackage?.date"
-                (ngModelChange)="selectedPackage && (selectedPackage.date = $event)" dateFormat="yy-mm-dd"
-                appendTo="body" [showIcon]="true" [style]="{'width':'100%'}" inputStyleClass="w-full"></p-calendar>
-            </div>
-
-            <div class="field">
-              <label for="packagePrice" class="font-bold">Precio</label>
-              <p-inputNumber id="packagePrice" [ngModel]="selectedPackage?.price"
-                (ngModelChange)="selectedPackage && (selectedPackage.price = $event)" mode="currency" currency="USD"
-                locale="en-US" placeholder="$0.00" [style]="{'width':'100%'}" inputStyleClass="w-full"></p-inputNumber>
-            </div>
-          </div>
-
-          <div class="field mb-3">
-            <label for="packageDescription" class="font-bold">Descripción</label>
-            <textarea id="packageDescription" pInputTextarea [ngModel]="selectedPackage?.description"
-              (ngModelChange)="selectedPackage && (selectedPackage.description = $event)" rows="4"
-              autoResize="autoResize" placeholder="Descripción opcional del paquete..." class="w-full"
-              style="width: 100%"></textarea>
-          </div>
-        </ng-template>
-
-        <ng-template pTemplate="footer">
-          <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text p-button-secondary"
-            (click)="hidePackageDialog()"></button>
-          <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-primary"
-            (click)="savePackage()"></button>
-        </ng-template>
-      </p-dialog>
-
-
-
       <div class="packages-list-section">
         <div class="packages-section-header">
           <div>
@@ -391,6 +345,64 @@
             <small>Crea tu primer paquete para comenzar a organizar el inventario.</small>
           </div>
         </div>
+      </div>
+
+      <div *ngIf="packageDialogVisible" class="inventory-package-modal-backdrop"
+        (click)="hidePackageDialog()">
+        <section class="p-fluid inventory-package-dialog" role="dialog" aria-modal="true"
+          aria-labelledby="inventoryPackageDialogTitle" (click)="$event.stopPropagation()">
+          <header class="inventory-package-dialog-header">
+            <h2 id="inventoryPackageDialogTitle">Detalles del Paquete</h2>
+            <button type="button" class="inventory-package-dialog-close" aria-label="Cerrar formulario"
+              (click)="hidePackageDialog()">
+              <i class="pi pi-times"></i>
+            </button>
+          </header>
+
+          <div class="inventory-package-dialog-content">
+            <div class="field mb-3">
+              <label for="packageTitle" class="font-bold">Título del paquete</label>
+              <input type="text" pInputText id="packageTitle" [ngModel]="selectedPackage?.title"
+                (ngModelChange)="selectedPackage && (selectedPackage.title = $event)" required autofocus
+                placeholder="Ej. Paquete mensual" class="w-full" style="width: 100%" />
+              <small class="p-error" *ngIf="!selectedPackage?.title" style="display: block; margin-top: 5px;">El
+                título es requerido.</small>
+            </div>
+
+            <div class="form-row">
+              <div class="field">
+                <label for="packageDate" class="font-bold">Fecha</label>
+                <p-calendar id="packageDate" [ngModel]="selectedPackage?.date"
+                  (ngModelChange)="selectedPackage && (selectedPackage.date = $event)" dateFormat="yy-mm-dd"
+                  appendTo="body" [showIcon]="true" [style]="{'width':'100%'}"
+                  inputStyleClass="w-full"></p-calendar>
+              </div>
+
+              <div class="field">
+                <label for="packagePrice" class="font-bold">Precio</label>
+                <p-inputNumber id="packagePrice" [ngModel]="selectedPackage?.price"
+                  (ngModelChange)="selectedPackage && (selectedPackage.price = $event)" mode="currency"
+                  currency="USD" locale="en-US" placeholder="$0.00" [style]="{'width':'100%'}"
+                  inputStyleClass="w-full"></p-inputNumber>
+              </div>
+            </div>
+
+            <div class="field mb-3">
+              <label for="packageDescription" class="font-bold">Descripción</label>
+              <textarea id="packageDescription" pInputTextarea [ngModel]="selectedPackage?.description"
+                (ngModelChange)="selectedPackage && (selectedPackage.description = $event)" rows="4"
+                autoResize="autoResize" placeholder="Descripción opcional del paquete..." class="w-full"
+                style="width: 100%"></textarea>
+            </div>
+          </div>
+
+          <footer class="inventory-package-dialog-footer">
+            <button pButton pRipple label="Cancelar" icon="pi pi-times" class="p-button-text p-button-secondary"
+              (click)="hidePackageDialog()"></button>
+            <button pButton pRipple label="Guardar" icon="pi pi-check" class="p-button-primary"
+              (click)="savePackage()"></button>
+          </footer>
+        </section>
       </div>
     </div>
   </ng-container>

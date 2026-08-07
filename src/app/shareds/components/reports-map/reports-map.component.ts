@@ -172,16 +172,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   @Output() infoPanelChange = new EventEmitter<ReportsMapInfoPanelData | null>();
   @Output() calculatedStopsChange = new EventEmitter<any[]>();
 
-  // Configuración de zona horaria para los labels de marcadores
-  // NOTA: Este valor se usa solo como FALLBACK si el protocolo no tiene utcOffset configurado
-  // El sistema prioriza: 1º targetProtocol.utcOffset, 2º esta variable por defecto
-  // Ejemplos de uso:
-  // GMT-6 (CST): hoursToSubtract = 6
-  // GMT-5 (EST): hoursToSubtract = 5  
-  // GMT-3 (ART): hoursToSubtract = 3
-  // GMT+1 (CET): hoursToSubtract = -1 (para sumar una hora)
-  private hoursToSubtract: number = 8; // Valor por defecto mantenido por el usuario
-
   map: any;
   provider: 'osm' = 'osm';
   
@@ -307,18 +297,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     } else if (this.autoStartReplay && (this.isManuallyPaused || this.isManuallyStop)) {
     }
     
-    // Detectar cambios en el protocolo del target
-    if (changes['targetProtocol']) {
-      const previous = changes['targetProtocol'].previousValue;
-      const current = changes['targetProtocol'].currentValue;
-      
-    
-      
-      if (current && current.utcOffset !== undefined) {
-    
-      }
-    }
-
     if (
       changes['routeHistory'] &&
       (!this.routeHistory ||
@@ -509,7 +487,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private createPositionPopupContent(position: any, title: string, color: string): string {
-    const date = this.formatDateForPopup(position.fixTime);
+    const date = this.formatDateForPopup(position.eventTime || position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
     this.updateInfoPanelFromPosition(position, title);
     
@@ -678,7 +656,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     // Preparar datos de reproducción - incluir paradas como puntos especiales
     const movingPositions = [...this.routeHistory.positions]
       .filter(position => position.speed > 0)
-      .sort((a, b) => new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime());
+      .sort((a, b) => new Date(a.eventTime || a.fixTime).getTime() - new Date(b.eventTime || b.fixTime).getTime());
     
     // Crear secuencia combinada: movimiento + paradas en orden cronológico
     const combinedSequence = this.createReplaySequenceWithStops(movingPositions);
@@ -818,7 +796,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     // Filtrar posiciones con velocidad 0 y ordenar por timestamp
     const allPositions = [...this.routeHistory.positions]
       .filter(position => position.speed > 0) // Ignorar posiciones con velocidad 0
-      .sort((a, b) => new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime());
+      .sort((a, b) => new Date(a.eventTime || a.fixTime).getTime() - new Date(b.eventTime || b.fixTime).getTime());
     
 
     
@@ -860,35 +838,9 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
     this.setReplaySpeed(speed);
   }
 
-  /**
-   * Ajustar fecha usando el utcOffset del protocolo del target o valor por defecto
-   */
   private adjustDateForDisplay(date: Date): Date {
-    const adjustedDate = new Date(date);
-    
-    // Usar utcOffset del protocolo si está disponible, sino usar hoursToSubtract por defecto
-    let offsetToUse = this.hoursToSubtract; // Valor por defecto
-    let offsetSource = 'variable por defecto';
-    
-    if (this.targetProtocol && this.targetProtocol.utcOffset !== undefined && this.targetProtocol.utcOffset !== null) {
-      offsetToUse = this.targetProtocol.utcOffset;
-      offsetSource = `protocolo ${this.targetProtocol.name}`;
-    }
-    
-    adjustedDate.setHours(adjustedDate.getHours() - offsetToUse);
-    
-    console.log(`🕐 Ajuste de hora aplicado: -${offsetToUse} horas`, {
-      originalUTC: date.toISOString(),
-      adjustedLocal: adjustedDate.toLocaleString('es-ES', { hour12: true }),
-      offsetApplied: offsetToUse,
-      offsetSource: offsetSource,
-      protocolInfo: this.targetProtocol ? {
-        protocolName: this.targetProtocol.name,
-        protocolUtcOffset: this.targetProtocol.utcOffset
-      } : 'sin protocolo'
-    });
-    
-    return adjustedDate;
+    // eventTime ya viene normalizado en UTC por el backend.
+    return new Date(date);
   }
 
   /**
@@ -907,29 +859,6 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       second: '2-digit',
       hour12: true
     });
-  }
-
-  /**
-   * Configurar la cantidad de horas a restar para mostrar en zona horaria local
-   * NOTA: Solo se usa si no hay protocolo con utcOffset configurado
-   * @param hours Número de horas a restar (puede ser positivo o negativo)
-   */
-  public setTimezoneOffset(hours: number): void {
-    this.hoursToSubtract = hours;
-    console.log(`🌍 Configuración manual de zona horaria actualizada: -${hours} horas`, {
-      note: 'Se usará solo si el protocolo no tiene utcOffset configurado',
-      protocolOverride: this.targetProtocol?.utcOffset !== undefined ? 
-        `Protocolo tiene utcOffset: ${this.targetProtocol.utcOffset}` : 
-        'Sin protocolo o sin utcOffset'
-    });
-  }
-
-  /**
-   * Obtener la configuración actual de zona horaria
-   * @returns Número de horas que se están restando
-   */
-  public getTimezoneOffset(): number {
-    return this.hoursToSubtract;
   }
 
   /**
@@ -1030,7 +959,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
    * Crear contenido del popup para la posición final del recorrido
    */
   private createFinalPositionPopupContent(position: any): string {
-    const date = this.formatDateForPopup(position.fixTime);
+    const date = this.formatDateForPopup(position.eventTime || position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
     this.updateInfoPanelFromPosition(position, '🏁 Posición Final del Recorrido', {
       dateLabel: 'Fecha y hora final',
@@ -1095,7 +1024,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
    * Crear contenido del popup para la posición donde se detuvo la reproducción
    */
   private createStoppedPositionPopupContent(position: any): string {
-    const date = this.formatDateForPopup(position.fixTime);
+    const date = this.formatDateForPopup(position.eventTime || position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
     this.updateInfoPanelFromPosition(position, '⏹️ Reproducción Detenida', {
       dateLabel: 'Fecha y hora de detención',
@@ -1335,7 +1264,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
             label: currentPosition.isStopStart
               ? 'Inicio de parada'
               : 'Fin de parada',
-            value: this.formatDateForPopup(currentPosition.fixTime),
+            value: this.formatDateForPopup(currentPosition.eventTime || currentPosition.fixTime),
           },
         ],
       );
@@ -1529,7 +1458,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private createMovementReplayPopupContent(position: any, positionNumber: number): string {
-    const date = this.formatDateForPopup(position.fixTime);
+    const date = this.formatDateForPopup(position.eventTime || position.fixTime);
     const speed = Math.round(position.speed * 1.852); // Convertir a km/h
     this.updateInfoPanelFromPosition(position, 'Recorrido');
     
@@ -1584,7 +1513,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   private createStopReplayPopupContent(position: any, positionNumber: number): string {
-    const date = this.formatDateForPopup(position.fixTime);
+    const date = this.formatDateForPopup(position.eventTime || position.fixTime);
     const stopData = position.stopData;
     const isStart = position.isStopStart;
     
@@ -1741,7 +1670,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
       }
 
       // Comparar timestamps para decidir qué agregar primero
-      const movingTime = new Date(currentMoving.fixTime).getTime();
+      const movingTime = new Date(currentMoving.eventTime || currentMoving.fixTime).getTime();
       const stopStartTime = new Date(currentStop.startTime).getTime();
 
       if (movingTime <= stopStartTime) {
@@ -1789,7 +1718,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
     // Ordenar posiciones por timestamp
     const sortedPositions = [...allPositions].sort((a, b) => 
-      new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime()
+      new Date(a.eventTime || a.fixTime).getTime() - new Date(b.eventTime || b.fixTime).getTime()
     );
 
     const MIN_STOP_DURATION_MS = this.minStopDuration * 60000;
@@ -1817,8 +1746,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
           this.currentActiveStop = {
             startPosition: position,
             endPosition: position,
-            startTime: position.fixTime,
-            endTime: position.fixTime,
+            startTime: position.eventTime || position.fixTime,
+            endTime: position.eventTime || position.fixTime,
             latitude: position.latitude,
             longitude: position.longitude,
             positions: [position],
@@ -1834,7 +1763,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
           if (distance <= MAX_DISTANCE_METERS) {
             // Continúa la misma parada
             this.currentActiveStop.endPosition = position;
-            this.currentActiveStop.endTime = position.fixTime;
+            this.currentActiveStop.endTime = position.eventTime || position.fixTime;
             this.currentActiveStop.positions.push(position);
           } else {
             // Nueva parada (muy lejos de la anterior) - finalizar la anterior
@@ -1845,8 +1774,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
             this.currentActiveStop = {
               startPosition: position,
               endPosition: position,
-              startTime: position.fixTime,
-              endTime: position.fixTime,
+              startTime: position.eventTime || position.fixTime,
+              endTime: position.eventTime || position.fixTime,
               latitude: position.latitude,
               longitude: position.longitude,
               positions: [position],
@@ -1913,7 +1842,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
     // Ordenar posiciones por timestamp para asegurar secuencia correcta
     const sortedPositions = [...allPositions].sort((a, b) => 
-      new Date(a.fixTime).getTime() - new Date(b.fixTime).getTime()
+      new Date(a.eventTime || a.fixTime).getTime() - new Date(b.eventTime || b.fixTime).getTime()
     );
 
     const stops: any[] = [];
@@ -1934,8 +1863,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
           currentStop = {
             startPosition: position,
             endPosition: position,
-            startTime: position.fixTime,
-            endTime: position.fixTime,
+            startTime: position.eventTime || position.fixTime,
+            endTime: position.eventTime || position.fixTime,
             latitude: position.latitude,
             longitude: position.longitude,
             positions: [position],
@@ -1951,7 +1880,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
           if (distance <= MAX_DISTANCE_METERS) {
             // Continúa la misma parada
             currentStop.endPosition = position;
-            currentStop.endTime = position.fixTime;
+            currentStop.endTime = position.eventTime || position.fixTime;
             currentStop.positions.push(position);
           } else {
             // Nueva parada (muy lejos de la anterior)
@@ -1968,8 +1897,8 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
             currentStop = {
               startPosition: position,
               endPosition: position,
-              startTime: position.fixTime,
-              endTime: position.fixTime,
+              startTime: position.eventTime || position.fixTime,
+              endTime: position.eventTime || position.fixTime,
               latitude: position.latitude,
               longitude: position.longitude,
               positions: [position],
@@ -2263,6 +2192,7 @@ export class ReportsMapComponent implements OnInit, OnDestroy, OnChanges {
 
     const items: ReportsMapInfoPanelItem[] = [];
     const rawDate =
+      position.eventTime ||
       position.fixTime ||
       position.deviceTime ||
       position.serverTime ||

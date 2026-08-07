@@ -909,7 +909,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
           }
         }
 
-        // Ajustar fechas con el utcOffset del protocolo antes de enviar al backend
+        // El backend traduce este rango real al reloj técnico de cada protocolo.
         if (!fromDate || !toDate) {
           throw new Error('Las fechas de inicio y fin son requeridas para cargar historial');
         }
@@ -1155,8 +1155,8 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       const sortedPositions = [...positions].sort((a, b) => {
-        const aTime = new Date(a.fixTime || a.deviceTime || a.serverTime || 0).getTime();
-        const bTime = new Date(b.fixTime || b.deviceTime || b.serverTime || 0).getTime();
+        const aTime = new Date(a.eventTime || a.fixTime || a.serverTime || a.deviceTime || 0).getTime();
+        const bTime = new Date(b.eventTime || b.fixTime || b.serverTime || b.deviceTime || 0).getTime();
         return aTime - bTime;
       });
       const minStopDurationMs = Math.max(0, Number(this.reportFilter.minStopDurationFilter || 1)) * 60000;
@@ -1169,7 +1169,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
         const speed = Number(position.speed || 0);
         const lat = Number(position.latitude);
         const lng = Number(position.longitude);
-        const time = position.fixTime || position.deviceTime || position.serverTime;
+        const time = position.eventTime || position.fixTime || position.serverTime || position.deviceTime;
 
         if (Number.isNaN(lat) || Number.isNaN(lng) || !time) {
           continue;
@@ -1921,7 +1921,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
       this.progressiveLoading.currentRange = firstHourRange.rangeStr;
       
       
-      // Ajustar fechas del bloque con el utcOffset del protocolo
+      // El backend normaliza el rango para el protocolo del dispositivo.
       try {
         const firstBlockHistory = await this.targetsService.getRouteHistory(
           deviceImei,
@@ -1983,7 +1983,7 @@ export class ReportsComponent implements OnInit, AfterViewInit, OnDestroy {
         this.progressiveLoading.currentRange = hourRange.rangeStr;
         
         
-        // Ajustar fechas del bloque con el utcOffset del protocolo
+        // El backend normaliza el rango para el protocolo del dispositivo.
         try {
           const blockHistory = await this.targetsService.getRouteHistory(
             deviceImei,

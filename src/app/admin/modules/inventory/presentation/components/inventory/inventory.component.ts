@@ -336,6 +336,7 @@ export class InventoryComponent implements OnInit {
   hidePackageDialog(): void {
     this.packageDialogVisible = false;
     this.selectedPackage = null;
+    this.isEditPackageMode = false;
   }
 
   viewPackageDevices(pkg: Package): void {

@@ -31,6 +31,7 @@ export class ProtocolsSettingsComponent implements OnInit {
     port: 0,
     img: '',
     utcOffset: 0,
+    timestampStrategy: 'auto',
     isAirtag: false,
     commands: []
   };
@@ -111,6 +112,9 @@ export class ProtocolsSettingsComponent implements OnInit {
       port: protocol.port,
       img: protocol.img,
       utcOffset: protocol.utcOffset ?? 0,
+      queryTimeOffsetMinutes: protocol.queryTimeOffsetMinutes,
+      fixTimeOffsetMinutes: protocol.fixTimeOffsetMinutes,
+      timestampStrategy: protocol.timestampStrategy || 'auto',
       isAirtag: protocol.isAirtag ?? false,
       commands: [...protocol.commands]
     };
@@ -184,6 +188,9 @@ export class ProtocolsSettingsComponent implements OnInit {
         port: this.protocolForm.port,
         img: this.protocolForm.img,
         utcOffset: this.protocolForm.utcOffset,
+        queryTimeOffsetMinutes: this.protocolForm.queryTimeOffsetMinutes,
+        fixTimeOffsetMinutes: this.protocolForm.fixTimeOffsetMinutes,
+        timestampStrategy: this.protocolForm.timestampStrategy,
         isAirtag: this.protocolForm.isAirtag,
         commands: this.protocolForm.commands
       };
@@ -210,6 +217,9 @@ export class ProtocolsSettingsComponent implements OnInit {
         port: this.protocolForm.port,
         img: this.protocolForm.img,
         utcOffset: this.protocolForm.utcOffset,
+        queryTimeOffsetMinutes: this.protocolForm.queryTimeOffsetMinutes,
+        fixTimeOffsetMinutes: this.protocolForm.fixTimeOffsetMinutes,
+        timestampStrategy: this.protocolForm.timestampStrategy,
         isAirtag: this.protocolForm.isAirtag,
         commands: this.protocolForm.commands
       };
@@ -240,6 +250,7 @@ export class ProtocolsSettingsComponent implements OnInit {
       port: 0,
       img: '',
       utcOffset: 0,
+      timestampStrategy: 'auto',
       isAirtag: false,
       commands: []
     };

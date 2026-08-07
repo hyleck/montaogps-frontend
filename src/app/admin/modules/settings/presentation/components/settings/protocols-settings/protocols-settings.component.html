@@ -51,6 +51,34 @@
                            [placeholder]="'settings.protocols.utc_offset_placeholder' | translate">
                     <small class="form-help">{{ 'settings.protocols.utc_offset_help' | translate }}</small>
                 </div>
+
+                <div class="form-group">
+                    <label for="queryTimeOffsetMinutes">Corrección de consulta (minutos)</label>
+                    <input id="queryTimeOffsetMinutes" type="number"
+                           [(ngModel)]="protocolForm.queryTimeOffsetMinutes"
+                           name="queryTimeOffsetMinutes" step="1"
+                           placeholder="Ej. 480">
+                    <small class="form-help">Desplaza solamente el rango enviado a Traccar. Vacío conserva la corrección UTC anterior.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="fixTimeOffsetMinutes">Corrección del fix GPS (minutos)</label>
+                    <input id="fixTimeOffsetMinutes" type="number"
+                           [(ngModel)]="protocolForm.fixTimeOffsetMinutes"
+                           name="fixTimeOffsetMinutes" step="1"
+                           placeholder="Ej. 480">
+                    <small class="form-help">Se resta al fixTime crudo para obtener el momento real. Vacío conserva la corrección UTC anterior.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="timestampStrategy">Reloj principal</label>
+                    <select id="timestampStrategy" [(ngModel)]="protocolForm.timestampStrategy" name="timestampStrategy">
+                        <option value="auto">Automático: fix GPS validado y respaldo del servidor</option>
+                        <option value="fix_then_server">Fix GPS y luego servidor</option>
+                        <option value="server">Hora de recepción del servidor</option>
+                    </select>
+                    <small class="form-help">Esta regla es única para distancia, historial, paradas, web y mobile.</small>
+                </div>
                 
                 <div class="form-group">
                     <label for="img">{{ 'settings.protocols.image' | translate }}</label>

@@ -11,6 +11,9 @@ export interface Protocol {
   port: number;
   img: string;
   utcOffset?: number; // Diferencia UTC en horas (ej: -6, -5, +1)
+  queryTimeOffsetMinutes?: number;
+  fixTimeOffsetMinutes?: number;
+  timestampStrategy?: 'auto' | 'fix_then_server' | 'server';
   isAirtag?: boolean;
   commands: ProtocolCommand[];
 }
@@ -21,6 +24,9 @@ export interface CreateProtocolDto {
   port: number;
   img: string;
   utcOffset?: number; // Diferencia UTC en horas (ej: -6, -5, +1)
+  queryTimeOffsetMinutes?: number;
+  fixTimeOffsetMinutes?: number;
+  timestampStrategy?: 'auto' | 'fix_then_server' | 'server';
   isAirtag?: boolean;
   commands: ProtocolCommand[];
 }
@@ -31,6 +37,9 @@ export interface UpdateProtocolDto {
   port?: number;
   img?: string;
   utcOffset?: number; // Diferencia UTC en horas (ej: -6, -5, +1)
+  queryTimeOffsetMinutes?: number;
+  fixTimeOffsetMinutes?: number;
+  timestampStrategy?: 'auto' | 'fix_then_server' | 'server';
   isAirtag?: boolean;
   commands?: ProtocolCommand[];
-} 
+}
