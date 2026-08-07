@@ -1204,6 +1204,22 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     setPrivilegeAction(module: string, action: keyof PrivilegeAction, value: boolean): void {
+        if (Array.isArray(this.user.privileges)) {
+            let privilege = this.user.privileges.find(item => item.module === module);
+            if (!privilege) {
+                const rolePrivilege = this.user.role?.privileges?.find(item => item.module === module);
+                privilege = rolePrivilege
+                    ? JSON.parse(JSON.stringify(rolePrivilege))
+                    : {
+                        module,
+                        actions: { read: false, create: false, update: false, delete: false }
+                    };
+                this.user.privileges.push(privilege);
+            }
+            privilege.actions[action] = value;
+            return;
+        }
+
         if (this.user.role) {
             this.user.role = this.privilegeService.setPrivilegeAction(
                 this.user.role,
@@ -1319,7 +1335,6 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             return;
         }
 
-        const currentUser = this.authService.getCurrentUser();
         const parentId = this.route.snapshot.params['user'];
 
         this.user.affiliation_type_id = this.selectedAffiliationType;
@@ -1337,14 +1352,14 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
         };
 
         // Asegurar que los privilegios modificados se incluyan en el envío
-        const privileges = this.user.role?.privileges || [];
+        const privileges = Array.isArray(this.user.privileges)
+            ? this.user.privileges
+            : (this.user.role?.privileges || []);
 
         const userToSubmit = {
             ...this.user,
             role: this.user.role._id,
             access_level_id: this.user.role._id,
-            hashdRt: 'exampleHashdRt',
-            creator_id: currentUser ? currentUser.id : 'exampleCreatorId',
             privileges: privileges,
             settings: [settingsObject], // Mantener como array pero con el objeto actualizado
             affiliation_type_id: this.selectedAffiliationType,
@@ -1379,10 +1394,7 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
             delete (userToSubmit as any).static_latitude;
             delete (userToSubmit as any).static_longitude;
         }
-        console.log('User to submit:', userToSubmit);
-
         const normalizedUserPayload = this.normalizeUserPayload(userToSubmit);
-        console.log('Normalized payload:', normalizedUserPayload);
 
 
         if (this.userInput) {
@@ -1391,6 +1403,32 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                 ...normalizedUserPayload,
                 password: normalizedUserPayload.password || undefined
             };
+
+            // Las cuentas antiguas pueden tener identificadores internos como
+            // `replica_...`. Si no fueron editados, no deben normalizarse ni
+            // reenviarse: hacerlo puede convertirlos en el DNI de otra cuenta y
+            // provocar un conflicto falso al guardar cualquier otro campo.
+            if (this.normalizeEmail(this.user.email) === this.normalizeEmail(this.userInput.email)) {
+                delete updateUserDto.email;
+            }
+            if (this.sanitizeString(this.user.dni) === this.sanitizeString(this.userInput.dni)) {
+                delete updateUserDto.dni;
+            }
+            if (!updateUserDto.password) {
+                delete updateUserDto.password;
+            }
+
+            const originalRoleId = String(this.userInput.access_level_id?._id || '');
+            const selectedRoleId = String(this.user.role?._id || '');
+            if (
+                originalRoleId === selectedRoleId &&
+                this.arePrivilegesEqual(privileges, this.userInput.privileges)
+            ) {
+                // No es una asignación de permisos; omitirlos evita que una
+                // edición de datos personales intente conceder nuevamente
+                // privilegios que el empleado no está modificando.
+                delete updateUserDto.privileges;
+            }
 
             this.userService.update(this.userInput._id, updateUserDto)
                 .pipe(takeUntil(this.destroy$))
@@ -1409,7 +1447,10 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
                         this.messageService.add({
                             severity: 'error',
                             summary: this.translate.instant('management.userForm.error'),
-                            detail: this.translate.instant('management.userForm.updateFailed'),
+                            detail: getApiErrorMessage(
+                                error,
+                                this.translate.instant('management.userForm.updateFailed')
+                            ),
                             life: 3000
                         });
                         console.error('Error al actualizar usuario:', error);
@@ -1592,6 +1633,22 @@ export class UserFormComponent implements OnInit, OnChanges, OnDestroy {
 
     private normalizeEmail(value?: string | null): string {
         return this.normalizeIdentifier(value);
+    }
+
+    private arePrivilegesEqual(current: any, original: any): boolean {
+        const normalize = (value: any) => (Array.isArray(value) ? value : [])
+            .map((privilege: any) => ({
+                module: String(privilege?.module || ''),
+                actions: {
+                    read: privilege?.actions?.read === true,
+                    create: privilege?.actions?.create === true,
+                    update: privilege?.actions?.update === true,
+                    delete: privilege?.actions?.delete === true
+                }
+            }))
+            .sort((left: any, right: any) => left.module.localeCompare(right.module));
+
+        return JSON.stringify(normalize(current)) === JSON.stringify(normalize(original));
     }
 
     private normalizeUserPayload(payload: any): any {

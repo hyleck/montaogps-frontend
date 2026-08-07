@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AdminComponent } from './components/admin-layout/admin.component';
 import { RootGuard } from '../../core/guards/root.guard';
+import { SolicitudesGuard } from '../../core/guards/solicitudes.guard';
 
 const routes: Routes = [
   {
@@ -64,6 +65,8 @@ const routes: Routes = [
       },
       {
         path: 'solicitudes',
+        canMatch: [SolicitudesGuard],
+        canActivate: [SolicitudesGuard],
         loadChildren: () => import('../modules/solicitudes/presentation/solicitudes.module').then(m => m.SolicitudesModule)
       },
       {

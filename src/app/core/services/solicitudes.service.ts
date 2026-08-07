@@ -81,6 +81,7 @@ export interface SolicitudReassignment {
 
 export interface Solicitud {
     _id?: string;
+    __v?: number;
     type: string;
     status: string;
     technician_response?: string;
@@ -125,6 +126,9 @@ export interface Solicitud {
     gps_change?: Solicitud;
     createdAt?: string;
     updatedAt?: string;
+    idempotency_key?: string;
+    expected_version?: number;
+    operation_warnings?: string[];
 }
 
 export interface SolicitudesRealtimeState {
@@ -273,6 +277,15 @@ export class SolicitudesService {
 
     update(id: string, solicitud: Partial<Solicitud>): Observable<Solicitud> {
         return this.http.patch<Solicitud>(`${this.apiUrl}/${id}`, solicitud);
+    }
+
+    reorder(items: Array<{
+        id: string;
+        status: string;
+        order: number;
+        expected_version?: number;
+    }>): Observable<Solicitud[]> {
+        return this.http.patch<Solicitud[]>(`${this.apiUrl}/board/reorder`, { items });
     }
 
     reassign(

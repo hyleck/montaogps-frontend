@@ -124,7 +124,9 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     @ViewChild('solicitudLocationSearchInput')
     solicitudLocationSearchInput?: ElementRef<HTMLInputElement>;
 
-    private readonly solicitudAutocompleteUserId = '68a9ccf19bb280482272477f';
+    private clientEmailSearchSequence = 0;
+    private inventoryDeviceSearchSequence = 0;
+    private readonly loadedModelBrandIds = new Set<string>();
     items: MenuItem[] = [{ label: 'Solicitudes' }];
     home: MenuItem = { icon: 'pi pi-home', routerLink: '/admin/dashboard' };
 
@@ -271,28 +273,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         if (oldStatus === newStatus && dropIndex === -1) return;
 
         const applyDrop = () => {
-            // Only mutate the card after any required confirmation has been accepted.
-            sol.status = newStatus;
-
-            if (dropIndex >= 0 && dropIndex <= columnItems.length) {
-                columnItems.splice(dropIndex, 0, sol);
-            } else {
-                columnItems.push(sol);
-            }
-
-            columnItems.forEach((item, idx) => {
-                item.order = idx;
-                this.solicitudesService.update(item._id!, { order: idx, status: item.status }).subscribe();
-            });
-            this.solicitudes = [...this.solicitudes];
-
-            if (oldStatus !== newStatus) {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Movido',
-                    detail: `Solicitud movida a ${this.statusLabels[newStatus] || newStatus}`
-                });
-            }
+            void this.persistBoardDrop(sol, oldStatus, newStatus, columnItems, dropIndex);
         };
 
         if (newStatus === 'completada' && oldStatus !== 'completada') {
@@ -301,6 +282,94 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
 
         applyDrop();
+    }
+
+    private boardReorderInFlight = false;
+
+    private async persistBoardDrop(
+        solicitud: Solicitud,
+        oldStatus: string,
+        newStatus: string,
+        targetItems: Solicitud[],
+        dropIndex: number,
+    ): Promise<void> {
+        if (this.boardReorderInFlight || !solicitud._id) return;
+        this.boardReorderInFlight = true;
+
+        const sourceItems = oldStatus === newStatus
+            ? []
+            : this.solicitudes
+                .filter(item => item.status === oldStatus && item._id !== solicitud._id)
+                .sort((a, b) => (a.order || 0) - (b.order || 0));
+        const affected = [...new Map(
+            [...targetItems, ...sourceItems, solicitud]
+                .filter(item => !!item._id)
+                .map(item => [item._id!, item]),
+        ).values()];
+        const snapshot = new Map(
+            affected.map(item => [item._id!, {
+                status: item.status,
+                order: item.order,
+                version: item.__v,
+            }]),
+        );
+
+        solicitud.status = newStatus;
+        if (dropIndex >= 0 && dropIndex <= targetItems.length) {
+            targetItems.splice(dropIndex, 0, solicitud);
+        } else {
+            targetItems.push(solicitud);
+        }
+        targetItems.forEach((item, index) => item.order = index);
+        sourceItems.forEach((item, index) => item.order = index);
+        this.solicitudes = [...this.solicitudes];
+
+        const requestItems = [...new Map(
+            [...targetItems, ...sourceItems]
+                .filter(item => !!item._id)
+                .map(item => [item._id!, item]),
+        ).values()].map(item => ({
+            id: item._id!,
+            status: item.status,
+            order: item.order || 0,
+            expected_version: snapshot.get(item._id!)?.version,
+        }));
+
+        try {
+            const updated = await firstValueFrom(
+                this.solicitudesService.reorder(requestItems).pipe(
+                    timeout({ first: this.solicitudesLoadTimeoutMs }),
+                ),
+            );
+            updated.forEach(item => this.upsertSolicitud(item));
+            if (oldStatus !== newStatus) {
+                this.messageService.add({
+                    severity: 'success',
+                    summary: 'Solicitud movida',
+                    detail: `Ahora está en ${this.statusLabels[newStatus] || newStatus}.`,
+                });
+            }
+        } catch (error) {
+            affected.forEach(item => {
+                const previous = snapshot.get(item._id!);
+                if (!previous) return;
+                item.status = previous.status;
+                item.order = previous.order;
+                item.__v = previous.version;
+            });
+            this.solicitudes = [...this.solicitudes];
+            this.messageService.add({
+                severity: 'error',
+                summary: 'No se pudo mover la solicitud',
+                detail: getApiErrorMessage(
+                    error,
+                    'El tablero cambió o el servidor no respondió. Se conservaron los datos anteriores.',
+                ),
+            });
+            await this.loadSolicitudes(false, { silent: true });
+        } finally {
+            this.boardReorderInFlight = false;
+        }
     }
 
     selectedSolicitud: Solicitud | null = null;
@@ -844,15 +913,20 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     }
 
     private async loadModelNamesForTable(): Promise<void> {
-        const brandIds = [...new Set(this.solicitudes.map(s => s.installations?.[0]?.brand).filter(b => b))];
+        const brandIds = [...new Set(
+            this.solicitudes
+                .flatMap(solicitud => solicitud.installations || [])
+                .map(installation => installation.brand)
+                .filter((brand): brand is string => !!brand),
+        )];
         for (const brandId of brandIds as string[]) {
-            const alreadyCached = false;
-            if (alreadyCached) continue;
+            if (this.loadedModelBrandIds.has(brandId)) continue;
             try {
                 const models = await this.vehicleBrandsService.getAllModelsByBrand(brandId);
                 (models || []).forEach((m: any) => {
                     this.modelNameCache[m._id] = m.nombre;
                 });
+                this.loadedModelBrandIds.add(brandId);
             } catch { }
         }
     }
@@ -866,7 +940,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }
     }
 
-    async loadSolicitudes(resetPage = true, options: { silent?: boolean } = {}): Promise<void> {
+    async loadSolicitudes(resetPage = true, options: { silent?: boolean } = {}): Promise<boolean> {
         if (resetPage) this.currentPage = 1;
         const silent = options.silent === true;
         const loadSequence = ++this.solicitudesLoadSequence;
@@ -896,7 +970,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 );
 
                 if (loadSequence !== this.solicitudesLoadSequence) {
-                    return;
+                    return false;
                 }
 
                 const pageData = response?.data || [];
@@ -927,9 +1001,10 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             }
             void this.loadModelNamesForTable();
             this.resolveUserNames();
+            return true;
         } catch (error) {
             if (loadSequence !== this.solicitudesLoadSequence) {
-                return;
+                return false;
             }
             if (!silent) {
                 const loadError: any = error;
@@ -943,6 +1018,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                     detail,
                 });
             }
+            return false;
         } finally {
             if (!silent && this.activeVisibleLoadSequence === loadSequence) {
                 this.loading = false;
@@ -1049,8 +1125,12 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
         }).subscribe({
             next: (state) => {
                 if (state.version && state.version !== this.realtimeStateVersion) {
-                    this.realtimeStateVersion = state.version;
-                    this.loadSolicitudes(false, { silent: true });
+                    void this.loadSolicitudes(false, { silent: true })
+                        .then(loaded => {
+                            if (loaded) this.realtimeStateVersion = state.version;
+                        })
+                        .finally(() => this.realtimeStateInFlight = false);
+                    return;
                 }
                 this.realtimeStateInFlight = false;
             },
@@ -1078,6 +1158,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
                 type: 'instalacion',
                 status: status
             } as Solicitud;
+        this.selectedSolicitud.idempotency_key = this.createSolicitudIdempotencyKey();
         this.availableModels = [];
         this.availableMunicipalities = [];
         this.availableSectors = [];
@@ -1105,6 +1186,14 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
         this.dialogVisible = true;
         void this.refreshTechnicianRecommendation();
+    }
+
+    private createSolicitudIdempotencyKey(): string {
+        const cryptoApi = globalThis.crypto as Crypto | undefined;
+        if (typeof cryptoApi?.randomUUID === 'function') {
+            return cryptoApi.randomUUID();
+        }
+        return `sol-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
     }
 
     private buildSolicitudDuplicate(
@@ -1352,7 +1441,11 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     
     onQuantityChange(): void {
         if (!this.selectedSolicitud) return;
-        const qty = Number(this.selectedSolicitud.quantity) || 1;
+        const qty = Math.min(
+            100,
+            Math.max(1, Math.trunc(Number(this.selectedSolicitud.quantity) || 1)),
+        );
+        this.selectedSolicitud.quantity = qty;
         if (!this.selectedSolicitud.installations) {
             this.selectedSolicitud.installations = [];
         }
@@ -2704,19 +2797,21 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
     searchClientEmails(event: { query: string }): void {
         const query = (event.query || '').trim();
-        const parentId = this.solicitudAutocompleteUserId;
+        const requestSequence = ++this.clientEmailSearchSequence;
 
-        if (!query || query.length < 2 || !parentId) {
+        if (!query || query.length < 2) {
             this.clientEmailSuggestions = [];
             return;
         }
 
-        this.userService.search(query, parentId, 0, 12).subscribe({
+        this.userService.searchSolicitudClients(query, 0, 12).subscribe({
             next: (response) => {
+                if (requestSequence !== this.clientEmailSearchSequence) return;
                 this.clientEmailSuggestions = (response.users || [])
                     .filter(user => !!user.email);
             },
             error: () => {
+                if (requestSequence !== this.clientEmailSearchSequence) return;
                 this.clientEmailSuggestions = [];
             }
         });
@@ -2746,6 +2841,7 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
     async searchInventoryDevices(event: { query: string }, target: 'current' | 'new' = 'current'): Promise<void> {
         const activeSolicitudType = this.selectedSolicitud?.type || this.solicitudToInstall?.type;
         const query = (event.query || '').trim();
+        const requestSequence = ++this.inventoryDeviceSearchSequence;
         if (!query || query.length < 2) {
             this.inventoryDeviceSuggestions = [];
             return;
@@ -2758,29 +2854,43 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
             : ['chequeo', 'desinstalacion', 'cambio'].includes(activeSolicitudType || '')
                 ? 'installed'
                 : undefined;
+        const selectedClientId = String(
+            this.selectedSolicitud?.client_id
+            || this.solicitudToInstall?.client_id
+            || '',
+        ).trim();
 
         try {
-            const [inventoryResult, targetsResult] = await Promise.allSettled([
+            const requests: Array<Promise<any>> = [
                 firstValueFrom(this.inventoryService.searchAllDevices(
                     query,
                     undefined,
                     1,
                     12,
                     status,
-                    this.solicitudAutocompleteUserId
+                    status === 'installed' && selectedClientId
+                        ? selectedClientId
+                        : undefined,
                 )),
-                this.targetsService.searchTargets(query, this.solicitudAutocompleteUserId, 0, 12)
-            ]);
+            ];
+            if (selectedClientId) {
+                requests.push(
+                    this.targetsService.searchTargets(query, selectedClientId, 0, 12),
+                );
+            }
+            const [inventoryResult, targetsResult] = await Promise.allSettled(requests);
 
             const inventoryDevices = inventoryResult.status === 'fulfilled'
                 ? (inventoryResult.value.data || [])
                 : [];
-            const targetDevices = targetsResult.status === 'fulfilled'
+            const targetDevices = targetsResult?.status === 'fulfilled'
                 ? (targetsResult.value.devices || [])
                 : [];
 
+            if (requestSequence !== this.inventoryDeviceSearchSequence) return;
             this.inventoryDeviceSuggestions = this.mergeDeviceSuggestions(inventoryDevices, targetDevices);
         } catch {
+            if (requestSequence !== this.inventoryDeviceSearchSequence) return;
             this.inventoryDeviceSuggestions = [];
         }
     }
@@ -2908,11 +3018,30 @@ export class SolicitudesComponent implements OnInit, OnDestroy {
 
         this.checkingExistingGpsTargetByInstallation[index] = true;
         try {
-            // Buscamos si existe con los permisos de targets
-            const result = await this.targetsService.searchTargets(imei, this.solicitudAutocompleteUserId, 0, 10);
-            if (result && result.devices && result.devices.length > 0) {
+            const clientId = String(this.selectedSolicitud.client_id || '').trim();
+            const inventory = await firstValueFrom(
+                this.inventoryService.searchAllDevices(
+                    imei,
+                    undefined,
+                    1,
+                    10,
+                    'installed',
+                    clientId || undefined,
+                ),
+            );
+            const targetResult = clientId
+                ? await this.targetsService.searchTargets(imei, clientId, 0, 10)
+                : { devices: [] };
+            const devices = this.mergeDeviceSuggestions(
+                inventory?.data || [],
+                targetResult?.devices || [],
+            );
+            if (devices.length > 0) {
                 // Find exact match by IMEI or Name
-                const exactMatch: any = result.devices.find((d: any) => d.device_imei === imei || d.name === imei) || result.devices[0];
+                const exactMatch: any = devices.find(
+                    (device: any) => this.getInventoryDeviceImei(device) === imei
+                        || device.name === imei,
+                ) || devices[0];
                 
                 if (exactMatch) {
                     this.existingGpsTargetByInstallation[index] = exactMatch;
@@ -4370,13 +4499,16 @@ async initLocationMap(): Promise<void> {
                     installation => ({ ...installation }),
                 ),
             };
+            solicitudPayload.expected_version = this.selectedSolicitud.__v;
             this.restoreLockedSolicitudAssignment(solicitudPayload);
             delete solicitudPayload.gps_change;
             this.solicitudesService.update(this.selectedSolicitud._id, solicitudPayload).pipe(
+                timeout({ first: this.solicitudesLoadTimeoutMs }),
                 finalize(() => this.savingSolicitud = false),
             ).subscribe({
                 next: (updated) => {
                     this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Solicitud actualizada' });
+                    this.showSolicitudOperationWarnings(updated);
                     this.dialogVisible = false;
                     if (updated?._id) this.upsertSolicitud(updated);
                     void this.loadSolicitudes(false, { silent: true });
@@ -4385,16 +4517,23 @@ async initLocationMap(): Promise<void> {
                     this.messageService.add({
                         severity: 'error',
                         summary: 'No se pudo actualizar',
-                        detail: error?.error?.message || 'No se pudo actualizar la solicitud',
+                        detail: getApiErrorMessage(
+                            error,
+                            error?.name === 'TimeoutError'
+                                ? 'El servidor tardó demasiado. Verifica el listado antes de volver a guardar para evitar duplicados.'
+                                : 'No se pudo actualizar la solicitud',
+                        ),
                     });
                 }
             });
         } else {
             this.solicitudesService.create(this.selectedSolicitud).pipe(
+                timeout({ first: this.solicitudesLoadTimeoutMs }),
                 finalize(() => this.savingSolicitud = false),
             ).subscribe({
                 next: (created) => {
                     this.messageService.add({ severity: 'success', summary: 'Éxito', detail: 'Solicitud creada' });
+                    this.showSolicitudOperationWarnings(created);
                     this.dialogVisible = false;
                     if (created?._id) {
                         this.upsertSolicitud(created);
@@ -4406,11 +4545,27 @@ async initLocationMap(): Promise<void> {
                     this.messageService.add({
                         severity: 'error',
                         summary: 'No se pudo crear',
-                        detail: error?.error?.message || 'No se pudo crear la solicitud',
+                        detail: getApiErrorMessage(
+                            error,
+                            error?.name === 'TimeoutError'
+                                ? 'El servidor tardó demasiado. Puede reintentar: la misma solicitud no se duplicará.'
+                                : 'No se pudo crear la solicitud',
+                        ),
                     });
                 }
             });
         }
+    }
+
+    private showSolicitudOperationWarnings(solicitud?: Solicitud | null): void {
+        const warnings = solicitud?.operation_warnings || [];
+        if (!warnings.length) return;
+        this.messageService.add({
+            severity: 'warn',
+            summary: 'Solicitud guardada con tareas pendientes',
+            detail: warnings.join(' '),
+            life: 10000,
+        });
     }
 
     async confirmMissingClientAndSave(): Promise<void> {
@@ -4837,16 +4992,22 @@ async initLocationMap(): Promise<void> {
         this.cancellingSolicitud = true;
         this.cancellationAction = action;
         this.solicitudesService.update(solicitud._id, {
-            status: 'rechazada',
-            cancellation_reason: reason
-        }).subscribe({
+            status: 'cancelada',
+            cancellation_reason: reason,
+            ...(solicitud.__v !== undefined
+                ? { expected_version: solicitud.__v }
+                : {}),
+        }).pipe(
+            timeout({ first: this.solicitudesLoadTimeoutMs }),
+            finalize(() => this.cancellingSolicitud = false),
+        ).subscribe({
             next: () => {
+                this.cancellingSolicitud = false;
                 this.messageService.add({
                     severity: 'warn',
-                    summary: 'Rechazada',
-                    detail: 'Solicitud cancelada y marcada como rechazada'
+                    summary: 'Solicitud cancelada',
+                    detail: 'El motivo quedó registrado en el historial de la solicitud.'
                 });
-                this.cancellingSolicitud = false;
                 this.cancellationDialogVisible = false;
                 this.resetSolicitudCancellation();
                 this.loadSolicitudes(false);
@@ -4857,13 +5018,14 @@ async initLocationMap(): Promise<void> {
                 }
             },
             error: (error) => {
-                this.cancellingSolicitud = false;
                 this.cancellationAction = null;
                 this.messageService.add({
                     severity: 'error',
                     summary: 'No se pudo cancelar',
-                    detail: error?.error?.message
-                        || 'Verifique la razón e intente nuevamente.'
+                    detail: getApiErrorMessage(
+                        error,
+                        'Verifique la razón e intente nuevamente.',
+                    ),
                 });
             }
         });

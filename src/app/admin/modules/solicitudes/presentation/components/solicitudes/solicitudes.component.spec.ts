@@ -1231,7 +1231,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         ).toBeFalse();
     });
 
-    it('stores a cancelled request as rejected with its trimmed reason', () => {
+    it('stores a cancelled request with its trimmed reason', () => {
         const { component, solicitudesService } = createComponent();
         const solicitud: Solicitud = {
             _id: 'request-cancel',
@@ -1246,7 +1246,7 @@ describe('SolicitudesComponent scheduled date editing', () => {
         expect(solicitudesService.update).toHaveBeenCalledOnceWith(
             'request-cancel',
             {
-                status: 'rechazada',
+                status: 'cancelada',
                 cancellation_reason: 'El cliente solicitó cancelar.',
             },
         );
